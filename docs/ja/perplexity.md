@@ -1,32 +1,32 @@
 ---
-summary: "web_search 向けの Perplexity Sonar セットアップ"
+summary: "web_search 用の Perplexity Sonar セットアップ"
 read_when:
   - Perplexity Sonar を web 検索に使用したい場合
   - PERPLEXITY_API_KEY または OpenRouter のセットアップが必要な場合
 title: "Perplexity Sonar"
 x-i18n:
   source_path: perplexity.md
-  source_hash: 264d08e62e3bec85
+  source_hash: f6c9824ad9bebe38
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:34:11Z
+  generated_at: 2026-02-08T09:22:27Z
 ---
 
 # Perplexity Sonar
 
-OpenClaw は、`web_search` ツールに Perplexity Sonar を使用できます。Perplexity の直接 API、または OpenRouter 経由で接続できます。
+OpenClaw は、`web_search` ツールで Perplexity Sonar を使用できます。Perplexity の直接 API、または OpenRouter 経由で接続できます。
 
 ## API オプション
 
 ### Perplexity（直接）
 
-- ベース URL: https://api.perplexity.ai
+- ベース URL: [https://api.perplexity.ai](https://api.perplexity.ai)
 - 環境変数: `PERPLEXITY_API_KEY`
 
 ### OpenRouter（代替）
 
-- ベース URL: https://openrouter.ai/api/v1
+- ベース URL: [https://openrouter.ai/api/v1](https://openrouter.ai/api/v1)
 - 環境変数: `OPENROUTER_API_KEY`
 - プリペイド／暗号資産クレジットをサポートします。
 
@@ -67,8 +67,7 @@ OpenClaw は、`web_search` ツールに Perplexity Sonar を使用できます�
 }
 ```
 
-`PERPLEXITY_API_KEY` と `OPENROUTER_API_KEY` の両方が設定されている場合は、曖昧さを解消するために
-`tools.web.search.perplexity.baseUrl`（または `tools.web.search.perplexity.apiKey`）を設定してください。
+`PERPLEXITY_API_KEY` と `OPENROUTER_API_KEY` の両方が設定されている場合は、判別のために `tools.web.search.perplexity.baseUrl`（または `tools.web.search.perplexity.apiKey`）を設定してください。
 
 ベース URL が設定されていない場合、OpenClaw は API キーの提供元に基づいて既定値を選択します。
 
@@ -79,7 +78,7 @@ OpenClaw は、`web_search` ツールに Perplexity Sonar を使用できます�
 ## モデル
 
 - `perplexity/sonar` — Web 検索付きの高速 Q&A
-- `perplexity/sonar-pro`（既定） — マルチステップ推論 + Web 検索
-- `perplexity/sonar-reasoning-pro` — ディープリサーチ
+- `perplexity/sonar-pro`（既定）— マルチステップ推論 + Web 検索
+- `perplexity/sonar-reasoning-pro` — 詳細なリサーチ
 
 web_search の完全な設定については、[Web tools](/tools/web) を参照してください。

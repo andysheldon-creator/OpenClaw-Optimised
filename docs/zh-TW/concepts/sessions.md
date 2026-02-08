@@ -9,9 +9,9 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:53:04Z
+  generated_at: 2026-02-08T09:27:41Z
 ---
 
 # 工作階段
 
-正式的工作階段管理文件位於 [工作階段管理](/concepts/session)。
+正式的工作階段管理文件位於［工作階段管理］(/concepts/session)。

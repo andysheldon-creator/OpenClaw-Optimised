@@ -1,21 +1,21 @@
 ---
-summary: "`openclaw status`（診断、プローブ、使用状況スナップショット）の CLI リファレンス"
+summary: "「openclaw status」の CLI リファレンス（診断、プローブ、使用状況スナップショット）"
 read_when:
-  - チャンネルの健全性 + 最近のセッション受信者を素早く診断したいとき
-  - デバッグ用に貼り付け可能な「all」ステータスが欲しいとき
+  - チャンネルの健全性と最近のセッション受信者を素早く診断したいとき
+  - デバッグ用に貼り付け可能な「すべて」のステータスが欲しいとき
 title: "status"
 x-i18n:
   source_path: cli/status.md
   source_hash: 2bbf5579c48034fc
   provider: openai
-  model: gpt-5.2-pro
+  model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-06T04:59:27Z
+  generated_at: 2026-02-08T09:21:16Z
 ---
 
 # `openclaw status`
 
-チャンネル + セッションの診断です。
+チャンネルとセッションの診断。
 
 ```bash
 openclaw status
@@ -28,6 +28,6 @@ openclaw status --usage
 
 - `--deep` はライブプローブ（WhatsApp Web + Telegram + Discord + Google Chat + Slack + Signal）を実行します。
 - 複数のエージェントが設定されている場合、出力にはエージェントごとのセッションストアが含まれます。
-- 利用可能な場合、概要には Gateway（ゲートウェイ）+ ノードホストサービスのインストール/実行時ステータスが含まれます。
-- 概要には更新チャンネル + git SHA（ソースのチェックアウト向け）が含まれます。
+- 利用可能な場合、概要には Gateway（ゲートウェイ）およびノードホストサービスのインストール／実行時ステータスが含まれます。
+- 概要には更新チャンネルと git SHA（ソースチェックアウトの場合）が含まれます。
 - 更新情報は概要に表示されます。更新が利用可能な場合、ステータスは `openclaw update` を実行するためのヒントを表示します（[Updating](/install/updating) を参照）。

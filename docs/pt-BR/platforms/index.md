@@ -1,7 +1,7 @@
 ---
-summary: "Visao geral de suporte a plataformas (Gateway + aplicativos complementares)"
+summary: "Visão geral de suporte de plataformas (Gateway + aplicativos complementares)"
 read_when:
-  - Procurando suporte a SO ou caminhos de instalacao
+  - Procurando suporte de SO ou caminhos de instalação
   - Decidindo onde executar o Gateway
 title: "Plataformas"
 x-i18n:
@@ -10,17 +10,17 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:56:45Z
+  generated_at: 2026-02-08T09:31:20Z
 ---
 
 # Plataformas
 
-O core do OpenClaw e escrito em TypeScript. **Node e o runtime recomendado**.
-Bun nao e recomendado para o Gateway (bugs no WhatsApp/Telegram).
+O núcleo do OpenClaw é escrito em TypeScript. **Node é o runtime recomendado**.
+Bun não é recomendado para o Gateway (bugs no WhatsApp/Telegram).
 
-Existem aplicativos complementares para macOS (app de barra de menu) e nos moveis (iOS/Android). Aplicativos complementares para Windows e
-Linux estao planejados, mas o Gateway ja e totalmente suportado hoje.
-Aplicativos complementares nativos para Windows tambem estao planejados; o Gateway e recomendado via WSL2.
+Existem aplicativos complementares para macOS (app de barra de menus) e nós móveis (iOS/Android). Aplicativos complementares para Windows e
+Linux estão planejados, mas o Gateway é totalmente suportado hoje.
+Aplicativos complementares nativos para Windows também estão planejados; o Gateway é recomendado via WSL2.
 
 ## Escolha seu SO
 
@@ -30,9 +30,9 @@ Aplicativos complementares nativos para Windows tambem estao planejados; o Gatew
 - Windows: [Windows](/platforms/windows)
 - Linux: [Linux](/platforms/linux)
 
-## VPS & hospedagem
+## VPS e hospedagem
 
-- Hub de VPS: [VPS hosting](/vps)
+- Hub VPS: [Hospedagem VPS](/vps)
 - Fly.io: [Fly.io](/install/fly)
 - Hetzner (Docker): [Hetzner](/install/hetzner)
 - GCP (Compute Engine): [GCP](/install/gcp)
@@ -40,21 +40,21 @@ Aplicativos complementares nativos para Windows tambem estao planejados; o Gatew
 
 ## Links comuns
 
-- Guia de instalacao: [Primeiros Passos](/start/getting-started)
+- Guia de instalação: [Primeiros passos](/start/getting-started)
 - Runbook do Gateway: [Gateway](/gateway)
-- Configuracao do Gateway: [Configuration](/gateway/configuration)
-- Status do servico: `openclaw gateway status`
+- Configuração do Gateway: [Configuração](/gateway/configuration)
+- Status do serviço: `openclaw gateway status`
 
-## Instalacao do servico do Gateway (CLI)
+## Instalação do serviço do Gateway (CLI)
 
-Use um destes (todos suportados):
+Use uma destas opções (todas suportadas):
 
 - Assistente (recomendado): `openclaw onboard --install-daemon`
 - Direto: `openclaw gateway install`
-- Configurar fluxo: `openclaw configure` → selecione **servico do Gateway**
-- Reparar/migrar: `openclaw doctor` (oferece instalar ou corrigir o servico)
+- Configurar fluxo: `openclaw configure` → selecione **Gateway service**
+- Reparar/migrar: `openclaw doctor` (oferece instalar ou corrigir o serviço)
 
-O alvo do servico depende do SO:
+O destino do serviço depende do SO:
 
 - macOS: LaunchAgent (`bot.molt.gateway` ou `bot.molt.<profile>`; legado `com.openclaw.*`)
-- Linux/WSL2: servico de usuario systemd (`openclaw-gateway[-<profile>].service`)
+- Linux/WSL2: serviço de usuário systemd (`openclaw-gateway[-<profile>].service`)

@@ -1,9 +1,9 @@
 ---
-summary: "Thời gian chạy Gateway trên macOS (dịch vụ launchd bên ngoài)"
+summary: "Runtime Gateway trên macOS (dịch vụ launchd bên ngoài)"
 read_when:
   - Đóng gói OpenClaw.app
-  - Gỡ lỗi dịch vụ launchd của Gateway trên macOS
-  - Cài đặt CLI Gateway cho macOS
+  - Gỡ lỗi dịch vụ launchd Gateway trên macOS
+  - Cài đặt CLI gateway cho macOS
 title: "Gateway trên macOS"
 x-i18n:
   source_path: platforms/mac/bundled-gateway.md
@@ -11,15 +11,15 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:48Z
+  generated_at: 2026-02-08T09:39:38Z
 ---
 
 # Gateway trên macOS (launchd bên ngoài)
 
-OpenClaw.app không còn đóng gói Node/Bun hoặc thời gian chạy Gateway. Ứng dụng macOS
-yêu cầu cài đặt CLI `openclaw` **bên ngoài**, không khởi chạy Gateway như một
-tiến trình con, và quản lý một dịch vụ launchd theo từng người dùng để giữ Gateway
-luôn chạy (hoặc gắn vào một Gateway cục bộ hiện có nếu đã chạy sẵn).
+OpenClaw.app không còn đóng gói Node/Bun hoặc runtime Gateway. Ứng dụng macOS
+mong đợi một cài đặt CLI `openclaw` **bên ngoài**, không khởi chạy Gateway như
+một tiến trình con, và quản lý một dịch vụ launchd theo từng người dùng để giữ
+Gateway chạy (hoặc gắn vào một Gateway cục bộ hiện có nếu đã chạy sẵn).
 
 ## Cài đặt CLI (bắt buộc cho chế độ local)
 
@@ -29,29 +29,29 @@ Bạn cần Node 22+ trên Mac, sau đó cài đặt `openclaw` toàn cục:
 npm install -g openclaw@<version>
 ```
 
-Nút **Install CLI** của ứng dụng macOS chạy cùng quy trình qua npm/pnpm (không khuyến nghị bun cho thời gian chạy Gateway).
+Nút **Install CLI** của ứng dụng macOS chạy cùng quy trình qua npm/pnpm (không khuyến nghị dùng bun cho runtime Gateway).
 
 ## Launchd (Gateway như LaunchAgent)
 
-Label:
+Nhãn (Label):
 
-- `bot.molt.gateway` (hoặc `bot.molt.<profile>`; legacy `com.openclaw.*` có thể vẫn còn)
+- `bot.molt.gateway` (hoặc `bot.molt.<profile>`; `com.openclaw.*` cũ có thể vẫn còn)
 
-Vị trí plist (theo từng người dùng):
+Vị trí plist (theo người dùng):
 
 - `~/Library/LaunchAgents/bot.molt.gateway.plist`
   (hoặc `~/Library/LaunchAgents/bot.molt.<profile>.plist`)
 
 Trình quản lý:
 
-- Ứng dụng macOS chịu trách nhiệm cài đặt/cập nhật LaunchAgent trong chế độ Local.
+- Ứng dụng macOS sở hữu việc cài đặt/cập nhật LaunchAgent ở chế độ Local.
 - CLI cũng có thể cài đặt: `openclaw gateway install`.
 
 Hành vi:
 
 - “OpenClaw Active” bật/tắt LaunchAgent.
-- Thoát ứng dụng **không** dừng gateway (launchd giữ nó tiếp tục chạy).
-- Nếu một Gateway đã chạy trên cổng đã cấu hình, ứng dụng sẽ gắn vào
+- Thoát ứng dụng **không** dừng gateway (launchd giữ nó hoạt động).
+- Nếu Gateway đã chạy trên cổng được cấu hình, ứng dụng sẽ gắn vào
   nó thay vì khởi động một Gateway mới.
 
 Ghi log:

@@ -1,25 +1,25 @@
 ---
-summary: „CLI-Referenz für `openclaw tui` (Terminal-UI, verbunden mit dem Gateway)“
+summary: "CLI-Referenz für `openclaw tui` (Terminal-UI, die mit dem Gateway verbunden ist)"
 read_when:
-  - Sie möchten eine Terminal-UI für das Gateway (remote-freundlich)
+  - Sie möchten eine Terminal-UI für das Gateway (remote-tauglich)
   - Sie möchten URL/Token/Sitzung aus Skripten übergeben
-title: „tui“
+title: "tui"
 x-i18n:
   source_path: cli/tui.md
-  source_hash: f0a97d92e08746a9
+  source_hash: aa6f37b960926997
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:50Z
+  generated_at: 2026-02-08T09:35:44Z
 ---
 
 # `openclaw tui`
 
-Öffnen Sie die mit dem Gateway verbundene Terminal-UI.
+Öffnet die Terminal-UI, die mit dem Gateway verbunden ist.
 
 Verwandt:
 
-- TUI-Leitfaden: [TUI](/tui)
+- TUI-Leitfaden: [TUI](/web/tui)
 
 ## Beispiele
 

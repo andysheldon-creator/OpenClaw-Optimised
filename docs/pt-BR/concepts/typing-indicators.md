@@ -1,48 +1,48 @@
 ---
-summary: "Quando o OpenClaw mostra indicadores de digitacao e como ajusta-los"
+summary: "Quando o OpenClaw mostra indicadores de digitação e como ajustá-los"
 read_when:
-  - Alterar o comportamento ou os padroes do indicador de digitacao
-title: "Indicadores de digitacao"
+  - Alterando o comportamento ou os padrões do indicador de digitação
+title: "Indicadores de digitação"
 x-i18n:
   source_path: concepts/typing-indicators.md
   source_hash: 8ee82d02829c4ff5
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:56:04Z
+  generated_at: 2026-02-08T09:30:39Z
 ---
 
-# Indicadores de digitacao
+# Indicadores de digitação
 
-Indicadores de digitacao sao enviados ao canal de chat enquanto uma execucao esta ativa. Use
-`agents.defaults.typingMode` para controlar **quando** a digitacao comeca e `typingIntervalSeconds`
-para controlar **com que frequencia** ela e atualizada.
+Indicadores de digitação são enviados para o canal de chat enquanto uma execução está ativa. Use
+`agents.defaults.typingMode` para controlar **quando** a digitação começa e `typingIntervalSeconds`
+para controlar **com que frequência** ela é atualizada.
 
-## Padroes
+## Padrões
 
-Quando `agents.defaults.typingMode` esta **nao definido**, o OpenClaw mantem o comportamento legado:
+Quando `agents.defaults.typingMode` está **não definido**, o OpenClaw mantém o comportamento legado:
 
-- **Conversas diretas**: a digitacao comeca imediatamente assim que o loop do modelo se inicia.
-- **Conversas em grupo com mencao**: a digitacao comeca imediatamente.
-- **Conversas em grupo sem mencao**: a digitacao comeca apenas quando o texto da mensagem comeca a ser transmitido.
-- **Execucoes de heartbeat**: a digitacao e desativada.
+- **Conversas diretas**: a digitação começa imediatamente quando o loop do modelo inicia.
+- **Conversas em grupo com uma menção**: a digitação começa imediatamente.
+- **Conversas em grupo sem uma menção**: a digitação começa apenas quando o texto da mensagem começa a ser transmitido.
+- **Execuções de heartbeat**: a digitação é desativada.
 
 ## Modos
 
-Defina `agents.defaults.typingMode` como um de:
+Defina `agents.defaults.typingMode` como um dos seguintes:
 
-- `never` — nenhum indicador de digitacao, nunca.
-- `instant` — comeca a digitar **assim que o loop do modelo se inicia**, mesmo que a execucao
-  depois retorne apenas o token de resposta silenciosa.
-- `thinking` — comeca a digitar no **primeiro delta de raciocinio** (requer
-  `reasoningLevel: "stream"` para a execucao).
-- `message` — comeca a digitar no **primeiro delta de texto nao silencioso** (ignora
+- `never` — nenhum indicador de digitação, nunca.
+- `instant` — começa a digitar **assim que o loop do modelo inicia**, mesmo que a execução
+  posteriormente retorne apenas o token de resposta silenciosa.
+- `thinking` — começa a digitar no **primeiro delta de raciocínio** (requer
+  `reasoningLevel: "stream"` para a execução).
+- `message` — começa a digitar no **primeiro delta de texto não silencioso** (ignora
   o token silencioso `NO_REPLY`).
 
-Ordem de “o quao cedo dispara”:
+Ordem de “quão cedo é acionado”:
 `never` → `message` → `thinking` → `instant`
 
-## Configuracao
+## Configuração
 
 ```json5
 {
@@ -53,7 +53,7 @@ Ordem de “o quao cedo dispara”:
 }
 ```
 
-Voce pode sobrescrever o modo ou a cadencia por sessao:
+Você pode sobrescrever o modo ou a cadência por sessão:
 
 ```json5
 {
@@ -66,10 +66,10 @@ Voce pode sobrescrever o modo ou a cadencia por sessao:
 
 ## Notas
 
-- O modo `message` nao mostrara digitacao para respostas somente silenciosas (por exemplo, o token `NO_REPLY`
-  usado para suprimir a saida).
-- `thinking` so dispara se a execucao transmitir raciocinio (`reasoningLevel: "stream"`).
-  Se o modelo nao emitir deltas de raciocinio, a digitacao nao comeca.
-- Heartbeats nunca mostram digitacao, independentemente do modo.
-- `typingIntervalSeconds` controla a **cadencia de atualizacao**, nao o momento de inicio.
-  O padrao e 6 segundos.
+- O modo `message` não mostrará digitação para respostas apenas silenciosas (por exemplo, o token `NO_REPLY`
+  usado para suprimir a saída).
+- `thinking` só é acionado se a execução transmitir raciocínio (`reasoningLevel: "stream"`).
+  Se o modelo não emitir deltas de raciocínio, a digitação não começará.
+- Heartbeats nunca mostram digitação, independentemente do modo.
+- `typingIntervalSeconds` controla a **cadência de atualização**, não o momento de início.
+  O padrão é 6 segundos.

@@ -1,42 +1,42 @@
 ---
-summary: "Hiểu nội dung hình ảnh/âm thanh/video đầu vào (tùy chọn) với nhà cung cấp + dự phòng CLI"
+summary: "Hiểu nội dung media đầu vào (hình ảnh/âm thanh/video) tùy chọn với nhà cung cấp + phương án dự phòng CLI"
 read_when:
-  - Thiết kế hoặc tái cấu trúc media understanding
+  - Thiết kế hoặc tái cấu trúc phần hiểu media
   - Tinh chỉnh tiền xử lý âm thanh/video/hình ảnh đầu vào
-title: "Media Understanding"
+title: "Hiểu Media"
 x-i18n:
   source_path: nodes/media-understanding.md
   source_hash: 4b275b152060eae3
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:53Z
+  generated_at: 2026-02-08T09:39:44Z
 ---
 
-# Media Understanding (Inbound) — 2026-01-17
+# Hiểu Media (Đầu vào) — 2026-01-17
 
-OpenClaw có thể **tóm tắt media đầu vào** (hình ảnh/âm thanh/video) trước khi pipeline trả lời chạy. Hệ thống tự phát hiện khi có công cụ cục bộ hoặc khóa nhà cung cấp, và có thể tắt hoặc tùy biến. Nếu hiểu nội dung bị tắt, các mô hình vẫn nhận các tệp/URL gốc như bình thường.
+OpenClaw có thể **tóm tắt media đầu vào** (hình ảnh/âm thanh/video) trước khi pipeline phản hồi chạy. Hệ thống tự động phát hiện khi có công cụ cục bộ hoặc khóa nhà cung cấp, và có thể tắt hoặc tùy biến. Nếu phần hiểu nội dung bị tắt, các mô hình vẫn nhận các tệp/URL gốc như bình thường.
 
 ## Mục tiêu
 
 - Tùy chọn: tiền xử lý media đầu vào thành văn bản ngắn để định tuyến nhanh hơn + phân tích lệnh tốt hơn.
-- Luôn bảo toàn việc chuyển media gốc tới mô hình.
-- Hỗ trợ **API nhà cung cấp** và **dự phòng CLI**.
+- Luôn bảo toàn việc gửi media gốc cho mô hình.
+- Hỗ trợ **API của nhà cung cấp** và **phương án dự phòng CLI**.
 - Cho phép nhiều mô hình với thứ tự dự phòng (lỗi/kích thước/timeout).
 
-## Hành vi cấp cao
+## Hành vi tổng quát
 
 1. Thu thập các tệp đính kèm đầu vào (`MediaPaths`, `MediaUrls`, `MediaTypes`).
 2. Với mỗi khả năng được bật (hình ảnh/âm thanh/video), chọn tệp theo chính sách (mặc định: **đầu tiên**).
 3. Chọn mục mô hình đủ điều kiện đầu tiên (kích thước + khả năng + xác thực).
 4. Nếu mô hình lỗi hoặc media quá lớn, **chuyển sang mục tiếp theo**.
 5. Khi thành công:
-   - `Body` trở thành khối `[Image]`, `[Audio]`, hoặc `[Video]`.
-   - Âm thanh thiết lập `{{Transcript}}`; phân tích lệnh dùng văn bản chú thích khi có,
+   - `Body` trở thành khối `[Image]`, `[Audio]` hoặc `[Video]`.
+   - Âm thanh đặt `{{Transcript}}`; phân tích lệnh dùng văn bản caption khi có,
      nếu không thì dùng bản chép lời.
-   - Chú thích được giữ lại dưới dạng `User text:` bên trong khối.
+   - Caption được giữ lại dưới dạng `User text:` bên trong khối.
 
-Nếu việc hiểu nội dung thất bại hoặc bị tắt, **luồng trả lời vẫn tiếp tục** với phần thân + tệp đính kèm gốc.
+Nếu việc hiểu nội dung thất bại hoặc bị tắt, **luồng phản hồi vẫn tiếp tục** với phần thân + tệp đính kèm gốc.
 
 ## Tổng quan cấu hình
 
@@ -47,9 +47,9 @@ Nếu việc hiểu nội dung thất bại hoặc bị tắt, **luồng trả l
   - mặc định (`prompt`, `maxChars`, `maxBytes`, `timeoutSeconds`, `language`)
   - ghi đè theo nhà cung cấp (`baseUrl`, `headers`, `providerOptions`)
   - tùy chọn Deepgram cho âm thanh qua `tools.media.audio.providerOptions.deepgram`
-  - **danh sách `models` theo từng khả năng** (tùy chọn; ưu tiên trước mô hình dùng chung)
+  - **danh sách `models` theo từng khả năng** (tùy chọn; được ưu tiên trước mô hình dùng chung)
   - chính sách `attachments` (`mode`, `maxAttachments`, `prefer`)
-  - `scope` (tùy chọn kiểm soát theo channel/chatType/session key)
+  - `scope` (tùy chọn kiểm soát theo kênh/chatType/khóa phiên)
 - `tools.media.concurrency`: số lần chạy khả năng đồng thời tối đa (mặc định **2**).
 
 ```json5
@@ -113,8 +113,8 @@ Mỗi mục `models[]` có thể là **nhà cung cấp** hoặc **CLI**:
 Mẫu CLI cũng có thể dùng:
 
 - `{{MediaDir}}` (thư mục chứa tệp media)
-- `{{OutputDir}}` (thư mục tạm được tạo cho lần chạy này)
-- `{{OutputBase}}` (đường dẫn cơ sở của tệp tạm, không có phần mở rộng)
+- `{{OutputDir}}` (thư mục scratch được tạo cho lần chạy này)
+- `{{OutputBase}}` (đường dẫn cơ sở của tệp scratch, không có phần mở rộng)
 
 ## Mặc định và giới hạn
 
@@ -133,18 +133,17 @@ Quy tắc:
 - Nếu mô hình trả về nhiều hơn `maxChars`, đầu ra sẽ bị cắt bớt.
 - `prompt` mặc định là “Describe the {media}.” đơn giản cộng với hướng dẫn `maxChars` (chỉ cho hình ảnh/video).
 - Nếu `<capability>.enabled: true` nhưng không cấu hình mô hình nào, OpenClaw sẽ thử
-  **mô hình trả lời đang hoạt động** khi nhà cung cấp của nó hỗ trợ khả năng đó.
+  **mô hình phản hồi đang hoạt động** khi nhà cung cấp của nó hỗ trợ khả năng đó.
 
-### Tự động phát hiện media understanding (mặc định)
+### Tự động phát hiện hiểu media (mặc định)
 
 Nếu `tools.media.<capability>.enabled` **không** được đặt thành `false` và bạn chưa
-cấu hình mô hình, OpenClaw sẽ tự động phát hiện theo thứ tự sau và **dừng ở tùy chọn
-đầu tiên hoạt động**:
+cấu hình mô hình, OpenClaw sẽ tự động phát hiện theo thứ tự sau và **dừng ở lựa chọn đầu tiên hoạt động**:
 
 1. **CLI cục bộ** (chỉ âm thanh; nếu đã cài)
    - `sherpa-onnx-offline` (yêu cầu `SHERPA_ONNX_MODEL_DIR` với encoder/decoder/joiner/tokens)
    - `whisper-cli` (`whisper-cpp`; dùng `WHISPER_CPP_MODEL` hoặc mô hình tiny đi kèm)
-   - `whisper` (Python CLI; tự động tải mô hình)
+   - `whisper` (CLI Python; tự động tải mô hình)
 2. **Gemini CLI** (`gemini`) dùng `read_many_files`
 3. **Khóa nhà cung cấp**
    - Âm thanh: OpenAI → Groq → Deepgram → Google
@@ -165,7 +164,7 @@ cấu hình mô hình, OpenClaw sẽ tự động phát hiện theo thứ tự s
 }
 ```
 
-Lưu ý: Phát hiện nhị phân là best‑effort trên macOS/Linux/Windows; hãy đảm bảo CLI nằm trong `PATH` (chúng tôi mở rộng `~`), hoặc đặt một mô hình CLI rõ ràng với đường dẫn lệnh đầy đủ.
+Lưu ý: Việc phát hiện nhị phân là best‑effort trên macOS/Linux/Windows; hãy đảm bảo CLI nằm trong `PATH` (chúng tôi mở rộng `~`), hoặc đặt một mô hình CLI tường minh với đường dẫn lệnh đầy đủ.
 
 ## Khả năng (tùy chọn)
 
@@ -177,14 +176,14 @@ danh sách dùng chung, OpenClaw có thể suy ra mặc định:
 - `groq`: **âm thanh**
 - `deepgram`: **âm thanh**
 
-Với các mục CLI, **hãy đặt `capabilities` một cách rõ ràng** để tránh khớp ngoài ý muốn.
+Với các mục CLI, **hãy đặt `capabilities` một cách tường minh** để tránh khớp ngoài ý muốn.
 Nếu bạn bỏ qua `capabilities`, mục đó đủ điều kiện cho danh sách mà nó xuất hiện.
 
 ## Ma trận hỗ trợ nhà cung cấp (tích hợp OpenClaw)
 
 | Khả năng | Tích hợp nhà cung cấp                                  | Ghi chú                                                           |
 | -------- | ------------------------------------------------------ | ----------------------------------------------------------------- |
-| Hình ảnh | OpenAI / Anthropic / Google / các bên khác qua `pi-ai` | Bất kỳ mô hình có khả năng hình ảnh trong registry đều dùng được. |
+| Hình ảnh | OpenAI / Anthropic / Google / các bên khác qua `pi-ai` | Bất kỳ mô hình có khả năng hình ảnh trong registry đều hoạt động. |
 | Âm thanh | OpenAI, Groq, Deepgram, Google                         | Chép lời từ nhà cung cấp (Whisper/Deepgram/Gemini).               |
 | Video    | Google (Gemini API)                                    | Hiểu video từ nhà cung cấp.                                       |
 
@@ -199,22 +198,22 @@ Nếu bạn bỏ qua `capabilities`, mục đó đủ điều kiện cho danh s�
 
 - `openai/gpt-4o-mini-transcribe`, `groq/whisper-large-v3-turbo`, hoặc `deepgram/nova-3`.
 - Dự phòng CLI: `whisper-cli` (whisper-cpp) hoặc `whisper`.
-- Thiết lập Deepgram: [Deepgram (audio transcription)](/providers/deepgram).
+- Thiết lập Deepgram: [Deepgram (chép lời âm thanh)](/providers/deepgram).
 
 **Video**
 
-- `google/gemini-3-flash-preview` (nhanh), `google/gemini-3-pro-preview` (giàu thông tin hơn).
-- Dự phòng CLI: `gemini` CLI (hỗ trợ `read_file` cho video/âm thanh).
+- `google/gemini-3-flash-preview` (nhanh), `google/gemini-3-pro-preview` (phong phú hơn).
+- Dự phòng CLI: CLI `gemini` (hỗ trợ `read_file` cho video/âm thanh).
 
 ## Chính sách tệp đính kèm
 
 `attachments` theo từng khả năng kiểm soát tệp nào được xử lý:
 
 - `mode`: `first` (mặc định) hoặc `all`
-- `maxAttachments`: giới hạn số lượng được xử lý (mặc định **1**)
+- `maxAttachments`: giới hạn số lượng xử lý (mặc định **1**)
 - `prefer`: `first`, `last`, `path`, `url`
 
-Khi `mode: "all"`, đầu ra được gắn nhãn `[Image 1/2]`, `[Audio 2/2]`, v.v.
+Khi `mode: "all"`, các đầu ra được gắn nhãn `[Image 1/2]`, `[Audio 2/2]`, v.v.
 
 ## Ví dụ cấu hình
 
@@ -326,7 +325,7 @@ Khi `mode: "all"`, đầu ra được gắn nhãn `[Image 1/2]`, `[Audio 2/2]`, 
 }
 ```
 
-### 4) Mục đơn đa phương thức (khả năng rõ ràng)
+### 4) Mục đơn đa phương thức (khả năng tường minh)
 
 ```json5
 {
@@ -366,21 +365,21 @@ Khi `mode: "all"`, đầu ra được gắn nhãn `[Image 1/2]`, `[Audio 2/2]`, 
 
 ## Đầu ra trạng thái
 
-Khi media understanding chạy, `/status` bao gồm một dòng tóm tắt ngắn:
+Khi phần hiểu media chạy, `/status` bao gồm một dòng tóm tắt ngắn:
 
 ```
 📎 Media: image ok (openai/gpt-5.2) · audio skipped (maxBytes)
 ```
 
-Dòng này hiển thị kết quả theo từng khả năng và nhà cung cấp/mô hình được chọn khi áp dụng.
+Điều này cho thấy kết quả theo từng khả năng và nhà cung cấp/mô hình được chọn khi áp dụng.
 
 ## Ghi chú
 
-- Việc hiểu nội dung là **best‑effort**. Lỗi không chặn việc trả lời.
-- Tệp đính kèm vẫn được chuyển tới mô hình ngay cả khi hiểu nội dung bị tắt.
-- Dùng `scope` để giới hạn nơi việc hiểu nội dung chạy (ví dụ: chỉ DMs).
+- Việc hiểu nội dung là **best‑effort**. Lỗi không chặn phản hồi.
+- Tệp đính kèm vẫn được chuyển cho mô hình ngay cả khi phần hiểu bị tắt.
+- Dùng `scope` để giới hạn nơi việc hiểu được chạy (ví dụ: chỉ DM).
 
 ## Tài liệu liên quan
 
-- [Configuration](/gateway/configuration)
-- [Image & Media Support](/nodes/images)
+- [Cấu hình](/gateway/configuration)
+- [Hỗ trợ Hình ảnh & Media](/nodes/images)

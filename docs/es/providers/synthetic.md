@@ -10,18 +10,18 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:59:45Z
+  generated_at: 2026-02-08T09:34:24Z
 ---
 
 # Synthetic
 
 Synthetic expone endpoints compatibles con Anthropic. OpenClaw lo registra como el
-proveedor `synthetic` y utiliza la API de Anthropic Messages.
+proveedor `synthetic` y utiliza la API de Mensajes de Anthropic.
 
 ## Configuración rápida
 
-1. Configure `SYNTHETIC_API_KEY` (o ejecute el asistente a continuación).
-2. Ejecute la incorporación:
+1. Establezca `SYNTHETIC_API_KEY` (o ejecute el asistente a continuación).
+2. Ejecute el onboarding:
 
 ```bash
 openclaw onboard --auth-choice synthetic-api-key
@@ -68,15 +68,15 @@ synthetic/hf:MiniMaxAI/MiniMax-M2.1
 }
 ```
 
-Nota: El cliente de Anthropic de OpenClaw agrega `/v1` a la URL base, por lo que use
+Nota: el cliente de Anthropic de OpenClaw agrega `/v1` a la URL base, por lo que use
 `https://api.synthetic.new/anthropic` (no `/anthropic/v1`). Si Synthetic cambia
-su URL base, anule `models.providers.synthetic.baseUrl`.
+su URL base, sobrescriba `models.providers.synthetic.baseUrl`.
 
 ## Catálogo de modelos
 
 Todos los modelos a continuación usan el costo `0` (entrada/salida/caché).
 
-| ID del modelo                                          | Ventana de contexto | Máx. tokens | Razonamiento | Entrada      |
+| ID del modelo                                          | Ventana de contexto | Tokens máx. | Razonamiento | Entrada      |
 | ------------------------------------------------------ | ------------------- | ----------- | ------------ | ------------ |
 | `hf:MiniMaxAI/MiniMax-M2.1`                            | 192000              | 65536       | false        | text         |
 | `hf:moonshotai/Kimi-K2-Thinking`                       | 256000              | 8192        | true         | text         |
@@ -101,6 +101,6 @@ Todos los modelos a continuación usan el costo `0` (entrada/salida/caché).
 ## Notas
 
 - Las referencias de modelos usan `synthetic/<modelId>`.
-- Si habilita una lista de permitidos de modelos (`agents.defaults.models`), agregue cada modelo que
-  planee usar.
+- Si habilita una lista de permitidos de modelos (`agents.defaults.models`), agregue todos los modelos que
+  planea usar.
 - Consulte [Proveedores de modelos](/concepts/model-providers) para conocer las reglas de los proveedores.

@@ -1,7 +1,7 @@
 ---
-summary: „Routing-Regeln pro Kanal (WhatsApp, Telegram, Discord, Slack) und gemeinsam genutzter Kontext“
+summary: „Routing-Regeln pro Kanal (WhatsApp, Telegram, Discord, Slack) und geteilter Kontext“
 read_when:
-  - „Ändern des Kanal-Routings oder des Inbox-Verhaltens“
+  - Beim Ändern des Kanal-Routings oder des Inbox-Verhaltens
 title: „Kanal-Routing“
 x-i18n:
   source_path: channels/channel-routing.md
@@ -9,25 +9,25 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:15:48Z
+  generated_at: 2026-02-08T09:35:08Z
 ---
 
 # Kanäle & Routing
 
 OpenClaw leitet Antworten **zurück an den Kanal, aus dem eine Nachricht stammt**. Das
-Modell wählt keinen Kanal aus; das Routing ist deterministisch und wird durch die
-Host‑Konfiguration gesteuert.
+Modell wählt keinen Kanal; das Routing ist deterministisch und wird durch die
+Host-Konfiguration gesteuert.
 
-## Zentrale Begriffe
+## Schlüsselbegriffe
 
 - **Kanal**: `whatsapp`, `telegram`, `discord`, `slack`, `signal`, `imessage`, `webchat`.
-- **AccountId**: kanalbezogene Account‑Instanz (sofern unterstützt).
-- **AgentId**: ein isolierter Arbeitsbereich + Sitzungsspeicher („Gehirn“).
-- **SessionKey**: der Bucket‑Schlüssel zum Speichern von Kontext und zur Steuerung der Nebenläufigkeit.
+- **AccountId**: kanal­spezifische Account-Instanz (sofern unterstützt).
+- **AgentId**: ein isolierter Workspace + Sitzungsspeicher („Gehirn“).
+- **SessionKey**: der Bucket-Schlüssel zum Speichern von Kontext und zur Steuerung der Parallelität.
 
-## Session‑Key‑Formen (Beispiele)
+## Formen von Sitzungsschlüsseln (Beispiele)
 
-Direktnachrichten werden zur **Haupt**‑Sitzung des Agenten zusammengeführt:
+Direktnachrichten werden in die **Haupt**-Sitzung des Agenten zusammengeführt:
 
 - `agent:<agentId>:<mainKey>` (Standard: `agent:main:main`)
 
@@ -38,30 +38,31 @@ Gruppen und Kanäle bleiben pro Kanal isoliert:
 
 Threads:
 
-- Slack/Discord‑Threads hängen `:thread:<threadId>` an den Basisschlüssel an.
-- Telegram‑Foren‑Themen betten `:topic:<topicId>` in den Gruppenschlüssel ein.
+- Slack-/Discord-Threads hängen `:thread:<threadId>` an den Basisschlüssel an.
+- Telegram-Forum-Themen betten `:topic:<topicId>` in den Gruppenschlüssel ein.
 
 Beispiele:
 
 - `agent:main:telegram:group:-1001234567890:topic:42`
 - `agent:main:discord:channel:123456:thread:987654`
 
-## Routing‑Regeln (wie ein Agent ausgewählt wird)
+## Routing-Regeln (wie ein Agent ausgewählt wird)
 
-Das Routing wählt **einen Agenten** für jede eingehende Nachricht aus:
+Das Routing wählt **einen Agenten** für jede eingehende Nachricht:
 
-1. **Exakte Peer‑Übereinstimmung** (`bindings` mit `peer.kind` + `peer.id`).
-2. **Guild‑Übereinstimmung** (Discord) über `guildId`.
-3. **Team‑Übereinstimmung** (Slack) über `teamId`.
-4. **Account‑Übereinstimmung** (`accountId` auf dem Kanal).
-5. **Kanal‑Übereinstimmung** (beliebiger Account auf diesem Kanal).
-6. **Standard‑Agent** (`agents.list[].default`, andernfalls erster Listeneintrag, Fallback zu `main`).
+1. **Exakte Peer-Übereinstimmung** (`bindings` mit `peer.kind` + `peer.id`).
+2. **Guild-Übereinstimmung** (Discord) über `guildId`.
+3. **Team-Übereinstimmung** (Slack) über `teamId`.
+4. **Account-Übereinstimmung** (`accountId` auf dem Kanal).
+5. **Kanal-Übereinstimmung** (beliebiger Account auf diesem Kanal).
+6. **Standard-Agent** (`agents.list[].default`, andernfalls erster Listeneintrag, Fallback auf `main`).
 
-Der gefundene Agent bestimmt, welcher Arbeitsbereich und welcher Sitzungsspeicher verwendet werden.
+Der gefundene Agent bestimmt, welcher Workspace und welcher Sitzungsspeicher verwendet werden.
 
-## Broadcast‑Gruppen (mehrere Agenten ausführen)
+## Broadcast-Gruppen (mehrere Agenten ausführen)
 
-Broadcast‑Gruppen ermöglichen es, **mehrere Agenten** für denselben Peer auszuführen, **wenn OpenClaw normalerweise antworten würde** (zum Beispiel: in WhatsApp‑Gruppen, nach Erwähnungs‑/Aktivierungs‑Gating).
+Broadcast-Gruppen ermöglichen es Ihnen, **mehrere Agenten** für denselben Peer auszuführen,
+**wenn OpenClaw normalerweise antworten würde** (z. B. in WhatsApp-Gruppen nach Erwähnungs‑/Aktivierungs-Gating).
 
 Konfiguration:
 
@@ -79,7 +80,7 @@ Siehe: [Broadcast Groups](/channels/broadcast-groups).
 
 ## Konfigurationsübersicht
 
-- `agents.list`: benannte Agent‑Definitionen (Arbeitsbereich, Modell usw.).
+- `agents.list`: benannte Agentendefinitionen (Workspace, Modell usw.).
 - `bindings`: Zuordnung eingehender Kanäle/Accounts/Peers zu Agenten.
 
 Beispiel:
@@ -98,24 +99,24 @@ Beispiel:
 
 ## Sitzungsspeicher
 
-Sitzungsspeicher liegen unter dem State‑Verzeichnis (Standard `~/.openclaw`):
+Sitzungsspeicher liegen unterhalb des State-Verzeichnisses (Standard `~/.openclaw`):
 
 - `~/.openclaw/agents/<agentId>/sessions/sessions.json`
-- JSONL‑Transkripte liegen neben dem Speicher
+- JSONL-Transkripte liegen neben dem Store
 
-Sie können den Speicherpfad über `session.store` und `{agentId}`‑Templating überschreiben.
+Sie können den Store-Pfad über `session.store` und `{agentId}`-Templating überschreiben.
 
-## WebChat‑Verhalten
+## WebChat-Verhalten
 
-WebChat verbindet sich mit dem **ausgewählten Agenten** und verwendet standardmäßig
-die Hauptsitzung des Agenten. Dadurch können Sie in WebChat kanalübergreifenden Kontext
-für diesen Agenten an einem Ort einsehen.
+WebChat bindet sich an den **ausgewählten Agenten** und verwendet standardmäßig die
+Hauptsitzung des Agenten. Dadurch ermöglicht WebChat, kanalübergreifenden Kontext
+für diesen Agenten an einem Ort einzusehen.
 
 ## Antwortkontext
 
 Eingehende Antworten enthalten:
 
 - `ReplyToId`, `ReplyToBody` und `ReplyToSender`, sofern verfügbar.
-- Zitierter Kontext wird als `[Replying to ...]`‑Block an `Body` angehängt.
+- Zitierter Kontext wird als `[Replying to ...]`-Block an `Body` angehängt.
 
-Dies ist kanalübergreifend konsistent.
+Dies ist über alle Kanäle hinweg konsistent.

@@ -1,30 +1,30 @@
 ---
-summary: "Tong quan ve ho mo hinh GLM + cach su dung trong OpenClaw"
+summary: "Tổng quan họ mô hình GLM + cách sử dụng trong OpenClaw"
 read_when:
-  - Ban muon dung cac mo hinh GLM trong OpenClaw
-  - Ban can quy uoc dat ten mo hinh va thiet lap
-title: "Cac mo hinh GLM"
+  - Bạn muốn dùng các mô hình GLM trong OpenClaw
+  - Bạn cần quy ước đặt tên mô hình và cách thiết lập
+title: "Các mô hình GLM"
 x-i18n:
   source_path: providers/glm.md
   source_hash: 2d7b457f033f26f2
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:08:01Z
+  generated_at: 2026-02-08T09:39:50Z
 ---
 
-# Cac mo hinh GLM
+# Các mô hình GLM
 
-GLM la **ho mo hinh** (khong phai cong ty) co san thong qua nen tang Z.AI. Trong OpenClaw, cac mo hinh GLM
-duoc truy cap thong qua nha cung cap `zai` va cac ID mo hinh nhu `zai/glm-4.7`.
+GLM là một **họ mô hình** (không phải công ty) được cung cấp thông qua nền tảng Z.AI. Trong OpenClaw, các
+mô hình GLM được truy cập thông qua nhà cung cấp `zai` và các ID mô hình như `zai/glm-4.7`.
 
-## Thiet lap CLI
+## Thiết lập CLI
 
 ```bash
 openclaw onboard --auth-choice zai-api-key
 ```
 
-## Doan cau hinh
+## Đoạn cấu hình
 
 ```json5
 {
@@ -33,8 +33,8 @@ openclaw onboard --auth-choice zai-api-key
 }
 ```
 
-## Ghi chu
+## Ghi chú
 
-- Phien ban va tinh san co cua GLM co the thay doi; hay kiem tra tai lieu cua Z.AI de cap nhat moi nhat.
-- Vi du ve ID mo hinh bao gom `glm-4.7` va `glm-4.6`.
-- De biet them chi tiet ve nha cung cap, xem [/providers/zai](/providers/zai).
+- Phiên bản và mức độ khả dụng của GLM có thể thay đổi; hãy kiểm tra tài liệu của Z.AI để biết thông tin mới nhất.
+- Ví dụ ID mô hình bao gồm `glm-4.7` và `glm-4.6`.
+- Để biết chi tiết về nhà cung cấp, xem [/providers/zai](/providers/zai).

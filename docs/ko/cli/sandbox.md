@@ -1,7 +1,7 @@
 ---
 title: 샌드박스 CLI
-summary: "샌드박스 컨테이너를 관리하고 유효한 샌드박스 정책을 검사합니다"
-read_when: "샌드박스 컨테이너를 관리하거나 샌드박스/도구 정책 동작을 디버깅할 때"
+summary: "샌드박스 컨테이너를 관리하고 적용되는 샌드박스 정책을 검사합니다"
+read_when: "샌드박스 컨테이너를 관리하거나 샌드박스/도구 정책 동작을 디버깅할 때."
 status: active
 x-i18n:
   source_path: cli/sandbox.md
@@ -9,22 +9,22 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:35:36Z
+  generated_at: 2026-02-08T09:24:27Z
 ---
 
 # 샌드박스 CLI
 
-격리된 에이전트 실행을 위한 Docker 기반 샌드박스 컨테이너를 관리합니다.
+격리된 에이전트 실행을 위해 Docker 기반 샌드박스 컨테이너를 관리합니다.
 
 ## 개요
 
-OpenClaw 는 보안을 위해 에이전트를 격리된 Docker 컨테이너에서 실행할 수 있습니다. `sandbox` 명령은 특히 업데이트나 구성 변경 이후에 이러한 컨테이너를 관리하는 데 도움이 됩니다.
+OpenClaw 는 보안을 위해 에이전트를 격리된 Docker 컨테이너에서 실행할 수 있습니다. `sandbox` 명령은 특히 업데이트 또는 구성 변경 이후에 이러한 컨테이너를 관리하는 데 도움이 됩니다.
 
 ## 명령
 
 ### `openclaw sandbox explain`
 
-**유효한** 샌드박스 모드/범위/워크스페이스 접근, 샌드박스 도구 정책, 그리고 상승된 게이트(수정용 구성 키 경로 포함)를 검사합니다.
+**적용되는** 샌드박스 모드/범위/워크스페이스 접근, 샌드박스 도구 정책, 그리고 상승된 게이트(수정용 설정 키 경로 포함)를 검사합니다.
 
 ```bash
 openclaw sandbox explain
@@ -46,14 +46,14 @@ openclaw sandbox list --json     # JSON output
 **출력에는 다음이 포함됩니다:**
 
 - 컨테이너 이름과 상태(실행 중/중지됨)
-- Docker 이미지 및 구성과의 일치 여부
+- Docker 이미지 및 설정과의 일치 여부
 - 생성 후 경과 시간
 - 유휴 시간(마지막 사용 이후 경과 시간)
-- 연관된 세션/에이전트
+- 연결된 세션/에이전트
 
 ### `openclaw sandbox recreate`
 
-업데이트된 이미지/구성으로 재생성을 강제하기 위해 샌드박스 컨테이너를 제거합니다.
+업데이트된 이미지/설정으로 재생성하도록 샌드박스 컨테이너를 제거합니다.
 
 ```bash
 openclaw sandbox recreate --all                # Recreate all containers
@@ -75,7 +75,7 @@ openclaw sandbox recreate --all --force        # Skip confirmation
 
 ## 사용 사례
 
-### Docker 이미지 업데이트 후
+### Docker 이미지 업데이트 이후
 
 ```bash
 # Pull new image
@@ -89,7 +89,7 @@ docker tag openclaw-sandbox:latest openclaw-sandbox:bookworm-slim
 openclaw sandbox recreate --all
 ```
 
-### 샌드박스 구성 변경 후
+### 샌드박스 구성 변경 이후
 
 ```bash
 # Edit config: agents.defaults.sandbox.* (or agents.list[].sandbox.*)
@@ -98,7 +98,7 @@ openclaw sandbox recreate --all
 openclaw sandbox recreate --all
 ```
 
-### setupCommand 변경 후
+### setupCommand 변경 이후
 
 ```bash
 openclaw sandbox recreate --all
@@ -106,28 +106,29 @@ openclaw sandbox recreate --all
 openclaw sandbox recreate --agent family
 ```
 
-### 특정 에이전트에만 적용
+### 특정 에이전트만 대상으로 할 때
 
 ```bash
 # Update only one agent's containers
 openclaw sandbox recreate --agent alfred
 ```
 
-## 왜 필요한가요?
+## 왜 이것이 필요한가요?
 
-**문제:** 샌드박스 Docker 이미지나 구성을 업데이트하면:
+**문제:** 샌드박스 Docker 이미지 또는 구성을 업데이트하면 다음과 같은 문제가 발생합니다:
 
 - 기존 컨테이너는 이전 설정으로 계속 실행됩니다
-- 컨테이너는 24시간 비활성 이후에만 정리됩니다
-- 자주 사용되는 에이전트는 오래된 컨테이너가 무기한 실행됩니다
+- 컨테이너는 24 시간 동안 비활성 상태일 때만 정리됩니다
+- 자주 사용되는 에이전트는 이전 컨테이너가 무기한 실행 상태로 유지됩니다
 
-**해결책:** `openclaw sandbox recreate` 를 사용하여 오래된 컨테이너를 강제로 제거합니다. 다음에 필요할 때 현재 설정으로 자동 재생성됩니다.
+**해결책:** `openclaw sandbox recreate` 를 사용하여 이전 컨테이너를 강제로 제거하십시오. 이후 필요할 때 현재 설정으로 자동 재생성됩니다.
 
-팁: 수동 `docker rm` 보다 `openclaw sandbox recreate` 사용을 권장합니다. 이는 Gateway(게이트웨이)의 컨테이너 명명 규칙을 사용하여 범위/세션 키가 변경될 때 불일치를 방지합니다.
+팁: 수동 `docker rm` 보다 `openclaw sandbox recreate` 사용을 권장합니다. 이는
+Gateway(게이트웨이)의 컨테이너 명명 규칙을 사용하며, 범위/세션 키가 변경될 때 불일치를 방지합니다.
 
 ## 구성
 
-샌드박스 설정은 `agents.defaults.sandbox` 아래의 `~/.openclaw/openclaw.json` 에 있습니다(에이전트별 재정의는 `agents.list[].sandbox` 에 위치):
+샌드박스 설정은 `~/.openclaw/openclaw.json` 의 `agents.defaults.sandbox` 아래에 위치합니다(에이전트별 재정의는 `agents.list[].sandbox` 에 위치):
 
 ```jsonc
 {
@@ -151,8 +152,8 @@ openclaw sandbox recreate --agent alfred
 }
 ```
 
-## 참고
+## 참고 자료
 
-- [샌드박스 문서](/gateway/sandboxing)
-- [에이전트 구성](/concepts/agent-workspace)
-- [Doctor 명령](/gateway/doctor) - 샌드박스 설정 확인
+- [Sandbox Documentation](/gateway/sandboxing)
+- [Agent Configuration](/concepts/agent-workspace)
+- [Doctor Command](/gateway/doctor) - 샌드박스 설정 확인

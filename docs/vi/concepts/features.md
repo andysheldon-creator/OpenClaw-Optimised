@@ -1,60 +1,60 @@
 ---
-summary: "Cac kha nang cua OpenClaw tren nhieu kenh, dinh tuyen, media va UX."
+summary: "Các khả năng của OpenClaw trên các kênh, định tuyến, media và trải nghiệm người dùng."
 read_when:
-  - Ban muon co danh sach day du ve nhung gi OpenClaw ho tro
-title: "Tinh nang"
+  - Bạn muốn danh sách đầy đủ những gì OpenClaw hỗ trợ
+title: "Tính năng"
 x-i18n:
   source_path: concepts/features.md
   source_hash: 1b6aee0bfda75182
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:43Z
+  generated_at: 2026-02-08T09:38:31Z
 ---
 
-## Diem noi bat
+## Điểm nổi bật
 
 <Columns>
-  <Card title="Kenh" icon="message-square">
-    WhatsApp, Telegram, Discord va iMessage voi mot Gateway duy nhat.
+  <Card title="Kênh" icon="message-square">
+    WhatsApp, Telegram, Discord và iMessage với một Gateway duy nhất.
   </Card>
   <Card title="Plugin" icon="plug">
-    Them Mattermost va nhieu hon nua bang cac phan mo rong.
+    Thêm Mattermost và nhiều nền tảng khác bằng các extension.
   </Card>
-  <Card title="Dinh tuyen" icon="route">
-    Dinh tuyen da tac tu voi cac phien tach biet.
+  <Card title="Định tuyến" icon="route">
+    Định tuyến đa tác tử với các phiên được cô lập.
   </Card>
   <Card title="Media" icon="image">
-    Hinh anh, am thanh va tai lieu vao va ra.
+    Hình ảnh, âm thanh và tài liệu hai chiều.
   </Card>
-  <Card title="Ung dung va UI" icon="monitor">
-    Web Control UI va ung dung dong hanh tren macOS.
+  <Card title="Ứng dụng và UI" icon="monitor">
+    Web Control UI và ứng dụng đồng hành macOS.
   </Card>
-  <Card title="Nut di dong" icon="smartphone">
-    Cac nut iOS va Android ho tro Canvas.
+  <Card title="Nút di động" icon="smartphone">
+    Các nút iOS và Android với hỗ trợ Canvas.
   </Card>
 </Columns>
 
-## Danh sach day du
+## Danh sách đầy đủ
 
-- Tich hop WhatsApp qua WhatsApp Web (Baileys)
-- Ho tro bot Telegram (grammY)
-- Ho tro bot Discord (channels.discord.js)
-- Ho tro bot Mattermost (plugin)
-- Tich hop iMessage qua local imsg CLI (macOS)
-- Cau noi tac tu cho Pi o che do RPC voi streaming cong cu
-- Streaming va chunking cho cac phan hoi dai
-- Dinh tuyen da tac tu cho cac phien tach biet theo workspace hoac nguoi gui
-- Xac thuc subscription cho Anthropic va OpenAI qua OAuth
-- Phien: chat truc tiep duoc gop vao `main`; cac nhom duoc tach biet
-- Ho tro chat nhom voi kich hoat dua tren mention
-- Ho tro media cho hinh anh, am thanh va tai lieu
-- Moc (hook) tuy chon cho chuyen van ban tu voice note
-- WebChat va ung dung menu bar tren macOS
-- Nut iOS voi ghep cap va be mat Canvas
-- Nut Android voi ghep cap, Canvas, chat va camera
+- Tích hợp WhatsApp qua WhatsApp Web (Baileys)
+- Hỗ trợ bot Telegram (grammY)
+- Hỗ trợ bot Discord (channels.discord.js)
+- Hỗ trợ bot Mattermost (plugin)
+- Tích hợp iMessage qua imsg CLI cục bộ (macOS)
+- Cầu nối tác tử cho Pi ở chế độ RPC với streaming công cụ
+- Streaming và chunking cho phản hồi dài
+- Định tuyến đa tác tử cho các phiên cô lập theo từng workspace hoặc người gửi
+- Xác thực thuê bao cho Anthropic và OpenAI qua OAuth
+- Phiên: chat trực tiếp gộp vào `main` dùng chung; nhóm được cô lập
+- Hỗ trợ chat nhóm với kích hoạt dựa trên mention
+- Hỗ trợ media cho hình ảnh, âm thanh và tài liệu
+- Hook chuyển giọng nói thành văn bản cho voice note (tùy chọn)
+- WebChat và ứng dụng menu bar macOS
+- Nút iOS với ghép cặp và bề mặt Canvas
+- Nút Android với ghép cặp, Canvas, chat và camera
 
 <Note>
-Cac duong dan Claude, Codex, Gemini va Opencode phien ban cu da bi loai bo. Pi la
-duong dan tac tu lap trinh duy nhat.
+Các đường dẫn Legacy Claude, Codex, Gemini và Opencode đã bị loại bỏ. Pi là
+đường dẫn tác tử lập trình duy nhất.
 </Note>

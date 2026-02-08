@@ -2,8 +2,8 @@
 summary: "Nơi OpenClaw tải các biến môi trường và thứ tự ưu tiên"
 read_when:
   - Bạn cần biết những biến môi trường nào được tải và theo thứ tự nào
-  - Bạn đang gỡ lỗi việc thiếu khóa API trong Gateway
-  - Bạn đang ghi tài liệu xác thực nhà cung cấp hoặc môi trường triển khai
+  - Bạn đang gỡ lỗi các khóa API bị thiếu trong Gateway
+  - Bạn đang lập tài liệu xác thực nhà cung cấp hoặc môi trường triển khai
 title: "Biến môi trường"
 x-i18n:
   source_path: help/environment.md
@@ -11,7 +11,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:16:00Z
+  generated_at: 2026-02-08T09:39:08Z
 ---
 
 # Biến môi trường
@@ -79,10 +79,10 @@ Bạn có thể tham chiếu trực tiếp các biến môi trường trong giá
 }
 ```
 
-Xem [Cấu hình: Thay thế biến môi trường](/gateway/configuration#env-var-substitution-in-config) để biết thêm chi tiết.
+Xem [Cấu hình: Thay thế biến môi trường](/gateway/configuration#env-var-substitution-in-config) để biết đầy đủ chi tiết.
 
 ## Liên quan
 
 - [Cấu hình Gateway](/gateway/configuration)
-- [Câu hỏi thường gặp: biến môi trường và tải .env](/help/faq#env-vars-and-env-loading)
-- [Tổng quan về mô hình](/concepts/models)
+- [FAQ: biến môi trường và tải .env](/help/faq#env-vars-and-env-loading)
+- [Tổng quan mô hình](/concepts/models)

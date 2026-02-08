@@ -1,39 +1,39 @@
 ---
 summary: "Schema TypeBox làm nguồn sự thật duy nhất cho giao thức Gateway"
 read_when:
-  - Cap nhat schema giao thuc hoac codegen
+  - Cập nhật schema giao thức hoặc codegen
 title: "TypeBox"
 x-i18n:
   source_path: concepts/typebox.md
-  source_hash: 233800f4f5fabe8e
+  source_hash: 72fb8a1244edd84b
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:02Z
+  generated_at: 2026-02-08T09:38:53Z
 ---
 
-# TypeBox như nguồn sự thật cho giao thức
+# TypeBox là nguồn sự thật cho giao thức
 
 Cập nhật lần cuối: 2026-01-10
 
-TypeBox là một thư viện schema ưu tiên TypeScript. Chúng tôi dùng nó để định nghĩa **giao thức WebSocket của Gateway** (bắt tay, request/response, sự kiện từ server). Các schema này dẫn dắt **xác thực lúc chạy**, **xuất JSON Schema**, và **codegen Swift** cho ứng dụng macOS. Một nguồn sự thật duy nhất; mọi thứ khác đều được sinh ra từ đó.
+TypeBox là một thư viện schema ưu tiên TypeScript. Chúng tôi dùng nó để định nghĩa **giao thức WebSocket của Gateway** (bắt tay, request/response, sự kiện máy chủ). Các schema này điều khiển **xác thực lúc chạy**, **xuất JSON Schema**, và **codegen Swift** cho ứng dụng macOS. Một nguồn sự thật; mọi thứ khác đều được sinh tự động.
 
 Nếu bạn muốn bối cảnh giao thức ở mức cao hơn, hãy bắt đầu với
 [Kiến trúc Gateway](/concepts/architecture).
 
 ## Mô hình tư duy (30 giây)
 
-Mỗi thông điệp WS của Gateway là một trong ba khung:
+Mỗi thông điệp WS của Gateway là một trong ba frame:
 
 - **Request**: `{ type: "req", id, method, params }`
 - **Response**: `{ type: "res", id, ok, payload | error }`
 - **Event**: `{ type: "event", event, payload, seq?, stateVersion? }`
 
-Khung đầu tiên **bắt buộc** phải là một request `connect`. Sau đó, client có thể gọi
-các phương thức (ví dụ: `health`, `send`, `chat.send`) và đăng ký sự kiện (ví dụ:
+Frame đầu tiên **bắt buộc** phải là một request `connect`. Sau đó, client có thể gọi
+các method (ví dụ: `health`, `send`, `chat.send`) và đăng ký sự kiện (ví dụ:
 `presence`, `tick`, `agent`).
 
-Luồng kết nối (tối giản):
+Luồng kết nối (tối thiểu):
 
 ```
 Client                    Gateway
@@ -44,7 +44,7 @@ Client                    Gateway
   |<---- res:health ----------|
 ```
 
-Các phương thức + sự kiện phổ biến:
+Các method + event phổ biến:
 
 | Danh mục  | Ví dụ                                                     | Ghi chú                           |
 | --------- | --------------------------------------------------------- | --------------------------------- |
@@ -55,14 +55,14 @@ Các phương thức + sự kiện phổ biến:
 | Nodes     | `node.list`, `node.invoke`, `node.pair.*`                 | Gateway WS + hành động node       |
 | Events    | `tick`, `presence`, `agent`, `chat`, `health`, `shutdown` | server push                       |
 
-Danh sách có thẩm quyền nằm trong `src/gateway/server.ts` (`METHODS`, `EVENTS`).
+Danh sách có thẩm quyền nằm ở `src/gateway/server.ts` (`METHODS`, `EVENTS`).
 
-## Vị trí các schema
+## Nơi đặt các schema
 
 - Nguồn: `src/gateway/protocol/schema.ts`
-- Trình xác thực runtime (AJV): `src/gateway/protocol/index.ts`
-- Bắt tay server + điều phối phương thức: `src/gateway/server.ts`
-- Node client: `src/gateway/client.ts`
+- Trình xác thực lúc chạy (AJV): `src/gateway/protocol/index.ts`
+- Bắt tay máy chủ + điều phối method: `src/gateway/server.ts`
+- Client node: `src/gateway/client.ts`
 - JSON Schema được sinh: `dist/protocol.schema.json`
 - Model Swift được sinh: `apps/macos/Sources/OpenClawProtocol/GatewayModels.swift`
 
@@ -73,18 +73,18 @@ Danh sách có thẩm quyền nằm trong `src/gateway/server.ts` (`METHODS`, `E
 - `pnpm protocol:gen:swift`
   - sinh các model Gateway cho Swift
 - `pnpm protocol:check`
-  - chạy cả hai trình sinh và xác minh đầu ra đã được commit
+  - chạy cả hai bộ sinh và xác minh đầu ra đã được commit
 
-## Cách các schema được dùng lúc runtime
+## Cách các schema được dùng lúc chạy
 
-- **Phía server**: mọi khung inbound đều được xác thực bằng AJV. Bắt tay chỉ
+- **Phía máy chủ**: mọi frame đi vào đều được xác thực bằng AJV. Bắt tay chỉ
   chấp nhận một request `connect` có params khớp với `ConnectParams`.
-- **Phía client**: client JS xác thực các khung event và response trước khi
+- **Phía client**: client JS xác thực các frame sự kiện và phản hồi trước khi
   sử dụng chúng.
-- **Bề mặt phương thức**: Gateway quảng bá các `methods` và
+- **Bề mặt method**: Gateway công bố các `methods` và
   `events` được hỗ trợ trong `hello-ok`.
 
-## Ví dụ khung
+## Ví dụ frame
 
 Kết nối (thông điệp đầu tiên):
 
@@ -149,7 +149,7 @@ Event:
 
 ## Client tối thiểu (Node.js)
 
-Luồng hữu ích nhỏ nhất: kết nối + health.
+Luồng nhỏ nhất hữu ích: kết nối + health.
 
 ```ts
 import { WebSocket } from "ws";
@@ -189,7 +189,7 @@ ws.on("message", (data) => {
 });
 ```
 
-## Ví dụ hoàn chỉnh: thêm một phương thức từ đầu đến cuối
+## Ví dụ hoàn chỉnh: thêm một method từ đầu đến cuối
 
 Ví dụ: thêm một request `system.echo` mới trả về `{ ok: true, text }`.
 
@@ -229,7 +229,7 @@ Trong `src/gateway/protocol/index.ts`, export một trình xác thực AJV:
 export const validateSystemEchoParams = ajv.compile<SystemEchoParams>(SystemEchoParamsSchema);
 ```
 
-3. **Hành vi server**
+3. **Hành vi máy chủ**
 
 Thêm một handler trong `src/gateway/server-methods/system.ts`:
 
@@ -251,43 +251,42 @@ sau đó thêm `"system.echo"` vào `METHODS` trong `src/gateway/server.ts`.
 pnpm protocol:check
 ```
 
-5. **Test + tài liệu**
+5. **Kiểm thử + tài liệu**
 
-Thêm một test server trong `src/gateway/server.*.test.ts` và ghi chú phương thức trong tài liệu.
+Thêm một test phía máy chủ trong `src/gateway/server.*.test.ts` và ghi chú method trong tài liệu.
 
 ## Hành vi codegen Swift
 
-Trình sinh Swift phát ra:
+Bộ sinh Swift phát ra:
 
 - enum `GatewayFrame` với các case `req`, `res`, `event`, và `unknown`
-- Các struct/enum payload được định kiểu chặt chẽ
-- Giá trị `ErrorCode` và `GATEWAY_PROTOCOL_VERSION`
+- Các struct/enum payload được gõ kiểu chặt chẽ
+- Các giá trị `ErrorCode` và `GATEWAY_PROTOCOL_VERSION`
 
-Các loại khung không xác định được giữ lại dưới dạng payload thô để đảm bảo tương thích về sau.
+Các loại frame không xác định được giữ nguyên dưới dạng payload thô để tương thích về sau.
 
-## Phiên bản + tương thích
+## Phiên bản + khả năng tương thích
 
 - `PROTOCOL_VERSION` nằm trong `src/gateway/protocol/schema.ts`.
-- Client gửi `minProtocol` + `maxProtocol`; server từ chối nếu không khớp.
-- Các model Swift giữ lại các loại khung không xác định để tránh làm hỏng client cũ.
+- Client gửi `minProtocol` + `maxProtocol`; máy chủ từ chối nếu không khớp.
+- Các model Swift giữ lại các loại frame không xác định để tránh làm hỏng client cũ.
 
 ## Mẫu schema và quy ước
 
-- Hầu hết object dùng `additionalProperties: false` cho payload nghiêm ngặt.
-- `NonEmptyString` là mặc định cho ID và tên phương thức/sự kiện.
+- Hầu hết các object dùng `additionalProperties: false` cho payload chặt chẽ.
+- `NonEmptyString` là mặc định cho ID và tên method/event.
 - `GatewayFrame` cấp cao nhất dùng **discriminator** trên `type`.
-- Các phương thức có tác dụng phụ thường yêu cầu `idempotencyKey` trong params
+- Các method có tác dụng phụ thường yêu cầu một `idempotencyKey` trong params
   (ví dụ: `send`, `poll`, `agent`, `chat.send`).
 
 ## JSON schema trực tiếp
 
-JSON Schema được sinh nằm trong repo tại `dist/protocol.schema.json`. File thô
-đã phát hành thường có tại:
+JSON Schema được sinh nằm trong repo tại `dist/protocol.schema.json`. Tệp thô đã xuất bản thường có tại:
 
-- https://raw.githubusercontent.com/openclaw/openclaw/main/dist/protocol.schema.json
+- [https://raw.githubusercontent.com/openclaw/openclaw/main/dist/protocol.schema.json](https://raw.githubusercontent.com/openclaw/openclaw/main/dist/protocol.schema.json)
 
 ## Khi bạn thay đổi schema
 
 1. Cập nhật các schema TypeBox.
 2. Chạy `pnpm protocol:check`.
-3. Commit schema đã sinh lại + các model Swift.
+3. Commit schema và các model Swift đã được sinh lại.

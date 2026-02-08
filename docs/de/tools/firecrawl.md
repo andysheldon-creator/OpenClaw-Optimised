@@ -1,9 +1,9 @@
 ---
-summary: "Firecrawl-Fallback fuer web_fetch (Anti-Bot + zwischengespeicherte Extraktion)"
+summary: "Firecrawl-Fallback für web_fetch (Anti-Bot + zwischengespeicherte Extraktion)"
 read_when:
-  - Sie moechten eine Firecrawl-gestuetzte Web-Extraktion
-  - Sie benoetigen einen Firecrawl-API-Schluessel
-  - Sie moechten Anti-Bot-Extraktion fuer web_fetch
+  - Sie möchten eine Firecrawl-gestützte Web-Extraktion
+  - Sie benötigen einen Firecrawl-API-Schlüssel
+  - Sie möchten eine Anti-Bot-Extraktion für web_fetch
 title: "Firecrawl"
 x-i18n:
   source_path: tools/firecrawl.md
@@ -11,18 +11,18 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:45Z
+  generated_at: 2026-02-08T09:37:35Z
 ---
 
 # Firecrawl
 
-OpenClaw kann **Firecrawl** als Fallback-Extraktor fuer `web_fetch` verwenden. Es handelt sich um einen gehosteten
-Dienst zur Inhaltsextraktion, der Bot-Umgehung und Caching unterstuetzt, was
-bei JS-lastigen Websites oder Seiten hilft, die einfache HTTP-Abrufe blockieren.
+OpenClaw kann **Firecrawl** als Fallback-Extraktor für `web_fetch` verwenden. Es handelt sich um einen gehosteten
+Content-Extraktionsdienst, der Bot-Umgehung und Caching unterstützt, was bei
+JS-lastigen Websites oder Seiten hilft, die einfache HTTP-Abrufe blockieren.
 
-## API-Schluessel erhalten
+## API-Schlüssel abrufen
 
-1. Erstellen Sie ein Firecrawl-Konto und generieren Sie einen API-Schluessel.
+1. Erstellen Sie ein Firecrawl-Konto und generieren Sie einen API-Schlüssel.
 2. Speichern Sie ihn in der Konfiguration oder setzen Sie `FIRECRAWL_API_KEY` in der Gateway-Umgebung.
 
 ## Firecrawl konfigurieren
@@ -47,22 +47,22 @@ bei JS-lastigen Websites oder Seiten hilft, die einfache HTTP-Abrufe blockieren.
 
 Hinweise:
 
-- `firecrawl.enabled` ist standardmaessig auf true gesetzt, wenn ein API-Schluessel vorhanden ist.
-- `maxAgeMs` steuert, wie alt zwischengespeicherte Ergebnisse sein duerfen (ms). Standard sind 2 Tage.
+- `firecrawl.enabled` ist standardmäßig true, wenn ein API-Schlüssel vorhanden ist.
+- `maxAgeMs` steuert, wie alt zwischengespeicherte Ergebnisse sein dürfen (ms). Der Standardwert beträgt 2 Tage.
 
 ## Stealth / Bot-Umgehung
 
 Firecrawl stellt einen **Proxy-Modus**-Parameter zur Bot-Umgehung bereit (`basic`, `stealth` oder `auto`).
-OpenClaw verwendet fuer Firecrawl-Anfragen immer `proxy: "auto"` plus `storeInCache: true`.
-Wenn der Proxy weggelassen wird, verwendet Firecrawl standardmaessig `auto`. `auto` wiederholt den Versuch mit Stealth-Proxys, wenn ein grundlegender Versuch fehlschlaegt, was moeglicherweise mehr Credits verbraucht
-als reines Basic-Scraping.
+OpenClaw verwendet für Firecrawl-Anfragen immer `proxy: "auto"` plus `storeInCache: true`.
+Wenn kein Proxy angegeben ist, verwendet Firecrawl standardmäßig `auto`. `auto` wiederholt den Versuch mit Stealth-Proxys, wenn ein grundlegender Versuch fehlschlägt, was
+mehr Credits verbrauchen kann als reines Basic-Scraping.
 
 ## Wie `web_fetch` Firecrawl verwendet
 
-Reihenfolge der `web_fetch`-Extraktion:
+`web_fetch` Extraktionsreihenfolge:
 
 1. Readability (lokal)
 2. Firecrawl (falls konfiguriert)
 3. Grundlegende HTML-Bereinigung (letzter Fallback)
 
-Siehe [Web tools](/tools/web) fuer die vollstaendige Einrichtung der Web-Tools.
+Siehe [Web tools](/tools/web) für die vollständige Einrichtung der Web-Tools.

@@ -1,7 +1,7 @@
 ---
-summary: "Tarefas de LLM somente JSON para workflows (ferramenta de plugin opcional)"
+summary: "Tarefas de LLM apenas em JSON para workflows (ferramenta de plugin opcional)"
 read_when:
-  - Você quer uma etapa de LLM somente JSON dentro de workflows
+  - Você quer uma etapa de LLM apenas em JSON dentro de workflows
   - Você precisa de saída de LLM validada por esquema para automação
 title: "Tarefa de LLM"
 x-i18n:
@@ -10,15 +10,15 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:57:35Z
+  generated_at: 2026-02-08T09:32:13Z
 ---
 
 # Tarefa de LLM
 
-`llm-task` é uma **ferramenta de plugin opcional** que executa uma tarefa de LLM somente JSON e
+`llm-task` é uma **ferramenta de plugin opcional** que executa uma tarefa de LLM apenas em JSON e
 retorna saída estruturada (opcionalmente validada contra um JSON Schema).
 
-Isso é ideal para motores de workflow como o Lobster: você pode adicionar uma única etapa de LLM
+Isso é ideal para mecanismos de workflow como o Lobster: você pode adicionar uma única etapa de LLM
 sem escrever código OpenClaw personalizado para cada workflow.
 
 ## Habilitar o plugin
@@ -35,7 +35,7 @@ sem escrever código OpenClaw personalizado para cada workflow.
 }
 ```
 
-2. Inclua a ferramenta na allowlist (ela é registrada com `optional: true`):
+2. Coloque a ferramenta na lista de permissões (ela é registrada com `optional: true`):
 
 ```json
 {
@@ -50,7 +50,7 @@ sem escrever código OpenClaw personalizado para cada workflow.
 }
 ```
 
-## Configuracao (opcional)
+## Configuração (opcional)
 
 ```json
 {
@@ -72,10 +72,10 @@ sem escrever código OpenClaw personalizado para cada workflow.
 }
 ```
 
-`allowedModels` é uma allowlist de strings `provider/model`. Se definida, qualquer solicitação
+`allowedModels` é uma lista de permissões de strings `provider/model`. Se definida, qualquer solicitação
 fora da lista é rejeitada.
 
-## Parametros da ferramenta
+## Parâmetros da ferramenta
 
 - `prompt` (string, obrigatório)
 - `input` (qualquer, opcional)
@@ -87,7 +87,7 @@ fora da lista é rejeitada.
 - `maxTokens` (número, opcional)
 - `timeoutMs` (número, opcional)
 
-## Saida
+## Saída
 
 Retorna `details.json` contendo o JSON analisado (e valida contra
 `schema` quando fornecido).
@@ -113,10 +113,10 @@ openclaw.invoke --tool llm-task --action json --args-json '{
 }'
 ```
 
-## Notas de seguranca
+## Notas de segurança
 
-- A ferramenta é **somente JSON** e instrui o modelo a emitir apenas JSON (sem
+- A ferramenta é **apenas em JSON** e instrui o modelo a produzir somente JSON (sem
   cercas de código, sem comentários).
-- Nenhuma ferramenta é exposta ao modelo para esta execução.
+- Nenhuma ferramenta é exposta ao modelo nesta execução.
 - Trate a saída como não confiável, a menos que você valide com `schema`.
 - Coloque aprovações antes de qualquer etapa com efeitos colaterais (enviar, postar, executar).

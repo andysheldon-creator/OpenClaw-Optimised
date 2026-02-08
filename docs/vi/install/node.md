@@ -1,65 +1,140 @@
 ---
-title: "Node.js + npm (kiem tra PATH)"
-summary: "Kiem tra cai dat Node.js + npm: phien ban, PATH va cai dat toan cuc"
+title: "Node.js"
+summary: "Cài đặt và cấu hình Node.js cho OpenClaw — yêu cầu phiên bản, các tùy chọn cài đặt và xử lý sự cố PATH"
 read_when:
-  - "Ban da cai dat OpenClaw nhung `openclaw` bao “command not found”"
-  - "Ban dang thiet lap Node.js/npm tren mot may moi"
-  - "npm install -g ... that bai do quyen hoac van de PATH"
+  - "Bạn cần cài đặt Node.js trước khi cài đặt OpenClaw"
+  - "Bạn đã cài OpenClaw nhưng gặp lỗi `openclaw` là lệnh không tồn tại"
+  - "`npm install -g` thất bại do quyền hoặc sự cố PATH"
 x-i18n:
   source_path: install/node.md
-  source_hash: 9f6d83be362e3e14
+  source_hash: f848d6473a183090
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:38Z
+  generated_at: 2026-02-08T09:39:23Z
 ---
 
-# Node.js + npm (kiem tra PATH)
+# Node.js
 
-Nen tang runtime cua OpenClaw la **Node 22+**.
+OpenClaw yêu cầu **Node 22 trở lên**. [Script cài đặt](/install#install-methods) sẽ tự động phát hiện và cài Node — trang này dành cho trường hợp bạn muốn tự thiết lập Node và đảm bảo mọi thứ được kết nối đúng (phiên bản, PATH, cài đặt toàn cục).
 
-Neu ban co the chay `npm install -g openclaw@latest` nhung sau do lai thay `openclaw: command not found`, thi gan nhu luon la van de **PATH**: thu muc ma npm dat cac binary toan cuc khong nam trong PATH cua shell.
-
-## Chan doan nhanh
-
-Chay:
+## Kiểm tra phiên bản
 
 ```bash
 node -v
-npm -v
-npm prefix -g
-echo "$PATH"
 ```
 
-Neu `$(npm prefix -g)/bin` (macOS/Linux) hoac `$(npm prefix -g)` (Windows) **khong** xuat hien ben trong `echo "$PATH"`, shell cua ban khong the tim thay cac binary npm toan cuc (bao gom ca `openclaw`).
+Nếu lệnh in ra `v22.x.x` hoặc cao hơn thì bạn đã sẵn sàng. Nếu Node chưa được cài hoặc phiên bản quá cũ, hãy chọn một phương thức cài đặt bên dưới.
 
-## Khac phuc: dua thu muc bin toan cuc cua npm vao PATH
+## Cài đặt Node
 
-1. Tim prefix npm toan cuc cua ban:
+<Tabs>
+  <Tab title="macOS">
+    **Homebrew** (khuyến nghị):
+
+    ```bash
+    brew install node
+    ```
+
+    Hoặc tải trình cài đặt macOS từ [nodejs.org](https://nodejs.org/).
+
+  </Tab>
+  <Tab title="Linux">
+    **Ubuntu / Debian:**
+
+    ```bash
+    curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+    sudo apt-get install -y nodejs
+    ```
+
+    **Fedora / RHEL:**
+
+    ```bash
+    sudo dnf install nodejs
+    ```
+
+    Hoặc dùng trình quản lý phiên bản (xem bên dưới).
+
+  </Tab>
+  <Tab title="Windows">
+    **winget** (khuyến nghị):
+
+    ```powershell
+    winget install OpenJS.NodeJS.LTS
+    ```
+
+    **Chocolatey:**
+
+    ```powershell
+    choco install nodejs-lts
+    ```
+
+    Hoặc tải trình cài đặt Windows từ [nodejs.org](https://nodejs.org/).
+
+  </Tab>
+</Tabs>
+
+<Accordion title="Sử dụng trình quản lý phiên bản (nvm, fnm, mise, asdf)">
+  Trình quản lý phiên bản cho phép bạn chuyển đổi giữa các phiên bản Node dễ dàng. Các lựa chọn phổ biến:
+
+- [**fnm**](https://github.com/Schniz/fnm) — nhanh, đa nền tảng
+- [**nvm**](https://github.com/nvm-sh/nvm) — được dùng rộng rãi trên macOS/Linux
+- [**mise**](https://mise.jdx.dev/) — đa ngôn ngữ (Node, Python, Ruby, v.v.)
+
+Ví dụ với fnm:
 
 ```bash
-npm prefix -g
+fnm install 22
+fnm use 22
 ```
 
-2. Them thu muc bin toan cuc cua npm vao file khoi dong shell:
+  <Warning>
+  Hãy đảm bảo trình quản lý phiên bản của bạn được khởi tạo trong tệp khởi động shell (`~/.zshrc` hoặc `~/.bashrc`). Nếu không, `openclaw` có thể không được tìm thấy trong các phiên terminal mới vì PATH sẽ không bao gồm thư mục bin của Node.
+  </Warning>
+</Accordion>
 
-- zsh: `~/.zshrc`
-- bash: `~/.bashrc`
+## Xử lý sự cố
 
-Vi du (thay duong dan bang ket qua tu `npm prefix -g` cua ban):
+### `openclaw: command not found`
 
-```bash
-# macOS / Linux
-export PATH="/path/from/npm/prefix/bin:$PATH"
-```
+Điều này hầu như luôn có nghĩa là thư mục bin toàn cục của npm không nằm trong PATH của bạn.
 
-Sau do mo **mot terminal moi** (hoac chay `rehash` trong zsh / `hash -r` trong bash).
+<Steps>
+  <Step title="Tìm prefix npm toàn cục">
+    ```bash
+    npm prefix -g
+    ```
+  </Step>
+  <Step title="Kiểm tra xem nó có nằm trong PATH không">
+    ```bash
+    echo "$PATH"
+    ```
 
-Tren Windows, them ket qua cua `npm prefix -g` vao PATH.
+    Tìm `<npm-prefix>/bin` (macOS/Linux) hoặc `<npm-prefix>` (Windows) trong đầu ra.
 
-## Khac phuc: tranh loi `sudo npm install -g` / loi quyen (Linux)
+  </Step>
+  <Step title="Thêm vào tệp khởi động shell của bạn">
+    <Tabs>
+      <Tab title="macOS / Linux">
+        Thêm vào `~/.zshrc` hoặc `~/.bashrc`:
 
-Neu `npm install -g ...` that bai voi `EACCES`, hay chuyen prefix toan cuc cua npm sang mot thu muc ma nguoi dung co quyen ghi:
+        ```bash
+        export PATH="$(npm prefix -g)/bin:$PATH"
+        ```
+
+        Sau đó mở một terminal mới (hoặc chạy `rehash` trong zsh / `hash -r` trong bash).
+      </Tab>
+      <Tab title="Windows">
+        Thêm đầu ra của `npm prefix -g` vào PATH hệ thống qua Settings → System → Environment Variables.
+      </Tab>
+    </Tabs>
+
+  </Step>
+</Steps>
+
+### Lỗi quyền khi chạy `npm install -g` (Linux)
+
+Nếu bạn thấy lỗi `EACCES`, hãy chuyển prefix toàn cục của npm sang một thư mục có quyền ghi cho người dùng:
 
 ```bash
 mkdir -p "$HOME/.npm-global"
@@ -67,19 +142,4 @@ npm config set prefix "$HOME/.npm-global"
 export PATH="$HOME/.npm-global/bin:$PATH"
 ```
 
-Luu dong `export PATH=...` vao file khoi dong shell cua ban.
-
-## Lua chon cai dat Node duoc khuyen nghi
-
-Ban se gap it bat ngo nhat neu Node/npm duoc cai dat theo cach:
-
-- giu Node luon duoc cap nhat (22+)
-- dam bao thu muc bin npm toan cuc on dinh va co trong PATH khi mo shell moi
-
-Cac lua chon pho bien:
-
-- macOS: Homebrew (`brew install node`) hoac trinh quan ly phien ban
-- Linux: trinh quan ly phien ban ban ua thich, hoac cai dat duoc ho tro boi distro cung cap Node 22+
-- Windows: trinh cai dat Node chinh thuc, `winget`, hoac trinh quan ly phien ban Node cho Windows
-
-Neu ban dung trinh quan ly phien ban (nvm/fnm/asdf/etc), hay dam bao no duoc khoi tao trong shell ban dung hang ngay (zsh hay bash) de PATH ma no thiet lap co hieu luc khi ban chay cac trinh cai dat.
+Thêm dòng `export PATH=...` vào `~/.bashrc` hoặc `~/.zshrc` để áp dụng vĩnh viễn.

@@ -1,27 +1,27 @@
 ---
-summary: "Referencia de CLI para `openclaw memory` (estado/indexar/buscar)"
+summary: "Referencia de la CLI para `openclaw memory` (status/index/search)"
 read_when:
   - Quiere indexar o buscar memoria semántica
-  - Está depurando la disponibilidad de memoria o la indexación
-title: "memory"
+  - Está depurando la disponibilidad de la memoria o la indexación
+title: "memoria"
 x-i18n:
   source_path: cli/memory.md
-  source_hash: 95a9e94306f95be2
+  source_hash: cb8ee2c9b2db2d57
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:58:16Z
+  generated_at: 2026-02-08T09:32:56Z
 ---
 
 # `openclaw memory`
 
-Gestiona la indexación y búsqueda de memoria semántica.
-Proporcionado por el plugin de memoria activo (predeterminado: `memory-core`; configure `plugins.slots.memory = "none"` para deshabilitarlo).
+Gestione la indexación y la búsqueda de memoria semántica.
+Proporcionado por el plugin de memoria activo (predeterminado: `memory-core`; establezca `plugins.slots.memory = "none"` para deshabilitar).
 
 Relacionado:
 
 - Concepto de memoria: [Memory](/concepts/memory)
-- Plugins: [Plugins](/plugins)
+- Plugins: [Plugins](/tools/plugin)
 
 ## Ejemplos
 
@@ -41,12 +41,12 @@ openclaw memory index --agent main --verbose
 
 Comunes:
 
-- `--agent <id>`: delimita el alcance a un solo agente (predeterminado: todos los agentes configurados).
-- `--verbose`: emite registros detallados durante las comprobaciones y la indexación.
+- `--agent <id>`: limitar el alcance a un solo agente (predeterminado: todos los agentes configurados).
+- `--verbose`: emitir registros detallados durante las sondas y la indexación.
 
 Notas:
 
-- `memory status --deep` verifica la disponibilidad de vectores + embeddings.
+- `memory status --deep` sondea la disponibilidad de vectores + embeddings.
 - `memory status --deep --index` ejecuta una reindexación si el almacén está sucio.
 - `memory index --verbose` imprime detalles por fase (proveedor, modelo, fuentes, actividad por lotes).
 - `memory status` incluye cualquier ruta adicional configurada mediante `memorySearch.extraPaths`.

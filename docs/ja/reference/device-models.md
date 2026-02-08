@@ -1,39 +1,39 @@
 ---
-summary: "OpenClaw が macOS アプリでフレンドリーな名称を表示するために、Apple デバイスのモデル識別子をどのようにベンダリングしているかを説明します。"
+summary: "macOS アプリで Apple デバイスのモデル識別子を分かりやすい名称に対応付けるために、OpenClaw がどのようにベンダリングしているかを説明します。"
 read_when:
-  - デバイスモデル識別子のマッピングや NOTICE / ライセンスファイルを更新する場合
-  - Instances UI でのデバイス名の表示方法を変更する場合
-title: "デバイスモデルデータベース"
+  - デバイスモデル識別子の対応表や NOTICE／ライセンス ファイルを更新する場合
+  - Instances UI がデバイス名を表示する方法を変更する場合
+title: "デバイスモデル データベース"
 x-i18n:
   source_path: reference/device-models.md
   source_hash: 1d99c2538a0d8fdd
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:34:43Z
+  generated_at: 2026-02-08T09:23:00Z
 ---
 
-# デバイスモデルデータベース（フレンドリー名）
+# デバイスモデル データベース（分かりやすい名称）
 
-macOS コンパニオンアプリは、Apple のモデル識別子（例：`iPad16,6`、`Mac16,6`）を人が読みやすい名称にマッピングすることで、**Instances** UI にフレンドリーな Apple デバイスモデル名を表示します。
+macOS のコンパニオンアプリは、Apple のモデル識別子（例: `iPad16,6`、`Mac16,6`）を人が読める名称に対応付けることで、**Instances** UI に分かりやすい Apple デバイスのモデル名を表示します。
 
-このマッピングは、次の場所に JSON としてベンダリングされています。
+この対応表は、次の場所に JSON としてベンダリングされています。
 
 - `apps/macos/Sources/OpenClaw/Resources/DeviceModels/`
 
 ## データソース
 
-現在、このマッピングは MIT ライセンスの次のリポジトリからベンダリングしています。
+現在、この対応表は MIT ライセンスの次のリポジトリからベンダリングしています。
 
 - `kyle-seongwoo-jun/apple-device-identifiers`
 
-ビルドの決定性を保つため、JSON ファイルは特定のアップストリームのコミットにピン留めされています（`apps/macos/Sources/OpenClaw/Resources/DeviceModels/NOTICE.md` に記録されています）。
+ビルドの再現性を保つため、JSON ファイルは特定の上流コミットに固定しています（`apps/macos/Sources/OpenClaw/Resources/DeviceModels/NOTICE.md` に記録されています）。
 
 ## データベースの更新
 
-1. ピン留めするアップストリームのコミットを選択します（iOS 用に 1 つ、macOS 用に 1 つ）。
+1. 固定したい上流コミットを選択します（iOS 用と macOS 用で各 1 つ）。
 2. `apps/macos/Sources/OpenClaw/Resources/DeviceModels/NOTICE.md` にあるコミットハッシュを更新します。
-3. それらのコミットにピン留めした状態で、JSON ファイルを再ダウンロードします。
+3. それらのコミットに固定して、JSON ファイルを再ダウンロードします。
 
 ```bash
 IOS_COMMIT="<commit sha for ios-device-identifiers.json>"
@@ -46,8 +46,8 @@ curl -fsSL "https://raw.githubusercontent.com/kyle-seongwoo-jun/apple-device-ide
   -o apps/macos/Sources/OpenClaw/Resources/DeviceModels/mac-device-identifiers.json
 ```
 
-4. `apps/macos/Sources/OpenClaw/Resources/DeviceModels/LICENSE.apple-device-identifiers.txt` が引き続きアップストリームと一致していることを確認します（アップストリームのライセンスが変更された場合は置き換えてください）。
-5. macOS アプリが警告なしでクリーンにビルドできることを確認します。
+4. `apps/macos/Sources/OpenClaw/Resources/DeviceModels/LICENSE.apple-device-identifiers.txt` が引き続き上流と一致していることを確認します（上流のライセンスが変更された場合は置き換えます）。
+5. macOS アプリが警告なしで正常にビルドできることを確認します。
 
 ```bash
 swift build --package-path apps/macos

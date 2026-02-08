@@ -1,7 +1,7 @@
 ---
 summary: "Exponha um endpoint HTTP /v1/responses compatível com OpenResponses a partir do Gateway"
 read_when:
-  - Integrando clientes que falam a API OpenResponses
+  - Integrar clientes que falam a API OpenResponses
   - Você quer entradas baseadas em itens, chamadas de ferramentas do cliente ou eventos SSE
 title: "API OpenResponses"
 x-i18n:
@@ -10,24 +10,24 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:56:26Z
+  generated_at: 2026-02-08T09:31:04Z
 ---
 
 # API OpenResponses (HTTP)
 
-O Gateway do OpenClaw pode servir um endpoint `POST /v1/responses` compatível com OpenResponses.
+O Gateway do OpenClaw pode servir um endpoint compatível com OpenResponses `POST /v1/responses`.
 
-Este endpoint vem **desativado por padrão**. Ative-o primeiro na configuracao.
+Este endpoint é **desativado por padrão**. Ative-o primeiro na configuração.
 
 - `POST /v1/responses`
-- Mesma porta do Gateway (multiplexação WS + HTTP): `http://<gateway-host>:<port>/v1/responses`
+- Mesma porta do Gateway (multiplex WS + HTTP): `http://<gateway-host>:<port>/v1/responses`
 
-Por baixo dos panos, as requisições são executadas como uma execução normal de agente do Gateway (mesmo codepath que
-`openclaw agent`), então roteamento/permissões/configuração correspondem ao seu Gateway.
+Nos bastidores, as requisições são executadas como uma execução normal de agente do Gateway (mesmo caminho de código que
+`openclaw agent`), portanto roteamento/permissões/configuração correspondem ao seu Gateway.
 
 ## Autenticação
 
-Usa a configuração de autenticação do Gateway. Envie um bearer token:
+Usa a configuração de autenticação do Gateway. Envie um token bearer:
 
 - `Authorization: Bearer <token>`
 
@@ -38,12 +38,12 @@ Notas:
 
 ## Escolhendo um agente
 
-Nenhum cabeçalho customizado é necessário: codifique o id do agente no campo OpenResponses `model`:
+Nenhum cabeçalho personalizado é necessário: codifique o id do agente no campo OpenResponses `model`:
 
 - `model: "openclaw:<agentId>"` (exemplo: `"openclaw:main"`, `"openclaw:beta"`)
 - `model: "agent:<agentId>"` (alias)
 
-Ou direcione para um agente específico do OpenClaw por cabeçalho:
+Ou direcione um agente específico do OpenClaw por cabeçalho:
 
 - `x-openclaw-agent-id: <agentId>` (padrão: `main`)
 
@@ -99,8 +99,8 @@ A requisição segue a API OpenResponses com entrada baseada em itens. Suporte a
 - `tools`: definições de ferramentas do cliente (function tools).
 - `tool_choice`: filtrar ou exigir ferramentas do cliente.
 - `stream`: habilita streaming SSE.
-- `max_output_tokens`: limite de saída em melhor esforço (dependente do provedor).
-- `user`: roteamento de sessão estável.
+- `max_output_tokens`: limite de saída de melhor esforço (dependente do provedor).
+- `user`: roteamento estável de sessão.
 
 Aceitos, mas **atualmente ignorados**:
 
@@ -117,13 +117,13 @@ Aceitos, mas **atualmente ignorados**:
 
 Papéis: `system`, `developer`, `user`, `assistant`.
 
-- `system` e `developer` são anexados ao prompt do sistema.
-- O item `user` ou `function_call_output` mais recente se torna a “mensagem atual”.
+- `system` e `developer` são acrescentados ao prompt do sistema.
+- O item mais recente `user` ou `function_call_output` torna-se a “mensagem atual”.
 - Mensagens anteriores de usuário/assistente são incluídas como histórico para contexto.
 
-### `function_call_output` (ferramentas por turno)
+### `function_call_output` (ferramentas baseadas em turnos)
 
-Envie resultados de ferramentas de volta ao modelo:
+Envie os resultados das ferramentas de volta ao modelo:
 
 ```json
 {
@@ -142,7 +142,7 @@ Aceitos para compatibilidade de esquema, mas ignorados ao construir o prompt.
 Forneça ferramentas com `tools: [{ type: "function", function: { name, description?, parameters? } }]`.
 
 Se o agente decidir chamar uma ferramenta, a resposta retorna um item de saída `function_call`.
-Em seguida, envie uma requisição de acompanhamento com `function_call_output` para continuar o turno.
+Em seguida, você envia uma requisição de acompanhamento com `function_call_output` para continuar o turno.
 
 ## Imagens (`input_image`)
 
@@ -155,7 +155,7 @@ Suporta fontes base64 ou URL:
 }
 ```
 
-Tipos MIME permitidos (atuais): `image/jpeg`, `image/png`, `image/gif`, `image/webp`.
+Tipos MIME permitidos (atual): `image/jpeg`, `image/png`, `image/gif`, `image/webp`.
 Tamanho máximo (atual): 10MB.
 
 ## Arquivos (`input_file`)
@@ -174,7 +174,7 @@ Suporta fontes base64 ou URL:
 }
 ```
 
-Tipos MIME permitidos (atuais): `text/plain`, `text/markdown`, `text/html`, `text/csv`,
+Tipos MIME permitidos (atual): `text/plain`, `text/markdown`, `text/html`, `text/csv`,
 `application/json`, `application/pdf`.
 
 Tamanho máximo (atual): 5MB.
@@ -186,16 +186,16 @@ Comportamento atual:
 - PDFs são analisados para texto. Se pouco texto for encontrado, as primeiras páginas são rasterizadas
   em imagens e passadas ao modelo.
 
-A análise de PDF usa a build legada do `pdfjs-dist` amigável ao Node (sem worker). A build moderna
-do PDF.js espera workers do navegador/globais de DOM, então não é usada no Gateway.
+A análise de PDF usa o build legado do `pdfjs-dist` amigável ao Node (sem worker). O build moderno
+do PDF.js espera workers de navegador/globais do DOM, portanto não é usado no Gateway.
 
 Padrões de busca por URL:
 
 - `files.allowUrl`: `true`
 - `images.allowUrl`: `true`
-- Requisições são protegidas (resolução DNS, bloqueio de IP privado, limites de redirecionamento, timeouts).
+- As requisições são protegidas (resolução DNS, bloqueio de IP privado, limites de redirecionamento, timeouts).
 
-## Limites de arquivos + imagens (config)
+## Limites de arquivos + imagens (configuração)
 
 Os padrões podem ser ajustados em `gateway.http.endpoints.responses`:
 
@@ -249,7 +249,7 @@ Padrões quando omitidos:
 - `files.maxRedirects`: 3
 - `files.timeoutMs`: 10s
 - `files.pdf.maxPages`: 4
-- `files.pdf.maxPixels`: 4,000,000
+- `files.pdf.maxPixels`: 4.000.000
 - `files.pdf.minTextChars`: 200
 - `images.maxBytes`: 10MB
 - `images.maxRedirects`: 3
@@ -278,11 +278,11 @@ Tipos de evento atualmente emitidos:
 
 ## Uso
 
-`usage` é preenchido quando o provedor subjacente relata contagens de tokens.
+`usage` é preenchido quando o provedor subjacente reporta contagens de tokens.
 
 ## Erros
 
-Erros usam um objeto JSON como:
+Os erros usam um objeto JSON como:
 
 ```json
 { "error": { "message": "...", "type": "invalid_request_error" } }

@@ -2,31 +2,31 @@
 summary: "Exploración: configuración de modelos, perfiles de autenticación y comportamiento de fallback"
 read_when:
   - Explorando ideas futuras de selección de modelos + perfiles de autenticación
-title: "Exploración de Configuración de Modelos"
+title: "Exploración de configuración de modelos"
 x-i18n:
   source_path: experiments/proposals/model-config.md
   source_hash: 48623233d80f874c
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:58:44Z
+  generated_at: 2026-02-08T09:33:22Z
 ---
 
-# Configuración de Modelos (Exploración)
+# Configuración de modelos (Exploración)
 
-Este documento recoge **ideas** para la configuración futura de modelos. No es una
-especificación en envío. Para el comportamiento actual, vea:
+Este documento recopila **ideas** para la configuración futura de modelos. No es una
+especificación en producción. Para el comportamiento actual, consulte:
 
-- [Models](/concepts/models)
-- [Model failover](/concepts/model-failover)
-- [OAuth + profiles](/concepts/oauth)
+- [Modelos](/concepts/models)
+- [Failover de modelos](/concepts/model-failover)
+- [OAuth + perfiles](/concepts/oauth)
 
 ## Motivación
 
-Los operadores quieren:
+Los operadores desean:
 
-- Múltiples perfiles de autenticación por proveedor (personal vs trabajo).
-- Selección simple de `/model` con fallbacks predecibles.
+- Múltiples perfiles de autenticación por proveedor (personal vs. trabajo).
+- Selección simple `/model` con fallbacks predecibles.
 - Separación clara entre modelos de texto y modelos con capacidad de imagen.
 
 ## Posible dirección (alto nivel)
@@ -34,10 +34,10 @@ Los operadores quieren:
 - Mantener la selección de modelos simple: `provider/model` con alias opcionales.
 - Permitir que los proveedores tengan múltiples perfiles de autenticación, con un orden explícito.
 - Usar una lista global de fallback para que todas las sesiones hagan failover de forma consistente.
-- Solo sobrescribir el enrutamiento de imágenes cuando se configure explícitamente.
+- Sobrescribir el enrutamiento de imágenes solo cuando se configure explícitamente.
 
 ## Preguntas abiertas
 
 - ¿La rotación de perfiles debería ser por proveedor o por modelo?
-- ¿Cómo debería la UI mostrar la selección de perfiles para una sesión?
+- ¿Cómo debería la interfaz de usuario presentar la selección de perfiles para una sesión?
 - ¿Cuál es la ruta de migración más segura desde las claves de configuración heredadas?

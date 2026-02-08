@@ -1,53 +1,51 @@
 ---
-summary: "Wie OpenClaw-Sandboxing funktioniert: Modi, Geltungsbereiche, Workspace-Zugriff und Images"
+summary: „Wie OpenClaw-Sandboxing funktioniert: Modi, Geltungsbereiche, Workspace-Zugriff und Images“
 title: Sandboxing
-read_when: "Sie moechten eine dedizierte Erklaerung zu Sandboxing oder muessen agents.defaults.sandbox feinjustieren."
+read_when: „Sie möchten eine dedizierte Erklärung zu Sandboxing oder müssen agents.defaults.sandbox feinjustieren.“
 status: active
 x-i18n:
   source_path: gateway/sandboxing.md
-  source_hash: 184fc53001fc6b28
+  source_hash: c1bb7fd4ac37ef73
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:04:40Z
+  generated_at: 2026-02-08T09:36:31Z
 ---
 
 # Sandboxing
 
-OpenClaw kann **Werkzeuge in Docker-Containern ausfuehren**, um den Schadensradius zu reduzieren.
-Dies ist **optional** und wird per Konfiguration gesteuert (`agents.defaults.sandbox` oder
+OpenClaw kann **Werkzeuge innerhalb von Docker-Containern ausführen**, um den Schadensradius zu reduzieren.
+Dies ist **optional** und wird über die Konfiguration gesteuert (`agents.defaults.sandbox` oder
 `agents.list[].sandbox`). Ist Sandboxing deaktiviert, laufen Werkzeuge auf dem Host.
-Der Gateway verbleibt auf dem Host; die Werkzeugausfuehrung laeuft in einer isolierten Sandbox,
-wenn aktiviert.
+Das Gateway verbleibt auf dem Host; die Werkzeugausführung läuft bei Aktivierung in einer isolierten Sandbox.
 
-Dies ist keine perfekte Sicherheitsgrenze, schraenkt aber den Zugriff auf Dateisystem
-und Prozesse deutlich ein, wenn das Modell etwas Unkluges tut.
+Dies ist keine perfekte Sicherheitsgrenze, begrenzt jedoch den Zugriff auf Dateisystem und Prozesse erheblich, wenn das Modell etwas Unkluges tut.
 
 ## Was wird sandboxed
 
-- Werkzeugausfuehrung (`exec`, `read`, `write`, `edit`, `apply_patch`, `process` usw.).
+- Werkzeugausführung (`exec`, `read`, `write`, `edit`, `apply_patch`, `process` usw.).
 - Optionaler sandboxed Browser (`agents.defaults.sandbox.browser`).
-  - Standardmaessig startet der Sandbox-Browser automatisch (stellt sicher, dass CDP erreichbar ist), wenn das Browser-Werkzeug ihn benoetigt.
-    Konfiguration ueber `agents.defaults.sandbox.browser.autoStart` und `agents.defaults.sandbox.browser.autoStartTimeoutMs`.
-  - `agents.defaults.sandbox.browser.allowHostControl` ermoeglicht es sandboxed Sitzungen, den Host-Browser explizit anzusprechen.
-  - Optionale Allowlists schalten `target: "custom"` frei: `allowedControlUrls`, `allowedControlHosts`, `allowedControlPorts`.
+  - Standardmäßig startet der Sandbox-Browser automatisch (stellt sicher, dass CDP erreichbar ist), wenn das Browser-Werkzeug ihn benötigt.
+    Konfiguration über `agents.defaults.sandbox.browser.autoStart` und `agents.defaults.sandbox.browser.autoStartTimeoutMs`.
+  - `agents.defaults.sandbox.browser.allowHostControl` erlaubt es sandboxed Sitzungen, explizit den Host-Browser anzusteuern.
+  - Optionale Allowlists begrenzen `target: "custom"`: `allowedControlUrls`, `allowedControlHosts`, `allowedControlPorts`.
 
 Nicht sandboxed:
 
 - Der Gateway-Prozess selbst.
-- Jedes Werkzeug, das explizit fuer die Ausfuehrung auf dem Host erlaubt ist (z. B. `tools.elevated`).
-  - **Erhoehte Ausfuehrung laeuft auf dem Host und umgeht Sandboxing.**
-  - Ist Sandboxing deaktiviert, aendert `tools.elevated` die Ausfuehrung nicht (bereits auf dem Host). Siehe [Elevated Mode](/tools/elevated).
+- Jedes Werkzeug, das explizit erlaubt ist, auf dem Host zu laufen (z. B. `tools.elevated`).
+  - **Erhöhte Ausführung läuft auf dem Host und umgeht Sandboxing.**
+  - Ist Sandboxing deaktiviert, ändert `tools.elevated` die Ausführung nicht (bereits auf dem Host). Siehe [Elevated Mode](/tools/elevated).
 
 ## Modi
 
 `agents.defaults.sandbox.mode` steuert, **wann** Sandboxing verwendet wird:
 
 - `"off"`: kein Sandboxing.
-- `"non-main"`: Sandbox nur fuer **Nicht-Haupt**-Sitzungen (Standard, wenn Sie normale Chats auf dem Host moechten).
-- `"all"`: jede Sitzung laeuft in einer Sandbox.
-  Hinweis: `"non-main"` basiert auf `session.mainKey` (Standard `"main"`), nicht auf der Agent-ID.
-  Gruppen-/Kanal-Sitzungen verwenden eigene Schluessel, gelten daher als Nicht-Haupt und werden sandboxed.
+- `"non-main"`: Sandbox nur für **nicht‑Haupt**‑Sitzungen (Standard, wenn normale Chats auf dem Host laufen sollen).
+- `"all"`: jede Sitzung läuft in einer Sandbox.
+  Hinweis: `"non-main"` basiert auf `session.mainKey` (Standard `"main"`), nicht auf der Agent‑ID.
+  Gruppen-/Kanal‑Sitzungen verwenden eigene Schlüssel, zählen daher als nicht‑Haupt und werden sandboxed.
 
 ## Geltungsbereich
 
@@ -61,24 +59,24 @@ Nicht sandboxed:
 
 `agents.defaults.sandbox.workspaceAccess` steuert, **was die Sandbox sehen kann**:
 
-- `"none"` (Standard): Werkzeuge sehen einen Sandbox-Workspace unter `~/.openclaw/sandboxes`.
-- `"ro"`: bindet den Agent-Workspace schreibgeschuetzt unter `/agent` ein (deaktiviert `write`/`edit`/`apply_patch`).
-- `"rw"`: bindet den Agent-Workspace mit Lese-/Schreibzugriff unter `/workspace` ein.
+- `"none"` (Standard): Werkzeuge sehen einen Sandbox‑Workspace unter `~/.openclaw/sandboxes`.
+- `"ro"`: bindet den Agent‑Workspace schreibgeschützt unter `/agent` ein (deaktiviert `write`/`edit`/`apply_patch`).
+- `"rw"`: bindet den Agent‑Workspace mit Lese-/Schreibzugriff unter `/workspace` ein.
 
-Eingehende Medien werden in den aktiven Sandbox-Workspace kopiert (`media/inbound/*`).
-Skills-Hinweis: Das Werkzeug `read` ist an die Sandbox-Wurzel gebunden. Mit `workspaceAccess: "none"`
-spiegelt OpenClaw geeignete Skills in den Sandbox-Workspace (`.../skills`), sodass
-sie gelesen werden koennen. Mit `"rw"` sind Workspace-Skills lesbar unter
+Eingehende Medien werden in den aktiven Sandbox‑Workspace kopiert (`media/inbound/*`).
+Hinweis zu Skills: Das Werkzeug `read` ist auf die Sandbox‑Root ausgerichtet. Mit `workspaceAccess: "none"`
+spiegelt OpenClaw geeignete Skills in den Sandbox‑Workspace (`.../skills`), sodass
+sie gelesen werden können. Mit `"rw"` sind Workspace‑Skills lesbar unter
 `/workspace/skills`.
 
 ## Benutzerdefinierte Bind-Mounts
 
-`agents.defaults.sandbox.docker.binds` bindet zusaetzliche Host-Verzeichnisse in den Container ein.
+`agents.defaults.sandbox.docker.binds` bindet zusätzliche Host‑Verzeichnisse in den Container ein.
 Format: `host:container:mode` (z. B. `"/home/user/source:/source:rw"`).
 
-Globale und agentenspezifische Binds werden **zusammengefuehrt** (nicht ersetzt). Unter `scope: "shared"` werden agentenspezifische Binds ignoriert.
+Globale und agentenspezifische Binds werden **zusammengeführt** (nicht ersetzt). Unter `scope: "shared"` werden agentenspezifische Binds ignoriert.
 
-Beispiel (schreibgeschuetzte Quelle + Docker-Socket):
+Beispiel (schreibgeschützte Quelle + Docker‑Socket):
 
 ```json5
 {
@@ -106,14 +104,14 @@ Beispiel (schreibgeschuetzte Quelle + Docker-Socket):
 
 Sicherheitshinweise:
 
-- Binds umgehen das Sandbox-Dateisystem: Sie exponieren Host-Pfade mit dem von Ihnen gesetzten Modus (`:ro` oder `:rw`).
-- Sensible Mounts (z. B. `docker.sock`, Secrets, SSH-Schluessel) sollten `:ro` sein, sofern nicht absolut erforderlich.
-- Kombinieren Sie dies mit `workspaceAccess: "ro"`, wenn Sie nur Lesezugriff auf den Workspace benoetigen; Bind-Modi bleiben unabhaengig.
-- Siehe [Sandbox vs Tool Policy vs Elevated](/gateway/sandbox-vs-tool-policy-vs-elevated) fuer das Zusammenspiel von Binds mit Tool-Policy und erhöhter Ausfuehrung.
+- Binds umgehen das Sandbox‑Dateisystem: Sie legen Host‑Pfade mit dem von Ihnen gesetzten Modus offen (`:ro` oder `:rw`).
+- Sensible Mounts (z. B. `docker.sock`, Secrets, SSH‑Schlüssel) sollten `:ro` sein, sofern nicht absolut erforderlich.
+- Kombinieren Sie dies mit `workspaceAccess: "ro"`, wenn Sie nur Lesezugriff auf den Workspace benötigen; Bind‑Modi bleiben unabhängig.
+- Siehe [Sandbox vs Tool Policy vs Elevated](/gateway/sandbox-vs-tool-policy-vs-elevated) dazu, wie Binds mit Werkzeugrichtlinien und erhöhter Ausführung interagieren.
 
 ## Images + Setup
 
-Standard-Image: `openclaw-sandbox:bookworm-slim`
+Standard‑Image: `openclaw-sandbox:bookworm-slim`
 
 Einmal bauen:
 
@@ -121,61 +119,61 @@ Einmal bauen:
 scripts/sandbox-setup.sh
 ```
 
-Hinweis: Das Standard-Image enthaelt **kein** Node. Wenn ein Skill Node (oder
-andere Runtimes) benoetigt, backen Sie entweder ein benutzerdefiniertes Image
-oder installieren es ueber `sandbox.docker.setupCommand` (erfordert Network-Egress + beschreibbares Root +
-Root-Benutzer).
+Hinweis: Das Standard‑Image enthält **kein** Node. Benötigt ein Skill Node (oder
+andere Runtimes), backen Sie entweder ein eigenes Image oder installieren Sie über
+`sandbox.docker.setupCommand` (erfordert Netzwerk‑Egress + schreibbare Root +
+Root‑Benutzer).
 
-Sandboxed Browser-Image:
+Sandboxed Browser‑Image:
 
 ```bash
 scripts/sandbox-browser-setup.sh
 ```
 
-Standardmaessig laufen Sandbox-Container **ohne Netzwerk**.
-Ueberschreiben Sie dies mit `agents.defaults.sandbox.docker.network`.
+Standardmäßig laufen Sandbox‑Container **ohne Netzwerk**.
+Überschreiben Sie dies mit `agents.defaults.sandbox.docker.network`.
 
-Docker-Installationen und der containerisierte Gateway befinden sich hier:
+Docker‑Installationen und das containerisierte Gateway finden Sie hier:
 [Docker](/install/docker)
 
-## setupCommand (einmaliges Container-Setup)
+## setupCommand (einmaliges Container‑Setup)
 
-`setupCommand` wird **einmal** ausgefuehrt, nachdem der Sandbox-Container erstellt wurde (nicht bei jedem Lauf).
-Die Ausfuehrung erfolgt im Container ueber `sh -lc`.
+`setupCommand` wird **einmal** nach der Erstellung des Sandbox‑Containers ausgeführt (nicht bei jedem Lauf).
+Die Ausführung erfolgt im Container über `sh -lc`.
 
 Pfade:
 
 - Global: `agents.defaults.sandbox.docker.setupCommand`
 - Pro Agent: `agents.list[].sandbox.docker.setupCommand`
 
-Haeufige Fallstricke:
+Häufige Fallstricke:
 
 - Standard `docker.network` ist `"none"` (kein Egress), daher schlagen Paketinstallationen fehl.
-- `readOnlyRoot: true` verhindert Schreibzugriffe; setzen Sie `readOnlyRoot: false` oder backen Sie ein benutzerdefiniertes Image.
-- `user` muss Root sein fuer Paketinstallationen (lassen Sie `user` weg oder setzen Sie `user: "0:0"`).
-- Sandbox-Exec erbt **keine** Host-`process.env`. Verwenden Sie
-  `agents.defaults.sandbox.docker.env` (oder ein benutzerdefiniertes Image) fuer Skill-API-Schluessel.
+- `readOnlyRoot: true` verhindert Schreibzugriffe; setzen Sie `readOnlyRoot: false` oder backen Sie ein eigenes Image.
+- `user` muss Root sein für Paketinstallationen (lassen Sie `user` weg oder setzen Sie `user: "0:0"`).
+- Sandbox‑Ausführung erbt **nicht** die Host‑`process.env`. Verwenden Sie
+  `agents.defaults.sandbox.docker.env` (oder ein eigenes Image) für Skill‑API‑Schlüssel.
 
-## Tool-Policy + Escape-Hatches
+## Werkzeugrichtlinie + Escape‑Hatches
 
-Tool-Allow/Deny-Richtlinien gelten weiterhin vor den Sandbox-Regeln. Ist ein Werkzeug
-global oder pro Agent verweigert, bringt Sandboxing es nicht zurueck.
+Werkzeug‑Allow/Deny‑Richtlinien gelten weiterhin vor den Sandbox‑Regeln. Ist ein Werkzeug
+global oder pro Agent verboten, bringt Sandboxing es nicht zurück.
 
-`tools.elevated` ist eine explizite Escape-Hatch, die `exec` auf dem Host ausfuehrt.
-`/exec`-Direktiven gelten nur fuer autorisierte Absender und bleiben pro Sitzung erhalten; um
-`exec` hart zu deaktivieren, verwenden Sie Tool-Policy Deny (siehe [Sandbox vs Tool Policy vs Elevated](/gateway/sandbox-vs-tool-policy-vs-elevated)).
+`tools.elevated` ist eine explizite Escape‑Hatch, die `exec` auf dem Host ausführt.
+`/exec`‑Direktiven gelten nur für autorisierte Absender und bleiben pro Sitzung bestehen; um
+`exec` hart zu deaktivieren, verwenden Sie eine Werkzeugrichtlinien‑Sperre (siehe [Sandbox vs Tool Policy vs Elevated](/gateway/sandbox-vs-tool-policy-vs-elevated)).
 
 Debugging:
 
-- Verwenden Sie `openclaw sandbox explain`, um den effektiven Sandbox-Modus, die Tool-Policy und Fix-it-Konfigurationsschluessel zu inspizieren.
-- Siehe [Sandbox vs Tool Policy vs Elevated](/gateway/sandbox-vs-tool-policy-vs-elevated) fuer das mentale Modell „Warum ist das blockiert?“
-  Halten Sie es strikt gesperrt.
+- Verwenden Sie `openclaw sandbox explain`, um den effektiven Sandbox‑Modus, die Werkzeugrichtlinie und Fix‑it‑Konfigurationsschlüssel zu prüfen.
+- Siehe [Sandbox vs Tool Policy vs Elevated](/gateway/sandbox-vs-tool-policy-vs-elevated) für das mentale Modell „Warum ist das blockiert?“
+  Halten Sie es strikt abgesichert.
 
-## Multi-Agent-Ueberschreibungen
+## Multi‑Agent‑Overrides
 
-Jeder Agent kann Sandbox + Werkzeuge ueberschreiben:
-`agents.list[].sandbox` und `agents.list[].tools` (zusaetzlich `agents.list[].tools.sandbox.tools` fuer Sandbox-Tool-Policy).
-Siehe [Multi-Agent Sandbox & Tools](/multi-agent-sandbox-tools) zur Prioritaet.
+Jeder Agent kann Sandbox + Werkzeuge überschreiben:
+`agents.list[].sandbox` und `agents.list[].tools` (plus `agents.list[].tools.sandbox.tools` für die Sandbox‑Werkzeugrichtlinie).
+Siehe [Multi‑Agent Sandbox & Tools](/tools/multi-agent-sandbox-tools) zur Priorität.
 
 ## Minimales Aktivierungsbeispiel
 
@@ -195,6 +193,6 @@ Siehe [Multi-Agent Sandbox & Tools](/multi-agent-sandbox-tools) zur Prioritaet.
 
 ## Verwandte Dokumente
 
-- [Sandbox Configuration](/gateway/configuration#agentsdefaults-sandbox)
-- [Multi-Agent Sandbox & Tools](/multi-agent-sandbox-tools)
-- [Security](/gateway/security)
+- [Sandbox‑Konfiguration](/gateway/configuration#agentsdefaults-sandbox)
+- [Multi‑Agent Sandbox & Tools](/tools/multi-agent-sandbox-tools)
+- [Sicherheit](/gateway/security)

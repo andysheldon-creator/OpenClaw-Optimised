@@ -1,7 +1,7 @@
 ---
-summary: "Referencia de CLI para `openclaw onboard` (asistente interactivo de incorporacion)"
+summary: "Referencia de la CLI para `openclaw onboard` (asistente interactivo de incorporación)"
 read_when:
-  - Desea una configuracion guiada para Gateway, espacio de trabajo, autenticacion, canales y Skills
+  - Desea una configuración guiada para el Gateway, el espacio de trabajo, la autenticación, los canales y las Skills
 title: "onboard"
 x-i18n:
   source_path: cli/onboard.md
@@ -9,19 +9,19 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:58:19Z
+  generated_at: 2026-02-08T09:33:01Z
 ---
 
 # `openclaw onboard`
 
-Asistente interactivo de incorporacion (configuracion del Gateway local o remoto).
+Asistente interactivo de incorporación (configuración del Gateway local o remoto).
 
-## Guias relacionadas
+## Guías relacionadas
 
-- Centro de incorporacion de CLI: [Asistente de Incorporacion (CLI)](/start/wizard)
-- Referencia de incorporacion de CLI: [Referencia de Incorporacion de CLI](/start/wizard-cli-reference)
-- Automatizacion de CLI: [Automatizacion de CLI](/start/wizard-cli-automation)
-- Incorporacion en macOS: [Incorporacion (App de macOS)](/start/onboarding)
+- Centro de incorporación de la CLI: [Onboarding Wizard (CLI)](/start/wizard)
+- Referencia de incorporación de la CLI: [CLI Onboarding Reference](/start/wizard-cli-reference)
+- Automatización de la CLI: [CLI Automation](/start/wizard-cli-automation)
+- Incorporación en macOS: [Onboarding (macOS App)](/start/onboarding)
 
 ## Ejemplos
 
@@ -34,9 +34,9 @@ openclaw onboard --mode remote --remote-url ws://gateway-host:18789
 
 Notas del flujo:
 
-- `quickstart`: indicaciones minimas, genera automaticamente un token de gateway.
-- `manual`: indicaciones completas para puerto/vinculacion/autenticacion (alias de `advanced`).
-- Primer chat mas rapido: `openclaw dashboard` (UI de Control, sin configuracion de canales).
+- `quickstart`: indicaciones mínimas, genera automáticamente un token del Gateway.
+- `manual`: indicaciones completas para puerto/enlace/autenticación (alias de `advanced`).
+- Primer chat más rápido: `openclaw dashboard` (UI de control, sin configuración de canal).
 
 ## Comandos comunes posteriores
 

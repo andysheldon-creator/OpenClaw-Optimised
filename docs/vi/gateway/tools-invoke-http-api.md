@@ -1,39 +1,39 @@
 ---
-summary: "Goi truc tiep mot cong cu don le thong qua diem cuoi HTTP cua Gateway"
+summary: "Gọi trực tiếp một công cụ thông qua endpoint HTTP của Gateway"
 read_when:
-  - Goi cong cu ma khong can chay toan bo mot luot agent
-  - Xay dung tu dong hoa can thuc thi chinh sach cong cu
-title: "API Goi Cong Cu"
+  - Gọi công cụ mà không chạy toàn bộ một lượt tác tử
+  - Xây dựng các tự động hóa cần thực thi chính sách công cụ
+title: "API Gọi Công Cụ"
 x-i18n:
   source_path: gateway/tools-invoke-http-api.md
   source_hash: 17ccfbe0b0d9bb61
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:26Z
+  generated_at: 2026-02-08T09:39:08Z
 ---
 
-# Tools Invoke (HTTP)
+# Gọi Công Cụ (HTTP)
 
-Gateway cua OpenClaw phoi bay mot diem cuoi HTTP don gian de goi truc tiep mot cong cu don le. Luon duoc bat, nhung bi kiem soat boi xac thuc Gateway va chinh sach cong cu.
+Gateway của OpenClaw cung cấp một endpoint HTTP đơn giản để gọi trực tiếp một công cụ. Endpoint này luôn được bật, nhưng được kiểm soát bởi xác thực của Gateway và chính sách công cụ.
 
 - `POST /tools/invoke`
-- Cung cong voi Gateway (da kenh WS + HTTP): `http://<gateway-host>:<port>/tools/invoke`
+- Cùng cổng với Gateway (ghép kênh WS + HTTP): `http://<gateway-host>:<port>/tools/invoke`
 
-Kich thuoc payload toi da mac dinh la 2 MB.
+Kích thước payload tối đa mặc định là 2 MB.
 
-## Xac thuc
+## Xác thực
 
-Su dung cau hinh xac thuc Gateway. Gui bearer token:
+Sử dụng cấu hình xác thực của Gateway. Gửi bearer token:
 
 - `Authorization: Bearer <token>`
 
-Ghi chu:
+Ghi chú:
 
-- Khi `gateway.auth.mode="token"`, su dung `gateway.auth.token` (hoac `OPENCLAW_GATEWAY_TOKEN`).
-- Khi `gateway.auth.mode="password"`, su dung `gateway.auth.password` (hoac `OPENCLAW_GATEWAY_PASSWORD`).
+- Khi `gateway.auth.mode="token"`, sử dụng `gateway.auth.token` (hoặc `OPENCLAW_GATEWAY_TOKEN`).
+- Khi `gateway.auth.mode="password"`, sử dụng `gateway.auth.password` (hoặc `OPENCLAW_GATEWAY_PASSWORD`).
 
-## Than yeu cau
+## Nội dung yêu cầu
 
 ```json
 {
@@ -45,40 +45,40 @@ Ghi chu:
 }
 ```
 
-Cac truong:
+Các trường:
 
-- `tool` (string, bat buoc): ten cong cu can goi.
-- `action` (string, tuy chon): anh xa vao args neu schema cong cu ho tro `action` va payload args bo qua truong nay.
-- `args` (object, tuy chon): doi so rieng cua cong cu.
-- `sessionKey` (string, tuy chon): khoa phien muc tieu. Neu bo qua hoac `"main"`, Gateway se su dung khoa phien chinh da cau hinh (ton trong `session.mainKey` va agent mac dinh, hoac `global` trong pham vi toan cuc).
-- `dryRun` (boolean, tuy chon): du tru cho tuong lai; hien tai bo qua.
+- `tool` (string, bắt buộc): tên công cụ cần gọi.
+- `action` (string, tùy chọn): được ánh xạ vào args nếu schema của công cụ hỗ trợ `action` và payload args không bao gồm trường này.
+- `args` (object, tùy chọn): các tham số dành riêng cho công cụ.
+- `sessionKey` (string, tùy chọn): khóa phiên đích. Nếu bỏ qua hoặc `"main"`, Gateway sử dụng khóa phiên chính đã cấu hình (tuân theo `session.mainKey` và tác tử mặc định, hoặc `global` ở phạm vi toàn cục).
+- `dryRun` (boolean, tùy chọn): dành cho sử dụng trong tương lai; hiện tại bị bỏ qua.
 
-## Hanh vi chinh sach + dinh tuyen
+## Hành vi chính sách + định tuyến
 
-Tinh kha dung cua cong cu duoc loc qua cung chuoi chinh sach duoc su dung boi cac agent cua Gateway:
+Khả dụng của công cụ được lọc thông qua cùng chuỗi chính sách được Gateway agents sử dụng:
 
 - `tools.profile` / `tools.byProvider.profile`
 - `tools.allow` / `tools.byProvider.allow`
 - `agents.<id>.tools.allow` / `agents.<id>.tools.byProvider.allow`
-- chinh sach nhom (neu khoa phien anh xa toi mot nhom hoac kenh)
-- chinh sach subagent (khi goi voi khoa phien subagent)
+- chính sách nhóm (nếu khóa phiên ánh xạ tới một nhóm hoặc kênh)
+- chính sách subagent (khi gọi bằng khóa phiên subagent)
 
-Neu mot cong cu khong duoc cho phep boi chinh sach, diem cuoi se tra ve **404**.
+Nếu một công cụ không được cho phép theo chính sách, endpoint sẽ trả về **404**.
 
-De giup chinh sach nhom giai quyet boi canh, ban co the tuy chon dat:
+Để giúp các chính sách nhóm phân giải ngữ cảnh, bạn có thể tùy chọn thiết lập:
 
-- `x-openclaw-message-channel: <channel>` (vi du: `slack`, `telegram`)
-- `x-openclaw-account-id: <accountId>` (khi ton tai nhieu tai khoan)
+- `x-openclaw-message-channel: <channel>` (ví dụ: `slack`, `telegram`)
+- `x-openclaw-account-id: <accountId>` (khi tồn tại nhiều tài khoản)
 
-## Phan hoi
+## Phản hồi
 
 - `200` → `{ ok: true, result }`
-- `400` → `{ ok: false, error: { type, message } }` (yeu cau khong hop le hoac loi cong cu)
-- `401` → chua duoc uy quyen
-- `404` → cong cu khong kha dung (khong tim thay hoac khong nam trong danh sach cho phep)
-- `405` → phuong thuc khong duoc phep
+- `400` → `{ ok: false, error: { type, message } }` (yêu cầu không hợp lệ hoặc lỗi công cụ)
+- `401` → không được ủy quyền
+- `404` → công cụ không khả dụng (không tìm thấy hoặc không nằm trong danh sách cho phép)
+- `405` → phương thức không được phép
 
-## Vi du
+## Ví dụ
 
 ```bash
 curl -sS http://127.0.0.1:18789/tools/invoke \

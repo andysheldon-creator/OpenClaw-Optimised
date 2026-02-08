@@ -1,8 +1,8 @@
 ---
 summary: "Hooks：コマンドおよびライフサイクルイベント向けのイベント駆動型自動化"
 read_when:
-  - /new、/reset、/stop、ならびにエージェントのライフサイクルイベントに対するイベント駆動型自動化が必要な場合
-  - フックの構築、インストール、またはデバッグを行いたい場合
+  - /new、/reset、/stop、およびエージェントのライフサイクルイベントに対してイベント駆動型の自動化を行いたい場合
+  - フックを構築、インストール、またはデバッグしたい場合
 title: "Hooks"
 x-i18n:
   source_path: automation/hooks.md
@@ -10,37 +10,37 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:15:08Z
+  generated_at: 2026-02-08T09:21:11Z
 ---
 
 # Hooks
 
-Hooks は、エージェントのコマンドやイベントに応じてアクションを自動化するための、拡張可能なイベント駆動型システムを提供します。Hooks はディレクトリから自動的に検出され、OpenClaw の Skills と同様に CLI コマンドで管理できます。
+Hooks は、エージェントのコマンドやイベントに応答してアクションを自動化するための、拡張可能なイベント駆動型システムを提供します。Hooks はディレクトリから自動的に検出され、OpenClaw の Skills と同様に、CLI コマンドを通じて管理できます。
 
 ## Getting Oriented
 
-Hooks は「何かが起きたとき」に実行される小さなスクリプトです。種類は 2 つあります。
+Hooks は、何かが起きたときに実行される小さなスクリプトです。種類は 2 つあります。
 
-- **Hooks**（本ページ）: `/new`、`/reset`、`/stop`、またはライフサイクルイベントなど、エージェントのイベントが発火した際に Gateway（ゲートウェイ）内で実行されます。
-- **Webhooks**: 外部の HTTP Webhook で、他のシステムから OpenClaw での処理をトリガーできます。[Webhook Hooks](/automation/webhook) を参照するか、Gmail ヘルパーコマンドには `openclaw webhooks` を使用してください。
+- **Hooks**（このページ）: `/new`、`/reset`、`/stop`、またはライフサイクルイベントなどのエージェントイベントが発火した際に、Gateway（ゲートウェイ）内部で実行されます。
+- **Webhooks**: 外部の HTTP Webhook で、他のシステムから OpenClaw での処理をトリガーできます。[Webhook Hooks](/automation/webhook) を参照するか、Gmail ヘルパーコマンドとして `openclaw webhooks` を使用してください。
 
 Hooks はプラグイン内にバンドルすることもできます。詳細は [Plugins](/tools/plugin#plugin-hooks) を参照してください。
 
-一般的な用途は次のとおりです。
+一般的な用途:
 
 - セッションをリセットした際にメモリスナップショットを保存する
-- トラブルシューティングやコンプライアンスのためにコマンドの監査証跡を保持する
-- セッションの開始・終了時に後続の自動化をトリガーする
+- トラブルシューティングやコンプライアンスのためにコマンドの監査ログを保持する
+- セッションの開始や終了時に後続の自動化をトリガーする
 - イベント発火時にエージェントのワークスペースへファイルを書き込んだり、外部 API を呼び出したりする
 
-小さな TypeScript 関数を書けるのであれば、フックを作成できます。Hooks は自動的に検出され、CLI から有効化または無効化します。
+小さな TypeScript 関数を書けるなら、フックを書けます。Hooks は自動的に検出され、CLI で有効化または無効化します。
 
 ## Overview
 
-Hooks システムでは次のことが可能です。
+フックシステムでは、次のことが可能です。
 
-- `/new` が発行された際に、セッションコンテキストをメモリへ保存する
-- すべてのコマンドを監査目的で記録する
+- `/new` が発行されたときに、セッションコンテキストをメモリに保存する
+- 監査目的で全コマンドをログに記録する
 - エージェントのライフサイクルイベントでカスタム自動化をトリガーする
 - コアコードを変更せずに OpenClaw の挙動を拡張する
 
@@ -48,32 +48,32 @@ Hooks システムでは次のことが可能です。
 
 ### Bundled Hooks
 
-OpenClaw には、以下の 4 つのバンドル済みフックが同梱されており、自動的に検出されます。
+OpenClaw には、自動的に検出される 4 つのバンドル済みフックが同梱されています。
 
-- **💾 session-memory**: `/new` を発行すると、セッションコンテキストをエージェントのワークスペース（デフォルトは `~/.openclaw/workspace/memory/`）に保存します
-- **📝 command-logger**: すべてのコマンドイベントを `~/.openclaw/logs/commands.log` に記録します
-- **🚀 boot-md**: ゲートウェイ起動時に `BOOT.md` を実行します（内部フックの有効化が必要）
-- **😈 soul-evil**: パージウィンドウ中、またはランダムな確率で、注入された `SOUL.md` コンテンツを `SOUL_EVIL.md` に差し替えます
+- **💾 session-memory**: `/new` を発行したときに、セッションコンテキストをエージェントワークスペース（デフォルトは `~/.openclaw/workspace/memory/`）へ保存します
+- **📝 command-logger**: すべてのコマンドイベントを `~/.openclaw/logs/commands.log` にログします
+- **🚀 boot-md**: ゲートウェイ起動時に `BOOT.md` を実行します（内部フックを有効化する必要があります）
+- **😈 soul-evil**: パージウィンドウ中、またはランダムな確率で、注入された `SOUL.md` コンテンツを `SOUL_EVIL.md` と差し替えます
 
-利用可能なフックを一覧表示します。
+利用可能なフックを一覧表示:
 
 ```bash
 openclaw hooks list
 ```
 
-フックを有効化します。
+フックを有効化:
 
 ```bash
 openclaw hooks enable session-memory
 ```
 
-フックの状態を確認します。
+フックの状態を確認:
 
 ```bash
 openclaw hooks check
 ```
 
-詳細情報を取得します。
+詳細情報を取得:
 
 ```bash
 openclaw hooks info session-memory
@@ -81,7 +81,7 @@ openclaw hooks info session-memory
 
 ### Onboarding
 
-オンボーディング（`openclaw onboard`）中に、推奨されるフックを有効化するよう促されます。ウィザードは対象となるフックを自動的に検出し、選択肢として提示します。
+オンボーディング（`openclaw onboard`）中に、推奨されるフックを有効化するかどうかを尋ねられます。ウィザードは対象となるフックを自動的に検出し、選択肢として提示します。
 
 ## Hook Discovery
 
@@ -91,7 +91,7 @@ Hooks は、次の 3 つのディレクトリから自動的に検出されま�
 2. **Managed hooks**: `~/.openclaw/hooks/`（ユーザーがインストール、ワークスペース間で共有）
 3. **Bundled hooks**: `<openclaw>/dist/hooks/bundled/`（OpenClaw に同梱）
 
-Managed hooks のディレクトリは、**単一フック** または **フックパック**（パッケージディレクトリ）のいずれかです。
+管理フックのディレクトリは、**単一フック** または **フックパック**（パッケージディレクトリ）のいずれかです。
 
 各フックは、次を含むディレクトリです。
 
@@ -101,9 +101,9 @@ my-hook/
 └── handler.ts       # Handler implementation
 ```
 
-## Hook Packs (npm/archives)
+## Hook Packs（npm/archives）
 
-フックパックは標準的な npm パッケージで、`package.json` 内の `openclaw.hooks` を通じて 1 つ以上のフックをエクスポートします。次のコマンドでインストールします。
+フックパックは標準的な npm パッケージで、`package.json` 内の `openclaw.hooks` を通じて 1 つ以上のフックをエクスポートします。インストール方法:
 
 ```bash
 openclaw hooks install <path-or-spec>
@@ -162,17 +162,17 @@ No configuration needed.
 `metadata.openclaw` オブジェクトは次をサポートします。
 
 - **`emoji`**: CLI 用の表示絵文字（例: `"💾"`）
-- **`events`**: 監視するイベントの配列（例: `["command:new", "command:reset"]`）
+- **`events`**: リッスンするイベントの配列（例: `["command:new", "command:reset"]`）
 - **`export`**: 使用する名前付きエクスポート（デフォルトは `"default"`）
 - **`homepage`**: ドキュメント URL
-- **`requires`**: 任意の要件
+- **`requires`**: オプションの要件
   - **`bins`**: PATH 上に必要なバイナリ（例: `["git", "node"]`）
-  - **`anyBins`**: これらのバイナリのうち少なくとも 1 つが存在する必要があります
+  - **`anyBins`**: これらのバイナリのうち少なくとも 1 つが必要
   - **`env`**: 必要な環境変数
   - **`config`**: 必要な設定パス（例: `["workspace.dir"]`）
   - **`os`**: 必要なプラットフォーム（例: `["darwin", "linux"]`）
-- **`always`**: 適格性チェックをバイパスするかどうか（boolean）
-- **`install`**: インストール方法（バンドルフックの場合: `[{"id":"bundled","kind":"bundled"}]`）
+- **`always`**: 適格性チェックをバイパス（boolean）
+- **`install`**: インストール方法（バンドル済みフックの場合: `[{"id":"bundled","kind":"bundled"}]`）
 
 ### Handler Implementation
 
@@ -228,7 +228,7 @@ export default myHandler;
 
 ### Command Events
 
-エージェントのコマンドが発行されたときにトリガーされます。
+エージェントコマンドが発行されたときにトリガーされます。
 
 - **`command`**: すべてのコマンドイベント（汎用リスナー）
 - **`command:new`**: `/new` コマンドが発行されたとき
@@ -243,17 +243,17 @@ export default myHandler;
 
 ゲートウェイ起動時にトリガーされます。
 
-- **`gateway:startup`**: チャンネルが起動し、フックがロードされた後
+- **`gateway:startup`**: チャンネル起動後、フックがロードされた後
 
-### Tool Result Hooks (Plugin API)
+### Tool Result Hooks（Plugin API）
 
-これらのフックはイベントストリームのリスナーではありません。OpenClaw が永続化する前に、プラグインがツール結果を同期的に調整できます。
+これらのフックはイベントストリームのリスナーではありません。OpenClaw がツール結果を永続化する前に、プラグインが同期的に結果を調整できます。
 
-- **`tool_result_persist`**: セッショントランスクリプトに書き込まれる前にツール結果を変換します。同期的である必要があります。更新後のツール結果ペイロード、またはそのままにする場合は `undefined` を返します。[Agent Loop](/concepts/agent-loop) を参照してください。
+- **`tool_result_persist`**: セッショントランスクリプトに書き込まれる前にツール結果を変換します。同期である必要があります。更新後のツール結果ペイロード、またはそのまま保持する場合は `undefined` を返してください。[Agent Loop](/concepts/agent-loop) を参照してください。
 
 ### Future Events
 
-将来予定されているイベントタイプです。
+将来予定されているイベントタイプ:
 
 - **`session:start`**: 新しいセッションが開始されたとき
 - **`session:end`**: セッションが終了したとき
@@ -323,7 +323,7 @@ openclaw hooks enable my-hook
 
 ## Configuration
 
-### New Config Format (Recommended)
+### New Config Format（推奨）
 
 ```json
 {
@@ -363,7 +363,7 @@ Hooks にはカスタム設定を持たせることができます。
 
 ### Extra Directories
 
-追加のディレクトリからフックをロードします。
+追加のディレクトリからフックを読み込みます。
 
 ```json
 {
@@ -378,9 +378,9 @@ Hooks にはカスタム設定を持たせることができます。
 }
 ```
 
-### Legacy Config Format (Still Supported)
+### Legacy Config Format（引き続きサポート）
 
-後方互換性のため、旧設定フォーマットも引き続き利用できます。
+後方互換性のため、旧設定フォーマットも引き続き動作します。
 
 ```json
 {
@@ -399,7 +399,7 @@ Hooks にはカスタム設定を持たせることができます。
 }
 ```
 
-**Migration**: 新しいフックには、検出ベースの新システムを使用してください。レガシーハンドラーは、ディレクトリベースのフックの後にロードされます。
+**Migration**: 新しいフックには、検出ベースの新しいシステムを使用してください。レガシーハンドラーは、ディレクトリベースのフックの後にロードされます。
 
 ## CLI Commands
 
@@ -453,7 +453,7 @@ openclaw hooks disable command-logger
 
 ### session-memory
 
-`/new` を発行した際に、セッションコンテキストをメモリへ保存します。
+`/new` を発行したときに、セッションコンテキストをメモリに保存します。
 
 **Events**: `command:new`
 
@@ -492,7 +492,7 @@ openclaw hooks enable session-memory
 
 ### command-logger
 
-すべてのコマンドイベントを集中管理された監査ファイルに記録します。
+すべてのコマンドイベントを集中管理された監査ファイルにログします。
 
 **Events**: `command`
 
@@ -502,7 +502,7 @@ openclaw hooks enable session-memory
 
 **What it does**:
 
-1. イベントの詳細（コマンドアクション、タイムスタンプ、セッションキー、送信者 ID、ソース）を取得します
+1. イベント詳細（コマンドアクション、タイムスタンプ、セッションキー、送信者 ID、ソース）を取得します
 2. JSONL 形式でログファイルに追記します
 3. バックグラウンドで静かに実行されます
 
@@ -534,7 +534,7 @@ openclaw hooks enable command-logger
 
 ### soul-evil
 
-パージウィンドウ中、またはランダムな確率で、注入された `SOUL.md` コンテンツを `SOUL_EVIL.md` に差し替えます。
+パージウィンドウ中、またはランダムな確率で、注入された `SOUL.md` コンテンツを `SOUL_EVIL.md` と差し替えます。
 
 **Events**: `agent:bootstrap`
 
@@ -570,7 +570,8 @@ openclaw hooks enable soul-evil
 
 ### boot-md
 
-ゲートウェイ起動時（チャンネル起動後）に `BOOT.md` を実行します。これを実行するには内部フックを有効化する必要があります。
+ゲートウェイ起動時（チャンネル起動後）に `BOOT.md` を実行します。
+これを実行するには、内部フックを有効化する必要があります。
 
 **Events**: `gateway:startup`
 
@@ -578,9 +579,9 @@ openclaw hooks enable soul-evil
 
 **What it does**:
 
-1. ワークスペースから `BOOT.md` を読み取ります
+1. ワークスペースから `BOOT.md` を読み込みます
 2. エージェントランナー経由で指示を実行します
-3. 要求された送信メッセージをメッセージツール経由で送信します
+3. 要求された送信メッセージを message ツール経由で送信します
 
 **Enable**:
 
@@ -624,7 +625,7 @@ const handler: HookHandler = async (event) => {
 
 ### Filter Events Early
 
-イベントが関連しない場合は早期リターンしてください。
+イベントが関係ない場合は、早期に return してください。
 
 ```typescript
 const handler: HookHandler = async (event) => {
@@ -639,13 +640,13 @@ const handler: HookHandler = async (event) => {
 
 ### Use Specific Event Keys
 
-可能な限り、メタデータで正確なイベントを指定してください。
+可能な限り、メタデータで具体的なイベントを指定してください。
 
 ```yaml
 metadata: { "openclaw": { "events": ["command:new"] } } # Specific
 ```
 
-次のようにするのではなく、
+次のようにするのではなく:
 
 ```yaml
 metadata: { "openclaw": { "events": ["command"] } } # General - more overhead
@@ -655,7 +656,7 @@ metadata: { "openclaw": { "events": ["command"] } } # General - more overhead
 
 ### Enable Hook Logging
 
-ゲートウェイは起動時にフックのロードをログに記録します。
+ゲートウェイは起動時にフックのロードをログします。
 
 ```
 Registered hook: session-memory -> command:new
@@ -696,7 +697,7 @@ openclaw hooks info my-hook
 
 ### Gateway Logs
 
-フックの実行状況を確認するためにゲートウェイログを監視します。
+フックの実行を確認するために、ゲートウェイログを監視します。
 
 ```bash
 # macOS
@@ -731,8 +732,8 @@ test("my handler works", async () => {
 ### Core Components
 
 - **`src/hooks/types.ts`**: 型定義
-- **`src/hooks/workspace.ts`**: ディレクトリのスキャンとロード
-- **`src/hooks/frontmatter.ts`**: HOOK.md メタデータの解析
+- **`src/hooks/workspace.ts`**: ディレクトリスキャンとロード
+- **`src/hooks/frontmatter.ts`**: HOOK.md メタデータのパース
 - **`src/hooks/config.ts`**: 適格性チェック
 - **`src/hooks/hooks-status.ts`**: ステータスレポート
 - **`src/hooks/loader.ts`**: 動的モジュールローダー
@@ -783,7 +784,7 @@ Session reset
    # Should show: HOOK.md, handler.ts
    ```
 
-2. HOOK.md のフォーマットを確認します。
+2. HOOK.md の形式を確認します。
 
    ```bash
    cat ~/.openclaw/hooks/my-hook/HOOK.md
@@ -804,12 +805,12 @@ Session reset
 openclaw hooks info my-hook
 ```
 
-不足している可能性があるものを確認してください。
+不足していないか確認してください。
 
 - バイナリ（PATH を確認）
 - 環境変数
 - 設定値
-- OS の互換性
+- OS 互換性
 
 ### Hook Not Executing
 
@@ -820,7 +821,7 @@ openclaw hooks info my-hook
    # Should show ✓ next to enabled hooks
    ```
 
-2. フックを再ロードするため、ゲートウェイプロセスを再起動します。
+2. フックが再ロードされるよう、ゲートウェイプロセスを再起動します。
 
 3. エラーがないか、ゲートウェイログを確認します。
 
@@ -830,7 +831,7 @@ openclaw hooks info my-hook
 
 ### Handler Errors
 
-TypeScript や import のエラーがないか確認します。
+TypeScript や import エラーがないか確認します。
 
 ```bash
 # Test import directly
@@ -897,7 +898,7 @@ node -e "import('./path/to/handler.ts').then(console.log)"
    }
    ```
 
-4. 確認のうえ、ゲートウェイプロセスを再起動します。
+4. 確認後、ゲートウェイプロセスを再起動します。
 
    ```bash
    openclaw hooks list

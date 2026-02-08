@@ -1,7 +1,7 @@
 ---
-summary: "Cung cap mot diem cuoi HTTP /v1/chat/completions tuong thich OpenAI tu Gateway"
+summary: "Mở một endpoint HTTP /v1/chat/completions tương thích OpenAI từ Gateway"
 read_when:
-  - Tich hop cac cong cu mong doi OpenAI Chat Completions
+  - Tích hợp các công cụ mong đợi OpenAI Chat Completions
 title: "OpenAI Chat Completions"
 x-i18n:
   source_path: gateway/openai-http-api.md
@@ -9,49 +9,49 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:13Z
+  generated_at: 2026-02-08T09:38:59Z
 ---
 
 # OpenAI Chat Completions (HTTP)
 
-Gateway cua OpenClaw co the phuc vu mot diem cuoi Chat Completions tuong thich OpenAI nho gon.
+Gateway của OpenClaw có thể phục vụ một endpoint Chat Completions nhỏ, tương thích OpenAI.
 
-Diem cuoi nay **bi tat theo mac dinh**. Hay bat no trong cau hinh truoc.
+Endpoint này **bị tắt theo mặc định**. Trước tiên hãy bật nó trong cấu hình.
 
 - `POST /v1/chat/completions`
-- Cung cong voi Gateway (WS + HTTP multiplex): `http://<gateway-host>:<port>/v1/chat/completions`
+- Cùng cổng với Gateway (WS + HTTP multiplex): `http://<gateway-host>:<port>/v1/chat/completions`
 
-Ben trong, cac yeu cau duoc thuc thi nhu mot lan chay tac tu Gateway thong thuong (cung duong ma voi `openclaw agent`), vi vay dinh tuyen/quyen/cau hinh se phu hop voi Gateway cua ban.
+Bên dưới, các yêu cầu được thực thi như một lần chạy tác tử Gateway thông thường (cùng codepath với `openclaw agent`), vì vậy định tuyến/quyền/cấu hình khớp với Gateway của bạn.
 
 ## Authentication
 
-Su dung cau hinh xac thuc cua Gateway. Gui bearer token:
+Sử dụng cấu hình xác thực của Gateway. Gửi bearer token:
 
 - `Authorization: Bearer <token>`
 
-Ghi chu:
+Ghi chú:
 
-- Khi `gateway.auth.mode="token"`, su dung `gateway.auth.token` (hoac `OPENCLAW_GATEWAY_TOKEN`).
-- Khi `gateway.auth.mode="password"`, su dung `gateway.auth.password` (hoac `OPENCLAW_GATEWAY_PASSWORD`).
+- Khi `gateway.auth.mode="token"`, dùng `gateway.auth.token` (hoặc `OPENCLAW_GATEWAY_TOKEN`).
+- Khi `gateway.auth.mode="password"`, dùng `gateway.auth.password` (hoặc `OPENCLAW_GATEWAY_PASSWORD`).
 
-## Chon agent
+## Chọn tác tử
 
-Khong can header tuy chinh: ma hoa agent id trong truong OpenAI `model`:
+Không cần header tùy chỉnh: mã hóa id tác tử trong trường OpenAI `model`:
 
-- `model: "openclaw:<agentId>"` (vi du: `"openclaw:main"`, `"openclaw:beta"`)
-- `model: "agent:<agentId>"` (alias)
+- `model: "openclaw:<agentId>"` (ví dụ: `"openclaw:main"`, `"openclaw:beta"`)
+- `model: "agent:<agentId>"` (bí danh)
 
-Hoac nham toi mot agent OpenClaw cu the bang header:
+Hoặc nhắm tới một tác tử OpenClaw cụ thể bằng header:
 
-- `x-openclaw-agent-id: <agentId>` (mac dinh: `main`)
+- `x-openclaw-agent-id: <agentId>` (mặc định: `main`)
 
-Nang cao:
+Nâng cao:
 
-- `x-openclaw-session-key: <sessionKey>` de kiem soat hoan toan dinh tuyen phien.
+- `x-openclaw-session-key: <sessionKey>` để kiểm soát đầy đủ việc định tuyến phiên.
 
-## Bat diem cuoi
+## Bật endpoint
 
-Dat `gateway.http.endpoints.chatCompletions.enabled` thanh `true`:
+Đặt `gateway.http.endpoints.chatCompletions.enabled` thành `true`:
 
 ```json5
 {
@@ -65,9 +65,9 @@ Dat `gateway.http.endpoints.chatCompletions.enabled` thanh `true`:
 }
 ```
 
-## Tat diem cuoi
+## Tắt endpoint
 
-Dat `gateway.http.endpoints.chatCompletions.enabled` thanh `false`:
+Đặt `gateway.http.endpoints.chatCompletions.enabled` thành `false`:
 
 ```json5
 {
@@ -81,23 +81,23 @@ Dat `gateway.http.endpoints.chatCompletions.enabled` thanh `false`:
 }
 ```
 
-## Hanh vi phien
+## Hành vi phiên
 
-Theo mac dinh, diem cuoi la **khong luu trang thai theo tung yeu cau** (moi lan goi se tao mot khoa phien moi).
+Theo mặc định, endpoint là **không trạng thái theo từng yêu cầu** (mỗi lần gọi sẽ tạo một khóa phiên mới).
 
-Neu yeu cau bao gom chuoi OpenAI `user`, Gateway se suy ra mot khoa phien on dinh tu no, de cac lan goi lap lai co the chia se mot phien agent.
+Nếu yêu cầu bao gồm một chuỗi OpenAI `user`, Gateway sẽ suy ra một khóa phiên ổn định từ đó, để các lần gọi lặp lại có thể dùng chung một phiên tác tử.
 
 ## Streaming (SSE)
 
-Dat `stream: true` de nhan Server-Sent Events (SSE):
+Đặt `stream: true` để nhận Server-Sent Events (SSE):
 
 - `Content-Type: text/event-stream`
-- Moi dong su kien la `data: <json>`
-- Luong ket thuc bang `data: [DONE]`
+- Mỗi dòng sự kiện là `data: <json>`
+- Luồng kết thúc bằng `data: [DONE]`
 
-## Vi du
+## Ví dụ
 
-Khong streaming:
+Không streaming:
 
 ```bash
 curl -sS http://127.0.0.1:18789/v1/chat/completions \

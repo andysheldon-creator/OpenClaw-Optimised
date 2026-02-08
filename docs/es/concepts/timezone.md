@@ -10,12 +10,12 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:58:39Z
+  generated_at: 2026-02-08T09:33:16Z
 ---
 
 # Zonas horarias
 
-OpenClaw estandariza las marcas de tiempo para que el modelo vea una **única hora de referencia**.
+OpenClaw estandariza las marcas de tiempo para que el modelo vea una **única referencia temporal**.
 
 ## Sobres de mensajes (local por defecto)
 
@@ -27,7 +27,7 @@ Los mensajes entrantes se envuelven en un sobre como:
 
 La marca de tiempo en el sobre es **local del host por defecto**, con precisión de minutos.
 
-Puede sobrescribir esto con:
+Puede anular esto con:
 
 ```json5
 {
@@ -49,7 +49,7 @@ Puede sobrescribir esto con:
 
 ### Ejemplos
 
-**Local (predeterminado):**
+**Local (por defecto):**
 
 ```
 [Signal Alice +1555 2026-01-18 00:19 PST] hello
@@ -67,20 +67,20 @@ Puede sobrescribir esto con:
 [Signal Alice +1555 +2m 2026-01-18T05:19Z] follow-up
 ```
 
-## Cargas útiles de herramientas (datos crudos del proveedor + campos normalizados)
+## Cargas útiles de herramientas (datos sin procesar del proveedor + campos normalizados)
 
-Las llamadas a herramientas (`channels.discord.readMessages`, `channels.slack.readMessages`, etc.) devuelven **marcas de tiempo crudas del proveedor**.
-También adjuntamos campos normalizados para consistencia:
+Las llamadas a herramientas (`channels.discord.readMessages`, `channels.slack.readMessages`, etc.) devuelven **marcas de tiempo sin procesar del proveedor**.
+También adjuntamos campos normalizados para mantener la consistencia:
 
 - `timestampMs` (milisegundos de época UTC)
-- `timestampUtc` (cadena ISO 8601 en UTC)
+- `timestampUtc` (cadena UTC ISO 8601)
 
-Los campos crudos del proveedor se conservan.
+Se conservan los campos sin procesar del proveedor.
 
 ## Zona horaria del usuario para el prompt del sistema
 
-Configure `agents.defaults.userTimezone` para indicarle al modelo la zona horaria local del usuario. Si no está
-configurado, OpenClaw resuelve la **zona horaria del host en tiempo de ejecución** (sin escribir configuración).
+Establezca `agents.defaults.userTimezone` para indicar al modelo la zona horaria local del usuario. Si no se establece,
+OpenClaw resuelve la **zona horaria del host en tiempo de ejecución** (sin escritura de configuración).
 
 ```json5
 {
@@ -90,9 +90,9 @@ configurado, OpenClaw resuelve la **zona horaria del host en tiempo de ejecució
 
 El prompt del sistema incluye:
 
-- la sección `Current Date & Time` con hora local y zona horaria
+- sección `Current Date & Time` con la hora local y la zona horaria
 - `Time format: 12-hour` o `24-hour`
 
 Puede controlar el formato del prompt con `agents.defaults.timeFormat` (`auto` | `12` | `24`).
 
-Consulte [Fecha y hora](/date-time) para el comportamiento completo y ejemplos.
+Consulte [Fecha y hora](/date-time) para conocer el comportamiento completo y ver ejemplos.

@@ -1,35 +1,35 @@
 ---
-summary: „Konfigurieren Sie Moonshot K2 vs. Kimi Coding (separate Anbieter + Schlüssel)“
+summary: "Moonshot K2 vs. Kimi Coding konfigurieren (separate Anbieter + Schlüssel)"
 read_when:
   - Sie möchten Moonshot K2 (Moonshot Open Platform) vs. Kimi Coding einrichten
   - Sie müssen separate Endpunkte, Schlüssel und Modellreferenzen verstehen
-  - Sie möchten eine Copy/Paste‑Konfiguration für einen der beiden Anbieter
-title: „Moonshot AI“
+  - Sie möchten Copy/Paste‑Konfigurationen für einen der beiden Anbieter
+title: "Moonshot AI"
 x-i18n:
   source_path: providers/moonshot.md
-  source_hash: 73b8b691b923ce3d
+  source_hash: 9e4a6192faa21b88
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:12Z
+  generated_at: 2026-02-08T09:37:05Z
 ---
 
 # Moonshot AI (Kimi)
 
-Moonshot stellt die Kimi API mit OpenAI‑kompatiblen Endpunkten bereit. Konfigurieren Sie den
+Moonshot stellt die Kimi‑API mit OpenAI‑kompatiblen Endpunkten bereit. Konfigurieren Sie den
 Anbieter und setzen Sie das Standardmodell auf `moonshot/kimi-k2.5`, oder verwenden Sie
 Kimi Coding mit `kimi-coding/k2p5`.
 
 Aktuelle Kimi‑K2‑Modell‑IDs:
 
-{/_ moonshot-kimi-k2-ids:start _/ && null}
+{/_moonshot-kimi-k2-ids:start_/ && null}
 
 - `kimi-k2.5`
 - `kimi-k2-0905-preview`
 - `kimi-k2-turbo-preview`
 - `kimi-k2-thinking`
 - `kimi-k2-thinking-turbo`
-  {/_ moonshot-kimi-k2-ids:end _/ && null}
+  {/_moonshot-kimi-k2-ids:end_/ && null}
 
 ```bash
 openclaw onboard --auth-choice moonshot-api-key
@@ -143,7 +143,7 @@ Hinweis: Moonshot und Kimi Coding sind separate Anbieter. Schlüssel sind nicht 
 ## Hinweise
 
 - Moonshot‑Modellreferenzen verwenden `moonshot/<modelId>`. Kimi‑Coding‑Modellreferenzen verwenden `kimi-coding/<modelId>`.
-- Überschreiben Sie bei Bedarf Preis‑ und Kontext‑Metadaten in `models.providers`.
-- Wenn Moonshot unterschiedliche Kontextlimits für ein Modell veröffentlicht, passen Sie
+- Überschreiben Sie Preis‑ und Kontext‑Metadaten bei Bedarf in `models.providers`.
+- Wenn Moonshot für ein Modell andere Kontextgrenzen veröffentlicht, passen Sie
   `contextWindow` entsprechend an.
 - Verwenden Sie `https://api.moonshot.ai/v1` für den internationalen Endpunkt und `https://api.moonshot.cn/v1` für den China‑Endpunkt.

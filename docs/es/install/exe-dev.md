@@ -1,8 +1,8 @@
 ---
 summary: "Ejecute OpenClaw Gateway en exe.dev (VM + proxy HTTPS) para acceso remoto"
 read_when:
-  - Quiere un host Linux económico y siempre activo para el Gateway
-  - Quiere acceso remoto a la UI de Control sin ejecutar su propio VPS
+  - Desea un host Linux económico y siempre activo para el Gateway
+  - Desea acceso remoto a la Control UI sin ejecutar su propio VPS
 title: "exe.dev"
 x-i18n:
   source_path: install/exe-dev.md
@@ -10,14 +10,14 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:59:06Z
+  generated_at: 2026-02-08T09:33:45Z
 ---
 
 # exe.dev
 
-Objetivo: OpenClaw Gateway ejecutándose en una VM de exe.dev, accesible desde su portátil mediante: `https://<vm-name>.exe.xyz`
+Objetivo: OpenClaw Gateway ejecutándose en una VM de exe.dev, accesible desde su laptop vía: `https://<vm-name>.exe.xyz`
 
-Esta página asume la imagen **exeuntu** predeterminada de exe.dev. Si eligió una distro diferente, asigne los paquetes correspondientes.
+Esta página asume la imagen **exeuntu** predeterminada de exe.dev. Si eligió una distro diferente, adapte los paquetes según corresponda.
 
 ## Ruta rápida para principiantes
 
@@ -57,7 +57,7 @@ Luego conéctese:
 ssh <vm-name>.exe.xyz
 ```
 
-Consejo: mantenga esta VM **con estado**. OpenClaw almacena el estado en `~/.openclaw/` y `~/.openclaw/workspace/`.
+Consejo: mantenga esta VM **stateful**. OpenClaw almacena estado en `~/.openclaw/` y `~/.openclaw/workspace/`.
 
 ## 2) Instalar prerrequisitos (en la VM)
 
@@ -110,18 +110,18 @@ server {
 
 ## 5) Acceder a OpenClaw y otorgar privilegios
 
-Acceda a `https://<vm-name>.exe.xyz/` (consulte la salida de la UI de Control durante la incorporación). Si solicita autenticación, pegue el
-token desde `gateway.auth.token` en la VM (recupérelo con `openclaw config get gateway.auth.token` o genere uno
+Acceda a `https://<vm-name>.exe.xyz/` (vea la salida de la Control UI durante el onboarding). Si solicita autenticación, pegue el
+token de `gateway.auth.token` en la VM (recupérelo con `openclaw config get gateway.auth.token` o genere uno
 con `openclaw doctor --generate-gateway-token`). Apruebe dispositivos con `openclaw devices list` y
 `openclaw devices approve <requestId>`. En caso de duda, ¡use Shelley desde su navegador!
 
 ## Acceso remoto
 
-El acceso remoto es gestionado por la autenticación de [exe.dev](https://exe.dev). De forma
-predeterminada, el tráfico HTTP del puerto 8000 se reenvía a `https://<vm-name>.exe.xyz`
+El acceso remoto es gestionado por la autenticación de [exe.dev](https://exe.dev). De
+forma predeterminada, el tráfico HTTP del puerto 8000 se reenvía a `https://<vm-name>.exe.xyz`
 con autenticación por correo electrónico.
 
-## Actualizaciones
+## Actualización
 
 ```bash
 npm i -g openclaw@latest
@@ -130,4 +130,4 @@ openclaw gateway restart
 openclaw health
 ```
 
-Guía: [Updating](/install/updating)
+Guía: [Actualización](/install/updating)

@@ -1,20 +1,20 @@
 ---
-summary: "`openclaw config` の CLI リファレンス（パスで設定値を get/set/unset）"
+summary: "CLI 参照: `openclaw config` による設定値の取得／設定／解除"
 read_when:
-  - 対話なしで設定を読み取りまたは編集したい場合
-title: "config"
+  - 設定を非対話的に読み取りまたは編集したい場合
+title: "設定"
 x-i18n:
   source_path: cli/config.md
   source_hash: d60a35f5330f22bc
   provider: openai
-  model: gpt-5.2-pro
+  model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-06T04:52:44Z
+  generated_at: 2026-02-08T09:21:00Z
 ---
 
 # `openclaw config`
 
-設定ヘルパー: パスで値を get/set/unset します。サブコマンドなしで実行すると設定ウィザード（`openclaw configure` と同じ）を開きます。
+設定ヘルパー: パスを指定して値を取得／設定／解除します。サブコマンドを指定せずに実行すると、設定ウィザードが開きます（`openclaw configure` と同じです）。
 
 ## 例
 
@@ -35,7 +35,7 @@ openclaw config get agents.defaults.workspace
 openclaw config get agents.list[0].id
 ```
 
-エージェントリストのインデックスを使用して、特定のエージェントを対象にします。
+特定のエージェントを対象にするには、エージェント一覧のインデックスを使用します。
 
 ```bash
 openclaw config get agents.list
@@ -44,7 +44,7 @@ openclaw config set agents.list[1].tools.exec.node "node-id-or-name"
 
 ## 値
 
-可能な場合、値は JSON5 として解析されます。それ以外の場合は文字列として扱われます。JSON5 解析を必須にするには `--json` を使用します。
+値は可能な場合に JSON5 として解析され、そうでない場合は文字列として扱われます。JSON5 解析を必須にするには `--json` を使用してください。
 
 ```bash
 openclaw config set agents.defaults.heartbeat.every "0m"
@@ -52,4 +52,4 @@ openclaw config set gateway.port 19001 --json
 openclaw config set channels.whatsapp.groups '["*"]' --json
 ```
 
-編集後は Gateway（ゲートウェイ）を再起動してください。
+編集後はゲートウェイを再起動してください。

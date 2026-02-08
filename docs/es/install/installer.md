@@ -1,5 +1,5 @@
 ---
-summary: "Cómo funcionan los scripts del instalador (install.sh + install-cli.sh), las flags y la automatización"
+summary: "Cómo funcionan los scripts del instalador (install.sh, install-cli.sh, install.ps1), flags y automatización"
 read_when:
   - Quiere entender `openclaw.ai/install.sh`
   - Quiere automatizar instalaciones (CI / sin interfaz)
@@ -7,124 +7,386 @@ read_when:
 title: "Internos del instalador"
 x-i18n:
   source_path: install/installer.md
-  source_hash: 9e0a19ecb5da0a39
+  source_hash: 8517f9cf8e237b62
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:59:14Z
+  generated_at: 2026-02-08T09:34:06Z
 ---
 
 # Internos del instalador
 
-OpenClaw incluye dos scripts de instalación (servidos desde `openclaw.ai`):
+OpenClaw incluye tres scripts de instalación, servidos desde `openclaw.ai`.
 
-- `https://openclaw.ai/install.sh` — instalador “recomendado” (instalación global con npm por defecto; también puede instalar desde un checkout de GitHub)
-- `https://openclaw.ai/install-cli.sh` — instalador de CLI amigable sin root (instala en un prefijo con su propio Node)
-- `https://openclaw.ai/install.ps1` — instalador de Windows PowerShell (npm por defecto; instalación opcional vía git)
+| Script                             | Plataforma           | Qué hace                                                                                                       |
+| ---------------------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------- |
+| [`install.sh`](#installsh)         | macOS / Linux / WSL  | Instala Node si es necesario, instala OpenClaw vía npm (predeterminado) o git, y puede ejecutar el onboarding. |
+| [`install-cli.sh`](#install-clish) | macOS / Linux / WSL  | Instala Node + OpenClaw en un prefijo local (`~/.openclaw`). No requiere root.                                 |
+| [`install.ps1`](#installps1)       | Windows (PowerShell) | Instala Node si es necesario, instala OpenClaw vía npm (predeterminado) o git, y puede ejecutar el onboarding. |
 
-Para ver las flags y el comportamiento actuales, ejecute:
+## Comandos rápidos
 
-```bash
-curl -fsSL https://openclaw.ai/install.sh | bash -s -- --help
-```
+<Tabs>
+  <Tab title="install.sh">
+    ```bash
+    curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install.sh | bash
+    ```
 
-Ayuda en Windows (PowerShell):
+    ```bash
+    curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install.sh | bash -s -- --help
+    ```
 
-```powershell
-& ([scriptblock]::Create((iwr -useb https://openclaw.ai/install.ps1))) -?
-```
+  </Tab>
+  <Tab title="install-cli.sh">
+    ```bash
+    curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install-cli.sh | bash
+    ```
 
-Si el instalador se completa pero `openclaw` no se encuentra en una nueva terminal, normalmente es un problema del PATH de Node/npm. Consulte: [Install](/install#nodejs--npm-path-sanity).
+    ```bash
+    curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install-cli.sh | bash -s -- --help
+    ```
 
-## install.sh (recomendado)
+  </Tab>
+  <Tab title="install.ps1">
+    ```powershell
+    iwr -useb https://openclaw.ai/install.ps1 | iex
+    ```
 
-Qué hace (a alto nivel):
+    ```powershell
+    & ([scriptblock]::Create((iwr -useb https://openclaw.ai/install.ps1))) -Tag beta -NoOnboard -DryRun
+    ```
 
-- Detecta el SO (macOS / Linux / WSL).
-- Garantiza Node.js **22+** (macOS vía Homebrew; Linux vía NodeSource).
-- Elige el método de instalación:
-  - `npm` (predeterminado): `npm install -g openclaw@latest`
-  - `git`: clona/compila un checkout del código fuente e instala un script envoltorio
-- En Linux: evita errores de permisos de npm global cambiando el prefijo de npm a `~/.npm-global` cuando es necesario.
-- Si actualiza una instalación existente: ejecuta `openclaw doctor --non-interactive` (mejor esfuerzo).
-- Para instalaciones vía git: ejecuta `openclaw doctor --non-interactive` después de instalar/actualizar (mejor esfuerzo).
-- Mitiga problemas de instalación nativa de `sharp` usando por defecto `SHARP_IGNORE_GLOBAL_LIBVIPS=1` (evita compilar contra libvips del sistema).
+  </Tab>
+</Tabs>
 
-Si _quiere_ que `sharp` enlace contra un libvips instalado globalmente (o si está depurando), establezca:
+<Note>
+Si la instalación tiene éxito pero `openclaw` no se encuentra en una nueva terminal, consulte [Solución de problemas de Node.js](/install/node#troubleshooting).
+</Note>
 
-```bash
-SHARP_IGNORE_GLOBAL_LIBVIPS=0 curl -fsSL https://openclaw.ai/install.sh | bash
-```
+---
 
-### Descubribilidad / aviso de “git install”
+## install.sh
 
-Si ejecuta el instalador **ya dentro de un checkout del código fuente de OpenClaw** (detectado vía `package.json` + `pnpm-workspace.yaml`), se le solicita:
+<Tip>
+Recomendado para la mayoría de las instalaciones interactivas en macOS/Linux/WSL.
+</Tip>
 
-- actualizar y usar este checkout (`git`)
-- o migrar a la instalación global con npm (`npm`)
+### Flujo (install.sh)
 
-En contextos no interactivos (sin TTY / `--no-prompt`), debe pasar `--install-method git|npm` (o establecer `OPENCLAW_INSTALL_METHOD`), de lo contrario el script sale con el código `2`.
+<Steps>
+  <Step title="Detectar SO">
+    Admite macOS y Linux (incluido WSL). Si se detecta macOS, instala Homebrew si falta.
+  </Step>
+  <Step title="Asegurar Node.js 22+">
+    Comprueba la versión de Node e instala Node 22 si es necesario (Homebrew en macOS, scripts de configuración de NodeSource en Linux apt/dnf/yum).
+  </Step>
+  <Step title="Asegurar Git">
+    Instala Git si falta.
+  </Step>
+  <Step title="Instalar OpenClaw">
+    - Método `npm` (predeterminado): instalación global con npm
+    - Método `git`: clonar/actualizar el repositorio, instalar dependencias con pnpm, compilar y luego instalar el wrapper en `~/.local/bin/openclaw`
+  </Step>
+  <Step title="Tareas posteriores a la instalación">
+    - Ejecuta `openclaw doctor --non-interactive` en actualizaciones e instalaciones por git (mejor esfuerzo)
+    - Intenta el onboarding cuando corresponde (TTY disponible, onboarding no deshabilitado y pasan las comprobaciones de bootstrap/configuración)
+    - Predetermina `SHARP_IGNORE_GLOBAL_LIBVIPS=1`
+  </Step>
+</Steps>
 
-### Por qué se necesita Git
+### Detección de checkout de código fuente
 
-Git es necesario para la ruta `--install-method git` (clonar / hacer pull).
+Si se ejecuta dentro de un checkout de OpenClaw (`package.json` + `pnpm-workspace.yaml`), el script ofrece:
 
-Para instalaciones `npm`, Git _normalmente_ no es necesario, pero algunos entornos aún terminan necesitándolo (por ejemplo, cuando un paquete o dependencia se obtiene mediante una URL git). Actualmente el instalador garantiza que Git esté presente para evitar sorpresas de `spawn git ENOENT` en distribuciones nuevas.
+- usar el checkout (`git`), o
+- usar la instalación global (`npm`)
 
-### Por qué npm llega a `EACCES` en Linux recién instalado
+Si no hay TTY disponible y no se establece un método de instalación, se usa por defecto `npm` y se muestra una advertencia.
 
-En algunas configuraciones de Linux (especialmente después de instalar Node mediante el gestor de paquetes del sistema o NodeSource), el prefijo global de npm apunta a una ubicación propiedad de root. Entonces `npm install -g ...` falla con errores de permisos `EACCES` / `mkdir`.
+El script finaliza con el código `2` para una selección de método no válida o valores de `--install-method` no válidos.
 
-`install.sh` mitiga esto cambiando el prefijo a:
+### Ejemplos (install.sh)
 
-- `~/.npm-global` (y agregándolo a `PATH` en `~/.bashrc` / `~/.zshrc` cuando existe)
+<Tabs>
+  <Tab title="Predeterminado">
+    ```bash
+    curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install.sh | bash
+    ```
+  </Tab>
+  <Tab title="Omitir onboarding">
+    ```bash
+    curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install.sh | bash -s -- --no-onboard
+    ```
+  </Tab>
+  <Tab title="Instalación por git">
+    ```bash
+    curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install.sh | bash -s -- --install-method git
+    ```
+  </Tab>
+  <Tab title="Simulación">
+    ```bash
+    curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install.sh | bash -s -- --dry-run
+    ```
+  </Tab>
+</Tabs>
 
-## install-cli.sh (instalador de CLI sin root)
+<AccordionGroup>
+  <Accordion title="Referencia de flags">
 
-Este script instala `openclaw` en un prefijo (predeterminado: `~/.openclaw`) y también instala un runtime dedicado de Node bajo ese prefijo, para que pueda funcionar en máquinas donde no desea tocar el Node/npm del sistema.
+| Flag                            | Descripción                                                                |
+| ------------------------------- | -------------------------------------------------------------------------- |
+| `--install-method npm\|git`     | Elegir método de instalación (predeterminado: `npm`). Alias: `--method`    |
+| `--npm`                         | Atajo para el método npm                                                   |
+| `--git`                         | Atajo para el método git. Alias: `--github`                                |
+| `--version <version\|dist-tag>` | Versión de npm o dist-tag (predeterminado: `latest`)                       |
+| `--beta`                        | Usar dist-tag beta si está disponible; de lo contrario, volver a `latest`  |
+| `--git-dir <path>`              | Directorio de checkout (predeterminado: `~/openclaw`). Alias: `--dir`      |
+| `--no-git-update`               | Omitir `git pull` para un checkout existente                               |
+| `--no-prompt`                   | Deshabilitar solicitudes                                                   |
+| `--no-onboard`                  | Omitir onboarding                                                          |
+| `--onboard`                     | Habilitar onboarding                                                       |
+| `--dry-run`                     | Imprimir acciones sin aplicar cambios                                      |
+| `--verbose`                     | Habilitar salida de depuración (`set -x`, registros de npm a nivel notice) |
+| `--help`                        | Mostrar uso (`-h`)                                                         |
 
-Ayuda:
+  </Accordion>
 
-```bash
-curl -fsSL https://openclaw.ai/install-cli.sh | bash -s -- --help
-```
+  <Accordion title="Referencia de variables de entorno">
 
-## install.ps1 (Windows PowerShell)
+| Variable                                    | Descripción                                                        |
+| ------------------------------------------- | ------------------------------------------------------------------ |
+| `OPENCLAW_INSTALL_METHOD=git\|npm`          | Método de instalación                                              |
+| `OPENCLAW_VERSION=latest\|next\|<semver>`   | Versión de npm o dist-tag                                          |
+| `OPENCLAW_BETA=0\|1`                        | Usar beta si está disponible                                       |
+| `OPENCLAW_GIT_DIR=<path>`                   | Directorio de checkout                                             |
+| `OPENCLAW_GIT_UPDATE=0\|1`                  | Alternar actualizaciones por git                                   |
+| `OPENCLAW_NO_PROMPT=1`                      | Deshabilitar solicitudes                                           |
+| `OPENCLAW_NO_ONBOARD=1`                     | Omitir onboarding                                                  |
+| `OPENCLAW_DRY_RUN=1`                        | Modo de simulación                                                 |
+| `OPENCLAW_VERBOSE=1`                        | Modo de depuración                                                 |
+| `OPENCLAW_NPM_LOGLEVEL=error\|warn\|notice` | Nivel de registro de npm                                           |
+| `SHARP_IGNORE_GLOBAL_LIBVIPS=0\|1`          | Controlar el comportamiento de sharp/libvips (predeterminado: `1`) |
 
-Qué hace (a alto nivel):
+  </Accordion>
+</AccordionGroup>
 
-- Garantiza Node.js **22+** (winget/Chocolatey/Scoop o manual).
-- Elige el método de instalación:
-  - `npm` (predeterminado): `npm install -g openclaw@latest`
-  - `git`: clona/compila un checkout del código fuente e instala un script envoltorio
-- Ejecuta `openclaw doctor --non-interactive` en actualizaciones e instalaciones vía git (mejor esfuerzo).
+---
 
-Ejemplos:
+## install-cli.sh
 
-```powershell
-iwr -useb https://openclaw.ai/install.ps1 | iex
-```
+<Info>
+Diseñado para entornos donde quiere que todo esté bajo un prefijo local (predeterminado `~/.openclaw`) y sin dependencia de Node del sistema.
+</Info>
 
-```powershell
-iwr -useb https://openclaw.ai/install.ps1 | iex -InstallMethod git
-```
+### Flujo (install-cli.sh)
 
-```powershell
-iwr -useb https://openclaw.ai/install.ps1 | iex -InstallMethod git -GitDir "C:\\openclaw"
-```
+<Steps>
+  <Step title="Instalar runtime local de Node">
+    Descarga el tarball de Node (predeterminado `22.22.0`) en `<prefix>/tools/node-v<version>` y verifica SHA-256.
+  </Step>
+  <Step title="Asegurar Git">
+    Si Git falta, intenta instalarlo vía apt/dnf/yum en Linux o Homebrew en macOS.
+  </Step>
+  <Step title="Instalar OpenClaw bajo el prefijo">
+    Instala con npm usando `--prefix <prefix>`, luego escribe el wrapper en `<prefix>/bin/openclaw`.
+  </Step>
+</Steps>
 
-Variables de entorno:
+### Ejemplos (install-cli.sh)
 
-- `OPENCLAW_INSTALL_METHOD=git|npm`
-- `OPENCLAW_GIT_DIR=...`
+<Tabs>
+  <Tab title="Predeterminado">
+    ```bash
+    curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install-cli.sh | bash
+    ```
+  </Tab>
+  <Tab title="Prefijo personalizado + versión">
+    ```bash
+    curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install-cli.sh | bash -s -- --prefix /opt/openclaw --version latest
+    ```
+  </Tab>
+  <Tab title="Salida JSON para automatización">
+    ```bash
+    curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install-cli.sh | bash -s -- --json --prefix /opt/openclaw
+    ```
+  </Tab>
+  <Tab title="Ejecutar onboarding">
+    ```bash
+    curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install-cli.sh | bash -s -- --onboard
+    ```
+  </Tab>
+</Tabs>
 
-Requisito de Git:
+<AccordionGroup>
+  <Accordion title="Referencia de flags">
 
-Si elige `-InstallMethod git` y falta Git, el instalador imprimirá el
-enlace de Git para Windows (`https://git-scm.com/download/win`) y saldrá.
+| Flag                   | Descripción                                                                                |
+| ---------------------- | ------------------------------------------------------------------------------------------ |
+| `--prefix <path>`      | Prefijo de instalación (predeterminado: `~/.openclaw`)                                     |
+| `--version <ver>`      | Versión de OpenClaw o dist-tag (predeterminado: `latest`)                                  |
+| `--node-version <ver>` | Versión de Node (predeterminado: `22.22.0`)                                                |
+| `--json`               | Emitir eventos NDJSON                                                                      |
+| `--onboard`            | Ejecutar `openclaw onboard` después de la instalación                                      |
+| `--no-onboard`         | Omitir onboarding (predeterminado)                                                         |
+| `--set-npm-prefix`     | En Linux, forzar el prefijo de npm a `~/.npm-global` si el prefijo actual no es escribible |
+| `--help`               | Mostrar uso (`-h`)                                                                         |
 
-Problemas comunes en Windows:
+  </Accordion>
 
-- **npm error spawn git / ENOENT**: instale Git para Windows y vuelva a abrir PowerShell, luego ejecute nuevamente el instalador.
-- **"openclaw" no se reconoce**: la carpeta bin global de npm no está en el PATH. La mayoría de los sistemas usan
-  `%AppData%\\npm`. También puede ejecutar `npm config get prefix` y agregar `\\bin` al PATH, luego vuelva a abrir PowerShell.
+  <Accordion title="Referencia de variables de entorno">
+
+| Variable                                    | Descripción                                                                                            |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `OPENCLAW_PREFIX=<path>`                    | Prefijo de instalación                                                                                 |
+| `OPENCLAW_VERSION=<ver>`                    | Versión de OpenClaw o dist-tag                                                                         |
+| `OPENCLAW_NODE_VERSION=<ver>`               | Versión de Node                                                                                        |
+| `OPENCLAW_NO_ONBOARD=1`                     | Omitir onboarding                                                                                      |
+| `OPENCLAW_NPM_LOGLEVEL=error\|warn\|notice` | Nivel de registro de npm                                                                               |
+| `OPENCLAW_GIT_DIR=<path>`                   | Ruta de búsqueda de limpieza heredada (usada al eliminar un checkout antiguo del submódulo `Peekaboo`) |
+| `SHARP_IGNORE_GLOBAL_LIBVIPS=0\|1`          | Controlar el comportamiento de sharp/libvips (predeterminado: `1`)                                     |
+
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## install.ps1
+
+### Flujo (install.ps1)
+
+<Steps>
+  <Step title="Asegurar PowerShell + entorno Windows">
+    Requiere PowerShell 5+.
+  </Step>
+  <Step title="Asegurar Node.js 22+">
+    Si falta, intenta instalar vía winget, luego Chocolatey y después Scoop.
+  </Step>
+  <Step title="Instalar OpenClaw">
+    - Método `npm` (predeterminado): instalación global con npm usando el `-Tag` seleccionado
+    - Método `git`: clonar/actualizar el repositorio, instalar/compilar con pnpm e instalar el wrapper en `%USERPROFILE%\.local\bin\openclaw.cmd`
+  </Step>
+  <Step title="Tareas posteriores a la instalación">
+    Agrega el directorio bin necesario al PATH del usuario cuando es posible, luego ejecuta `openclaw doctor --non-interactive` en actualizaciones e instalaciones por git (mejor esfuerzo).
+  </Step>
+</Steps>
+
+### Ejemplos (install.ps1)
+
+<Tabs>
+  <Tab title="Predeterminado">
+    ```powershell
+    iwr -useb https://openclaw.ai/install.ps1 | iex
+    ```
+  </Tab>
+  <Tab title="Instalación por git">
+    ```powershell
+    & ([scriptblock]::Create((iwr -useb https://openclaw.ai/install.ps1))) -InstallMethod git
+    ```
+  </Tab>
+  <Tab title="Directorio git personalizado">
+    ```powershell
+    & ([scriptblock]::Create((iwr -useb https://openclaw.ai/install.ps1))) -InstallMethod git -GitDir "C:\openclaw"
+    ```
+  </Tab>
+  <Tab title="Simulación">
+    ```powershell
+    & ([scriptblock]::Create((iwr -useb https://openclaw.ai/install.ps1))) -DryRun
+    ```
+  </Tab>
+</Tabs>
+
+<AccordionGroup>
+  <Accordion title="Referencia de flags">
+
+| Flag                      | Descripción                                                       |
+| ------------------------- | ----------------------------------------------------------------- |
+| `-InstallMethod npm\|git` | Método de instalación (predeterminado: `npm`)                     |
+| `-Tag <tag>`              | Dist-tag de npm (predeterminado: `latest`)                        |
+| `-GitDir <path>`          | Directorio de checkout (predeterminado: `%USERPROFILE%\openclaw`) |
+| `-NoOnboard`              | Omitir onboarding                                                 |
+| `-NoGitUpdate`            | Omitir `git pull`                                                 |
+| `-DryRun`                 | Imprimir solo acciones                                            |
+
+  </Accordion>
+
+  <Accordion title="Referencia de variables de entorno">
+
+| Variable                           | Descripción            |
+| ---------------------------------- | ---------------------- |
+| `OPENCLAW_INSTALL_METHOD=git\|npm` | Método de instalación  |
+| `OPENCLAW_GIT_DIR=<path>`          | Directorio de checkout |
+| `OPENCLAW_NO_ONBOARD=1`            | Omitir onboarding      |
+| `OPENCLAW_GIT_UPDATE=0`            | Deshabilitar git pull  |
+| `OPENCLAW_DRY_RUN=1`               | Modo de simulación     |
+
+  </Accordion>
+</AccordionGroup>
+
+<Note>
+Si se usa `-InstallMethod git` y Git falta, el script finaliza e imprime el enlace de Git para Windows.
+</Note>
+
+---
+
+## CI y automatización
+
+Use flags/variables de entorno no interactivos para ejecuciones predecibles.
+
+<Tabs>
+  <Tab title="install.sh (npm no interactivo)">
+    ```bash
+    curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install.sh | bash -s -- --no-prompt --no-onboard
+    ```
+  </Tab>
+  <Tab title="install.sh (git no interactivo)">
+    ```bash
+    OPENCLAW_INSTALL_METHOD=git OPENCLAW_NO_PROMPT=1 \
+      curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install.sh | bash
+    ```
+  </Tab>
+  <Tab title="install-cli.sh (JSON)">
+    ```bash
+    curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install-cli.sh | bash -s -- --json --prefix /opt/openclaw
+    ```
+  </Tab>
+  <Tab title="install.ps1 (omitir onboarding)">
+    ```powershell
+    & ([scriptblock]::Create((iwr -useb https://openclaw.ai/install.ps1))) -NoOnboard
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Solución de problemas
+
+<AccordionGroup>
+  <Accordion title="¿Por qué se requiere Git?">
+    Git es necesario para el método de instalación `git`. Para instalaciones `npm`, Git aún se comprueba/instala para evitar fallos `spawn git ENOENT` cuando las dependencias usan URLs de git.
+  </Accordion>
+
+  <Accordion title="¿Por qué npm da EACCES en Linux?">
+    Algunas configuraciones de Linux apuntan el prefijo global de npm a rutas propiedad de root. `install.sh` puede cambiar el prefijo a `~/.npm-global` y agregar exportaciones de PATH a archivos rc del shell (cuando esos archivos existen).
+  </Accordion>
+
+  <Accordion title="Problemas con sharp/libvips">
+    Los scripts predeterminan `SHARP_IGNORE_GLOBAL_LIBVIPS=1` para evitar que sharp compile contra libvips del sistema. Para sobrescribirlo:
+
+    ```bash
+    SHARP_IGNORE_GLOBAL_LIBVIPS=0 curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install.sh | bash
+    ```
+
+  </Accordion>
+
+  <Accordion title='Windows: "npm error spawn git / ENOENT"'>
+    Instale Git para Windows, reabra PowerShell y vuelva a ejecutar el instalador.
+  </Accordion>
+
+  <Accordion title='Windows: "openclaw no se reconoce"'>
+    Ejecute `npm config get prefix`, agregue `\bin`, añada ese directorio al PATH del usuario y luego reabra PowerShell.
+  </Accordion>
+
+  <Accordion title="openclaw no se encuentra después de la instalación">
+    Normalmente es un problema de PATH. Consulte [Solución de problemas de Node.js](/install/node#troubleshooting).
+  </Accordion>
+</AccordionGroup>

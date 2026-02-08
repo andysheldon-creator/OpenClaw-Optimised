@@ -1,29 +1,29 @@
 ---
-summary: "Voice-Call-Plugin: ausgehende + eingehende Anrufe über Twilio/Telnyx/Plivo (Plugin-Installation + Konfiguration + CLI)"
+summary: „Voice-Call-Plugin: ausgehende + eingehende Anrufe über Twilio/Telnyx/Plivo (Plugin-Installation + Konfiguration + CLI)“
 read_when:
   - Sie möchten einen ausgehenden Sprachanruf aus OpenClaw tätigen
   - Sie konfigurieren oder entwickeln das Voice-Call-Plugin
-title: "Voice-Call-Plugin"
+title: „Voice-Call-Plugin“
 x-i18n:
   source_path: plugins/voice-call.md
   source_hash: 46d05a5912b785d7
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:14Z
+  generated_at: 2026-02-08T09:37:06Z
 ---
 
 # Voice Call (Plugin)
 
 Sprachanrufe für OpenClaw über ein Plugin. Unterstützt ausgehende Benachrichtigungen und
-mehrstufige Gespräche mit Richtlinien für eingehende Anrufe.
+mehrturnige Konversationen mit eingehenden Richtlinien.
 
 Aktuelle Anbieter:
 
 - `twilio` (Programmable Voice + Media Streams)
 - `telnyx` (Call Control v2)
-- `plivo` (Voice API + XML-Transfer + GetInput-Sprache)
-- `mock` (Dev/kein Netzwerk)
+- `plivo` (Voice API + XML-Transfer + GetInput-Spracherkennung)
+- `mock` (dev/kein Netzwerk)
 
 Kurzes mentales Modell:
 
@@ -36,11 +36,11 @@ Kurzes mentales Modell:
 
 Das Voice-Call-Plugin läuft **innerhalb des Gateway-Prozesses**.
 
-Wenn Sie ein Remote-Gateway verwenden, installieren/konfigurieren Sie das Plugin auf der **Maschine, auf der das Gateway läuft**, und starten Sie anschließend das Gateway neu, um es zu laden.
+Wenn Sie ein entferntes Gateway verwenden, installieren/konfigurieren Sie das Plugin auf der **Maschine, auf der das Gateway läuft**, und starten Sie anschließend das Gateway neu, um es zu laden.
 
 ## Installation
 
-### Option A: Installation aus npm (empfohlen)
+### Option A: Installation von npm (empfohlen)
 
 ```bash
 openclaw plugins install @openclaw/voice-call
@@ -48,7 +48,7 @@ openclaw plugins install @openclaw/voice-call
 
 Starten Sie das Gateway anschließend neu.
 
-### Option B: Installation aus einem lokalen Ordner (Dev, ohne Kopieren)
+### Option B: Installation aus einem lokalen Ordner (Entwicklung, kein Kopieren)
 
 ```bash
 openclaw plugins install ./extensions/voice-call
@@ -118,24 +118,24 @@ Hinweise:
 
 - Twilio/Telnyx erfordern eine **öffentlich erreichbare** Webhook-URL.
 - Plivo erfordert eine **öffentlich erreichbare** Webhook-URL.
-- `mock` ist ein lokaler Dev-Anbieter (keine Netzwerkanfragen).
+- `mock` ist ein lokaler Entwicklungsanbieter (keine Netzwerkanfragen).
 - `skipSignatureVerification` ist nur für lokale Tests.
-- Wenn Sie den ngrok-Free-Tier verwenden, setzen Sie `publicUrl` auf die exakte ngrok-URL; die Signaturprüfung ist immer erzwungen.
-- `tunnel.allowNgrokFreeTierLoopbackBypass: true` erlaubt Twilio-Webhooks mit ungültigen Signaturen **nur**, wenn `tunnel.provider="ngrok"` und `serve.bind` Loopback ist (ngrok lokaler Agent). Nur für lokale Entwicklung verwenden.
-- URLs im ngrok-Free-Tier können sich ändern oder Interstitial-Verhalten hinzufügen; wenn `publicUrl` abweicht, schlagen Twilio-Signaturen fehl. Für Produktion bevorzugen Sie eine stabile Domain oder einen Tailscale-Funnel.
+- Wenn Sie die kostenlose ngrok-Stufe verwenden, setzen Sie `publicUrl` auf die exakte ngrok-URL; die Signaturprüfung wird immer erzwungen.
+- `tunnel.allowNgrokFreeTierLoopbackBypass: true` erlaubt Twilio-Webhooks mit ungültigen Signaturen **nur**, wenn `tunnel.provider="ngrok"` und `serve.bind` Loopback ist (lokaler ngrok-Agent). Nur für lokale Entwicklung verwenden.
+- URLs der kostenlosen ngrok-Stufe können sich ändern oder Zwischenseiten hinzufügen; wenn `publicUrl` abweicht, schlagen Twilio-Signaturen fehl. Für Produktion bevorzugen Sie eine stabile Domain oder einen Tailscale-Funnel.
 
 ## Webhook-Sicherheit
 
 Wenn ein Proxy oder Tunnel vor dem Gateway sitzt, rekonstruiert das Plugin die
-öffentliche URL für die Signaturprüfung. Diese Optionen steuern, welchen weitergeleiteten
+öffentliche URL zur Signaturprüfung. Diese Optionen steuern, welchen weitergeleiteten
 Headern vertraut wird.
 
-`webhookSecurity.allowedHosts` erlaubt Hosts aus Weiterleitungs-Headern.
+`webhookSecurity.allowedHosts` allowlistet Hosts aus Weiterleitungs-Headern.
 
 `webhookSecurity.trustForwardingHeaders` vertraut weitergeleiteten Headern ohne Allowlist.
 
-`webhookSecurity.trustedProxyIPs` vertraut weitergeleiteten Headern nur, wenn die Remote-IP der Anfrage
-der Liste entspricht.
+`webhookSecurity.trustedProxyIPs` vertraut weitergeleiteten Headern nur, wenn die Anfrage-
+Remote-IP mit der Liste übereinstimmt.
 
 Beispiel mit einem stabilen öffentlichen Host:
 
@@ -158,8 +158,8 @@ Beispiel mit einem stabilen öffentlichen Host:
 
 ## TTS für Anrufe
 
-Voice Call verwendet die zentrale `messages.tts`-Konfiguration (OpenAI oder ElevenLabs) für
-Streaming-Sprachausgabe in Anrufen. Sie können sie in der Plugin-Konfiguration mit der
+Voice Call verwendet die Kernkonfiguration `messages.tts` (OpenAI oder ElevenLabs) für
+Streaming-Sprachausgabe bei Anrufen. Sie können diese unter der Plugin-Konfiguration mit der
 **gleichen Struktur** überschreiben — sie wird per Deep-Merge mit `messages.tts` zusammengeführt.
 
 ```json5
@@ -176,12 +176,12 @@ Streaming-Sprachausgabe in Anrufen. Sie können sie in der Plugin-Konfiguration 
 
 Hinweise:
 
-- **Edge TTS wird für Sprachanrufe ignoriert** (Telefonaudio benötigt PCM; die Edge-Ausgabe ist unzuverlässig).
-- Zentrales TTS wird verwendet, wenn Twilio-Medien-Streaming aktiviert ist; andernfalls greifen Anrufe auf die nativen Stimmen des Anbieters zurück.
+- **Edge TTS wird für Sprachanrufe ignoriert** (Telefonaudio benötigt PCM; Edge-Ausgabe ist unzuverlässig).
+- Core-TTS wird verwendet, wenn Twilio-Medienstreaming aktiviert ist; andernfalls greifen Anrufe auf native Stimmen des Anbieters zurück.
 
 ### Weitere Beispiele
 
-Nur zentrales TTS verwenden (keine Überschreibung):
+Nur Core-TTS verwenden (keine Überschreibung):
 
 ```json5
 {
@@ -194,7 +194,7 @@ Nur zentrales TTS verwenden (keine Überschreibung):
 }
 ```
 
-Nur für Anrufe auf ElevenLabs überschreiben (zentrales Standardverhalten andernorts beibehalten):
+Nur für Anrufe auf ElevenLabs überschreiben (Core-Standard beibehalten):
 
 ```json5
 {
@@ -250,7 +250,7 @@ Die Richtlinie für eingehende Anrufe ist standardmäßig `disabled`. Um eingehe
 }
 ```
 
-Auto-Antworten verwenden das Agenten-System. Feinjustieren mit:
+Automatische Antworten verwenden das Agent-System. Feinabstimmung mit:
 
 - `responseModel`
 - `responseSystemPrompt`
@@ -268,7 +268,7 @@ openclaw voicecall tail
 openclaw voicecall expose --mode funnel
 ```
 
-## Agenten-Werkzeug
+## Agent-Werkzeug
 
 Werkzeugname: `voice_call`
 
@@ -282,7 +282,7 @@ Aktionen:
 
 Dieses Repository liefert eine passende Skill-Dokumentation unter `skills/voice-call/SKILL.md`.
 
-## Gateway RPC
+## Gateway-RPC
 
 - `voicecall.initiate` (`to?`, `message`, `mode?`)
 - `voicecall.continue` (`callId`, `message`)

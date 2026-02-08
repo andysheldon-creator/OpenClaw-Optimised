@@ -8,41 +8,41 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:38Z
+  generated_at: 2026-02-08T09:37:28Z
 ---
 
 # Formale Verifikation (Sicherheitsmodelle)
 
-Diese Seite verfolgt die **formalen Sicherheitsmodelle** von OpenClaw (heute TLA+/TLC; weitere bei Bedarf).
+Diese Seite verfolgt die **formalen Sicherheitsmodelle** von OpenClaw (heute TLA+/TLC; bei Bedarf weitere).
 
 > Hinweis: Einige ältere Links können sich auf den früheren Projektnamen beziehen.
 
-**Ziel (Nordstern):** ein maschinell geprüfter Nachweis dafür, dass OpenClaw seine
-beabsichtigte Sicherheitsrichtlinie (Autorisierung, Sitzungsisolation, Tool-Gating und
+**Ziel (Nordstern):** ein maschinell geprüftes Argument liefern, dass OpenClaw seine
+beabsichtigte Sicherheitsrichtlinie (Autorisierung, Sitzungsisolierung, Werkzeug-Freigabe und
 Sicherheit bei Fehlkonfigurationen) unter expliziten Annahmen durchsetzt.
 
-**Was dies ist (heute):** eine ausführbare, angreifergetriebene **Sicherheits-Regressionstest-Suite**:
+**Was das ist (heute):** eine ausführbare, angreifergetriebene **Sicherheits-Regressionssuite**:
 
 - Jede Behauptung hat eine ausführbare Model-Check-Prüfung über einen endlichen Zustandsraum.
-- Viele Behauptungen haben ein gepaartes **negatives Modell**, das einen Gegenbeispiel-Trace für eine realistische Bug-Klasse erzeugt.
+- Viele Behauptungen haben ein gekoppeltes **negatives Modell**, das eine Gegenbeispiel-Spur für eine realistische Fehlerklasse erzeugt.
 
-**Was dies (noch) nicht ist:** ein Beweis dafür, dass „OpenClaw in jeder Hinsicht sicher ist“ oder dass die vollständige TypeScript-Implementierung korrekt ist.
+**Was das (noch) nicht ist:** ein Beweis, dass „OpenClaw in jeder Hinsicht sicher ist“, oder dass die vollständige TypeScript-Implementierung korrekt ist.
 
 ## Wo die Modelle liegen
 
 Die Modelle werden in einem separaten Repo gepflegt: [vignesh07/openclaw-formal-models](https://github.com/vignesh07/openclaw-formal-models).
 
-## Wichtige Vorbehalte
+## Wichtige Einschränkungen
 
 - Dies sind **Modelle**, nicht die vollständige TypeScript-Implementierung. Abweichungen zwischen Modell und Code sind möglich.
 - Ergebnisse sind durch den von TLC erkundeten Zustandsraum begrenzt; „grün“ impliziert keine Sicherheit über die modellierten Annahmen und Grenzen hinaus.
-- Einige Behauptungen beruhen auf expliziten Umgebungsannahmen (z. B. korrekte Bereitstellung, korrekte Konfigurationseingaben).
+- Einige Behauptungen stützen sich auf explizite Umgebungsannahmen (z. B. korrekte Bereitstellung, korrekte Konfigurationseingaben).
 
-## Reproduzieren der Ergebnisse
+## Ergebnisse reproduzieren
 
-Derzeit werden Ergebnisse reproduziert, indem das Model-Repo lokal geklont und TLC ausgeführt wird (siehe unten). Eine zukünftige Iteration könnte bieten:
+Derzeit werden Ergebnisse reproduziert, indem das Modelle-Repo lokal geklont und TLC ausgeführt wird (siehe unten). Eine zukünftige Iteration könnte bieten:
 
-- CI-ausgeführte Modelle mit öffentlichen Artefakten (Gegenbeispiel-Traces, Laufprotokolle)
+- CI-ausgeführte Modelle mit öffentlichen Artefakten (Gegenbeispiel-Spuren, Run-Logs)
 - einen gehosteten „Dieses Modell ausführen“-Workflow für kleine, begrenzte Prüfungen
 
 Erste Schritte:
@@ -59,7 +59,7 @@ make <target>
 
 ### Gateway-Exposition und offene Gateway-Fehlkonfiguration
 
-**Behauptung:** Bindung über loopback hinaus ohne Authentifizierung kann eine Remote-Kompromittierung ermöglichen bzw. die Exposition erhöhen; Token/Passwort blockieren nicht autorisierte Angreifer (gemäß den Modellannahmen).
+**Behauptung:** Bindung über loopback hinaus ohne Authentifizierung kann eine Remote-Kompromittierung ermöglichen bzw. die Angriffsfläche erhöhen; Token/Passwort blockieren nicht autorisierte Angreifer (gemäß den Modellannahmen).
 
 - Grüne Läufe:
   - `make gateway-exposure-v2`
@@ -67,11 +67,11 @@ make <target>
 - Rot (erwartet):
   - `make gateway-exposure-v2-negative`
 
-Siehe auch: `docs/gateway-exposure-matrix.md` im Model-Repo.
+Siehe auch: `docs/gateway-exposure-matrix.md` im Modelle-Repo.
 
-### Nodes.run-Pipeline (risikoreichste Fähigkeit)
+### Nodes.run-Pipeline (höchstriskante Fähigkeit)
 
-**Behauptung:** `nodes.run` erfordert (a) eine Allowlist für Node-Befehle plus deklarierte Befehle und (b) Live-Genehmigung, wenn konfiguriert; Genehmigungen sind tokenisiert, um Replay zu verhindern (im Modell).
+**Behauptung:** `nodes.run` erfordert (a) eine Node-Befehl-Allowlist plus deklarierte Befehle und (b) Live-Genehmigung, wenn konfiguriert; Genehmigungen sind tokenisiert, um Replay zu verhindern (im Modell).
 
 - Grüne Läufe:
   - `make nodes-pipeline`
@@ -80,9 +80,9 @@ Siehe auch: `docs/gateway-exposure-matrix.md` im Model-Repo.
   - `make nodes-pipeline-negative`
   - `make approvals-token-negative`
 
-### Pairing Store (Direktnachrichten-Gating)
+### Pairing-Store (DM-Gating)
 
-**Behauptung:** Pairing-Anfragen respektieren TTL und Obergrenzen für ausstehende Anfragen.
+**Behauptung:** Pairing-Anfragen berücksichtigen TTL und Limits für ausstehende Anfragen.
 
 - Grüne Läufe:
   - `make pairing`
@@ -100,27 +100,27 @@ Siehe auch: `docs/gateway-exposure-matrix.md` im Model-Repo.
 - Rot (erwartet):
   - `make ingress-gating-negative`
 
-### Routing-/Sitzungsschlüssel-Isolation
+### Routing-/Sitzungsschlüssel-Isolierung
 
-**Behauptung:** Direktnachrichten von unterschiedlichen Peers werden nicht in derselben Sitzung zusammengeführt, sofern sie nicht explizit verknüpft/konfiguriert sind.
+**Behauptung:** Direktnachrichten von unterschiedlichen Peers fallen nicht in dieselbe Sitzung zusammen, sofern sie nicht explizit verknüpft/konfiguriert sind.
 
 - Grün:
   - `make routing-isolation`
 - Rot (erwartet):
   - `make routing-isolation-negative`
 
-## v1++: zusätzliche begrenzte Modelle (Nebenläufigkeit, Wiederholungen, Trace-Korrektheit)
+## v1++: zusätzliche begrenzte Modelle (Nebenläufigkeit, Retries, Trace-Korrektheit)
 
-Dies sind Folge-Modelle, die die Genauigkeit in Bezug auf reale Fehlermodi (nicht-atomare Updates, Wiederholungen und Message-Fan-out) erhöhen.
+Dies sind nachgelagerte Modelle, die die Genauigkeit im Hinblick auf reale Fehlermodi (nicht-atomare Updates, Retries und Message-Fan-out) erhöhen.
 
 ### Pairing-Store-Nebenläufigkeit / Idempotenz
 
-**Behauptung:** Ein Pairing Store sollte `MaxPending` und Idempotenz auch unter Interleavings erzwingen (d. h. „check-then-write“ muss atomar/gesperrt sein; Refresh sollte keine Duplikate erzeugen).
+**Behauptung:** Ein Pairing-Store sollte `MaxPending` und Idempotenz selbst unter Interleavings durchsetzen (d. h. „check-then-write“ muss atomar/gesperrt sein; Refresh darf keine Duplikate erzeugen).
 
 Was das bedeutet:
 
-- Unter konkurrierenden Anfragen können Sie `MaxPending` für einen Kanal nicht überschreiten.
-- Wiederholte Anfragen/Aktualisierungen für denselben `(channel, sender)` sollten keine doppelten aktiven ausstehenden Zeilen erzeugen.
+- Unter gleichzeitigen Anfragen kann `MaxPending` für einen Kanal nicht überschritten werden.
+- Wiederholte Anfragen/Refreshes für denselben `(channel, sender)` sollten keine doppelten aktiven Pending-Zeilen erzeugen.
 
 - Grüne Läufe:
   - `make pairing-race` (atomare/gesperrte Cap-Prüfung)
@@ -135,13 +135,13 @@ Was das bedeutet:
 
 ### Ingress-Trace-Korrelation / Idempotenz
 
-**Behauptung:** Die Ingestion sollte die Trace-Korrelation über Fan-out hinweg bewahren und unter Anbieter-Wiederholungen idempotent sein.
+**Behauptung:** Die Ingestion sollte die Trace-Korrelation über Fan-out hinweg bewahren und unter Provider-Retries idempotent sein.
 
 Was das bedeutet:
 
 - Wenn ein externes Ereignis zu mehreren internen Nachrichten wird, behält jeder Teil dieselbe Trace-/Ereignisidentität.
-- Wiederholungen führen nicht zu doppelter Verarbeitung.
-- Wenn Anbieter-Ereignis-IDs fehlen, fällt die Deduplizierung auf einen sicheren Schlüssel (z. B. Trace-ID) zurück, um das Verwerfen unterschiedlicher Ereignisse zu vermeiden.
+- Retries führen nicht zu doppelter Verarbeitung.
+- Wenn Provider-Ereignis-IDs fehlen, fällt die Deduplizierung auf einen sicheren Schlüssel (z. B. Trace-ID) zurück, um das Verwerfen unterschiedlicher Ereignisse zu vermeiden.
 
 - Grün:
   - `make ingress-trace`
@@ -156,12 +156,12 @@ Was das bedeutet:
 
 ### Routing dmScope-Priorität + identityLinks
 
-**Behauptung:** Das Routing muss DM-Sitzungen standardmäßig isoliert halten und Sitzungen nur dann zusammenführen, wenn dies explizit konfiguriert ist (Kanalpriorität + Identity-Links).
+**Behauptung:** Das Routing muss DM-Sitzungen standardmäßig isoliert halten und Sitzungen nur dann zusammenführen, wenn dies explizit konfiguriert ist (Kanal-Priorität + Identity-Links).
 
 Was das bedeutet:
 
-- Kanal-spezifische dmScope-Overrides müssen gegenüber globalen Standardwerten gewinnen.
-- identityLinks sollten nur innerhalb explizit verknüpfter Gruppen zusammenführen, nicht über nicht verwandte Peers hinweg.
+- Kanal-spezifische dmScope-Overrides müssen gegenüber globalen Standardwerten Vorrang haben.
+- identityLinks sollten nur innerhalb explizit verknüpfter Gruppen zusammenführen, nicht über nicht zusammenhängende Peers hinweg.
 
 - Grün:
   - `make routing-precedence`

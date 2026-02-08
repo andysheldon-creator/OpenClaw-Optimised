@@ -1,7 +1,7 @@
 ---
-summary: "Referencia da CLI para `openclaw agents` (listar/adicionar/excluir/definir identidade)"
+summary: "Referência da CLI para `openclaw agents` (listar/adicionar/excluir/definir identidade)"
 read_when:
-  - Voce quer varios agentes isolados (workspaces + roteamento + autenticacao)
+  - Você quer vários agentes isolados (workspaces + roteamento + autenticação)
 title: "agentes"
 x-i18n:
   source_path: cli/agents.md
@@ -9,12 +9,12 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:28Z
+  generated_at: 2026-02-08T09:30:09Z
 ---
 
 # `openclaw agents`
 
-Gerencie agentes isolados (workspaces + autenticacao + roteamento).
+Gerencie agentes isolados (workspaces + autenticação + roteamento).
 
 Relacionado:
 
@@ -38,7 +38,7 @@ Cada workspace de agente pode incluir um `IDENTITY.md` na raiz do workspace:
 - Caminho de exemplo: `~/.openclaw/workspace/IDENTITY.md`
 - `set-identity --from-identity` lê a partir da raiz do workspace (ou de um `--identity-file` explícito)
 
-Os caminhos de avatar são resolvidos de forma relativa à raiz do workspace.
+Caminhos de avatar são resolvidos em relação à raiz do workspace.
 
 ## Definir identidade
 
@@ -55,13 +55,13 @@ Carregar de `IDENTITY.md`:
 openclaw agents set-identity --workspace ~/.openclaw/workspace --from-identity
 ```
 
-Substituir campos explicitamente:
+Sobrescrever campos explicitamente:
 
 ```bash
 openclaw agents set-identity --agent main --name "OpenClaw" --emoji "🦞" --avatar avatars/openclaw.png
 ```
 
-Exemplo de configuracao:
+Exemplo de configuração:
 
 ```json5
 {

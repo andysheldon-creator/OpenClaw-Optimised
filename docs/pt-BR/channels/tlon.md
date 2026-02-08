@@ -1,29 +1,29 @@
 ---
-summary: "Status de suporte, capacidades e configuracao do Tlon/Urbit"
+summary: "Status de suporte do Tlon/Urbit, capacidades e configuração"
 read_when:
   - Trabalhando em recursos do canal Tlon/Urbit
 title: "Tlon"
 x-i18n:
   source_path: channels/tlon.md
-  source_hash: 19d7ffe23e82239f
+  source_hash: 85fd29cda05b4563
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:22Z
+  generated_at: 2026-02-08T09:30:03Z
 ---
 
 # Tlon (plugin)
 
-Tlon e um mensageiro descentralizado construido sobre o Urbit. O OpenClaw se conecta a sua nave Urbit e pode
-responder a Mensagens diretas e mensagens de chat em grupo. As respostas em grupo exigem uma mencao com @ por padrao e podem
-ser ainda mais restritas por meio de allowlists.
+Tlon é um mensageiro descentralizado construído sobre o Urbit. O OpenClaw se conecta à sua nave Urbit e pode
+responder a DMs e mensagens de chat em grupo. As respostas em grupo exigem uma menção com @ por padrão e podem
+ser ainda mais restritas por meio de listas de permissões.
 
-Status: suportado via plugin. Mensagens diretas, mencoes em grupo, respostas em threads e fallback de midia somente em texto
-(URL anexada a legenda). Reacoes, enquetes e uploads de midia nativos nao sao suportados.
+Status: suportado via plugin. DMs, menções em grupo, respostas em threads e fallback de mídia apenas em texto
+(URL anexada à legenda). Reações, enquetes e uploads nativos de mídia não são suportados.
 
-## Plugin necessario
+## Plugin obrigatório
 
-O Tlon e distribuido como um plugin e nao vem junto com a instalacao principal.
+O Tlon é distribuído como um plugin e não vem incluído na instalação principal.
 
 Instale via CLI (registro npm):
 
@@ -31,23 +31,23 @@ Instale via CLI (registro npm):
 openclaw plugins install @openclaw/tlon
 ```
 
-Checkout local (ao executar a partir de um repo git):
+Checkout local (ao executar a partir de um repositório git):
 
 ```bash
 openclaw plugins install ./extensions/tlon
 ```
 
-Detalhes: [Plugins](/plugin)
+Detalhes: [Plugins](/tools/plugin)
 
-## Configuracao
+## Configuração
 
 1. Instale o plugin Tlon.
-2. Reuna a URL da sua nave e o codigo de login.
+2. Reúna a URL da sua nave e o código de login.
 3. Configure `channels.tlon`.
-4. Reinicie o Gateway.
-5. Envie uma Mensagem direta para o bot ou mencione-o em um canal de grupo.
+4. Reinicie o gateway.
+5. Envie uma DM para o bot ou mencione-o em um canal de grupo.
 
-Configuracao minima (conta unica):
+Configuração mínima (conta única):
 
 ```json5
 {
@@ -64,7 +64,7 @@ Configuracao minima (conta unica):
 
 ## Canais de grupo
 
-A descoberta automatica vem habilitada por padrao. Voce tambem pode fixar canais manualmente:
+A descoberta automática é ativada por padrão. Você também pode fixar canais manualmente:
 
 ```json5
 {
@@ -76,7 +76,7 @@ A descoberta automatica vem habilitada por padrao. Voce tambem pode fixar canais
 }
 ```
 
-Desabilitar descoberta automatica:
+Desativar a descoberta automática:
 
 ```json5
 {
@@ -90,7 +90,7 @@ Desabilitar descoberta automatica:
 
 ## Controle de acesso
 
-Allowlist de Mensagens diretas (vazia = permitir todos):
+Lista de permissões para DMs (vazia = permitir todos):
 
 ```json5
 {
@@ -102,7 +102,7 @@ Allowlist de Mensagens diretas (vazia = permitir todos):
 }
 ```
 
-Autorizacao de grupo (restrita por padrao):
+Autorização de grupos (restrita por padrão):
 
 ```json5
 {
@@ -129,11 +129,11 @@ Autorizacao de grupo (restrita por padrao):
 
 Use estes com `openclaw message send` ou entrega via cron:
 
-- Mensagem direta: `~sampel-palnet` ou `dm/~sampel-palnet`
+- DM: `~sampel-palnet` ou `dm/~sampel-palnet`
 - Grupo: `chat/~host-ship/channel` ou `group:~host-ship/channel`
 
-## Observacoes
+## Notas
 
-- Respostas em grupo exigem uma mencao (por exemplo, `~your-bot-ship`) para responder.
-- Respostas em threads: se a mensagem de entrada estiver em uma thread, o OpenClaw responde na propria thread.
-- Midia: `sendMedia` faz fallback para texto + URL (sem upload nativo).
+- Respostas em grupo exigem uma menção (por exemplo, `~your-bot-ship`) para responder.
+- Respostas em threads: se a mensagem de entrada estiver em uma thread, o OpenClaw responde na própria thread.
+- Mídia: `sendMedia` faz fallback para texto + URL (sem upload nativo).

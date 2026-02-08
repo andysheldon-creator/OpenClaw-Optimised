@@ -1,8 +1,8 @@
 ---
-summary: "Execute a ponte ACP para integrações com IDE"
+summary: "Execute a ponte ACP para integrações com IDEs"
 read_when:
   - Configurando integrações de IDE baseadas em ACP
-  - Depurando o roteamento de sessoes ACP para o Gateway
+  - Depurando o roteamento de sessões ACP para o Gateway
 title: "acp"
 x-i18n:
   source_path: cli/acp.md
@@ -10,7 +10,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:29Z
+  generated_at: 2026-02-08T09:30:08Z
 ---
 
 # acp
@@ -18,9 +18,9 @@ x-i18n:
 Execute a ponte ACP (Agent Client Protocol) que se comunica com um OpenClaw Gateway.
 
 Este comando fala ACP via stdio para IDEs e encaminha prompts para o Gateway
-via WebSocket. Ele mantém as sessoes ACP mapeadas para chaves de sessao do Gateway.
+via WebSocket. Ele mantém as sessões ACP mapeadas para chaves de sessão do Gateway.
 
-## Usage
+## Uso
 
 ```bash
 openclaw acp
@@ -38,10 +38,10 @@ openclaw acp --session-label "support inbox"
 openclaw acp --session agent:main:main --reset-session
 ```
 
-## ACP client (debug)
+## Cliente ACP (debug)
 
-Use o cliente ACP integrado para validar rapidamente a ponte sem um IDE.
-Ele inicia a ponte ACP e permite que voce digite prompts de forma interativa.
+Use o cliente ACP integrado para verificar rapidamente a ponte sem um IDE.
+Ele inicia a ponte ACP e permite que você digite prompts de forma interativa.
 
 ```bash
 openclaw acp client
@@ -53,33 +53,33 @@ openclaw acp client --server-args --url wss://gateway-host:18789 --token <token>
 openclaw acp client --server "node" --server-args openclaw.mjs acp --url ws://127.0.0.1:19001
 ```
 
-## How to use this
+## Como usar
 
-Use ACP quando um IDE (ou outro cliente) fala Agent Client Protocol e voce quer
-que ele conduza uma sessao do OpenClaw Gateway.
+Use ACP quando um IDE (ou outro cliente) fala Agent Client Protocol e você quer
+que ele controle uma sessão do OpenClaw Gateway.
 
-1. Garanta que o Gateway esteja em execucao (local ou remoto).
-2. Configure o destino do Gateway (configuracao ou flags).
+1. Certifique-se de que o Gateway esteja em execução (local ou remoto).
+2. Configure o destino do Gateway (configuração ou flags).
 3. Aponte seu IDE para executar `openclaw acp` via stdio.
 
-Exemplo de configuracao (persistida):
+Exemplo de configuração (persistida):
 
 ```bash
 openclaw config set gateway.remote.url wss://gateway-host:18789
 openclaw config set gateway.remote.token <token>
 ```
 
-Exemplo de execucao direta (sem gravar configuracao):
+Exemplo de execução direta (sem gravar configuração):
 
 ```bash
 openclaw acp --url wss://gateway-host:18789 --token <token>
 ```
 
-## Selecting agents
+## Selecionando agentes
 
-O ACP nao seleciona agentes diretamente. Ele roteia pela chave de sessao do Gateway.
+O ACP não escolhe agentes diretamente. Ele roteia pela chave de sessão do Gateway.
 
-Use chaves de sessao com escopo de agente para direcionar a um agente especifico:
+Use chaves de sessão com escopo de agente para direcionar um agente específico:
 
 ```bash
 openclaw acp --session agent:main:main
@@ -87,13 +87,13 @@ openclaw acp --session agent:design:main
 openclaw acp --session agent:qa:bug-123
 ```
 
-Cada sessao ACP mapeia para uma unica chave de sessao do Gateway. Um agente pode ter muitas
-sessoes; o ACP padrao cria uma sessao `acp:<uuid>` isolada, a menos que voce sobrescreva
-a chave ou o rótulo.
+Cada sessão ACP mapeia para uma única chave de sessão do Gateway. Um agente pode ter
+muitas sessões; o ACP usa por padrão uma sessão `acp:<uuid>` isolada, a menos que
+você substitua a chave ou o rótulo.
 
-## Zed editor setup
+## Configuração do editor Zed
 
-Adicione um agente ACP personalizado em `~/.config/zed/settings.json` (ou use a interface de Configuracoes do Zed):
+Adicione um agente ACP personalizado em `~/.config/zed/settings.json` (ou use a UI de Configurações do Zed):
 
 ```json
 {
@@ -108,7 +108,7 @@ Adicione um agente ACP personalizado em `~/.config/zed/settings.json` (ou use a 
 }
 ```
 
-Para direcionar a um Gateway ou agente especifico:
+Para direcionar um Gateway ou agente específico:
 
 ```json
 {
@@ -131,18 +131,18 @@ Para direcionar a um Gateway ou agente especifico:
 }
 ```
 
-No Zed, abra o painel Agent e selecione “OpenClaw ACP” para iniciar uma conversa.
+No Zed, abra o painel Agent e selecione “OpenClaw ACP” para iniciar um thread.
 
-## Session mapping
+## Mapeamento de sessões
 
-Por padrao, as sessoes ACP recebem uma chave de sessao do Gateway isolada com o prefixo `acp:`.
-Para reutilizar uma sessao conhecida, passe uma chave de sessao ou um rótulo:
+Por padrão, as sessões ACP recebem uma chave de sessão do Gateway isolada com um prefixo `acp:`.
+Para reutilizar uma sessão conhecida, passe uma chave de sessão ou rótulo:
 
-- `--session <key>`: use uma chave de sessao do Gateway especifica.
-- `--session-label <label>`: resolva uma sessao existente por rótulo.
-- `--reset-session`: gere um novo id de sessao para essa chave (mesma chave, novo historico).
+- `--session <key>`: use uma chave de sessão específica do Gateway.
+- `--session-label <label>`: resolva uma sessão existente por rótulo.
+- `--reset-session`: gere um novo id de sessão para essa chave (mesma chave, nova transcrição).
 
-Se o seu cliente ACP suportar metadados, voce pode sobrescrever por sessao:
+Se o seu cliente ACP oferecer suporte a metadados, você pode substituir por sessão:
 
 ```json
 {
@@ -154,24 +154,24 @@ Se o seu cliente ACP suportar metadados, voce pode sobrescrever por sessao:
 }
 ```
 
-Saiba mais sobre chaves de sessao em [/concepts/session](/concepts/session).
+Saiba mais sobre chaves de sessão em [/concepts/session](/concepts/session).
 
-## Options
+## Opções
 
-- `--url <url>`: URL do WebSocket do Gateway (padrao: gateway.remote.url quando configurado).
-- `--token <token>`: token de autenticacao do Gateway.
-- `--password <password>`: senha de autenticacao do Gateway.
-- `--session <key>`: chave de sessao padrao.
-- `--session-label <label>`: rótulo de sessao padrao para resolver.
-- `--require-existing`: falhar se a chave/rótulo de sessao nao existir.
-- `--reset-session`: redefinir a chave de sessao antes do primeiro uso.
-- `--no-prefix-cwd`: nao prefixar prompts com o diretorio de trabalho.
-- `--verbose, -v`: logging detalhado para stderr.
+- `--url <url>`: URL do WebSocket do Gateway (padrão: gateway.remote.url quando configurado).
+- `--token <token>`: token de autenticação do Gateway.
+- `--password <password>`: senha de autenticação do Gateway.
+- `--session <key>`: chave de sessão padrão.
+- `--session-label <label>`: rótulo de sessão padrão a resolver.
+- `--require-existing`: falhar se a chave/rótulo da sessão não existir.
+- `--reset-session`: redefinir a chave de sessão antes do primeiro uso.
+- `--no-prefix-cwd`: não prefixar prompts com o diretório de trabalho.
+- `--verbose, -v`: logs detalhados para stderr.
 
-### `acp client` options
+### Opções de `acp client`
 
-- `--cwd <dir>`: diretorio de trabalho para a sessao ACP.
-- `--server <command>`: comando do servidor ACP (padrao: `openclaw`).
-- `--server-args <args...>`: argumentos extras passados ao servidor ACP.
-- `--server-verbose`: habilitar logging detalhado no servidor ACP.
-- `--verbose, -v`: logging detalhado do cliente.
+- `--cwd <dir>`: diretório de trabalho para a sessão ACP.
+- `--server <command>`: comando do servidor ACP (padrão: `openclaw`).
+- `--server-args <args...>`: argumentos extras passados para o servidor ACP.
+- `--server-verbose`: habilitar logs detalhados no servidor ACP.
+- `--verbose, -v`: logs detalhados do cliente.

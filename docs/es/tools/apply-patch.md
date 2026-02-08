@@ -1,7 +1,7 @@
 ---
-summary: "Aplique parches de varios archivos con la herramienta apply_patch"
+summary: "Aplicar parches de múltiples archivos con la herramienta apply_patch"
 read_when:
-  - Necesita ediciones estructuradas de archivos en varios archivos
+  - Necesita ediciones estructuradas de archivos en múltiples archivos
   - Desea documentar o depurar ediciones basadas en parches
 title: "Herramienta apply_patch"
 x-i18n:
@@ -10,13 +10,13 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:00:03Z
+  generated_at: 2026-02-08T09:34:39Z
 ---
 
 # herramienta apply_patch
 
-Aplique cambios en archivos utilizando un formato de parche estructurado. Esto es ideal para ediciones de varios archivos
-o de varios hunks donde una sola llamada `edit` sería frágil.
+Aplique cambios a archivos usando un formato de parche estructurado. Esto es ideal para ediciones de múltiples archivos
+o de múltiples _hunks_, donde una sola llamada `edit` sería frágil.
 
 La herramienta acepta una sola cadena `input` que envuelve una o más operaciones de archivo:
 
@@ -33,19 +33,19 @@ La herramienta acepta una sola cadena `input` que envuelve una o más operacione
 *** End Patch
 ```
 
-## Parametros
+## Parámetros
 
-- `input` (requerido): Contenido completo del parche, incluidos `*** Begin Patch` y `*** End Patch`.
+- `input` (obligatorio): Contenido completo del parche, incluyendo `*** Begin Patch` y `*** End Patch`.
 
 ## Notas
 
-- Las rutas se resuelven en relación con la raíz del espacio de trabajo.
-- Use `*** Move to:` dentro de un hunk `*** Update File:` para renombrar archivos.
-- `*** End of File` marca una inserción solo de EOF cuando es necesario.
-- Experimental y deshabilitado de forma predeterminada. Habilite con `tools.exec.applyPatch.enabled`.
-- Solo OpenAI (incluido OpenAI Codex). Opcionalmente limite por modelo mediante
+- Las rutas se resuelven de forma relativa a la raíz del espacio de trabajo.
+- Use `*** Move to:` dentro de un _hunk_ `*** Update File:` para renombrar archivos.
+- `*** End of File` marca una inserción solo al final del archivo (EOF) cuando es necesario.
+- Experimental y deshabilitado de forma predeterminada. Habilítelo con `tools.exec.applyPatch.enabled`.
+- Solo para OpenAI (incluido OpenAI Codex). Opcionalmente restrinja por modelo mediante
   `tools.exec.applyPatch.allowModels`.
-- La configuracion solo se encuentra bajo `tools.exec`.
+- La configuración está únicamente bajo `tools.exec`.
 
 ## Ejemplo
 

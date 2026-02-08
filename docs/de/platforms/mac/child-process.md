@@ -1,7 +1,7 @@
 ---
-summary: „Gateway-Lebenszyklus auf macOS (launchd)“
+summary: „Gateway-Lebenszyklus unter macOS (launchd)“
 read_when:
-  - Integration der mac-App in den Gateway-Lebenszyklus
+  - Integration der macOS-App in den Gateway-Lebenszyklus
 title: „Gateway-Lebenszyklus“
 x-i18n:
   source_path: platforms/mac/child-process.md
@@ -9,49 +9,52 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:04:58Z
+  generated_at: 2026-02-08T09:36:51Z
 ---
 
-# Gateway-Lebenszyklus auf macOS
+# Gateway-Lebenszyklus unter macOS
 
 Die macOS-App **verwaltet das Gateway standardmäßig über launchd** und startet
-das Gateway **nicht** als Child-Process. Zunächst versucht sie, sich an ein bereits
-laufendes Gateway auf dem konfigurierten Port anzuhängen; ist keines erreichbar,
+das Gateway nicht als Child-Process. Zunächst versucht sie, sich mit einem bereits
+laufenden Gateway auf dem konfigurierten Port zu verbinden; ist keines erreichbar,
 aktiviert sie den launchd-Dienst über die externe `openclaw` CLI (keine
-eingebettete Laufzeit). Dadurch erhalten Sie einen zuverlässigen Auto-Start bei
-der Anmeldung und einen Neustart nach Abstürzen.
+eingebettete Runtime). Dadurch erhalten Sie einen zuverlässigen automatischen
+Start bei der Anmeldung sowie einen Neustart nach Abstürzen.
 
 Der Child-Process-Modus (Gateway wird direkt von der App gestartet) ist derzeit
 **nicht in Verwendung**. Wenn Sie eine engere Kopplung an die UI benötigen,
-führen Sie das Gateway manuell in einem Terminal aus.
+starten Sie das Gateway manuell in einem Terminal.
 
 ## Standardverhalten (launchd)
 
 - Die App installiert einen benutzerspezifischen LaunchAgent mit dem Label
-  `bot.molt.gateway` (oder `bot.molt.<profile>` bei Verwendung von `--profile`/`OPENCLAW_PROFILE`;
+  `bot.molt.gateway`
+  (oder `bot.molt.<profile>` bei Verwendung von `--profile`/`OPENCLAW_PROFILE`;
   das Legacy-Label `com.openclaw.*` wird unterstützt).
 - Wenn der lokale Modus aktiviert ist, stellt die App sicher, dass der LaunchAgent
   geladen ist, und startet das Gateway bei Bedarf.
-- Logs werden in den launchd-Gateway-Logpfad geschrieben (sichtbar in den Debug-Einstellungen).
+- Protokolle werden in den launchd-Gateway-Logpfad geschrieben
+  (sichtbar in den Debug-Einstellungen).
 
-Gängige Befehle:
+Häufige Befehle:
 
 ```bash
 launchctl kickstart -k gui/$UID/bot.molt.gateway
 launchctl bootout gui/$UID/bot.molt.gateway
 ```
 
-Ersetzen Sie das Label durch `bot.molt.<profile>`, wenn Sie ein benanntes Profil ausführen.
+Ersetzen Sie das Label durch `bot.molt.<profile>`, wenn Sie ein benanntes Profil
+ausführen.
 
 ## Unsigned Dev-Builds
 
 `scripts/restart-mac.sh --no-sign` ist für schnelle lokale Builds gedacht, wenn Sie keine
-Signierschlüssel haben. Um zu verhindern, dass launchd auf ein unsigniertes
-Relay-Binary zeigt, wird:
+Signaturschlüssel haben. Um zu verhindern, dass launchd auf ein unsigniertes
+Relay-Binary verweist, wird:
 
 - `~/.openclaw/disable-launchagent` geschrieben.
 
-Signierte Ausführungen von `scripts/restart-mac.sh` entfernen diese Überschreibung, falls
+Signierte Ausführungen von `scripts/restart-mac.sh` entfernen diese Übersteuerung, falls
 der Marker vorhanden ist. Zum manuellen Zurücksetzen:
 
 ```bash
@@ -60,10 +63,10 @@ rm ~/.openclaw/disable-launchagent
 
 ## Attach-only-Modus
 
-Um die macOS-App zu zwingen, **niemals launchd zu installieren oder zu verwalten**,
-starten Sie sie mit `--attach-only` (oder `--no-launchd`). Dadurch wird
-`~/.openclaw/disable-launchagent` gesetzt, sodass sich die App ausschließlich an ein bereits
-laufendes Gateway anhängt. Dasselbe Verhalten können Sie in den Debug-Einstellungen
+Um die macOS-App dazu zu zwingen, **launchd niemals zu installieren oder zu
+verwalten**, starten Sie sie mit `--attach-only` (oder `--no-launchd`). Dadurch
+wird `~/.openclaw/disable-launchagent` gesetzt, sodass sich die App nur mit einem bereits laufenden
+Gateway verbindet. Dasselbe Verhalten können Sie in den Debug-Einstellungen
 umschalten.
 
 ## Remote-Modus
@@ -73,9 +76,10 @@ SSH-Tunnel zum Remote-Host und verbindet sich über diesen Tunnel.
 
 ## Warum wir launchd bevorzugen
 
-- Auto-Start bei der Anmeldung.
-- Integrierte Neustart-/KeepAlive-Semantik.
-- Vorhersehbare Logs und Überwachung.
+- Automatischer Start bei der Anmeldung.
+- Integrierte Neustart- und KeepAlive-Semantik.
+- Vorhersehbare Protokolle und Überwachung.
 
-Sollte jemals wieder ein echter Child-Process-Modus benötigt werden, sollte er
-als separater, expliziter Dev-only-Modus dokumentiert werden.
+Falls jemals wieder ein echter Child-Process-Modus benötigt wird, sollte dieser
+als separater, expliziter, nur für Entwickler gedachter Modus dokumentiert
+werden.

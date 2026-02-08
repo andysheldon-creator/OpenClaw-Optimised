@@ -1,7 +1,7 @@
 ---
-summary: "Direktivsyntax fuer /think + /verbose und wie sie das Modell-Denken beeinflussen"
+summary: "Direktivsyntax für /think + /verbose und wie sie die Modellbegründung beeinflussen"
 read_when:
-  - Anpassen der Verarbeitung oder Standardwerte von Think- oder Verbose-Direktiven
+  - Anpassen der Analyse- oder Verbose-Direktivverarbeitung oder der Standardwerte
 title: "Denkstufen"
 x-i18n:
   source_path: tools/thinking.md
@@ -9,15 +9,15 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:00Z
+  generated_at: 2026-02-08T09:37:44Z
 ---
 
 # Denkstufen (/think-Direktiven)
 
-## Zweck
+## Was es tut
 
 - Inline-Direktive in jedem eingehenden Text: `/t <level>`, `/think:<level>` oder `/thinking <level>`.
-- Stufen (Aliase): `off | minimal | low | medium | high | xhigh` (nur GPT-5.2- und Codex-Modelle)
+- Stufen (Aliasse): `off | minimal | low | medium | high | xhigh` (nur GPT-5.2- und Codex-Modelle)
   - minimal → „think“
   - low → „think hard“
   - medium → „think harder“
@@ -26,56 +26,56 @@ x-i18n:
   - `x-high`, `x_high`, `extra-high`, `extra high` und `extra_high` werden auf `xhigh` abgebildet.
   - `highest`, `max` werden auf `high` abgebildet.
 - Anbieterhinweise:
-  - Z.AI (`zai/*`) unterstuetzt nur binaeres Denken (`on`/`off`). Jede Nicht-`off`-Stufe wird als `on` behandelt (abgebildet auf `low`).
+  - Z.AI (`zai/*`) unterstützt nur binäres Denken (`on`/`off`). Jede Nicht-`off`-Stufe wird als `on` behandelt (abgebildet auf `low`).
 
-## Aufloesungsreihenfolge
+## Auflösungsreihenfolge
 
-1. Inline-Direktive in der Nachricht (gilt nur fuer diese Nachricht).
-2. Sitzungs-Ueberschreibung (gesetzt durch Senden einer reinen Direktiven-Nachricht).
+1. Inline-Direktive in der Nachricht (gilt nur für diese Nachricht).
+2. Sitzungsüberschreibung (gesetzt durch Senden einer Nur-Direktive-Nachricht).
 3. Globaler Standard (`agents.defaults.thinkingDefault` in der Konfiguration).
-4. Fallback: low fuer reasoning-faehige Modelle; sonst off.
+4. Fallback: low für Modelle mit Begründungsfähigkeit; andernfalls aus.
 
-## Festlegen eines Sitzungsstandards
+## Setzen eines Sitzungsstandards
 
-- Senden Sie eine Nachricht, die **nur** aus der Direktive besteht (Leerzeichen erlaubt), z. B. `/think:medium` oder `/t high`.
-- Diese Einstellung gilt fuer die aktuelle Sitzung (standardmaessig pro Absender); sie wird durch `/think:off` oder durch einen Sitzungs-Idle-Reset geloescht.
-- Eine Bestaetigungsantwort wird gesendet (`Thinking level set to high.` / `Thinking disabled.`). Ist die Stufe ungueltig (z. B. `/thinking big`), wird der Befehl mit einem Hinweis abgelehnt und der Sitzungsstatus bleibt unveraendert.
+- Senden Sie eine Nachricht, die **nur** die Direktive enthält (Leerzeichen erlaubt), z. B. `/think:medium` oder `/t high`.
+- Dies bleibt für die aktuelle Sitzung bestehen (standardmäßig pro Absender); wird durch `/think:off` oder einen Sitzungs-Leerlauf-Reset gelöscht.
+- Eine Bestätigungsantwort wird gesendet (`Thinking level set to high.` / `Thinking disabled.`). Ist die Stufe ungültig (z. B. `/thinking big`), wird der Befehl mit einem Hinweis abgelehnt und der Sitzungszustand bleibt unverändert.
 - Senden Sie `/think` (oder `/think:`) ohne Argument, um die aktuelle Denkstufe anzuzeigen.
 
-## Anwendung durch den Agenten
+## Anwendung durch Agenten
 
-- **Embedded Pi**: Die aufgeloeste Stufe wird an die In-Process-Pi-Agent-Runtime uebergeben.
+- **Eingebetteter Pi**: Die aufgelöste Stufe wird an die In-Process-Laufzeit des Pi-Agenten übergeben.
 
 ## Verbose-Direktiven (/verbose oder /v)
 
 - Stufen: `on` (minimal) | `full` | `off` (Standard).
-- Eine reine Direktiven-Nachricht schaltet den Sitzungs-Verbose-Modus um und antwortet mit `Verbose logging enabled.` / `Verbose logging disabled.`; ungueltige Stufen liefern einen Hinweis, ohne den Status zu aendern.
-- `/verbose off` speichert eine explizite Sitzungs-Ueberschreibung; loeschen Sie diese ueber die Sitzungs-UI, indem Sie `inherit` waehlen.
-- Eine Inline-Direktive betrifft nur diese Nachricht; andernfalls gelten Sitzungs-/globale Standards.
+- Eine Nur-Direktive-Nachricht schaltet Verbose auf Sitzungsebene um und antwortet mit `Verbose logging enabled.` / `Verbose logging disabled.`; ungültige Stufen geben einen Hinweis zurück, ohne den Zustand zu ändern.
+- `/verbose off` speichert eine explizite Sitzungsüberschreibung; löschen Sie diese über die Sitzungs-UI, indem Sie `inherit` wählen.
+- Eine Inline-Direktive betrifft nur diese Nachricht; ansonsten gelten Sitzungs-/globale Standards.
 - Senden Sie `/verbose` (oder `/verbose:`) ohne Argument, um die aktuelle Verbose-Stufe anzuzeigen.
-- Wenn Verbose aktiviert ist, senden Agenten mit strukturierten Werkzeugergebnissen (Pi, andere JSON-Agenten) jeden Tool-Aufruf als eigene reine Metadaten-Nachricht, sofern verfuegbar mit `<emoji> <tool-name>: <arg>` (Pfad/Befehl) praefixiert. Diese Tool-Zusammenfassungen werden gesendet, sobald jedes Tool startet (separate Bubbles), nicht als Streaming-Deltas.
-- Wenn Verbose auf `full` steht, werden Tool-Ausgaben nach Abschluss ebenfalls weitergeleitet (separate Bubble, auf eine sichere Laenge gekuerzt). Wenn Sie waehrend eines laufenden Durchlaufs auf `/verbose on|full|off` umschalten, beruecksichtigen nachfolgende Tool-Bubbles die neue Einstellung.
+- Wenn Verbose aktiviert ist, senden Agenten, die strukturierte Werkzeugergebnisse ausgeben (Pi, andere JSON-Agenten), jeden Werkzeugaufruf als eigene Nur-Metadaten-Nachricht zurück, sofern verfügbar mit dem Präfix `<emoji> <tool-name>: <arg>` (Pfad/Befehl). Diese Werkzeugzusammenfassungen werden gesendet, sobald jedes Werkzeug startet (separate Blasen), nicht als Streaming-Deltas.
+- Wenn Verbose `full` ist, werden Werkzeugausgaben nach Abschluss ebenfalls weitergeleitet (separate Blase, auf eine sichere Länge gekürzt). Wenn Sie `/verbose on|full|off` umschalten, während ein Lauf noch läuft, berücksichtigen nachfolgende Werkzeugblasen die neue Einstellung.
 
-## Sichtbarkeit des Denkens (/reasoning)
+## Sichtbarkeit der Begründung (/reasoning)
 
 - Stufen: `on|off|stream`.
-- Eine reine Direktiven-Nachricht schaltet um, ob Denkblöcke in Antworten angezeigt werden.
-- Wenn aktiviert, wird das Reasoning als **separate Nachricht** gesendet, praefixiert mit `Reasoning:`.
-- `stream` (nur Telegram): Streamt das Reasoning waehrend der Antwortgenerierung in die Telegram-Entwurfsblase und sendet anschliessend die finale Antwort ohne Reasoning.
+- Eine Nur-Direktive-Nachricht schaltet um, ob Denkblöcke in Antworten angezeigt werden.
+- Wenn aktiviert, wird die Begründung als **separate Nachricht** mit dem Präfix `Reasoning:` gesendet.
+- `stream` (nur Telegram): streamt die Begründung während der Generierung der Antwort in die Telegram-Entwurfsblase und sendet anschließend die finale Antwort ohne Begründung.
 - Alias: `/reason`.
-- Senden Sie `/reasoning` (oder `/reasoning:`) ohne Argument, um die aktuelle Reasoning-Stufe anzuzeigen.
+- Senden Sie `/reasoning` (oder `/reasoning:`) ohne Argument, um die aktuelle Begründungsstufe anzuzeigen.
 
-## Verwandtes
+## Verwandt
 
-- Dokumentation zum Elevated Mode finden Sie unter [Elevated mode](/tools/elevated).
+- Dokumentation zum Elevated-Modus finden Sie unter [Elevated mode](/tools/elevated).
 
 ## Heartbeats
 
-- Der Heartbeat-Probe-Body ist der konfigurierte Heartbeat-Prompt (Standard: `Read HEARTBEAT.md if it exists (workspace context). Follow it strictly. Do not infer or repeat old tasks from prior chats. If nothing needs attention, reply HEARTBEAT_OK.`). Inline-Direktiven in einer Heartbeat-Nachricht gelten wie gewohnt (vermeiden Sie jedoch, Sitzungsstandards durch Heartbeats zu aendern).
-- Die Heartbeat-Zustellung erfolgt standardmaessig nur mit der finalen Payload. Um zusaetzlich die separate `Reasoning:`-Nachricht (falls verfuegbar) zu senden, setzen Sie `agents.defaults.heartbeat.includeReasoning: true` oder pro Agent `agents.list[].heartbeat.includeReasoning: true`.
+- Der Heartbeat-Probe-Text ist die konfigurierte Heartbeat-Eingabeaufforderung (Standard: `Read HEARTBEAT.md if it exists (workspace context). Follow it strictly. Do not infer or repeat old tasks from prior chats. If nothing needs attention, reply HEARTBEAT_OK.`). Inline-Direktiven in einer Heartbeat-Nachricht gelten wie üblich (vermeiden Sie jedoch, Sitzungsstandards durch Heartbeats zu ändern).
+- Die Heartbeat-Zustellung erfolgt standardmäßig nur mit der finalen Nutzlast. Um auch die separate `Reasoning:`-Nachricht (falls verfügbar) zu senden, setzen Sie `agents.defaults.heartbeat.includeReasoning: true` oder pro Agent `agents.list[].heartbeat.includeReasoning: true`.
 
 ## Web-Chat-UI
 
-- Der Denkstufen-Selektor im Web-Chat spiegelt beim Laden der Seite die in der eingehenden Sitzungsablage/Konfiguration gespeicherte Stufe wider.
-- Die Auswahl einer anderen Stufe gilt nur fuer die naechste Nachricht (`thinkingOnce`); nach dem Senden springt der Selektor zurueck auf die gespeicherte Sitzungsstufe.
-- Um den Sitzungsstandard zu aendern, senden Sie eine `/think:<level>`-Direktive (wie zuvor); der Selektor spiegelt dies nach dem naechsten Neuladen wider.
+- Der Denkstufen-Selektor im Web-Chat spiegelt beim Laden der Seite die im eingehenden Sitzungsstore/der Konfiguration gespeicherte Sitzungsstufe wider.
+- Die Auswahl einer anderen Stufe gilt nur für die nächste Nachricht (`thinkingOnce`); nach dem Senden springt der Selektor wieder auf die gespeicherte Sitzungsstufe zurück.
+- Um den Sitzungsstandard zu ändern, senden Sie wie zuvor eine `/think:<level>`-Direktive; der Selektor spiegelt dies nach dem nächsten Neuladen wider.

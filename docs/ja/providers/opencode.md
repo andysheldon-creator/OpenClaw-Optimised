@@ -1,8 +1,8 @@
 ---
-summary: "OpenClaw で OpenCode Zen（厳選モデル）を使用します"
+summary: "OpenClaw で OpenCode Zen（キュレーションされたモデル）を使用します"
 read_when:
-  - "モデルアクセスに OpenCode Zen を使用したい場合"
-  - "コーディング向けに厳選されたモデル一覧が必要な場合"
+  - OpenCode Zen をモデルアクセスに使用したい場合
+  - コーディングに適したモデルのキュレーションされたリストが必要な場合
 title: "OpenCode Zen"
 x-i18n:
   source_path: providers/opencode.md
@@ -10,16 +10,16 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:34:36Z
+  generated_at: 2026-02-08T09:22:51Z
 ---
 
 # OpenCode Zen
 
-OpenCode Zen は、コーディングエージェント向けに OpenCode チームが推奨する **厳選されたモデルの一覧** です。
+OpenCode Zen は、コーディングエージェント向けに OpenCode チームが推奨する**キュレーションされたモデルの一覧**です。
 API キーと `opencode` プロバイダーを使用する、オプションのホスト型モデルアクセス経路です。
 Zen は現在ベータ版です。
 
-## CLI setup
+## CLI セットアップ
 
 ```bash
 openclaw onboard --auth-choice opencode-zen
@@ -27,7 +27,7 @@ openclaw onboard --auth-choice opencode-zen
 openclaw onboard --opencode-zen-api-key "$OPENCODE_API_KEY"
 ```
 
-## Config snippet
+## 設定スニペット
 
 ```json5
 {
@@ -36,8 +36,8 @@ openclaw onboard --opencode-zen-api-key "$OPENCODE_API_KEY"
 }
 ```
 
-## Notes
+## 注記
 
 - `OPENCODE_ZEN_API_KEY` もサポートされています。
 - Zen にサインインし、請求情報を追加して、API キーをコピーします。
-- OpenCode Zen はリクエストごとに課金されます。詳細は OpenCode ダッシュボードを確認してください。
+- OpenCode Zen はリクエスト単位で課金されます。詳細は OpenCode ダッシュボードを確認してください。

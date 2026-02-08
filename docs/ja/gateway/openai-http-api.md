@@ -1,7 +1,7 @@
 ---
 summary: "Gateway（ゲートウェイ）から OpenAI 互換の /v1/chat/completions HTTP エンドポイントを公開します"
 read_when:
-  - OpenAI Chat Completions を期待するツールを統合する場合
+  - OpenAI Chat Completions を想定するツールを統合する場合
 title: "OpenAI Chat Completions"
 x-i18n:
   source_path: gateway/openai-http-api.md
@@ -9,7 +9,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:31:41Z
+  generated_at: 2026-02-08T09:21:52Z
 ---
 
 # OpenAI Chat Completions（HTTP）
@@ -21,33 +21,33 @@ OpenClaw の Gateway（ゲートウェイ）は、小規模な OpenAI 互換の 
 - `POST /v1/chat/completions`
 - Gateway（ゲートウェイ）と同一ポート（WS + HTTP の多重化）：`http://<gateway-host>:<port>/v1/chat/completions`
 
-内部的には、リクエストは通常の Gateway（ゲートウェイ）のエージェント実行として処理されます（`openclaw agent` と同一のコードパス）。そのため、ルーティング／権限／設定はご利用の Gateway（ゲートウェイ）と一致します。
+内部的には、リクエストは通常の Gateway エージェント実行として処理されます（`openclaw agent` と同一のコードパス）。そのため、ルーティング／権限／設定は Gateway と一致します。
 
 ## 認証
 
-Gateway（ゲートウェイ）の認証設定を使用します。Bearer トークンを送信してください。
+Gateway の認証設定を使用します。ベアラートークンを送信してください。
 
 - `Authorization: Bearer <token>`
 
-注意事項：
+注記:
 
 - `gateway.auth.mode="token"` の場合は、`gateway.auth.token`（または `OPENCLAW_GATEWAY_TOKEN`）を使用します。
 - `gateway.auth.mode="password"` の場合は、`gateway.auth.password`（または `OPENCLAW_GATEWAY_PASSWORD`）を使用します。
 
 ## エージェントの選択
 
-カスタムヘッダーは不要です。OpenAI の `model` フィールドにエージェント ID をエンコードしてください。
+カスタムヘッダーは不要です。OpenAI の `model` フィールドにエージェント ID をエンコードします。
 
-- `model: "openclaw:<agentId>"`（例：`"openclaw:main"`、`"openclaw:beta"`）
+- `model: "openclaw:<agentId>"`（例: `"openclaw:main"`、`"openclaw:beta"`）
 - `model: "agent:<agentId>"`（エイリアス）
 
 または、ヘッダーで特定の OpenClaw エージェントを指定できます。
 
-- `x-openclaw-agent-id: <agentId>`（デフォルト：`main`）
+- `x-openclaw-agent-id: <agentId>`（デフォルト: `main`）
 
-高度な設定：
+高度な設定:
 
-- `x-openclaw-session-key: <sessionKey>` により、セッションのルーティングを完全に制御できます。
+- セッションルーティングを完全に制御するには `x-openclaw-session-key: <sessionKey>` を使用します。
 
 ## エンドポイントの有効化
 
@@ -85,19 +85,19 @@ Gateway（ゲートウェイ）の認証設定を使用します。Bearer トー
 
 デフォルトでは、このエンドポイントは **リクエストごとにステートレス** です（呼び出しごとに新しいセッションキーが生成されます）。
 
-リクエストに OpenAI の `user` 文字列が含まれる場合、Gateway（ゲートウェイ）はそれから安定したセッションキーを導出します。これにより、繰り返しの呼び出しで同一のエージェントセッションを共有できます。
+リクエストに OpenAI の `user` 文字列が含まれる場合、Gateway はそこから安定したセッションキーを導出するため、繰り返しの呼び出しでエージェントセッションを共有できます。
 
 ## ストリーミング（SSE）
 
-Server-Sent Events（SSE）を受信するには、`stream: true` を設定します。
+Server-Sent Events（SSE）を受信するには `stream: true` を設定します。
 
 - `Content-Type: text/event-stream`
-- 各イベント行は `data: <json>` です。
+- 各イベント行は `data: <json>`
 - ストリームは `data: [DONE]` で終了します。
 
 ## 例
 
-非ストリーミング：
+非ストリーミング:
 
 ```bash
 curl -sS http://127.0.0.1:18789/v1/chat/completions \
@@ -110,7 +110,7 @@ curl -sS http://127.0.0.1:18789/v1/chat/completions \
   }'
 ```
 
-ストリーミング：
+ストリーミング:
 
 ```bash
 curl -N http://127.0.0.1:18789/v1/chat/completions \

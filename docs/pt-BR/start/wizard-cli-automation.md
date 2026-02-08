@@ -1,9 +1,9 @@
 ---
-summary: "Integracao inicial automatizada por script e configuracao de agente para a CLI do OpenClaw"
+summary: "Integração inicial por script e configuração de agente para a CLI do OpenClaw"
 read_when:
-  - Voce esta automatizando a integracao inicial em scripts ou CI
-  - Voce precisa de exemplos nao interativos para provedores especificos
-title: "Automacao da CLI"
+  - Você está automatizando a integração inicial em scripts ou CI
+  - Você precisa de exemplos não interativos para provedores específicos
+title: "Automação da CLI"
 sidebarTitle: "CLI automation"
 x-i18n:
   source_path: start/wizard-cli-automation.md
@@ -11,18 +11,18 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:57:26Z
+  generated_at: 2026-02-08T09:31:59Z
 ---
 
-# Automacao da CLI
+# Automação da CLI
 
 Use `--non-interactive` para automatizar `openclaw onboard`.
 
 <Note>
-`--json` nao implica modo nao interativo. Use `--non-interactive` (e `--workspace`) para scripts.
+`--json` não implica modo não interativo. Use `--non-interactive` (e `--workspace`) para scripts.
 </Note>
 
-## Exemplo basico nao interativo
+## Exemplo básico não interativo
 
 ```bash
 openclaw onboard --non-interactive \
@@ -36,12 +36,12 @@ openclaw onboard --non-interactive \
   --skip-skills
 ```
 
-Adicione `--json` para um resumo legivel por maquina.
+Adicione `--json` para um resumo legível por máquina.
 
-## Exemplos especificos por provedor
+## Exemplos específicos por provedor
 
 <AccordionGroup>
-  <Accordion title="Exemplo do Gemini">
+  <Accordion title="Exemplo Gemini">
     ```bash
     openclaw onboard --non-interactive \
       --mode local \
@@ -51,7 +51,7 @@ Adicione `--json` para um resumo legivel por maquina.
       --gateway-bind loopback
     ```
   </Accordion>
-  <Accordion title="Exemplo do Z.AI">
+  <Accordion title="Exemplo Z.AI">
     ```bash
     openclaw onboard --non-interactive \
       --mode local \
@@ -61,7 +61,7 @@ Adicione `--json` para um resumo legivel por maquina.
       --gateway-bind loopback
     ```
   </Accordion>
-  <Accordion title="Exemplo do Vercel AI Gateway">
+  <Accordion title="Exemplo Vercel AI Gateway">
     ```bash
     openclaw onboard --non-interactive \
       --mode local \
@@ -71,7 +71,7 @@ Adicione `--json` para um resumo legivel por maquina.
       --gateway-bind loopback
     ```
   </Accordion>
-  <Accordion title="Exemplo do Cloudflare AI Gateway">
+  <Accordion title="Exemplo Cloudflare AI Gateway">
     ```bash
     openclaw onboard --non-interactive \
       --mode local \
@@ -83,7 +83,7 @@ Adicione `--json` para um resumo legivel por maquina.
       --gateway-bind loopback
     ```
   </Accordion>
-  <Accordion title="Exemplo do Moonshot">
+  <Accordion title="Exemplo Moonshot">
     ```bash
     openclaw onboard --non-interactive \
       --mode local \
@@ -93,7 +93,7 @@ Adicione `--json` para um resumo legivel por maquina.
       --gateway-bind loopback
     ```
   </Accordion>
-  <Accordion title="Exemplo sintetico">
+  <Accordion title="Exemplo Synthetic">
     ```bash
     openclaw onboard --non-interactive \
       --mode local \
@@ -103,7 +103,7 @@ Adicione `--json` para um resumo legivel por maquina.
       --gateway-bind loopback
     ```
   </Accordion>
-  <Accordion title="Exemplo do OpenCode Zen">
+  <Accordion title="Exemplo OpenCode Zen">
     ```bash
     openclaw onboard --non-interactive \
       --mode local \
@@ -117,8 +117,8 @@ Adicione `--json` para um resumo legivel por maquina.
 
 ## Adicionar outro agente
 
-Use `openclaw agents add <name>` para criar um agente separado com seu proprio workspace,
-sessoes e perfis de autenticacao. Executar sem `--workspace` inicia o assistente.
+Use `openclaw agents add <name>` para criar um agente separado com seu próprio workspace,
+sessões e perfis de autenticação. Executar sem `--workspace` inicia o assistente.
 
 ```bash
 openclaw agents add work \
@@ -129,20 +129,20 @@ openclaw agents add work \
   --json
 ```
 
-O que ele configura:
+O que ele define:
 
 - `agents.list[].name`
 - `agents.list[].workspace`
 - `agents.list[].agentDir`
 
-Observacoes:
+Notas:
 
-- Workspaces padrao seguem `~/.openclaw/workspace-<agentId>`.
+- Workspaces padrão seguem `~/.openclaw/workspace-<agentId>`.
 - Adicione `bindings` para rotear mensagens de entrada (o assistente pode fazer isso).
-- Flags nao interativas: `--model`, `--agent-dir`, `--bind`, `--non-interactive`.
+- Flags não interativas: `--model`, `--agent-dir`, `--bind`, `--non-interactive`.
 
 ## Documentos relacionados
 
-- Hub de integracao inicial: [Onboarding Wizard (CLI)](/start/wizard)
-- Referencia completa: [CLI Onboarding Reference](/start/wizard-cli-reference)
-- Referencia de comandos: [`openclaw onboard`](/cli/onboard)
+- Hub de integração inicial: [Onboarding Wizard (CLI)](/start/wizard)
+- Referência completa: [CLI Onboarding Reference](/start/wizard-cli-reference)
+- Referência de comandos: [`openclaw onboard`](/cli/onboard)

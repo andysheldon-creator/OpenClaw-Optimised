@@ -1,37 +1,37 @@
 ---
-summary: "Gateway から OpenResponses 互換の /v1/responses HTTP エンドポイントを公開します"
+summary: 「Gateway（ゲートウェイ）から OpenResponses 互換の /v1/responses HTTP エンドポイントを公開します」
 read_when:
   - OpenResponses API を話すクライアントを統合する場合
   - アイテムベースの入力、クライアントツール呼び出し、または SSE イベントが必要な場合
-title: "OpenResponses API"
+title: 「OpenResponses API」
 x-i18n:
   source_path: gateway/openresponses-http-api.md
   source_hash: 0597714837f8b210
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:31:51Z
+  generated_at: 2026-02-08T09:22:05Z
 ---
 
-# OpenResponses API (HTTP)
+# OpenResponses API（HTTP）
 
 OpenClaw の Gateway は、OpenResponses 互換の `POST /v1/responses` エンドポイントを提供できます。
 
 このエンドポイントは **デフォルトでは無効** です。まず設定で有効化してください。
 
 - `POST /v1/responses`
-- Gateway と同じポート（WS + HTTP の多重化）: `http://<gateway-host>:<port>/v1/responses`
+- Gateway と同一ポート（WS + HTTP の多重化）: `http://<gateway-host>:<port>/v1/responses`
 
 内部的には、リクエストは通常の Gateway エージェント実行として処理されます（
-`openclaw agent` と同じコードパス）。そのため、ルーティング／権限／設定は Gateway と一致します。
+`openclaw agent` と同一のコードパス）。そのため、ルーティング／権限／設定は Gateway と一致します。
 
 ## 認証
 
-Gateway の認証設定を使用します。Bearer トークンを送信してください。
+Gateway の認証設定を使用します。ベアラートークンを送信してください。
 
 - `Authorization: Bearer <token>`
 
-注意事項:
+注記:
 
 - `gateway.auth.mode="token"` の場合は、`gateway.auth.token`（または `OPENCLAW_GATEWAY_TOKEN`）を使用します。
 - `gateway.auth.mode="password"` の場合は、`gateway.auth.password`（または `OPENCLAW_GATEWAY_PASSWORD`）を使用します。
@@ -40,16 +40,16 @@ Gateway の認証設定を使用します。Bearer トークンを送信して�
 
 カスタムヘッダーは不要です。OpenResponses の `model` フィールドにエージェント ID をエンコードします。
 
-- `model: "openclaw:<agentId>"`（例: `"openclaw:main"`, `"openclaw:beta"`）
+- `model: "openclaw:<agentId>"`（例: `"openclaw:main"`、`"openclaw:beta"`）
 - `model: "agent:<agentId>"`（エイリアス）
 
-または、ヘッダーで特定の OpenClaw エージェントを指定できます。
+または、ヘッダーで特定の OpenClaw エージェントを指定します。
 
 - `x-openclaw-agent-id: <agentId>`（デフォルト: `main`）
 
 高度な設定:
 
-- セッションルーティングを完全に制御するには `x-openclaw-session-key: <sessionKey>` を使用します。
+- セッションのルーティングを完全に制御するには `x-openclaw-session-key: <sessionKey>` を使用します。
 
 ## エンドポイントの有効化
 
@@ -87,11 +87,11 @@ Gateway の認証設定を使用します。Bearer トークンを送信して�
 
 デフォルトでは、このエンドポイントは **リクエストごとにステートレス** です（呼び出しごとに新しいセッションキーが生成されます）。
 
-リクエストに OpenResponses の `user` 文字列が含まれる場合、Gateway はそれから安定したセッションキーを導出します。これにより、繰り返しの呼び出しで同じエージェントセッションを共有できます。
+リクエストに OpenResponses の `user` 文字列が含まれている場合、Gateway はそれから安定したセッションキーを導出します。これにより、繰り返しの呼び出しで同じエージェントセッションを共有できます。
 
-## リクエスト形式（サポート）
+## リクエスト形状（対応状況）
 
-リクエストは、アイテムベース入力の OpenResponses API に従います。現在のサポート内容は次のとおりです。
+リクエストは、アイテムベース入力の OpenResponses API に従います。現在の対応状況は次のとおりです。
 
 - `input`: 文字列、またはアイテムオブジェクトの配列。
 - `instructions`: システムプロンプトにマージされます。
@@ -101,7 +101,7 @@ Gateway の認証設定を使用します。Bearer トークンを送信して�
 - `max_output_tokens`: ベストエフォートの出力上限（プロバイダー依存）。
 - `user`: 安定したセッションルーティング。
 
-受け付けますが **現在は無視されます**:
+受け付けますが **現在は無視** されます。
 
 - `max_tool_calls`
 - `reasoning`
@@ -114,15 +114,15 @@ Gateway の認証設定を使用します。Bearer トークンを送信して�
 
 ### `message`
 
-ロール: `system`, `developer`, `user`, `assistant`。
+ロール: `system`、`developer`、`user`、`assistant`。
 
-- `system` と `developer` はシステムプロンプトに追加されます。
+- `system` と `developer` はシステムプロンプトに追記されます。
 - 最新の `user` または `function_call_output` アイテムが「現在のメッセージ」になります。
-- それ以前のユーザー／アシスタントのメッセージは、文脈用の履歴として含まれます。
+- それ以前の user/assistant メッセージは、文脈のための履歴として含まれます。
 
 ### `function_call_output`（ターンベースのツール）
 
-ツールの結果をモデルに返します。
+ツールの結果をモデルに返送します。
 
 ```json
 {
@@ -134,14 +134,14 @@ Gateway の認証設定を使用します。Bearer トークンを送信して�
 
 ### `reasoning` と `item_reference`
 
-スキーマ互換性のために受け付けますが、プロンプト構築時には無視されます。
+スキーマ互換性のために受け付けますが、プロンプトの構築時には無視されます。
 
 ## ツール（クライアント側の関数ツール）
 
 `tools: [{ type: "function", function: { name, description?, parameters? } }]` でツールを提供します。
 
-エージェントがツールを呼び出すと、レスポンスには `function_call` の出力アイテムが返ります。
-続行するには、`function_call_output` を含めたフォローアップリクエストを送信してください。
+エージェントがツール呼び出しを決定した場合、レスポンスには `function_call` の出力アイテムが返されます。
+その後、`function_call_output` を含むフォローアップリクエストを送信してターンを継続します。
 
 ## 画像（`input_image`）
 
@@ -154,7 +154,7 @@ base64 または URL ソースをサポートします。
 }
 ```
 
-許可される MIME タイプ（現時点）: `image/jpeg`, `image/png`, `image/gif`, `image/webp`。
+許可される MIME タイプ（現時点）: `image/jpeg`、`image/png`、`image/gif`、`image/webp`。
 最大サイズ（現時点）: 10MB。
 
 ## ファイル（`input_file`）
@@ -173,28 +173,28 @@ base64 または URL ソースをサポートします。
 }
 ```
 
-許可される MIME タイプ（現時点）: `text/plain`, `text/markdown`, `text/html`, `text/csv`,
-`application/json`, `application/pdf`。
+許可される MIME タイプ（現時点）: `text/plain`、`text/markdown`、`text/html`、`text/csv`、
+`application/json`、`application/pdf`。
 
 最大サイズ（現時点）: 5MB。
 
 現在の挙動:
 
-- ファイル内容はデコードされ **システムプロンプト** に追加されます。ユーザーメッセージには含まれないため、
-  セッション履歴には永続化されません。
-- PDF はテキストを解析します。テキストがほとんど見つからない場合、先頭ページを画像にラスタライズして
+- ファイル内容はデコードされ、**ユーザーメッセージではなくシステムプロンプト** に追加されます。
+  そのため、セッション履歴には永続化されず、一時的な扱いになります。
+- PDF はテキスト解析されます。取得できるテキストが少ない場合は、最初のページを画像にラスタライズして
   モデルに渡します。
 
-PDF の解析には、Node 向けの `pdfjs-dist` レガシービルド（ワーカーなし）を使用します。モダンな
-PDF.js ビルドはブラウザのワーカー／DOM グローバルを前提とするため、Gateway では使用しません。
+PDF の解析には、Node 向けの `pdfjs-dist` レガシービルド（ワーカーなし）を使用します。最新の
+PDF.js ビルドはブラウザのワーカー／DOM グローバルを前提とするため、Gateway では使用されません。
 
 URL フェッチのデフォルト:
 
 - `files.allowUrl`: `true`
 - `images.allowUrl`: `true`
-- リクエストはガードされます（DNS 解決、プライベート IP のブロック、リダイレクト上限、タイムアウト）。
+- リクエストは保護されています（DNS 解決、プライベート IP のブロック、リダイレクト上限、タイムアウト）。
 
-## ファイル + 画像の制限（設定）
+## ファイル＋画像の制限（設定）
 
 デフォルト値は `gateway.http.endpoints.responses` 配下で調整できます。
 
@@ -289,8 +289,8 @@ URL フェッチのデフォルト:
 
 一般的なケース:
 
-- 認証の欠落／無効: `401`
-- リクエストボディが無効: `400`
+- 認証が欠落または無効: `401`
+- リクエストボディが不正: `400`
 - メソッドが不正: `405`
 
 ## 例

@@ -2,8 +2,8 @@
 summary: "Protocolo WebSocket do Gateway: handshake, frames, versionamento"
 read_when:
   - Implementando ou atualizando clientes WS do gateway
-  - Depurando incompatibilidades de protocolo ou falhas de conexao
-  - Regenerando esquemas/modelos de protocolo
+  - Depurando incompatibilidades de protocolo ou falhas de conexão
+  - Regenerando esquema/modelos do protocolo
 title: "Protocolo do Gateway"
 x-i18n:
   source_path: gateway/protocol.md
@@ -11,24 +11,24 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:56:30Z
+  generated_at: 2026-02-08T09:31:02Z
 ---
 
 # Protocolo do Gateway (WebSocket)
 
-O protocolo WS do Gateway e o **plano de controle unico + transporte de nos** do
-OpenClaw. Todos os clientes (CLI, UI web, app macOS, nos iOS/Android, nos
-headless) se conectam via WebSocket e declaram seu **papel** + **escopo** no
-momento do handshake.
+O protocolo WS do Gateway é o **plano de controle único + transporte de nós** do
+OpenClaw. Todos os clientes (CLI, UI web, app macOS, nós iOS/Android, nós headless)
+conectam via WebSocket e declaram seu **papel** + **escopo** no momento do
+handshake.
 
 ## Transporte
 
 - WebSocket, frames de texto com payloads JSON.
-- O primeiro frame **deve** ser uma requisicao `connect`.
+- O primeiro frame **deve** ser uma solicitação `connect`.
 
-## Handshake (conexao)
+## Handshake (conexão)
 
-Gateway → Cliente (desafio pre-conexao):
+Gateway → Cliente (desafio pré-conexão):
 
 ```json
 {
@@ -84,7 +84,7 @@ Gateway → Cliente:
 }
 ```
 
-Quando um token de dispositivo e emitido, `hello-ok` tambem inclui:
+Quando um token de dispositivo é emitido, `hello-ok` também inclui:
 
 ```json
 {
@@ -96,7 +96,7 @@ Quando um token de dispositivo e emitido, `hello-ok` tambem inclui:
 }
 ```
 
-### Exemplo de node
+### Exemplo de nó
 
 ```json
 {
@@ -131,20 +131,20 @@ Quando um token de dispositivo e emitido, `hello-ok` tambem inclui:
 }
 ```
 
-## Enquadramento (Framing)
+## Enquadramento
 
-- **Requisicao**: `{type:"req", id, method, params}`
-- **Resposta**: `{type:"res", id, ok, payload|error}`
-- **Evento**: `{type:"event", event, payload, seq?, stateVersion?}`
+- **Request**: `{type:"req", id, method, params}`
+- **Response**: `{type:"res", id, ok, payload|error}`
+- **Event**: `{type:"event", event, payload, seq?, stateVersion?}`
 
-Metodos com efeitos colaterais exigem **chaves de idempotencia** (veja o schema).
+Métodos com efeitos colaterais exigem **chaves de idempotência** (veja o esquema).
 
-## Papeis + escopos
+## Papéis + escopos
 
-### Papeis
+### Papéis
 
-- `operator` = cliente do plano de controle (CLI/UI/automacao).
-- `node` = host de capacidades (camera/tela/canvas/system.run).
+- `operator` = cliente do plano de controle (CLI/UI/automação).
+- `node` = host de capacidades (camera/screen/canvas/system.run).
 
 ### Escopos (operador)
 
@@ -156,70 +156,71 @@ Escopos comuns:
 - `operator.approvals`
 - `operator.pairing`
 
-### Caps/comandos/permissoes (node)
+### Capacidades/comandos/permissões (nó)
 
-Nodes declaram reivindicacoes de capacidade no momento da conexao:
+Os nós declaram reivindicações de capacidade no momento da conexão:
 
-- `caps`: categorias de capacidades de alto nivel.
-- `commands`: allowlist de comandos para invocacao.
-- `permissions`: alternancias granulares (por exemplo, `screen.record`, `camera.capture`).
+- `caps`: categorias de capacidade de alto nível.
+- `commands`: lista de permissões de comandos para invocação.
+- `permissions`: alternâncias granulares (por exemplo, `screen.record`, `camera.capture`).
 
-O Gateway trata isso como **claims** e aplica allowlists no lado do servidor.
+O Gateway trata isso como **reivindicações** e aplica listas de permissões no lado do servidor.
 
-## Presenca
+## Presença
 
 - `system-presence` retorna entradas indexadas pela identidade do dispositivo.
-- As entradas de presenca incluem `deviceId`, `roles` e `scopes` para que as UIs possam mostrar uma unica linha por dispositivo
-  mesmo quando ele se conecta como **operador** e **node**.
+- As entradas de presença incluem `deviceId`, `roles` e `scopes` para que as UIs possam mostrar uma única linha por dispositivo
+  mesmo quando ele se conecta como **operador** e **nó**.
 
-### Metodos auxiliares de node
+### Métodos auxiliares do nó
 
-- Nodes podem chamar `skills.bins` para buscar a lista atual de executaveis de Skills
-  para verificacoes de auto-allow.
+- Os nós podem chamar `skills.bins` para buscar a lista atual de executáveis de skills
+  para verificações de auto-allow.
 
-## Aprovacoes de exec
+## Aprovações de execução
 
-- Quando uma solicitacao de exec precisa de aprovacao, o gateway transmite `exec.approval.requested`.
-- Clientes operadores resolvem chamando `exec.approval.resolve` (requer o escopo `operator.approvals`).
+- Quando uma solicitação de execução precisa de aprovação, o gateway transmite `exec.approval.requested`.
+- Clientes operadores resolvem chamando `exec.approval.resolve` (exige o escopo `operator.approvals`).
 
 ## Versionamento
 
 - `PROTOCOL_VERSION` vive em `src/gateway/protocol/schema.ts`.
-- Clientes enviam `minProtocol` + `maxProtocol`; o servidor rejeita incompatibilidades.
-- Schemas + modelos sao gerados a partir de definicoes TypeBox:
+- Os clientes enviam `minProtocol` + `maxProtocol`; o servidor rejeita incompatibilidades.
+- Esquemas + modelos são gerados a partir de definições TypeBox:
   - `pnpm protocol:gen`
   - `pnpm protocol:gen:swift`
   - `pnpm protocol:check`
 
-## Autenticacao
+## Autenticação
 
 - Se `OPENCLAW_GATEWAY_TOKEN` (ou `--token`) estiver definido, `connect.params.auth.token`
-  deve corresponder ou o socket e fechado.
-- Apos o pareamento, o Gateway emite um **token de dispositivo** com escopo para o papel + escopos da conexao. Ele e retornado em `hello-ok.auth.deviceToken` e deve ser
-  persistido pelo cliente para conexoes futuras.
+  deve corresponder ou o socket é fechado.
+- Após o pareamento, o Gateway emite um **token de dispositivo** com escopo para o papel + escopos da conexão. Ele é retornado em `hello-ok.auth.deviceToken` e deve ser
+  persistido pelo cliente para conexões futuras.
 - Tokens de dispositivo podem ser rotacionados/revogados via `device.token.rotate` e
-  `device.token.revoke` (requer o escopo `operator.pairing`).
+  `device.token.revoke` (exige o escopo `operator.pairing`).
 
 ## Identidade do dispositivo + pareamento
 
-- Nodes devem incluir uma identidade de dispositivo estavel (`device.id`) derivada de uma
-  impressao digital de par de chaves.
+- Os nós devem incluir uma identidade de dispositivo estável (`device.id`) derivada de uma
+  impressão digital de par de chaves.
 - Gateways emitem tokens por dispositivo + papel.
-- Aprovacoes de pareamento sao exigidas para novos IDs de dispositivo, a menos que a autoaprovacao local esteja habilitada.
-- Conexoes **locais** incluem loopback e o endereco tailnet do proprio host do gateway
-  (assim, vinculacoes tailnet no mesmo host ainda podem autoaprovar).
-- Todos os clientes WS devem incluir a identidade `device` durante `connect` (operador + node).
-  A UI de controle pode omiti-la **apenas** quando `gateway.controlUi.allowInsecureAuth` estiver habilitado
-  (ou `gateway.controlUi.dangerouslyDisableDeviceAuth` para uso de emergencia).
-- Conexoes nao locais devem assinar o nonce `connect.challenge` fornecido pelo servidor.
+- Aprovações de pareamento são necessárias para novos IDs de dispositivo, a menos que a aprovação automática local esteja habilitada.
+- Conexões **locais** incluem loopback e o próprio endereço tailnet do host do gateway
+  (assim, vínculos tailnet no mesmo host ainda podem ter aprovação automática).
+- Todos os clientes WS devem incluir a identidade `device` durante `connect` (operador + nó).
+  A UI de controle pode omiti-la **somente** quando `gateway.controlUi.allowInsecureAuth` estiver habilitado
+  (ou `gateway.controlUi.dangerouslyDisableDeviceAuth` para uso de break-glass).
+- Conexões não locais devem assinar o nonce `connect.challenge` fornecido pelo servidor.
 
-## TLS + pinning
+## TLS + pinagem
 
-- TLS e suportado para conexoes WS.
-- Clientes podem opcionalmente fazer pin do fingerprint do certificado do gateway (veja a configuracao `gateway.tls`
-  mais `gateway.remote.tlsFingerprint` ou o CLI `--tls-fingerprint`).
+- TLS é suportado para conexões WS.
+- Os clientes podem opcionalmente fixar (pin) a impressão digital do certificado do gateway (veja a configuração `gateway.tls`
+  além de `gateway.remote.tlsFingerprint` ou a CLI `--tls-fingerprint`).
 
 ## Escopo
 
 Este protocolo expõe a **API completa do gateway** (status, canais, modelos, chat,
-agente, sessoes, nodes, aprovacoes, etc.). A superficie exata e definida pelos schemas TypeBox em `src/gateway/protocol/schema.ts`.
+agente, sessões, nós, aprovações, etc.). A superfície exata é definida pelos
+esquemas TypeBox em `src/gateway/protocol/schema.ts`.

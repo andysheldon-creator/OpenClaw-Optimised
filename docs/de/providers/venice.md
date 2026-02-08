@@ -1,8 +1,8 @@
 ---
-summary: „Verwenden Sie datenschutzorientierte Modelle von Venice AI in OpenClaw“
+summary: „Nutzen Sie die datenschutzorientierten Modelle von Venice AI in OpenClaw“
 read_when:
   - Sie möchten datenschutzorientierte Inferenz in OpenClaw
-  - Sie möchten eine Anleitung zur Einrichtung von Venice AI
+  - Sie möchten Anleitungen zur Einrichtung von Venice AI
 title: „Venice AI“
 x-i18n:
   source_path: providers/venice.md
@@ -10,40 +10,40 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:29Z
+  generated_at: 2026-02-08T09:37:23Z
 ---
 
 # Venice AI (Venice-Highlight)
 
-**Venice** ist unser hervorgehobenes Venice-Setup für datenschutzorientierte Inferenz mit optionalem anonymisiertem Zugriff auf proprietäre Modelle.
+**Venice** ist unser hervorgehobenes Venice-Setup für Privacy-first-Inferenz mit optionalem anonymisiertem Zugriff auf proprietäre Modelle.
 
-Venice AI bietet datenschutzfokussierte KI-Inferenz mit Unterstützung für unzensierte Modelle sowie Zugriff auf wichtige proprietäre Modelle über ihren anonymisierten Proxy. Alle Inferenzvorgänge sind standardmäßig privat — kein Training mit Ihren Daten, keine Protokollierung.
+Venice AI bietet datenschutzorientierte KI-Inferenz mit Unterstützung für unzensierte Modelle sowie Zugriff auf große proprietäre Modelle über einen anonymisierten Proxy. Alle Inferenzvorgänge sind standardmäßig privat — kein Training mit Ihren Daten, keine Protokollierung.
 
 ## Warum Venice in OpenClaw
 
 - **Private Inferenz** für Open-Source-Modelle (keine Protokollierung).
 - **Unzensierte Modelle**, wenn Sie sie benötigen.
 - **Anonymisierter Zugriff** auf proprietäre Modelle (Opus/GPT/Gemini), wenn Qualität zählt.
-- OpenAI-kompatible `/v1`-Endpunkte.
+- OpenAI-kompatible `/v1` Endpunkte.
 
 ## Datenschutzmodi
 
 Venice bietet zwei Datenschutzstufen — deren Verständnis ist entscheidend für die Modellauswahl:
 
-| Modus          | Beschreibung                                                                                                                          | Modelle                                       |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| **Private**    | Vollständig privat. Prompts/Antworten werden **niemals gespeichert oder protokolliert**. Ephemer.                                     | Llama, Qwen, DeepSeek, Venice Uncensored usw. |
-| **Anonymized** | Über Venice mit entfernten Metadaten weitergeleitet. Der zugrunde liegende Anbieter (OpenAI, Anthropic) sieht anonymisierte Anfragen. | Claude, GPT, Gemini, Grok, Kimi, MiniMax      |
+| Modus            | Beschreibung                                                                                                                     | Modelle                                       |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| **Privat**       | Vollständig privat. Prompts/Antworten werden **niemals gespeichert oder protokolliert**. Ephemer.                                | Llama, Qwen, DeepSeek, Venice Uncensored usw. |
+| **Anonymisiert** | Über Venice weitergeleitet, Metadaten entfernt. Der zugrunde liegende Anbieter (OpenAI, Anthropic) sieht anonymisierte Anfragen. | Claude, GPT, Gemini, Grok, Kimi, MiniMax      |
 
 ## Funktionen
 
-- **Datenschutzfokussiert**: Wahl zwischen „private“ (vollständig privat) und „anonymized“ (proxied) Modi
+- **Datenschutzorientiert**: Wählen Sie zwischen „privat“ (vollständig privat) und „anonymisiert“ (über Proxy)
 - **Unzensierte Modelle**: Zugriff auf Modelle ohne Inhaltsbeschränkungen
-- **Zugriff auf führende Modelle**: Nutzung von Claude, GPT-5.2, Gemini, Grok über den anonymisierten Proxy von Venice
-- **OpenAI-kompatible API**: Standardisierte `/v1`-Endpunkte für einfache Integration
+- **Zugriff auf führende Modelle**: Nutzen Sie Claude, GPT-5.2, Gemini, Grok über den anonymisierten Proxy von Venice
+- **OpenAI-kompatible API**: Standard-`/v1` Endpunkte für einfache Integration
 - **Streaming**: ✅ Auf allen Modellen unterstützt
 - **Function Calling**: ✅ Auf ausgewählten Modellen unterstützt (Modellfähigkeiten prüfen)
-- **Vision**: ✅ Auf Modellen mit Vision-Funktionalität unterstützt
+- **Vision**: ✅ Auf Modellen mit Vision-Fähigkeit unterstützt
 - **Keine harten Rate-Limits**: Fair-Use-Drosselung kann bei extremer Nutzung greifen
 
 ## Einrichtung
@@ -72,7 +72,7 @@ Dies wird:
 
 1. Nach Ihrem API-Schlüssel fragen (oder einen vorhandenen `VENICE_API_KEY` verwenden)
 2. Alle verfügbaren Venice-Modelle anzeigen
-3. Sie Ihr Standardmodell auswählen lassen
+3. Ihnen erlauben, Ihr Standardmodell auszuwählen
 4. Den Anbieter automatisch konfigurieren
 
 **Option C: Nicht-interaktiv**
@@ -83,7 +83,7 @@ openclaw onboard --non-interactive \
   --venice-api-key "vapi_xxxxxxxxxxxx"
 ```
 
-### 3. Einrichtung überprüfen
+### 3. Einrichtung verifizieren
 
 ```bash
 openclaw chat --model venice/llama-3.3-70b "Hello, are you working?"
@@ -91,12 +91,12 @@ openclaw chat --model venice/llama-3.3-70b "Hello, are you working?"
 
 ## Modellauswahl
 
-Nach der Einrichtung zeigt OpenClaw alle verfügbaren Venice-Modelle an. Wählen Sie je nach Bedarf:
+Nach der Einrichtung zeigt OpenClaw alle verfügbaren Venice-Modelle an. Wählen Sie nach Bedarf:
 
 - **Standard (unsere Wahl)**: `venice/llama-3.3-70b` für private, ausgewogene Leistung.
-- **Beste Gesamtqualität**: `venice/claude-opus-45` für anspruchsvolle Aufgaben (Opus bleibt das stärkste).
-- **Datenschutz**: Wählen Sie „private“-Modelle für vollständig private Inferenz.
-- **Fähigkeiten**: Wählen Sie „anonymized“-Modelle, um über den Proxy von Venice auf Claude, GPT, Gemini zuzugreifen.
+- **Beste Gesamtqualität**: `venice/claude-opus-45` für anspruchsvolle Aufgaben (Opus bleibt am stärksten).
+- **Datenschutz**: Wählen Sie „private“ Modelle für vollständig private Inferenz.
+- **Fähigkeiten**: Wählen Sie „anonymisierte“ Modelle, um über den Proxy von Venice auf Claude, GPT, Gemini zuzugreifen.
 
 Ändern Sie Ihr Standardmodell jederzeit:
 
@@ -119,22 +119,22 @@ openclaw models list | grep venice
 
 ## Welches Modell sollte ich verwenden?
 
-| Anwendungsfall                    | Empfohlenes Modell               | Warum                                            |
-| --------------------------------- | -------------------------------- | ------------------------------------------------ |
-| **Allgemeiner Chat**              | `llama-3.3-70b`                  | Gut ausgewogen, vollständig privat               |
-| **Beste Gesamtqualität**          | `claude-opus-45`                 | Opus bleibt das stärkste für schwierige Aufgaben |
-| **Datenschutz + Claude-Qualität** | `claude-opus-45`                 | Bestes Schlussfolgern über anonymisierten Proxy  |
-| **Programmierung**                | `qwen3-coder-480b-a35b-instruct` | Code-optimiert, 262k Kontext                     |
-| **Vision-Aufgaben**               | `qwen3-vl-235b-a22b`             | Bestes privates Vision-Modell                    |
-| **Unzensiert**                    | `venice-uncensored`              | Keine Inhaltsbeschränkungen                      |
-| **Schnell + günstig**             | `qwen3-4b`                       | Leichtgewichtig, dennoch leistungsfähig          |
-| **Komplexes Schlussfolgern**      | `deepseek-v3.2`                  | Starkes Schlussfolgern, privat                   |
+| Anwendungsfall                    | Empfohlenes Modell               | Warum                                              |
+| --------------------------------- | -------------------------------- | -------------------------------------------------- |
+| **Allgemeiner Chat**              | `llama-3.3-70b`                  | Gut ausgewogen, vollständig privat                 |
+| **Beste Gesamtqualität**          | `claude-opus-45`                 | Opus bleibt am stärksten für schwierige Aufgaben   |
+| **Datenschutz + Claude-Qualität** | `claude-opus-45`                 | Beste Schlussfolgerungen über anonymisierten Proxy |
+| **Programmierung**                | `qwen3-coder-480b-a35b-instruct` | Code-optimiert, 262k Kontext                       |
+| **Vision-Aufgaben**               | `qwen3-vl-235b-a22b`             | Bestes privates Vision-Modell                      |
+| **Unzensiert**                    | `venice-uncensored`              | Keine Inhaltsbeschränkungen                        |
+| **Schnell + günstig**             | `qwen3-4b`                       | Leichtgewichtig, dennoch leistungsfähig            |
+| **Komplexe Schlussfolgerungen**   | `deepseek-v3.2`                  | Starke Schlussfolgerungen, privat                  |
 
-## Verfügbare Modelle (insgesamt 25)
+## Verfügbare Modelle (25 insgesamt)
 
 ### Private Modelle (15) — Vollständig privat, keine Protokollierung
 
-| Model ID                         | Name                    | Kontext (Token) | Funktionen                   |
+| Modell-ID                        | Name                    | Kontext (Token) | Funktionen                   |
 | -------------------------------- | ----------------------- | --------------- | ---------------------------- |
 | `llama-3.3-70b`                  | Llama 3.3 70B           | 131k            | Allgemein                    |
 | `llama-3.2-3b`                   | Llama 3.2 3B            | 131k            | Schnell, leichtgewichtig     |
@@ -154,7 +154,7 @@ openclaw models list | grep venice
 
 ### Anonymisierte Modelle (10) — Über den Venice-Proxy
 
-| Model ID                 | Original          | Kontext (Token) | Funktionen             |
+| Modell-ID                | Original          | Kontext (Token) | Funktionen             |
 | ------------------------ | ----------------- | --------------- | ---------------------- |
 | `claude-opus-45`         | Claude Opus 4.5   | 202k            | Schlussfolgern, Vision |
 | `claude-sonnet-45`       | Claude Sonnet 4.5 | 202k            | Schlussfolgern, Vision |
@@ -167,13 +167,13 @@ openclaw models list | grep venice
 | `kimi-k2-thinking`       | Kimi K2 Thinking  | 262k            | Schlussfolgern         |
 | `minimax-m21`            | MiniMax M2.1      | 202k            | Schlussfolgern         |
 
-## Modellerkennung
+## Model Discovery
 
-OpenClaw erkennt Modelle automatisch aus der Venice-API, wenn `VENICE_API_KEY` gesetzt ist. Ist die API nicht erreichbar, wird auf einen statischen Katalog zurückgegriffen.
+OpenClaw erkennt Modelle automatisch über die Venice-API, wenn `VENICE_API_KEY` gesetzt ist. Ist die API nicht erreichbar, wird auf einen statischen Katalog zurückgegriffen.
 
 Der Endpunkt `/models` ist öffentlich (keine Authentifizierung für die Auflistung erforderlich), aber Inferenz erfordert einen gültigen API-Schlüssel.
 
-## Streaming- und Tool-Unterstützung
+## Streaming- & Tool-Unterstützung
 
 | Funktion             | Unterstützung                                                            |
 | -------------------- | ------------------------------------------------------------------------ |
@@ -187,16 +187,16 @@ Der Endpunkt `/models` ist öffentlich (keine Authentifizierung für die Auflist
 Venice verwendet ein kreditbasiertes System. Aktuelle Preise finden Sie unter [venice.ai/pricing](https://venice.ai/pricing):
 
 - **Private Modelle**: In der Regel geringere Kosten
-- **Anonymisierte Modelle**: Ähnlich zur direkten API-Bepreisung + kleine Venice-Gebühr
+- **Anonymisierte Modelle**: Ähnlich zur direkten API-Bepreisung + geringe Venice-Gebühr
 
 ## Vergleich: Venice vs. direkte API
 
-| Aspekt          | Venice (Anonymized)                | Direkte API               |
-| --------------- | ---------------------------------- | ------------------------- |
-| **Datenschutz** | Metadaten entfernt, anonymisiert   | Mit Ihrem Konto verknüpft |
-| **Latenz**      | +10–50 ms (Proxy)                  | Direkt                    |
-| **Funktionen**  | Die meisten Funktionen unterstützt | Voller Funktionsumfang    |
-| **Abrechnung**  | Venice-Credits                     | Abrechnung des Anbieters  |
+| Aspekt          | Venice (anonymisiert)              | Direkte API              |
+| --------------- | ---------------------------------- | ------------------------ |
+| **Datenschutz** | Metadaten entfernt, anonymisiert   | Ihr Konto verknüpft      |
+| **Latenz**      | +10–50 ms (Proxy)                  | Direkt                   |
+| **Funktionen**  | Die meisten Funktionen unterstützt | Volle Funktionen         |
+| **Abrechnung**  | Venice-Guthaben                    | Abrechnung beim Anbieter |
 
 ## Anwendungsbeispiele
 
@@ -219,7 +219,7 @@ openclaw chat --model venice/qwen3-coder-480b-a35b-instruct
 
 ## Fehlerbehebung
 
-### API-Schlüssel wird nicht erkannt
+### API-Schlüssel nicht erkannt
 
 ```bash
 echo $VENICE_API_KEY
@@ -236,7 +236,7 @@ Der Venice-Modellkatalog wird dynamisch aktualisiert. Führen Sie `openclaw mode
 
 Die Venice-API befindet sich unter `https://api.venice.ai/api/v1`. Stellen Sie sicher, dass Ihr Netzwerk HTTPS-Verbindungen zulässt.
 
-## Beispiel für eine Konfigurationsdatei
+## Beispiel für Konfigurationsdatei
 
 ```json5
 {

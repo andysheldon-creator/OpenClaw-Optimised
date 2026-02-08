@@ -1,9 +1,9 @@
 ---
 summary: "Aplicación de nodo iOS: conexión al Gateway, emparejamiento, canvas y solución de problemas"
 read_when:
-  - Emparejamiento o reconexión del nodo iOS
+  - Emparejar o reconectar el nodo iOS
   - Ejecutar la app iOS desde el código fuente
-  - Depuración del descubrimiento del Gateway o de comandos de canvas
+  - Depurar el descubrimiento del Gateway o los comandos de canvas
 title: "App iOS"
 x-i18n:
   source_path: platforms/ios.md
@@ -11,18 +11,18 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:59:24Z
+  generated_at: 2026-02-08T09:34:04Z
 ---
 
-# App iOS (Node)
+# App iOS (Nodo)
 
 Disponibilidad: vista previa interna. La app iOS aún no se distribuye públicamente.
 
 ## Qué hace
 
-- Se conecta a un Gateway por WebSocket (LAN o tailnet).
+- Se conecta a un Gateway mediante WebSocket (LAN o tailnet).
 - Expone capacidades del nodo: Canvas, captura de pantalla, captura de cámara, ubicación, modo de conversación, activación por voz.
-- Recibe comandos `node.invoke` y reporta eventos de estado del nodo.
+- Recibe comandos `node.invoke` e informa eventos de estado del nodo.
 
 ## Requisitos
 
@@ -40,9 +40,9 @@ Disponibilidad: vista previa interna. La app iOS aún no se distribuye públicam
 openclaw gateway --port 18789
 ```
 
-2. En la app iOS, abra Configuración y elija un gateway descubierto (o habilite Host manual e ingrese host/puerto).
+2. En la app iOS, abra Settings y elija un gateway descubierto (o habilite Manual Host e introduzca host/puerto).
 
-3. Apruebe la solicitud de emparejamiento en el host del gateway:
+3. Apruebe la solicitud de emparejamiento en el host del Gateway:
 
 ```bash
 openclaw nodes pending
@@ -65,11 +65,11 @@ El Gateway anuncia `_openclaw-gw._tcp` en `local.`. La app iOS los lista automá
 ### Tailnet (entre redes)
 
 Si mDNS está bloqueado, use una zona DNS-SD unicast (elija un dominio; ejemplo: `openclaw.internal.`) y DNS dividido de Tailscale.
-Vea [Bonjour](/gateway/bonjour) para el ejemplo de CoreDNS.
+Consulte [Bonjour](/gateway/bonjour) para el ejemplo de CoreDNS.
 
 ### Host/puerto manual
 
-En Configuración, habilite **Host manual** e ingrese el host + puerto del gateway (valor predeterminado `18789`).
+En Settings, habilite **Manual Host** e introduzca el host del Gateway + puerto (predeterminado `18789`).
 
 ## Canvas + A2UI
 
@@ -83,9 +83,9 @@ Notas:
 
 - El host de canvas del Gateway sirve `/__openclaw__/canvas/` y `/__openclaw__/a2ui/`.
 - El nodo iOS navega automáticamente a A2UI al conectarse cuando se anuncia una URL de host de canvas.
-- Regrese al andamiaje integrado con `canvas.navigate` y `{"url":""}`.
+- Vuelva al andamiaje integrado con `canvas.navigate` y `{"url":""}`.
 
-### Evaluación / captura de canvas
+### Evaluación / instantánea del canvas
 
 ```bash
 openclaw nodes invoke --node "iOS Node" --command canvas.eval --params '{"javaScript":"(() => { const {ctx} = window.__openclaw; ctx.clearRect(0,0,innerWidth,innerHeight); ctx.lineWidth=6; ctx.strokeStyle=\"#ff2d55\"; ctx.beginPath(); ctx.moveTo(40,40); ctx.lineTo(innerWidth-40, innerHeight-40); ctx.stroke(); return \"ok\"; })()"}'
@@ -97,15 +97,15 @@ openclaw nodes invoke --node "iOS Node" --command canvas.snapshot --params '{"ma
 
 ## Activación por voz + modo de conversación
 
-- La activación por voz y el modo de conversación están disponibles en Configuración.
+- La activación por voz y el modo de conversación están disponibles en Settings.
 - iOS puede suspender el audio en segundo plano; trate las funciones de voz como de mejor esfuerzo cuando la app no está activa.
 
 ## Errores comunes
 
 - `NODE_BACKGROUND_UNAVAILABLE`: lleve la app iOS al primer plano (los comandos de canvas/cámara/pantalla lo requieren).
-- `A2UI_HOST_NOT_CONFIGURED`: el Gateway no anunció una URL de host de canvas; verifique `canvasHost` en la [Configuración del Gateway](/gateway/configuration).
-- La solicitud de emparejamiento nunca aparece: ejecute `openclaw nodes pending` y apruebe manualmente.
-- La reconexión falla después de reinstalar: el token de emparejamiento del Llavero se borró; vuelva a emparejar el nodo.
+- `A2UI_HOST_NOT_CONFIGURED`: el Gateway no anunció una URL de host de canvas; verifique `canvasHost` en [Configuración del Gateway](/gateway/configuration).
+- El aviso de emparejamiento nunca aparece: ejecute `openclaw nodes pending` y apruebe manualmente.
+- La reconexión falla tras reinstalar: el token de emparejamiento del Keychain se borró; vuelva a emparejar el nodo.
 
 ## Documentos relacionados
 

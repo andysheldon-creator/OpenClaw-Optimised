@@ -1,38 +1,38 @@
 ---
-summary: "Comando de ubicacion para nodos (location.get), modos de permiso y comportamiento en segundo plano"
+summary: "Comando de ubicación para nodos (location.get), modos de permisos y comportamiento en segundo plano"
 read_when:
-  - Agregar soporte de nodo de ubicacion o UI de permisos
-  - Diseñar flujos de ubicacion en segundo plano + push
-title: "Comando de ubicacion"
+  - Agregar soporte de nodo de ubicación o UI de permisos
+  - Diseñar flujos de ubicación en segundo plano + push
+title: "Comando de ubicación"
 x-i18n:
   source_path: nodes/location-command.md
   source_hash: 23124096256384d2
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:59:20Z
+  generated_at: 2026-02-08T09:33:59Z
 ---
 
-# Comando de ubicacion (nodos)
+# Comando de ubicación (nodos)
 
 ## TL;DR
 
-- `location.get` es un comando de nodo (via `node.invoke`).
+- `location.get` es un comando de nodo (vía `node.invoke`).
 - Desactivado por defecto.
-- La configuracion usa un selector: Desactivado / Mientras se usa / Siempre.
-- Alternador separado: Ubicacion precisa.
+- La configuración usa un selector: Desactivado / Mientras se usa / Siempre.
+- Alternador separado: Ubicación precisa.
 
-## Por que un selector (no solo un interruptor)
+## Por qué un selector (no solo un interruptor)
 
-Los permisos del sistema operativo son multinivel. Podemos exponer un selector en la app, pero el sistema operativo aun decide la concesion real.
+Los permisos del SO son multinivel. Podemos exponer un selector en la app, pero el SO sigue decidiendo la concesión real.
 
-- iOS/macOS: el usuario puede elegir **Mientras se usa** o **Siempre** en los avisos/Configuracion del sistema. La app puede solicitar una actualizacion, pero el sistema operativo puede requerir ir a Configuracion.
-- Android: la ubicacion en segundo plano es un permiso separado; en Android 10+ a menudo requiere un flujo en Configuracion.
-- La ubicacion precisa es una concesion separada (iOS 14+ “Precisa”, Android “fina” vs “aproximada”).
+- iOS/macOS: el usuario puede elegir **Mientras se usa** o **Siempre** en los avisos/Configuración del sistema. La app puede solicitar una actualización, pero el SO puede requerir Configuración.
+- Android: la ubicación en segundo plano es un permiso separado; en Android 10+ a menudo requiere un flujo de Configuración.
+- La ubicación precisa es una concesión separada (iOS 14+ “Precisa”, Android “fina” vs “aproximada”).
 
-El selector en la UI impulsa nuestro modo solicitado; la concesion real vive en la configuracion del sistema operativo.
+El selector en la UI dirige nuestro modo solicitado; la concesión real vive en la configuración del SO.
 
-## Modelo de configuracion
+## Modelo de configuración
 
 Por dispositivo de nodo:
 
@@ -42,18 +42,18 @@ Por dispositivo de nodo:
 Comportamiento de la UI:
 
 - Seleccionar `whileUsing` solicita permiso en primer plano.
-- Seleccionar `always` primero asegura `whileUsing`, luego solicita segundo plano (o envia al usuario a Configuracion si es requerido).
-- Si el sistema operativo deniega el nivel solicitado, se revierte al nivel mas alto concedido y se muestra el estado.
+- Seleccionar `always` primero garantiza `whileUsing`, luego solicita segundo plano (o envía al usuario a Configuración si es necesario).
+- Si el SO niega el nivel solicitado, volver al nivel más alto concedido y mostrar el estado.
 
 ## Mapeo de permisos (node.permissions)
 
-Opcional. El nodo macOS reporta `location` via el mapa de permisos; iOS/Android pueden omitirlo.
+Opcional. El nodo de macOS reporta `location` mediante el mapa de permisos; iOS/Android pueden omitirlo.
 
 ## Comando: `location.get`
 
-Llamado via `node.invoke`.
+Se llama vía `node.invoke`.
 
-Parametros (sugeridos):
+Parámetros (sugeridos):
 
 ```json
 {
@@ -79,42 +79,42 @@ Carga de respuesta:
 }
 ```
 
-Errores (codigos estables):
+Errores (códigos estables):
 
-- `LOCATION_DISABLED`: el selector esta desactivado.
-- `LOCATION_PERMISSION_REQUIRED`: permiso faltante para el modo solicitado.
-- `LOCATION_BACKGROUND_UNAVAILABLE`: la app esta en segundo plano pero solo se permite Mientras se usa.
-- `LOCATION_TIMEOUT`: no hay fijacion a tiempo.
-- `LOCATION_UNAVAILABLE`: fallo del sistema / sin proveedores.
+- `LOCATION_DISABLED`: el selector está desactivado.
+- `LOCATION_PERMISSION_REQUIRED`: falta permiso para el modo solicitado.
+- `LOCATION_BACKGROUND_UNAVAILABLE`: la app está en segundo plano pero solo se permite Mientras se usa.
+- `LOCATION_TIMEOUT`: no hubo fijación a tiempo.
+- `LOCATION_UNAVAILABLE`: falla del sistema / sin proveedores.
 
 ## Comportamiento en segundo plano (futuro)
 
-Objetivo: el modelo puede solicitar ubicacion incluso cuando el nodo esta en segundo plano, pero solo cuando:
+Objetivo: el modelo puede solicitar ubicación incluso cuando el nodo está en segundo plano, pero solo cuando:
 
-- El usuario selecciono **Siempre**.
-- El sistema operativo concede ubicacion en segundo plano.
-- La app tiene permitido ejecutarse en segundo plano para ubicacion (modo en segundo plano de iOS / servicio en primer plano de Android o permiso especial).
+- El usuario seleccionó **Siempre**.
+- El SO concede ubicación en segundo plano.
+- La app puede ejecutarse en segundo plano para ubicación (modo de fondo de iOS / servicio en primer plano de Android o permiso especial).
 
 Flujo activado por push (futuro):
 
-1. El Gateway envia un push al nodo (push silencioso o datos FCM).
-2. El nodo se activa brevemente y solicita ubicacion al dispositivo.
-3. El nodo reenvia la carga al Gateway.
+1. El Gateway envía un push al nodo (push silencioso o datos FCM).
+2. El nodo se despierta brevemente y solicita la ubicación al dispositivo.
+3. El nodo reenvía la carga al Gateway.
 
 Notas:
 
-- iOS: se requiere permiso Siempre + modo de ubicacion en segundo plano. El push silencioso puede ser limitado; espere fallos intermitentes.
-- Android: la ubicacion en segundo plano puede requerir un servicio en primer plano; de lo contrario, espere denegacion.
+- iOS: se requiere permiso Siempre + modo de ubicación en segundo plano. El push silencioso puede ser limitado; espere fallas intermitentes.
+- Android: la ubicación en segundo plano puede requerir un servicio en primer plano; de lo contrario, espere denegación.
 
-## Integracion de modelo/herramientas
+## Integración con modelo/herramientas
 
-- Superficie de herramientas: la herramienta `nodes` agrega la accion `location_get` (nodo requerido).
+- Superficie de herramientas: la herramienta `nodes` agrega la acción `location_get` (nodo requerido).
 - CLI: `openclaw nodes location get --node <id>`.
-- Directrices del agente: solo llamar cuando el usuario habilito la ubicacion y entiende el alcance.
+- Guías del Agente: llamar solo cuando el usuario habilitó la ubicación y comprende el alcance.
 
 ## Copia de UX (sugerida)
 
-- Desactivado: “El uso compartido de ubicacion esta desactivado.”
-- Mientras se usa: “Solo cuando OpenClaw esta abierto.”
-- Siempre: “Permitir ubicacion en segundo plano. Requiere permiso del sistema.”
-- Precisa: “Usar ubicacion GPS precisa. Desactive para compartir una ubicacion aproximada.”
+- Desactivado: “El uso compartido de ubicación está deshabilitado.”
+- Mientras se usa: “Solo cuando OpenClaw está abierto.”
+- Siempre: “Permitir ubicación en segundo plano. Requiere permiso del sistema.”
+- Precisa: “Usar ubicación GPS precisa. Desactive para compartir ubicación aproximada.”

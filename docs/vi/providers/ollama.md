@@ -1,25 +1,25 @@
 ---
-summary: "Chạy OpenClaw với Ollama (môi trường chạy LLM cục bộ)"
+summary: "Chạy OpenClaw với Ollama (runtime LLM cục bộ)"
 read_when:
   - Bạn muốn chạy OpenClaw với các mô hình cục bộ thông qua Ollama
   - Bạn cần hướng dẫn thiết lập và cấu hình Ollama
 title: "Ollama"
 x-i18n:
   source_path: providers/ollama.md
-  source_hash: 2992dd0a456d19c3
+  source_hash: 61f88017027beb20
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:08:13Z
+  generated_at: 2026-02-08T09:40:01Z
 ---
 
 # Ollama
 
-Ollama là một môi trường chạy LLM cục bộ giúp bạn dễ dàng chạy các mô hình mã nguồn mở trên máy của mình. OpenClaw tích hợp với API tương thích OpenAI của Ollama và có thể **tự động phát hiện các mô hình có khả năng dùng tool** khi bạn chọn tham gia với `OLLAMA_API_KEY` (hoặc auth profile) và không định nghĩa một mục `models.providers.ollama` rõ ràng.
+Ollama là một runtime LLM cục bộ giúp bạn dễ dàng chạy các mô hình mã nguồn mở trên máy của mình. OpenClaw tích hợp với API tương thích OpenAI của Ollama và có thể **tự động khám phá các mô hình có khả năng dùng tool** khi bạn bật `OLLAMA_API_KEY` (hoặc một auth profile) và không định nghĩa mục `models.providers.ollama` một cách tường minh.
 
-## Khoi dong nhanh
+## Khởi động nhanh
 
-1. Cài đặt Ollama: https://ollama.ai
+1. Cài đặt Ollama: [https://ollama.ai](https://ollama.ai)
 
 2. Tải một mô hình:
 
@@ -33,7 +33,7 @@ ollama pull qwen2.5-coder:32b
 ollama pull deepseek-r1:32b
 ```
 
-3. Bật Ollama cho OpenClaw (giá trị bất kỳ đều được; Ollama không yêu cầu khóa thật):
+3. Bật Ollama cho OpenClaw (bất kỳ giá trị nào cũng được; Ollama không yêu cầu khóa thật):
 
 ```bash
 # Set environment variable
@@ -55,18 +55,18 @@ openclaw config set models.providers.ollama.apiKey "ollama-local"
 }
 ```
 
-## Kham pha mo hinh (provider ngầm định)
+## Khám phá mô hình (nhà cung cấp ngầm định)
 
-Khi bạn đặt `OLLAMA_API_KEY` (hoặc auth profile) và **không** định nghĩa `models.providers.ollama`, OpenClaw sẽ khám phá các mô hình từ instance Ollama cục bộ tại `http://127.0.0.1:11434`:
+Khi bạn đặt `OLLAMA_API_KEY` (hoặc một auth profile) và **không** định nghĩa `models.providers.ollama`, OpenClaw sẽ khám phá các mô hình từ instance Ollama cục bộ tại `http://127.0.0.1:11434`:
 
 - Truy vấn `/api/tags` và `/api/show`
 - Chỉ giữ lại các mô hình báo cáo khả năng `tools`
 - Đánh dấu `reasoning` khi mô hình báo cáo `thinking`
 - Đọc `contextWindow` từ `model_info["<arch>.context_length"]` khi có
 - Đặt `maxTokens` bằng 10× cửa sổ ngữ cảnh
-- Đặt tất cả chi phí thành `0`
+- Đặt mọi chi phí thành `0`
 
-Cách này tránh phải khai báo mô hình thủ công trong khi vẫn giữ danh mục phù hợp với khả năng của Ollama.
+Cách này tránh việc phải khai báo mô hình thủ công trong khi vẫn giữ danh mục phù hợp với khả năng của Ollama.
 
 Để xem các mô hình hiện có:
 
@@ -83,9 +83,9 @@ ollama pull mistral
 
 Mô hình mới sẽ được tự động khám phá và sẵn sàng sử dụng.
 
-Nếu bạn đặt `models.providers.ollama` một cách rõ ràng, việc tự động khám phá sẽ bị bỏ qua và bạn phải định nghĩa mô hình thủ công (xem bên dưới).
+Nếu bạn đặt `models.providers.ollama` một cách tường minh, quá trình tự động khám phá sẽ bị bỏ qua và bạn phải định nghĩa mô hình thủ công (xem bên dưới).
 
-## Cau hinh
+## Cấu hình
 
 ### Thiết lập cơ bản (khám phá ngầm định)
 
@@ -95,11 +95,11 @@ Cách đơn giản nhất để bật Ollama là thông qua biến môi trườn
 export OLLAMA_API_KEY="ollama-local"
 ```
 
-### Thiết lập rõ ràng (mô hình thủ công)
+### Thiết lập tường minh (mô hình thủ công)
 
-Sử dụng cấu hình rõ ràng khi:
+Sử dụng cấu hình tường minh khi:
 
-- Ollama chạy trên host/port khác.
+- Ollama chạy trên máy chủ/cổng khác.
 - Bạn muốn ép buộc cửa sổ ngữ cảnh hoặc danh sách mô hình cụ thể.
 - Bạn muốn bao gồm các mô hình không báo cáo hỗ trợ tool.
 
@@ -131,9 +131,9 @@ Sử dụng cấu hình rõ ràng khi:
 
 Nếu `OLLAMA_API_KEY` được đặt, bạn có thể bỏ qua `apiKey` trong mục provider và OpenClaw sẽ tự điền để kiểm tra khả dụng.
 
-### Base URL tùy chỉnh (cấu hình rõ ràng)
+### URL cơ sở tùy chỉnh (cấu hình tường minh)
 
-Nếu Ollama đang chạy trên host hoặc port khác (cấu hình rõ ràng sẽ vô hiệu hóa tự động khám phá, vì vậy hãy định nghĩa mô hình thủ công):
+Nếu Ollama đang chạy trên một máy chủ hoặc cổng khác (cấu hình tường minh sẽ vô hiệu hóa tự động khám phá, vì vậy hãy định nghĩa mô hình thủ công):
 
 ```json5
 {
@@ -165,11 +165,11 @@ Sau khi cấu hình, tất cả các mô hình Ollama của bạn đều khả d
 }
 ```
 
-## Nang cao
+## Nâng cao
 
 ### Mô hình suy luận
 
-OpenClaw đánh dấu mô hình là có khả năng suy luận khi Ollama báo cáo `thinking` trong `/api/show`:
+OpenClaw đánh dấu các mô hình có khả năng suy luận khi Ollama báo cáo `thinking` trong `/api/show`:
 
 ```bash
 ollama pull deepseek-r1:32b
@@ -177,17 +177,17 @@ ollama pull deepseek-r1:32b
 
 ### Chi phí mô hình
 
-Ollama miễn phí và chạy cục bộ, vì vậy tất cả chi phí mô hình đều được đặt là $0.
+Ollama miễn phí và chạy cục bộ, vì vậy mọi chi phí mô hình đều được đặt là $0.
 
-### Cấu hình Streaming
+### Cấu hình streaming
 
-Do một [vấn đề đã biết](https://github.com/badlogic/pi-mono/issues/1205) trong SDK nền tảng với định dạng phản hồi của Ollama, **streaming bị tắt theo mặc định** cho các mô hình Ollama. Điều này ngăn các phản hồi bị hỏng khi sử dụng mô hình có khả năng dùng tool.
+Do một [vấn đề đã biết](https://github.com/badlogic/pi-mono/issues/1205) trong SDK nền tảng với định dạng phản hồi của Ollama, **streaming bị tắt theo mặc định** đối với các mô hình Ollama. Điều này ngăn chặn các phản hồi bị hỏng khi sử dụng các mô hình có khả năng dùng tool.
 
-Khi streaming bị tắt, phản hồi sẽ được gửi một lần (chế độ không streaming), giúp tránh vấn đề khi các delta nội dung/suy luận xen kẽ gây ra đầu ra bị rối.
+Khi streaming bị tắt, phản hồi được trả về một lần (chế độ không streaming), tránh được vấn đề nội dung/suy luận đan xen gây ra đầu ra bị lỗi.
 
-#### Bật lại Streaming (Nâng cao)
+#### Bật lại streaming (Nâng cao)
 
-Nếu bạn muốn bật lại streaming cho Ollama (có thể gây vấn đề với mô hình có khả năng dùng tool):
+Nếu bạn muốn bật lại streaming cho Ollama (có thể gây vấn đề với các mô hình có khả năng dùng tool):
 
 ```json5
 {
@@ -203,9 +203,9 @@ Nếu bạn muốn bật lại streaming cho Ollama (có thể gây vấn đề 
 }
 ```
 
-#### Tắt Streaming cho các Provider khác
+#### Tắt streaming cho các nhà cung cấp khác
 
-Bạn cũng có thể tắt streaming cho bất kỳ provider nào nếu cần:
+Bạn cũng có thể tắt streaming cho bất kỳ nhà cung cấp nào nếu cần:
 
 ```json5
 {
@@ -223,13 +223,13 @@ Bạn cũng có thể tắt streaming cho bất kỳ provider nào nếu cần:
 
 ### Cửa sổ ngữ cảnh
 
-Đối với các mô hình được tự động khám phá, OpenClaw sử dụng cửa sổ ngữ cảnh do Ollama báo cáo khi có, nếu không sẽ mặc định là `8192`. Bạn có thể ghi đè `contextWindow` và `maxTokens` trong cấu hình provider rõ ràng.
+Đối với các mô hình được tự động khám phá, OpenClaw sử dụng cửa sổ ngữ cảnh do Ollama báo cáo khi có, nếu không sẽ mặc định là `8192`. Bạn có thể ghi đè `contextWindow` và `maxTokens` trong cấu hình provider tường minh.
 
-## Xu ly su co
+## Xử lý sự cố
 
 ### Không phát hiện Ollama
 
-Hãy đảm bảo Ollama đang chạy và bạn đã đặt `OLLAMA_API_KEY` (hoặc auth profile), và rằng bạn **không** định nghĩa một mục `models.providers.ollama` rõ ràng:
+Đảm bảo Ollama đang chạy và bạn đã đặt `OLLAMA_API_KEY` (hoặc một auth profile), đồng thời bạn **không** định nghĩa mục `models.providers.ollama` một cách tường minh:
 
 ```bash
 ollama serve
@@ -241,12 +241,12 @@ Và đảm bảo API có thể truy cập được:
 curl http://localhost:11434/api/tags
 ```
 
-### Không có mô hình nào khả dụng
+### Không có mô hình khả dụng
 
-OpenClaw chỉ tự động khám phá các mô hình báo cáo hỗ trợ tool. Nếu mô hình của bạn không được liệt kê, hãy:
+OpenClaw chỉ tự động khám phá các mô hình báo cáo hỗ trợ tool. Nếu mô hình của bạn không xuất hiện, hãy:
 
 - Tải một mô hình có khả năng dùng tool, hoặc
-- Định nghĩa mô hình rõ ràng trong `models.providers.ollama`.
+- Định nghĩa mô hình một cách tường minh trong `models.providers.ollama`.
 
 Để thêm mô hình:
 
@@ -258,7 +258,7 @@ ollama pull llama3.3     # Or another model
 
 ### Kết nối bị từ chối
 
-Kiểm tra rằng Ollama đang chạy trên đúng port:
+Kiểm tra xem Ollama có đang chạy trên đúng cổng hay không:
 
 ```bash
 # Check if Ollama is running
@@ -270,15 +270,15 @@ ollama serve
 
 ### Phản hồi bị hỏng hoặc xuất hiện tên tool trong đầu ra
 
-Nếu bạn thấy các phản hồi bị rối chứa tên tool (như `sessions_send`, `memory_get`) hoặc văn bản bị phân mảnh khi dùng mô hình Ollama, đây là do vấn đề từ SDK phía trên với phản hồi streaming. **Điều này đã được khắc phục theo mặc định** trong phiên bản OpenClaw mới nhất bằng cách tắt streaming cho các mô hình Ollama.
+Nếu bạn thấy các phản hồi bị lỗi chứa tên tool (như `sessions_send`, `memory_get`) hoặc văn bản bị phân mảnh khi sử dụng mô hình Ollama, điều này là do một vấn đề từ SDK thượng nguồn với phản hồi streaming. **Vấn đề này đã được khắc phục theo mặc định** trong phiên bản OpenClaw mới nhất bằng cách tắt streaming cho các mô hình Ollama.
 
 Nếu bạn đã bật streaming thủ công và gặp vấn đề này:
 
-1. Xóa cấu hình `streaming: true` khỏi các mục mô hình Ollama của bạn, hoặc
-2. Đặt rõ ràng `streaming: false` cho các mô hình Ollama (xem [Streaming Configuration](#streaming-configuration))
+1. Gỡ bỏ cấu hình `streaming: true` khỏi các mục mô hình Ollama của bạn, hoặc
+2. Đặt `streaming: false` một cách tường minh cho các mô hình Ollama (xem [Cấu hình streaming](#streaming-configuration))
 
-## Xem them
+## Xem thêm
 
-- [Model Providers](/concepts/model-providers) - Tổng quan về tất cả các provider
+- [Model Providers](/concepts/model-providers) - Tổng quan về tất cả các nhà cung cấp
 - [Model Selection](/concepts/models) - Cách chọn mô hình
 - [Configuration](/gateway/configuration) - Tham chiếu cấu hình đầy đủ

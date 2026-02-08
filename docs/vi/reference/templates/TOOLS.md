@@ -8,23 +8,23 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:08:16Z
+  generated_at: 2026-02-08T09:40:05Z
 ---
 
 # TOOLS.md - Ghi chú cục bộ
 
-Skills xác định _cách_ các công cụ hoạt động. Tệp này dành cho các chi tiết _riêng của bạn_ — những thứ chỉ có trong thiết lập của bạn.
+Skills định nghĩa _cách_ các công cụ hoạt động. Tệp này dành cho các chi tiết _của riêng bạn_ — những thứ chỉ có trong thiết lập của bạn.
 
 ## Nội dung nên có
 
-Những thứ như:
+Ví dụ như:
 
 - Tên và vị trí camera
 - Máy chủ SSH và bí danh
-- Giọng nói ưa thích cho TTS
+- Giọng TTS ưa thích
 - Tên loa/phòng
 - Biệt danh thiết bị
-- Bất kỳ thứ gì phụ thuộc vào môi trường
+- Bất kỳ thứ gì phụ thuộc môi trường
 
 ## Ví dụ
 
@@ -46,8 +46,8 @@ Những thứ như:
 
 ## Vì sao tách riêng?
 
-Skills được chia sẻ. Thiết lập của bạn là của bạn. Tách riêng giúp bạn cập nhật Skills mà không làm mất ghi chú, và chia sẻ Skills mà không làm lộ hạ tầng của bạn.
+Skills được dùng chung. Thiết lập của bạn là của bạn. Tách riêng giúp bạn cập nhật skills mà không mất ghi chú, và chia sẻ skills mà không làm lộ hạ tầng của bạn.
 
 ---
 
-Hãy thêm bất cứ thứ gì giúp bạn làm việc hiệu quả. Đây là bảng ghi chú nhanh của bạn.
+Hãy thêm bất cứ thứ gì giúp bạn làm việc hiệu quả. Đây là tờ “cheat sheet” của bạn.

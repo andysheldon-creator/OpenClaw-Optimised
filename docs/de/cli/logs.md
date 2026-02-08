@@ -1,8 +1,8 @@
 ---
-summary: "CLI-Referenz fuer `openclaw logs` (Gateway-Logs ueber RPC verfolgen)"
+summary: "CLI-Referenz für `openclaw logs` (Gateway-Logs per RPC verfolgen)"
 read_when:
-  - Sie muessen Gateway-Logs remote verfolgen (ohne SSH)
-  - Sie moechten JSON-Logzeilen fuer Tooling
+  - Sie müssen Gateway-Logs remote verfolgen (ohne SSH)
+  - Sie möchten JSON-Logzeilen für Tools
 title: "Logs"
 x-i18n:
   source_path: cli/logs.md
@@ -10,16 +10,16 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:42Z
+  generated_at: 2026-02-08T09:35:39Z
 ---
 
 # `openclaw logs`
 
-Gateway-Dateilogs ueber RPC verfolgen (funktioniert im Remote-Modus).
+Gateway-Datei-Logs per RPC verfolgen (funktioniert im Remote-Modus).
 
 Verwandt:
 
-- Uebersicht zur Protokollierung: [Logging](/logging)
+- Logging-Überblick: [Logging](/logging)
 
 ## Beispiele
 

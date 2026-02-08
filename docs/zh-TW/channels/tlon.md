@@ -1,28 +1,28 @@
 ---
-summary: 「Tlon/Urbit 的支援狀態、功能與設定」
+summary: "Tlon／Urbit 的支援狀態、功能與設定"
 read_when:
-  - 「進行 Tlon/Urbit 頻道功能開發時」
-title: 「Tlon」
+  - 進行 Tlon／Urbit 頻道功能開發時
+title: "Tlon"
 x-i18n:
   source_path: channels/tlon.md
-  source_hash: 19d7ffe23e82239f
+  source_hash: 85fd29cda05b4563
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:52:17Z
+  generated_at: 2026-02-08T09:27:05Z
 ---
 
-# Tlon（外掛程式）
+# Tlon（外掛）
 
-Tlon 是建立在 Urbit 之上的去中心化即時通。OpenClaw 會連線到你的 Urbit 船艦，並可回應私訊與群組聊天訊息。群組回覆預設需要 @ 提及，且可透過允許清單進一步限制。
+Tlon 是建立於 Urbit 之上的去中心化即時通訊工具。OpenClaw 會連線到你的 Urbit 船艦，並可回應私訊與群組聊天訊息。群組回覆預設需要 @ 提及，且可透過允許清單進一步限制。
 
-狀態：以外掛程式方式支援。支援私訊、群組提及、串回覆，以及僅文字的媒體後備（在說明文字後附加 URL）。不支援反應、投票與原生媒體上傳。
+狀態：透過外掛支援。支援私訊、群組提及、串內回覆，以及僅文字的媒體備援（將 URL 附加至說明文字）。不支援表情回應、投票，以及原生媒體上傳。
 
-## 需要外掛程式
+## 需要外掛
 
-Tlon 以外掛程式提供，未隨核心安裝一起包含。
+Tlon 以外掛形式提供，未隨核心安裝一併提供。
 
-透過 CLI 安裝（npm registry）：
+透過 CLI 安裝（npm 登錄）：
 
 ```bash
 openclaw plugins install @openclaw/tlon
@@ -34,15 +34,15 @@ openclaw plugins install @openclaw/tlon
 openclaw plugins install ./extensions/tlon
 ```
 
-詳情：[Plugins](/plugin)
+詳細資訊：[Plugins](/tools/plugin)
 
 ## 設定
 
-1. 安裝 Tlon 外掛程式。
-2. 準備你的船艦 URL 與登入碼。
+1. 安裝 Tlon 外掛。
+2. 蒐集你的船艦 URL 與登入碼。
 3. 設定 `channels.tlon`。
 4. 重新啟動 Gateway 閘道器。
-5. 傳送私訊給機器人，或在群組頻道中提及它。
+5. 對機器人傳送私訊，或在群組頻道中提及它。
 
 最小設定（單一帳號）：
 
@@ -122,9 +122,9 @@ openclaw plugins install ./extensions/tlon
 }
 ```
 
-## 傳遞目標（CLI/cron）
+## 傳送目標（CLI／cron）
 
-搭配 `openclaw message send` 或 cron 傳遞使用：
+搭配 `openclaw message send` 或 cron 傳送使用：
 
 - 私訊：`~sampel-palnet` 或 `dm/~sampel-palnet`
 - 群組：`chat/~host-ship/channel` 或 `group:~host-ship/channel`
@@ -132,5 +132,5 @@ openclaw plugins install ./extensions/tlon
 ## 注意事項
 
 - 群組回覆需要提及（例如 `~your-bot-ship`）才會回應。
-- 串回覆：若傳入訊息位於串中，OpenClaw 會在該串中回覆。
-- 媒體：`sendMedia` 會退回為文字 + URL（不進行原生上傳）。
+- 串內回覆：若傳入訊息位於討論串中，OpenClaw 會在串內回覆。
+- 媒體：`sendMedia` 會退回為文字＋URL（不支援原生上傳）。

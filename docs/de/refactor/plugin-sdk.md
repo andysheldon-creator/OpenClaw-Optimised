@@ -1,33 +1,33 @@
 ---
-summary: "Plan: ein sauberes Plugin-SDK + Runtime für alle Messaging-Connectoren"
+summary: „Plan: ein sauberes Plugin-SDK + Runtime für alle Messaging-Connectoren“
 read_when:
   - Definieren oder Refaktorieren der Plugin-Architektur
-  - Migrieren von Kanal-Connectoren auf das Plugin-SDK/die Runtime
-title: "Plugin-SDK-Refaktor"
+  - Migrieren von Kanal-Connectoren zum Plugin-SDK/Runtime
+title: „Plugin-SDK-Refaktor“
 x-i18n:
   source_path: refactor/plugin-sdk.md
-  source_hash: d1964e2e47a19ee1
+  source_hash: 1f3519f43632fcac
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:24Z
+  generated_at: 2026-02-08T09:37:15Z
 ---
 
-# Plugin-SDK + Runtime-Refaktor-Plan
+# Plugin-SDK + Runtime Refaktor-Plan
 
-Ziel: Jeder Messaging-Connector ist ein Plugin (gebündelt oder extern), das eine stabile API verwendet.
-Kein Plugin importiert direkt aus `src/**`. Alle Abhängigkeiten laufen über das SDK oder die Runtime.
+Ziel: Jeder Messaging-Connector ist ein Plugin (gebündelt oder extern) und verwendet eine stabile API.
+Kein Plugin importiert `src/**` direkt. Alle Abhängigkeiten laufen über das SDK oder die Runtime.
 
 ## Warum jetzt
 
-- Aktuelle Connectoren mischen Muster: direkte Core-Imports, reine Dist-Bridges und benutzerdefinierte Helper.
+- Aktuelle Connectoren mischen Muster: direkte Core-Imports, nur-Distribution-Bridges und benutzerdefinierte Helper.
 - Das macht Upgrades fragil und verhindert eine saubere externe Plugin-Oberfläche.
 
 ## Zielarchitektur (zwei Ebenen)
 
 ### 1) Plugin-SDK (Compile-Time, stabil, veröffentlichbar)
 
-Umfang: Typen, Helper und Konfigurations-Utilities. Kein Runtime-State, keine Side Effects.
+Umfang: Typen, Helper und Konfigurations-Utilities. Kein Runtime-Zustand, keine Seiteneffekte.
 
 Inhalte (Beispiele):
 
@@ -39,7 +39,7 @@ Inhalte (Beispiele):
 - Tool-Parameter-Helper: `createActionGate`, `readStringParam`, `readNumberParam`, `readReactionParams`, `jsonResult`.
 - Docs-Link-Helper: `formatDocsLink`.
 
-Bereitstellung:
+Auslieferung:
 
 - Veröffentlichung als `openclaw/plugin-sdk` (oder Export aus dem Core unter `openclaw/plugin-sdk`).
 - Semver mit expliziten Stabilitätsgarantien.
@@ -154,53 +154,53 @@ export type PluginRuntime = {
 Hinweise:
 
 - Die Runtime ist der einzige Weg, auf Core-Verhalten zuzugreifen.
-- Das SDK ist bewusst klein und stabil.
-- Jede Runtime-Methode bildet eine bestehende Core-Implementierung ab (keine Duplikation).
+- Das SDK ist bewusst klein und stabil gehalten.
+- Jede Runtime-Methode bildet eine bestehende Core-Implementierung ab (keine Duplizierung).
 
 ## Migrationsplan (phasenweise, sicher)
 
 ### Phase 0: Gerüst
 
 - Einführung von `openclaw/plugin-sdk`.
-- Hinzufügen von `api.runtime` zu `OpenClawPluginApi` mit der obigen Oberfläche.
+- Hinzufügen von `api.runtime` zu `OpenClawPluginApi` mit der oben genannten Oberfläche.
 - Beibehaltung bestehender Imports während eines Übergangsfensters (Deprecation-Warnungen).
 
 ### Phase 1: Bridge-Bereinigung (geringes Risiko)
 
-- Ersetzen von `core-bridge.ts` pro Erweiterung durch `api.runtime`.
-- Zuerst BlueBubbles, Zalo, Zalo Personal migrieren (bereits nah dran).
+- Ersetzen der per-Extension `core-bridge.ts` durch `api.runtime`.
+- Zuerst Migration von BlueBubbles, Zalo, Zalo Personal (bereits nahe dran).
 - Entfernen duplizierten Bridge-Codes.
 
 ### Phase 2: Plugins mit leichten Direkt-Imports
 
-- Matrix auf SDK + Runtime migrieren.
-- Onboarding-, Verzeichnis- und Gruppen-Erwähnungslogik validieren.
+- Migration von Matrix zu SDK + Runtime.
+- Validierung von Onboarding-, Verzeichnis- und Gruppen-Erwähnungslogik.
 
-### Phase 3: Plugins mit umfangreichen Direkt-Imports
+### Phase 3: Plugins mit vielen Direkt-Imports
 
-- MS Teams migrieren (größter Satz an Runtime-Helpern).
-- Sicherstellen, dass Antwort-/Tippen-Semantik dem aktuellen Verhalten entspricht.
+- Migration von MS Teams (größter Satz an Runtime-Helpern).
+- Sicherstellen, dass Antwort-/Typing-Semantik dem aktuellen Verhalten entspricht.
 
 ### Phase 4: iMessage-Pluginisierung
 
-- iMessage nach `extensions/imessage` verschieben.
-- Direkte Core-Aufrufe durch `api.runtime` ersetzen.
+- Verschieben von iMessage nach `extensions/imessage`.
+- Ersetzen direkter Core-Aufrufe durch `api.runtime`.
 - Konfigurationsschlüssel, CLI-Verhalten und Dokumentation unverändert beibehalten.
 
 ### Phase 5: Durchsetzung
 
-- Lint-Regel / CI-Check hinzufügen: keine `extensions/**`-Imports aus `src/**`.
-- Kompatibilitätsprüfungen für Plugin-SDK/Version hinzufügen (Runtime + SDK-Semver).
+- Hinzufügen einer Lint-Regel / CI-Prüfung: keine `extensions/**`-Imports aus `src/**`.
+- Hinzufügen von Plugin-SDK/Versions-Kompatibilitätsprüfungen (Runtime + SDK Semver).
 
 ## Kompatibilität und Versionierung
 
 - SDK: Semver, veröffentlicht, dokumentierte Änderungen.
-- Runtime: Versioniert pro Core-Release. `api.runtime.version` hinzufügen.
-- Plugins deklarieren einen erforderlichen Runtime-Bereich (z. B. `openclawRuntime: ">=2026.2.0"`).
+- Runtime: Versioniert pro Core-Release. Hinzufügen von `api.runtime.version`.
+- Plugins deklarieren einen erforderlichen Runtime-Bereich (z. B. `openclawRuntime: ">=2026.2.0"`).
 
 ## Teststrategie
 
-- Unit-Tests auf Adapter-Ebene (Runtime-Funktionen mit realer Core-Implementierung ausgeführt).
+- Adapter-Level-Unit-Tests (Runtime-Funktionen mit realer Core-Implementierung ausgeführt).
 - Golden-Tests pro Plugin: Sicherstellen, dass es keine Verhaltensabweichungen gibt (Routing, Pairing, Allowlist, Mention-Gating).
 - Ein einzelnes End-to-End-Plugin-Beispiel in der CI (Installieren + Ausführen + Smoke-Test).
 
@@ -209,13 +209,13 @@ Hinweise:
 - Wo sollen SDK-Typen gehostet werden: separates Paket oder Core-Export?
 - Verteilung der Runtime-Typen: im SDK (nur Typen) oder im Core?
 - Wie werden Docs-Links für gebündelte vs. externe Plugins bereitgestellt?
-- Erlauben wir während der Übergangsphase begrenzte direkte Core-Imports für In-Repo-Plugins?
+- Erlauben wir während des Übergangs begrenzte direkte Core-Imports für In-Repo-Plugins?
 
 ## Erfolgskriterien
 
 - Alle Kanal-Connectoren sind Plugins, die SDK + Runtime verwenden.
 - Keine `extensions/**`-Imports aus `src/**`.
-- Neue Connector-Templates hängen nur von SDK + Runtime ab.
+- Neue Connector-Vorlagen hängen ausschließlich von SDK + Runtime ab.
 - Externe Plugins können ohne Zugriff auf den Core-Quellcode entwickelt und aktualisiert werden.
 
-Zugehörige Dokumente: [Plugins](/plugin), [Channels](/channels/index), [Configuration](/gateway/configuration).
+Zugehörige Dokumente: [Plugins](/tools/plugin), [Channels](/channels/index), [Configuration](/gateway/configuration).

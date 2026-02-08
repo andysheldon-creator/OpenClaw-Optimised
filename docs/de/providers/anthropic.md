@@ -1,16 +1,16 @@
 ---
-summary: "Anthropic Claude über API-Schlüssel oder Setup-Token in OpenClaw verwenden"
+summary: „Anthropic Claude über API-Schlüssel oder Setup-Token in OpenClaw verwenden“
 read_when:
   - Sie möchten Anthropic-Modelle in OpenClaw verwenden
   - Sie möchten ein Setup-Token anstelle von API-Schlüsseln verwenden
-title: "Anthropic"
+title: „Anthropic“
 x-i18n:
   source_path: providers/anthropic.md
-  source_hash: 5e50b3bca35be37e
+  source_hash: a0e91ae9fc5b67ba
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:14Z
+  generated_at: 2026-02-08T09:37:08Z
 ---
 
 # Anthropic (Claude)
@@ -18,9 +18,9 @@ x-i18n:
 Anthropic entwickelt die **Claude**-Modellfamilie und stellt den Zugriff über eine API bereit.
 In OpenClaw können Sie sich mit einem API-Schlüssel oder einem **Setup-Token** authentifizieren.
 
-## Option A: Anthropic-API-Schlüssel
+## Option A: Anthropic API-Schlüssel
 
-**Am besten geeignet für:** standardmäßigen API-Zugriff und nutzungsbasierte Abrechnung.
+**Am besten geeignet für:** Standard-API-Zugriff und nutzungsbasierte Abrechnung.
 Erstellen Sie Ihren API-Schlüssel in der Anthropic Console.
 
 ### CLI-Einrichtung
@@ -42,19 +42,19 @@ openclaw onboard --anthropic-api-key "$ANTHROPIC_API_KEY"
 }
 ```
 
-## Prompt-Caching (Anthropic-API)
+## Prompt-Caching (Anthropic API)
 
-OpenClaw unterstützt die Prompt-Caching-Funktion von Anthropic. Dies ist **nur für die API** verfügbar; die Abonnement-Authentifizierung berücksichtigt Cache-Einstellungen nicht.
+OpenClaw unterstützt die Prompt-Caching-Funktion von Anthropic. Dies ist **nur für die API** verfügbar; eine Abonnement-Authentifizierung berücksichtigt Cache-Einstellungen nicht.
 
 ### Konfiguration
 
 Verwenden Sie den Parameter `cacheRetention` in Ihrer Modellkonfiguration:
 
-| Wert    | Cache-Dauer  | Beschreibung                                 |
-| ------- | ------------ | -------------------------------------------- |
-| `none`  | Kein Caching | Prompt-Caching deaktivieren                  |
-| `short` | 5 Minuten    | Standard für API-Schlüssel-Authentifizierung |
-| `long`  | 1 Stunde     | Erweiterter Cache (erfordert Beta-Flag)      |
+| Wert    | Cache-Dauer  | Beschreibung                            |
+| ------- | ------------ | --------------------------------------- |
+| `none`  | Kein Caching | Prompt-Caching deaktivieren             |
+| `short` | 5 Minuten    | Standard für API-Schlüssel-Auth         |
+| `long`  | 1 Stunde     | Erweiterter Cache (erfordert Beta-Flag) |
 
 ```json5
 {
@@ -72,7 +72,7 @@ Verwenden Sie den Parameter `cacheRetention` in Ihrer Modellkonfiguration:
 
 ### Standardwerte
 
-Bei Verwendung der Anthropic-API-Schlüssel-Authentifizierung wendet OpenClaw automatisch `cacheRetention: "short"` (5-Minuten-Cache) auf alle Anthropic-Modelle an. Sie können dies überschreiben, indem Sie `cacheRetention` explizit in Ihrer Konfiguration setzen.
+Bei Verwendung der Anthropic-API-Schlüssel-Authentifizierung wendet OpenClaw automatisch `cacheRetention: "short"` (5-Minuten-Cache) für alle Anthropic-Modelle an. Sie können dies überschreiben, indem Sie `cacheRetention` explizit in Ihrer Konfiguration setzen.
 
 ### Legacy-Parameter
 
@@ -83,9 +83,9 @@ Der ältere Parameter `cacheControlTtl` wird aus Gründen der Abwärtskompatibil
 
 Wir empfehlen die Migration auf den neuen Parameter `cacheRetention`.
 
-OpenClaw enthält das Beta-Flag `extended-cache-ttl-2025-04-11` für Anthropic-API-Anfragen; behalten Sie es bei, wenn Sie Provider-Header überschreiben (siehe [/gateway/configuration](/gateway/configuration)).
+OpenClaw enthält das `extended-cache-ttl-2025-04-11`-Beta-Flag für Anthropic-API-Anfragen; behalten Sie es bei, wenn Sie Provider-Header überschreiben (siehe [/gateway/configuration](/gateway/configuration)).
 
-## Option B: Claude-Setup-Token
+## Option B: Claude Setup-Token
 
 **Am besten geeignet für:** die Nutzung Ihres Claude-Abonnements.
 
@@ -97,26 +97,26 @@ Setup-Tokens werden von der **Claude Code CLI** erstellt, nicht von der Anthropi
 claude setup-token
 ```
 
-Fügen Sie den Token in OpenClaw ein (Assistent: **Anthropic-Token (Setup-Token einfügen)**), oder führen Sie es auf dem Gateway-Host aus:
+Fügen Sie das Token in OpenClaw ein (Assistent: **Anthropic token (setup-token einfügen)**), oder führen Sie es auf dem Gateway-Host aus:
 
 ```bash
 openclaw models auth setup-token --provider anthropic
 ```
 
-Wenn Sie den Token auf einem anderen Rechner erzeugt haben, fügen Sie ihn ein:
+Wenn Sie das Token auf einem anderen Rechner generiert haben, fügen Sie es ein:
 
 ```bash
 openclaw models auth paste-token --provider anthropic
 ```
 
-### CLI-Einrichtung
+### CLI-Einrichtung (Setup-Token)
 
 ```bash
 # Paste a setup-token during onboarding
 openclaw onboard --auth-choice setup-token
 ```
 
-### Konfigurationsausschnitt
+### Konfigurationsausschnitt (Setup-Token)
 
 ```json5
 {
@@ -126,7 +126,7 @@ openclaw onboard --auth-choice setup-token
 
 ## Hinweise
 
-- Erzeugen Sie das Setup-Token mit `claude setup-token` und fügen Sie es ein, oder führen Sie `openclaw models auth setup-token` auf dem Gateway-Host aus.
+- Erstellen Sie das Setup-Token mit `claude setup-token` und fügen Sie es ein, oder führen Sie `openclaw models auth setup-token` auf dem Gateway-Host aus.
 - Wenn bei einem Claude-Abonnement „OAuth token refresh failed …“ angezeigt wird, authentifizieren Sie sich erneut mit einem Setup-Token. Siehe [/gateway/troubleshooting#oauth-token-refresh-failed-anthropic-claude-subscription](/gateway/troubleshooting#oauth-token-refresh-failed-anthropic-claude-subscription).
 - Authentifizierungsdetails und Wiederverwendungsregeln finden Sie unter [/concepts/oauth](/concepts/oauth).
 
@@ -134,21 +134,21 @@ openclaw onboard --auth-choice setup-token
 
 **401-Fehler / Token plötzlich ungültig**
 
-- Die Claude-Abonnement-Authentifizierung kann ablaufen oder widerrufen werden. Führen Sie `claude setup-token` erneut aus
+- Die Authentifizierung für das Claude-Abonnement kann ablaufen oder widerrufen werden. Führen Sie `claude setup-token` erneut aus
   und fügen Sie es auf dem **Gateway-Host** ein.
-- Wenn die Claude-CLI-Anmeldung auf einem anderen Rechner liegt, verwenden Sie
+- Wenn die Claude-CLI-Anmeldung auf einem anderen Rechner erfolgt ist, verwenden Sie
   `openclaw models auth paste-token --provider anthropic` auf dem Gateway-Host.
 
 **Kein API-Schlüssel für Anbieter „anthropic“ gefunden**
 
-- Die Authentifizierung ist **pro Agent**. Neue Agenten übernehmen die Schlüssel des Hauptagenten nicht.
-- Führen Sie die Einführung für diesen Agenten erneut aus oder fügen Sie ein Setup-Token / einen API-Schlüssel auf dem
-  Gateway-Host ein und verifizieren Sie anschließend mit `openclaw models status`.
+- Die Authentifizierung erfolgt **pro Agent**. Neue Agenten übernehmen die Schlüssel des Hauptagenten nicht.
+- Führen Sie das Onboarding für diesen Agenten erneut aus oder fügen Sie ein Setup-Token / einen API-Schlüssel auf dem
+  Gateway-Host ein und prüfen Sie anschließend mit `openclaw models status`.
 
 **Keine Anmeldedaten für Profil `anthropic:default` gefunden**
 
 - Führen Sie `openclaw models status` aus, um zu sehen, welches Authentifizierungsprofil aktiv ist.
-- Führen Sie die Einführung erneut aus oder fügen Sie ein Setup-Token / einen API-Schlüssel für dieses Profil ein.
+- Führen Sie das Onboarding erneut aus oder fügen Sie ein Setup-Token / einen API-Schlüssel für dieses Profil ein.
 
 **Kein verfügbares Authentifizierungsprofil (alle in Cooldown/nicht verfügbar)**
 

@@ -8,42 +8,42 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:08:35Z
+  generated_at: 2026-02-08T09:40:26Z
 ---
 
 # Xác minh hình thức (Mô hình bảo mật)
 
 Trang này theo dõi các **mô hình bảo mật hình thức** của OpenClaw (hiện tại là TLA+/TLC; sẽ bổ sung khi cần).
 
-> Lưu ý: một số liên kết cũ có thể tham chiếu đến tên dự án trước đây.
+> Lưu ý: một số liên kết cũ có thể tham chiếu tên dự án trước đây.
 
 **Mục tiêu (north star):** cung cấp một lập luận được kiểm chứng bằng máy rằng OpenClaw thực thi
-chính sách bảo mật dự định của mình (phân quyền, cô lập phiên, kiểm soát công cụ, và
+chính sách bảo mật dự định của mình (ủy quyền, cô lập phiên, kiểm soát công cụ, và
 an toàn trước cấu hình sai), dưới các giả định được nêu rõ.
 
-**Hiện tại đây là gì:** một **bộ hồi quy bảo mật** có thể thực thi, định hướng theo kẻ tấn công:
+**Hiện tại, đây là:** một **bộ hồi quy bảo mật** có thể thực thi, theo góc nhìn của kẻ tấn công:
 
-- Mỗi khẳng định đều có kiểm tra mô hình có thể chạy trên một không gian trạng thái hữu hạn.
-- Nhiều khẳng định có **mô hình âm** đi kèm, tạo ra vết phản ví dụ cho một lớp lỗi thực tế.
+- Mỗi khẳng định đều có một lần kiểm tra mô hình có thể chạy trên không gian trạng thái hữu hạn.
+- Nhiều khẳng định có **mô hình âm** đi kèm, tạo ra vết truy ngược phản ví dụ cho một lớp lỗi thực tế.
 
 **Chưa phải (hiện tại):** một chứng minh rằng “OpenClaw an toàn trong mọi khía cạnh” hoặc rằng toàn bộ triển khai TypeScript là đúng.
 
-## Nơi lưu các mô hình
+## Nơi lưu trữ các mô hình
 
 Các mô hình được duy trì trong một repo riêng: [vignesh07/openclaw-formal-models](https://github.com/vignesh07/openclaw-formal-models).
 
 ## Các lưu ý quan trọng
 
-- Đây là **các mô hình**, không phải toàn bộ triển khai TypeScript. Có thể có độ lệch giữa mô hình và mã.
+- Đây là **mô hình**, không phải toàn bộ triển khai TypeScript. Có thể xảy ra độ lệch giữa mô hình và mã.
 - Kết quả bị giới hạn bởi không gian trạng thái mà TLC khám phá; “xanh” không ngụ ý an toàn vượt ra ngoài các giả định và giới hạn đã mô hình hóa.
 - Một số khẳng định dựa trên các giả định môi trường tường minh (ví dụ: triển khai đúng, đầu vào cấu hình đúng).
 
 ## Tái tạo kết quả
 
-Hiện tại, kết quả được tái tạo bằng cách clone repo mô hình về máy cục bộ và chạy TLC (xem bên dưới). Một phiên bản tương lai có thể cung cấp:
+Hiện nay, kết quả được tái tạo bằng cách clone repo mô hình về máy cục bộ và chạy TLC (xem bên dưới). Một phiên bản trong tương lai có thể cung cấp:
 
-- Các mô hình chạy trên CI với hiện vật công khai (vết phản ví dụ, nhật ký chạy)
-- Một quy trình “chạy mô hình này” được lưu trữ cho các kiểm tra nhỏ, có giới hạn
+- Các mô hình chạy qua CI với artifact công khai (vết phản ví dụ, log chạy)
+- Quy trình “chạy mô hình này” được lưu trữ cho các kiểm tra nhỏ, có giới hạn
 
 Bắt đầu:
 
@@ -59,7 +59,7 @@ make <target>
 
 ### Phơi bày Gateway và cấu hình sai gateway mở
 
-**Khẳng định:** bind vượt quá loopback mà không có xác thực có thể khiến việc xâm nhập từ xa trở nên khả thi / tăng mức phơi bày; token/mật khẩu chặn kẻ tấn công chưa xác thực (theo các giả định của mô hình).
+**Khẳng định:** bind vượt quá loopback mà không có xác thực có thể cho phép xâm nhập từ xa / làm tăng bề mặt phơi bày; token/mật khẩu chặn kẻ tấn công không được ủy quyền (theo các giả định của mô hình).
 
 - Chạy xanh:
   - `make gateway-exposure-v2`
@@ -71,7 +71,7 @@ Xem thêm: `docs/gateway-exposure-matrix.md` trong repo mô hình.
 
 ### Pipeline Nodes.run (năng lực rủi ro cao nhất)
 
-**Khẳng định:** `nodes.run` yêu cầu (a) danh sách cho phép lệnh của node cùng các lệnh đã khai báo và (b) phê duyệt trực tiếp khi được cấu hình; các phê duyệt được gắn token để ngăn phát lại (trong mô hình).
+**Khẳng định:** `nodes.run` yêu cầu (a) danh sách cho phép lệnh node cùng với các lệnh đã khai báo và (b) phê duyệt trực tiếp khi được cấu hình; các phê duyệt được token hóa để ngăn phát lại (trong mô hình).
 
 - Chạy xanh:
   - `make nodes-pipeline`
@@ -80,7 +80,7 @@ Xem thêm: `docs/gateway-exposure-matrix.md` trong repo mô hình.
   - `make nodes-pipeline-negative`
   - `make approvals-token-negative`
 
-### Kho ghép cặp (kiểm soát Tin nhan truc tiep)
+### Kho ghép cặp (DM gating)
 
 **Khẳng định:** các yêu cầu ghép cặp tuân thủ TTL và giới hạn số yêu cầu đang chờ.
 
@@ -91,9 +91,9 @@ Xem thêm: `docs/gateway-exposure-matrix.md` trong repo mô hình.
   - `make pairing-negative`
   - `make pairing-cap-negative`
 
-### Kiểm soát ingress (đề cập + bỏ qua lệnh điều khiển)
+### Kiểm soát ingress (mentions + né kiểm soát bằng lệnh điều khiển)
 
-**Khẳng định:** trong ngữ cảnh nhóm yêu cầu đề cập, một “lệnh điều khiển” trái phép không thể bỏ qua kiểm soát đề cập.
+**Khẳng định:** trong bối cảnh nhóm yêu cầu mention, một “lệnh điều khiển” không được ủy quyền không thể né kiểm soát mention.
 
 - Xanh:
   - `make ingress-gating`
@@ -102,25 +102,25 @@ Xem thêm: `docs/gateway-exposure-matrix.md` trong repo mô hình.
 
 ### Định tuyến / cô lập khóa phiên
 
-**Khẳng định:** Tin nhan truc tiep từ các bên khác nhau không bị gộp vào cùng một phiên trừ khi được liên kết/cấu hình một cách tường minh.
+**Khẳng định:** DM từ các peer khác nhau không bị gộp vào cùng một phiên trừ khi được liên kết/cấu hình một cách tường minh.
 
 - Xanh:
   - `make routing-isolation`
 - Đỏ (kỳ vọng):
   - `make routing-isolation-negative`
 
-## v1++: các mô hình có giới hạn bổ sung (đồng thời, thử lại, tính đúng đắn của vết)
+## v1++: các mô hình có giới hạn bổ sung (đồng thời, retry, tính đúng đắn của trace)
 
-Đây là các mô hình tiếp theo nhằm tăng độ trung thực quanh các chế độ lỗi thực tế (cập nhật không nguyên tử, thử lại, và fan-out thông điệp).
+Đây là các mô hình tiếp nối nhằm tăng độ trung thực quanh các chế độ lỗi ngoài đời thực (cập nhật không nguyên tử, retry, và fan-out thông điệp).
 
-### Đồng thời / tính bất biến (idempotency) của kho ghép cặp
+### Đồng thời / tính bất biến idempotent của kho ghép cặp
 
-**Khẳng định:** một kho ghép cặp nên thực thi `MaxPending` và tính bất biến ngay cả dưới các xen kẽ (tức là “kiểm tra-rồi-ghi” phải là nguyên tử / có khóa; làm mới không nên tạo bản sao).
+**Khẳng định:** kho ghép cặp phải thực thi `MaxPending` và tính idempotent ngay cả dưới các xen kẽ (tức là “kiểm tra rồi ghi” phải nguyên tử / có khóa; làm mới không được tạo bản sao).
 
 Ý nghĩa:
 
-- Dưới các yêu cầu đồng thời, bạn không thể vượt quá `MaxPending` cho một kênh.
-- Các yêu cầu/làm mới lặp lại cho cùng `(channel, sender)` không nên tạo các hàng đang chờ trùng lặp.
+- Dưới các yêu cầu đồng thời, không thể vượt quá `MaxPending` cho một kênh.
+- Các yêu cầu/làm mới lặp lại cho cùng `(channel, sender)` không được tạo ra các dòng pending đang hoạt động trùng lặp.
 
 - Chạy xanh:
   - `make pairing-race` (kiểm tra giới hạn nguyên tử/có khóa)
@@ -128,20 +128,20 @@ Xem thêm: `docs/gateway-exposure-matrix.md` trong repo mô hình.
   - `make pairing-refresh`
   - `make pairing-refresh-race`
 - Đỏ (kỳ vọng):
-  - `make pairing-race-negative` (đua giới hạn begin/commit không nguyên tử)
+  - `make pairing-race-negative` (race giới hạn begin/commit không nguyên tử)
   - `make pairing-idempotency-negative`
   - `make pairing-refresh-negative`
   - `make pairing-refresh-race-negative`
 
-### Tương quan vết ingress / tính bất biến
+### Tương quan trace ingress / tính idempotent
 
-**Khẳng định:** quá trình nhập nên bảo toàn tương quan vết qua fan-out và là bất biến dưới các lần thử lại của nhà cung cấp.
+**Khẳng định:** quá trình ingestion phải bảo toàn tương quan trace qua fan-out và là idempotent trước các retry của nhà cung cấp.
 
 Ý nghĩa:
 
-- Khi một sự kiện bên ngoài trở thành nhiều thông điệp nội bộ, mọi phần đều giữ cùng một danh tính vết/sự kiện.
-- Thử lại không dẫn đến xử lý trùng lặp.
-- Nếu thiếu ID sự kiện của nhà cung cấp, khử trùng lặp sẽ quay về một khóa an toàn (ví dụ: ID vết) để tránh loại bỏ các sự kiện khác nhau.
+- Khi một sự kiện bên ngoài trở thành nhiều thông điệp nội bộ, mọi phần đều giữ cùng danh tính trace/sự kiện.
+- Retry không dẫn đến xử lý trùng lặp.
+- Nếu thiếu ID sự kiện từ nhà cung cấp, khử trùng lặp sẽ quay về khóa an toàn (ví dụ: trace ID) để tránh loại bỏ các sự kiện khác nhau.
 
 - Xanh:
   - `make ingress-trace`
@@ -156,12 +156,12 @@ Xem thêm: `docs/gateway-exposure-matrix.md` trong repo mô hình.
 
 ### Định tuyến: ưu tiên dmScope + identityLinks
 
-**Khẳng định:** định tuyến phải giữ các phiên Tin nhan truc tiep được cô lập theo mặc định, và chỉ gộp phiên khi được cấu hình một cách tường minh (ưu tiên kênh + liên kết danh tính).
+**Khẳng định:** định tuyến phải giữ các phiên DM được cô lập theo mặc định, và chỉ gộp phiên khi được cấu hình tường minh (ưu tiên theo kênh + liên kết danh tính).
 
 Ý nghĩa:
 
-- Các ghi đè dmScope theo kênh phải thắng các mặc định toàn cục.
-- identityLinks chỉ nên gộp trong các nhóm được liên kết tường minh, không gộp giữa các bên không liên quan.
+- Các override dmScope theo kênh phải thắng các mặc định toàn cục.
+- identityLinks chỉ nên gộp trong các nhóm được liên kết tường minh, không gộp giữa các peer không liên quan.
 
 - Xanh:
   - `make routing-precedence`

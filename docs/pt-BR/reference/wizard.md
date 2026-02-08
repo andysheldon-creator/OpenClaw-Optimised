@@ -1,123 +1,124 @@
 ---
-summary: "Referência completa do assistente de integracao inicial da CLI: todas as etapas, flags e campos de configuracao"
+summary: "Referência completa do assistente de onboarding da CLI: cada etapa, flag e campo de configuração"
 read_when:
   - Consultar uma etapa ou flag específica do assistente
-  - Automatizar a integracao inicial com modo nao interativo
+  - Automatizar o onboarding com o modo não interativo
   - Depurar o comportamento do assistente
-title: "Referencia do Assistente de Integracao Inicial"
-sidebarTitle: "Referencia do Assistente"
+title: "Referência do Assistente de Onboarding"
+sidebarTitle: "Referência do Assistente"
 x-i18n:
   source_path: reference/wizard.md
-  source_hash: 1dd46ad12c53668c
+  source_hash: 05fac3786016d906
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:57:38Z
+  generated_at: 2026-02-08T09:32:09Z
 ---
 
-# Referencia do Assistente de Integracao Inicial
+# Referência do Assistente de Onboarding
 
 Esta é a referência completa do assistente de CLI `openclaw onboard`.
-Para uma visão geral de alto nível, consulte [Onboarding Wizard](/start/wizard).
+Para uma visão geral de alto nível, veja [Onboarding Wizard](/start/wizard).
 
 ## Detalhes do fluxo (modo local)
 
 <Steps>
-  <Step title="Deteccao de configuracao existente">
-    - Se `~/.openclaw/openclaw.json` existir, escolha **Manter / Modificar / Resetar**.
-    - Executar o assistente novamente **nao** apaga nada, a menos que voce escolha explicitamente **Resetar**
+  <Step title="Detecção de configuração existente">
+    - Se `~/.openclaw/openclaw.json` existir, escolha **Manter / Modificar / Redefinir**.
+    - Executar o assistente novamente **não** apaga nada a menos que você escolha explicitamente **Redefinir**
       (ou passe `--reset`).
-    - Se a configuracao for invalida ou contiver chaves legadas, o assistente para e solicita
-      que voce execute `openclaw doctor` antes de continuar.
-    - O reset usa `trash` (nunca `rm`) e oferece escopos:
-      - Apenas configuracao
-      - Configuracao + credenciais + sessoes
-      - Reset completo (tambem remove o workspace)
+    - Se a configuração for inválida ou contiver chaves legadas, o assistente para e solicita
+      que você execute `openclaw doctor` antes de continuar.
+    - A redefinição usa `trash` (nunca `rm`) e oferece escopos:
+      - Apenas configuração
+      - Configuração + credenciais + sessões
+      - Redefinição completa (também remove o workspace)
   </Step>
   <Step title="Modelo/Auth">
-    - **Chave de API da Anthropic (recomendado)**: usa `ANTHROPIC_API_KEY` se presente ou solicita uma chave, depois a salva para uso pelo daemon.
-    - **OAuth da Anthropic (Claude Code CLI)**: no macOS o assistente verifica o item do Keychain "Claude Code-credentials" (escolha "Always Allow" para que inicializacoes via launchd nao bloqueiem); no Linux/Windows ele reutiliza `~/.claude/.credentials.json` se presente.
-    - **Token da Anthropic (colar setup-token)**: execute `claude setup-token` em qualquer maquina e depois cole o token (voce pode nomea-lo; em branco = padrao).
-    - **Assinatura OpenAI Code (Codex) (Codex CLI)**: se `~/.codex/auth.json` existir, o assistente pode reutiliza-la.
-    - **Assinatura OpenAI Code (Codex) (OAuth)**: fluxo via navegador; cole o `code#state`.
-      - Define `agents.defaults.model` como `openai-codex/gpt-5.2` quando o modelo nao esta definido ou esta como `openai/*`.
-    - **Chave de API da OpenAI**: usa `OPENAI_API_KEY` se presente ou solicita uma chave, depois a salva em `~/.openclaw/.env` para que o launchd possa le-la.
-    - **OpenCode Zen (proxy multi-modelo)**: solicita `OPENCODE_API_KEY` (ou `OPENCODE_ZEN_API_KEY`, obtenha em https://opencode.ai/auth).
-    - **Chave de API**: armazena a chave para voce.
-    - **Vercel AI Gateway (proxy multi-modelo)**: solicita `AI_GATEWAY_API_KEY`.
+    - **Chave de API da Anthropic (recomendado)**: usa `ANTHROPIC_API_KEY` se existir ou solicita uma chave e, em seguida, salva para uso do daemon.
+    - **OAuth da Anthropic (Claude Code CLI)**: no macOS o assistente verifica o item do Keychain "Claude Code-credentials" (escolha "Sempre Permitir" para que inicializações via launchd não bloqueiem); no Linux/Windows ele reutiliza `~/.claude/.credentials.json` se existir.
+    - **Token da Anthropic (colar setup-token)**: execute `claude setup-token` em qualquer máquina e depois cole o token (você pode nomeá-lo; em branco = padrão).
+    - **Assinatura do OpenAI Code (Codex) (Codex CLI)**: se `~/.codex/auth.json` existir, o assistente pode reutilizá-la.
+    - **Assinatura do OpenAI Code (Codex) (OAuth)**: fluxo no navegador; cole o `code#state`.
+      - Define `agents.defaults.model` como `openai-codex/gpt-5.2` quando o modelo não está definido ou é `openai/*`.
+    - **Chave de API do OpenAI**: usa `OPENAI_API_KEY` se existir ou solicita uma chave e, em seguida, salva em `~/.openclaw/.env` para que o launchd possa ler.
+    - **Chave de API do xAI (Grok)**: solicita `XAI_API_KEY` e configura o xAI como provedor de modelo.
+    - **OpenCode Zen (proxy multi‑modelo)**: solicita `OPENCODE_API_KEY` (ou `OPENCODE_ZEN_API_KEY`, obtenha em https://opencode.ai/auth).
+    - **Chave de API**: armazena a chave para você.
+    - **Vercel AI Gateway (proxy multi‑modelo)**: solicita `AI_GATEWAY_API_KEY`.
     - Mais detalhes: [Vercel AI Gateway](/providers/vercel-ai-gateway)
-    - **Cloudflare AI Gateway**: solicita Account ID, Gateway ID e `CLOUDFLARE_AI_GATEWAY_API_KEY`.
+    - **Cloudflare AI Gateway**: solicita ID da Conta, ID do Gateway e `CLOUDFLARE_AI_GATEWAY_API_KEY`.
     - Mais detalhes: [Cloudflare AI Gateway](/providers/cloudflare-ai-gateway)
-    - **MiniMax M2.1**: a configuracao é escrita automaticamente.
+    - **MiniMax M2.1**: a configuração é escrita automaticamente.
     - Mais detalhes: [MiniMax](/providers/minimax)
-    - **Synthetic (compativel com Anthropic)**: solicita `SYNTHETIC_API_KEY`.
+    - **Synthetic (compatível com Anthropic)**: solicita `SYNTHETIC_API_KEY`.
     - Mais detalhes: [Synthetic](/providers/synthetic)
-    - **Moonshot (Kimi K2)**: a configuracao é escrita automaticamente.
-    - **Kimi Coding**: a configuracao é escrita automaticamente.
+    - **Moonshot (Kimi K2)**: a configuração é escrita automaticamente.
+    - **Kimi Coding**: a configuração é escrita automaticamente.
     - Mais detalhes: [Moonshot AI (Kimi + Kimi Coding)](/providers/moonshot)
-    - **Pular**: nenhuma autenticacao configurada ainda.
-    - Escolha um modelo padrao dentre as opcoes detectadas (ou insira provedor/modelo manualmente).
-    - O assistente executa uma verificacao de modelo e avisa se o modelo configurado for desconhecido ou estiver sem autenticacao.
-    - Credenciais OAuth ficam em `~/.openclaw/credentials/oauth.json`; perfis de auth ficam em `~/.openclaw/agents/<agentId>/agent/auth-profiles.json` (chaves de API + OAuth).
+    - **Pular**: nenhuma autenticação configurada ainda.
+    - Escolha um modelo padrão entre as opções detectadas (ou informe provedor/modelo manualmente).
+    - O assistente executa uma verificação do modelo e avisa se o modelo configurado é desconhecido ou não tem autenticação.
+    - As credenciais OAuth ficam em `~/.openclaw/credentials/oauth.json`; os perfis de autenticação ficam em `~/.openclaw/agents/<agentId>/agent/auth-profiles.json` (chaves de API + OAuth).
     - Mais detalhes: [/concepts/oauth](/concepts/oauth)
     <Note>
-    Dica para headless/servidor: conclua o OAuth em uma maquina com navegador e depois copie
+    Dica para headless/servidor: conclua o OAuth em uma máquina com navegador e depois copie
     `~/.openclaw/credentials/oauth.json` (ou `$OPENCLAW_STATE_DIR/credentials/oauth.json`) para o
     host do Gateway.
     </Note>
   </Step>
   <Step title="Workspace">
-    - Padrao `~/.openclaw/workspace` (configuravel).
-    - Semeia os arquivos de workspace necessarios para o ritual de bootstrap do agente.
+    - Padrão `~/.openclaw/workspace` (configurável).
+    - Inicializa os arquivos de workspace necessários para o ritual de bootstrap do agente.
     - Layout completo do workspace + guia de backup: [Agent workspace](/concepts/agent-workspace)
   </Step>
   <Step title="Gateway">
-    - Porta, bind, modo de auth, exposicao via tailscale.
-    - Recomendacao de auth: mantenha **Token** mesmo para loopback para que clientes WS locais precisem se autenticar.
-    - Desative a auth apenas se voce confiar totalmente em todos os processos locais.
-    - Binds nao-loopback ainda exigem auth.
+    - Porta, bind, modo de autenticação, exposição via Tailscale.
+    - Recomendação de autenticação: mantenha **Token** mesmo para loopback para que clientes WS locais precisem se autenticar.
+    - Desative a autenticação apenas se você confiar totalmente em todos os processos locais.
+    - Binds não‑loopback ainda exigem autenticação.
   </Step>
   <Step title="Canais">
     - [WhatsApp](/channels/whatsapp): login por QR opcional.
     - [Telegram](/channels/telegram): token do bot.
     - [Discord](/channels/discord): token do bot.
-    - [Google Chat](/channels/googlechat): JSON de service account + audience do webhook.
+    - [Google Chat](/channels/googlechat): JSON da conta de serviço + audiência do webhook.
     - [Mattermost](/channels/mattermost) (plugin): token do bot + URL base.
-    - [Signal](/channels/signal): instalacao opcional de `signal-cli` + configuracao da conta.
+    - [Signal](/channels/signal): instalação opcional de `signal-cli` + configuração da conta.
     - [BlueBubbles](/channels/bluebubbles): **recomendado para iMessage**; URL do servidor + senha + webhook.
     - [iMessage](/channels/imessage): caminho legado da CLI `imsg` + acesso ao DB.
-    - Seguranca de DM: o padrao é pareamento. A primeira DM envia um codigo; aprove via `openclaw pairing approve <channel> <code>` ou use allowlists.
+    - Segurança de DM: o padrão é pareamento. A primeira DM envia um código; aprove via `openclaw pairing approve <channel> <code>` ou use listas de permissões.
   </Step>
-  <Step title="Instalacao do daemon">
+  <Step title="Instalação do daemon">
     - macOS: LaunchAgent
-      - Requer uma sessao de usuario logada; para headless, use um LaunchDaemon customizado (nao fornecido).
-    - Linux (e Windows via WSL2): unit de usuario systemd
-      - O assistente tenta habilitar lingering via `loginctl enable-linger <user>` para que o Gateway permaneça ativo apos logout.
-      - Pode solicitar sudo (escreve `/var/lib/systemd/linger`); ele tenta sem sudo primeiro.
-    - **Selecao de runtime:** Node (recomendado; necessario para WhatsApp/Telegram). Bun **nao é recomendado**.
+      - Requer uma sessão de usuário logada; para headless, use um LaunchDaemon personalizado (não fornecido).
+    - Linux (e Windows via WSL2): unidade de usuário do systemd
+      - O assistente tenta habilitar lingering via `loginctl enable-linger <user>` para que o Gateway permaneça ativo após logout.
+      - Pode solicitar sudo (grava `/var/lib/systemd/linger`); ele tenta sem sudo primeiro.
+    - **Seleção de runtime:** Node (recomendado; necessário para WhatsApp/Telegram). Bun **não é recomendado**.
   </Step>
-  <Step title="Verificacao de saude">
-    - Inicia o Gateway (se necessario) e executa `openclaw health`.
-    - Dica: `openclaw status --deep` adiciona probes de saude do gateway à saida de status (requer um gateway acessivel).
+  <Step title="Verificação de saúde">
+    - Inicia o Gateway (se necessário) e executa `openclaw health`.
+    - Dica: `openclaw status --deep` adiciona sondas de saúde do gateway à saída de status (requer um gateway acessível).
   </Step>
   <Step title="Skills (recomendado)">
-    - Le as Skills disponiveis e verifica requisitos.
-    - Permite escolher um gerenciador de node: **npm / pnpm** (bun nao recomendado).
-    - Instala dependencias opcionais (algumas usam Homebrew no macOS).
+    - Lê as skills disponíveis e verifica requisitos.
+    - Permite escolher um gerenciador de pacotes Node: **npm / pnpm** (bun não recomendado).
+    - Instala dependências opcionais (algumas usam Homebrew no macOS).
   </Step>
   <Step title="Finalizar">
-    - Resumo + proximos passos, incluindo apps iOS/Android/macOS para recursos extras.
+    - Resumo + próximos passos, incluindo apps para iOS/Android/macOS para recursos extras.
   </Step>
 </Steps>
 
 <Note>
-Se nenhuma GUI for detectada, o assistente imprime instrucoes de port-forward SSH para a Control UI em vez de abrir um navegador.
-Se os assets da Control UI estiverem ausentes, o assistente tenta construi-los; o fallback é `pnpm ui:build` (instala automaticamente as dependencias da UI).
+Se nenhuma GUI for detectada, o assistente imprime instruções de encaminhamento de porta SSH para a Control UI em vez de abrir um navegador.
+Se os assets da Control UI estiverem ausentes, o assistente tenta compilá-los; o fallback é `pnpm ui:build` (instala automaticamente as dependências da UI).
 </Note>
 
-## Modo nao interativo
+## Modo não interativo
 
-Use `--non-interactive` para automatizar ou criar scripts de integracao inicial:
+Use `--non-interactive` para automatizar ou criar scripts de onboarding:
 
 ```bash
 openclaw onboard --non-interactive \
@@ -131,14 +132,14 @@ openclaw onboard --non-interactive \
   --skip-skills
 ```
 
-Adicione `--json` para um resumo legivel por maquina.
+Adicione `--json` para um resumo legível por máquina.
 
 <Note>
-`--json` **nao** implica modo nao interativo. Use `--non-interactive` (e `--workspace`) para scripts.
+`--json` **não** implica modo não interativo. Use `--non-interactive` (e `--workspace`) para scripts.
 </Note>
 
 <AccordionGroup>
-  <Accordion title="Exemplo Gemini">
+  <Accordion title="Exemplo do Gemini">
     ```bash
     openclaw onboard --non-interactive \
       --mode local \
@@ -148,7 +149,7 @@ Adicione `--json` para um resumo legivel por maquina.
       --gateway-bind loopback
     ```
   </Accordion>
-  <Accordion title="Exemplo Z.AI">
+  <Accordion title="Exemplo do Z.AI">
     ```bash
     openclaw onboard --non-interactive \
       --mode local \
@@ -158,7 +159,7 @@ Adicione `--json` para um resumo legivel por maquina.
       --gateway-bind loopback
     ```
   </Accordion>
-  <Accordion title="Exemplo Vercel AI Gateway">
+  <Accordion title="Exemplo do Vercel AI Gateway">
     ```bash
     openclaw onboard --non-interactive \
       --mode local \
@@ -168,7 +169,7 @@ Adicione `--json` para um resumo legivel por maquina.
       --gateway-bind loopback
     ```
   </Accordion>
-  <Accordion title="Exemplo Cloudflare AI Gateway">
+  <Accordion title="Exemplo do Cloudflare AI Gateway">
     ```bash
     openclaw onboard --non-interactive \
       --mode local \
@@ -180,7 +181,7 @@ Adicione `--json` para um resumo legivel por maquina.
       --gateway-bind loopback
     ```
   </Accordion>
-  <Accordion title="Exemplo Moonshot">
+  <Accordion title="Exemplo do Moonshot">
     ```bash
     openclaw onboard --non-interactive \
       --mode local \
@@ -190,7 +191,7 @@ Adicione `--json` para um resumo legivel por maquina.
       --gateway-bind loopback
     ```
   </Accordion>
-  <Accordion title="Exemplo Synthetic">
+  <Accordion title="Exemplo do Synthetic">
     ```bash
     openclaw onboard --non-interactive \
       --mode local \
@@ -200,7 +201,7 @@ Adicione `--json` para um resumo legivel por maquina.
       --gateway-bind loopback
     ```
   </Accordion>
-  <Accordion title="Exemplo OpenCode Zen">
+  <Accordion title="Exemplo do OpenCode Zen">
     ```bash
     openclaw onboard --non-interactive \
       --mode local \
@@ -212,7 +213,7 @@ Adicione `--json` para um resumo legivel por maquina.
   </Accordion>
 </AccordionGroup>
 
-### Adicionar agente (nao interativo)
+### Adicionar agente (não interativo)
 
 ```bash
 openclaw agents add work \
@@ -226,31 +227,31 @@ openclaw agents add work \
 ## RPC do assistente do Gateway
 
 O Gateway expõe o fluxo do assistente via RPC (`wizard.start`, `wizard.next`, `wizard.cancel`, `wizard.status`).
-Clientes (app macOS, Control UI) podem renderizar etapas sem reimplementar a logica de integracao inicial.
+Clientes (app macOS, Control UI) podem renderizar as etapas sem reimplementar a lógica de onboarding.
 
-## Configuracao do Signal (signal-cli)
+## Configuração do Signal (signal-cli)
 
 O assistente pode instalar `signal-cli` a partir dos releases do GitHub:
 
-- Faz o download do asset de release apropriado.
+- Baixa o asset de release apropriado.
 - Armazena em `~/.openclaw/tools/signal-cli/<version>/`.
-- Escreve `channels.signal.cliPath` na sua configuracao.
+- Grava `channels.signal.cliPath` na sua configuração.
 
 Notas:
 
 - Builds JVM exigem **Java 21**.
-- Builds nativos sao usados quando disponiveis.
-- O Windows usa WSL2; a instalacao do signal-cli segue o fluxo Linux dentro do WSL.
+- Builds nativas são usadas quando disponíveis.
+- O Windows usa WSL2; a instalação do signal-cli segue o fluxo do Linux dentro do WSL.
 
-## O que o assistente escreve
+## O que o assistente grava
 
-Campos tipicos em `~/.openclaw/openclaw.json`:
+Campos típicos em `~/.openclaw/openclaw.json`:
 
 - `agents.defaults.workspace`
 - `agents.defaults.model` / `models.providers` (se Minimax for escolhido)
-- `gateway.*` (modo, bind, auth, tailscale)
+- `gateway.*` (modo, bind, auth, Tailscale)
 - `channels.telegram.botToken`, `channels.discord.token`, `channels.signal.*`, `channels.imessage.*`
-- Allowlists de canais (Slack/Discord/Matrix/Microsoft Teams) quando voce opta por elas durante os prompts (nomes resolvem para IDs quando possivel).
+- Listas de permissões de canais (Slack/Discord/Matrix/Microsoft Teams) quando você opta durante os prompts (nomes resolvem para IDs quando possível).
 - `skills.install.nodeManager`
 - `wizard.lastRunAt`
 - `wizard.lastRunVersion`
@@ -258,18 +259,18 @@ Campos tipicos em `~/.openclaw/openclaw.json`:
 - `wizard.lastRunCommand`
 - `wizard.lastRunMode`
 
-`openclaw agents add` escreve `agents.list[]` e `bindings` opcional.
+`openclaw agents add` grava `agents.list[]` e `bindings` opcional.
 
-Credenciais do WhatsApp ficam em `~/.openclaw/credentials/whatsapp/<accountId>/`.
-Sessoes sao armazenadas em `~/.openclaw/agents/<agentId>/sessions/`.
+As credenciais do WhatsApp ficam em `~/.openclaw/credentials/whatsapp/<accountId>/`.
+As sessões são armazenadas em `~/.openclaw/agents/<agentId>/sessions/`.
 
-Alguns canais sao entregues como plugins. Quando voce escolhe um durante a integracao inicial, o assistente
-solicita a instalacao (npm ou um caminho local) antes que ele possa ser configurado.
+Alguns canais são entregues como plugins. Ao escolher um durante o onboarding, o assistente
+vai solicitar a instalação (npm ou um caminho local) antes que ele possa ser configurado.
 
-## Docs relacionados
+## Documentos relacionados
 
-- Visao geral do assistente: [Onboarding Wizard](/start/wizard)
-- Integracao inicial do app macOS: [Onboarding](/start/onboarding)
-- Referencia de configuracao: [Gateway configuration](/gateway/configuration)
+- Visão geral do assistente: [Onboarding Wizard](/start/wizard)
+- Onboarding do app macOS: [Onboarding](/start/onboarding)
+- Referência de configuração: [Gateway configuration](/gateway/configuration)
 - Provedores: [WhatsApp](/channels/whatsapp), [Telegram](/channels/telegram), [Discord](/channels/discord), [Google Chat](/channels/googlechat), [Signal](/channels/signal), [BlueBubbles](/channels/bluebubbles) (iMessage), [iMessage](/channels/imessage) (legado)
-- Skills: [Skills](/tools/skills), [Skills config](/tools/skills-config)
+- Skills: [Skills](/tools/skills), [Configuração de Skills](/tools/skills-config)

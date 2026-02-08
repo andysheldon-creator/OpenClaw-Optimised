@@ -1,7 +1,7 @@
 ---
-summary: "Canal de Mensajes directos de Nostr mediante mensajes cifrados NIP-04"
+summary: "Canal de mensajes directos de Nostr mediante mensajes cifrados NIP-04"
 read_when:
-  - Quiere que OpenClaw reciba Mensajes directos mediante Nostr
+  - Quiere que OpenClaw reciba mensajes directos mediante Nostr
   - Está configurando mensajería descentralizada
 title: "Nostr"
 x-i18n:
@@ -10,44 +10,44 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:58:05Z
+  generated_at: 2026-02-08T09:32:42Z
 ---
 
 # Nostr
 
 **Estado:** Plugin opcional (deshabilitado de forma predeterminada).
 
-Nostr es un protocolo descentralizado para redes sociales. Este canal permite que OpenClaw reciba y responda a Mensajes directos (DMs) cifrados mediante NIP-04.
+Nostr es un protocolo descentralizado para redes sociales. Este canal permite que OpenClaw reciba y responda a mensajes directos (DMs) cifrados mediante NIP-04.
 
-## Instalacion (bajo demanda)
+## Instalación (bajo demanda)
 
-### Incorporacion (recomendado)
+### Incorporación (recomendado)
 
-- El asistente de incorporacion (`openclaw onboard`) y `openclaw channels add` enumeran plugins de canales opcionales.
-- Al seleccionar Nostr, se le solicita instalar el plugin bajo demanda.
+- El asistente de incorporación (`openclaw onboard`) y `openclaw channels add` enumeran plugins de canal opcionales.
+- Al seleccionar Nostr, se le pedirá instalar el plugin bajo demanda.
 
-Valores predeterminados de instalacion:
+Valores predeterminados de instalación:
 
-- **Canal Dev + git checkout disponible:** usa la ruta local del plugin.
+- **Canal Dev + checkout de git disponible:** usa la ruta local del plugin.
 - **Stable/Beta:** descarga desde npm.
 
-Siempre puede anular la eleccion en el aviso.
+Siempre puede sobrescribir la elección en el aviso.
 
-### Instalacion manual
+### Instalación manual
 
 ```bash
 openclaw plugins install @openclaw/nostr
 ```
 
-Use un checkout local (flujos de trabajo de desarrollo):
+Usar un checkout local (flujos de trabajo de desarrollo):
 
 ```bash
 openclaw plugins install --link <path-to-openclaw>/extensions/nostr
 ```
 
-Reinicie el Gateway despues de instalar o habilitar plugins.
+Reinicie el Gateway después de instalar o habilitar plugins.
 
-## Configuracion rapida
+## Configuración rápida
 
 1. Genere un par de claves de Nostr (si es necesario):
 
@@ -56,7 +56,7 @@ Reinicie el Gateway despues de instalar o habilitar plugins.
 nak key generate
 ```
 
-2. Agregue a la configuracion:
+2. Agregue a la configuración:
 
 ```json
 {
@@ -76,21 +76,21 @@ export NOSTR_PRIVATE_KEY="nsec1..."
 
 4. Reinicie el Gateway.
 
-## Referencia de configuracion
+## Referencia de configuración
 
-| Clave        | Tipo     | Predeterminado                              | Descripcion                           |
+| Clave        | Tipo     | Predeterminado                              | Descripción                           |
 | ------------ | -------- | ------------------------------------------- | ------------------------------------- |
-| `privateKey` | string   | requerido                                   | Clave privada en formato `nsec` o hex |
-| `relays`     | string[] | `['wss://relay.damus.io', 'wss://nos.lol']` | URLs de relay (WebSocket)             |
-| `dmPolicy`   | string   | `pairing`                                   | Politica de acceso a DM               |
+| `privateKey` | string   | required                                    | Clave privada en formato `nsec` o hex |
+| `relays`     | string[] | `['wss://relay.damus.io', 'wss://nos.lol']` | URLs de relé (WebSocket)              |
+| `dmPolicy`   | string   | `pairing`                                   | Política de acceso a DMs              |
 | `allowFrom`  | string[] | `[]`                                        | Pubkeys de remitentes permitidos      |
-| `enabled`    | boolean  | `true`                                      | Habilitar/deshabilitar canal          |
+| `enabled`    | boolean  | `true`                                      | Habilitar/deshabilitar el canal       |
 | `name`       | string   | -                                           | Nombre para mostrar                   |
 | `profile`    | object   | -                                           | Metadatos de perfil NIP-01            |
 
 ## Metadatos de perfil
 
-Los datos del perfil se publican como un evento `kind:0` de NIP-01. Puede gestionarlos desde la UI de Control (Canales -> Nostr -> Perfil) o configurarlos directamente en la configuracion.
+Los datos del perfil se publican como un evento NIP-01 `kind:0`. Puede administrarlos desde la IU de Control (Canales -> Nostr -> Perfil) o configurarlos directamente en la configuración.
 
 Ejemplo:
 
@@ -116,17 +116,17 @@ Ejemplo:
 
 Notas:
 
-- Las URLs del perfil deben usar `https://`.
-- La importacion desde relays combina campos y conserva las anulaciones locales.
+- Las URLs de perfil deben usar `https://`.
+- La importación desde relés fusiona campos y conserva las sobrescrituras locales.
 
 ## Control de acceso
 
-### Politicas de DM
+### Políticas de DM
 
-- **pairing** (predeterminado): los remitentes desconocidos reciben un codigo de emparejamiento.
+- **pairing** (predeterminado): los remitentes desconocidos reciben un código de emparejamiento.
 - **allowlist**: solo los pubkeys en `allowFrom` pueden enviar DM.
-- **open**: DMs entrantes publicos (requiere `allowFrom: ["*"]`).
-- **disabled**: ignora los DMs entrantes.
+- **open**: DMs entrantes públicos (requiere `allowFrom: ["*"]`).
+- **disabled**: ignorar DMs entrantes.
 
 ### Ejemplo de allowlist
 
@@ -149,7 +149,7 @@ Formatos aceptados:
 - **Clave privada:** `nsec...` o hex de 64 caracteres
 - **Pubkeys (`allowFrom`):** `npub...` o hex
 
-## Relays
+## Relés
 
 Predeterminados: `relay.damus.io` y `nos.lol`.
 
@@ -166,23 +166,23 @@ Predeterminados: `relay.damus.io` y `nos.lol`.
 
 Consejos:
 
-- Use 2-3 relays para redundancia.
-- Evite demasiados relays (latencia, duplicacion).
-- Los relays de pago pueden mejorar la confiabilidad.
-- Los relays locales son adecuados para pruebas (`ws://localhost:7777`).
+- Use 2–3 relés para redundancia.
+- Evite demasiados relés (latencia, duplicación).
+- Los relés de pago pueden mejorar la confiabilidad.
+- Los relés locales son adecuados para pruebas (`ws://localhost:7777`).
 
-## Soporte de protocolo
+## Compatibilidad de protocolo
 
-| NIP    | Estado      | Descripcion                                     |
+| NIP    | Estado      | Descripción                                     |
 | ------ | ----------- | ----------------------------------------------- |
-| NIP-01 | Compatible  | Formato basico de eventos + metadatos de perfil |
+| NIP-01 | Compatible  | Formato básico de eventos + metadatos de perfil |
 | NIP-04 | Compatible  | DMs cifrados (`kind:4`)                         |
 | NIP-17 | Planificado | DMs con envoltura de regalo                     |
 | NIP-44 | Planificado | Cifrado versionado                              |
 
 ## Pruebas
 
-### Relay local
+### Relé local
 
 ```bash
 # Start strfry
@@ -202,36 +202,36 @@ docker run -p 7777:7777 ghcr.io/hoytech/strfry
 
 ### Prueba manual
 
-1. Anote el pubkey del bot (npub) desde los registros.
+1. Anote el pubkey del bot (npub) desde los logs.
 2. Abra un cliente de Nostr (Damus, Amethyst, etc.).
-3. Envie un DM al pubkey del bot.
+3. Envíe un DM al pubkey del bot.
 4. Verifique la respuesta.
 
-## Solucion de problemas
+## Solución de problemas
 
 ### No se reciben mensajes
 
-- Verifique que la clave privada sea valida.
-- Asegurese de que las URLs de relay sean accesibles y usen `wss://` (o `ws://` para local).
+- Verifique que la clave privada sea válida.
+- Asegúrese de que las URLs de los relés sean accesibles y usen `wss://` (o `ws://` para local).
 - Confirme que `enabled` no sea `false`.
-- Revise los registros del Gateway para errores de conexion a relays.
+- Revise los logs del Gateway para detectar errores de conexión con relés.
 
-### No se envian respuestas
+### No se envían respuestas
 
-- Verifique que el relay acepte escrituras.
+- Verifique que el relé acepte escrituras.
 - Verifique la conectividad de salida.
-- Observe los limites de tasa del relay.
+- Esté atento a los límites de tasa del relé.
 
 ### Respuestas duplicadas
 
-- Es esperado al usar multiples relays.
-- Los mensajes se deduplican por ID de evento; solo la primera entrega activa una respuesta.
+- Es esperable al usar múltiples relés.
+- Los mensajes se desduplican por ID de evento; solo la primera entrega activa una respuesta.
 
 ## Seguridad
 
-- Nunca haga commit de claves privadas.
+- Nunca confirme claves privadas en repositorios.
 - Use variables de entorno para las claves.
-- Considere `allowlist` para bots en produccion.
+- Considere `allowlist` para bots en producción.
 
 ## Limitaciones (MVP)
 

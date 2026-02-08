@@ -1,50 +1,50 @@
 ---
-summary: "OpenClaw 向け VPS ホスティングハブ（Oracle/Fly/Hetzner/GCP/exe.dev）"
+summary: "OpenClaw 向けの VPS ホスティングハブ（Oracle/Fly/Hetzner/GCP/exe.dev）"
 read_when:
-  - Gateway（ゲートウェイ）をクラウドで実行したい場合
-  - VPS/ホスティングガイドの全体像をすばやく把握したい場合
+  - クラウドで Gateway（ゲートウェイ）を実行したい場合
+  - VPS/ホスティングのガイドを手早く把握したい場合
 title: "VPS ホスティング"
 x-i18n:
   source_path: vps.md
-  source_hash: 38e3e254853e5839
+  source_hash: 96593a1550b56040
   provider: openai
-  model: gpt-5.2-pro
+  model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-06T05:12:25Z
+  generated_at: 2026-02-08T09:23:34Z
 ---
 
 # VPS ホスティング
 
-このハブでは、サポートされている VPS/ホスティングガイドへのリンクをまとめ、クラウド
-デプロイが高レベルでどのように動作するかを説明します。
+このハブでは、サポートされている VPS/ホスティングのガイドへのリンクと、クラウド
+デプロイメントの仕組みを高いレベルで説明します。
 
 ## プロバイダーを選ぶ
 
-- **Railway**（ワンクリック + ブラウザーセットアップ）: [Railway](/install/railway)
-- **Northflank**（ワンクリック + ブラウザーセットアップ）: [Northflank](/install/northflank)
-- **Oracle Cloud（Always Free）**: [Oracle](/platforms/oracle) — $0/month（Always Free、ARM。容量/サインアップが不安定な場合があります）
+- **Railway**（ワンクリック + ブラウザー設定）: [Railway](/install/railway)
+- **Northflank**（ワンクリック + ブラウザー設定）: [Northflank](/install/northflank)
+- **Oracle Cloud（Always Free）**: [Oracle](/platforms/oracle) — 月額 $0（Always Free、ARM。容量やサインアップが不安定な場合があります）
 - **Fly.io**: [Fly.io](/install/fly)
 - **Hetzner（Docker）**: [Hetzner](/install/hetzner)
 - **GCP（Compute Engine）**: [GCP](/install/gcp)
 - **exe.dev**（VM + HTTPS プロキシ）: [exe.dev](/install/exe-dev)
-- **AWS（EC2/Lightsail/free tier）**: こちらも問題なく動作します。動画ガイド:
-  https://x.com/techfrenAJ/status/2014934471095812547
+- **AWS（EC2/Lightsail/無料枠）**: こちらも問題なく動作します。動画ガイド:
+  [https://x.com/techfrenAJ/status/2014934471095812547](https://x.com/techfrenAJ/status/2014934471095812547)
 
-## クラウドセットアップの仕組み
+## クラウド構成の仕組み
 
-- **Gateway（ゲートウェイ）は VPS 上で実行**され、状態 + ワークスペースを保持します。
+- **Gateway（ゲートウェイ）は VPS 上で実行**され、状態とワークスペースを管理します。
 - ノート PC/スマートフォンから **Control UI** または **Tailscale/SSH** 経由で接続します。
-- VPS を信頼できる唯一の情報源として扱い、状態 + ワークスペースを **バックアップ** してください。
-- 既定のセキュリティ: Gateway（ゲートウェイ）を loopback 上に置き、SSH トンネルまたは Tailscale Serve 経由でアクセスします。
+- VPS を信頼できる唯一の情報源として扱い、状態とワークスペースを **バックアップ** してください。
+- セキュアな既定値: Gateway を loopback のままにし、SSH トンネルまたは Tailscale Serve 経由でアクセスします。
   `lan`/`tailnet` にバインドする場合は、`gateway.auth.token` または `gateway.auth.password` を必須にしてください。
 
 リモートアクセス: [Gateway remote](/gateway/remote)  
-プラットフォームハブ: [Platforms](/platforms)
+プラットフォーム ハブ: [Platforms](/platforms)
 
 ## VPS でノードを使う
 
-Gateway（ゲートウェイ）をクラウドに置いたまま、ローカルデバイス
-（Mac/iOS/Android/headless）上の **ノード** をペアリングできます。ノードは、Gateway（ゲートウェイ）がクラウドに留まる間に、ローカルの画面/カメラ/キャンバスと `system.run`
-機能を提供します。
+Gateway をクラウドに置いたまま、ローカル デバイス
+（Mac/iOS/Android/ヘッドレス）上の **ノード** とペアリングできます。ノードはローカルの画面/カメラ/キャンバスおよび `system.run`
+の機能を提供し、Gateway はクラウドに留まります。
 
 ドキュメント: [Nodes](/nodes), [Nodes CLI](/cli/nodes)

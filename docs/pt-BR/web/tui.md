@@ -1,8 +1,8 @@
 ---
-summary: "Interface de Terminal (TUI): conecte-se ao Gateway a partir de qualquer maquina"
+summary: "Interface de Terminal (TUI): conecte-se ao Gateway a partir de qualquer máquina"
 read_when:
-  - Voce quer um passo a passo amigavel para iniciantes do TUI
-  - Voce precisa da lista completa de recursos, comandos e atalhos do TUI
+  - Você quer um passo a passo amigável para iniciantes do TUI
+  - Você precisa da lista completa de recursos, comandos e atalhos do TUI
 title: "TUI"
 x-i18n:
   source_path: web/tui.md
@@ -10,12 +10,12 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:15:27Z
+  generated_at: 2026-02-08T09:32:27Z
 ---
 
 # TUI (Interface de Terminal)
 
-## Inicio rapido
+## Início rápido
 
 1. Inicie o Gateway.
 
@@ -37,58 +37,58 @@ Gateway remoto:
 openclaw tui --url ws://<host>:<port> --token <gateway-token>
 ```
 
-Use `--password` se o seu Gateway usar autenticacao por senha.
+Use `--password` se o seu Gateway usar autenticação por senha.
 
-## O que voce ve
+## O que você vê
 
-- Cabecalho: URL de conexao, agente atual, sessao atual.
-- Log do chat: mensagens do usuario, respostas do assistente, avisos do sistema, cards de ferramentas.
-- Linha de status: estado de conexao/execucao (conectando, executando, transmitindo, ocioso, erro).
-- Rodape: estado da conexao + agente + sessao + modelo + pensar/verboso/raciocinio + contagem de tokens + entrega.
-- Entrada: editor de texto com autocomplete.
+- Cabeçalho: URL de conexão, agente atual, sessão atual.
+- Log do chat: mensagens do usuário, respostas do assistente, avisos do sistema, cartões de ferramentas.
+- Linha de status: estado de conexão/execução (conectando, executando, streaming, ocioso, erro).
+- Rodapé: estado da conexão + agente + sessão + modelo + pensar/verboso/raciocínio + contagens de tokens + entrega.
+- Entrada: editor de texto com preenchimento automático.
 
-## Modelo mental: agentes + sessoes
+## Modelo mental: agentes + sessões
 
-- Agentes sao slugs unicos (ex.: `main`, `research`). O Gateway expoe a lista.
-- Sessoes pertencem ao agente atual.
-- Chaves de sessao sao armazenadas como `agent:<agentId>:<sessionKey>`.
-  - Se voce digitar `/session main`, o TUI expande para `agent:<currentAgent>:main`.
-  - Se voce digitar `/session agent:other:main`, voce muda explicitamente para essa sessao do agente.
-- Escopo da sessao:
-  - `per-sender` (padrao): cada agente tem muitas sessoes.
-  - `global`: o TUI sempre usa a sessao `global` (o seletor pode estar vazio).
-- O agente + sessao atuais estao sempre visiveis no rodape.
+- Agentes são slugs únicos (por exemplo, `main`, `research`). O Gateway expõe a lista.
+- Sessões pertencem ao agente atual.
+- As chaves de sessão são armazenadas como `agent:<agentId>:<sessionKey>`.
+  - Se você digitar `/session main`, o TUI expande para `agent:<currentAgent>:main`.
+  - Se você digitar `/session agent:other:main`, você muda explicitamente para a sessão desse agente.
+- Escopo da sessão:
+  - `per-sender` (padrão): cada agente tem várias sessões.
+  - `global`: o TUI sempre usa a sessão `global` (o seletor pode ficar vazio).
+- O agente + sessão atuais estão sempre visíveis no rodapé.
 
 ## Envio + entrega
 
-- As mensagens sao enviadas ao Gateway; a entrega aos provedores fica desativada por padrao.
+- As mensagens são enviadas ao Gateway; a entrega aos provedores fica desativada por padrão.
 - Ative a entrega:
   - `/deliver on`
-  - ou no painel de Configuracoes
+  - ou o painel de Configurações
   - ou inicie com `openclaw tui --deliver`
 
-## Seletores + sobreposicoes
+## Seletores + sobreposições
 
-- Seletor de modelo: lista os modelos disponiveis e define a sobreposicao da sessao.
+- Seletor de modelo: lista os modelos disponíveis e define a substituição da sessão.
 - Seletor de agente: escolha um agente diferente.
-- Seletor de sessao: mostra apenas sessoes do agente atual.
-- Configuracoes: alternar entrega, expansao de saida de ferramentas e visibilidade do pensamento.
+- Seletor de sessão: mostra apenas as sessões do agente atual.
+- Configurações: alterna entrega, expansão da saída de ferramentas e visibilidade de pensamento.
 
 ## Atalhos de teclado
 
 - Enter: enviar mensagem
-- Esc: abortar execucao ativa
+- Esc: abortar execução ativa
 - Ctrl+C: limpar entrada (pressione duas vezes para sair)
 - Ctrl+D: sair
 - Ctrl+L: seletor de modelo
 - Ctrl+G: seletor de agente
-- Ctrl+P: seletor de sessao
-- Ctrl+O: alternar expansao de saida de ferramentas
-- Ctrl+T: alternar visibilidade do pensamento (recarrega o historico)
+- Ctrl+P: seletor de sessão
+- Ctrl+O: alternar expansão da saída de ferramentas
+- Ctrl+T: alternar visibilidade de pensamento (recarrega o histórico)
 
-## Comandos de barra
+## Comandos com barra
 
-Nucleo:
+Núcleo:
 
 - `/help`
 - `/status`
@@ -96,7 +96,7 @@ Nucleo:
 - `/session <key>` (ou `/sessions`)
 - `/model <provider/model>` (ou `/models`)
 
-Controles de sessao:
+Controles de sessão:
 
 - `/think <off|minimal|low|medium|high>`
 - `/verbose <on|full|off>`
@@ -106,64 +106,64 @@ Controles de sessao:
 - `/activation <mention|always>`
 - `/deliver <on|off>`
 
-Ciclo de vida da sessao:
+Ciclo de vida da sessão:
 
-- `/new` ou `/reset` (redefine a sessao)
-- `/abort` (aborta a execucao ativa)
+- `/new` ou `/reset` (redefine a sessão)
+- `/abort` (aborta a execução ativa)
 - `/settings`
 - `/exit`
 
-Outros comandos de barra do Gateway (por exemplo, `/context`) sao encaminhados ao Gateway e mostrados como saida do sistema. Veja [Slash commands](/tools/slash-commands).
+Outros comandos com barra do Gateway (por exemplo, `/context`) são encaminhados ao Gateway e mostrados como saída do sistema. Veja [Slash commands](/tools/slash-commands).
 
-## Comandos locais de shell
+## Comandos locais do shell
 
-- Prefixe uma linha com `!` para executar um comando de shell local no host do TUI.
-- O TUI solicita permissao uma vez por sessao para permitir execucao local; ao recusar, `!` permanece desativado para a sessao.
-- Os comandos rodam em um shell novo, nao interativo, no diretorio de trabalho do TUI (sem `cd`/env persistentes).
-- Um `!` isolado e enviado como mensagem normal; espacos iniciais nao disparam execucao local.
+- Prefixe uma linha com `!` para executar um comando local do shell no host do TUI.
+- O TUI solicita uma vez por sessão para permitir a execução local; recusar mantém `!` desativado para a sessão.
+- Os comandos são executados em um shell novo e não interativo no diretório de trabalho do TUI (sem `cd`/env persistente).
+- Um `!` isolado é enviado como uma mensagem normal; espaços à esquerda não disparam execução local.
 
-## Saida de ferramentas
+## Saída de ferramentas
 
-- Chamadas de ferramentas aparecem como cards com argumentos + resultados.
-- Ctrl+O alterna entre visualizacoes recolhida/expandida.
-- Enquanto as ferramentas executam, atualizacoes parciais sao transmitidas no mesmo card.
+- Chamadas de ferramentas aparecem como cartões com argumentos + resultados.
+- Ctrl+O alterna entre visualizações recolhida/expandida.
+- Enquanto as ferramentas executam, atualizações parciais fazem streaming no mesmo cartão.
 
-## Historico + streaming
+## Histórico + streaming
 
-- Ao conectar, o TUI carrega o historico mais recente (padrao 200 mensagens).
-- Respostas em streaming atualizam no lugar ate serem finalizadas.
-- O TUI tambem escuta eventos de ferramentas do agente para cards de ferramentas mais ricos.
+- Ao conectar, o TUI carrega o histórico mais recente (padrão: 200 mensagens).
+- Respostas em streaming são atualizadas no lugar até serem finalizadas.
+- O TUI também escuta eventos de ferramentas do agente para cartões de ferramentas mais ricos.
 
-## Detalhes de conexao
+## Detalhes da conexão
 
 - O TUI se registra no Gateway como `mode: "tui"`.
-- Reconexoes mostram uma mensagem do sistema; lacunas de eventos aparecem no log.
+- Reconexões mostram uma mensagem do sistema; lacunas de eventos aparecem no log.
 
-## Opcoes
+## Opções
 
-- `--url <url>`: URL do WebSocket do Gateway (padrao da configuracao ou `ws://127.0.0.1:<port>`)
-- `--token <token>`: token do Gateway (se necessario)
-- `--password <password>`: senha do Gateway (se necessario)
-- `--session <key>`: chave de sessao (padrao: `main`, ou `global` quando o escopo e global)
-- `--deliver`: entregar respostas do assistente ao provedor (padrao desativado)
-- `--thinking <level>`: substituir o nivel de pensamento para envios
-- `--timeout-ms <ms>`: timeout do agente em ms (padrao `agents.defaults.timeoutSeconds`)
+- `--url <url>`: URL do WebSocket do Gateway (padrão: configuração ou `ws://127.0.0.1:<port>`)
+- `--token <token>`: token do Gateway (se necessário)
+- `--password <password>`: senha do Gateway (se necessário)
+- `--session <key>`: chave de sessão (padrão: `main`, ou `global` quando o escopo é global)
+- `--deliver`: entregar respostas do assistente ao provedor (padrão: desligado)
+- `--thinking <level>`: substituir o nível de pensamento para envios
+- `--timeout-ms <ms>`: tempo limite do agente em ms (padrão: `agents.defaults.timeoutSeconds`)
 
-Observacao: quando voce define `--url`, o TUI nao recorre a configuracao nem a credenciais de ambiente.
-Passe `--token` ou `--password` explicitamente. A ausencia de credenciais explicitas e um erro.
+Nota: ao definir `--url`, o TUI não recorre à configuração nem às credenciais de ambiente.
+Passe `--token` ou `--password` explicitamente. A ausência de credenciais explícitas é um erro.
 
-## Solucao de problemas
+## Solução de problemas
 
-Sem saida apos enviar uma mensagem:
+Sem saída após enviar uma mensagem:
 
-- Execute `/status` no TUI para confirmar que o Gateway esta conectado e ocioso/ocupado.
+- Execute `/status` no TUI para confirmar que o Gateway está conectado e ocioso/ocupado.
 - Verifique os logs do Gateway: `openclaw logs --follow`.
-- Confirme que o agente pode executar: `openclaw status` e `openclaw models status`.
-- Se voce espera mensagens em um canal de chat, ative a entrega (`/deliver on` ou `--deliver`).
-- `--history-limit <n>`: entradas de historico a carregar (padrao 200)
+- Confirme que o agente consegue executar: `openclaw status` e `openclaw models status`.
+- Se você espera mensagens em um canal de chat, habilite a entrega (`/deliver on` ou `--deliver`).
+- `--history-limit <n>`: entradas de histórico a carregar (padrão: 200)
 
-## Solucao de problemas de conexao
+## Solução de problemas de conexão
 
-- `disconnected`: garanta que o Gateway esteja em execucao e que suas `--url/--token/--password` estejam corretas.
-- Nenhum agente no seletor: verifique `openclaw agents list` e sua configuracao de roteamento.
-- Seletor de sessao vazio: voce pode estar no escopo global ou ainda nao ter sessoes.
+- `disconnected`: garanta que o Gateway esteja em execução e que seus `--url/--token/--password` estejam corretos.
+- Nenhum agente no seletor: verifique `openclaw agents list` e sua configuração de roteamento.
+- Seletor de sessão vazio: você pode estar no escopo global ou ainda não ter sessões.

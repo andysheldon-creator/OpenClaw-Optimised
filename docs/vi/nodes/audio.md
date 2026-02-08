@@ -1,49 +1,49 @@
 ---
-summary: "Cách audio/ghi chú giọng nói đến được tải xuống, chuyển thành văn bản và chèn vào phản hồi"
+summary: "Cách các ghi chú âm thanh/giọng nói đầu vào được tải xuống, phiên âm và chèn vào phản hồi"
 read_when:
-  - Thay đổi chuyển đổi giọng nói sang văn bản hoặc xử lý media
-title: "Audio và Ghi chú Giọng nói"
+  - Thay đổi phiên âm âm thanh hoặc xử lý media
+title: "Âm thanh và Ghi chú giọng nói"
 x-i18n:
   source_path: nodes/audio.md
   source_hash: b926c47989ab0d1e
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:40Z
+  generated_at: 2026-02-08T09:39:28Z
 ---
 
-# Audio / Ghi chú Giọng nói — 2026-01-17
+# Âm thanh / Ghi chú giọng nói — 2026-01-17
 
 ## Những gì hoạt động
 
-- **Hiểu media (audio)**: Nếu hiểu audio được bật (hoặc tự động phát hiện), OpenClaw:
-  1. Xác định tệp đính kèm audio đầu tiên (đường dẫn cục bộ hoặc URL) và tải xuống nếu cần.
-  2. Áp dụng `maxBytes` trước khi gửi tới từng mục model.
-  3. Chạy mục model đủ điều kiện đầu tiên theo thứ tự (provider hoặc CLI).
-  4. Nếu thất bại hoặc bị bỏ qua (kích thước/timeout), thử mục tiếp theo.
+- **Hiểu media (âm thanh)**: Nếu tính năng hiểu âm thanh được bật (hoặc tự động phát hiện), OpenClaw:
+  1. Xác định tệp đính kèm âm thanh đầu tiên (đường dẫn cục bộ hoặc URL) và tải xuống nếu cần.
+  2. Áp dụng `maxBytes` trước khi gửi đến từng mục mô hình.
+  3. Chạy mục mô hình đủ điều kiện đầu tiên theo thứ tự (nhà cung cấp hoặc CLI).
+  4. Nếu thất bại hoặc bị bỏ qua (kích thước/thời gian chờ), sẽ thử mục tiếp theo.
   5. Khi thành công, thay thế `Body` bằng một khối `[Audio]` và đặt `{{Transcript}}`.
-- **Phân tích lệnh**: Khi chuyển văn bản thành công, `CommandBody`/`RawBody` được đặt thành bản chép để các lệnh gạch chéo vẫn hoạt động.
-- **Ghi log chi tiết**: Trong `--verbose`, chúng tôi ghi lại khi quá trình chuyển văn bản chạy và khi nó thay thế nội dung.
+- **Phân tích lệnh**: Khi phiên âm thành công, `CommandBody`/`RawBody` được đặt thành bản phiên âm để các lệnh gạch chéo vẫn hoạt động.
+- **Ghi log chi tiết**: Trong `--verbose`, chúng tôi ghi lại khi phiên âm chạy và khi nó thay thế nội dung.
 
 ## Tự động phát hiện (mặc định)
 
-Nếu bạn **không cấu hình model** và `tools.media.audio.enabled` **không** được đặt thành `false`,
-OpenClaw tự động phát hiện theo thứ tự sau và dừng ở tùy chọn đầu tiên hoạt động:
+Nếu bạn **không cấu hình mô hình** và `tools.media.audio.enabled` **không** được đặt thành `false`,
+OpenClaw sẽ tự động phát hiện theo thứ tự sau và dừng ở tùy chọn đầu tiên hoạt động:
 
 1. **CLI cục bộ** (nếu đã cài)
    - `sherpa-onnx-offline` (yêu cầu `SHERPA_ONNX_MODEL_DIR` với encoder/decoder/joiner/tokens)
-   - `whisper-cli` (từ `whisper-cpp`; dùng `WHISPER_CPP_MODEL` hoặc model tiny đi kèm)
-   - `whisper` (Python CLI; tự động tải model)
+   - `whisper-cli` (từ `whisper-cpp`; dùng `WHISPER_CPP_MODEL` hoặc mô hình tiny đi kèm)
+   - `whisper` (CLI Python; tự động tải mô hình)
 2. **Gemini CLI** (`gemini`) sử dụng `read_many_files`
-3. **Khóa provider** (OpenAI → Groq → Deepgram → Google)
+3. **Khóa nhà cung cấp** (OpenAI → Groq → Deepgram → Google)
 
 Để tắt tự động phát hiện, đặt `tools.media.audio.enabled: false`.
 Để tùy chỉnh, đặt `tools.media.audio.models`.
-Lưu ý: Việc phát hiện binary là best‑effort trên macOS/Linux/Windows; hãy đảm bảo CLI nằm trên `PATH` (chúng tôi mở rộng `~`), hoặc đặt một model CLI tường minh với đường dẫn lệnh đầy đủ.
+Lưu ý: Việc phát hiện binary là nỗ lực tốt nhất trên macOS/Linux/Windows; hãy đảm bảo CLI nằm trên `PATH` (chúng tôi mở rộng `~`), hoặc đặt một mô hình CLI rõ ràng với đường dẫn lệnh đầy đủ.
 
 ## Ví dụ cấu hình
 
-### Provider + CLI dự phòng (OpenAI + Whisper CLI)
+### Nhà cung cấp + dự phòng CLI (OpenAI + Whisper CLI)
 
 ```json5
 {
@@ -67,7 +67,7 @@ Lưu ý: Việc phát hiện binary là best‑effort trên macOS/Linux/Windows;
 }
 ```
 
-### Chỉ provider với kiểm soát phạm vi
+### Chỉ nhà cung cấp với giới hạn phạm vi
 
 ```json5
 {
@@ -86,7 +86,7 @@ Lưu ý: Việc phát hiện binary là best‑effort trên macOS/Linux/Windows;
 }
 ```
 
-### Chỉ provider (Deepgram)
+### Chỉ nhà cung cấp (Deepgram)
 
 ```json5
 {
@@ -103,19 +103,19 @@ Lưu ý: Việc phát hiện binary là best‑effort trên macOS/Linux/Windows;
 
 ## Ghi chú & giới hạn
 
-- Xác thực provider tuân theo thứ tự xác thực model tiêu chuẩn (hồ sơ xác thực, biến môi trường, `models.providers.*.apiKey`).
-- Deepgram nhận `DEEPGRAM_API_KEY` khi dùng `provider: "deepgram"`.
-- Chi tiết thiết lập Deepgram: [Deepgram (chuyển văn bản audio)](/providers/deepgram).
-- Các provider audio có thể ghi đè `baseUrl`, `headers` và `providerOptions` thông qua `tools.media.audio`.
-- Giới hạn kích thước mặc định là 20MB (`tools.media.audio.maxBytes`). Audio quá lớn sẽ bị bỏ qua cho model đó và thử mục tiếp theo.
-- `maxChars` mặc định cho audio là **không đặt** (bản chép đầy đủ). Đặt `tools.media.audio.maxChars` hoặc `maxChars` theo từng mục để cắt bớt đầu ra.
+- Xác thực nhà cung cấp tuân theo thứ tự xác thực mô hình tiêu chuẩn (hồ sơ xác thực, biến môi trường, `models.providers.*.apiKey`).
+- Deepgram sử dụng `DEEPGRAM_API_KEY` khi dùng `provider: "deepgram"`.
+- Chi tiết thiết lập Deepgram: [Deepgram (phiên âm âm thanh)](/providers/deepgram).
+- Các nhà cung cấp âm thanh có thể ghi đè `baseUrl`, `headers` và `providerOptions` thông qua `tools.media.audio`.
+- Giới hạn kích thước mặc định là 20MB (`tools.media.audio.maxBytes`). Âm thanh vượt kích thước sẽ bị bỏ qua cho mô hình đó và thử mục tiếp theo.
+- `maxChars` mặc định cho âm thanh là **không đặt** (toàn bộ bản phiên âm). Đặt `tools.media.audio.maxChars` hoặc theo từng mục `maxChars` để cắt bớt đầu ra.
 - Mặc định tự động của OpenAI là `gpt-4o-mini-transcribe`; đặt `model: "gpt-4o-transcribe"` để có độ chính xác cao hơn.
 - Dùng `tools.media.audio.attachments` để xử lý nhiều ghi chú giọng nói (`mode: "all"` + `maxAttachments`).
-- Bản chép có sẵn cho template dưới dạng `{{Transcript}}`.
+- Bản phiên âm có sẵn cho các template dưới dạng `{{Transcript}}`.
 - stdout của CLI bị giới hạn (5MB); hãy giữ đầu ra CLI ngắn gọn.
 
-## Lưu ý dễ mắc
+## Các điểm dễ sai
 
-- Quy tắc phạm vi áp dụng nguyên tắc khớp đầu tiên. `chatType` được chuẩn hóa thành `direct`, `group` hoặc `room`.
-- Đảm bảo CLI thoát với mã 0 và in văn bản thuần; JSON cần được xử lý qua `jq -r .text`.
-- Giữ timeout hợp lý (`timeoutSeconds`, mặc định 60s) để tránh chặn hàng đợi phản hồi.
+- Quy tắc phạm vi dùng nguyên tắc khớp đầu tiên. `chatType` được chuẩn hóa thành `direct`, `group` hoặc `room`.
+- Đảm bảo CLI của bạn thoát với mã 0 và in văn bản thuần; JSON cần được xử lý lại qua `jq -r .text`.
+- Giữ thời gian chờ ở mức hợp lý (`timeoutSeconds`, mặc định 60s) để tránh chặn hàng đợi phản hồi.

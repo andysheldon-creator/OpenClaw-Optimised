@@ -1,7 +1,7 @@
 ---
-title: CLI de Sandbox
-summary: "Gerencie containers de sandbox e inspecione a politica efetiva de sandbox"
-read_when: "Voce esta gerenciando containers de sandbox ou depurando o comportamento de sandbox/politica de ferramentas."
+title: CLI do Sandbox
+summary: "Gerencie contêineres de sandbox e inspecione a política efetiva do sandbox"
+read_when: "Você está gerenciando contêineres de sandbox ou depurando o comportamento de sandbox/política de ferramentas."
 status: active
 x-i18n:
   source_path: cli/sandbox.md
@@ -9,22 +9,22 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:43Z
+  generated_at: 2026-02-08T09:30:23Z
 ---
 
-# CLI de Sandbox
+# CLI do Sandbox
 
-Gerencie containers de sandbox baseados em Docker para execucao isolada de agentes.
+Gerencie contêineres de sandbox baseados em Docker para execução isolada de agentes.
 
-## Visao geral
+## Visão geral
 
-O OpenClaw pode executar agentes em containers Docker isolados para seguranca. Os comandos `sandbox` ajudam voce a gerenciar esses containers, especialmente apos atualizacoes ou mudancas de configuracao.
+O OpenClaw pode executar agentes em contêineres Docker isolados por segurança. Os comandos `sandbox` ajudam você a gerenciar esses contêineres, especialmente após atualizações ou mudanças de configuração.
 
 ## Comandos
 
 ### `openclaw sandbox explain`
 
-Inspecione o modo/escopo/acesso ao workspace **efetivos** do sandbox, a politica de ferramentas do sandbox e os gates elevados (com caminhos de chaves de configuracao para correcoes).
+Inspecione o modo/escopo/acesso ao workspace **efetivo** do sandbox, a política de ferramentas do sandbox e os gates elevados (com caminhos das chaves de configuração de correção).
 
 ```bash
 openclaw sandbox explain
@@ -35,7 +35,7 @@ openclaw sandbox explain --json
 
 ### `openclaw sandbox list`
 
-Liste todos os containers de sandbox com seu status e configuracao.
+Liste todos os contêineres de sandbox com seu status e configuração.
 
 ```bash
 openclaw sandbox list
@@ -43,17 +43,17 @@ openclaw sandbox list --browser  # List only browser containers
 openclaw sandbox list --json     # JSON output
 ```
 
-**A saida inclui:**
+**A saída inclui:**
 
-- Nome do container e status (em execucao/parado)
-- Imagem Docker e se corresponde a configuracao
-- Idade (tempo desde a criacao)
-- Tempo ocioso (tempo desde o ultimo uso)
-- Sessao/agente associado
+- Nome e status do contêiner (em execução/parado)
+- Imagem Docker e se corresponde à configuração
+- Idade (tempo desde a criação)
+- Tempo ocioso (tempo desde o último uso)
+- Sessão/agente associado
 
 ### `openclaw sandbox recreate`
 
-Remova containers de sandbox para forcar a recriacao com imagens/configuracoes atualizadas.
+Remova contêineres de sandbox para forçar a recriação com imagens/configurações atualizadas.
 
 ```bash
 openclaw sandbox recreate --all                # Recreate all containers
@@ -63,19 +63,19 @@ openclaw sandbox recreate --browser            # Only browser containers
 openclaw sandbox recreate --all --force        # Skip confirmation
 ```
 
-**Opcoes:**
+**Opções:**
 
-- `--all`: Recriar todos os containers de sandbox
-- `--session <key>`: Recriar container para uma sessao especifica
-- `--agent <id>`: Recriar containers para um agente especifico
-- `--browser`: Recriar apenas containers de navegador
-- `--force`: Pular confirmacao
+- `--all`: Recriar todos os contêineres de sandbox
+- `--session <key>`: Recriar contêiner para uma sessão específica
+- `--agent <id>`: Recriar contêineres para um agente específico
+- `--browser`: Recriar apenas contêineres de navegador
+- `--force`: Ignorar o prompt de confirmação
 
-**Importante:** Os containers sao recriados automaticamente quando o agente for usado novamente.
+**Importante:** Os contêineres são recriados automaticamente quando o agente é usado novamente.
 
 ## Casos de uso
 
-### Apos atualizar imagens Docker
+### Após atualizar imagens Docker
 
 ```bash
 # Pull new image
@@ -89,7 +89,7 @@ docker tag openclaw-sandbox:latest openclaw-sandbox:bookworm-slim
 openclaw sandbox recreate --all
 ```
 
-### Apos alterar a configuracao de sandbox
+### Após alterar a configuração do sandbox
 
 ```bash
 # Edit config: agents.defaults.sandbox.* (or agents.list[].sandbox.*)
@@ -98,7 +98,7 @@ openclaw sandbox recreate --all
 openclaw sandbox recreate --all
 ```
 
-### Apos alterar o setupCommand
+### Após alterar setupCommand
 
 ```bash
 openclaw sandbox recreate --all
@@ -106,28 +106,28 @@ openclaw sandbox recreate --all
 openclaw sandbox recreate --agent family
 ```
 
-### Para apenas um agente especifico
+### Apenas para um agente específico
 
 ```bash
 # Update only one agent's containers
 openclaw sandbox recreate --agent alfred
 ```
 
-## Por que isso e necessario?
+## Por que isso é necessário?
 
-**Problema:** Quando voce atualiza imagens Docker de sandbox ou a configuracao:
+**Problema:** Quando você atualiza imagens Docker do sandbox ou a configuração:
 
-- Containers existentes continuam em execucao com configuracoes antigas
-- Containers so sao removidos apos 24h de inatividade
-- Agentes usados regularmente mantem containers antigos em execucao indefinidamente
+- Contêineres existentes continuam em execução com configurações antigas
+- Os contêineres só são removidos após 24h de inatividade
+- Agentes usados regularmente mantêm contêineres antigos em execução indefinidamente
 
-**Solucao:** Use `openclaw sandbox recreate` para forcar a remocao de containers antigos. Eles serao recriados automaticamente com as configuracoes atuais quando forem necessarios novamente.
+**Solução:** Use `openclaw sandbox recreate` para forçar a remoção de contêineres antigos. Eles serão recriados automaticamente com as configurações atuais quando forem necessários novamente.
 
-Dica: prefira `openclaw sandbox recreate` em vez de `docker rm` manual. Ele usa a nomeacao de containers do Gateway e evita inconsistencias quando chaves de escopo/sessao mudam.
+Dica: prefira `openclaw sandbox recreate` em vez de `docker rm` manual. Ele usa o esquema de nomes de contêineres do Gateway e evita incompatibilidades quando chaves de escopo/sessão mudam.
 
-## Configuracao
+## Configuração
 
-As configuracoes de sandbox ficam em `~/.openclaw/openclaw.json` sob `agents.defaults.sandbox` (substituicoes por agente ficam em `agents.list[].sandbox`):
+As configurações do sandbox ficam em `~/.openclaw/openclaw.json` sob `agents.defaults.sandbox` (substituições por agente ficam em `agents.list[].sandbox`):
 
 ```jsonc
 {
@@ -151,8 +151,8 @@ As configuracoes de sandbox ficam em `~/.openclaw/openclaw.json` sob `agents.def
 }
 ```
 
-## Veja tambem
+## Veja também
 
-- [Documentacao de Sandbox](/gateway/sandboxing)
-- [Configuracao de Agente](/concepts/agent-workspace)
-- [Comando Doctor](/gateway/doctor) - Verifique a configuracao de sandbox
+- [Documentação do Sandbox](/gateway/sandboxing)
+- [Configuração de Agente](/concepts/agent-workspace)
+- [Comando Doctor](/gateway/doctor) - Verifique a configuração do sandbox

@@ -1,27 +1,27 @@
 ---
-summary: "CLI リファレンス: `openclaw plugins`（一覧、インストール、有効化/無効化、doctor）"
+summary: "「openclaw plugins」（一覧、インストール、有効化／無効化、doctor）の CLI リファレンスです"
 read_when:
-  - プロセス内で読み込まれる Gateway（ゲートウェイ） プラグインをインストールまたは管理したい場合
+  - インプロセスの Gateway（ゲートウェイ）プラグインをインストールまたは管理したい場合
   - プラグインの読み込み失敗をデバッグしたい場合
 title: "プラグイン"
 x-i18n:
   source_path: cli/plugins.md
-  source_hash: c6bf76b1e766b912
+  source_hash: 60476e0a9b7247bd
   provider: openai
-  model: gpt-5.2-pro
+  model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-06T05:00:32Z
+  generated_at: 2026-02-08T09:21:14Z
 ---
 
 # `openclaw plugins`
 
-Gateway（ゲートウェイ） プラグイン/拡張（プロセス内で読み込み）を管理します。
+Gateway（ゲートウェイ）プラグイン／拡張（インプロセスで読み込み）を管理します。
 
-関連:
+関連項目:
 
-- プラグインシステム: [プラグイン](/plugin)
-- プラグインマニフェスト + スキーマ: [プラグインマニフェスト](/plugins/manifest)
-- セキュリティ強化: [セキュリティ](/gateway/security)
+- プラグインシステム: [Plugins](/tools/plugin)
+- プラグインマニフェスト + スキーマ: [Plugin manifest](/plugins/manifest)
+- セキュリティ強化: [Security](/gateway/security)
 
 ## コマンド
 
@@ -35,9 +35,9 @@ openclaw plugins update <id>
 openclaw plugins update --all
 ```
 
-同梱プラグインは OpenClaw とともに提供されますが、初期状態では無効です。`plugins enable` を使用して有効化します。
+バンドルされたプラグインは OpenClaw とともに提供されますが、初期状態では無効です。`plugins enable` を使用して有効化します。
 
-すべてのプラグインは、インラインの JSON Schema（`configSchema`、空でも可）を含む `openclaw.plugin.json` ファイルを同梱する必要があります。マニフェストまたはスキーマが欠落している/無効である場合、プラグインの読み込みが阻止され、設定の検証が失敗します。
+すべてのプラグインは、インラインの JSON Schema（`configSchema`、空であっても）を含む `openclaw.plugin.json` ファイルを同梱する必要があります。マニフェストまたはスキーマが欠落している、または無効な場合、プラグインは読み込まれず、設定の検証に失敗します。
 
 ### インストール
 
@@ -45,11 +45,11 @@ openclaw plugins update --all
 openclaw plugins install <path-or-spec>
 ```
 
-セキュリティ注意: プラグインのインストールはコードの実行と同様に扱ってください。バージョンを固定（pin）することを推奨します。
+セキュリティに関する注意: プラグインのインストールはコードの実行と同様に扱ってください。固定（ピン留め）されたバージョンを推奨します。
 
 対応アーカイブ: `.zip`、`.tgz`、`.tar.gz`、`.tar`。
 
-ローカルディレクトリのコピーを避けるには `--link` を使用します（`plugins.load.paths` に追加されます）:
+ローカルディレクトリのコピーを避けるには `--link` を使用してください（`plugins.load.paths` に追加されます）:
 
 ```bash
 openclaw plugins install -l ./my-plugin

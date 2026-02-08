@@ -1,5 +1,5 @@
 ---
-summary: "Compreensão de imagens/áudio/vídeo de entrada (opcional) com provedor + fallbacks de CLI"
+summary: "Compreensão de imagem/áudio/vídeo de entrada (opcional) com provedor + fallbacks via CLI"
 read_when:
   - Projetando ou refatorando a compreensão de mídia
   - Ajustando o pré-processamento de áudio/vídeo/imagem de entrada
@@ -10,18 +10,18 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:56:54Z
+  generated_at: 2026-02-08T09:31:31Z
 ---
 
 # Compreensão de Mídia (Entrada) — 2026-01-17
 
-O OpenClaw pode **resumir mídias de entrada** (imagem/áudio/vídeo) antes que o pipeline de resposta seja executado. Ele detecta automaticamente quando ferramentas locais ou chaves de provedor estão disponíveis e pode ser desativado ou personalizado. Se a compreensão estiver desativada, os modelos ainda recebem os arquivos/URLs originais normalmente.
+O OpenClaw pode **resumir mídia de entrada** (imagem/áudio/vídeo) antes da execução do pipeline de resposta. Ele detecta automaticamente quando ferramentas locais ou chaves de provedor estão disponíveis e pode ser desativado ou personalizado. Se a compreensão estiver desativada, os modelos ainda recebem os arquivos/URLs originais normalmente.
 
 ## Objetivos
 
-- Opcional: pré-digerir mídias de entrada em texto curto para roteamento mais rápido + melhor análise de comandos.
-- Preservar a entrega da mídia original ao modelo (sempre).
-- Suportar **APIs de provedores** e **fallbacks de CLI**.
+- Opcional: pré-digerir a mídia de entrada em texto curto para roteamento mais rápido + melhor análise de comandos.
+- Preservar sempre a entrega da mídia original ao modelo.
+- Suportar **APIs de provedores** e **fallbacks via CLI**.
 - Permitir múltiplos modelos com fallback ordenado (erro/tamanho/timeout).
 
 ## Comportamento em alto nível
@@ -34,11 +34,11 @@ O OpenClaw pode **resumir mídias de entrada** (imagem/áudio/vídeo) antes que 
    - `Body` torna-se um bloco `[Image]`, `[Audio]` ou `[Video]`.
    - Áudio define `{{Transcript}}`; a análise de comandos usa o texto da legenda quando presente,
      caso contrário, a transcrição.
-   - Legendas são preservadas como `User text:` dentro do bloco.
+   - As legendas são preservadas como `User text:` dentro do bloco.
 
 Se a compreensão falhar ou estiver desativada, **o fluxo de resposta continua** com o corpo original + anexos.
 
-## Visão geral da configuração
+## Visão geral de configuração
 
 `tools.media` suporta **modelos compartilhados** além de substituições por capacidade:
 
@@ -46,8 +46,8 @@ Se a compreensão falhar ou estiver desativada, **o fluxo de resposta continua**
 - `tools.media.image` / `tools.media.audio` / `tools.media.video`:
   - padrões (`prompt`, `maxChars`, `maxBytes`, `timeoutSeconds`, `language`)
   - substituições por provedor (`baseUrl`, `headers`, `providerOptions`)
-  - opções de áudio do Deepgram via `tools.media.audio.providerOptions.deepgram`
-  - lista **`models` por capacidade** opcional (preferida antes dos modelos compartilhados)
+  - opções de áudio Deepgram via `tools.media.audio.providerOptions.deepgram`
+  - **lista opcional por capacidade `models`** (preferida antes dos modelos compartilhados)
   - política `attachments` (`mode`, `maxAttachments`, `prefer`)
   - `scope` (controle opcional por canal/chatType/chave de sessão)
 - `tools.media.concurrency`: máximo de execuções concorrentes por capacidade (padrão **2**).
@@ -75,7 +75,7 @@ Se a compreensão falhar ou estiver desativada, **o fluxo de resposta continua**
 
 ### Entradas de modelo
 
-Cada entrada `models[]` pode ser **provedor** ou **CLI**:
+Cada entrada `models[]` pode ser de **provedor** ou **CLI**:
 
 ```json5
 {
@@ -110,7 +110,7 @@ Cada entrada `models[]` pode ser **provedor** ou **CLI**:
 }
 ```
 
-Modelos de CLI também podem usar:
+Os templates de CLI também podem usar:
 
 - `{{MediaDir}}` (diretório que contém o arquivo de mídia)
 - `{{OutputDir}}` (diretório temporário criado para esta execução)
@@ -130,21 +130,21 @@ Padrões recomendados:
 Regras:
 
 - Se a mídia exceder `maxBytes`, esse modelo é ignorado e o **próximo modelo é tentado**.
-- Se o modelo retornar mais que `maxChars`, a saída é aparada.
-- `prompt` usa por padrão o simples “Describe the {media}.” mais a orientação `maxChars` (apenas imagem/vídeo).
+- Se o modelo retornar mais do que `maxChars`, a saída é truncada.
+- `prompt` usa por padrão um simples “Describe the {media}.” mais a orientação `maxChars` (apenas imagem/vídeo).
 - Se `<capability>.enabled: true` mas nenhum modelo estiver configurado, o OpenClaw tenta o
   **modelo de resposta ativo** quando o provedor dele suporta a capacidade.
 
 ### Detecção automática de compreensão de mídia (padrão)
 
 Se `tools.media.<capability>.enabled` **não** estiver definido como `false` e você não tiver
-modelos configurados, o OpenClaw detecta automaticamente nesta ordem e **para na primeira
+configurado modelos, o OpenClaw detecta automaticamente nesta ordem e **para na primeira
 opção funcional**:
 
 1. **CLIs locais** (apenas áudio; se instaladas)
    - `sherpa-onnx-offline` (requer `SHERPA_ONNX_MODEL_DIR` com encoder/decoder/joiner/tokens)
-   - `whisper-cli` (`whisper-cpp`; usa `WHISPER_CPP_MODEL` ou o modelo tiny empacotado)
-   - `whisper` (CLI em Python; baixa modelos automaticamente)
+   - `whisper-cli` (`whisper-cpp`; usa `WHISPER_CPP_MODEL` ou o modelo tiny incluído)
+   - `whisper` (CLI Python; baixa modelos automaticamente)
 2. **Gemini CLI** (`gemini`) usando `read_many_files`
 3. **Chaves de provedor**
    - Áudio: OpenAI → Groq → Deepgram → Google
@@ -165,11 +165,11 @@ Para desativar a detecção automática, defina:
 }
 ```
 
-Observação: a detecção de binários é best‑effort em macOS/Linux/Windows; garanta que a CLI esteja no `PATH` (expandimos `~`), ou defina um modelo de CLI explícito com um caminho completo do comando.
+Nota: A detecção de binários é best-effort em macOS/Linux/Windows; garanta que a CLI esteja em `PATH` (expandimos `~`), ou defina um modelo de CLI explícito com o caminho completo do comando.
 
 ## Capacidades (opcional)
 
-Se você definir `capabilities`, a entrada só roda para esses tipos de mídia. Para listas
+Se você definir `capabilities`, a entrada só é executada para esses tipos de mídia. Para listas
 compartilhadas, o OpenClaw pode inferir padrões:
 
 - `openai`, `anthropic`, `minimax`: **imagem**
@@ -182,11 +182,11 @@ Se você omitir `capabilities`, a entrada é elegível para a lista em que apare
 
 ## Matriz de suporte de provedores (integrações OpenClaw)
 
-| Capacidade | Integração de provedor                           | Observações                                                    |
-| ---------- | ------------------------------------------------ | -------------------------------------------------------------- |
-| Imagem     | OpenAI / Anthropic / Google / outros via `pi-ai` | Qualquer modelo com capacidade de imagem no registro funciona. |
-| Áudio      | OpenAI, Groq, Deepgram, Google                   | Transcrição pelo provedor (Whisper/Deepgram/Gemini).           |
-| Vídeo      | Google (API Gemini)                              | Compreensão de vídeo pelo provedor.                            |
+| Capacidade | Integração de provedor                           | Notas                                                      |
+| ---------- | ------------------------------------------------ | ---------------------------------------------------------- |
+| Imagem     | OpenAI / Anthropic / Google / outros via `pi-ai` | Qualquer modelo com suporte a imagem no registry funciona. |
+| Áudio      | OpenAI, Groq, Deepgram, Google                   | Transcrição por provedor (Whisper/Deepgram/Gemini).        |
+| Vídeo      | Google (API Gemini)                              | Compreensão de vídeo pelo provedor.                        |
 
 ## Provedores recomendados
 
@@ -198,17 +198,17 @@ Se você omitir `capabilities`, a entrada é elegível para a lista em que apare
 **Áudio**
 
 - `openai/gpt-4o-mini-transcribe`, `groq/whisper-large-v3-turbo` ou `deepgram/nova-3`.
-- Fallback de CLI: `whisper-cli` (whisper-cpp) ou `whisper`.
+- Fallback via CLI: `whisper-cli` (whisper-cpp) ou `whisper`.
 - Configuração do Deepgram: [Deepgram (transcrição de áudio)](/providers/deepgram).
 
 **Vídeo**
 
 - `google/gemini-3-flash-preview` (rápido), `google/gemini-3-pro-preview` (mais rico).
-- Fallback de CLI: CLI `gemini` (suporta `read_file` em vídeo/áudio).
+- Fallback via CLI: CLI `gemini` (suporta `read_file` em vídeo/áudio).
 
 ## Política de anexos
 
-A política `attachments` por capacidade controla quais anexos são processados:
+A `attachments` por capacidade controla quais anexos são processados:
 
 - `mode`: `first` (padrão) ou `all`
 - `maxAttachments`: limita a quantidade processada (padrão **1**)
@@ -255,7 +255,7 @@ Quando `mode: "all"`, as saídas são rotuladas como `[Image 1/2]`, `[Audio 2/2]
 }
 ```
 
-### 2) Apenas Áudio + Vídeo (imagem desligada)
+### 2) Apenas Áudio + Vídeo (imagem desativada)
 
 ```json5
 {
@@ -295,7 +295,7 @@ Quando `mode: "all"`, as saídas são rotuladas como `[Image 1/2]`, `[Audio 2/2]
 }
 ```
 
-### 3) Compreensão opcional de imagem
+### 3) Compreensão de imagem opcional
 
 ```json5
 {
@@ -366,7 +366,7 @@ Quando `mode: "all"`, as saídas são rotuladas como `[Image 1/2]`, `[Audio 2/2]
 
 ## Saída de status
 
-Quando a compreensão de mídia é executada, `/status` inclui uma linha curta de resumo:
+Quando a compreensão de mídia é executada, `/status` inclui uma linha de resumo curta:
 
 ```
 📎 Media: image ok (openai/gpt-5.2) · audio skipped (maxBytes)
@@ -374,11 +374,11 @@ Quando a compreensão de mídia é executada, `/status` inclui uma linha curta d
 
 Isso mostra os resultados por capacidade e o provedor/modelo escolhido quando aplicável.
 
-## Observações
+## Notas
 
-- A compreensão é **best‑effort**. Erros não bloqueiam respostas.
-- Anexos ainda são passados aos modelos mesmo quando a compreensão está desativada.
-- Use `scope` para limitar onde a compreensão é executada (por exemplo, apenas Mensagens diretas).
+- A compreensão é **best-effort**. Erros não bloqueiam respostas.
+- Os anexos ainda são enviados aos modelos mesmo quando a compreensão está desativada.
+- Use `scope` para limitar onde a compreensão é executada (por exemplo, apenas DMs).
 
 ## Documentos relacionados
 

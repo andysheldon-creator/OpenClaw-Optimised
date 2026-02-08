@@ -1,28 +1,28 @@
 ---
-summary: "CLI-Referenz fuer `openclaw channels` (Accounts, Status, Login/Logout, Logs)"
+summary: "CLI-Referenz für `openclaw channels` (Konten, Status, Login/Logout, Logs)"
 read_when:
-  - Sie moechten Kanal-Accounts hinzufuegen/entfernen (WhatsApp/Telegram/Discord/Google Chat/Slack/Mattermost (Plugin)/Signal/iMessage)
-  - Sie moechten den Kanalstatus pruefen oder Kanallogs verfolgen
-title: "channels"
+  - Sie möchten Kanal-Konten hinzufügen/entfernen (WhatsApp/Telegram/Discord/Google Chat/Slack/Mattermost (Plugin)/Signal/iMessage)
+  - Sie möchten den Kanalstatus prüfen oder Kanal-Logs verfolgen
+title: "Kanäle"
 x-i18n:
   source_path: cli/channels.md
   source_hash: 16ab1642f247bfa9
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:35Z
+  generated_at: 2026-02-08T09:35:31Z
 ---
 
 # `openclaw channels`
 
-Verwalten Sie Chat-Kanal-Accounts und deren Laufzeitstatus auf dem Gateway.
+Verwalten Sie Chat-Kanal-Konten und deren Laufzeitstatus auf dem Gateway.
 
-Zugehoerige Dokumente:
+Zugehörige Dokumentation:
 
 - Kanal-Anleitungen: [Channels](/channels/index)
 - Gateway-Konfiguration: [Configuration](/gateway/configuration)
 
-## Gemeinsame Befehle
+## Allgemeine Befehle
 
 ```bash
 openclaw channels list
@@ -33,7 +33,7 @@ openclaw channels resolve --channel slack "#general" "@jane"
 openclaw channels logs --channel all
 ```
 
-## Accounts hinzufuegen / entfernen
+## Konten hinzufügen / entfernen
 
 ```bash
 openclaw channels add --channel telegram --token <bot-token>
@@ -51,13 +51,13 @@ openclaw channels logout --channel whatsapp
 
 ## Fehlerbehebung
 
-- Fuehren Sie `openclaw status --deep` fuer eine breite Analyse aus.
-- Verwenden Sie `openclaw doctor` fuer angeleitete Korrekturen.
-- `openclaw channels list` gibt `Claude: HTTP 403 ... user:profile` aus → Der Nutzungssnapshot erfordert den Scope `user:profile`. Verwenden Sie `--no-usage` oder stellen Sie einen claude.ai-Sitzungsschluessel bereit (`CLAUDE_WEB_SESSION_KEY` / `CLAUDE_WEB_COOKIE`) oder authentifizieren Sie sich erneut ueber die Claude Code CLI.
+- Führen Sie `openclaw status --deep` für eine breite Diagnose aus.
+- Verwenden Sie `openclaw doctor` für geführte Korrekturen.
+- `openclaw channels list` gibt `Claude: HTTP 403 ... user:profile` aus → der Nutzungs-Snapshot benötigt den Geltungsbereich `user:profile`. Verwenden Sie `--no-usage` oder stellen Sie einen claude.ai-Sitzungsschlüssel bereit (`CLAUDE_WEB_SESSION_KEY` / `CLAUDE_WEB_COOKIE`), oder authentifizieren Sie sich erneut über die Claude Code CLI.
 
-## Faehigkeiten-Pruefung
+## Fähigkeitsabfrage
 
-Rufen Sie Anbieter-Faehigkeitshinweise (Intents/Scopes, wo verfuegbar) sowie statische Funktionsunterstuetzung ab:
+Rufen Sie Anbieter-Hinweise zu Fähigkeiten (Intents/Scopes, wo verfügbar) sowie statische Funktionsunterstützung ab:
 
 ```bash
 openclaw channels capabilities
@@ -66,13 +66,13 @@ openclaw channels capabilities --channel discord --target channel:123
 
 Hinweise:
 
-- `--channel` ist optional; lassen Sie es weg, um jeden Kanal aufzulisten (einschliesslich Erweiterungen).
-- `--target` akzeptiert `channel:<id>` oder eine rohe numerische Kanal-ID und gilt nur fuer Discord.
-- Pruefungen sind anbieterspezifisch: Discord-Intents + optionale Kanalberechtigungen; Slack-Bot- + User-Scopes; Telegram-Bot-Flags + Webhook; Signal-Daemon-Version; MS Teams App-Token + Graph-Rollen/Scopes (wo bekannt, annotiert). Kanaele ohne Pruefung melden `Probe: unavailable`.
+- `--channel` ist optional; lassen Sie es weg, um jeden Kanal aufzulisten (einschließlich Erweiterungen).
+- `--target` akzeptiert `channel:<id>` oder eine rohe numerische Kanal-ID und gilt nur für Discord.
+- Abfragen sind anbieterspezifisch: Discord-Intents + optionale Kanalberechtigungen; Slack Bot- + Benutzer-Scopes; Telegram Bot-Flags + Webhook; Signal-Daemon-Version; MS Teams App-Token + Graph-Rollen/Scopes (wo bekannt annotiert). Kanäle ohne Abfragen melden `Probe: unavailable`.
 
-## Namen in IDs aufloesen
+## Namen zu IDs auflösen
 
-Loesen Sie Kanal-/Benutzernamen mithilfe des Anbieter-Verzeichnisses in IDs auf:
+Lösen Sie Kanal-/Benutzernamen mithilfe des Anbieter-Verzeichnisses zu IDs auf:
 
 ```bash
 openclaw channels resolve --channel slack "#general" "@jane"
@@ -83,4 +83,4 @@ openclaw channels resolve --channel matrix "Project Room"
 Hinweise:
 
 - Verwenden Sie `--kind user|group|auto`, um den Zieltyp zu erzwingen.
-- Bei mehreren Eintraegen mit demselben Namen wird die aktive Uebereinstimmung bevorzugt.
+- Die Auflösung bevorzugt aktive Treffer, wenn mehrere Einträge denselben Namen teilen.

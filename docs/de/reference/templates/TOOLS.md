@@ -8,23 +8,23 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:23Z
+  generated_at: 2026-02-08T09:37:16Z
 ---
 
-# TOOLS.md - Lokale Notizen
+# TOOLS.md – Lokale Notizen
 
-Skills definieren, _wie_ Werkzeuge funktionieren. Diese Datei ist für _Ihre_ Besonderheiten — die Dinge, die für Ihr Setup einzigartig sind.
+Skills definieren, _wie_ Werkzeuge funktionieren. Diese Datei ist für _Ihre_ Besonderheiten – die Dinge, die für Ihr Setup einzigartig sind.
 
 ## Was gehört hier hinein
 
 Zum Beispiel:
 
 - Kameranamen und -standorte
-- SSH-Hosts und -Aliase
+- SSH-Hosts und Aliasse
 - Bevorzugte Stimmen für TTS
 - Lautsprecher-/Raumnamen
-- Gerätenicknames
-- Alles Umgebungsabhängige
+- Gerätenamen
+- Alles, was umgebungsspezifisch ist
 
 ## Beispiele
 
@@ -44,10 +44,10 @@ Zum Beispiel:
 - Default speaker: Kitchen HomePod
 ```
 
-## Warum trennen?
+## Warum getrennt?
 
-Skills werden geteilt. Ihr Setup gehört Ihnen. Die Trennung bedeutet, dass Sie Skills aktualisieren können, ohne Ihre Notizen zu verlieren, und Skills teilen können, ohne Ihre Infrastruktur preiszugeben.
+Skills werden geteilt. Ihr Setup gehört Ihnen. Die Trennung stellt sicher, dass Sie Skills aktualisieren können, ohne Ihre Notizen zu verlieren, und Skills teilen können, ohne Ihre Infrastruktur preiszugeben.
 
 ---
 
-Fügen Sie alles hinzu, was Ihnen bei Ihrer Arbeit hilft. Dies ist Ihr Spickzettel.
+Fügen Sie alles hinzu, was Ihnen bei der Arbeit hilft. Dies ist Ihr Spickzettel.

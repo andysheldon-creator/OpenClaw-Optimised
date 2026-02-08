@@ -1,26 +1,26 @@
 ---
-summary: "CLI-Referenz für `openclaw setup` (Konfiguration + Arbeitsbereich initialisieren)"
+summary: "CLI-Referenz für `openclaw setup` (Initialisierung von Konfiguration + Arbeitsbereich)"
 read_when:
-  - Sie führen die Ersteinrichtung ohne den vollständigen Einführungsassistenten durch
+  - Sie führen die Ersteinrichtung ohne den vollständigen Onboarding-Assistenten durch
   - Sie möchten den Standardpfad für den Arbeitsbereich festlegen
-title: "Setup"
+title: "setup"
 x-i18n:
   source_path: cli/setup.md
   source_hash: 7f3fc8b246924edf
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:48Z
+  generated_at: 2026-02-08T09:35:43Z
 ---
 
 # `openclaw setup`
 
 Initialisieren Sie `~/.openclaw/openclaw.json` und den Agent-Arbeitsbereich.
 
-Zugehörig:
+Verwandt:
 
 - Erste Schritte: [Erste Schritte](/start/getting-started)
-- Assistent: [Einfuehrung](/start/onboarding)
+- Assistent: [Onboarding](/start/onboarding)
 
 ## Beispiele
 

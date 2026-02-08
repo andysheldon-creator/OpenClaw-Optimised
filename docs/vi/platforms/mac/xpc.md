@@ -1,41 +1,41 @@
 ---
-summary: "Kien truc IPC macOS cho ung dung OpenClaw, van chuyen nut Gateway va PeekabooBridge"
+summary: "Kiến trúc IPC trên macOS cho ứng dụng OpenClaw, truyền tải node của Gateway và PeekabooBridge"
 read_when:
-  - Chinh sua hop dong IPC hoac IPC cua ung dung thanh menu
-title: "IPC macOS"
+  - Chỉnh sửa các hợp đồng IPC hoặc IPC của ứng dụng menu bar
+title: "IPC trên macOS"
 x-i18n:
   source_path: platforms/mac/xpc.md
   source_hash: d0211c334a4a59b7
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:08:04Z
+  generated_at: 2026-02-08T09:39:48Z
 ---
 
-# Kien truc IPC macOS cua OpenClaw
+# Kiến trúc IPC OpenClaw trên macOS
 
-**Mo hinh hien tai:** mot socket Unix cuc bo ket noi **node host service** voi **ung dung macOS** de phe duyet exec + `system.run`. Mot CLI debug `openclaw-mac` ton tai cho viec kham pha/kiem tra ket noi; cac hanh dong cua tac tu van di qua Gateway WebSocket va `node.invoke`. Tu dong hoa UI su dung PeekabooBridge.
+**Mô hình hiện tại:** một Unix socket cục bộ kết nối **dịch vụ node host** với **ứng dụng macOS** để phê duyệt exec + `system.run`. Có một CLI debug `openclaw-mac` để khám phá/kiểm tra kết nối; các hành động của agent vẫn đi qua WebSocket của Gateway và `node.invoke`. Tự động hóa UI sử dụng PeekabooBridge.
 
-## Muc tieu
+## Mục tiêu
 
-- Mot the hien GUI duy nhat so huu tat ca cong viec lien quan den TCC (thong bao, ghi man hinh, mic, giong noi, AppleScript).
-- Be mat tu dong hoa nho gon: Gateway + cac lenh node, cong them PeekabooBridge cho tu dong hoa UI.
-- Quyen han co the doan truoc: luon cung bundle ID da ky, duoc launchd khoi chay, de quyen TCC duoc giu on dinh.
+- Một phiên bản ứng dụng GUI duy nhất sở hữu toàn bộ công việc liên quan TCC (thông báo, ghi màn hình, mic, giọng nói, AppleScript).
+- Bề mặt tự động hóa nhỏ gọn: Gateway + các lệnh node, cùng PeekabooBridge cho tự động hóa UI.
+- Quyền hạn có thể dự đoán: luôn cùng bundle ID đã ký, được launchd khởi chạy, để các cấp TCC được giữ nguyên.
 
-## Cach hoat dong
+## Cách hoạt động
 
-### Gateway + van chuyen node
+### Gateway + truyền tải node
 
-- Ung dung chay Gateway (che do local) va ket noi den no nhu mot node.
-- Cac hanh dong cua tac tu duoc thuc hien qua `node.invoke` (vi du: `system.run`, `system.notify`, `canvas.*`).
+- Ứng dụng chạy Gateway (chế độ local) và kết nối tới nó như một node.
+- Các hành động của agent được thực hiện qua `node.invoke` (ví dụ: `system.run`, `system.notify`, `canvas.*`).
 
-### Dich vu node + IPC ung dung
+### IPC giữa dịch vụ node + ứng dụng
 
-- Mot node host service khong giao dien ket noi den Gateway WebSocket.
-- Cac yeu cau `system.run` duoc chuyen tiep den ung dung macOS qua mot socket Unix cuc bo.
-- Ung dung thuc hien exec trong ngu canh UI, hien hop thoai neu can, va tra ve ket qua.
+- Một dịch vụ node host không giao diện kết nối tới WebSocket của Gateway.
+- Các yêu cầu `system.run` được chuyển tiếp tới ứng dụng macOS qua một Unix socket cục bộ.
+- Ứng dụng thực thi exec trong ngữ cảnh UI, hiển thị prompt nếu cần, và trả về đầu ra.
 
-So do (SCI):
+Sơ đồ (SCI):
 
 ```
 Agent -> Gateway -> Node Service (WS)
@@ -44,25 +44,25 @@ Agent -> Gateway -> Node Service (WS)
                   Mac App (UI + TCC + system.run)
 ```
 
-### PeekabooBridge (tu dong hoa UI)
+### PeekabooBridge (tự động hóa UI)
 
-- Tu dong hoa UI su dung mot socket UNIX rieng ten `bridge.sock` va giao thuc JSON cua PeekabooBridge.
-- Thu tu uu tien host (phia client): Peekaboo.app → Claude.app → OpenClaw.app → thuc thi local.
-- Bao mat: cac bridge host yeu cau TeamID duoc cho phep; loi thoat cung UID chi trong DEBUG duoc bao ve boi `PEEKABOO_ALLOW_UNSIGNED_SOCKET_CLIENTS=1` (quy uoc Peekaboo).
-- Xem: [Su dung PeekabooBridge](/platforms/mac/peekaboo) de biet them chi tiet.
+- Tự động hóa UI sử dụng một UNIX socket riêng có tên `bridge.sock` và giao thức JSON của PeekabooBridge.
+- Thứ tự ưu tiên host (phía client): Peekaboo.app → Claude.app → OpenClaw.app → thực thi cục bộ.
+- Bảo mật: các bridge host yêu cầu TeamID nằm trong danh sách cho phép; lối thoát cùng UID chỉ cho DEBUG được bảo vệ bởi `PEEKABOO_ALLOW_UNSIGNED_SOCKET_CLIENTS=1` (quy ước của Peekaboo).
+- Xem: [Cách dùng PeekabooBridge](/platforms/mac/peekaboo) để biết chi tiết.
 
-## Cac luong van hanh
+## Luồng vận hành
 
-- Khoi dong lai/xay dung lai: `SIGN_IDENTITY="Apple Development: <Developer Name> (<TEAMID>)" scripts/restart-mac.sh`
-  - Dung cac the hien hien co
-  - Xay dung Swift + dong goi
-  - Ghi/bootstraps/kickstarts LaunchAgent
-- Don the hien: ung dung thoat som neu phat hien mot the hien khac voi cung bundle ID dang chay.
+- Khởi động lại/xây dựng lại: `SIGN_IDENTITY="Apple Development: <Developer Name> (<TEAMID>)" scripts/restart-mac.sh`
+  - Dừng các phiên bản đang chạy
+  - Build Swift + đóng gói
+  - Ghi/khởi tạo/kickstart LaunchAgent
+- Phiên bản đơn: ứng dụng thoát sớm nếu phát hiện một phiên bản khác với cùng bundle ID đang chạy.
 
-## Ghi chu cung co bao mat
+## Ghi chú tăng cường bảo mật
 
-- Uu tien yeu cau khop TeamID cho tat ca cac be mat co dac quyen.
-- PeekabooBridge: `PEEKABOO_ALLOW_UNSIGNED_SOCKET_CLIENTS=1` (chi DEBUG) co the cho phep ben goi cung UID cho phat trien local.
-- Tat ca giao tiep deu chi local; khong mo cong mang.
-- Cac hop thoai TCC chi xuat phat tu bundle GUI; giu on dinh bundle ID da ky qua cac lan xay dung lai.
-- Cung co IPC: quyen socket `0600`, token, kiem tra UID doi tac, thach thuc/phan hoi HMAC, TTL ngan.
+- Ưu tiên yêu cầu khớp TeamID cho mọi bề mặt có đặc quyền.
+- PeekabooBridge: `PEEKABOO_ALLOW_UNSIGNED_SOCKET_CLIENTS=1` (chỉ DEBUG) có thể cho phép caller cùng UID cho phát triển cục bộ.
+- Mọi giao tiếp đều chỉ cục bộ; không mở socket mạng.
+- Các prompt TCC chỉ xuất phát từ bundle GUI; giữ bundle ID đã ký ổn định giữa các lần rebuild.
+- Gia cố IPC: chế độ socket `0600`, token, kiểm tra peer-UID, thử thách/đáp ứng HMAC, TTL ngắn.

@@ -1,21 +1,21 @@
 ---
 summary: "Tổng quan bot Feishu, tính năng và cấu hình"
 read_when:
-  - Bạn muốn kết nối bot Feishu/Lark
+  - Bạn muốn kết nối một bot Feishu/Lark
   - Bạn đang cấu hình kênh Feishu
 title: Feishu
 x-i18n:
   source_path: channels/feishu.md
-  source_hash: fd2c93ebb6dbeabf
+  source_hash: c9349983562d1a98
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:20Z
+  generated_at: 2026-02-08T09:38:11Z
 ---
 
 # Bot Feishu
 
-Feishu (Lark) là nền tảng chat cho nhóm được các công ty sử dụng để nhắn tin và cộng tác. Plugin này kết nối OpenClaw với một bot Feishu/Lark bằng đăng ký sự kiện WebSocket của nền tảng, cho phép nhận tin nhắn mà không cần công khai URL webhook.
+Feishu (Lark) là nền tảng chat nhóm được các công ty sử dụng cho nhắn tin và cộng tác. Plugin này kết nối OpenClaw với một bot Feishu/Lark bằng cơ chế đăng ký sự kiện WebSocket của nền tảng, cho phép nhận tin nhắn mà không cần mở URL webhook công khai.
 
 ---
 
@@ -27,7 +27,7 @@ Cài đặt plugin Feishu:
 openclaw plugins install @openclaw/feishu
 ```
 
-Cài đặt cục bộ (khi chạy từ repo git):
+Checkout cục bộ (khi chạy từ repo git):
 
 ```bash
 openclaw plugins install ./extensions/feishu
@@ -35,32 +35,32 @@ openclaw plugins install ./extensions/feishu
 
 ---
 
-## Khoi dong nhanh
+## Khởi động nhanh
 
 Có hai cách để thêm kênh Feishu:
 
-### Phương pháp 1: trình huong dan onboarding (khuyến nghị)
+### Cách 1: trình hướng dẫn onboarding (khuyến nghị)
 
-Nếu bạn vừa cài OpenClaw, hãy chạy trình huong dan:
+Nếu bạn vừa cài OpenClaw, hãy chạy trình hướng dẫn:
 
 ```bash
 openclaw onboard
 ```
 
-Trình huong dan sẽ hướng dẫn bạn:
+Trình hướng dẫn sẽ giúp bạn:
 
 1. Tạo ứng dụng Feishu và thu thập thông tin xác thực
-2. Cấu hình thông tin xác thực ứng dụng trong OpenClaw
-3. Khởi động Gateway
+2. Cấu hình thông tin ứng dụng trong OpenClaw
+3. Khởi động gateway
 
-✅ **Sau khi cấu hình**, kiểm tra trạng thái Gateway:
+✅ **Sau khi cấu hình**, kiểm tra trạng thái gateway:
 
 - `openclaw gateway status`
 - `openclaw logs --follow`
 
-### Phương pháp 2: thiết lập qua CLI
+### Cách 2: thiết lập bằng CLI
 
-Nếu bạn đã hoàn tất cài đặt ban đầu, thêm kênh qua CLI:
+Nếu bạn đã hoàn tất cài đặt ban đầu, hãy thêm kênh qua CLI:
 
 ```bash
 openclaw channels add
@@ -68,7 +68,7 @@ openclaw channels add
 
 Chọn **Feishu**, sau đó nhập App ID và App Secret.
 
-✅ **Sau khi cấu hình**, quản lý Gateway:
+✅ **Sau khi cấu hình**, quản lý gateway:
 
 - `openclaw gateway status`
 - `openclaw gateway restart`
@@ -82,11 +82,11 @@ Chọn **Feishu**, sau đó nhập App ID và App Secret.
 
 Truy cập [Feishu Open Platform](https://open.feishu.cn/app) và đăng nhập.
 
-Tenant Lark (toàn cầu) nên dùng https://open.larksuite.com/app và đặt `domain: "lark"` trong cấu hình Feishu.
+Tenant Lark (toàn cầu) nên dùng [https://open.larksuite.com/app](https://open.larksuite.com/app) và đặt `domain: "lark"` trong cấu hình Feishu.
 
 ### 2. Tạo ứng dụng
 
-1. Nhấp **Create enterprise app**
+1. Nhấn **Create enterprise app**
 2. Điền tên ứng dụng + mô tả
 3. Chọn biểu tượng ứng dụng
 
@@ -94,7 +94,7 @@ Tenant Lark (toàn cầu) nên dùng https://open.larksuite.com/app và đặt `
 
 ### 3. Sao chép thông tin xác thực
 
-Tại **Credentials & Basic Info**, sao chép:
+Trong **Credentials & Basic Info**, sao chép:
 
 - **App ID** (định dạng: `cli_xxx`)
 - **App Secret**
@@ -105,7 +105,7 @@ Tại **Credentials & Basic Info**, sao chép:
 
 ### 4. Cấu hình quyền
 
-Trong **Permissions**, nhấp **Batch import** và dán:
+Trong **Permissions**, nhấn **Batch import** và dán:
 
 ```json
 {
@@ -156,21 +156,21 @@ Trong **Event Subscription**:
 1. Chọn **Use long connection to receive events** (WebSocket)
 2. Thêm sự kiện: `im.message.receive_v1`
 
-⚠️ Nếu Gateway không chạy, thiết lập kết nối dài có thể không lưu được.
+⚠️ Nếu gateway không chạy, cấu hình long connection có thể không lưu được.
 
 ![Configure event subscription](../images/feishu-step6-event-subscription.png)
 
 ### 7. Phát hành ứng dụng
 
 1. Tạo phiên bản trong **Version Management & Release**
-2. Gửi duyệt và phát hành
-3. Chờ phê duyệt của quản trị viên (ứng dụng doanh nghiệp thường tự động duyệt)
+2. Gửi xét duyệt và phát hành
+3. Chờ quản trị viên phê duyệt (ứng dụng doanh nghiệp thường tự động phê duyệt)
 
 ---
 
 ## Bước 2: Cấu hình OpenClaw
 
-### Cấu hình bằng trình huong dan (khuyến nghị)
+### Cấu hình bằng trình hướng dẫn (khuyến nghị)
 
 ```bash
 openclaw channels add
@@ -209,7 +209,7 @@ export FEISHU_APP_SECRET="xxx"
 
 ### Miền Lark (toàn cầu)
 
-Nếu tenant của bạn dùng Lark (quốc tế), đặt miền là `lark` (hoặc chuỗi miền đầy đủ). Bạn có thể đặt tại `channels.feishu.domain` hoặc theo từng tài khoản (`channels.feishu.accounts.<id>.domain`).
+Nếu tenant của bạn dùng Lark (quốc tế), hãy đặt miền thành `lark` (hoặc một chuỗi miền đầy đủ). Bạn có thể đặt tại `channels.feishu.domain` hoặc theo từng tài khoản (`channels.feishu.accounts.<id>.domain`).
 
 ```json5
 {
@@ -231,13 +231,13 @@ Nếu tenant của bạn dùng Lark (quốc tế), đặt miền là `lark` (ho�
 
 ## Bước 3: Khởi động + kiểm tra
 
-### 1. Khởi động Gateway
+### 1. Khởi động gateway
 
 ```bash
 openclaw gateway
 ```
 
-### 2. Gửi tin nhắn kiểm tra
+### 2. Gửi tin nhắn thử
 
 Trong Feishu, tìm bot của bạn và gửi một tin nhắn.
 
@@ -255,26 +255,28 @@ Sau khi phê duyệt, bạn có thể trò chuyện bình thường.
 
 ## Tổng quan
 
-- **Kênh bot Feishu**: bot Feishu do Gateway quản lý
+- **Kênh bot Feishu**: bot Feishu được gateway quản lý
 - **Định tuyến xác định**: phản hồi luôn quay lại Feishu
-- **Cách ly phiên**: Tin nhắn trực tiếp dùng chung một phiên chính; nhóm được cách ly
+- **Cô lập phiên**: DM dùng chung một phiên chính; nhóm được tách riêng
 - **Kết nối WebSocket**: kết nối dài qua SDK Feishu, không cần URL công khai
 
 ---
 
 ## Kiểm soát truy cập
 
-### Tin nhắn trực tiếp
+### Tin nhắn trực tiếp (DM)
 
 - **Mặc định**: `dmPolicy: "pairing"` (người dùng chưa biết sẽ nhận mã ghép cặp)
 - **Phê duyệt ghép cặp**:
+
   ```bash
   openclaw pairing list feishu
   openclaw pairing approve feishu <CODE>
   ```
-- **Chế độ danh sách cho phép**: đặt `channels.feishu.allowFrom` với các Open ID được phép
 
-### Trò chuyện nhóm
+- **Chế độ allowlist**: đặt `channels.feishu.allowFrom` với danh sách Open ID được phép
+
+### Chat nhóm
 
 **1. Chính sách nhóm** (`channels.feishu.groupPolicy`):
 
@@ -282,10 +284,10 @@ Sau khi phê duyệt, bạn có thể trò chuyện bình thường.
 - `"allowlist"` = chỉ cho phép `groupAllowFrom`
 - `"disabled"` = tắt tin nhắn nhóm
 
-**2. Yêu cầu nhắc tên** (`channels.feishu.groups.<chat_id>.requireMention`):
+**2. Yêu cầu mention** (`channels.feishu.groups.<chat_id>.requireMention`):
 
 - `true` = yêu cầu @mention (mặc định)
-- `false` = phản hồi không cần nhắc tên
+- `false` = phản hồi không cần mention
 
 ---
 
@@ -339,25 +341,25 @@ Sau khi phê duyệt, bạn có thể trò chuyện bình thường.
 
 ID nhóm có dạng `oc_xxx`.
 
-**Phương pháp 1 (khuyến nghị)**
+**Cách 1 (khuyến nghị)**
 
-1. Khởi động Gateway và @mention bot trong nhóm
+1. Khởi động gateway và @mention bot trong nhóm
 2. Chạy `openclaw logs --follow` và tìm `chat_id`
 
-**Phương pháp 2**
+**Cách 2**
 
-Dùng trình gỡ lỗi API Feishu để liệt kê các nhóm chat.
+Dùng công cụ debug API của Feishu để liệt kê các chat nhóm.
 
 ### ID người dùng (open_id)
 
 ID người dùng có dạng `ou_xxx`.
 
-**Phương pháp 1 (khuyến nghị)**
+**Cách 1 (khuyến nghị)**
 
-1. Khởi động Gateway và gửi DM cho bot
+1. Khởi động gateway và DM bot
 2. Chạy `openclaw logs --follow` và tìm `open_id`
 
-**Phương pháp 2**
+**Cách 2**
 
 Kiểm tra các yêu cầu ghép cặp để lấy Open ID người dùng:
 
@@ -375,23 +377,23 @@ openclaw pairing list feishu
 | `/reset`  | Đặt lại phiên           |
 | `/model`  | Hiển thị/chuyển mô hình |
 
-> Lưu ý: Feishu chưa hỗ trợ menu lệnh gốc, vì vậy lệnh phải được gửi dưới dạng văn bản.
+> Lưu ý: Feishu hiện chưa hỗ trợ menu lệnh gốc, vì vậy lệnh phải được gửi dưới dạng văn bản.
 
 ## Lệnh quản lý Gateway
 
 | Lệnh                       | Mô tả                             |
 | -------------------------- | --------------------------------- |
-| `openclaw gateway status`  | Hiển thị trạng thái Gateway       |
-| `openclaw gateway install` | Cài đặt/khởi động dịch vụ Gateway |
-| `openclaw gateway stop`    | Dừng dịch vụ Gateway              |
-| `openclaw gateway restart` | Khởi động lại dịch vụ Gateway     |
-| `openclaw logs --follow`   | Theo dõi log Gateway              |
+| `openclaw gateway status`  | Hiển thị trạng thái gateway       |
+| `openclaw gateway install` | Cài đặt/khởi động dịch vụ gateway |
+| `openclaw gateway stop`    | Dừng dịch vụ gateway              |
+| `openclaw gateway restart` | Khởi động lại dịch vụ gateway     |
+| `openclaw logs --follow`   | Theo dõi log gateway              |
 
 ---
 
-## Xu ly su co
+## Xử lý sự cố
 
-### Bot không phản hồi trong trò chuyện nhóm
+### Bot không phản hồi trong chat nhóm
 
 1. Đảm bảo bot đã được thêm vào nhóm
 2. Đảm bảo bạn @mention bot (hành vi mặc định)
@@ -402,16 +404,16 @@ openclaw pairing list feishu
 
 1. Đảm bảo ứng dụng đã được phát hành và phê duyệt
 2. Đảm bảo đăng ký sự kiện bao gồm `im.message.receive_v1`
-3. Đảm bảo **kết nối dài** được bật
-4. Đảm bảo quyền ứng dụng đầy đủ
-5. Đảm bảo Gateway đang chạy: `openclaw gateway status`
+3. Đảm bảo **long connection** được bật
+4. Đảm bảo quyền ứng dụng đã đầy đủ
+5. Đảm bảo gateway đang chạy: `openclaw gateway status`
 6. Kiểm tra log: `openclaw logs --follow`
 
 ### Lộ App Secret
 
 1. Đặt lại App Secret trong Feishu Open Platform
-2. Cập nhật App Secret trong cấu hình
-3. Khởi động lại Gateway
+2. Cập nhật App Secret trong cấu hình của bạn
+3. Khởi động lại gateway
 
 ### Gửi tin nhắn thất bại
 
@@ -449,12 +451,12 @@ openclaw pairing list feishu
 
 ### Giới hạn tin nhắn
 
-- `textChunkLimit`: kích thước khối văn bản gửi ra (mặc định: 2000 ký tự)
+- `textChunkLimit`: kích thước chia nhỏ văn bản gửi đi (mặc định: 2000 ký tự)
 - `mediaMaxMb`: giới hạn tải lên/tải xuống media (mặc định: 30MB)
 
 ### Streaming
 
-Feishu hỗ trợ phản hồi streaming qua thẻ tương tác. Khi bật, bot sẽ cập nhật thẻ khi tạo văn bản.
+Feishu hỗ trợ phản hồi streaming qua thẻ tương tác. Khi bật, bot sẽ cập nhật thẻ trong khi tạo văn bản.
 
 ```json5
 {
@@ -528,38 +530,38 @@ Xem [Lấy ID nhóm/người dùng](#get-groupuser-ids) để biết mẹo tra c
 
 ## Tham chiếu cấu hình
 
-Cấu hình đầy đủ: [Cấu hình Gateway](/gateway/configuration)
+Cấu hình đầy đủ: [Gateway configuration](/gateway/configuration)
 
 Các tùy chọn chính:
 
-| Thiết lập                                         | Mô tả                                     | Mặc định  |
-| ------------------------------------------------- | ----------------------------------------- | --------- |
-| `channels.feishu.enabled`                         | Bật/tắt kênh                              | `true`    |
-| `channels.feishu.domain`                          | Miền API (`feishu` hoặc `lark`)           | `feishu`  |
-| `channels.feishu.accounts.<id>.appId`             | App ID                                    | -         |
-| `channels.feishu.accounts.<id>.appSecret`         | App Secret                                | -         |
-| `channels.feishu.accounts.<id>.domain`            | Ghi đè miền API theo tài khoản            | `feishu`  |
-| `channels.feishu.dmPolicy`                        | Chính sách DM                             | `pairing` |
-| `channels.feishu.allowFrom`                       | Danh sách cho phép DM (danh sách open_id) | -         |
-| `channels.feishu.groupPolicy`                     | Chính sách nhóm                           | `open`    |
-| `channels.feishu.groupAllowFrom`                  | Danh sách cho phép nhóm                   | -         |
-| `channels.feishu.groups.<chat_id>.requireMention` | Yêu cầu @mention                          | `true`    |
-| `channels.feishu.groups.<chat_id>.enabled`        | Bật nhóm                                  | `true`    |
-| `channels.feishu.textChunkLimit`                  | Kích thước khối tin nhắn                  | `2000`    |
-| `channels.feishu.mediaMaxMb`                      | Giới hạn kích thước media                 | `30`      |
-| `channels.feishu.streaming`                       | Bật xuất thẻ streaming                    | `true`    |
-| `channels.feishu.blockStreaming`                  | Bật streaming theo khối                   | `true`    |
+| Thiết lập                                         | Mô tả                            | Mặc định  |
+| ------------------------------------------------- | -------------------------------- | --------- |
+| `channels.feishu.enabled`                         | Bật/tắt kênh                     | `true`    |
+| `channels.feishu.domain`                          | Miền API (`feishu` hoặc `lark`)  | `feishu`  |
+| `channels.feishu.accounts.<id>.appId`             | App ID                           | -         |
+| `channels.feishu.accounts.<id>.appSecret`         | App Secret                       | -         |
+| `channels.feishu.accounts.<id>.domain`            | Ghi đè miền API theo tài khoản   | `feishu`  |
+| `channels.feishu.dmPolicy`                        | Chính sách DM                    | `pairing` |
+| `channels.feishu.allowFrom`                       | Allowlist DM (danh sách open_id) | -         |
+| `channels.feishu.groupPolicy`                     | Chính sách nhóm                  | `open`    |
+| `channels.feishu.groupAllowFrom`                  | Allowlist nhóm                   | -         |
+| `channels.feishu.groups.<chat_id>.requireMention` | Yêu cầu @mention                 | `true`    |
+| `channels.feishu.groups.<chat_id>.enabled`        | Bật nhóm                         | `true`    |
+| `channels.feishu.textChunkLimit`                  | Kích thước chia nhỏ tin nhắn     | `2000`    |
+| `channels.feishu.mediaMaxMb`                      | Giới hạn kích thước media        | `30`      |
+| `channels.feishu.streaming`                       | Bật xuất thẻ streaming           | `true`    |
+| `channels.feishu.blockStreaming`                  | Bật block streaming              | `true`    |
 
 ---
 
 ## Tham chiếu dmPolicy
 
-| Giá trị       | Hành vi                                                                  |
-| ------------- | ------------------------------------------------------------------------ |
-| `"pairing"`   | **Mặc định.** Người dùng chưa biết nhận mã ghép cặp; phải được phê duyệt |
-| `"allowlist"` | Chỉ người dùng trong `allowFrom` mới có thể trò chuyện                   |
-| `"open"`      | Cho phép tất cả người dùng (yêu cầu `"*"` trong allowFrom)               |
-| `"disabled"`  | Tắt DM                                                                   |
+| Giá trị       | Hành vi                                                                    |
+| ------------- | -------------------------------------------------------------------------- |
+| `"pairing"`   | **Mặc định.** Người dùng chưa biết sẽ nhận mã ghép cặp; cần được phê duyệt |
+| `"allowlist"` | Chỉ người dùng trong `allowFrom` mới có thể chat                           |
+| `"open"`      | Cho phép tất cả người dùng (yêu cầu `"*"` trong allowFrom)                 |
+| `"disabled"`  | Tắt DM                                                                     |
 
 ---
 
@@ -568,7 +570,7 @@ Các tùy chọn chính:
 ### Nhận
 
 - ✅ Văn bản
-- ✅ Văn bản phong phú (post)
+- ✅ Văn bản giàu định dạng (post)
 - ✅ Hình ảnh
 - ✅ Tệp
 - ✅ Âm thanh
@@ -581,4 +583,4 @@ Các tùy chọn chính:
 - ✅ Hình ảnh
 - ✅ Tệp
 - ✅ Âm thanh
-- ⚠️ Văn bản phong phú (hỗ trợ một phần)
+- ⚠️ Văn bản giàu định dạng (hỗ trợ một phần)

@@ -1,153 +1,153 @@
 ---
-summary: "Vong lap tac tu, vong doi, luong va ngu nghia cho"
+summary: "Vòng đời agent loop, các luồng, và ngữ nghĩa chờ"
 read_when:
-  - Ban can mot huong dan chi tiet chinh xac ve vong lap tac tu hoac cac su kien vong doi
+  - Bạn cần bản hướng dẫn chi tiết từng bước về agent loop hoặc các sự kiện vòng đời
 title: "Agent Loop"
 x-i18n:
   source_path: concepts/agent-loop.md
-  source_hash: 0775b96eb3451e13
+  source_hash: e2c14fb74bd42caa
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:02Z
+  generated_at: 2026-02-08T09:38:45Z
 ---
 
 # Agent Loop (OpenClaw)
 
-Mot vong lap tac tu la toan bo lan chay “thuc” cua mot tac tu: tiep nhan → lap rap boi canh → suy luan mo hinh →
-thuc thi cong cu → stream phan hoi → luu tru. Day la duong di chinh thuc bien mot thong diep
-thanh hanh dong va phan hoi cuoi cung, dong thoi giu trang thai phien nhat quan.
+Agent loop là toàn bộ lần chạy “thực” của một tác tử: tiếp nhận → lắp ráp ngữ cảnh → suy luận mô hình →
+thực thi công cụ → stream phản hồi → lưu trữ. Đây là luồng chuẩn biến một thông điệp
+thành hành động và phản hồi cuối cùng, đồng thời giữ trạng thái phiên nhất quán.
 
-Trong OpenClaw, mot vong lap la mot lan chay don, duoc serialize theo tung phien, phat ra cac su kien vong doi va stream
-khi mo hinh suy nghi, goi cong cu va stream dau ra. Tai lieu nay giai thich cach vong lap xac thuc do
-duoc ket noi tu dau den cuoi.
+Trong OpenClaw, một loop là một lần chạy đơn, được tuần tự hóa theo từng phiên, phát ra các sự kiện vòng đời và sự kiện stream
+khi mô hình suy nghĩ, gọi công cụ và stream đầu ra. Tài liệu này giải thích cách loop chuẩn đó
+được nối dây end-to-end.
 
-## Diem vao
+## Điểm vào
 
-- Gateway RPC: `agent` va `agent.wait`.
-- CLI: lenh `agent`.
+- RPC của Gateway: `agent` và `agent.wait`.
+- CLI: lệnh `agent`.
 
-## Cach hoat dong (tong quan)
+## Cách hoạt động (mức cao)
 
-1. RPC `agent` kiem tra tham so, giai quyet phien (sessionKey/sessionId), luu metadata phien, tra ve `{ runId, acceptedAt }` ngay lap tuc.
-2. `agentCommand` chay tac tu:
-   - giai quyet mo hinh + mac dinh thinking/verbose
-   - tai snapshot Skills
-   - goi `runEmbeddedPiAgent` (pi-agent-core runtime)
-   - phat **lifecycle end/error** neu vong lap nhung ben trong khong phat ra
+1. RPC `agent` xác thực tham số, phân giải phiên (sessionKey/sessionId), lưu metadata phiên, trả về `{ runId, acceptedAt }` ngay lập tức.
+2. `agentCommand` chạy tác tử:
+   - phân giải mô hình + mặc định thinking/verbose
+   - tải snapshot skills
+   - gọi `runEmbeddedPiAgent` (runtime pi-agent-core)
+   - phát **lifecycle end/error** nếu loop nhúng không phát ra
 3. `runEmbeddedPiAgent`:
-   - serialize cac lan chay thong qua hang doi theo phien + hang doi toan cuc
-   - giai quyet mo hinh + ho so xac thuc va xay dung pi session
-   - dang ky cac su kien pi va stream cac delta cua assistant/cong cu
-   - thuc thi timeout -> huy lan chay neu vuot qua
-   - tra ve payload + metadata su dung
-4. `subscribeEmbeddedPiSession` ket noi cac su kien pi-agent-core sang stream `agent` cua OpenClaw:
-   - su kien cong cu => `stream: "tool"`
-   - delta assistant => `stream: "assistant"`
-   - su kien vong doi => `stream: "lifecycle"` (`phase: "start" | "end" | "error"`)
-5. `agent.wait` su dung `waitForAgentJob`:
-   - cho **lifecycle end/error** doi voi `runId`
-   - tra ve `{ status: ok|error|timeout, startedAt, endedAt, error? }`
+   - tuần tự hóa các lần chạy qua hàng đợi theo phiên + hàng đợi toàn cục
+   - phân giải mô hình + hồ sơ xác thực và xây dựng phiên pi
+   - đăng ký các sự kiện pi và stream delta của assistant/công cụ
+   - áp dụng timeout -> hủy lần chạy nếu vượt quá
+   - trả về payload + metadata usage
+4. `subscribeEmbeddedPiSession` bắc cầu các sự kiện pi-agent-core sang stream `agent` của OpenClaw:
+   - sự kiện công cụ => `stream: "tool"`
+   - delta của assistant => `stream: "assistant"`
+   - sự kiện vòng đời => `stream: "lifecycle"` (`phase: "start" | "end" | "error"`)
+5. `agent.wait` dùng `waitForAgentJob`:
+   - chờ **lifecycle end/error** cho `runId`
+   - trả về `{ status: ok|error|timeout, startedAt, endedAt, error? }`
 
-## Xep hang + dong thoi
+## Xếp hàng + đồng thời
 
-- Cac lan chay duoc serialize theo tung session key (session lane) va tuy chon thong qua mot lane toan cuc.
-- Dieu nay ngan chan tranh chap cong cu/phien va giu lich su phien nhat quan.
-- Cac kenh nhan tin co the chon che do hang doi (collect/steer/followup) de dua vao he thong lane nay.
+- Các lần chạy được tuần tự hóa theo từng khóa phiên (làn phiên) và tùy chọn qua một làn toàn cục.
+- Điều này ngăn đua công cụ/phiên và giữ lịch sử phiên nhất quán.
+- Các kênh nhắn tin có thể chọn chế độ hàng đợi (collect/steer/followup) để đưa vào hệ làn này.
   Xem [Command Queue](/concepts/queue).
 
-## Chuan bi phien + workspace
+## Chuẩn bị phiên + workspace
 
-- Workspace duoc giai quyet va tao; cac lan chay trong sandbox co the chuyen huong den thu muc goc workspace cua sandbox.
-- Skills duoc tai (hoac tai su dung tu snapshot) va tiem vao env va prompt.
-- Cac tep bootstrap/context duoc giai quyet va tiem vao bao cao system prompt.
-- Mot khoa ghi phien duoc cap; `SessionManager` duoc mo va chuan bi truoc khi stream.
+- Workspace được phân giải và tạo; các lần chạy sandboxed có thể chuyển hướng tới thư mục gốc workspace sandbox.
+- Skills được tải (hoặc tái sử dụng từ snapshot) và chèn vào env và prompt.
+- Các tệp bootstrap/ngữ cảnh được phân giải và chèn vào báo cáo system prompt.
+- Một khóa ghi phiên được lấy; `SessionManager` được mở và chuẩn bị trước khi stream.
 
-## Lap rap prompt + system prompt
+## Lắp ráp prompt + system prompt
 
-- System prompt duoc xay dung tu prompt co so cua OpenClaw, prompt Skills, boi canh bootstrap va cac ghi de theo tung lan chay.
-- Gioi han rieng theo mo hinh va token du tru cho compaction duoc thuc thi.
-- Xem [System prompt](/concepts/system-prompt) de biet mo hinh nhin thay gi.
+- System prompt được xây từ prompt nền của OpenClaw, prompt skills, ngữ cảnh bootstrap và các ghi đè theo lần chạy.
+- Áp dụng các giới hạn theo mô hình và dự trữ token cho compaction.
+- Xem [System prompt](/concepts/system-prompt) để biết mô hình nhìn thấy gì.
 
-## Diem hook (noi ban co the chan)
+## Điểm hook (nơi bạn có thể can thiệp)
 
-OpenClaw co hai he thong hook:
+OpenClaw có hai hệ hook:
 
-- **Internal hooks** (Gateway hooks): script huong su kien cho lenh va su kien vong doi.
-- **Plugin hooks**: cac diem mo rong ben trong vong doi tac tu/cong cu va pipeline Gateway.
+- **Hook nội bộ** (hook của Gateway): script theo sự kiện cho lệnh và sự kiện vòng đời.
+- **Hook plugin**: điểm mở rộng bên trong vòng đời agent/công cụ và pipeline gateway.
 
-### Internal hooks (Gateway hooks)
+### Hook nội bộ (hook của Gateway)
 
-- **`agent:bootstrap`**: chay trong luc xay dung cac tep bootstrap truoc khi system prompt duoc hoan tat.
-  Dung cai nay de them/loai bo cac tep boi canh bootstrap.
-- **Command hooks**: `/new`, `/reset`, `/stop`, va cac su kien lenh khac (xem tai lieu Hooks).
+- **`agent:bootstrap`**: chạy trong lúc xây dựng các tệp bootstrap trước khi system prompt được chốt.
+  Dùng để thêm/bớt các tệp ngữ cảnh bootstrap.
+- **Hook lệnh**: `/new`, `/reset`, `/stop`, và các sự kiện lệnh khác (xem tài liệu Hooks).
 
-Xem [Hooks](/hooks) de biet thiet lap va vi du.
+Xem [Hooks](/automation/hooks) để biết thiết lập và ví dụ.
 
-### Plugin hooks (vong doi agent + gateway)
+### Hook plugin (vòng đời agent + gateway)
 
-Chung chay ben trong vong lap tac tu hoac pipeline Gateway:
+Các hook này chạy bên trong agent loop hoặc pipeline gateway:
 
-- **`before_agent_start`**: tiem boi canh hoac ghi de system prompt truoc khi lan chay bat dau.
-- **`agent_end`**: kiem tra danh sach thong diep cuoi cung va metadata lan chay sau khi hoan tat.
-- **`before_compaction` / `after_compaction`**: quan sat hoac gan nhan cac chu ky compaction.
-- **`before_tool_call` / `after_tool_call`**: chan tham so/ket qua cong cu.
-- **`tool_result_persist`**: bien doi dong bo ket qua cong cu truoc khi chung duoc ghi vao transcript phien.
-- **`message_received` / `message_sending` / `message_sent`**: hook thong diep vao + ra.
-- **`session_start` / `session_end`**: ranh gioi vong doi phien.
-- **`gateway_start` / `gateway_stop`**: su kien vong doi Gateway.
+- **`before_agent_start`**: chèn ngữ cảnh hoặc ghi đè system prompt trước khi chạy.
+- **`agent_end`**: kiểm tra danh sách thông điệp cuối cùng và metadata lần chạy sau khi hoàn tất.
+- **`before_compaction` / `after_compaction`**: quan sát hoặc chú thích các chu kỳ compaction.
+- **`before_tool_call` / `after_tool_call`**: chặn tham số/kết quả công cụ.
+- **`tool_result_persist`**: biến đổi đồng bộ kết quả công cụ trước khi được ghi vào bản ghi phiên.
+- **`message_received` / `message_sending` / `message_sent`**: hook thông điệp vào + ra.
+- **`session_start` / `session_end`**: ranh giới vòng đời phiên.
+- **`gateway_start` / `gateway_stop`**: sự kiện vòng đời gateway.
 
-Xem [Plugins](/plugin#plugin-hooks) de biet API hook va chi tiet dang ky.
+Xem [Plugins](/tools/plugin#plugin-hooks) để biết API hook và chi tiết đăng ký.
 
-## Streaming + phan hoi tung phan
+## Streaming + phản hồi từng phần
 
-- Delta cua assistant duoc stream tu pi-agent-core va phat ra duoi dang su kien `assistant`.
-- Block streaming co the phat phan hoi tung phan tren `text_end` hoac `message_end`.
-- Streaming ly giai co the duoc phat nhu mot stream rieng hoac duoi dang block replies.
-- Xem [Streaming](/concepts/streaming) de biet hanh vi chunking va block reply.
+- Delta của assistant được stream từ pi-agent-core và phát dưới dạng sự kiện `assistant`.
+- Block streaming có thể phát phản hồi từng phần trên `text_end` hoặc `message_end`.
+- Streaming lập luận có thể phát thành một stream riêng hoặc dưới dạng block replies.
+- Xem [Streaming](/concepts/streaming) để biết hành vi chia khối và block reply.
 
-## Thuc thi cong cu + cong cu nhan tin
+## Thực thi công cụ + công cụ nhắn tin
 
-- Su kien bat dau/cap nhat/ket thuc cong cu duoc phat tren stream `tool`.
-- Ket qua cong cu duoc lam sach ve kich thuoc va payload hinh anh truoc khi ghi log/phat.
-- Cac lan gui cong cu nhan tin duoc theo doi de ngan chan xac nhan trung lap tu assistant.
+- Sự kiện bắt đầu/cập nhật/kết thúc công cụ được phát trên stream `tool`.
+- Kết quả công cụ được làm sạch về kích thước và payload hình ảnh trước khi ghi log/phát.
+- Các lần gửi của công cụ nhắn tin được theo dõi để tránh xác nhận trùng lặp từ assistant.
 
-## Dinh hinh phan hoi + ngan chan
+## Định hình phản hồi + loại bỏ
 
-- Payload cuoi cung duoc lap rap tu:
-  - van ban assistant (va ly giai tuy chon)
-  - tom tat cong cu inline (khi verbose + duoc phep)
-  - van ban loi cua assistant khi mo hinh gap loi
-- `NO_REPLY` duoc coi la mot token im lang va bi loc khoi payload dau ra.
-- Cac ban sao trung lap cua cong cu nhan tin bi loai bo khoi danh sach payload cuoi.
-- Neu khong con payload co the render va mot cong cu bi loi, se phat mot phan hoi loi cong cu du phong
-  (tru khi cong cu nhan tin da gui mot phan hoi hien thi cho nguoi dung).
+- Payload cuối cùng được lắp ráp từ:
+  - văn bản assistant (và lập luận tùy chọn)
+  - tóm tắt công cụ inline (khi verbose + được phép)
+  - văn bản lỗi của assistant khi mô hình lỗi
+- `NO_REPLY` được coi là token im lặng và bị lọc khỏi payload gửi đi.
+- Các bản sao trùng lặp từ công cụ nhắn tin được loại khỏi danh sách payload cuối.
+- Nếu không còn payload có thể hiển thị và một công cụ bị lỗi, một phản hồi lỗi dự phòng của công cụ sẽ được phát
+  (trừ khi công cụ nhắn tin đã gửi phản hồi hiển thị cho người dùng).
 
-## Compaction + thu lai
+## Compaction + thử lại
 
-- Auto-compaction phat cac su kien stream `compaction` va co the kich hoat thu lai.
-- Khi thu lai, cac bo dem trong bo nho va tom tat cong cu duoc dat lai de tranh dau ra trung lap.
-- Xem [Compaction](/concepts/compaction) de biet pipeline compaction.
+- Auto-compaction phát các sự kiện stream `compaction` và có thể kích hoạt thử lại.
+- Khi thử lại, các bộ đệm trong bộ nhớ và tóm tắt công cụ được đặt lại để tránh đầu ra trùng lặp.
+- Xem [Compaction](/concepts/compaction) để biết pipeline compaction.
 
-## Event streams (hien tai)
+## Các stream sự kiện (hiện tại)
 
-- `lifecycle`: phat boi `subscribeEmbeddedPiSession` (va du phong boi `agentCommand`)
-- `assistant`: delta duoc stream tu pi-agent-core
-- `tool`: su kien cong cu duoc stream tu pi-agent-core
+- `lifecycle`: phát bởi `subscribeEmbeddedPiSession` (và dự phòng bởi `agentCommand`)
+- `assistant`: delta được stream từ pi-agent-core
+- `tool`: sự kiện công cụ được stream từ pi-agent-core
 
-## Xu ly kenh chat
+## Xử lý kênh chat
 
-- Delta assistant duoc dem vao cac thong diep chat `delta`.
-- Mot chat `final` duoc phat khi **lifecycle end/error**.
+- Delta của assistant được đệm thành các thông điệp chat `delta`.
+- Một chat `final` được phát khi **lifecycle end/error**.
 
 ## Timeout
 
-- Mac dinh `agent.wait`: 30s (chi rieng phan cho). Tham so `timeoutMs` ghi de.
-- Runtime agent: mac dinh `agents.defaults.timeoutSeconds` 600s; duoc thuc thi trong bo hen gio huy `runEmbeddedPiAgent`.
+- Mặc định `agent.wait`: 30s (chỉ thời gian chờ). Tham số `timeoutMs` ghi đè.
+- Runtime của agent: mặc định `agents.defaults.timeoutSeconds` 600s; được áp dụng trong bộ hẹn giờ hủy `runEmbeddedPiAgent`.
 
-## Noi moi thu co the ket thuc som
+## Những nơi có thể kết thúc sớm
 
-- Agent timeout (huy)
-- AbortSignal (huy)
-- Gateway ngat ket noi hoac RPC timeout
-- `agent.wait` timeout (chi cho, khong dung agent)
+- Hết thời gian agent (abort)
+- AbortSignal (hủy)
+- Gateway ngắt kết nối hoặc RPC timeout
+- Timeout `agent.wait` (chỉ chờ, không dừng agent)

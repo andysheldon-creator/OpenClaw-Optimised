@@ -1,7 +1,7 @@
 ---
-summary: "Tham chiếu CLI cho `openclaw doctor` (kiểm tra tình trạng + sửa lỗi có hướng dẫn)"
+summary: "Tham chiếu CLI cho `openclaw doctor` (kiểm tra sức khỏe + sửa lỗi có hướng dẫn)"
 read_when:
-  - Bạn gặp sự cố kết nối/xác thực và muốn các bản sửa có hướng dẫn
+  - Bạn gặp vấn đề kết nối/xác thực và muốn có cách khắc phục có hướng dẫn
   - Bạn vừa cập nhật và muốn kiểm tra nhanh
 title: "doctor"
 x-i18n:
@@ -10,12 +10,12 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:28Z
+  generated_at: 2026-02-08T09:38:18Z
 ---
 
 # `openclaw doctor`
 
-Kiểm tra tình trạng + sửa lỗi nhanh cho Gateway và các kênh.
+Kiểm tra sức khỏe + sửa lỗi nhanh cho gateway và các kênh.
 
 Liên quan:
 

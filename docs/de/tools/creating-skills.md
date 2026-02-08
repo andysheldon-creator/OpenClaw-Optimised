@@ -1,27 +1,27 @@
 ---
-title: „Skills erstellen“
+title: "Skills erstellen"
 x-i18n:
   source_path: tools/creating-skills.md
   source_hash: ad801da34fe361ff
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:40Z
+  generated_at: 2026-02-08T09:37:30Z
 ---
 
 # Eigene Skills erstellen 🛠
 
-OpenClaw ist so konzipiert, dass es sich leicht erweitern lässt. „Skills“ sind der primäre Weg, um Ihrem Assistenten neue Fähigkeiten hinzuzufügen.
+OpenClaw ist darauf ausgelegt, leicht erweiterbar zu sein. „Skills“ sind der primäre Weg, Ihrem Assistenten neue Fähigkeiten hinzuzufügen.
 
 ## Was ist ein Skill?
 
-Ein Skill ist ein Verzeichnis, das eine Datei `SKILL.md` enthält (die Anweisungen und Werkzeugdefinitionen für das LLM bereitstellt) und optional einige Skripte oder Ressourcen.
+Ein Skill ist ein Verzeichnis, das eine `SKILL.md`-Datei enthält (die Anweisungen und Werkzeugdefinitionen für das LLM bereitstellt) und optional einige Skripte oder Ressourcen.
 
 ## Schritt für Schritt: Ihr erster Skill
 
 ### 1. Verzeichnis erstellen
 
-Skills befinden sich in Ihrem Workspace, normalerweise `~/.openclaw/workspace/skills/`. Erstellen Sie einen neuen Ordner für Ihren Skill:
+Skills befinden sich in Ihrem Workspace, üblicherweise `~/.openclaw/workspace/skills/`. Erstellen Sie einen neuen Ordner für Ihren Skill:
 
 ```bash
 mkdir -p ~/.openclaw/workspace/skills/hello-world
@@ -29,7 +29,7 @@ mkdir -p ~/.openclaw/workspace/skills/hello-world
 
 ### 2. Die `SKILL.md` definieren
 
-Erstellen Sie in diesem Verzeichnis eine Datei `SKILL.md`. Diese Datei verwendet YAML-Frontmatter für Metadaten und Markdown für Anweisungen.
+Erstellen Sie in diesem Verzeichnis eine `SKILL.md`-Datei. Diese Datei verwendet YAML-Frontmatter für Metadaten und Markdown für Anweisungen.
 
 ```markdown
 ---
@@ -44,16 +44,16 @@ When the user asks for a greeting, use the `echo` tool to say "Hello from your c
 
 ### 3. Werkzeuge hinzufügen (optional)
 
-Sie können im Frontmatter eigene Werkzeuge definieren oder den Agenten anweisen, bestehende Systemwerkzeuge zu verwenden (wie `bash` oder `browser`).
+Sie können benutzerdefinierte Werkzeuge im Frontmatter definieren oder den Agenten anweisen, vorhandene Systemwerkzeuge zu verwenden (wie `bash` oder `browser`).
 
 ### 4. OpenClaw aktualisieren
 
-Bitten Sie Ihren Agenten, „refresh skills“ auszuführen, oder starten Sie das Gateway neu. OpenClaw erkennt das neue Verzeichnis und indiziert die `SKILL.md`.
+Bitten Sie Ihren Agenten, „Skills zu aktualisieren“, oder starten Sie das Gateway neu. OpenClaw erkennt das neue Verzeichnis und indiziert die `SKILL.md`.
 
-## Bewährte Praktiken
+## Best Practices
 
-- **Konzise bleiben**: Weisen Sie das Modell an, _was_ zu tun ist, nicht, wie es ein KI-Modell sein soll.
-- **Sicherheit zuerst**: Wenn Ihr Skill `bash` verwendet, stellen Sie sicher, dass die Prompts keine beliebige Command-Injection aus nicht vertrauenswürdigem Benutzereingaben zulassen.
+- **Seien Sie präzise**: Weisen Sie das Modell an, _was_ zu tun ist, nicht, wie es ein KI-Modell sein soll.
+- **Sicherheit zuerst**: Wenn Ihr Skill `bash` verwendet, stellen Sie sicher, dass die Prompts keine beliebige Befehlsinjektion aus nicht vertrauenswürdigen Benutzereingaben zulassen.
 - **Lokal testen**: Verwenden Sie `openclaw agent --message "use my new skill"` zum Testen.
 
 ## Geteilte Skills

@@ -1,5 +1,5 @@
 ---
-summary: "Incorporación con scripts y configuración de agentes para la CLI de OpenClaw"
+summary: "Incorporación automatizada y configuración de agentes mediante scripts para la CLI de OpenClaw"
 read_when:
   - Está automatizando la incorporación en scripts o CI
   - Necesita ejemplos no interactivos para proveedores específicos
@@ -11,7 +11,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:00:00Z
+  generated_at: 2026-02-08T09:34:39Z
 ---
 
 # Automatización de la CLI
@@ -36,7 +36,7 @@ openclaw onboard --non-interactive \
   --skip-skills
 ```
 
-Agregue `--json` para un resumen legible por máquinas.
+Agregue `--json` para obtener un resumen legible por máquinas.
 
 ## Ejemplos específicos por proveedor
 
@@ -117,8 +117,8 @@ Agregue `--json` para un resumen legible por máquinas.
 
 ## Agregar otro agente
 
-Use `openclaw agents add <name>` para crear un agente separado con su propio espacio de trabajo,
-sesiones y perfiles de autenticación. Ejecutarlo sin `--workspace` inicia el asistente.
+Use `openclaw agents add <name>` para crear un agente independiente con su propio espacio de trabajo,
+sesiones y perfiles de autenticación. Ejecutar sin `--workspace` inicia el asistente.
 
 ```bash
 openclaw agents add work \
@@ -138,7 +138,7 @@ Lo que configura:
 Notas:
 
 - Los espacios de trabajo predeterminados siguen `~/.openclaw/workspace-<agentId>`.
-- Agregue `bindings` para enrutar mensajes entrantes (el asistente puede hacer esto).
+- Agregue `bindings` para enrutar mensajes entrantes (el asistente puede hacerlo).
 - Indicadores no interactivos: `--model`, `--agent-dir`, `--bind`, `--non-interactive`.
 
 ## Documentación relacionada

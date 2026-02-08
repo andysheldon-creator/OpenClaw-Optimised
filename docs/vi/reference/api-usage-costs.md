@@ -1,22 +1,22 @@
 ---
-summary: "Kiểm tra những gì có thể phát sinh chi phí, các khóa nào đang được dùng và cách xem mức sử dụng"
+summary: "Kiểm toán những thứ có thể phát sinh chi phí, khóa nào được dùng và cách xem mức sử dụng"
 read_when:
-  - Bạn muốn hiểu những tính năng nào có thể gọi API trả phí
-  - Bạn cần kiểm tra khóa, chi phí và khả năng hiển thị mức sử dụng
-  - Bạn đang giải thích báo cáo chi phí qua /status hoặc /usage
-title: "Mức sử dụng API và Chi phí"
+  - Bạn muốn hiểu những tính năng nào có thể gọi các API trả phí
+  - Bạn cần kiểm toán khóa, chi phí và khả năng hiển thị mức sử dụng
+  - Bạn đang giải thích báo cáo chi phí /status hoặc /usage
+title: "Mức sử dụng API và chi phí"
 x-i18n:
   source_path: reference/api-usage-costs.md
-  source_hash: 807d0d88801e919a
+  source_hash: 908bfc17811b8f4b
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:08:22Z
+  generated_at: 2026-02-08T09:40:07Z
 ---
 
-# Mức sử dụng & chi phí API
+# Mức sử dụng API & chi phí
 
-Tài liệu này liệt kê **các tính năng có thể gọi khóa API** và nơi hiển thị chi phí của chúng. Nội dung tập trung vào
+Tài liệu này liệt kê **các tính năng có thể gọi API key** và nơi hiển thị chi phí của chúng. Tài liệu tập trung vào
 các tính năng của OpenClaw có thể tạo ra mức sử dụng nhà cung cấp hoặc các lệnh gọi API trả phí.
 
 ## Chi phí hiển thị ở đâu (chat + CLI)
@@ -28,23 +28,23 @@ các tính năng của OpenClaw có thể tạo ra mức sử dụng nhà cung c
 
 **Chân trang chi phí theo từng tin nhắn**
 
-- `/usage full` thêm chân trang mức sử dụng vào mọi phản hồi, bao gồm **chi phí ước tính** (chỉ với API key).
+- `/usage full` thêm chân trang mức sử dụng vào mọi phản hồi, bao gồm **chi phí ước tính** (chỉ API key).
 - `/usage tokens` chỉ hiển thị token; các luồng OAuth ẩn chi phí tiền tệ.
 
-**Cửa sổ mức sử dụng trong CLI (hạn mức nhà cung cấp)**
+**Cửa sổ mức sử dụng CLI (hạn mức nhà cung cấp)**
 
 - `openclaw status --usage` và `openclaw channels list` hiển thị **cửa sổ mức sử dụng** của nhà cung cấp
   (ảnh chụp hạn mức, không phải chi phí theo từng tin nhắn).
 
-Xem [Token use & costs](/token-use) để biết chi tiết và ví dụ.
+Xem [Token use & costs](/reference/token-use) để biết chi tiết và ví dụ.
 
 ## Cách phát hiện khóa
 
 OpenClaw có thể nhận thông tin xác thực từ:
 
 - **Hồ sơ xác thực** (theo từng tác tử, lưu trong `auth-profiles.json`).
-- **Biến môi trường** (ví dụ: `OPENAI_API_KEY`, `BRAVE_API_KEY`, `FIRECRAWL_API_KEY`).
-- **Config** (`models.providers.*.apiKey`, `tools.web.search.*`, `tools.web.fetch.firecrawl.*`,
+- **Biến môi trường** (ví dụ `OPENAI_API_KEY`, `BRAVE_API_KEY`, `FIRECRAWL_API_KEY`).
+- **Cấu hình** (`models.providers.*.apiKey`, `tools.web.search.*`, `tools.web.fetch.firecrawl.*`,
   `memorySearch.*`, `talk.apiKey`).
 - **Skills** (`skills.entries.<name>.apiKey`) có thể xuất khóa vào env của tiến trình skill.
 
@@ -52,36 +52,37 @@ OpenClaw có thể nhận thông tin xác thực từ:
 
 ### 1) Phản hồi mô hình cốt lõi (chat + công cụ)
 
-Mỗi phản hồi hoặc lần gọi công cụ đều dùng **nhà cung cấp mô hình hiện tại** (OpenAI, Anthropic, v.v.). Đây là
-nguồn chính tạo ra mức sử dụng và chi phí.
+Mọi phản hồi hoặc lệnh gọi công cụ đều dùng **nhà cung cấp mô hình hiện tại** (OpenAI, Anthropic, v.v.). Đây là
+nguồn sử dụng và chi phí chính.
 
-Xem [Models](/providers/models) để cấu hình giá và [Token use & costs](/token-use) để biết cách hiển thị.
+Xem [Models](/providers/models) để cấu hình giá và [Token use & costs](/reference/token-use) để xem hiển thị.
 
-### 2) Hiểu nội dung media (audio/image/video)
+### 2) Hiểu nội dung media (audio/hình ảnh/video)
 
-Media đầu vào có thể được tóm tắt/phiên âm trước khi chạy phản hồi. Việc này dùng API của mô hình/nhà cung cấp.
+Media đầu vào có thể được tóm tắt/chuyển biên trước khi chạy phản hồi. Việc này dùng API của mô hình/nhà cung cấp.
 
 - Audio: OpenAI / Groq / Deepgram (hiện **tự động bật** khi có khóa).
-- Image: OpenAI / Anthropic / Google.
+- Hình ảnh: OpenAI / Anthropic / Google.
 - Video: Google.
 
 Xem [Media understanding](/nodes/media-understanding).
 
 ### 3) Embedding bộ nhớ + tìm kiếm ngữ nghĩa
 
-Tìm kiếm bộ nhớ ngữ nghĩa dùng **API embedding** khi được cấu hình cho nhà cung cấp từ xa:
+Tìm kiếm bộ nhớ ngữ nghĩa dùng **API embedding** khi cấu hình cho nhà cung cấp từ xa:
 
 - `memorySearch.provider = "openai"` → OpenAI embeddings
 - `memorySearch.provider = "gemini"` → Gemini embeddings
-- Tùy chọn dự phòng sang OpenAI nếu embedding cục bộ thất bại
+- `memorySearch.provider = "voyage"` → Voyage embeddings
+- Tùy chọn fallback sang nhà cung cấp từ xa nếu embedding cục bộ thất bại
 
-Bạn có thể giữ mọi thứ cục bộ với `memorySearch.provider = "local"` (không dùng API).
+Bạn có thể giữ xử lý cục bộ với `memorySearch.provider = "local"` (không dùng API).
 
 Xem [Memory](/concepts/memory).
 
 ### 4) Công cụ tìm kiếm web (Brave / Perplexity qua OpenRouter)
 
-`web_search` dùng API key và có thể phát sinh phí sử dụng:
+`web_search` dùng API key và có thể phát sinh chi phí:
 
 - **Brave Search API**: `BRAVE_API_KEY` hoặc `tools.web.search.apiKey`
 - **Perplexity** (qua OpenRouter): `PERPLEXITY_API_KEY` hoặc `OPENROUTER_API_KEY`
@@ -94,37 +95,37 @@ Xem [Memory](/concepts/memory).
 
 Xem [Web tools](/tools/web).
 
-### 5) Công cụ lấy nội dung web (Firecrawl)
+### 5) Công cụ tải web (Firecrawl)
 
 `web_fetch` có thể gọi **Firecrawl** khi có API key:
 
 - `FIRECRAWL_API_KEY` hoặc `tools.web.fetch.firecrawl.apiKey`
 
-Nếu Firecrawl chưa được cấu hình, công cụ sẽ chuyển sang fetch trực tiếp + readability (không dùng API trả phí).
+Nếu Firecrawl chưa được cấu hình, công cụ sẽ fallback sang tải trực tiếp + readability (không dùng API trả phí).
 
 Xem [Web tools](/tools/web).
 
-### 6) Ảnh chụp mức sử dụng nhà cung cấp (status/health)
+### 6) Ảnh chụp mức sử dụng nhà cung cấp (trạng thái/sức khỏe)
 
 Một số lệnh trạng thái gọi **endpoint mức sử dụng của nhà cung cấp** để hiển thị cửa sổ hạn mức hoặc tình trạng xác thực.
-Các lệnh này thường có lưu lượng thấp nhưng vẫn chạm vào API của nhà cung cấp:
+Những lệnh này thường có lưu lượng thấp nhưng vẫn gọi API của nhà cung cấp:
 
 - `openclaw status --usage`
 - `openclaw models status --json`
 
 Xem [Models CLI](/cli/models).
 
-### 7) Tóm tắt bảo vệ khi nén (compaction)
+### 7) Tóm tắt bảo vệ compaction
 
-Cơ chế bảo vệ compaction có thể tóm tắt lịch sử phiên bằng **mô hình hiện tại**, từ đó
+Cơ chế bảo vệ compaction có thể tóm tắt lịch sử phiên bằng **mô hình hiện tại**, vì vậy sẽ
 gọi API của nhà cung cấp khi chạy.
 
 Xem [Session management + compaction](/reference/session-management-compaction).
 
-### 8) Quét / thăm dò mô hình
+### 8) Quét/thăm dò mô hình
 
 `openclaw models scan` có thể thăm dò các mô hình OpenRouter và dùng `OPENROUTER_API_KEY` khi
-bật chế độ thăm dò.
+bật thăm dò.
 
 Xem [Models CLI](/cli/models).
 

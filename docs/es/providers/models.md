@@ -1,36 +1,36 @@
 ---
-summary: "Proveedores de modelos (LLMs) compatibles con OpenClaw"
+summary: "Proveedores de modelos (LLM) compatibles con OpenClaw"
 read_when:
   - Quiere elegir un proveedor de modelos
-  - Quiere ejemplos de configuracion rapida para autenticacion de LLM + seleccion de modelo
-title: "Inicio Rapido del Proveedor de Modelos"
+  - Quiere ejemplos de configuración rápida para la autenticación de LLM y la selección de modelos
+title: "Inicio rápido de proveedores de modelos"
 x-i18n:
   source_path: providers/models.md
-  source_hash: c897ca87805f1ec5
+  source_hash: 691d2c97ef6b01cc
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:59:38Z
+  generated_at: 2026-02-08T09:34:18Z
 ---
 
 # Proveedores de modelos
 
-OpenClaw puede usar muchos proveedores de LLM. Elija uno, autentíquese y luego establezca el
+OpenClaw puede usar muchos proveedores de LLM. Elija uno, autentíquese y luego configure el
 modelo predeterminado como `provider/model`.
 
 ## Destacado: Venice (Venice AI)
 
-Venice es nuestra configuracion recomendada de Venice AI para inferencia con prioridad en la privacidad, con la opcion de usar Opus para las tareas mas exigentes.
+Venice es nuestra configuración recomendada de Venice AI para inferencia con enfoque en la privacidad, con la opción de usar Opus para las tareas más difíciles.
 
 - Predeterminado: `venice/llama-3.3-70b`
-- Mejor en general: `venice/claude-opus-45` (Opus sigue siendo el mas potente)
+- Mejor en general: `venice/claude-opus-45` (Opus sigue siendo el más sólido)
 
 Vea [Venice AI](/providers/venice).
 
-## Inicio rapido (dos pasos)
+## Inicio rápido (dos pasos)
 
 1. Autentíquese con el proveedor (generalmente mediante `openclaw onboard`).
-2. Establezca el modelo predeterminado:
+2. Configure el modelo predeterminado:
 
 ```json5
 {
@@ -52,7 +52,8 @@ Vea [Venice AI](/providers/venice).
 - [Modelos GLM](/providers/glm)
 - [MiniMax](/providers/minimax)
 - [Venice (Venice AI)](/providers/venice)
-- [Amazon Bedrock](/bedrock)
+- [Amazon Bedrock](/providers/bedrock)
+- [Qianfan](/providers/qianfan)
 
-Para el catalogo completo de proveedores (xAI, Groq, Mistral, etc.) y la configuracion avanzada,
-vea [Proveedores de modelos](/concepts/model-providers).
+Para el catálogo completo de proveedores (xAI, Groq, Mistral, etc.) y la configuración avanzada,
+consulte [Proveedores de modelos](/concepts/model-providers).

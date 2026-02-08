@@ -1,8 +1,8 @@
 ---
-summary: "Su dung Z.AI (cac mo hinh GLM) voi OpenClaw"
+summary: "Dùng Z.AI (mô hình GLM) với OpenClaw"
 read_when:
-  - Ban muon su dung cac mo hinh Z.AI / GLM trong OpenClaw
-  - Ban can thiet lap ZAI_API_KEY don gian
+  - Bạn muốn dùng mô hình Z.AI / GLM trong OpenClaw
+  - Bạn cần thiết lập ZAI_API_KEY đơn giản
 title: "Z.AI"
 x-i18n:
   source_path: providers/zai.md
@@ -10,16 +10,16 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:08:07Z
+  generated_at: 2026-02-08T09:39:55Z
 ---
 
 # Z.AI
 
-Z.AI la nen tang API cho cac mo hinh **GLM**. Nen tang nay cung cap cac REST API cho GLM va su dung khoa API
-de xac thuc. Hay tao khoa API cua ban trong bang dieu khien Z.AI. OpenClaw su dung nha cung cap `zai`
-voi khoa API Z.AI.
+Z.AI là nền tảng API cho các mô hình **GLM**. Nền tảng này cung cấp REST API cho GLM và sử dụng khóa API
+để xác thực. Tạo khóa API của bạn trong bảng điều khiển Z.AI. OpenClaw sử dụng nhà cung cấp `zai` với
+khóa API của Z.AI.
 
-## Thiet lap CLI
+## CLI setup
 
 ```bash
 openclaw onboard --auth-choice zai-api-key
@@ -27,7 +27,7 @@ openclaw onboard --auth-choice zai-api-key
 openclaw onboard --zai-api-key "$ZAI_API_KEY"
 ```
 
-## Doan cau hinh
+## Config snippet
 
 ```json5
 {
@@ -36,8 +36,8 @@ openclaw onboard --zai-api-key "$ZAI_API_KEY"
 }
 ```
 
-## Ghi chu
+## Notes
 
-- Cac mo hinh GLM co san duoi dang `zai/<model>` (vi du: `zai/glm-4.7`).
-- Xem [/providers/glm](/providers/glm) de tong quan ve ho mo hinh.
-- Z.AI su dung xac thuc Bearer voi khoa API cua ban.
+- Các mô hình GLM có sẵn dưới dạng `zai/<model>` (ví dụ: `zai/glm-4.7`).
+- Xem [/providers/glm](/providers/glm) để biết tổng quan về họ mô hình.
+- Z.AI sử dụng xác thực Bearer với khóa API của bạn.

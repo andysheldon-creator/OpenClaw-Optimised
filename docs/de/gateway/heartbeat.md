@@ -1,32 +1,34 @@
 ---
-summary: "Heartbeat-Abfrage-Nachrichten und Benachrichtigungsregeln"
+summary: „Heartbeat-Abfragemeldungen und Benachrichtigungsregeln“
 read_when:
-  - Anpassen der Heartbeat-Taktung oder der Nachrichten
-  - Entscheidung zwischen Heartbeat und Cron fuer geplante Aufgaben
-title: "Heartbeat"
+  - Anpassen der Heartbeat-Taktung oder -Nachrichten
+  - Entscheidung zwischen Heartbeat und Cron für geplante Aufgaben
+title: „Heartbeat“
 x-i18n:
   source_path: gateway/heartbeat.md
-  source_hash: 27db9803263a5f2d
+  source_hash: e763caf86ef74488
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:04:48Z
+  generated_at: 2026-02-08T09:36:36Z
 ---
 
 # Heartbeat (Gateway)
 
-> **Heartbeat vs. Cron?** Siehe [Cron vs Heartbeat](/automation/cron-vs-heartbeat) fuer Hinweise, wann was zu verwenden ist.
+> **Heartbeat vs. Cron?** Siehe [Cron vs Heartbeat](/automation/cron-vs-heartbeat) für Hinweise, wann welches Verfahren zu verwenden ist.
 
-Heartbeat fuehrt **periodische Agent-Turns** in der Hauptsitzung aus, damit das Modell
-alles Wichtige aufzeigen kann, ohne Sie mit Nachrichten zu ueberschwemmen.
+Heartbeat führt **periodische Agent-Turns** in der Hauptsitzung aus, damit das Modell
+alles, was Aufmerksamkeit erfordert, anzeigen kann, ohne Sie zu spammen.
 
-## Schnellstart (Anfaenger)
+Fehlerbehebung: [/automation/troubleshooting](/automation/troubleshooting)
 
-1. Lassen Sie Heartbeats aktiviert (Standard ist `30m` oder `1h` fuer Anthropic OAuth/setup-token) oder legen Sie Ihre eigene Taktung fest.
+## Schnellstart (Anfänger)
+
+1. Lassen Sie Heartbeats aktiviert (Standard ist `30m` oder `1h` für Anthropic OAuth/Setup-Token) oder legen Sie Ihre eigene Taktung fest.
 2. Erstellen Sie eine kleine `HEARTBEAT.md`-Checkliste im Agent-Workspace (optional, aber empfohlen).
 3. Entscheiden Sie, wohin Heartbeat-Nachrichten gesendet werden sollen (`target: "last"` ist der Standard).
-4. Optional: Aktivieren Sie die Auslieferung der Heartbeat-Begruendung fuer mehr Transparenz.
-5. Optional: Beschraenken Sie Heartbeats auf aktive Stunden (lokale Zeit).
+4. Optional: Aktivieren Sie die Auslieferung der Heartbeat-Begründung für Transparenz.
+5. Optional: Beschränken Sie Heartbeats auf aktive Stunden (lokale Zeit).
 
 Beispielkonfiguration:
 
@@ -45,47 +47,45 @@ Beispielkonfiguration:
 }
 ```
 
-## Standards
+## Standardwerte
 
-- Intervall: `30m` (oder `1h`, wenn Anthropic OAuth/setup-token der erkannte Authentifizierungsmodus ist). Setzen Sie `agents.defaults.heartbeat.every` oder pro Agent `agents.list[].heartbeat.every`; verwenden Sie `0m`, um zu deaktivieren.
-- Prompt-Body (konfigurierbar ueber `agents.defaults.heartbeat.prompt`):
+- Intervall: `30m` (oder `1h`, wenn Anthropic OAuth/Setup-Token als Authentifizierungsmodus erkannt wird). Setzen Sie `agents.defaults.heartbeat.every` oder pro Agent `agents.list[].heartbeat.every`; verwenden Sie `0m`, um zu deaktivieren.
+- Prompt-Text (konfigurierbar über `agents.defaults.heartbeat.prompt`):
   `Read HEARTBEAT.md if it exists (workspace context). Follow it strictly. Do not infer or repeat old tasks from prior chats. If nothing needs attention, reply HEARTBEAT_OK.`
-- Der Heartbeat-Prompt wird **wortgetreu** als Nutzernachricht gesendet. Der System-
-  Prompt enthaelt einen Abschnitt „Heartbeat“, und der Run wird intern markiert.
-- Aktive Stunden (`heartbeat.activeHours`) werden in der konfigurierten Zeitzone geprueft.
-  Ausserhalb des Fensters werden Heartbeats uebersprungen, bis der naechste Tick innerhalb des Fensters erreicht ist.
+- Der Heartbeat-Prompt wird **wortgetreu** als Benutzernachricht gesendet. Der System-
+  Prompt enthält einen Abschnitt „Heartbeat“, und der Lauf wird intern gekennzeichnet.
+- Aktive Stunden (`heartbeat.activeHours`) werden in der konfigurierten Zeitzone geprüft.
+  Außerhalb des Fensters werden Heartbeats übersprungen, bis der nächste Tick innerhalb des Fensters erfolgt.
 
-## Wofuer der Heartbeat-Prompt gedacht ist
+## Wofür der Heartbeat-Prompt gedacht ist
 
-Der Standard-Prompt ist absichtlich allgemein gehalten:
+Der Standard-Prompt ist absichtlich breit gefasst:
 
 - **Hintergrundaufgaben**: „Consider outstanding tasks“ veranlasst den Agenten,
-  Folgeaufgaben (Posteingang, Kalender, Erinnerungen, Warteschlangenarbeit) zu pruefen
+  Nachverfolgungen (Posteingang, Kalender, Erinnerungen, Warteschlangenarbeit) zu prüfen
   und Dringendes hervorzuheben.
 - **Menschlicher Check-in**: „Checkup sometimes on your human during day time“ regt
   gelegentliche, leichte „Brauchen Sie etwas?“-Nachrichten an, vermeidet aber
-  Nacht-Spam durch Nutzung Ihrer konfigurierten lokalen Zeitzone
+  nächtlichen Spam durch Verwendung Ihrer konfigurierten lokalen Zeitzone
   (siehe [/concepts/timezone](/concepts/timezone)).
 
-Wenn ein Heartbeat etwas sehr Spezifisches tun soll (z. B. „check Gmail PubSub
-stats“ oder „verify gateway health“), setzen Sie `agents.defaults.heartbeat.prompt` (oder
-`agents.list[].heartbeat.prompt`) auf einen benutzerdefinierten Body (wortgetreu gesendet).
+Wenn ein Heartbeat etwas sehr Spezifisches tun soll (z. B. „Gmail-PubSub-Statistiken prüfen“
+oder „Gateway-Gesundheit verifizieren“), setzen Sie `agents.defaults.heartbeat.prompt` (oder
+`agents.list[].heartbeat.prompt`) auf einen benutzerdefinierten Text (wortgetreu gesendet).
 
 ## Antwortvertrag
 
 - Wenn nichts Aufmerksamkeit erfordert, antworten Sie mit **`HEARTBEAT_OK`**.
-- Waerend Heartbeat-Runs behandelt OpenClaw `HEARTBEAT_OK` als Ack, wenn es am
-  **Anfang oder Ende** der Antwort erscheint. Das Token wird entfernt und die
-  Antwort verworfen, wenn der verbleibende Inhalt **≤ `ackMaxChars`** ist
-  (Standard: 300).
+- Während Heartbeat-Läufen behandelt OpenClaw `HEARTBEAT_OK` als Bestätigung, wenn es
+  **am Anfang oder Ende** der Antwort erscheint. Das Token wird entfernt, und die
+  Antwort wird verworfen, wenn der verbleibende Inhalt **≤ `ackMaxChars`**
+  ist (Standard: 300).
 - Wenn `HEARTBEAT_OK` **in der Mitte** einer Antwort erscheint, wird es nicht
   speziell behandelt.
-- Fuer Warnungen **nicht** `HEARTBEAT_OK` einschliessen; geben Sie nur den
-  Warnungstext zurueck.
+- Für Alarme **nicht** `HEARTBEAT_OK` einfügen; geben Sie nur den Alarmtext zurück.
 
-Ausserhalb von Heartbeats wird ein verirrtes `HEARTBEAT_OK` am Anfang/Ende einer
-Nachricht entfernt und protokolliert; eine Nachricht, die nur aus
-`HEARTBEAT_OK` besteht, wird verworfen.
+Außerhalb von Heartbeats werden vereinzelte `HEARTBEAT_OK` am Anfang/Ende einer Nachricht
+entfernt und protokolliert; eine Nachricht, die nur aus `HEARTBEAT_OK` besteht, wird verworfen.
 
 ## Konfiguration
 
@@ -108,23 +108,22 @@ Nachricht entfernt und protokolliert; eine Nachricht, die nur aus
 }
 ```
 
-### Geltungsbereich und Prioritaet
+### Geltungsbereich und Priorität
 
-- `agents.defaults.heartbeat` setzt das globale Heartbeat-Verhalten.
-- `agents.list[].heartbeat` wird daruebergelegt; wenn ein Agent einen `heartbeat`-Block
-  hat, laufen Heartbeats **nur fuer diese Agenten**.
-- `channels.defaults.heartbeat` setzt Sichtbarkeits-Standards fuer alle Kanaele.
-- `channels.<channel>.heartbeat` ueberschreibt Kanal-Standards.
-- `channels.<channel>.accounts.<id>.heartbeat` (Mehrkonto-Kanaele) ueberschreibt kanalweise Einstellungen.
+- `agents.defaults.heartbeat` legt das globale Heartbeat-Verhalten fest.
+- `agents.list[].heartbeat` wird darübergelegt; wenn irgendein Agent einen `heartbeat`-Block hat,
+  führen **nur diese Agenten** Heartbeats aus.
+- `channels.defaults.heartbeat` legt Sichtbarkeits-Standardwerte für alle Kanäle fest.
+- `channels.<channel>.heartbeat` überschreibt Kanal-Standardwerte.
+- `channels.<channel>.accounts.<id>.heartbeat` (Mehrkonten-Kanäle) überschreibt kanalweise Einstellungen.
 
 ### Pro-Agent-Heartbeats
 
-Wenn ein `agents.list[]`-Eintrag einen `heartbeat`-Block enthaelt, laufen
-Heartbeats **nur fuer diese Agenten**. Der Pro-Agent-Block wird ueber
-`agents.defaults.heartbeat` gelegt (so koennen Sie gemeinsame Standards einmal setzen und pro
-Agent ueberschreiben).
+Wenn irgendein `agents.list[]`-Eintrag einen `heartbeat`-Block enthält, führen
+**nur diese Agenten** Heartbeats aus. Der Pro-Agent-Block wird über `agents.defaults.heartbeat`
+gelegt (so können Sie gemeinsame Standardwerte einmal festlegen und pro Agent überschreiben).
 
-Beispiel: zwei Agenten, nur der zweite Agent fuehrt Heartbeats aus.
+Beispiel: zwei Agenten, nur der zweite Agent führt Heartbeats aus.
 
 ```json5
 {
@@ -151,9 +150,9 @@ Beispiel: zwei Agenten, nur der zweite Agent fuehrt Heartbeats aus.
 }
 ```
 
-### Beispiel fuer aktive Stunden
+### Beispiel für aktive Stunden
 
-Beschraenken Sie Heartbeats auf Geschaeftszeiten in einer bestimmten Zeitzone:
+Beschränken Sie Heartbeats auf Geschäftszeiten in einer bestimmten Zeitzone:
 
 ```json5
 {
@@ -173,13 +172,12 @@ Beschraenken Sie Heartbeats auf Geschaeftszeiten in einer bestimmten Zeitzone:
 }
 ```
 
-Ausserhalb dieses Fensters (vor 9 Uhr oder nach 22 Uhr Eastern) werden Heartbeats
-uebersprungen. Der naechste geplante Tick innerhalb des Fensters laeuft normal.
+Außerhalb dieses Fensters (vor 9 Uhr oder nach 22 Uhr Eastern) werden Heartbeats übersprungen.
+Der nächste geplante Tick innerhalb des Fensters läuft normal.
 
-### Mehrkonto-Beispiel
+### Beispiel für mehrere Konten
 
-Verwenden Sie `accountId`, um auf Mehrkonto-Kanaelen wie Telegram ein bestimmtes
-Konto anzusprechen:
+Verwenden Sie `accountId`, um ein bestimmtes Konto in Mehrkonten-Kanälen wie Telegram anzusprechen:
 
 ```json5
 {
@@ -208,66 +206,50 @@ Konto anzusprechen:
 
 ### Feldnotizen
 
-- `every`: Heartbeat-Intervall (Dauerstring; Standardeinheit = Minuten).
-- `model`: optionale Modellueberschreibung fuer Heartbeat-Runs
-  (`provider/model`).
-- `includeReasoning`: wenn aktiviert, wird zusaetzlich die separate
-  `Reasoning:`-Nachricht ausgeliefert, sobald verfuegbar (gleiche Form wie
-  `/reasoning on`).
-- `session`: optionaler Sitzungs-Schluessel fuer Heartbeat-Runs.
+- `every`: Heartbeat-Intervall (Dauerzeichenfolge; Standardeinheit = Minuten).
+- `model`: optionale Modellüberschreibung für Heartbeat-Läufe (`provider/model`).
+- `includeReasoning`: wenn aktiviert, wird auch die separate `Reasoning:`-Nachricht
+  ausgeliefert, sofern verfügbar (gleiche Form wie `/reasoning on`).
+- `session`: optionaler Sitzungs-Schlüssel für Heartbeat-Läufe.
   - `main` (Standard): Hauptsitzung des Agenten.
-  - Expliziter Sitzungs-Schluessel (kopieren Sie ihn aus `openclaw sessions --json` oder der
+  - Expliziter Sitzungs-Schlüssel (kopieren Sie ihn aus `openclaw sessions --json` oder der
     [sessions CLI](/cli/sessions)).
-  - Sitzungs-Schluessel-Formate: siehe [Sessions](/concepts/session) und
-    [Groups](/concepts/groups).
+  - Sitzungs-Schlüsselformate: siehe [Sessions](/concepts/session) und [Groups](/channels/groups).
 - `target`:
-  - `last` (Standard): Zustellung an den zuletzt verwendeten externen Kanal.
-  - Expliziter Kanal: `whatsapp` / `telegram` / `discord` /
-    `googlechat` / `slack` / `msteams` / `signal` /
-    `imessage`.
-  - `none`: Heartbeat ausfuehren, aber **nicht extern zustellen**.
-- `to`: optionale Empfaengerueberschreibung (kanalspezifische ID, z. B.
-  E.164 fuer WhatsApp oder eine Telegram-Chat-ID).
-- `accountId`: optionale Konto-ID fuer Mehrkonto-Kanaele. Wenn
-  `target: "last"`, gilt die Konto-ID fuer den aufgeloesten letzten Kanal, sofern er
-  Konten unterstuetzt; andernfalls wird sie ignoriert. Wenn die Konto-ID keinem
-  konfigurierten Konto fuer den aufgeloesten Kanal entspricht, wird die Zustellung
-  uebersprungen.
-- `prompt`: ueberschreibt den Standard-Prompt-Body (wird nicht gemergt).
-- `ackMaxChars`: maximale Zeichen nach `HEARTBEAT_OK` vor der Zustellung.
-- `activeHours`: beschraenkt Heartbeat-Runs auf ein Zeitfenster. Objekt mit
-  `start` (HH:MM, inklusiv), `end` (HH:MM exklusiv;
-  `24:00` fuer Tagesende zulaessig) und optional `timezone`.
-  - Weggelassen oder `"user"`: verwendet Ihre `agents.defaults.userTimezone`, falls gesetzt,
-    sonst Rueckfall auf die Host-System-Zeitzone.
-  - `"local"`: verwendet immer die Host-System-Zeitzone.
-  - Jede IANA-Kennung (z. B. `America/New_York`): wird direkt verwendet; bei Ungueltigkeit
-    Rueckfall auf das `"user"`-Verhalten oben.
-  - Ausserhalb des aktiven Fensters werden Heartbeats uebersprungen, bis der naechste
-    Tick innerhalb des Fensters erreicht ist.
+  - `last` (Standard): Auslieferung an den zuletzt verwendeten externen Kanal.
+  - Expliziter Kanal: `whatsapp` / `telegram` / `discord` / `googlechat` / `slack` / `msteams` / `signal` / `imessage`.
+  - `none`: Heartbeat ausführen, aber **nicht extern ausliefern**.
+- `to`: optionale Empfängerüberschreibung (kanalspezifische ID, z. B. E.164 für WhatsApp oder eine Telegram-Chat-ID).
+- `accountId`: optionale Konto-ID für Mehrkonten-Kanäle. Wenn `target: "last"`, gilt die Konto-ID für den aufgelösten letzten Kanal, sofern dieser Konten unterstützt; andernfalls wird sie ignoriert. Wenn die Konto-ID keinem konfigurierten Konto für den aufgelösten Kanal entspricht, wird die Auslieferung übersprungen.
+- `prompt`: überschreibt den Standard-Prompt-Text (wird nicht zusammengeführt).
+- `ackMaxChars`: maximale Zeichenanzahl, die nach `HEARTBEAT_OK` vor der Auslieferung erlaubt ist.
+- `activeHours`: beschränkt Heartbeat-Läufe auf ein Zeitfenster. Objekt mit `start` (HH:MM, inklusiv), `end` (HH:MM exklusiv; `24:00` für Tagesende zulässig) und optional `timezone`.
+  - Weggelassen oder `"user"`: verwendet Ihre `agents.defaults.userTimezone`, falls gesetzt, andernfalls die Zeitzone des Host-Systems.
+  - `"local"`: verwendet immer die Zeitzone des Host-Systems.
+  - Beliebige IANA-Kennung (z. B. `America/New_York`): wird direkt verwendet; bei Ungültigkeit fällt es auf das oben genannte `"user"`-Verhalten zurück.
+  - Außerhalb des aktiven Fensters werden Heartbeats übersprungen, bis der nächste Tick innerhalb des Fensters erfolgt.
 
-## Zustellverhalten
+## Auslieferungsverhalten
 
-- Heartbeats laufen standardmaessig in der Hauptsitzung des Agenten
-  (`agent:<id>:<mainKey>`), oder `global`, wenn `session.scope = "global"`. Setzen Sie
-  `session`, um auf eine bestimmte Kanalsitzung (Discord/WhatsApp/etc.)
-  umzuschalten.
-- `session` betrifft nur den Run-Kontext; die Zustellung wird durch
+- Heartbeats laufen standardmäßig in der Hauptsitzung des Agenten (`agent:<id>:<mainKey>`)
+  oder `global`, wenn `session.scope = "global"`. Setzen Sie `session`, um auf eine
+  bestimmte Kanal-Sitzung (Discord/WhatsApp/etc.) zu überschreiben.
+- `session` beeinflusst nur den Laufkontext; die Auslieferung wird durch
   `target` und `to` gesteuert.
-- Um an einen bestimmten Kanal/Empfaenger zuzustellen, setzen Sie
-  `target` + `to`. Mit `target: "last"` erfolgt die Zustellung
-  ueber den letzten externen Kanal dieser Sitzung.
-- Wenn die Hauptwarteschlange beschaeftigt ist, wird der Heartbeat uebersprungen und
-  spaeter erneut versucht.
-- Wenn `target` zu keinem externen Ziel aufloest, findet der Run dennoch
-  statt, es wird aber keine ausgehende Nachricht gesendet.
-- Reine Heartbeat-Antworten halten die Sitzung **nicht** aktiv; der letzte
-  `updatedAt` wird wiederhergestellt, sodass der Idle-Ablauf normal greift.
+- Um an einen bestimmten Kanal/Empfänger zu liefern, setzen Sie `target` +
+  `to`. Mit `target: "last"` verwendet die Auslieferung den letzten externen
+  Kanal für diese Sitzung.
+- Wenn die Hauptwarteschlange ausgelastet ist, wird der Heartbeat übersprungen und
+  später erneut versucht.
+- Wenn `target` zu keinem externen Ziel aufgelöst wird, findet der Lauf dennoch
+  statt, aber es wird keine ausgehende Nachricht gesendet.
+- Nur-Heartbeat-Antworten halten die Sitzung **nicht** aktiv; der letzte
+  `updatedAt` wird wiederhergestellt, sodass das Leerlauf-Ablaufen normal erfolgt.
 
 ## Sichtbarkeitssteuerungen
 
-Standardmaessig werden `HEARTBEAT_OK`-Bestaetigungen unterdrueckt, waehrend
-Warninhalte zugestellt werden. Sie koennen dies pro Kanal oder pro Konto anpassen:
+Standardmäßig werden `HEARTBEAT_OK`-Bestätigungen unterdrückt, während Alarm-Inhalte
+ausgeliefert werden. Sie können dies pro Kanal oder pro Konto anpassen:
 
 ```yaml
 channels:
@@ -286,20 +268,18 @@ channels:
           showAlerts: false # Suppress alert delivery for this account
 ```
 
-Prioritaet: Pro-Konto → Pro-Kanal → Kanal-Standards → Eingebaute Standards.
+Priorität: Pro-Konto → Pro-Kanal → Kanal-Standardwerte → Eingebaute Standardwerte.
 
-### Was jede Markierung bewirkt
+### Was jedes Flag bewirkt
 
-- `showOk`: sendet eine `HEARTBEAT_OK`-Bestaetigung, wenn das Modell nur eine
-  OK-Antwort zurueckgibt.
-- `showAlerts`: sendet den Warninhalt, wenn das Modell eine Nicht-OK-Antwort
-  zurueckgibt.
-- `useIndicator`: erzeugt Indikator-Events fuer UI-Statusflaechen.
+- `showOk`: sendet eine `HEARTBEAT_OK`-Bestätigung, wenn das Modell eine reine OK-Antwort zurückgibt.
+- `showAlerts`: sendet den Alarm-Inhalt, wenn das Modell eine Nicht-OK-Antwort zurückgibt.
+- `useIndicator`: erzeugt Indikator-Ereignisse für UI-Statusoberflächen.
 
-Wenn **alle drei** false sind, ueberspringt OpenClaw den Heartbeat-Run vollstaendig
+Wenn **alle drei** false sind, überspringt OpenClaw den Heartbeat-Lauf vollständig
 (kein Modellaufruf).
 
-### Pro-Kanal- vs. Pro-Konto-Beispiele
+### Beispiele: Pro-Kanal vs. Pro-Konto
 
 ```yaml
 channels:
@@ -320,28 +300,27 @@ channels:
       showOk: true
 ```
 
-### Hauefige Muster
+### Häufige Muster
 
-| Ziel                                                   | Konfiguration                                                                            |
-| ------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
-| Standardverhalten (stille OKs, Warnungen)              | _(keine Konfiguration erforderlich)_                                                     |
-| Vollstaendig still (keine Nachrichten, kein Indikator) | `channels.defaults.heartbeat: { showOk: false, showAlerts: false, useIndicator: false }` |
-| Nur Indikator (keine Nachrichten)                      | `channels.defaults.heartbeat: { showOk: false, showAlerts: false, useIndicator: true }`  |
-| OKs nur in einem Kanal                                 | `channels.telegram.heartbeat: { showOk: true }`                                          |
+| Ziel                                                  | Konfiguration                                                                            |
+| ----------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Standardverhalten (stille OKs, Alarme an)             | _(keine Konfiguration erforderlich)_                                                     |
+| Vollständig still (keine Nachrichten, kein Indikator) | `channels.defaults.heartbeat: { showOk: false, showAlerts: false, useIndicator: false }` |
+| Nur Indikator (keine Nachrichten)                     | `channels.defaults.heartbeat: { showOk: false, showAlerts: false, useIndicator: true }`  |
+| OKs nur in einem Kanal                                | `channels.telegram.heartbeat: { showOk: true }`                                          |
 
 ## HEARTBEAT.md (optional)
 
-Wenn eine `HEARTBEAT.md`-Datei im Workspace existiert, weist der Standard-Prompt den
-Agenten an, sie zu lesen. Betrachten Sie sie als Ihre „Heartbeat-Checkliste“:
-klein, stabil und sicher, um sie alle 30 Minuten einzubinden.
+Wenn im Workspace eine `HEARTBEAT.md`-Datei existiert, weist der Standard-Prompt den
+Agenten an, sie zu lesen. Denken Sie daran als Ihre „Heartbeat-Checkliste“: klein,
+stabil und sicher, um sie alle 30 Minuten einzubinden.
 
-Wenn `HEARTBEAT.md` existiert, aber faktisch leer ist (nur Leerzeilen und
-Markdown-Ueberschriften wie `# Heading`), ueberspringt OpenClaw den Heartbeat-Run,
-um API-Aufrufe zu sparen. Fehlt die Datei, laeuft der Heartbeat dennoch, und das
-Modell entscheidet, was zu tun ist.
+Wenn `HEARTBEAT.md` existiert, aber faktisch leer ist (nur Leerzeilen und Markdown-
+Überschriften wie `# Heading`), überspringt OpenClaw den Heartbeat-Lauf, um API-
+Aufrufe zu sparen. Wenn die Datei fehlt, läuft der Heartbeat trotzdem, und das Modell
+entscheidet, was zu tun ist.
 
-Halten Sie sie klein (kurze Checkliste oder Erinnerungen), um Prompt-Aufblaehung zu
-vermeiden.
+Halten Sie sie klein (kurze Checkliste oder Erinnerungen), um Prompt-Aufblähung zu vermeiden.
 
 Beispiel `HEARTBEAT.md`:
 
@@ -357,52 +336,50 @@ Beispiel `HEARTBEAT.md`:
 
 Ja — wenn Sie ihn darum bitten.
 
-`HEARTBEAT.md` ist nur eine normale Datei im Agent-Workspace, daher koennen Sie
-dem Agenten (in einem normalen Chat) z. B. sagen:
+`HEARTBEAT.md` ist einfach eine normale Datei im Agent-Workspace, sodass Sie dem
+Agenten (in einem normalen Chat) etwa Folgendes sagen können:
 
-- „Aktualisiere `HEARTBEAT.md`, um eine taegliche Kalenderpruefung hinzuzufuegen.“
-- „Schreibe `HEARTBEAT.md` um, damit es kuerzer ist und sich auf Inbox-Follow-ups
-  konzentriert.“
+- „Aktualisiere `HEARTBEAT.md`, um eine tägliche Kalenderprüfung hinzuzufügen.“
+- „Schreibe `HEARTBEAT.md` neu, damit es kürzer ist und sich auf Posteingangs-
+  Nachverfolgungen konzentriert.“
 
-Wenn dies proaktiv geschehen soll, koennen Sie auch eine explizite Zeile in Ihren
-Heartbeat-Prompt aufnehmen, etwa: „If the checklist becomes stale, update
-HEARTBEAT.md with a better one.“
+Wenn Sie möchten, dass dies proaktiv geschieht, können Sie auch eine explizite Zeile
+in Ihren Heartbeat-Prompt aufnehmen, etwa: „Wenn die Checkliste veraltet ist,
+aktualisiere HEARTBEAT.md mit einer besseren.“
 
-Sicherheitshinweis: Platzieren Sie keine Geheimnisse (API-Schluessel,
-Telefonnummern, private Tokens) in `HEARTBEAT.md` — es wird Teil des Prompt-
-Kontexts.
+Sicherheitshinweis: Legen Sie keine Geheimnisse (API-Schlüssel, Telefonnummern,
+private Tokens) in `HEARTBEAT.md` ab — es wird Teil des Prompt-Kontexts.
 
-## Manueller Wake (on-demand)
+## Manueller Weckruf (on-demand)
 
-Sie koennen ein Systemereignis in die Warteschlange stellen und einen sofortigen
-Heartbeat ausloesen mit:
+Sie können ein Systemereignis in die Warteschlange stellen und einen sofortigen
+Heartbeat auslösen mit:
 
 ```bash
 openclaw system event --text "Check for urgent follow-ups" --mode now
 ```
 
-Wenn mehrere Agenten `heartbeat` konfiguriert haben, fuehrt ein manueller Wake
-alle diese Agent-Heartbeats sofort aus.
+Wenn mehrere Agenten `heartbeat` konfiguriert haben, führt ein manueller Weckruf
+jede dieser Agenten-Heartbeats sofort aus.
 
-Verwenden Sie `--mode next-heartbeat`, um auf den naechsten geplanten Tick zu warten.
+Verwenden Sie `--mode next-heartbeat`, um auf den nächsten geplanten Tick zu warten.
 
-## Auslieferung der Begruendung (optional)
+## Auslieferung der Begründung (optional)
 
-Standardmaessig liefern Heartbeats nur die finale „Antwort“-Nutzlast.
+Standardmäßig liefern Heartbeats nur die finale „Antwort“-Nutzlast aus.
 
-Wenn Sie Transparenz wuenschen, aktivieren Sie:
+Wenn Sie Transparenz wünschen, aktivieren Sie:
 
 - `agents.defaults.heartbeat.includeReasoning: true`
 
-Wenn aktiviert, liefern Heartbeats zusaetzlich eine separate Nachricht mit dem
-Praefix `Reasoning:` (gleiche Form wie `/reasoning on`). Dies kann nuetzlich sein,
-wenn der Agent mehrere Sitzungen/Kodizes verwaltet und Sie sehen moechten, warum er
-sich entschieden hat, Sie anzupingen — kann aber auch mehr interne Details preisgeben,
-als gewuenscht. Bevorzugen Sie es, dies in Gruppenchats deaktiviert zu lassen.
+Wenn aktiviert, liefern Heartbeats zusätzlich eine separate Nachricht mit dem Präfix
+`Reasoning:` (gleiche Form wie `/reasoning on`). Das kann nützlich sein, wenn der
+Agent mehrere Sitzungen/Codizes verwaltet und Sie sehen möchten, warum er sich
+entschieden hat, Sie anzupingen — kann aber auch mehr interne Details preisgeben,
+als Ihnen lieb ist. Bevorzugen Sie, dies in Gruppenchats deaktiviert zu lassen.
 
 ## Kostenbewusstsein
 
-Heartbeats fuehren vollstaendige Agent-Turns aus. Kuerzere Intervalle verbrauchen
-mehr Tokens. Halten Sie `HEARTBEAT.md` klein und ziehen Sie ein guenstigeres
-`model` oder `target: "none"` in Betracht, wenn Sie nur interne
-Statusaktualisierungen wuenschen.
+Heartbeats führen vollständige Agent-Turns aus. Kürzere Intervalle verbrauchen mehr
+Tokens. Halten Sie `HEARTBEAT.md` klein und erwägen Sie ein günstigeres
+`model` oder `target: "none"`, wenn Sie nur interne Zustandsaktualisierungen wünschen.

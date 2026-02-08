@@ -1,15 +1,15 @@
 ---
-summary: "Referencia da CLI para `openclaw agent` (enviar um turno de agente via o Gateway)"
+summary: "Referência da CLI para `openclaw agent` (enviar um turno de agente via o Gateway)"
 read_when:
-  - Voce quer executar um turno de agente a partir de scripts (opcionalmente entregar a resposta)
-title: "agente"
+  - Você quer executar um turno de agente a partir de scripts (opcionalmente entregar a resposta)
+title: "agent"
 x-i18n:
   source_path: cli/agent.md
   source_hash: dcf12fb94e207c68
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:25Z
+  generated_at: 2026-02-08T09:30:14Z
 ---
 
 # `openclaw agent`
@@ -19,7 +19,7 @@ Use `--agent <id>` para direcionar diretamente um agente configurado.
 
 Relacionado:
 
-- Ferramenta de envio de agente: [Agent send](/tools/agent-send)
+- Ferramenta de envio de agente: [Envio de agente](/tools/agent-send)
 
 ## Exemplos
 

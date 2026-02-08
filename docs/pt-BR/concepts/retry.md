@@ -1,51 +1,51 @@
 ---
-summary: "Politica de retry para chamadas de provedores de saida"
+summary: "Política de retry para chamadas de saída a provedores"
 read_when:
-  - Atualizando o comportamento ou os padroes de retry do provedor
+  - Atualizando o comportamento ou os padrões de retry do provedor
   - Depurando erros de envio do provedor ou limites de taxa
-title: "Politica de Retry"
+title: "Política de Retry"
 x-i18n:
   source_path: concepts/retry.md
   source_hash: 55bb261ff567f46c
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:53Z
+  generated_at: 2026-02-08T09:30:33Z
 ---
 
-# Politica de retry
+# Política de retry
 
 ## Objetivos
 
-- Fazer retry por requisicao HTTP, nao por fluxo de varias etapas.
-- Preservar a ordem fazendo retry apenas da etapa atual.
-- Evitar a duplicacao de operacoes nao idempotentes.
+- Retentar por requisição HTTP, não por fluxo de múltiplas etapas.
+- Preservar a ordem ao retentar apenas a etapa atual.
+- Evitar duplicar operações não idempotentes.
 
-## Padroes
+## Padrões
 
 - Tentativas: 3
-- Limite maximo de atraso: 30000 ms
+- Limite máximo de atraso: 30000 ms
 - Jitter: 0.1 (10 por cento)
-- Padroes do provedor:
-  - Atraso minimo do Telegram: 400 ms
-  - Atraso minimo do Discord: 500 ms
+- Padrões do provedor:
+  - Atraso mínimo do Telegram: 400 ms
+  - Atraso mínimo do Discord: 500 ms
 
 ## Comportamento
 
 ### Discord
 
-- Faz retry apenas em erros de limite de taxa (HTTP 429).
-- Usa `retry_after` quando disponivel; caso contrario, backoff exponencial.
+- Retenta apenas em erros de limite de taxa (HTTP 429).
+- Usa `retry_after` quando disponível; caso contrário, backoff exponencial.
 
 ### Telegram
 
-- Faz retry em erros transitorios (429, timeout, connect/reset/closed, temporariamente indisponivel).
-- Usa `retry_after` quando disponivel; caso contrario, backoff exponencial.
-- Erros de parse de Markdown nao sao reexecutados; fazem fallback para texto simples.
+- Retenta em erros transitórios (429, timeout, conectar/resetar/fechado, temporariamente indisponível).
+- Usa `retry_after` quando disponível; caso contrário, backoff exponencial.
+- Erros de parsing de Markdown não são retentados; fazem fallback para texto simples.
 
-## Configuracao
+## Configuração
 
-Defina a politica de retry por provedor em `~/.openclaw/openclaw.json`:
+Defina a política de retry por provedor em `~/.openclaw/openclaw.json`:
 
 ```json5
 {
@@ -72,5 +72,5 @@ Defina a politica de retry por provedor em `~/.openclaw/openclaw.json`:
 
 ## Notas
 
-- Retries se aplicam por requisicao (envio de mensagem, upload de midia, reacao, enquete, figurinha).
-- Fluxos compostos nao fazem retry de etapas concluidas.
+- Retries se aplicam por requisição (envio de mensagem, upload de mídia, reação, enquete, sticker).
+- Fluxos compostos não retentam etapas concluídas.

@@ -1,37 +1,37 @@
 ---
-summary: "Tham chieu CLI cho `openclaw browser` (ho so, tab, hanh dong, Chrome extension relay)"
+summary: "Tham chiếu CLI cho `openclaw browser` (hồ sơ, tab, hành động, chuyển tiếp tiện ích mở rộng)"
 read_when:
-  - Ban su dung `openclaw browser` va muon vi du cho cac tac vu pho bien
-  - Ban muon dieu khien trinh duyet dang chay tren may khac thong qua node host
-  - Ban muon su dung Chrome extension relay (gan/tach qua nut thanh cong cu)
-title: "trinh duyet"
+  - Bạn dùng `openclaw browser` và muốn xem ví dụ cho các tác vụ phổ biến
+  - Bạn muốn điều khiển một trình duyệt chạy trên máy khác thông qua một node host
+  - Bạn muốn dùng chuyển tiếp tiện ích mở rộng Chrome (gắn/tách qua nút trên thanh công cụ)
+title: "browser"
 x-i18n:
   source_path: cli/browser.md
   source_hash: af35adfd68726fd5
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:24Z
+  generated_at: 2026-02-08T09:38:16Z
 ---
 
 # `openclaw browser`
 
-Quan ly may chu dieu khien trinh duyet cua OpenClaw va chay cac hanh dong trinh duyet (tab, snapshot, screenshot, dieu huong, nhap, click).
+Quản lý máy chủ điều khiển trình duyệt của OpenClaw và chạy các hành động trình duyệt (tab, snapshot, screenshot, điều hướng, nhấp chuột, gõ phím).
 
-Lien quan:
+Liên quan:
 
-- Cong cu + API trinh duyet: [Browser tool](/tools/browser)
-- Chrome extension relay: [Chrome extension](/tools/chrome-extension)
+- Công cụ + API trình duyệt: [Browser tool](/tools/browser)
+- Chuyển tiếp tiện ích mở rộng Chrome: [Chrome extension](/tools/chrome-extension)
 
-## Co thong so pho bien
+## Cờ thường dùng
 
-- `--url <gatewayWsUrl>`: URL WebSocket cua Gateway (mac dinh tu cau hinh).
-- `--token <token>`: token Gateway (neu can).
-- `--timeout <ms>`: thoi gian cho yeu cau (ms).
-- `--browser-profile <name>`: chon ho so trinh duyet (mac dinh tu cau hinh).
-- `--json`: dau ra doc duoc bang may (neu ho tro).
+- `--url <gatewayWsUrl>`: URL WebSocket của Gateway (mặc định lấy từ cấu hình).
+- `--token <token>`: token của Gateway (nếu cần).
+- `--timeout <ms>`: thời gian chờ yêu cầu (ms).
+- `--browser-profile <name>`: chọn một hồ sơ trình duyệt (mặc định từ cấu hình).
+- `--json`: đầu ra có thể đọc bằng máy (nơi được hỗ trợ).
 
-## Khoi dong nhanh (local)
+## Khởi động nhanh (cục bộ)
 
 ```bash
 openclaw browser --browser-profile chrome tabs
@@ -40,12 +40,12 @@ openclaw browser --browser-profile openclaw open https://example.com
 openclaw browser --browser-profile openclaw snapshot
 ```
 
-## Ho so
+## Hồ sơ
 
-Ho so la cac cau hinh dinh tuyen trinh duyet duoc dat ten. Tren thuc te:
+Hồ sơ là các cấu hình định tuyến trình duyệt được đặt tên. Trên thực tế:
 
-- `openclaw`: khoi chay/gan vao mot phien ban Chrome do OpenClaw quan ly rieng (thu muc du lieu nguoi dung co lap).
-- `chrome`: dieu khien cac tab Chrome hien co cua ban thong qua Chrome extension relay.
+- `openclaw`: khởi chạy/đính kèm một phiên bản Chrome do OpenClaw quản lý riêng (thư mục dữ liệu người dùng tách biệt).
+- `chrome`: điều khiển các tab Chrome hiện có của bạn thông qua chuyển tiếp tiện ích mở rộng Chrome.
 
 ```bash
 openclaw browser profiles
@@ -53,7 +53,7 @@ openclaw browser create-profile --name work --color "#FF5A36"
 openclaw browser delete-profile --name work
 ```
 
-Su dung mot ho so cu the:
+Dùng một hồ sơ cụ thể:
 
 ```bash
 openclaw browser --browser-profile work tabs
@@ -68,7 +68,7 @@ openclaw browser focus <targetId>
 openclaw browser close <targetId>
 ```
 
-## Snapshot / screenshot / hanh dong
+## Snapshot / screenshot / hành động
 
 Snapshot:
 
@@ -82,7 +82,7 @@ Screenshot:
 openclaw browser screenshot
 ```
 
-Dieu huong/click/nhap (tu dong hoa UI dua tren ref):
+Điều hướng/nhấp/gõ (tự động hóa UI dựa trên ref):
 
 ```bash
 openclaw browser navigate https://example.com
@@ -90,25 +90,25 @@ openclaw browser click <ref>
 openclaw browser type <ref> "hello"
 ```
 
-## Chrome extension relay (gan qua nut thanh cong cu)
+## Chuyển tiếp tiện ích mở rộng Chrome (gắn qua nút trên thanh công cụ)
 
-Che do nay cho phep tac tu dieu khien mot tab Chrome hien co ma ban gan thu cong (khong tu dong gan).
+Chế độ này cho phép tác tử điều khiển một tab Chrome hiện có mà bạn gắn thủ công (không tự động gắn).
 
-Cai dat extension dang unpacked toi mot duong dan on dinh:
+Cài đặt tiện ích mở rộng dạng unpacked vào một đường dẫn ổn định:
 
 ```bash
 openclaw browser extension install
 openclaw browser extension path
 ```
 
-Sau do Chrome → `chrome://extensions` → bat “Developer mode” → “Load unpacked” → chon thu muc da in ra.
+Sau đó trong Chrome → `chrome://extensions` → bật “Developer mode” → “Load unpacked” → chọn thư mục đã in ra.
 
-Huong dan day du: [Chrome extension](/tools/chrome-extension)
+Hướng dẫn đầy đủ: [Chrome extension](/tools/chrome-extension)
 
-## Dieu khien trinh duyet tu xa (node host proxy)
+## Điều khiển trình duyệt từ xa (proxy node host)
 
-Neu Gateway chay tren mot may khac voi trinh duyet, hay chay mot **node host** tren may co Chrome/Brave/Edge/Chromium. Gateway se proxy cac hanh dong trinh duyet toi node do (khong can may chu dieu khien trinh duyet rieng).
+Nếu Gateway chạy trên một máy khác với trình duyệt, hãy chạy một **node host** trên máy có Chrome/Brave/Edge/Chromium. Gateway sẽ proxy các hành động trình duyệt tới node đó (không cần máy chủ điều khiển trình duyệt riêng).
 
-Su dung `gateway.nodes.browser.mode` de dieu khien tuyen duong tu dong va `gateway.nodes.browser.node` de co dinh mot node cu the neu co nhieu node ket noi.
+Dùng `gateway.nodes.browser.mode` để kiểm soát định tuyến tự động và `gateway.nodes.browser.node` để ghim một node cụ thể nếu có nhiều node được kết nối.
 
-Bao mat + thiet lap tu xa: [Browser tool](/tools/browser), [Remote access](/gateway/remote), [Tailscale](/gateway/tailscale), [Security](/gateway/security)
+Bảo mật + thiết lập từ xa: [Browser tool](/tools/browser), [Remote access](/gateway/remote), [Tailscale](/gateway/tailscale), [Security](/gateway/security)

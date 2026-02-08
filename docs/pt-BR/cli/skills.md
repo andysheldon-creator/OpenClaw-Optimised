@@ -1,8 +1,8 @@
 ---
-summary: "Referencia da CLI para `openclaw skills` (list/info/check) e elegibilidade de Skills"
+summary: "Referência da CLI para `openclaw skills` (list/info/check) e elegibilidade de Skills"
 read_when:
-  - Voce quer ver quais Skills estao disponiveis e prontas para executar
-  - Voce quer depurar binarios/variaveis de ambiente/configuracao ausentes para Skills
+  - Você quer ver quais Skills estão disponíveis e prontas para executar
+  - Você quer depurar binários/variáveis de ambiente/configuração ausentes para Skills
 title: "skills"
 x-i18n:
   source_path: cli/skills.md
@@ -10,18 +10,18 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:44Z
+  generated_at: 2026-02-08T09:30:22Z
 ---
 
 # `openclaw skills`
 
-Inspecione Skills (empacotadas + workspace + sobrescritas gerenciadas) e veja o que esta elegivel vs requisitos ausentes.
+Inspecione Skills (empacotadas + workspace + substituições gerenciadas) e veja o que está elegível vs. requisitos ausentes.
 
-Relacionado:
+Relacionados:
 
 - Sistema de Skills: [Skills](/tools/skills)
-- configuracao de Skills: [Skills config](/tools/skills-config)
-- Instalacoes do ClawHub: [ClawHub](/tools/clawhub)
+- Configuração de Skills: [Skills config](/tools/skills-config)
+- Instalações do ClawHub: [ClawHub](/tools/clawhub)
 
 ## Comandos
 

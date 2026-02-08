@@ -1,8 +1,8 @@
 ---
-summary: "Lenh Doctor: kiem tra suc khoe, di chuyen cau hinh, va cac buoc sua chua"
+summary: "Lệnh Doctor: kiểm tra sức khỏe, di chuyển cấu hình và các bước sửa chữa"
 read_when:
-  - Them hoac dieu chinh cac migration cua doctor
-  - Gioi thieu cac thay doi cau hinh gay pha vo tuong thich
+  - Thêm hoặc chỉnh sửa các migration của doctor
+  - Giới thiệu các thay đổi cấu hình gây phá vỡ tương thích
 title: "Doctor"
 x-i18n:
   source_path: gateway/doctor.md
@@ -10,119 +10,118 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:49Z
+  generated_at: 2026-02-08T09:39:22Z
 ---
 
 # Doctor
 
-`openclaw doctor` la cong cu sua chua + migration cho OpenClaw. No khac phuc
-cau hinh/trang thai loi thoi, kiem tra suc khoe, va dua ra cac buoc sua chua co the thuc hien.
+`openclaw doctor` là công cụ sửa chữa + migration cho OpenClaw. Nó khắc phục cấu hình/trạng thái lỗi thời, kiểm tra sức khỏe và cung cấp các bước sửa chữa có thể hành động.
 
-## Quick start
+## Khởi động nhanh
 
 ```bash
 openclaw doctor
 ```
 
-### Headless / automation
+### Headless / tự động hóa
 
 ```bash
 openclaw doctor --yes
 ```
 
-Chap nhan gia tri mac dinh ma khong hoi (bao gom cac buoc khoi dong lai/dich vu/sandbox khi ap dung).
+Chấp nhận giá trị mặc định mà không cần nhắc (bao gồm các bước khởi động lại/dịch vụ/sandbox khi áp dụng).
 
 ```bash
 openclaw doctor --repair
 ```
 
-Ap dung cac sua chua duoc khuyen nghi ma khong hoi (sua chua + khoi dong lai khi an toan).
+Áp dụng các sửa chữa được khuyến nghị mà không cần nhắc (sửa chữa + khởi động lại khi an toàn).
 
 ```bash
 openclaw doctor --repair --force
 ```
 
-Ap dung ca cac sua chua manh (ghi de cau hinh supervisor tuy chinh).
+Áp dụng cả các sửa chữa mạnh (ghi đè cấu hình supervisor tùy chỉnh).
 
 ```bash
 openclaw doctor --non-interactive
 ```
 
-Chay khong hoi va chi ap dung cac migration an toan (chuan hoa cau hinh + di chuyen trang thai tren dia). Bo qua cac hanh dong khoi dong lai/dich vu/sandbox can xac nhan cua con nguoi.
-Cac migration trang thai cu se tu dong chay khi duoc phat hien.
+Chạy không cần nhắc và chỉ áp dụng các migration an toàn (chuẩn hóa cấu hình + di chuyển trạng thái trên đĩa). Bỏ qua các hành động khởi động lại/dịch vụ/sandbox cần xác nhận của con người.
+Các migration trạng thái cũ chạy tự động khi được phát hiện.
 
 ```bash
 openclaw doctor --deep
 ```
 
-Quet cac dich vu he thong de tim cac cai dat gateway du thua (launchd/systemd/schtasks).
+Quét các dịch vụ hệ thống để tìm các cài đặt gateway bổ sung (launchd/systemd/schtasks).
 
-Neu ban muon xem lai cac thay doi truoc khi ghi, hay mo file cau hinh truoc:
+Nếu bạn muốn xem lại thay đổi trước khi ghi, hãy mở tệp cấu hình trước:
 
 ```bash
 cat ~/.openclaw/openclaw.json
 ```
 
-## What it does (summary)
+## Nó làm gì (tóm tắt)
 
-- Cap nhat truoc khi chay (tuy chon) cho cac cai dat git (chi tuong tac).
-- Kiem tra do moi cua giao thuc UI (xay dung lai Control UI khi schema giao thuc moi hon).
-- Kiem tra suc khoe + goi y khoi dong lai.
-- Tong hop trang thai Skills (du dieu kien/thieu/bi chan).
-- Chuan hoa cau hinh cho cac gia tri loi thoi.
-- Canh bao ghi de nha cung cap OpenCode Zen (`models.providers.opencode`).
-- Migration trang thai tren dia cu (sessions/thu muc agent/xac thuc WhatsApp).
-- Kiem tra tinh toan ven va quyen han trang thai (sessions, transcripts, thu muc state).
-- Kiem tra quyen file cau hinh (chmod 600) khi chay cuc bo.
-- Suc khoe xac thuc model: kiem tra het han OAuth, co the lam moi token sap het han, va bao cao trang thai cooldown/bi vo hieu hoa cua ho so xac thuc.
-- Phat hien thu muc workspace du (`~/openclaw`).
-- Sua chua image Sandbox khi sandboxing duoc bat.
-- Migration dich vu cu va phat hien gateway du.
-- Kiem tra runtime Gateway (dich vu da cai nhung khong chay; launchd label duoc cache).
-- Canh bao trang thai kenh (tham do tu gateway dang chay).
-- Kiem toan cau hinh supervisor (launchd/systemd/schtasks) voi tuy chon sua chua.
-- Kiem tra thuc hanh tot runtime Gateway (Node vs Bun, duong dan trinh quan ly phien ban).
-- Chan doan xung dot cong Gateway (mac dinh `18789`).
-- Canh bao bao mat cho cac chinh sach DM mo.
-- Canh bao xac thuc Gateway khi khong dat `gateway.auth.token` (che do cuc bo; de xuat tao token).
-- Kiem tra systemd linger tren Linux.
-- Kiem tra cai dat tu nguon (khong khop pnpm workspace, thieu tai nguyen UI, thieu binary tsx).
-- Ghi cau hinh da cap nhat + metadata cua wizard.
+- Tùy chọn cập nhật trước khi chạy cho các cài đặt git (chỉ tương tác).
+- Kiểm tra độ mới của giao thức UI (xây dựng lại Control UI khi schema giao thức mới hơn).
+- Kiểm tra sức khỏe + nhắc khởi động lại.
+- Tóm tắt trạng thái Skills (đủ điều kiện/thiếu/bị chặn).
+- Chuẩn hóa cấu hình cho các giá trị cũ.
+- Cảnh báo ghi đè nhà cung cấp OpenCode Zen (`models.providers.opencode`).
+- Migration trạng thái cũ trên đĩa (sessions/thư mục agent/xác thực WhatsApp).
+- Kiểm tra tính toàn vẹn và quyền của trạng thái (sessions, transcripts, thư mục state).
+- Kiểm tra quyền tệp cấu hình (chmod 600) khi chạy cục bộ.
+- Sức khỏe xác thực mô hình: kiểm tra hạn OAuth, có thể làm mới token sắp hết hạn và báo cáo trạng thái cooldown/bị vô hiệu của hồ sơ xác thực.
+- Phát hiện thư mục workspace dư (`~/openclaw`).
+- Sửa chữa image sandbox khi sandboxing được bật.
+- Migration dịch vụ cũ và phát hiện gateway dư.
+- Kiểm tra runtime của Gateway (dịch vụ đã cài nhưng không chạy; nhãn launchd được cache).
+- Cảnh báo trạng thái kênh (được thăm dò từ gateway đang chạy).
+- Kiểm toán cấu hình supervisor (launchd/systemd/schtasks) với tùy chọn sửa chữa.
+- Kiểm tra thực hành tốt runtime của Gateway (Node vs Bun, đường dẫn trình quản lý phiên bản).
+- Chẩn đoán xung đột cổng Gateway (mặc định `18789`).
+- Cảnh báo bảo mật cho các chính sách DM mở.
+- Cảnh báo xác thực Gateway khi không đặt `gateway.auth.token` (chế độ local; đề nghị tạo token).
+- Kiểm tra systemd linger trên Linux.
+- Kiểm tra cài đặt nguồn (không khớp pnpm workspace, thiếu UI assets, thiếu binary tsx).
+- Ghi cấu hình đã cập nhật + metadata của wizard.
 
-## Detailed behavior and rationale
+## Hành vi chi tiết và lý do
 
-### 0) Optional update (git installs)
+### 0) Cập nhật tùy chọn (cài đặt git)
 
-Neu day la mot ban checkout git va doctor chay o che do tuong tac, no se de xuat
-cap nhat (fetch/rebase/build) truoc khi chay doctor.
+Nếu đây là bản checkout git và doctor chạy ở chế độ tương tác, nó sẽ đề nghị
+cập nhật (fetch/rebase/build) trước khi chạy doctor.
 
-### 1) Config normalization
+### 1) Chuẩn hóa cấu hình
 
-Neu cau hinh chua cac dang gia tri loi thoi (vi du `messages.ackReaction`
-ma khong co ghi de theo kenh), doctor se chuan hoa chung theo schema hien tai.
+Nếu cấu hình chứa các dạng giá trị cũ (ví dụ `messages.ackReaction`
+không có ghi đè theo kênh), doctor sẽ chuẩn hóa chúng theo schema hiện tại.
 
-### 2) Legacy config key migrations
+### 2) Migration khóa cấu hình cũ
 
-Khi cau hinh chua cac khoa da bi loai bo, cac lenh khac se tu choi chay va yeu cau
-ban chay `openclaw doctor`.
+Khi cấu hình chứa các khóa đã bị loại bỏ, các lệnh khác sẽ từ chối chạy và yêu cầu
+bạn chạy `openclaw doctor`.
 
-Doctor se:
+Doctor sẽ:
 
-- Giai thich cac khoa loi thoi da tim thay.
-- Hien thi migration da ap dung.
-- Ghi lai `~/.openclaw/openclaw.json` voi schema da cap nhat.
+- Giải thích các khóa cũ được tìm thấy.
+- Hiển thị migration đã áp dụng.
+- Ghi lại `~/.openclaw/openclaw.json` với schema đã cập nhật.
 
-Gateway cung tu dong chay cac migration cua doctor khi khoi dong neu phat hien
-dinh dang cau hinh cu, de sua chua cau hinh loi thoi ma khong can can thiep thu cong.
+Gateway cũng tự động chạy các migration của doctor khi khởi động nếu phát hiện
+định dạng cấu hình cũ, vì vậy cấu hình lỗi thời được sửa mà không cần can thiệp thủ công.
 
-Cac migration hien tai:
+Các migration hiện tại:
 
 - `routing.allowFrom` → `channels.whatsapp.allowFrom`
 - `routing.groupChat.requireMention` → `channels.whatsapp/telegram/imessage.groups."*".requireMention`
 - `routing.groupChat.historyLimit` → `messages.groupChat.historyLimit`
 - `routing.groupChat.mentionPatterns` → `messages.groupChat.mentionPatterns`
 - `routing.queue` → `messages.queue`
-- `routing.bindings` → cap cao nhat `bindings`
+- `routing.bindings` → top-level `bindings`
 - `routing.agents`/`routing.defaultAgentId` → `agents.list` + `agents.list[].default`
 - `routing.agentToAgent` → `tools.agentToAgent`
 - `routing.transcribeAudio` → `tools.media.audio.models`
@@ -132,154 +131,155 @@ Cac migration hien tai:
 - `agent.model`/`allowedModels`/`modelAliases`/`modelFallbacks`/`imageModelFallbacks`
   → `agents.defaults.models` + `agents.defaults.model.primary/fallbacks` + `agents.defaults.imageModel.primary/fallbacks`
 
-### 2b) OpenCode Zen provider overrides
+### 2b) Ghi đè nhà cung cấp OpenCode Zen
 
-Neu ban da tu them `models.providers.opencode` (hoac `opencode-zen`) thu cong, no
-se ghi de danh muc OpenCode Zen tich hop tu `@mariozechner/pi-ai`. Dieu do co the
-ep moi model dung mot API duy nhat hoac dua chi phi ve 0. Doctor canh bao de ban
-co the go bo ghi de va khoi phuc dinh tuyen API + chi phi theo tung model.
+Nếu bạn đã thêm thủ công `models.providers.opencode` (hoặc `opencode-zen`), nó sẽ
+ghi đè danh mục OpenCode Zen tích hợp từ `@mariozechner/pi-ai`. Điều này có thể
+buộc mọi mô hình dùng một API duy nhất hoặc đặt chi phí về 0. Doctor cảnh báo để
+bạn có thể gỡ ghi đè và khôi phục định tuyến API + chi phí theo từng mô hình.
 
-### 3) Legacy state migrations (disk layout)
+### 3) Migration trạng thái cũ (bố cục đĩa)
 
-Doctor co the di chuyen cac bo cuc tren dia cu sang cau truc hien tai:
+Doctor có thể di chuyển các bố cục trên đĩa cũ sang cấu trúc hiện tại:
 
 - Kho sessions + transcripts:
-  - tu `~/.openclaw/sessions/` sang `~/.openclaw/agents/<agentId>/sessions/`
-- Thu muc agent:
-  - tu `~/.openclaw/agent/` sang `~/.openclaw/agents/<agentId>/agent/`
-- Trang thai xac thuc WhatsApp (Baileys):
-  - tu `~/.openclaw/credentials/*.json` cu (tru `oauth.json`)
-  - sang `~/.openclaw/credentials/whatsapp/<accountId>/...` (id tai khoan mac dinh: `default`)
+  - từ `~/.openclaw/sessions/` sang `~/.openclaw/agents/<agentId>/sessions/`
+- Thư mục agent:
+  - từ `~/.openclaw/agent/` sang `~/.openclaw/agents/<agentId>/agent/`
+- Trạng thái xác thực WhatsApp (Baileys):
+  - từ `~/.openclaw/credentials/*.json` cũ (trừ `oauth.json`)
+  - sang `~/.openclaw/credentials/whatsapp/<accountId>/...` (id tài khoản mặc định: `default`)
 
-Cac migration nay co tinh tot nhat co the va idempotent; doctor se phat canh bao
-khi de lai bat ky thu muc cu nao nhu ban sao luu. Gateway/CLI cung tu dong di chuyen
-sessions + thu muc agent cu khi khoi dong de lich su/xac thuc/model nam trong
-duong dan theo agent ma khong can chay doctor thu cong. Xac thuc WhatsApp chu y
-chi duoc di chuyen thong qua `openclaw doctor`.
+Các migration này theo kiểu best-effort và idempotent; doctor sẽ phát ra cảnh báo
+khi để lại bất kỳ thư mục cũ nào làm bản sao lưu. Gateway/CLI cũng tự động
+migration sessions cũ + thư mục agent khi khởi động để lịch sử/xác thực/mô hình
+nằm trong đường dẫn theo từng tác tử mà không cần chạy doctor thủ công. Xác thực
+WhatsApp được cố ý chỉ migration thông qua `openclaw doctor`.
 
-### 4) State integrity checks (session persistence, routing, and safety)
+### 4) Kiểm tra tính toàn vẹn trạng thái (lưu phiên, định tuyến và an toàn)
 
-Thu muc state la trung tam van hanh. Neu no bien mat, ban se mat
-sessions, thong tin dang nhap, log, va cau hinh (tru khi co sao luu o noi khac).
+Thư mục state là “thân não” vận hành. Nếu nó biến mất, bạn sẽ mất
+sessions, thông tin xác thực, log và cấu hình (trừ khi có bản sao lưu ở nơi khác).
 
-Doctor kiem tra:
+Doctor kiểm tra:
 
-- **Thieu thu muc state**: canh bao mat trang thai nghiem trong, de xuat tao lai
-  thu muc, va nhac rang khong the khoi phuc du lieu da mat.
-- **Quyen thu muc state**: xac minh quyen ghi; de xuat sua quyen
-  (va dua ra goi y `chown` khi phat hien lech chu so huu/nhom).
-- **Thieu thu muc session**: `sessions/` va thu muc session store
-  la bat buoc de luu lich su va tranh loi `ENOENT`.
-- **Lech transcript**: canh bao khi cac muc session gan day thieu file transcript.
-- **Main session “1-line JSONL”**: danh dau khi transcript chinh chi co mot dong
-  (lich su khong tich luy).
-- **Nhieu thu muc state**: canh bao khi ton tai nhieu thu muc `~/.openclaw`
-  tren cac thu muc home khac nhau hoac khi `OPENCLAW_STATE_DIR` chi den noi khac
-  (lich su co the bi tach giua cac cai dat).
-- **Nhac nho che do tu xa**: neu `gateway.mode=remote`, doctor nhac ban chay
-  no tren may chu tu xa (state nam o do).
-- **Quyen file cau hinh**: canh bao neu `~/.openclaw/openclaw.json`
-  co the doc boi group/world va de xuat that chat ve `600`.
+- **Thiếu thư mục state**: cảnh báo mất trạng thái nghiêm trọng, nhắc tạo lại
+  thư mục và nhắc rằng không thể khôi phục dữ liệu đã mất.
+- **Quyền thư mục state**: xác minh khả năng ghi; đề nghị sửa quyền
+  (và phát ra gợi ý `chown` khi phát hiện không khớp owner/group).
+- **Thiếu thư mục session**: `sessions/` và thư mục lưu sessions là
+  bắt buộc để lưu lịch sử và tránh crash `ENOENT`.
+- **Không khớp transcript**: cảnh báo khi các mục session gần đây thiếu
+  tệp transcript.
+- **Transcript chính “JSONL 1 dòng”**: đánh dấu khi transcript chính chỉ có một
+  dòng (lịch sử không tích lũy).
+- **Nhiều thư mục state**: cảnh báo khi tồn tại nhiều thư mục `~/.openclaw`
+  trên các thư mục home hoặc khi `OPENCLAW_STATE_DIR` trỏ sang nơi khác (lịch sử có thể
+  bị chia tách giữa các cài đặt).
+- **Nhắc chế độ remote**: nếu `gateway.mode=remote`, doctor nhắc bạn chạy
+  trên máy chủ remote (trạng thái nằm ở đó).
+- **Quyền tệp cấu hình**: cảnh báo nếu `~/.openclaw/openclaw.json` có thể đọc bởi group/world
+  và đề nghị siết chặt về `600`.
 
-### 5) Model auth health (OAuth expiry)
+### 5) Sức khỏe xác thực mô hình (hạn OAuth)
 
-Doctor kiem tra cac ho so OAuth trong kho xac thuc, canh bao khi token
-sap het han/da het han, va co the lam moi khi an toan. Neu ho so Anthropic Claude Code
-bi loi thoi, no de xuat chay `claude setup-token` (hoac dan token thiet lap).
-Cac nhac lam moi chi xuat hien khi chay tuong tac (TTY); `--non-interactive`
-bo qua cac lan thu lam moi.
+Doctor kiểm tra các hồ sơ OAuth trong kho xác thực, cảnh báo khi token
+sắp hết hạn/đã hết hạn và có thể làm mới khi an toàn. Nếu hồ sơ Anthropic Claude Code
+bị lỗi thời, nó đề xuất chạy `claude setup-token` (hoặc dán setup-token).
+Lời nhắc làm mới chỉ xuất hiện khi chạy tương tác (TTY); `--non-interactive`
+bỏ qua các nỗ lực làm mới.
 
-Doctor cung bao cao cac ho so xac thuc tam thoi khong su dung duoc do:
+Doctor cũng báo cáo các hồ sơ xác thực tạm thời không dùng được do:
 
-- cooldown ngan (gioi han toc do/timeout/loi xac thuc)
-- vo hieu hoa dai hon (loi thanh toan/credit)
+- cooldown ngắn (giới hạn tốc độ/timeouts/lỗi xác thực)
+- vô hiệu dài hơn (lỗi thanh toán/tín dụng)
 
-### 6) Hooks model validation
+### 6) Xác thực mô hình Hooks
 
-Neu `hooks.gmail.model` duoc dat, doctor xac thuc tham chieu model voi
-danh muc va allowlist va canh bao khi no khong the giai quyet hoac bi cam.
+Nếu đặt `hooks.gmail.model`, doctor sẽ xác thực tham chiếu mô hình so với
+catalog và allowlist, và cảnh báo khi nó không phân giải được hoặc bị cấm.
 
-### 7) Sandbox image repair
+### 7) Sửa chữa image sandbox
 
-Khi sandboxing duoc bat, doctor kiem tra Docker image va de xuat build hoac
-chuyen sang ten cu neu image hien tai bi thieu.
+Khi sandboxing được bật, doctor kiểm tra các image Docker và đề nghị build hoặc
+chuyển sang tên legacy nếu image hiện tại bị thiếu.
 
-### 8) Gateway service migrations and cleanup hints
+### 8) Migration dịch vụ Gateway và gợi ý dọn dẹp
 
-Doctor phat hien cac dich vu gateway cu (launchd/systemd/schtasks) va
-de xuat go bo chung va cai dat dich vu OpenClaw su dung cong gateway hien tai.
-No cung co the quet cac dich vu giong gateway du va in ra goi y don dep.
-Cac dich vu OpenClaw gateway dat ten theo profile duoc coi la hop le va
-khong bi danh dau la "du".
+Doctor phát hiện các dịch vụ gateway cũ (launchd/systemd/schtasks) và
+đề nghị gỡ chúng và cài đặt dịch vụ OpenClaw với cổng gateway hiện tại.
+Nó cũng có thể quét các dịch vụ giống gateway dư và in ra gợi ý dọn dẹp.
+Các dịch vụ gateway OpenClaw được đặt tên theo profile được coi là hạng nhất và
+không bị gắn cờ là “dư”.
 
-### 9) Security warnings
+### 9) Cảnh báo bảo mật
 
-Doctor phat canh bao khi nha cung cap mo DMs ma khong co allowlist, hoac
-khi chinh sach duoc cau hinh theo cach nguy hiem.
+Doctor phát ra cảnh báo khi một nhà cung cấp mở DM mà không có allowlist, hoặc
+khi một chính sách được cấu hình theo cách nguy hiểm.
 
 ### 10) systemd linger (Linux)
 
-Neu chay duoi dang systemd user service, doctor dam bao linger duoc bat
-de gateway tiep tuc chay sau khi dang xuat.
+Nếu chạy như dịch vụ người dùng systemd, doctor đảm bảo bật lingering để
+gateway tiếp tục chạy sau khi đăng xuất.
 
-### 11) Skills status
+### 11) Trạng thái Skills
 
-Doctor in ra tong hop nhanh ve cac skills du dieu kien/thieu/bi chan cho workspace hien tai.
+Doctor in ra tóm tắt nhanh các Skills đủ điều kiện/thiếu/bị chặn cho workspace hiện tại.
 
-### 12) Gateway auth checks (local token)
+### 12) Kiểm tra xác thực Gateway (token local)
 
-Doctor canh bao khi `gateway.auth` bi thieu tren gateway cuc bo va de xuat
-tao token. Su dung `openclaw doctor --generate-gateway-token` de bat buoc tao token
-trong automation.
+Doctor cảnh báo khi thiếu `gateway.auth` trên gateway local và đề nghị
+tạo token. Dùng `openclaw doctor --generate-gateway-token` để buộc tạo token
+trong tự động hóa.
 
-### 13) Gateway health check + restart
+### 13) Kiểm tra sức khỏe Gateway + khởi động lại
 
-Doctor chay kiem tra suc khoe va de xuat khoi dong lai gateway khi co dau hieu
-khong lanh manh.
+Doctor chạy kiểm tra sức khỏe và đề nghị khởi động lại gateway khi có dấu hiệu
+không khỏe.
 
-### 14) Channel status warnings
+### 14) Cảnh báo trạng thái kênh
 
-Neu gateway lanh manh, doctor chay tham do trang thai kenh va bao cao
-cac canh bao kem goi y khac phuc.
+Nếu gateway khỏe, doctor chạy thăm dò trạng thái kênh và báo cáo
+cảnh báo kèm cách khắc phục đề xuất.
 
-### 15) Supervisor config audit + repair
+### 15) Kiểm toán + sửa chữa cấu hình supervisor
 
-Doctor kiem tra cau hinh supervisor da cai (launchd/systemd/schtasks) de tim
-cac mac dinh bi thieu hoac loi thoi (vi du, phu thuoc network-online cua systemd
-va do tre khoi dong lai). Khi phat hien khong khop, no de xuat cap nhat va co the
-ghi lai file dich vu/task theo mac dinh hien tai.
+Doctor kiểm tra cấu hình supervisor đã cài (launchd/systemd/schtasks) để tìm
+các mặc định bị thiếu hoặc lỗi thời (ví dụ phụ thuộc network-online của systemd và
+độ trễ khởi động lại). Khi phát hiện không khớp, nó khuyến nghị cập nhật và có thể
+ghi lại tệp dịch vụ/tác vụ theo mặc định hiện tại.
 
-Ghi chu:
+Ghi chú:
 
-- `openclaw doctor` hoi truoc khi ghi lai cau hinh supervisor.
-- `openclaw doctor --yes` chap nhan cac goi y sua chua mac dinh.
-- `openclaw doctor --repair` ap dung cac sua chua duoc khuyen nghi ma khong hoi.
-- `openclaw doctor --repair --force` ghi de cau hinh supervisor tuy chinh.
-- Ban luon co the bat buoc ghi lai day du qua `openclaw gateway install --force`.
+- `openclaw doctor` sẽ hỏi trước khi ghi lại cấu hình supervisor.
+- `openclaw doctor --yes` chấp nhận các lời nhắc sửa chữa mặc định.
+- `openclaw doctor --repair` áp dụng các sửa chữa được khuyến nghị mà không cần nhắc.
+- `openclaw doctor --repair --force` ghi đè cấu hình supervisor tùy chỉnh.
+- Bạn luôn có thể buộc ghi lại toàn bộ qua `openclaw gateway install --force`.
 
-### 16) Gateway runtime + port diagnostics
+### 16) Chẩn đoán runtime + cổng Gateway
 
-Doctor kiem tra runtime dich vu (PID, trang thai thoat gan nhat) va canh bao khi
-dich vu da cai nhung thuc te khong chay. No cung kiem tra xung dot cong
-tren cong gateway (mac dinh `18789`) va bao cao nguyen nhan kha nghi
-(gateway da chay, SSH tunnel).
+Doctor kiểm tra runtime dịch vụ (PID, trạng thái thoát gần nhất) và cảnh báo khi
+dịch vụ đã cài nhưng thực tế không chạy. Nó cũng kiểm tra xung đột cổng
+trên cổng gateway (mặc định `18789`) và báo cáo các nguyên nhân có khả năng
+(x gateway đã chạy, đường hầm SSH).
 
-### 17) Gateway runtime best practices
+### 17) Thực hành tốt runtime Gateway
 
-Doctor canh bao khi dich vu gateway chay tren Bun hoac duong dan Node duoc quan ly
-boi trinh quan ly phien ban (`nvm`, `fnm`, `volta`, `asdf`, v.v.). Cac kenh WhatsApp + Telegram can Node,
-va duong dan trinh quan ly phien ban co the bi loi sau khi nang cap vi dich vu
-khong tai shell init. Doctor de xuat chuyen sang Node he thong khi co san
-(Homebrew/apt/choco).
+Doctor cảnh báo khi dịch vụ gateway chạy trên Bun hoặc đường dẫn Node do trình
+quản lý phiên bản cung cấp (`nvm`, `fnm`, `volta`, `asdf`, v.v.). Các kênh WhatsApp + Telegram yêu cầu Node,
+và các đường dẫn do trình quản lý phiên bản có thể bị hỏng sau nâng cấp vì dịch vụ
+không nạp shell init của bạn. Doctor đề nghị di chuyển sang cài đặt Node hệ thống
+khi có (Homebrew/apt/choco).
 
-### 18) Config write + wizard metadata
+### 18) Ghi cấu hình + metadata wizard
 
-Doctor luu lai moi thay doi cau hinh va dong dau metadata cua wizard de ghi nhan lan chay doctor.
+Doctor lưu mọi thay đổi cấu hình và đóng dấu metadata wizard để ghi nhận lần chạy doctor.
 
-### 19) Workspace tips (backup + memory system)
+### 19) Mẹo workspace (sao lưu + hệ thống bộ nhớ)
 
-Doctor de xuat he thong bo nho workspace khi thieu va in meo sao luu
-neu workspace chua nam duoi git.
+Doctor gợi ý hệ thống bộ nhớ cho workspace khi thiếu và in mẹo sao lưu
+nếu workspace chưa nằm trong git.
 
-Xem [/concepts/agent-workspace](/concepts/agent-workspace) de biet them chi tiet ve
-cau truc workspace va sao luu git (khuyen nghi GitHub hoac GitLab rieng tu).
+Xem [/concepts/agent-workspace](/concepts/agent-workspace) để có hướng dẫn đầy đủ về
+cấu trúc workspace và sao lưu git (khuyến nghị GitHub hoặc GitLab riêng tư).

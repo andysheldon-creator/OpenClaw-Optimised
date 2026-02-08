@@ -1,16 +1,16 @@
 ---
-summary: "Installieren Sie OpenClaw und starten Sie Ihren ersten Chat in wenigen Minuten."
+summary: "Installieren Sie OpenClaw und führen Sie in wenigen Minuten Ihren ersten Chat aus."
 read_when:
   - Ersteinrichtung von Grund auf
-  - Sie moechten den schnellsten Weg zu einem funktionierenden Chat
+  - Sie möchten den schnellsten Weg zu einem funktionierenden Chat
 title: "Erste Schritte"
 x-i18n:
   source_path: start/getting-started.md
-  source_hash: 27aeeb3d18c49538
+  source_hash: 6eeb4d38a70f2ad9
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:31Z
+  generated_at: 2026-02-08T09:37:24Z
 ---
 
 # Erste Schritte
@@ -18,10 +18,10 @@ x-i18n:
 Ziel: Mit minimalem Setup von null zu einem ersten funktionierenden Chat gelangen.
 
 <Info>
-Schnellster Chat: Oeffnen Sie die Control UI (keine Kanal-Einrichtung erforderlich). Fuehren Sie `openclaw dashboard` aus
-und chatten Sie im Browser, oder oeffnen Sie `http://127.0.0.1:18789/` auf dem
-<Tooltip headline="Gateway host" tip="Die Maschine, auf der der OpenClaw-Gateway-Dienst laeuft.">Gateway-Host</Tooltip>.
-Docs: [Dashboard](/web/dashboard) und [Control UI](/web/control-ui).
+Schnellster Chat: Öffnen Sie die Control UI (keine Kanal-Einrichtung erforderlich). Führen Sie `openclaw dashboard` aus
+und chatten Sie im Browser, oder öffnen Sie `http://127.0.0.1:18789/` auf dem
+<Tooltip headline="Gateway host" tip="The machine running the OpenClaw gateway service.">Gateway-Host</Tooltip>.
+Dokumentation: [Dashboard](/web/dashboard) und [Control UI](/web/control-ui).
 </Info>
 
 ## Voraussetzungen
@@ -29,7 +29,7 @@ Docs: [Dashboard](/web/dashboard) und [Control UI](/web/control-ui).
 - Node 22 oder neuer
 
 <Tip>
-Pruefen Sie Ihre Node-Version mit `node --version`, falls Sie unsicher sind.
+Prüfen Sie Ihre Node-Version mit `node --version`, wenn Sie unsicher sind.
 </Tip>
 
 ## Schnellstart (CLI)
@@ -54,16 +54,16 @@ Pruefen Sie Ihre Node-Version mit `node --version`, falls Sie unsicher sind.
     </Note>
 
   </Step>
-  <Step title="Einfuehrungsassistent ausfuehren">
+  <Step title="Onboarding-Assistent ausführen">
     ```bash
     openclaw onboard --install-daemon
     ```
 
-    Der Assistent konfiguriert Authentifizierung, Gateway-Einstellungen und optionale Kanaele.
-    Siehe [Onboarding Wizard](/start/wizard) fuer Details.
+    Der Assistent konfiguriert Authentifizierung, Gateway-Einstellungen und optionale Kanäle.
+    Siehe [Onboarding Wizard](/start/wizard) für Details.
 
   </Step>
-  <Step title="Gateway pruefen">
+  <Step title="Gateway prüfen">
     Wenn Sie den Dienst installiert haben, sollte er bereits laufen:
 
     ```bash
@@ -71,7 +71,7 @@ Pruefen Sie Ihre Node-Version mit `node --version`, falls Sie unsicher sind.
     ```
 
   </Step>
-  <Step title="Control UI oeffnen">
+  <Step title="Control UI öffnen">
     ```bash
     openclaw dashboard
     ```
@@ -79,14 +79,14 @@ Pruefen Sie Ihre Node-Version mit `node --version`, falls Sie unsicher sind.
 </Steps>
 
 <Check>
-Wenn die Control UI geladen wird, ist Ihr Gateway einsatzbereit.
+Wenn die Control UI lädt, ist Ihr Gateway einsatzbereit.
 </Check>
 
-## Optionale Pruefungen und Extras
+## Optionale Prüfungen und Extras
 
 <AccordionGroup>
-  <Accordion title="Gateway im Vordergrund ausfuehren">
-    Nuetzlich fuer schnelle Tests oder zur Fehlerbehebung.
+  <Accordion title="Gateway im Vordergrund ausführen">
+    Nützlich für schnelle Tests oder zur Fehlerbehebung.
 
     ```bash
     openclaw gateway --port 18789
@@ -103,14 +103,14 @@ Wenn die Control UI geladen wird, ist Ihr Gateway einsatzbereit.
   </Accordion>
 </AccordionGroup>
 
-## Tiefer einsteigen
+## Weiterführendes
 
 <Columns>
   <Card title="Onboarding Wizard (Details)" href="/start/wizard">
-    Vollstaendige CLI-Referenz des Assistenten und erweiterte Optionen.
+    Vollständige CLI-Referenz des Assistenten und erweiterte Optionen.
   </Card>
   <Card title="macOS-App-Onboarding" href="/start/onboarding">
-    Ablauf beim ersten Start der macOS-App.
+    Erster Startablauf für die macOS-App.
   </Card>
 </Columns>
 
@@ -120,8 +120,8 @@ Wenn die Control UI geladen wird, ist Ihr Gateway einsatzbereit.
 - Konfigurierte Authentifizierung
 - Zugriff auf die Control UI oder einen verbundenen Kanal
 
-## Naechste Schritte
+## Nächste Schritte
 
-- DM-Sicherheit und Freigaben: [Pairing](/start/pairing)
-- Weitere Kanaele verbinden: [Channels](/channels)
-- Erweiterte Workflows und Build aus dem Quellcode: [Setup](/start/setup)
+- DM-Sicherheit und Freigaben: [Pairing](/channels/pairing)
+- Weitere Kanäle verbinden: [Channels](/channels)
+- Erweiterte Workflows und aus dem Quellcode: [Setup](/start/setup)

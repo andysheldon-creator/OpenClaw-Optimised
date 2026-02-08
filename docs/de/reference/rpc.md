@@ -2,7 +2,7 @@
 summary: "RPC-Adapter für externe CLIs (signal-cli, legacy imsg) und Gateway-Muster"
 read_when:
   - Hinzufügen oder Ändern externer CLI-Integrationen
-  - Debugging von RPC-Adaptern (signal-cli, imsg)
+  - Debuggen von RPC-Adaptern (signal-cli, imsg)
 title: "RPC-Adapter"
 x-i18n:
   source_path: reference/rpc.md
@@ -10,7 +10,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:20Z
+  generated_at: 2026-02-08T09:37:12Z
 ---
 
 # RPC-Adapter
@@ -20,7 +20,7 @@ OpenClaw integriert externe CLIs über JSON-RPC. Derzeit werden zwei Muster verw
 ## Muster A: HTTP-Daemon (signal-cli)
 
 - `signal-cli` läuft als Daemon mit JSON-RPC über HTTP.
-- Ereignisstream ist SSE (`/api/v1/events`).
+- Ereignisstrom ist SSE (`/api/v1/events`).
 - Health-Probe: `/api/v1/check`.
 - OpenClaw besitzt den Lebenszyklus, wenn `channels.signal.autoStart=true`.
 
@@ -30,7 +30,7 @@ Siehe [Signal](/channels/signal) für Einrichtung und Endpunkte.
 
 > **Hinweis:** Für neue iMessage-Setups verwenden Sie stattdessen [BlueBubbles](/channels/bluebubbles).
 
-- OpenClaw startet `imsg rpc` als Kindprozess (Legacy-iMessage-Integration).
+- OpenClaw startet `imsg rpc` als Kindprozess (legacy iMessage-Integration).
 - JSON-RPC ist zeilenbasiert über stdin/stdout (ein JSON-Objekt pro Zeile).
 - Kein TCP-Port, kein Daemon erforderlich.
 
@@ -39,12 +39,12 @@ Verwendete Kernmethoden:
 - `watch.subscribe` → Benachrichtigungen (`method: "message"`)
 - `watch.unsubscribe`
 - `send`
-- `chats.list` (Probe/Diagnostik)
+- `chats.list` (Probe/Diagnose)
 
-Siehe [iMessage](/channels/imessage) für die Legacy-Einrichtung und Adressierung (`chat_id` bevorzugt).
+Siehe [iMessage](/channels/imessage) für das legacy Setup und die Adressierung (`chat_id` bevorzugt).
 
-## Richtlinien für Adapter
+## Adapter-Richtlinien
 
-- Das Gateway besitzt den Prozess (Start/Stopp an den Anbieter-Lebenszyklus gebunden).
-- RPC-Clients robust halten: Timeouts, Neustart bei Beendigung.
-- Stabile IDs (z. B. `chat_id`) gegenüber Anzeigenamen bevorzugen.
+- Der Gateway besitzt den Prozess (Start/Stopp an den Anbieter-Lebenszyklus gebunden).
+- Halten Sie RPC-Clients robust: Timeouts, Neustart beim Beenden.
+- Bevorzugen Sie stabile IDs (z. B. `chat_id`) gegenüber Anzeige-Strings.

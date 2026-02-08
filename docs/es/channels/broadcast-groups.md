@@ -1,37 +1,37 @@
 ---
-summary: "Difunda un mensaje de WhatsApp a multiples agentes"
+summary: "Difunda un mensaje de WhatsApp a múltiples agentes"
 read_when:
-  - Configuracion de grupos de difusion
-  - Depuracion de respuestas multiagente en WhatsApp
+  - Configuración de grupos de difusión
+  - Depuración de respuestas de múltiples agentes en WhatsApp
 status: experimental
-title: "Grupos de Difusion"
+title: "Grupos de difusión"
 x-i18n:
   source_path: channels/broadcast-groups.md
   source_hash: 25866bc0d519552d
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:15:34Z
+  generated_at: 2026-02-08T09:32:38Z
 ---
 
-# Grupos de Difusion
+# Grupos de difusión
 
 **Estado:** Experimental  
-**Version:** Agregado en 2026.1.9
+**Versión:** Añadido en 2026.1.9
 
-## Descripcion general
+## Descripción general
 
-Los Grupos de Difusion permiten que multiples agentes procesen y respondan al mismo mensaje de forma simultanea. Esto le permite crear equipos de agentes especializados que trabajan juntos en un solo grupo de WhatsApp o Mensaje directo — todo usando un unico numero de telefono.
+Los Grupos de difusión permiten que múltiples agentes procesen y respondan al mismo mensaje de forma simultánea. Esto le permite crear equipos de agentes especializados que trabajan juntos en un único grupo de WhatsApp o mensaje directo (DM), todo usando un solo número de teléfono.
 
 Alcance actual: **solo WhatsApp** (canal web).
 
-Los grupos de difusion se evalúan despues de las allowlists del canal y las reglas de activacion de grupos. En grupos de WhatsApp, esto significa que las difusiones ocurren cuando OpenClaw normalmente responderia (por ejemplo: al ser mencionado, segun la configuracion de su grupo).
+Los grupos de difusión se evalúan después de las listas de permitidos del canal y las reglas de activación de grupos. En grupos de WhatsApp, esto significa que las difusiones ocurren cuando OpenClaw normalmente respondería (por ejemplo: al mencionar, según la configuración del grupo).
 
 ## Casos de uso
 
 ### 1. Equipos de agentes especializados
 
-Despliegue multiples agentes con responsabilidades atomicas y enfocadas:
+Despliegue múltiples agentes con responsabilidades atómicas y enfocadas:
 
 ```
 Group: "Development Team"
@@ -42,9 +42,9 @@ Agents:
   - TestGenerator (suggests test cases)
 ```
 
-Cada agente procesa el mismo mensaje y proporciona su perspectiva especializada.
+Cada agente procesa el mismo mensaje y aporta su perspectiva especializada.
 
-### 2. Soporte multilenguaje
+### 2. Soporte multilingüe
 
 ```
 Group: "International Support"
@@ -63,7 +63,7 @@ Agents:
   - QAAgent (reviews quality, only responds if issues found)
 ```
 
-### 4. Automatizacion de tareas
+### 4. Automatización de tareas
 
 ```
 Group: "Project Management"
@@ -73,14 +73,14 @@ Agents:
   - ReportGenerator (creates summaries)
 ```
 
-## Configuracion
+## Configuración
 
-### Configuracion basica
+### Configuración básica
 
-Agregue una seccion de nivel superior `broadcast` (junto a `bindings`). Las claves son IDs de pares de WhatsApp:
+Agregue una sección de nivel superior `broadcast` (junto a `bindings`). Las claves son IDs de pares de WhatsApp:
 
-- chats grupales: JID del grupo (por ejemplo, `120363403215116621@g.us`)
-- Mensajes directos: numero telefonico E.164 (por ejemplo, `+15551234567`)
+- chats grupales: JID del grupo (p. ej., `120363403215116621@g.us`)
+- DMs: número telefónico E.164 (p. ej., `+15551234567`)
 
 ```json
 {
@@ -90,15 +90,15 @@ Agregue una seccion de nivel superior `broadcast` (junto a `bindings`). Las clav
 }
 ```
 
-**Resultado:** Cuando OpenClaw responderia en este chat, ejecutara los tres agentes.
+**Resultado:** Cuando OpenClaw respondería en este chat, ejecutará los tres agentes.
 
 ### Estrategia de procesamiento
 
-Controle como los agentes procesan los mensajes:
+Controle cómo los agentes procesan los mensajes:
 
-#### Paralelo (Predeterminado)
+#### Paralelo (predeterminado)
 
-Todos los agentes procesan simultaneamente:
+Todos los agentes procesan simultáneamente:
 
 ```json
 {
@@ -157,42 +157,42 @@ Los agentes procesan en orden (uno espera a que el anterior termine):
 }
 ```
 
-## Como funciona
+## Cómo funciona
 
 ### Flujo de mensajes
 
 1. **Mensaje entrante** llega a un grupo de WhatsApp
-2. **Verificacion de difusion**: el sistema verifica si el ID del par esta en `broadcast`
-3. **Si esta en la lista de difusion**:
+2. **Verificación de difusión**: el sistema comprueba si el ID del par está en `broadcast`
+3. **Si está en la lista de difusión**:
    - Todos los agentes listados procesan el mensaje
-   - Cada agente tiene su propia clave de sesion y contexto aislado
-   - Los agentes procesan en paralelo (predeterminado) o secuencialmente
-4. **Si no esta en la lista de difusion**:
-   - Se aplica el enrutamiento normal (primer binding que coincide)
+   - Cada agente tiene su propia clave de sesión y contexto aislado
+   - Los agentes procesan en paralelo (predeterminado) o de forma secuencial
+4. **Si no está en la lista de difusión**:
+   - Se aplica el enrutamiento normal (primer enlace coincidente)
 
-Nota: los grupos de difusion no evitan las allowlists del canal ni las reglas de activacion de grupos (menciones/comandos/etc). Solo cambian _que agentes se ejecutan_ cuando un mensaje es elegible para procesamiento.
+Nota: los grupos de difusión no eluden las listas de permitidos del canal ni las reglas de activación de grupos (menciones/comandos/etc.). Solo cambian _qué agentes se ejecutan_ cuando un mensaje es elegible para procesamiento.
 
 ### Aislamiento de sesiones
 
-Cada agente en un grupo de difusion mantiene completamente separados:
+Cada agente en un grupo de difusión mantiene completamente separado:
 
-- **Claves de sesion** (`agent:alfred:whatsapp:group:120363...` vs `agent:baerbel:whatsapp:group:120363...`)
-- **Historial de conversacion** (el agente no ve los mensajes de otros agentes)
-- **Espacio de trabajo** (sandboxes separados si estan configurados)
+- **Claves de sesión** (`agent:alfred:whatsapp:group:120363...` vs `agent:baerbel:whatsapp:group:120363...`)
+- **Historial de conversación** (el agente no ve los mensajes de otros agentes)
+- **Espacio de trabajo** (sandboxes separadas si están configuradas)
 - **Acceso a herramientas** (listas de permitir/denegar diferentes)
-- **Memoria/contexto** (IDENTITY.md, SOUL.md, etc., separados)
-- **Buffer de contexto del grupo** (mensajes recientes del grupo usados para contexto) se comparte por par, por lo que todos los agentes de difusion ven el mismo contexto cuando se activan
+- **Memoria/contexto** (IDENTITY.md, SOUL.md, etc. separados)
+- **Búfer de contexto del grupo** (mensajes recientes del grupo usados como contexto) se comparte por par, por lo que todos los agentes de difusión ven el mismo contexto cuando se activan
 
 Esto permite que cada agente tenga:
 
-- Personalidades diferentes
-- Acceso a herramientas diferente (por ejemplo, solo lectura vs. lectura-escritura)
-- Modelos diferentes (por ejemplo, opus vs. sonnet)
-- Skills diferentes instaladas
+- Diferentes personalidades
+- Diferente acceso a herramientas (p. ej., solo lectura vs. lectura-escritura)
+- Diferentes modelos (p. ej., opus vs. sonnet)
+- Diferentes Skills instaladas
 
 ### Ejemplo: sesiones aisladas
 
-En el grupo `120363403215116621@g.us` con agentes `["alfred", "baerbel"]`:
+En el grupo `120363403215116621@g.us` con los agentes `["alfred", "baerbel"]`:
 
 **Contexto de Alfred:**
 
@@ -212,11 +212,11 @@ Workspace: /Users/pascal/openclaw-baerbel/
 Tools: read only
 ```
 
-## Buenas practicas
+## Buenas prácticas
 
 ### 1. Mantenga a los agentes enfocados
 
-Disene cada agente con una responsabilidad unica y clara:
+Diseñe cada agente con una responsabilidad única y clara:
 
 ```json
 {
@@ -226,12 +226,12 @@ Disene cada agente con una responsabilidad unica y clara:
 }
 ```
 
-✅ **Bien:** Cada agente tiene un solo trabajo  
-❌ **Mal:** Un agente generico "dev-helper"
+✅ **Bueno:** Cada agente tiene un solo trabajo  
+❌ **Malo:** Un agente genérico “dev-helper”
 
 ### 2. Use nombres descriptivos
 
-Haga claro que hace cada agente:
+Haga claro qué hace cada agente:
 
 ```json
 {
@@ -243,7 +243,7 @@ Haga claro que hace cada agente:
 }
 ```
 
-### 3. Configure acceso a herramientas diferente
+### 3. Configure diferentes accesos a herramientas
 
 Otorgue a los agentes solo las herramientas que necesitan:
 
@@ -260,17 +260,17 @@ Otorgue a los agentes solo las herramientas que necesitan:
 }
 ```
 
-### 4. Monitoree el rendimiento
+### 4. Supervise el rendimiento
 
 Con muchos agentes, considere:
 
 - Usar `"strategy": "parallel"` (predeterminado) para mayor velocidad
-- Limitar los grupos de difusion a 5–10 agentes
-- Usar modelos mas rapidos para agentes mas simples
+- Limitar los grupos de difusión a 5–10 agentes
+- Usar modelos más rápidos para agentes más simples
 
-### 5. Maneje fallas de forma adecuada
+### 5. Maneje las fallas con elegancia
 
-Los agentes fallan de manera independiente. El error de un agente no bloquea a los demas:
+Los agentes fallan de forma independiente. El error de un agente no bloquea a los demás:
 
 ```
 Message → [Agent A ✓, Agent B ✗ error, Agent C ✓]
@@ -281,7 +281,7 @@ Result: Agent A and C respond, Agent B logs error
 
 ### Proveedores
 
-Los grupos de difusion actualmente funcionan con:
+Los grupos de difusión actualmente funcionan con:
 
 - ✅ WhatsApp (implementado)
 - 🚧 Telegram (planificado)
@@ -290,7 +290,7 @@ Los grupos de difusion actualmente funcionan con:
 
 ### Enrutamiento
 
-Los grupos de difusion funcionan junto con el enrutamiento existente:
+Los grupos de difusión funcionan junto con el enrutamiento existente:
 
 ```json
 {
@@ -306,20 +306,20 @@ Los grupos de difusion funcionan junto con el enrutamiento existente:
 }
 ```
 
-- `GROUP_A`: Solo alfred responde (enrutamiento normal)
-- `GROUP_B`: agent1 Y agent2 responden (difusion)
+- `GROUP_A`: solo responde alfred (enrutamiento normal)
+- `GROUP_B`: responden agent1 Y agent2 (difusión)
 
 **Precedencia:** `broadcast` tiene prioridad sobre `bindings`.
 
-## Solucion de problemas
+## Solución de problemas
 
 ### Los agentes no responden
 
 **Verifique:**
 
-1. Los IDs de los agentes existen en `agents.list`
-2. El formato del ID del par es correcto (por ejemplo, `120363403215116621@g.us`)
-3. Los agentes no estan en listas de denegacion
+1. Los IDs de agentes existen en `agents.list`
+2. El formato del ID del par es correcto (p. ej., `120363403215116621@g.us`)
+3. Los agentes no están en listas de denegación
 
 **Depurar:**
 
@@ -327,23 +327,23 @@ Los grupos de difusion funcionan junto con el enrutamiento existente:
 tail -f ~/.openclaw/logs/gateway.log | grep broadcast
 ```
 
-### Solo un agente responde
+### Solo responde un agente
 
-**Causa:** El ID del par podria estar en `bindings` pero no en `broadcast`.
+**Causa:** El ID del par podría estar en `bindings` pero no en `broadcast`.
 
-**Solucion:** Agreguelo a la configuracion de difusion o elimínelo de los bindings.
+**Solución:** Agréguelo a la configuración de difusión o elimínelo de los enlaces.
 
 ### Problemas de rendimiento
 
 **Si es lento con muchos agentes:**
 
-- Reduzca la cantidad de agentes por grupo
-- Use modelos mas ligeros (sonnet en lugar de opus)
-- Verifique el tiempo de inicio del sandbox
+- Reduzca el número de agentes por grupo
+- Use modelos más ligeros (sonnet en lugar de opus)
+- Revise el tiempo de inicio del sandbox
 
 ## Ejemplos
 
-### Ejemplo 1: Equipo de revision de codigo
+### Ejemplo 1: Equipo de revisión de código
 
 ```json
 {
@@ -379,15 +379,15 @@ tail -f ~/.openclaw/logs/gateway.log | grep broadcast
 }
 ```
 
-**El usuario envia:** Fragmento de codigo  
+**El usuario envía:** fragmento de código  
 **Respuestas:**
 
-- code-formatter: "Arregle la sangria y agregue sugerencias de tipos"
-- security-scanner: "⚠️ Vulnerabilidad de inyeccion SQL en la linea 12"
-- test-coverage: "La cobertura es del 45%, faltan pruebas para casos de error"
-- docs-checker: "Falta docstring para la funcion `process_data`"
+- code-formatter: "Corregí la indentación y agregué sugerencias de tipo"
+- security-scanner: "⚠️ Vulnerabilidad de inyección SQL en la línea 12"
+- test-coverage: "La cobertura es del 45 %, faltan pruebas para casos de error"
+- docs-checker: "Falta el docstring para la función `process_data`"
 
-### Ejemplo 2: Soporte multilenguaje
+### Ejemplo 2: Soporte multilingüe
 
 ```json
 {
@@ -407,7 +407,7 @@ tail -f ~/.openclaw/logs/gateway.log | grep broadcast
 
 ## Referencia de la API
 
-### Esquema de configuracion
+### Esquema de configuración
 
 ```typescript
 interface OpenClawConfig {
@@ -420,30 +420,30 @@ interface OpenClawConfig {
 
 ### Campos
 
-- `strategy` (opcional): Como procesar los agentes
-  - `"parallel"` (predeterminado): Todos los agentes procesan simultaneamente
+- `strategy` (opcional): Cómo procesar los agentes
+  - `"parallel"` (predeterminado): Todos los agentes procesan simultáneamente
   - `"sequential"`: Los agentes procesan en el orden del arreglo
-- `[peerId]`: JID de grupo de WhatsApp, numero E.164 u otro ID de par
+- `[peerId]`: JID de grupo de WhatsApp, número E.164 u otro ID de par
   - Valor: Arreglo de IDs de agentes que deben procesar mensajes
 
 ## Limitaciones
 
-1. **Maximo de agentes:** No hay un limite estricto, pero 10+ agentes pueden ser lentos
-2. **Contexto compartido:** Los agentes no ven las respuestas de otros (por diseno)
+1. **Máx. de agentes:** No hay un límite estricto, pero 10+ agentes pueden ser lentos
+2. **Contexto compartido:** Los agentes no ven las respuestas de otros agentes (por diseño)
 3. **Orden de mensajes:** Las respuestas en paralelo pueden llegar en cualquier orden
-4. **Limites de tasa:** Todos los agentes cuentan para los limites de tasa de WhatsApp
+4. **Límites de tasa:** Todos los agentes cuentan para los límites de tasa de WhatsApp
 
 ## Mejoras futuras
 
 Funciones planificadas:
 
 - [ ] Modo de contexto compartido (los agentes ven las respuestas de otros)
-- [ ] Coordinacion de agentes (los agentes pueden senalizarse entre si)
-- [ ] Seleccion dinamica de agentes (elegir agentes segun el contenido del mensaje)
+- [ ] Coordinación de agentes (los agentes pueden señalizarse entre sí)
+- [ ] Selección dinámica de agentes (elegir agentes según el contenido del mensaje)
 - [ ] Prioridades de agentes (algunos agentes responden antes que otros)
 
-## Ver tambien
+## Ver también
 
-- [Configuracion multiagente](/tools/multi-agent-sandbox-tools)
-- [Configuracion de enrutamiento](/channels/channel-routing)
-- [Gestion de sesiones](/concepts/sessions)
+- [Configuración multiagente](/tools/multi-agent-sandbox-tools)
+- [Configuración de enrutamiento](/channels/channel-routing)
+- [Gestión de sesiones](/concepts/sessions)

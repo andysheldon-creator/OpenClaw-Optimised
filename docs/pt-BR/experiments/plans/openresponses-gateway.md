@@ -1,5 +1,5 @@
 ---
-summary: "Plano: Adicionar o endpoint OpenResponses /v1/responses e descontinuar chat completions de forma limpa"
+summary: "Plano: adicionar o endpoint OpenResponses /v1/responses e descontinuar chat completions de forma limpa"
 owner: "openclaw"
 status: "draft"
 last_updated: "2026-01-19"
@@ -10,31 +10,29 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:56:16Z
+  generated_at: 2026-02-08T09:30:54Z
 ---
 
-# Plano de Integracao do Gateway OpenResponses
+# Plano de Integração do Gateway OpenResponses
 
 ## Contexto
 
-O OpenClaw Gateway atualmente expõe um endpoint mínimo de Chat Completions compatível com OpenAI em
+O Gateway OpenClaw atualmente expõe um endpoint mínimo de Chat Completions compatível com OpenAI em
 `/v1/chat/completions` (veja [OpenAI Chat Completions](/gateway/openai-http-api)).
 
 Open Responses é um padrão aberto de inferência baseado na API OpenAI Responses. Ele foi projetado
-para fluxos de trabalho agenticos e utiliza entradas baseadas em itens, além de eventos de streaming
-semânticos. A especificação OpenResponses define `/v1/responses`, não `/v1/chat/completions`.
+para fluxos de trabalho agentic e usa entradas baseadas em itens além de eventos semânticos de streaming. A especificação OpenResponses define `/v1/responses`, não `/v1/chat/completions`.
 
 ## Objetivos
 
 - Adicionar um endpoint `/v1/responses` que siga a semântica do OpenResponses.
-- Manter Chat Completions como uma camada de compatibilidade que seja fácil de desativar e,
-  eventualmente, remover.
-- Padronizar validação e parsing com esquemas isolados e reutilizáveis.
+- Manter Chat Completions como uma camada de compatibilidade que seja fácil de desativar e, eventualmente, remover.
+- Padronizar validação e parsing com schemas isolados e reutilizáveis.
 
-## Nao objetivos
+## Não objetivos
 
 - Paridade completa de recursos do OpenResponses na primeira etapa (imagens, arquivos, ferramentas hospedadas).
-- Substituir a lógica interna de execução de agentes ou orquestração de ferramentas.
+- Substituir a lógica interna de execução de agentes ou a orquestração de ferramentas.
 - Alterar o comportamento existente de `/v1/chat/completions` durante a primeira fase.
 
 ## Resumo da Pesquisa
@@ -61,49 +59,49 @@ Principais pontos extraídos:
 - A especificação exige:
   - `Content-Type: text/event-stream`
   - `event:` deve corresponder ao campo JSON `type`
-  - o evento terminal deve ser literalmente `[DONE]`
+  - o evento terminal deve ser o literal `[DONE]`
 - Itens de raciocínio podem expor `content`, `encrypted_content` e `summary`.
-- Exemplos da HF incluem `OpenResponses-Version: latest` nas requisições (header opcional).
+- Exemplos da HF incluem `OpenResponses-Version: latest` em requisições (header opcional).
 
 ## Arquitetura Proposta
 
-- Adicionar `src/gateway/open-responses.schema.ts` contendo apenas esquemas Zod (sem imports do gateway).
+- Adicionar `src/gateway/open-responses.schema.ts` contendo apenas schemas Zod (sem imports do gateway).
 - Adicionar `src/gateway/openresponses-http.ts` (ou `open-responses-http.ts`) para `/v1/responses`.
 - Manter `src/gateway/openai-http.ts` intacto como um adaptador de compatibilidade legado.
-- Adicionar config `gateway.http.endpoints.responses.enabled` (padrão `false`).
+- Adicionar configuração `gateway.http.endpoints.responses.enabled` (padrão `false`).
 - Manter `gateway.http.endpoints.chatCompletions.enabled` independente; permitir que ambos os endpoints sejam
   alternados separadamente.
-- Emitir um aviso de inicialização quando Chat Completions estiver habilitado para sinalizar status legado.
+- Emitir um aviso na inicialização quando Chat Completions estiver habilitado para sinalizar status legado.
 
-## Caminho de Descontinuacao para Chat Completions
+## Caminho de Descontinuação para Chat Completions
 
-- Manter limites estritos entre módulos: nenhum tipo de esquema compartilhado entre responses e chat completions.
-- Tornar Chat Completions opt-in via configuracao para que possa ser desativado sem mudanças de código.
+- Manter limites rígidos entre módulos: nenhum tipo de schema compartilhado entre responses e chat completions.
+- Tornar Chat Completions opt-in via configuração para que possa ser desativado sem mudanças de código.
 - Atualizar a documentação para rotular Chat Completions como legado quando `/v1/responses` estiver estável.
-- Etapa futura opcional: mapear requisições de Chat Completions para o handler de Responses para um caminho
-  de remoção mais simples.
+- Etapa futura opcional: mapear requisições de Chat Completions para o handler de Responses para um
+  caminho de remoção mais simples.
 
 ## Subconjunto de Suporte da Fase 1
 
 - Aceitar `input` como string ou `ItemParam[]` com papéis de mensagem e `function_call_output`.
 - Extrair mensagens de system e developer para `extraSystemPrompt`.
-- Usar o `user` ou `function_call_output` mais recente como a mensagem atual para execuções do agente.
+- Usar o `user` ou `function_call_output` mais recente como a mensagem atual para execuções de agentes.
 - Rejeitar partes de conteúdo não suportadas (imagem/arquivo) com `invalid_request_error`.
 - Retornar uma única mensagem do assistant com conteúdo `output_text`.
-- Retornar `usage` com valores zerados até que a contabilidade de tokens seja conectada.
+- Retornar `usage` com valores zerados até que a contabilização de tokens seja integrada.
 
-## Estrategia de Validacao (Sem SDK)
+## Estratégia de Validação (Sem SDK)
 
-- Implementar esquemas Zod para o subconjunto suportado de:
+- Implementar schemas Zod para o subconjunto suportado de:
   - `CreateResponseBody`
   - `ItemParam` + uniões de partes de conteúdo de mensagem
   - `ResponseResource`
   - Formatos de eventos de streaming usados pelo gateway
-- Manter os esquemas em um único módulo isolado para evitar divergência e permitir futura geracao de código.
+- Manter os schemas em um único módulo isolado para evitar divergência e permitir futura geração de código.
 
-## Implementacao de Streaming (Fase 1)
+## Implementação de Streaming (Fase 1)
 
-- Linhas SSE com `event:` e `data:`.
+- Linhas SSE com ambos `event:` e `data:`.
 - Sequência obrigatória (mínimo viável):
   - `response.created`
   - `response.output_item.added`
@@ -114,18 +112,18 @@ Principais pontos extraídos:
   - `response.completed`
   - `[DONE]`
 
-## Plano de Testes e Verificacao
+## Plano de Testes e Verificação
 
 - Adicionar cobertura e2e para `/v1/responses`:
-  - Autenticacao obrigatória
-  - Formato de resposta não streaming
+  - Autenticação obrigatória
+  - Formato da resposta sem streaming
   - Ordenação de eventos de stream e `[DONE]`
   - Roteamento de sessão com headers e `user`
 - Manter `src/gateway/openai-http.e2e.test.ts` inalterado.
 - Manual: curl para `/v1/responses` com `stream: true` e verificar a ordenação dos eventos e o
   `[DONE]` terminal.
 
-## Atualizacoes de Documentacao (Seguimento)
+## Atualizações de Documentação (Follow-up)
 
-- Adicionar uma nova página de documentação para uso e exemplos de `/v1/responses`.
-- Atualizar `/gateway/openai-http-api` com uma nota de legado e um link para `/v1/responses`.
+- Adicionar uma nova página de docs para uso e exemplos de `/v1/responses`.
+- Atualizar `/gateway/openai-http-api` com uma nota de legado e um apontamento para `/v1/responses`.

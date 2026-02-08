@@ -1,8 +1,8 @@
 ---
-summary: "Superficies web del Gateway: UI de Control, modos de enlace y seguridad"
+summary: "Superficies web del Gateway: IU de control, modos de enlace y seguridad"
 read_when:
   - Quiere acceder al Gateway a través de Tailscale
-  - Quiere la UI de Control en el navegador y la edición de configuración
+  - Quiere la IU de Control en el navegador y la edición de configuración
 title: "Web"
 x-i18n:
   source_path: web/index.md
@@ -10,27 +10,27 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:00:20Z
+  generated_at: 2026-02-08T09:35:00Z
 ---
 
 # Web (Gateway)
 
-El Gateway sirve una pequeña **UI de Control en el navegador** (Vite + Lit) desde el mismo puerto que el WebSocket del Gateway:
+El Gateway ofrece una pequeña **IU de Control en el navegador** (Vite + Lit) desde el mismo puerto que el WebSocket del Gateway:
 
 - predeterminado: `http://<host>:18789/`
 - prefijo opcional: configure `gateway.controlUi.basePath` (p. ej., `/openclaw`)
 
-Las capacidades están en [Control UI](/web/control-ui).
-Esta página se centra en los modos de enlace, la seguridad y las superficies expuestas a la web.
+Las capacidades se describen en [Control UI](/web/control-ui).
+Esta página se centra en los modos de enlace, la seguridad y las superficies expuestas en la web.
 
 ## Webhooks
 
 Cuando `hooks.enabled=true`, el Gateway también expone un pequeño endpoint de webhook en el mismo servidor HTTP.
-Consulte [Configuración del Gateway](/gateway/configuration) → `hooks` para autenticación y payloads.
+Consulte [Configuración del Gateway](/gateway/configuration) → `hooks` para autenticación y cargas útiles.
 
 ## Configuración (activada por defecto)
 
-La UI de Control está **habilitada de forma predeterminada** cuando los assets están presentes (`dist/control-ui`).
+La IU de Control está **habilitada de forma predeterminada** cuando los recursos están presentes (`dist/control-ui`).
 Puede controlarla mediante la configuración:
 
 ```json5
@@ -45,7 +45,7 @@ Puede controlarla mediante la configuración:
 
 ### Serve integrado (recomendado)
 
-Mantenga el Gateway en loopback y deje que Tailscale Serve lo haga de proxy:
+Mantenga el Gateway en loopback y deje que Tailscale Serve lo proxifique:
 
 ```json5
 {
@@ -103,18 +103,17 @@ Abra:
 ## Notas de seguridad
 
 - La autenticación del Gateway es obligatoria de forma predeterminada (token/contraseña o encabezados de identidad de Tailscale).
-- Los enlaces que no sean loopback **requieren** un token/contraseña compartido (`gateway.auth` o variable de entorno).
+- Los enlaces que no sean loopback **siguen requiriendo** un token/contraseña compartido (`gateway.auth` o variable de entorno).
 - El asistente genera un token del gateway de forma predeterminada (incluso en loopback).
-- La UI envía `connect.params.auth.token` o `connect.params.auth.password`.
-- La UI de Control envía encabezados anti-clickjacking y solo acepta conexiones WebSocket del navegador del mismo origen
-  a menos que se configure `gateway.controlUi.allowedOrigins`.
+- La IU envía `connect.params.auth.token` o `connect.params.auth.password`.
+- La IU de Control envía encabezados anti–clickjacking y solo acepta conexiones WebSocket del navegador del mismo origen, a menos que se configure `gateway.controlUi.allowedOrigins`.
 - Con Serve, los encabezados de identidad de Tailscale pueden satisfacer la autenticación cuando
   `gateway.auth.allowTailscale` es `true` (no se requiere token/contraseña). Configure
   `gateway.auth.allowTailscale: false` para exigir credenciales explícitas. Consulte
   [Tailscale](/gateway/tailscale) y [Seguridad](/gateway/security).
 - `gateway.tailscale.mode: "funnel"` requiere `gateway.auth.mode: "password"` (contraseña compartida).
 
-## Compilación de la UI
+## Compilación de la IU
 
 El Gateway sirve archivos estáticos desde `dist/control-ui`. Compílelos con:
 

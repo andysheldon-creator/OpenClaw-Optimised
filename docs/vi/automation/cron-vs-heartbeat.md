@@ -1,7 +1,7 @@
 ---
 summary: "Hướng dẫn lựa chọn giữa heartbeat và cron jobs cho tự động hóa"
 read_when:
-  - Quyết định cách lên lịch các tác vụ lặp lại
+  - Quyết định cách lập lịch cho các tác vụ lặp lại
   - Thiết lập giám sát nền hoặc thông báo
   - Tối ưu hóa việc sử dụng token cho các kiểm tra định kỳ
 title: "Cron vs Heartbeat"
@@ -11,42 +11,42 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:10Z
+  generated_at: 2026-02-08T09:38:01Z
 ---
 
 # Cron vs Heartbeat: Khi nào nên dùng từng loại
 
-Cả heartbeat và cron jobs đều cho phép bạn chạy tác vụ theo lịch. Hướng dẫn này giúp bạn chọn cơ chế phù hợp cho từng trường hợp sử dụng.
+Cả heartbeat và cron jobs đều cho phép bạn chạy tác vụ theo lịch. Hướng dẫn này giúp bạn chọn cơ chế phù hợp cho trường hợp sử dụng của mình.
 
 ## Hướng dẫn quyết định nhanh
 
-| Trường hợp sử dụng                | Khuyến nghị         | Lý do                                       |
-| --------------------------------- | ------------------- | ------------------------------------------- |
-| Kiểm tra hộp thư mỗi 30 phút      | Heartbeat           | Gom nhóm với các kiểm tra khác, có ngữ cảnh |
-| Gửi báo cáo hằng ngày đúng 9:00   | Cron (cô lập)       | Cần thời điểm chính xác                     |
-| Theo dõi lịch cho sự kiện sắp tới | Heartbeat           | Phù hợp tự nhiên cho nhận biết định kỳ      |
-| Chạy phân tích sâu hằng tuần      | Cron (cô lập)       | Tác vụ độc lập, có thể dùng mô hình khác    |
-| Nhắc tôi sau 20 phút              | Cron (main, `--at`) | Một lần, cần thời gian chính xác            |
-| Kiểm tra sức khỏe dự án nền       | Heartbeat           | Tận dụng chu kỳ hiện có                     |
+| Trường hợp sử dụng                | Khuyến nghị         | Lý do                                         |
+| --------------------------------- | ------------------- | --------------------------------------------- |
+| Kiểm tra hộp thư mỗi 30 phút      | Heartbeat           | Gộp với các kiểm tra khác, nhận biết ngữ cảnh |
+| Gửi báo cáo hằng ngày đúng 9 giờ  | Cron (isolated)     | Cần thời điểm chính xác                       |
+| Theo dõi lịch cho sự kiện sắp tới | Heartbeat           | Phù hợp tự nhiên cho nhận biết định kỳ        |
+| Chạy phân tích sâu hằng tuần      | Cron (isolated)     | Tác vụ độc lập, có thể dùng mô hình khác      |
+| Nhắc tôi sau 20 phút              | Cron (main, `--at`) | Một lần, thời điểm chính xác                  |
+| Kiểm tra sức khỏe dự án nền       | Heartbeat           | Tận dụng chu kỳ hiện có                       |
 
 ## Heartbeat: Nhận biết định kỳ
 
-Heartbeat chạy trong **main session** theo khoảng thời gian đều (mặc định: 30 phút). Chúng được thiết kế để tác tử kiểm tra mọi thứ và đưa ra những điều quan trọng.
+Heartbeat chạy trong **main session** theo khoảng thời gian đều đặn (mặc định: 30 phút). Chúng được thiết kế để tác tử kiểm tra mọi thứ và làm nổi bật những gì quan trọng.
 
 ### Khi nào nên dùng heartbeat
 
-- **Nhiều kiểm tra định kỳ**: Thay vì 5 cron jobs riêng lẻ kiểm tra hộp thư, lịch, thời tiết, thông báo và trạng thái dự án, một heartbeat có thể gom tất cả.
-- **Quyết định theo ngữ cảnh**: Tác tử có đầy đủ ngữ cảnh của main session, nên có thể phân biệt việc gấp với việc có thể chờ.
-- **Liên tục hội thoại**: Các lần chạy heartbeat dùng chung session, nên tác tử nhớ các cuộc trò chuyện gần đây và theo dõi tự nhiên.
+- **Nhiều kiểm tra định kỳ**: Thay vì 5 cron jobs riêng lẻ kiểm tra hộp thư, lịch, thời tiết, thông báo và trạng thái dự án, một heartbeat có thể gộp tất cả.
+- **Quyết định theo ngữ cảnh**: Tác tử có đầy đủ ngữ cảnh của main session, nên có thể quyết định thông minh việc nào khẩn cấp và việc nào có thể chờ.
+- **Liên tục hội thoại**: Các lần chạy heartbeat dùng chung một phiên, nên tác tử nhớ các cuộc trò chuyện gần đây và theo dõi tự nhiên.
 - **Giám sát chi phí thấp**: Một heartbeat thay thế nhiều tác vụ polling nhỏ.
 
 ### Ưu điểm của heartbeat
 
-- **Gom nhiều kiểm tra**: Một lượt tác tử có thể xem hộp thư, lịch và thông báo cùng lúc.
-- **Giảm gọi API**: Một heartbeat rẻ hơn 5 cron jobs cô lập.
-- **Có ngữ cảnh**: Tác tử biết bạn đang làm gì và ưu tiên phù hợp.
-- **Ẩn thông minh**: Nếu không có gì cần chú ý, tác tử trả lời `HEARTBEAT_OK` và không gửi thông điệp.
-- **Thời điểm tự nhiên**: Có thể trôi nhẹ theo tải hàng đợi, chấp nhận được cho hầu hết giám sát.
+- **Gộp nhiều kiểm tra**: Một lượt của tác tử có thể xem hộp thư, lịch và thông báo cùng lúc.
+- **Giảm số lần gọi API**: Một heartbeat rẻ hơn 5 cron jobs tách biệt.
+- **Nhận biết ngữ cảnh**: Tác tử biết bạn đang làm gì và ưu tiên phù hợp.
+- **Ẩn thông minh**: Nếu không có gì cần chú ý, tác tử trả lời `HEARTBEAT_OK` và không gửi thông báo nào.
+- **Thời điểm tự nhiên**: Có thể trôi nhẹ theo tải hàng đợi, phù hợp cho hầu hết giám sát.
 
 ### Ví dụ heartbeat: danh sách kiểm HEARTBEAT.md
 
@@ -77,32 +77,32 @@ Tác tử đọc nội dung này ở mỗi heartbeat và xử lý tất cả m�
 }
 ```
 
-Xem [Heartbeat](/gateway/heartbeat) de biet them chi tiet về cấu hình đầy đủ.
+Xem [Heartbeat](/gateway/heartbeat) để biết cấu hình đầy đủ.
 
-## Cron: Lên lịch chính xác
+## Cron: Lập lịch chính xác
 
-Cron jobs chạy tại **thời điểm chính xác** và có thể chạy trong session cô lập, không ảnh hưởng đến ngữ cảnh chính.
+Cron jobs chạy tại **thời điểm chính xác** và có thể chạy trong các phiên cô lập mà không ảnh hưởng đến ngữ cảnh chính.
 
 ### Khi nào nên dùng cron
 
 - **Cần thời điểm chính xác**: "Gửi lúc 9:00 sáng mỗi thứ Hai" (không phải "khoảng 9 giờ").
-- **Tác vụ độc lập**: Không cần ngữ cảnh hội thoại.
+- **Tác vụ độc lập**: Các tác vụ không cần ngữ cảnh hội thoại.
 - **Mô hình/suy nghĩ khác**: Phân tích nặng cần mô hình mạnh hơn.
 - **Nhắc việc một lần**: "Nhắc tôi sau 20 phút" với `--at`.
-- **Tác vụ ồn/tần suất cao**: Tránh làm rối lịch sử main session.
-- **Kích hoạt bên ngoài**: Chạy độc lập dù tác tử có đang hoạt động hay không.
+- **Tác vụ ồn/nhanh**: Những tác vụ sẽ làm lộn xộn lịch sử main session.
+- **Kích hoạt bên ngoài**: Tác vụ cần chạy độc lập dù tác tử có đang hoạt động hay không.
 
 ### Ưu điểm của cron
 
-- **Thời điểm chính xác**: Biểu thức cron 5 trường, hỗ trợ múi giờ.
-- **Cô lập session**: Chạy trong `cron:<jobId>` mà không làm bẩn lịch sử chính.
+- **Thời điểm chính xác**: Biểu thức cron 5 trường với hỗ trợ múi giờ.
+- **Cô lập phiên**: Chạy trong `cron:<jobId>` mà không làm bẩn lịch sử chính.
 - **Ghi đè mô hình**: Dùng mô hình rẻ hơn hoặc mạnh hơn cho từng job.
-- **Kiểm soát phát hành**: Job cô lập mặc định là `announce` (tóm tắt); chọn `none` khi cần.
-- **Gửi ngay**: Chế độ announce đăng trực tiếp, không đợi heartbeat.
-- **Không cần ngữ cảnh tác tử**: Chạy ngay cả khi main session đang nhàn rỗi hoặc đã được gộp.
+- **Kiểm soát phân phối**: Job cô lập mặc định là `announce` (tóm tắt); chọn `none` khi cần.
+- **Gửi ngay**: Chế độ announce đăng trực tiếp, không chờ heartbeat.
+- **Không cần ngữ cảnh tác tử**: Chạy ngay cả khi main session đang nhàn rỗi hoặc đã được nén.
 - **Hỗ trợ một lần**: `--at` cho mốc thời gian tương lai chính xác.
 
-### Ví dụ cron: bản tin buổi sáng hằng ngày
+### Ví dụ cron: Bản tin buổi sáng hằng ngày
 
 ```bash
 openclaw cron add \
@@ -117,9 +117,9 @@ openclaw cron add \
   --to "+15551234567"
 ```
 
-Chạy đúng 7:00 sáng theo giờ New York, dùng Opus để đảm bảo chất lượng và thông báo tóm tắt trực tiếp tới WhatsApp.
+Chạy đúng 7:00 sáng theo giờ New York, dùng Opus để đảm bảo chất lượng, và thông báo tóm tắt trực tiếp tới WhatsApp.
 
-### Ví dụ cron: nhắc việc một lần
+### Ví dụ cron: Nhắc việc một lần
 
 ```bash
 openclaw cron add \
@@ -131,9 +131,9 @@ openclaw cron add \
   --delete-after-run
 ```
 
-Xem [Cron jobs](/automation/cron-jobs) để tham khảo CLI đầy đủ.
+Xem [Cron jobs](/automation/cron-jobs) để biết tham chiếu CLI đầy đủ.
 
-## Sơ đồ quyết định
+## Lưu đồ quyết định
 
 ```
 Does the task need to run at an EXACT time?
@@ -161,10 +161,10 @@ Does it need a different model or thinking level?
 
 Thiết lập hiệu quả nhất sử dụng **cả hai**:
 
-1. **Heartbeat** xử lý giám sát thường xuyên (hộp thư, lịch, thông báo) trong một lượt gom mỗi 30 phút.
+1. **Heartbeat** xử lý giám sát thường xuyên (hộp thư, lịch, thông báo) trong một lượt gộp mỗi 30 phút.
 2. **Cron** xử lý lịch chính xác (báo cáo hằng ngày, rà soát hằng tuần) và nhắc việc một lần.
 
-### Ví dụ: thiết lập tự động hóa hiệu quả
+### Ví dụ: Thiết lập tự động hóa hiệu quả
 
 **HEARTBEAT.md** (kiểm tra mỗi 30 phút):
 
@@ -193,30 +193,30 @@ openclaw cron add --name "Call back" --at "2h" --session main --system-event "Ca
 ## Lobster: Quy trình xác định với phê duyệt
 
 Lobster là runtime quy trình cho **pipeline công cụ nhiều bước** cần thực thi xác định và phê duyệt rõ ràng.
-Dùng khi tác vụ nhiều hơn một lượt tác tử, và bạn muốn quy trình có thể tiếp tục với các điểm kiểm tra của con người.
+Dùng khi tác vụ không chỉ là một lượt tác tử, và bạn muốn một quy trình có thể tiếp tục với các điểm kiểm tra của con người.
 
-### Khi nào Lobster phù hợp
+### Khi Lobster phù hợp
 
-- **Tự động hóa nhiều bước**: Cần pipeline cố định của các lời gọi công cụ, không phải một prompt đơn lẻ.
-- **Cổng phê duyệt**: Tác động phụ phải tạm dừng chờ bạn phê duyệt rồi tiếp tục.
-- **Chạy tiếp được**: Tiếp tục quy trình đang tạm dừng mà không chạy lại các bước trước.
+- **Tự động hóa nhiều bước**: Bạn cần một pipeline gọi công cụ cố định, không phải prompt một lần.
+- **Cổng phê duyệt**: Các tác động phụ nên tạm dừng cho đến khi bạn phê duyệt, rồi tiếp tục.
+- **Chạy có thể tiếp tục**: Tiếp tục một quy trình đã tạm dừng mà không chạy lại các bước trước.
 
 ### Cách kết hợp với heartbeat và cron
 
-- **Heartbeat/cron** quyết định _khi nào_ một lượt chạy diễn ra.
-- **Lobster** định nghĩa _những bước nào_ diễn ra khi lượt chạy bắt đầu.
+- **Heartbeat/cron** quyết định _khi nào_ một lần chạy xảy ra.
+- **Lobster** định nghĩa _những bước nào_ diễn ra khi lần chạy bắt đầu.
 
 Với quy trình theo lịch, dùng cron hoặc heartbeat để kích hoạt một lượt tác tử gọi Lobster.
 Với quy trình ad-hoc, gọi Lobster trực tiếp.
 
 ### Ghi chú vận hành (từ mã nguồn)
 
-- Lobster chạy như **tiến trình con cục bộ** (`lobster` CLI) ở chế độ công cụ và trả về **phong bì JSON**.
-- Nếu công cụ trả về `needs_approval`, bạn tiếp tục với `resumeToken` và cờ `approve`.
-- Công cụ là **plugin tùy chọn**; bật theo cách cộng thêm qua `tools.alsoAllow: ["lobster"]` (khuyến nghị).
-- Nếu bạn truyền `lobsterPath`, đó phải là **đường dẫn tuyệt đối**.
+- Lobster chạy như một **tiến trình con cục bộ** (CLI `lobster`) ở chế độ tool và trả về **JSON envelope**.
+- Nếu tool trả về `needs_approval`, bạn tiếp tục với `resumeToken` và cờ `approve`.
+- Tool là **plugin tùy chọn**; bật theo cách bổ sung qua `tools.alsoAllow: ["lobster"]` (khuyến nghị).
+- Nếu bạn truyền `lobsterPath`, nó phải là **đường dẫn tuyệt đối**.
 
-Xem [Lobster](/tools/lobster) để biết cách dùng đầy đủ và ví dụ.
+Xem [Lobster](/tools/lobster) để biết cách dùng và ví dụ đầy đủ.
 
 ## Main Session vs Isolated Session
 
@@ -224,8 +224,8 @@ Cả heartbeat và cron đều có thể tương tác với main session, nhưng
 
 |          | Heartbeat                    | Cron (main)                 | Cron (isolated)              |
 | -------- | ---------------------------- | --------------------------- | ---------------------------- |
-| Session  | Main                         | Main (qua sự kiện hệ thống) | `cron:<jobId>`               |
-| Lịch sử  | Chia sẻ                      | Chia sẻ                     | Mới mỗi lần chạy             |
+| Phiên    | Main                         | Main (qua sự kiện hệ thống) | `cron:<jobId>`               |
+| Lịch sử  | Dùng chung                   | Dùng chung                  | Mới mỗi lần chạy             |
 | Ngữ cảnh | Đầy đủ                       | Đầy đủ                      | Không (bắt đầu sạch)         |
 | Mô hình  | Mô hình main session         | Mô hình main session        | Có thể ghi đè                |
 | Đầu ra   | Gửi nếu không `HEARTBEAT_OK` | Prompt heartbeat + sự kiện  | Thông báo tóm tắt (mặc định) |
@@ -251,10 +251,10 @@ openclaw cron add \
 
 Dùng `--session isolated` khi bạn muốn:
 
-- Bắt đầu sạch, không có ngữ cảnh trước
-- Mô hình hoặc thiết lập suy nghĩ khác
+- Trạng thái sạch không có ngữ cảnh trước đó
+- Cài đặt mô hình hoặc suy nghĩ khác
 - Thông báo tóm tắt trực tiếp tới một kênh
-- Lịch sử không làm rối main session
+- Lịch sử không làm lộn xộn main session
 
 ```bash
 openclaw cron add \
@@ -269,18 +269,18 @@ openclaw cron add \
 
 ## Cân nhắc chi phí
 
-| Cơ chế          | Hồ sơ chi phí                                              |
-| --------------- | ---------------------------------------------------------- |
-| Heartbeat       | Một lượt mỗi N phút; tăng theo kích thước HEARTBEAT.md     |
-| Cron (main)     | Thêm sự kiện vào heartbeat kế tiếp (không có lượt cô lập)  |
-| Cron (isolated) | Một lượt tác tử đầy đủ mỗi job; có thể dùng mô hình rẻ hơn |
+| Cơ chế          | Hồ sơ chi phí                                                  |
+| --------------- | -------------------------------------------------------------- |
+| Heartbeat       | Một lượt mỗi N phút; tăng theo kích thước HEARTBEAT.md         |
+| Cron (main)     | Thêm sự kiện vào heartbeat tiếp theo (không có lượt cô lập)    |
+| Cron (isolated) | Một lượt tác tử đầy đủ cho mỗi job; có thể dùng mô hình rẻ hơn |
 
 **Mẹo**:
 
 - Giữ `HEARTBEAT.md` nhỏ để giảm chi phí token.
-- Gom các kiểm tra tương tự vào heartbeat thay vì nhiều cron jobs.
-- Dùng `target: "none"` cho heartbeat nếu bạn chỉ muốn xử lý nội bộ.
-- Dùng cron cô lập với mô hình rẻ hơn cho tác vụ thường xuyên.
+- Gộp các kiểm tra tương tự vào heartbeat thay vì nhiều cron jobs.
+- Dùng `target: "none"` trên heartbeat nếu bạn chỉ muốn xử lý nội bộ.
+- Dùng cron cô lập với mô hình rẻ hơn cho các tác vụ thường lệ.
 
 ## Liên quan
 

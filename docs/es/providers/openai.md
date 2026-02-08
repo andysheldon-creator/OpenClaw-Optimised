@@ -1,26 +1,26 @@
 ---
-summary: "Use OpenAI mediante claves API o suscripción Codex en OpenClaw"
+summary: "Use OpenAI mediante claves de API o suscripción a Codex en OpenClaw"
 read_when:
   - Quiere usar modelos de OpenAI en OpenClaw
-  - Quiere autenticación con suscripción Codex en lugar de claves API
+  - Quiere autenticación con suscripción a Codex en lugar de claves de API
 title: "OpenAI"
 x-i18n:
   source_path: providers/openai.md
-  source_hash: 13d8fd7f1f935b0a
+  source_hash: 6d78698351c3d2f5
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:59:38Z
+  generated_at: 2026-02-08T09:34:19Z
 ---
 
 # OpenAI
 
-OpenAI proporciona APIs para desarrolladores de modelos GPT. Codex admite **inicio de sesión con ChatGPT** para acceso por suscripción o **inicio de sesión con clave API** para acceso basado en uso. Codex cloud requiere inicio de sesión con ChatGPT.
+OpenAI proporciona APIs para desarrolladores de modelos GPT. Codex admite **inicio de sesión con ChatGPT** para acceso por suscripción o **inicio de sesión con clave de API** para acceso basado en uso. Codex cloud requiere inicio de sesión con ChatGPT.
 
-## Opción A: Clave API de OpenAI (Plataforma OpenAI)
+## Opción A: Clave de API de OpenAI (OpenAI Platform)
 
 **Ideal para:** acceso directo a la API y facturación basada en uso.
-Obtenga su clave API desde el panel de OpenAI.
+Obtenga su clave de API desde el panel de OpenAI.
 
 ### Configuración de la CLI
 
@@ -39,12 +39,12 @@ openclaw onboard --openai-api-key "$OPENAI_API_KEY"
 }
 ```
 
-## Opción B: Suscripción OpenAI Code (Codex)
+## Opción B: Suscripción a OpenAI Code (Codex)
 
-**Ideal para:** usar acceso por suscripción de ChatGPT/Codex en lugar de una clave API.
-Codex cloud requiere inicio de sesión con ChatGPT, mientras que la CLI de Codex admite inicio de sesión con ChatGPT o con clave API.
+**Ideal para:** usar acceso por suscripción a ChatGPT/Codex en lugar de una clave de API.
+Codex cloud requiere inicio de sesión con ChatGPT, mientras que la CLI de Codex admite inicio de sesión con ChatGPT o con clave de API.
 
-### Configuración de la CLI
+### Configuración de la CLI (OAuth de Codex)
 
 ```bash
 # Run Codex OAuth in the wizard
@@ -54,7 +54,7 @@ openclaw onboard --auth-choice openai-codex
 openclaw models auth login --provider openai-codex
 ```
 
-### Fragmento de configuración
+### Fragmento de configuración (suscripción a Codex)
 
 ```json5
 {
@@ -64,5 +64,5 @@ openclaw models auth login --provider openai-codex
 
 ## Notas
 
-- Las referencias de modelos siempre usan `provider/model` (vea [/concepts/models](/concepts/models)).
+- Las referencias de modelos siempre usan `provider/model` (consulte [/concepts/models](/concepts/models)).
 - Los detalles de autenticación y las reglas de reutilización están en [/concepts/oauth](/concepts/oauth).

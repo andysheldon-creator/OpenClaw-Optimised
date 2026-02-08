@@ -1,8 +1,8 @@
 ---
-summary: "CLI-Referenz für `openclaw doctor` (Zustandsprüfungen + geführte Reparaturen)"
+summary: "CLI-Referenz für `openclaw doctor` (Gesundheitsprüfungen + geführte Reparaturen)"
 read_when:
-  - Sie haben Verbindungs-/Authentifizierungsprobleme und möchten geführte Korrekturen
-  - Sie haben aktualisiert und möchten eine Plausibilitätsprüfung
+  - Sie haben Konnektivitäts-/Authentifizierungsprobleme und möchten geführte Lösungen
+  - Sie haben aktualisiert und möchten einen Plausibilitätscheck
 title: "doctor"
 x-i18n:
   source_path: cli/doctor.md
@@ -10,14 +10,14 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:45Z
+  generated_at: 2026-02-08T09:35:31Z
 ---
 
 # `openclaw doctor`
 
-Zustandsprüfungen + schnelle Korrekturen für den Gateway und Kanäle.
+Gesundheitsprüfungen + schnelle Korrekturen für Gateway und Kanäle.
 
-Verwandt:
+Zugehörig:
 
 - Fehlerbehebung: [Troubleshooting](/gateway/troubleshooting)
 - Sicherheitsprüfung: [Security](/gateway/security)
@@ -32,12 +32,12 @@ openclaw doctor --deep
 
 Hinweise:
 
-- Interaktive Eingabeaufforderungen (wie Schlüsselbund-/OAuth-Korrekturen) werden nur ausgeführt, wenn stdin ein TTY ist und `--non-interactive` **nicht** gesetzt ist. Headless-Ausführungen (cron, Telegram, ohne Terminal) überspringen Eingabeaufforderungen.
-- `--fix` (Alias für `--repair`) schreibt eine Sicherung nach `~/.openclaw/openclaw.json.bak` und entfernt unbekannte Konfigurationsschlüssel, wobei jede Entfernung aufgelistet wird.
+- Interaktive Abfragen (wie Schlüsselbund-/OAuth-Korrekturen) werden nur ausgeführt, wenn stdin ein TTY ist und `--non-interactive` **nicht** gesetzt ist. Headless-Läufe (cron, Telegram, kein Terminal) überspringen Abfragen.
+- `--fix` (Alias für `--repair`) schreibt ein Backup nach `~/.openclaw/openclaw.json.bak` und entfernt unbekannte Konfigurationsschlüssel, wobei jede Entfernung aufgelistet wird.
 
 ## macOS: `launchctl` Umgebungsvariablen-Overrides
 
-Wenn Sie zuvor `launchctl setenv OPENCLAW_GATEWAY_TOKEN ...` (oder `...PASSWORD`) ausgeführt haben, überschreibt dieser Wert Ihre Konfigurationsdatei und kann zu dauerhaften „nicht autorisiert“-Fehlern führen.
+Wenn Sie zuvor `launchctl setenv OPENCLAW_GATEWAY_TOKEN ...` (oder `...PASSWORD`) ausgeführt haben, überschreibt dieser Wert Ihre Konfigurationsdatei und kann persistente „unauthorized“-Fehler verursachen.
 
 ```bash
 launchctl getenv OPENCLAW_GATEWAY_TOKEN

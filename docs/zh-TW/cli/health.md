@@ -1,7 +1,7 @@
 ---
-summary: "透過 RPC 的 Gateway 閘道器健康狀態端點之 `openclaw health` CLI 參考"
+summary: "透過 RPC 取得 Gateway 閘道器 健康狀態端點的 `openclaw health` CLI 參考"
 read_when:
-  - "你想要快速檢查正在執行的 Gateway 閘道器健康狀態"
+  - 當你想要快速檢查正在執行的 Gateway 閘道器 健康狀態
 title: "health"
 x-i18n:
   source_path: cli/health.md
@@ -9,12 +9,12 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:52:42Z
+  generated_at: 2026-02-08T09:27:17Z
 ---
 
 # `openclaw health`
 
-從正在執行的 Gateway 閘道器取得健康狀態。
+從正在執行的 Gateway 閘道器 擷取健康狀態。
 
 ```bash
 openclaw health
@@ -24,5 +24,5 @@ openclaw health --verbose
 
 注意事項：
 
-- `--verbose` 會執行即時探測，並在設定多個帳戶時列印各帳戶的耗時。
+- `--verbose` 會執行即時探測，並在設定多個帳號時列印各帳號的耗時。
 - 當設定多個代理程式時，輸出會包含各代理程式的工作階段儲存區。

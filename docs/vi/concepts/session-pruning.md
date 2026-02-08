@@ -1,87 +1,87 @@
 ---
-summary: "Tia phien: cat gon ket qua cong cu de giam phong to ngu canh"
+summary: "Cắt tỉa phiên: rút gọn kết quả công cụ để giảm phình to ngữ cảnh"
 read_when:
-  - Ban muon giam tang truong ngu canh LLM tu dau ra cong cu
-  - Ban dang tinh chinh agents.defaults.contextPruning
+  - Bạn muốn giảm tăng trưởng ngữ cảnh LLM do đầu ra công cụ
+  - Bạn đang tinh chỉnh agents.defaults.contextPruning
 x-i18n:
   source_path: concepts/session-pruning.md
   source_hash: 9b0aa2d1abea7050
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:03Z
+  generated_at: 2026-02-08T09:38:44Z
 ---
 
-# Tia phien
+# Cắt tỉa phiên
 
-Tia phien cat bot **ket qua cong cu cu** khoi ngu canh trong bo nho ngay truoc moi lan goi LLM. No **khong** ghi lai lich su phien tren dia (`*.jsonl`).
+Cắt tỉa phiên rút gọn **các kết quả công cụ cũ** khỏi ngữ cảnh trong bộ nhớ ngay trước mỗi lần gọi LLM. Nó **không** ghi lại lịch sử phiên trên đĩa (`*.jsonl`).
 
-## Khi nao chay
+## Khi nào chạy
 
-- Khi `mode: "cache-ttl"` duoc bat va lan goi Anthropic gan nhat cho phien cu hon `ttl`.
-- Chi anh huong den cac thong diep gui toi mo hinh cho yeu cau do.
-- Chi hoat dong cho cac goi API Anthropic (va cac mo hinh Anthropic tren OpenRouter).
-- De dat ket qua tot nhat, hay khop `ttl` voi `cacheControlTtl` cua mo hinh.
-- Sau khi tia, cua so TTL duoc dat lai de cac yeu cau tiep theo giu cache cho den khi `ttl` het han lai.
+- Khi `mode: "cache-ttl"` được bật và lần gọi Anthropic gần nhất của phiên cũ hơn `ttl`.
+- Chỉ ảnh hưởng đến các thông điệp được gửi cho mô hình trong yêu cầu đó.
+- Chỉ hoạt động cho các cuộc gọi API Anthropic (và các mô hình Anthropic qua OpenRouter).
+- Để đạt kết quả tốt nhất, hãy khớp `ttl` với `cacheControlTtl` của mô hình.
+- Sau khi cắt tỉa, cửa sổ TTL được đặt lại để các yêu cầu tiếp theo giữ cache cho đến khi `ttl` hết hạn lại.
 
-## Gia tri mac dinh thong minh (Anthropic)
+## Mặc định thông minh (Anthropic)
 
-- Ho so **OAuth hoac setup-token**: bat tia `cache-ttl` va dat heartbeat thanh `1h`.
-- Ho so **API key**: bat tia `cache-ttl`, dat heartbeat thanh `30m`, va dat mac dinh `cacheControlTtl` la `1h` tren cac mo hinh Anthropic.
-- Neu ban tu dat bat ky gia tri nao trong so nay, OpenClaw **khong** ghi de chung.
+- Hồ sơ **OAuth hoặc setup-token**: bật cắt tỉa `cache-ttl` và đặt heartbeat thành `1h`.
+- Hồ sơ **API key**: bật cắt tỉa `cache-ttl`, đặt heartbeat thành `30m`, và đặt mặc định `cacheControlTtl` là `1h` trên các mô hình Anthropic.
+- Nếu bạn đặt bất kỳ giá trị nào trong số này một cách tường minh, OpenClaw **không** ghi đè chúng.
 
-## Cai thien gi (chi phi + hanh vi cache)
+## Điều này cải thiện gì (chi phí + hành vi cache)
 
-- **Tai sao can tia:** cache prompt cua Anthropic chi ap dung trong TTL. Neu phien bi bo trong qua TTL, yeu cau tiep theo se cache lai toan bo prompt neu ban khong cat gon truoc.
-- **Cai gi re hon:** tia giam kich thuoc **cacheWrite** cho yeu cau dau tien sau khi TTL het han.
-- **Tai sao dat lai TTL quan trong:** khi tia chay, cua so cache duoc dat lai, vi vay cac yeu cau theo sau co the tai su dung prompt vua duoc cache thay vi cache lai toan bo lich su lan nua.
-- **No khong lam gi:** tia khong them token hay “nhan doi” chi phi; no chi thay doi nhung gi duoc cache o yeu cau dau tien sau TTL.
+- **Vì sao cần cắt tỉa:** cache prompt của Anthropic chỉ áp dụng trong TTL. Nếu một phiên bị nhàn rỗi vượt TTL, yêu cầu tiếp theo sẽ cache lại toàn bộ prompt trừ khi bạn rút gọn trước.
+- **Cái gì rẻ hơn:** cắt tỉa làm giảm kích thước **cacheWrite** cho yêu cầu đầu tiên sau khi TTL hết hạn.
+- **Vì sao việc đặt lại TTL quan trọng:** khi cắt tỉa chạy, cửa sổ cache được đặt lại, nên các yêu cầu theo sau có thể tái sử dụng prompt vừa được cache thay vì cache lại toàn bộ lịch sử.
+- **Những gì nó không làm:** cắt tỉa không thêm token hay “nhân đôi” chi phí; nó chỉ thay đổi những gì được cache ở yêu cầu đầu tiên sau TTL.
 
-## Co the tia nhung gi
+## Những gì có thể bị cắt tỉa
 
-- Chi cac thong diep `toolResult`.
-- Thong diep nguoi dung + tro ly **khong bao gio** bi chinh sua.
-- `keepLastAssistants` thong diep tro ly gan nhat duoc bao ve; ket qua cong cu sau moc cat nay se khong bi tia.
-- Neu khong du thong diep tro ly de thiet lap moc cat, viec tia se bi bo qua.
-- Cac ket qua cong cu chua **khoi hinh anh** se bi bo qua (khong bao gio bi cat/lam trong).
+- Chỉ các thông điệp `toolResult`.
+- Thông điệp của người dùng + trợ lý **không bao giờ** bị sửa đổi.
+- `keepLastAssistants` thông điệp trợ lý gần nhất được bảo vệ; các kết quả công cụ sau mốc đó sẽ không bị cắt tỉa.
+- Nếu không có đủ thông điệp trợ lý để xác lập mốc, việc cắt tỉa sẽ bị bỏ qua.
+- Các kết quả công cụ chứa **khối hình ảnh** sẽ bị bỏ qua (không bao giờ bị rút gọn/xóa).
 
-## Uoc tinh cua so ngu canh
+## Ước tính cửa sổ ngữ cảnh
 
-Tia su dung uoc tinh cua so ngu canh (ky tu ≈ token × 4). Cua so co so duoc giai quyet theo thu tu sau:
+Cắt tỉa sử dụng ước tính cửa sổ ngữ cảnh (ký tự ≈ token × 4). Cửa sổ cơ sở được xác định theo thứ tự sau:
 
-1. Ghi de `models.providers.*.models[].contextWindow`.
-2. Dinh nghia mo hinh `contextWindow` (tu dang ky mo hinh).
-3. Gia tri mac dinh `200000` token.
+1. Ghi đè `models.providers.*.models[].contextWindow`.
+2. Định nghĩa mô hình `contextWindow` (từ sổ đăng ký mô hình).
+3. Mặc định `200000` token.
 
-Neu `agents.defaults.contextTokens` duoc dat, no duoc xem nhu gioi han (min) cho cua so da giai quyet.
+Nếu đặt `agents.defaults.contextTokens`, giá trị này được coi là mức trần (min) cho cửa sổ đã xác định.
 
-## Che do
+## Chế độ
 
 ### cache-ttl
 
-- Tia chi chay neu lan goi Anthropic cuoi cung cu hon `ttl` (mac dinh `5m`).
-- Khi chay: cung hanh vi cat mem + xoa cung nhu truoc.
+- Cắt tỉa chỉ chạy nếu lần gọi Anthropic gần nhất cũ hơn `ttl` (mặc định `5m`).
+- Khi chạy: cùng hành vi rút gọn mềm + xóa cứng như trước.
 
-## Cat mem vs xoa cung
+## Rút gọn mềm vs xóa cứng
 
-- **Cat mem**: chi ap dung cho ket qua cong cu qua lon.
-  - Giu phan dau + phan cuoi, chen `...`, va them ghi chu voi kich thuoc ban dau.
-  - Bo qua cac ket qua co khoi hinh anh.
-- **Xoa cung**: thay the toan bo ket qua cong cu bang `hardClear.placeholder`.
+- **Rút gọn mềm**: chỉ áp dụng cho các kết quả công cụ quá lớn.
+  - Giữ phần đầu + phần cuối, chèn `...`, và thêm ghi chú về kích thước ban đầu.
+  - Bỏ qua các kết quả có khối hình ảnh.
+- **Xóa cứng**: thay thế toàn bộ kết quả công cụ bằng `hardClear.placeholder`.
 
-## Chon cong cu
+## Chọn công cụ
 
-- `tools.allow` / `tools.deny` ho tro ky tu dai dien `*`.
-- Danh sach tu choi luon thang.
-- So khop khong phan biet chu hoa chu thuong.
-- Danh sach cho phep rong => tat ca cong cu duoc cho phep.
+- `tools.allow` / `tools.deny` hỗ trợ ký tự đại diện `*`.
+- Từ chối (deny) được ưu tiên.
+- So khớp không phân biệt hoa thường.
+- Danh sách cho phép trống => cho phép tất cả công cụ.
 
-## Tuong tac voi cac gioi han khac
+## Tương tác với các giới hạn khác
 
-- Cac cong cu tich hop san da tu cat ngan dau ra cua chinh chung; tia phien la mot lop bo sung ngan cac cuoc tro chuyen keo dai tich luy qua nhieu dau ra cong cu trong ngu canh mo hinh.
-- Nen (compaction) la rieng: nen tom tat va luu tru, con tia la tam thoi theo tung yeu cau. Xem [/concepts/compaction](/concepts/compaction).
+- Các công cụ tích hợp sẵn đã tự cắt ngắn đầu ra của chúng; cắt tỉa phiên là một lớp bổ sung để ngăn các cuộc trò chuyện kéo dài tích lũy quá nhiều đầu ra công cụ trong ngữ cảnh mô hình.
+- Nén (compaction) là riêng biệt: nén tóm tắt và lưu bền, còn cắt tỉa là tạm thời theo từng yêu cầu. Xem [/concepts/compaction](/concepts/compaction).
 
-## Gia tri mac dinh (khi bat)
+## Mặc định (khi được bật)
 
 - `ttl`: `"5m"`
 - `keepLastAssistants`: `3`
@@ -91,9 +91,9 @@ Neu `agents.defaults.contextTokens` duoc dat, no duoc xem nhu gioi han (min) cho
 - `softTrim`: `{ maxChars: 4000, headChars: 1500, tailChars: 1500 }`
 - `hardClear`: `{ enabled: true, placeholder: "[Old tool result content cleared]" }`
 
-## Vi du
+## Ví dụ
 
-Mac dinh (tat):
+Mặc định (tắt):
 
 ```json5
 {
@@ -103,7 +103,7 @@ Mac dinh (tat):
 }
 ```
 
-Bat tia nhan biet TTL:
+Bật cắt tỉa theo TTL:
 
 ```json5
 {
@@ -113,7 +113,7 @@ Bat tia nhan biet TTL:
 }
 ```
 
-Gioi han tia cho cac cong cu cu the:
+Giới hạn cắt tỉa cho các công cụ cụ thể:
 
 ```json5
 {
@@ -126,4 +126,4 @@ Gioi han tia cho cac cong cu cu the:
 }
 ```
 
-Xem tham chieu cau hinh: [Gateway Configuration](/gateway/configuration)
+Xem tham chiếu cấu hình: [Gateway Configuration](/gateway/configuration)

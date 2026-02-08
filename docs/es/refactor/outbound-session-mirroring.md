@@ -1,83 +1,83 @@
 ---
-title: Refactorizacion del Espejado de Sesiones Salientes (Issue #1520)
-description: Track outbound session mirroring refactor notes, decisions, tests, and open items.
+title: Refactorización del Espejado de Sesiones Salientes (Issue #1520)
+description: Seguimiento de notas, decisiones, pruebas y elementos abiertos de la refactorización del espejado de sesiones salientes.
 x-i18n:
   source_path: refactor/outbound-session-mirroring.md
   source_hash: b88a72f36f7b6d8a
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:59:52Z
+  generated_at: 2026-02-08T09:34:28Z
 ---
 
-# Refactorizacion del Espejado de Sesiones Salientes (Issue #1520)
+# Refactorización del Espejado de Sesiones Salientes (Issue #1520)
 
 ## Estado
 
 - En progreso.
-- Enrutamiento de canales del core + plugins actualizado para el espejado saliente.
-- El envio del Gateway ahora deriva la sesion de destino cuando se omite sessionKey.
+- Enrutamiento de canales del núcleo + plugins actualizado para el espejado saliente.
+- El envío del Gateway ahora deriva la sesión de destino cuando se omite sessionKey.
 
 ## Contexto
 
-Los envios salientes se espejaban en la sesion _actual_ del agente (clave de sesion de la herramienta) en lugar de en la sesion del canal de destino. El enrutamiento entrante usa claves de sesion de canal/par, por lo que las respuestas salientes terminaban en la sesion incorrecta y los destinos de primer contacto a menudo carecian de entradas de sesion.
+Los envíos salientes se espejaban en la sesión _actual_ del agente (clave de sesión de la herramienta) en lugar de la sesión del canal de destino. El enrutamiento entrante usa claves de sesión de canal/par, por lo que las respuestas salientes aterrizaban en la sesión incorrecta y los objetivos de primer contacto a menudo carecían de entradas de sesión.
 
 ## Objetivos
 
-- Espejar los mensajes salientes en la clave de sesion del canal de destino.
-- Crear entradas de sesion en envios salientes cuando falten.
-- Mantener el alcance de hilos/temas alineado con las claves de sesion entrantes.
-- Cubrir canales del core mas extensiones incluidas.
+- Espejar los mensajes salientes en la clave de sesión del canal de destino.
+- Crear entradas de sesión en envíos salientes cuando falten.
+- Mantener el alcance de hilos/temas alineado con las claves de sesión entrantes.
+- Cubrir los canales del núcleo y las extensiones incluidas.
 
-## Resumen de Implementacion
+## Resumen de Implementación
 
-- Nuevo helper de enrutamiento de sesion saliente:
+- Nuevo helper de enrutamiento de sesiones salientes:
   - `src/infra/outbound/outbound-session.ts`
   - `resolveOutboundSessionRoute` construye la sessionKey de destino usando `buildAgentSessionKey` (dmScope + identityLinks).
-  - `ensureOutboundSessionEntry` escribe un(a) `MsgContext` minimo(a) via `recordSessionMetaFromInbound`.
+  - `ensureOutboundSessionEntry` escribe un `MsgContext` mínimo mediante `recordSessionMetaFromInbound`.
 - `runMessageAction` (send) deriva la sessionKey de destino y la pasa a `executeSendAction` para el espejado.
-- `message-tool` ya no espeja directamente; solo resuelve agentId a partir de la clave de sesion actual.
-- La ruta de envio de plugins espeja via `appendAssistantMessageToSessionTranscript` usando la sessionKey derivada.
-- El envio del Gateway deriva una clave de sesion de destino cuando no se proporciona ninguna (agente por defecto) y asegura una entrada de sesion.
+- `message-tool` ya no espeja directamente; solo resuelve agentId desde la clave de sesión actual.
+- La ruta de envío del plugin espeja vía `appendAssistantMessageToSessionTranscript` usando la sessionKey derivada.
+- El envío del Gateway deriva una clave de sesión de destino cuando no se proporciona (agente predeterminado) y garantiza una entrada de sesión.
 
 ## Manejo de Hilos/Temas
 
 - Slack: replyTo/threadId -> `resolveThreadSessionKeys` (sufijo).
-- Discord: threadId/replyTo -> `resolveThreadSessionKeys` con `useSuffix=false` para coincidir con lo entrante (el id del canal de hilo ya delimita la sesion).
-- Telegram: los IDs de tema se asignan a `chatId:topic:<id>` via `buildTelegramGroupPeerId`.
+- Discord: threadId/replyTo -> `resolveThreadSessionKeys` con `useSuffix=false` para coincidir con lo entrante (el id del canal del hilo ya delimita la sesión).
+- Telegram: los IDs de tema se asignan a `chatId:topic:<id>` mediante `buildTelegramGroupPeerId`.
 
 ## Extensiones Cubiertas
 
 - Matrix, MS Teams, Mattermost, BlueBubbles, Nextcloud Talk, Zalo, Zalo Personal, Nostr, Tlon.
 - Notas:
-  - Los destinos de Mattermost ahora eliminan `@` para el enrutamiento de claves de sesion de DM.
-  - Zalo Personal usa el tipo de par de DM para destinos 1:1 (grupo solo cuando `group:` esta presente).
-  - Los destinos de grupo de BlueBubbles eliminan los prefijos `chat_*` para coincidir con las claves de sesion entrantes.
-  - El espejado automatico de hilos de Slack coincide con los IDs de canal sin distinguir mayusculas/minusculas.
-  - El envio del Gateway convierte a minusculas las claves de sesion proporcionadas antes de espejar.
+  - Los destinos de Mattermost ahora eliminan `@` para el enrutamiento de claves de sesión de DM.
+  - Zalo Personal usa el tipo de par DM para objetivos 1:1 (grupo solo cuando está presente `group:`).
+  - Los destinos de grupo de BlueBubbles eliminan los prefijos `chat_*` para coincidir con las claves de sesión entrantes.
+  - El espejado automático de hilos de Slack coincide con los IDs de canal sin distinguir mayúsculas/minúsculas.
+  - El envío del Gateway convierte a minúsculas las claves de sesión proporcionadas antes de espejar.
 
 ## Decisiones
 
-- **Derivacion de sesion en envio del Gateway**: si se proporciona `sessionKey`, usarlo. Si se omite, derivar una sessionKey a partir del destino + agente por defecto y espejar alli.
-- **Creacion de entradas de sesion**: usar siempre `recordSessionMetaFromInbound` con `Provider/From/To/ChatType/AccountId/Originating*` alineado a los formatos entrantes.
-- **Normalizacion de destinos**: el enrutamiento saliente usa destinos resueltos (post `resolveChannelTarget`) cuando estan disponibles.
-- **Uso de mayusculas/minusculas en claves de sesion**: canonizar las claves de sesion a minusculas al escribir y durante las migraciones.
+- **Derivación de sesión en el envío del Gateway**: si se proporciona `sessionKey`, úselo. Si se omite, derive una sessionKey a partir del destino + el agente predeterminado y espeje allí.
+- **Creación de entradas de sesión**: use siempre `recordSessionMetaFromInbound` con `Provider/From/To/ChatType/AccountId/Originating*` alineado a los formatos entrantes.
+- **Normalización de destinos**: el enrutamiento saliente usa destinos resueltos (post `resolveChannelTarget`) cuando están disponibles.
+- **Uso de mayúsculas/minúsculas en claves de sesión**: canonizar las claves de sesión a minúsculas al escribir y durante las migraciones.
 
 ## Pruebas Agregadas/Actualizadas
 
 - `src/infra/outbound/outbound-session.test.ts`
-  - Clave de sesion de hilo de Slack.
-  - Clave de sesion de tema de Telegram.
-  - identityLinks de dmScope con Discord.
+  - Clave de sesión de hilo de Slack.
+  - Clave de sesión de tema de Telegram.
+  - dmScope identityLinks con Discord.
 - `src/agents/tools/message-tool.test.ts`
-  - Deriva agentId a partir de la clave de sesion (no se pasa sessionKey).
+  - Deriva agentId desde la clave de sesión (no se pasa sessionKey).
 - `src/gateway/server-methods/send.test.ts`
-  - Deriva la clave de sesion cuando se omite y crea la entrada de sesion.
+  - Deriva la clave de sesión cuando se omite y crea una entrada de sesión.
 
 ## Elementos Abiertos / Seguimientos
 
-- El plugin de llamadas de voz usa claves de sesion `voice:<phone>` personalizadas. El mapeo saliente no esta estandarizado aqui; si la herramienta de mensajes debe soportar envios de llamadas de voz, agregar un mapeo explicito.
-- Confirmar si algun plugin externo usa formatos `From/To` no estandar mas alla del conjunto incluido.
+- El plugin de llamadas de voz usa claves de sesión `voice:<phone>` personalizadas. El mapeo saliente no está estandarizado aquí; si la herramienta de mensajes debe admitir envíos de llamadas de voz, agregue un mapeo explícito.
+- Confirmar si algún plugin externo usa formatos `From/To` no estándar más allá del conjunto incluido.
 
 ## Archivos Modificados
 

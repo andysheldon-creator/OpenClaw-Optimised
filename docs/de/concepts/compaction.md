@@ -1,8 +1,8 @@
 ---
-summary: „Kontextfenster + Kompaktierung: wie OpenClaw Sitzungen unter Modellgrenzen hält“
+summary: „Kontextfenster + Kompaktierung: wie OpenClaw Sitzungen innerhalb der Modellgrenzen hält“
 read_when:
   - Sie möchten Auto-Kompaktierung und /compact verstehen
-  - Sie debuggen lange Sitzungen, die Kontextgrenzen erreichen
+  - Sie debuggen lange Sitzungen, die an Kontextgrenzen stoßen
 title: „Kompaktierung“
 x-i18n:
   source_path: concepts/compaction.md
@@ -10,16 +10,16 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:55Z
+  generated_at: 2026-02-08T09:35:49Z
 ---
 
 # Kontextfenster & Kompaktierung
 
-Jedes Modell hat ein **Kontextfenster** (maximale Token, die es sehen kann). Lang laufende Chats sammeln Nachrichten und Werkzeugergebnisse an; sobald das Fenster knapp wird, **kompaktiert** OpenClaw ältere Historie, um innerhalb der Grenzen zu bleiben.
+Jedes Modell hat ein **Kontextfenster** (maximale Tokenanzahl, die es sehen kann). Länger laufende Chats sammeln Nachrichten und Werkzeugergebnisse; wird das Fenster knapp, **kompaktiert** OpenClaw ältere Historie, um innerhalb der Grenzen zu bleiben.
 
 ## Was Kompaktierung ist
 
-Kompaktierung **fasst ältere Konversationen zusammen** zu einem kompakten Zusammenfassungseintrag und hält aktuelle Nachrichten unverändert. Die Zusammenfassung wird im Sitzungsverlauf gespeichert, sodass zukünftige Anfragen Folgendes verwenden:
+Kompaktierung **fasst ältere Konversationen zusammen** zu einem kompakten Zusammenfassungseintrag und behält aktuelle Nachrichten unverändert bei. Die Zusammenfassung wird im Sitzungsverlauf gespeichert, sodass zukünftige Anfragen verwenden:
 
 - Die Kompaktierungszusammenfassung
 - Aktuelle Nachrichten nach dem Kompaktierungspunkt
@@ -28,23 +28,23 @@ Kompaktierung **persistiert** im JSONL-Verlauf der Sitzung.
 
 ## Konfiguration
 
-Siehe [Kompaktierungskonfiguration & Modi](/concepts/compaction) für die `agents.defaults.compaction`-Einstellungen.
+Siehe [Compaction config & modes](/concepts/compaction) für die Einstellungen `agents.defaults.compaction`.
 
-## Auto-Kompaktierung (standardmäßig aktiv)
+## Auto-Kompaktierung (standardmäßig aktiviert)
 
-Wenn sich eine Sitzung dem Kontextfenster des Modells nähert oder es überschreitet, löst OpenClaw die Auto-Kompaktierung aus und kann die ursprüngliche Anfrage mit dem kompaktierten Kontext erneut versuchen.
+Wenn sich eine Sitzung dem Kontextfenster des Modells nähert oder es überschreitet, löst OpenClaw die Auto-Kompaktierung aus und kann die ursprüngliche Anfrage mit dem kompaktierten Kontext erneut ausführen.
 
 Sie sehen:
 
 - `🧹 Auto-compaction complete` im ausführlichen Modus
 - `/status`, das `🧹 Compactions: <count>` anzeigt
 
-Vor der Kompaktierung kann OpenClaw einen **stillen Memory-Flush**-Durchlauf ausführen, um
+Vor der Kompaktierung kann OpenClaw einen **stillen Memory-Flush** ausführen, um
 dauerhafte Notizen auf die Festplatte zu schreiben. Siehe [Memory](/concepts/memory) für Details und Konfiguration.
 
 ## Manuelle Kompaktierung
 
-Verwenden Sie `/compact` (optional mit Anweisungen), um einen Kompaktierungsdurchlauf zu erzwingen:
+Verwenden Sie `/compact` (optional mit Anweisungen), um einen Kompaktierungslauf zu erzwingen:
 
 ```
 /compact Focus on decisions and open questions
@@ -57,12 +57,12 @@ Das Kontextfenster ist modellspezifisch. OpenClaw verwendet die Modelldefinition
 ## Kompaktierung vs. Pruning
 
 - **Kompaktierung**: fasst zusammen und **persistiert** in JSONL.
-- **Sitzungs-Pruning**: kürzt nur alte **Werkzeugergebnisse**, **im Speicher**, pro Anfrage.
+- **Sitzungs-Pruning**: schneidet nur alte **Werkzeugergebnisse** ab, **im Speicher**, pro Anfrage.
 
-Siehe [/concepts/session-pruning](/concepts/session-pruning) fuer Details zum Pruning.
+Siehe [/concepts/session-pruning](/concepts/session-pruning) für Details zum Pruning.
 
 ## Tipps
 
 - Verwenden Sie `/compact`, wenn sich Sitzungen abgestanden anfühlen oder der Kontext aufgebläht ist.
 - Große Werkzeugausgaben werden bereits gekürzt; Pruning kann den Aufbau von Werkzeugergebnissen weiter reduzieren.
-- Wenn Sie einen Neuanfang benötigen, starten `/new` oder `/reset` eine neue Sitzungs-ID.
+- Wenn Sie einen Neustart benötigen, startet `/new` oder `/reset` eine neue Sitzungs-ID.

@@ -1,35 +1,35 @@
 ---
 title: "Vercel AI Gateway"
-summary: "Thiet lap Vercel AI Gateway (xac thuc + chon mo hinh)"
+summary: "Thiết lập Vercel AI Gateway (xác thực + chọn mô hình)"
 read_when:
-  - Ban muon su dung Vercel AI Gateway voi OpenClaw
-  - Ban can bien moi truong khoa API hoac lua chon xac thuc qua CLI
+  - Bạn muốn dùng Vercel AI Gateway với OpenClaw
+  - Bạn cần biến môi trường khóa API hoặc lựa chọn xác thực bằng CLI
 x-i18n:
   source_path: providers/vercel-ai-gateway.md
   source_hash: 2bf1687c1152c6e1
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:08:12Z
+  generated_at: 2026-02-08T09:39:55Z
 ---
 
 # Vercel AI Gateway
 
-[Vercel AI Gateway](https://vercel.com/ai-gateway) cung cap mot API thong nhat de truy cap hang tram mo hinh thong qua mot diem cuoi duy nhat.
+[Vercel AI Gateway](https://vercel.com/ai-gateway) cung cấp một API thống nhất để truy cập hàng trăm mô hình thông qua một endpoint duy nhất.
 
-- Provider: `vercel-ai-gateway`
-- Xac thuc: `AI_GATEWAY_API_KEY`
-- API: Tuong thich Anthropic Messages
+- Nhà cung cấp: `vercel-ai-gateway`
+- Xác thực: `AI_GATEWAY_API_KEY`
+- API: Tương thích Anthropic Messages
 
-## Khoi dong nhanh
+## Khởi động nhanh
 
-1. Dat khoa API (khuyen nghi: luu tru cho Gateway):
+1. Đặt khóa API (khuyến nghị: lưu cho Gateway):
 
 ```bash
 openclaw onboard --auth-choice ai-gateway-api-key
 ```
 
-2. Dat mo hinh mac dinh:
+2. Đặt mô hình mặc định:
 
 ```json5
 {
@@ -41,7 +41,7 @@ openclaw onboard --auth-choice ai-gateway-api-key
 }
 ```
 
-## Vi du khong tuong tac
+## Ví dụ không tương tác
 
 ```bash
 openclaw onboard --non-interactive \
@@ -50,8 +50,8 @@ openclaw onboard --non-interactive \
   --ai-gateway-api-key "$AI_GATEWAY_API_KEY"
 ```
 
-## Luu y ve moi truong
+## Lưu ý về môi trường
 
-Neu Gateway chay nhu mot daemon (launchd/systemd), hay dam bao `AI_GATEWAY_API_KEY`
-co san cho tien trinh do (vi du, trong `~/.openclaw/.env` hoac thong qua
+Nếu Gateway chạy như một daemon (launchd/systemd), hãy đảm bảo `AI_GATEWAY_API_KEY`
+có sẵn cho tiến trình đó (ví dụ, trong `~/.openclaw/.env` hoặc thông qua
 `env.shellEnv`).

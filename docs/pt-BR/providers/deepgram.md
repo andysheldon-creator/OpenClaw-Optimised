@@ -1,28 +1,31 @@
 ---
-summary: "Transcricao da Deepgram para notas de voz de entrada"
+summary: "Transcrição do Deepgram para notas de voz de entrada"
 read_when:
-  - Voce quer speech-to-text da Deepgram para anexos de audio
-  - Voce precisa de um exemplo rapido de configuracao da Deepgram
+  - Você quer speech-to-text do Deepgram para anexos de áudio
+  - Você precisa de um exemplo rápido de configuração do Deepgram
 title: "Deepgram"
 x-i18n:
   source_path: providers/deepgram.md
-  source_hash: 8f19e072f0867211
+  source_hash: dabd1f6942c339fb
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:57:04Z
+  generated_at: 2026-02-08T09:31:38Z
 ---
 
-# Deepgram (Transcricao de Audio)
+# Deepgram (Transcrição de Áudio)
 
-Deepgram e uma API de speech-to-text. No OpenClaw, ela e usada para **transcricao de audio/notas de voz de entrada** via `tools.media.audio`.
+Deepgram é uma API de speech-to-text. No OpenClaw, ela é usada para **transcrição de áudio/notas de voz de entrada**
+via `tools.media.audio`.
 
-Quando habilitado, o OpenClaw faz upload do arquivo de audio para a Deepgram e injeta a transcricao no pipeline de resposta (bloco `{{Transcript}}` + `[Audio]`). Isso **nao e streaming**; usa o endpoint de transcricao de audio pre-gravado.
+Quando ativado, o OpenClaw envia o arquivo de áudio para o Deepgram e injeta a transcrição
+no pipeline de resposta (`{{Transcript}}` + bloco `[Audio]`). Isso **não é streaming**;
+usa o endpoint de transcrição pré-gravada.
 
-Website: https://deepgram.com  
-Docs: https://developers.deepgram.com
+Website: [https://deepgram.com](https://deepgram.com)  
+Docs: [https://developers.deepgram.com](https://developers.deepgram.com)
 
-## Inicio rapido
+## Início Rápido
 
 1. Defina sua chave de API:
 
@@ -30,7 +33,7 @@ Docs: https://developers.deepgram.com
 DEEPGRAM_API_KEY=dg_...
 ```
 
-2. Habilite o provedor:
+2. Ative o provedor:
 
 ```json5
 {
@@ -45,13 +48,13 @@ DEEPGRAM_API_KEY=dg_...
 }
 ```
 
-## Opcoes
+## Opções
 
-- `model`: id do modelo da Deepgram (padrao: `nova-3`)
+- `model`: ID do modelo do Deepgram (padrão: `nova-3`)
 - `language`: dica de idioma (opcional)
-- `tools.media.audio.providerOptions.deepgram.detect_language`: habilitar deteccao de idioma (opcional)
-- `tools.media.audio.providerOptions.deepgram.punctuate`: habilitar pontuacao (opcional)
-- `tools.media.audio.providerOptions.deepgram.smart_format`: habilitar formatacao inteligente (opcional)
+- `tools.media.audio.providerOptions.deepgram.detect_language`: ativar detecção de idioma (opcional)
+- `tools.media.audio.providerOptions.deepgram.punctuate`: ativar pontuação (opcional)
+- `tools.media.audio.providerOptions.deepgram.smart_format`: ativar formatação inteligente (opcional)
 
 Exemplo com idioma:
 
@@ -68,7 +71,7 @@ Exemplo com idioma:
 }
 ```
 
-Exemplo com opcoes da Deepgram:
+Exemplo com opções do Deepgram:
 
 ```json5
 {
@@ -92,6 +95,6 @@ Exemplo com opcoes da Deepgram:
 
 ## Notas
 
-- A autenticacao segue a ordem padrao de autenticacao de provedores; `DEEPGRAM_API_KEY` e o caminho mais simples.
-- Substitua endpoints ou cabecalhos com `tools.media.audio.baseUrl` e `tools.media.audio.headers` ao usar um proxy.
-- A saida segue as mesmas regras de audio de outros provedores (limites de tamanho, timeouts, injecao de transcricao).
+- A autenticação segue a ordem padrão de autenticação de provedores; `DEEPGRAM_API_KEY` é o caminho mais simples.
+- Substitua endpoints ou cabeçalhos com `tools.media.audio.baseUrl` e `tools.media.audio.headers` ao usar um proxy.
+- A saída segue as mesmas regras de áudio que outros provedores (limites de tamanho, timeouts, injeção da transcrição).

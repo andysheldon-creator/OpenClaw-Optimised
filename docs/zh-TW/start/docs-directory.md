@@ -1,39 +1,39 @@
 ---
-summary: 「精選連結，指向最常使用的 OpenClaw 文件。」
+summary: "精選連結，指向最常使用的 OpenClaw 文件。"
 read_when:
-  - 當你想要快速存取關鍵文件頁面時
-title: 「文件目錄」
+  - 當你需要快速存取關鍵文件頁面時
+title: "文件目錄"
 x-i18n:
   source_path: start/docs-directory.md
-  source_hash: 6ce20ed8e5191fb2
+  source_hash: 44d94b7a654801e9
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:54:36Z
+  generated_at: 2026-02-08T09:29:23Z
 ---
 
 <Note>
-本頁為精選索引。如果你是新手，請從［入門指南］(/start/getting-started)開始。
-若要查看完整的文件地圖，請參閱［文件中樞］(/start/hubs)。
+此頁面為精選索引。若你是新手，請從 [入門指南](/start/getting-started) 開始。
+如需完整的文件地圖，請參閱 [Docs hubs](/start/hubs)。
 </Note>
 
 ## 從這裡開始
 
-- [文件中樞（所有頁面連結）](/start/hubs)
+- [Docs hubs（連結所有頁面）](/start/hubs)
 - [說明](/help)
 - [設定](/gateway/configuration)
 - [設定範例](/gateway/configuration-examples)
 - [斜線指令](/tools/slash-commands)
-- [多代理程式路由](/concepts/multi-agent)
+- [多代理路由](/concepts/multi-agent)
 - [更新與回復](/install/updating)
-- [配對（私訊與節點）](/start/pairing)
+- [配對（私訊與節點）](/channels/pairing)
 - [Nix 模式](/install/nix)
 - [OpenClaw 助手設定](/start/openclaw)
 - [Skills](/tools/skills)
 - [Skills 設定](/tools/skills-config)
 - [工作區範本](/reference/templates/AGENTS)
 - [RPC 轉接器](/reference/rpc)
-- [Gateway 閘道器操作手冊](/gateway)
+- [Gateway 執行手冊](/gateway)
 - [節點（iOS 與 Android）](/nodes)
 - [Web 介面（Control UI）](/web)
 - [裝置探索與傳輸協定](/gateway/discovery)
@@ -48,9 +48,9 @@ x-i18n:
 - [Mattermost（外掛）](/channels/mattermost)
 - [BlueBubbles（iMessage）](/channels/bluebubbles)
 - [iMessage（舊版）](/channels/imessage)
-- [群組](/concepts/groups)
-- [WhatsApp 群組訊息](/concepts/group-messages)
-- [媒體圖片](/nodes/images)
+- [群組](/channels/groups)
+- [WhatsApp 群組訊息](/channels/group-messages)
+- [媒體影像](/nodes/images)
 - [媒體音訊](/nodes/audio)
 
 ## 配套應用程式
@@ -61,11 +61,11 @@ x-i18n:
 - [Windows（WSL2）](/platforms/windows)
 - [Linux 應用程式](/platforms/linux)
 
-## 操作與安全
+## 營運與安全性
 
 - [工作階段](/concepts/session)
 - [Cron 工作](/automation/cron-jobs)
 - [Webhooks](/automation/webhook)
-- [Gmail hooks（Pub/Sub）](/automation/gmail-pubsub)
+- [Gmail 鉤子（Pub/Sub）](/automation/gmail-pubsub)
 - [安全性](/gateway/security)
 - [疑難排解](/gateway/troubleshooting)

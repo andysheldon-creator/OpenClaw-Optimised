@@ -1,37 +1,37 @@
 ---
 summary: "Thiết lập Perplexity Sonar cho web_search"
 read_when:
-  - Ban muon su dung Perplexity Sonar cho tim kiem web
-  - Ban can PERPLEXITY_API_KEY hoac thiet lap OpenRouter
+  - Bạn muốn dùng Perplexity Sonar cho tìm kiếm web
+  - Bạn cần PERPLEXITY_API_KEY hoặc thiết lập OpenRouter
 title: "Perplexity Sonar"
 x-i18n:
   source_path: perplexity.md
-  source_hash: 264d08e62e3bec85
+  source_hash: f6c9824ad9bebe38
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:45Z
+  generated_at: 2026-02-08T09:39:34Z
 ---
 
 # Perplexity Sonar
 
-OpenClaw co the su dung Perplexity Sonar cho cong cu `web_search`. Ban co the ket noi
-thong qua API truc tiep cua Perplexity hoac qua OpenRouter.
+OpenClaw có thể dùng Perplexity Sonar cho công cụ `web_search`. Bạn có thể kết nối
+qua API trực tiếp của Perplexity hoặc thông qua OpenRouter.
 
-## Tuy chon API
+## Tùy chọn API
 
-### Perplexity (truc tiep)
+### Perplexity (trực tiếp)
 
-- Base URL: https://api.perplexity.ai
-- Bien moi truong: `PERPLEXITY_API_KEY`
+- Base URL: [https://api.perplexity.ai](https://api.perplexity.ai)
+- Biến môi trường: `PERPLEXITY_API_KEY`
 
-### OpenRouter (thay the)
+### OpenRouter (thay thế)
 
-- Base URL: https://openrouter.ai/api/v1
-- Bien moi truong: `OPENROUTER_API_KEY`
-- Ho tro tin dung tra truoc/tien dien tu.
+- Base URL: [https://openrouter.ai/api/v1](https://openrouter.ai/api/v1)
+- Biến môi trường: `OPENROUTER_API_KEY`
+- Hỗ trợ tín dụng trả trước/tiền mã hóa.
 
-## Vi du cau hinh
+## Ví dụ cấu hình
 
 ```json5
 {
@@ -50,7 +50,7 @@ thong qua API truc tiep cua Perplexity hoac qua OpenRouter.
 }
 ```
 
-## Chuyen tu Brave
+## Chuyển từ Brave
 
 ```json5
 {
@@ -68,20 +68,20 @@ thong qua API truc tiep cua Perplexity hoac qua OpenRouter.
 }
 ```
 
-Neu ca `PERPLEXITY_API_KEY` va `OPENROUTER_API_KEY` deu duoc thiet lap, hay dat
-`tools.web.search.perplexity.baseUrl` (hoac `tools.web.search.perplexity.apiKey`)
-de tranh nham lan.
+Nếu cả `PERPLEXITY_API_KEY` và `OPENROUTER_API_KEY` đều được thiết lập, hãy đặt
+`tools.web.search.perplexity.baseUrl` (hoặc `tools.web.search.perplexity.apiKey`)
+để phân biệt.
 
-Neu khong co base URL nao duoc thiet lap, OpenClaw se chon mac dinh dua tren nguon API key:
+Nếu không đặt base URL, OpenClaw sẽ chọn mặc định dựa trên nguồn khóa API:
 
-- `PERPLEXITY_API_KEY` hoac `pplx-...` → Perplexity truc tiep (`https://api.perplexity.ai`)
-- `OPENROUTER_API_KEY` hoac `sk-or-...` → OpenRouter (`https://openrouter.ai/api/v1`)
-- Dinh dang key khong xac dinh → OpenRouter (phuong an an toan)
+- `PERPLEXITY_API_KEY` hoặc `pplx-...` → Perplexity trực tiếp (`https://api.perplexity.ai`)
+- `OPENROUTER_API_KEY` hoặc `sk-or-...` → OpenRouter (`https://openrouter.ai/api/v1`)
+- Định dạng khóa không xác định → OpenRouter (phương án an toàn)
 
-## Mo hinh
+## Mô hình
 
-- `perplexity/sonar` — hoi dap nhanh voi tim kiem web
-- `perplexity/sonar-pro` (mac dinh) — suy luan nhieu buoc + tim kiem web
-- `perplexity/sonar-reasoning-pro` — nghien cuu chuyen sau
+- `perplexity/sonar` — Hỏi & đáp nhanh với tìm kiếm web
+- `perplexity/sonar-pro` (mặc định) — lập luận nhiều bước + tìm kiếm web
+- `perplexity/sonar-reasoning-pro` — nghiên cứu chuyên sâu
 
-Xem [Web tools](/tools/web) de biet them chi tiet ve cau hinh web_search day du.
+Xem [Web tools](/tools/web) để biết cấu hình web_search đầy đủ.

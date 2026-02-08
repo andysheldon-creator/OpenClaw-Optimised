@@ -1,31 +1,31 @@
 ---
-summary: "Comportamiento de streaming + fragmentacion (respuestas en bloques, streaming de borradores, limites)"
+summary: "Comportamiento de streaming + fragmentación (respuestas por bloques, streaming de borradores, límites)"
 read_when:
-  - Explicar como funciona el streaming o la fragmentacion en los canales
-  - Cambiar el comportamiento del streaming por bloques o la fragmentacion por canal
-  - Depurar respuestas en bloques duplicadas o tempranas, o streaming de borradores
-title: "Streaming y Fragmentacion"
+  - Explicar cómo funciona el streaming o la fragmentación en los canales
+  - Cambiar el streaming por bloques o el comportamiento de fragmentación por canal
+  - Depurar respuestas por bloques duplicadas/anticipadas o streaming de borradores
+title: "Streaming y fragmentación"
 x-i18n:
   source_path: concepts/streaming.md
   source_hash: f014eb1898c4351b
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:58:48Z
+  generated_at: 2026-02-08T09:33:26Z
 ---
 
-# Streaming + fragmentacion
+# Streaming + fragmentación
 
-OpenClaw tiene dos capas separadas de “streaming”:
+OpenClaw tiene dos capas de “streaming” separadas:
 
 - **Streaming por bloques (canales):** emite **bloques** completados a medida que el asistente escribe. Estos son mensajes normales del canal (no deltas de tokens).
-- **Streaming tipo tokens (solo Telegram):** actualiza una **burbuja de borrador** con texto parcial mientras se genera; el mensaje final se envía al final.
+- **Streaming tipo token (solo Telegram):** actualiza una **burbuja de borrador** con texto parcial mientras se genera; el mensaje final se envía al final.
 
 Hoy **no existe streaming real de tokens** hacia mensajes de canales externos. El streaming de borradores de Telegram es la única superficie de streaming parcial.
 
-## Streaming por bloques (mensajes de canal)
+## Streaming por bloques (mensajes del canal)
 
-El streaming por bloques envía la salida del asistente en fragmentos gruesos a medida que está disponible.
+El streaming por bloques envía la salida del asistente en fragmentos gruesos a medida que se vuelve disponible.
 
 ```
 Model output
@@ -39,94 +39,94 @@ Model output
 
 Leyenda:
 
-- `text_delta/events`: eventos de streaming del modelo (pueden ser escasos para modelos sin streaming).
-- `chunker`: `EmbeddedBlockChunker` aplicando limites min/max + preferencia de corte.
-- `channel send`: mensajes salientes reales (respuestas en bloques).
+- `text_delta/events`: eventos de stream del modelo (pueden ser escasos para modelos sin streaming).
+- `chunker`: `EmbeddedBlockChunker` aplicando límites mínimo/máximo + preferencia de corte.
+- `channel send`: mensajes salientes reales (respuestas por bloques).
 
 **Controles:**
 
-- `agents.defaults.blockStreamingDefault`: `"on"`/`"off"` (apagado por defecto).
+- `agents.defaults.blockStreamingDefault`: `"on"`/`"off"` (desactivado por defecto).
 - Anulaciones por canal: `*.blockStreaming` (y variantes por cuenta) para forzar `"on"`/`"off"` por canal.
 - `agents.defaults.blockStreamingBreak`: `"text_end"` o `"message_end"`.
 - `agents.defaults.blockStreamingChunk`: `{ minChars, maxChars, breakPreference? }`.
-- `agents.defaults.blockStreamingCoalesce`: `{ minChars?, maxChars?, idleMs? }` (fusionar bloques transmitidos antes de enviar).
-- Limite estricto del canal: `*.textChunkLimit` (p. ej., `channels.whatsapp.textChunkLimit`).
-- Modo de fragmentacion del canal: `*.chunkMode` (`length` por defecto, `newline` divide en lineas en blanco (limites de parrafo) antes de fragmentar por longitud).
-- Limite flexible de Discord: `channels.discord.maxLinesPerMessage` (17 por defecto) divide respuestas altas para evitar recortes de la UI.
+- `agents.defaults.blockStreamingCoalesce`: `{ minChars?, maxChars?, idleMs? }` (fusionar bloques en streaming antes de enviar).
+- Límite duro del canal: `*.textChunkLimit` (p. ej., `channels.whatsapp.textChunkLimit`).
+- Modo de fragmentación del canal: `*.chunkMode` (`length` por defecto, `newline` divide en líneas en blanco (límites de párrafo) antes de fragmentar por longitud).
+- Límite suave de Discord: `channels.discord.maxLinesPerMessage` (predeterminado 17) divide respuestas altas para evitar recortes en la UI.
 
-**Semantica de limites:**
+**Semántica de límites:**
 
-- `text_end`: transmite bloques tan pronto como el fragmentador emite; vacia en cada `text_end`.
-- `message_end`: espera hasta que el mensaje del asistente finalice y luego vacia la salida en buffer.
+- `text_end`: emite bloques de stream tan pronto como el fragmentador emite; vacía en cada `text_end`.
+- `message_end`: espera a que termine el mensaje del asistente y luego vacía la salida en búfer.
 
-`message_end` aun usa el fragmentador si el texto en buffer supera `maxChars`, por lo que puede emitir multiples fragmentos al final.
+`message_end` sigue usando el fragmentador si el texto en búfer supera `maxChars`, por lo que puede emitir múltiples fragmentos al final.
 
-## Algoritmo de fragmentacion (limites bajo/alto)
+## Algoritmo de fragmentación (límites bajo/alto)
 
-La fragmentacion por bloques esta implementada por `EmbeddedBlockChunker`:
+La fragmentación por bloques se implementa mediante `EmbeddedBlockChunker`:
 
-- **Limite bajo:** no emitir hasta que el buffer >= `minChars` (a menos que se fuerce).
-- **Limite alto:** preferir cortes antes de `maxChars`; si se fuerza, cortar en `maxChars`.
+- **Límite bajo:** no emitir hasta que el búfer >= `minChars` (a menos que se fuerce).
+- **Límite alto:** preferir cortes antes de `maxChars`; si se fuerza, cortar en `maxChars`.
 - **Preferencia de corte:** `paragraph` → `newline` → `sentence` → `whitespace` → corte duro.
-- **Bloques de codigo:** nunca dividir dentro de cercas; cuando se fuerza en `maxChars`, cerrar y reabrir la cerca para mantener Markdown valido.
+- **Vallas de código:** nunca dividir dentro de vallas; cuando se fuerza en `maxChars`, cerrar y reabrir la valla para mantener Markdown válido.
 
-`maxChars` se limita al `textChunkLimit` del canal, por lo que no puede exceder los limites por canal.
+`maxChars` se limita al `textChunkLimit` del canal, por lo que no puede exceder los límites por canal.
 
-## Coalescencia (fusionar bloques transmitidos)
+## Coalescencia (fusionar bloques en streaming)
 
-Cuando el streaming por bloques esta habilitado, OpenClaw puede **fusionar fragmentos consecutivos**
-antes de enviarlos. Esto reduce el “spam de una sola linea” mientras sigue proporcionando
+Cuando el streaming por bloques está habilitado, OpenClaw puede **fusionar fragmentos de bloques consecutivos**
+antes de enviarlos. Esto reduce el “spam de una sola línea” mientras sigue proporcionando
 salida progresiva.
 
 - La coalescencia espera **intervalos de inactividad** (`idleMs`) antes de vaciar.
-- Los buffers estan limitados por `maxChars` y se vaciaran si lo exceden.
-- `minChars` evita que se envien fragmentos diminutos hasta que se acumule suficiente texto
-  (el vaciado final siempre envia el texto restante).
+- Los búferes tienen un tope de `maxChars` y se vaciarán si lo superan.
+- `minChars` evita que se envíen fragmentos diminutos hasta que se acumule suficiente texto
+  (el vaciado final siempre envía el texto restante).
 - El conector se deriva de `blockStreamingChunk.breakPreference`
   (`paragraph` → `\n\n`, `newline` → `\n`, `sentence` → espacio).
-- Hay anulaciones por canal disponibles via `*.blockStreamingCoalesce` (incluidas configuraciones por cuenta).
-- El `minChars` de coalescencia por defecto se eleva a 1500 para Signal/Slack/Discord a menos que se anule.
+- Hay anulaciones por canal disponibles mediante `*.blockStreamingCoalesce` (incluidas configuraciones por cuenta).
+- El `minChars` de coalescencia predeterminado se incrementa a 1500 para Signal/Slack/Discord a menos que se anule.
 
 ## Ritmo humano entre bloques
 
-Cuando el streaming por bloques esta habilitado, puede agregar una **pausa aleatoria**
-entre respuestas en bloques (despues del primer bloque). Esto hace que las respuestas
-con multiples burbujas se sientan mas naturales.
+Cuando el streaming por bloques está habilitado, puede agregar una **pausa aleatoria** entre
+respuestas por bloques (después del primer bloque). Esto hace que las respuestas con múltiples burbujas
+se sientan más naturales.
 
-- Configuracion: `agents.defaults.humanDelay` (anular por agente via `agents.list[].humanDelay`).
-- Modos: `off` (por defecto), `natural` (800–2500ms), `custom` (`minMs`/`maxMs`).
-- Aplica solo a **respuestas en bloques**, no a respuestas finales ni a resumenes de herramientas.
+- Configuración: `agents.defaults.humanDelay` (anular por agente mediante `agents.list[].humanDelay`).
+- Modos: `off` (predeterminado), `natural` (800–2500 ms), `custom` (`minMs`/`maxMs`).
+- Se aplica solo a **respuestas por bloques**, no a respuestas finales ni a resúmenes de herramientas.
 
 ## “Transmitir fragmentos o todo”
 
 Esto se asigna a:
 
-- **Transmitir fragmentos:** `blockStreamingDefault: "on"` + `blockStreamingBreak: "text_end"` (emitir a medida que avanza). Los canales que no son Telegram tambien necesitan `*.blockStreaming: true`.
-- **Transmitir todo al final:** `blockStreamingBreak: "message_end"` (vaciar una vez, posiblemente en multiples fragmentos si es muy largo).
+- **Transmitir fragmentos:** `blockStreamingDefault: "on"` + `blockStreamingBreak: "text_end"` (emitir a medida que avanza). Los canales que no son Telegram también necesitan `*.blockStreaming: true`.
+- **Transmitir todo al final:** `blockStreamingBreak: "message_end"` (vaciar una vez, posiblemente en múltiples fragmentos si es muy largo).
 - **Sin streaming por bloques:** `blockStreamingDefault: "off"` (solo respuesta final).
 
-**Nota del canal:** Para canales que no son Telegram, el streaming por bloques esta **apagado a menos que**
-`*.blockStreaming` se establezca explicitamente en `true`. Telegram puede transmitir borradores
-(`channels.telegram.streamMode`) sin respuestas en bloques.
+**Nota del canal:** Para canales que no son Telegram, el streaming por bloques está **desactivado a menos que**
+`*.blockStreaming` se establezca explícitamente en `true`. Telegram puede transmitir borradores
+(`channels.telegram.streamMode`) sin respuestas por bloques.
 
-Recordatorio de ubicacion de configuracion: los valores predeterminados de `blockStreaming*` viven bajo
-`agents.defaults`, no en la configuracion raiz.
+Recordatorio de ubicación de configuración: los valores predeterminados de `blockStreaming*` viven bajo
+`agents.defaults`, no en la configuración raíz.
 
-## Streaming de borradores de Telegram (tipo tokens)
+## Streaming de borradores de Telegram (tipo token)
 
-Telegram es el unico canal con streaming de borradores:
+Telegram es el único canal con streaming de borradores:
 
 - Usa la API de Bot `sendMessageDraft` en **chats privados con temas**.
 - `channels.telegram.streamMode: "partial" | "block" | "off"`.
-  - `partial`: actualizaciones del borrador con el texto mas reciente del streaming.
+  - `partial`: actualizaciones del borrador con el texto más reciente del stream.
   - `block`: actualizaciones del borrador en bloques fragmentados (mismas reglas del fragmentador).
   - `off`: sin streaming de borradores.
-- Configuracion de fragmentos del borrador (solo para `streamMode: "block"`): `channels.telegram.draftChunk` (valores predeterminados: `minChars: 200`, `maxChars: 800`).
-- El streaming de borradores es independiente del streaming por bloques; las respuestas en bloques estan apagadas por defecto y solo se habilitan mediante `*.blockStreaming: true` en canales que no son Telegram.
+- Configuración de fragmentos del borrador (solo para `streamMode: "block"`): `channels.telegram.draftChunk` (valores predeterminados: `minChars: 200`, `maxChars: 800`).
+- El streaming de borradores es independiente del streaming por bloques; las respuestas por bloques están desactivadas por defecto y solo se habilitan mediante `*.blockStreaming: true` en canales que no son Telegram.
 - La respuesta final sigue siendo un mensaje normal.
-- `/reasoning stream` escribe el razonamiento en la burbuja del borrador (solo Telegram).
+- `/reasoning stream` escribe el razonamiento en la burbuja de borrador (solo Telegram).
 
-Cuando el streaming de borradores esta activo, OpenClaw deshabilita el streaming por bloques para esa respuesta para evitar doble streaming.
+Cuando el streaming de borradores está activo, OpenClaw desactiva el streaming por bloques para esa respuesta para evitar doble streaming.
 
 ```
 Telegram (private + topics)
@@ -139,4 +139,4 @@ Telegram (private + topics)
 Leyenda:
 
 - `sendMessageDraft`: burbuja de borrador de Telegram (no es un mensaje real).
-- `final reply`: envio normal de mensaje de Telegram.
+- `final reply`: envío normal de mensaje de Telegram.

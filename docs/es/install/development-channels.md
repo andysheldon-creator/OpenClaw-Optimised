@@ -10,7 +10,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:59:06Z
+  generated_at: 2026-02-08T09:33:46Z
 ---
 
 # Canales de desarrollo
@@ -19,16 +19,16 @@ x-i18n:
 
 OpenClaw ofrece tres canales de actualización:
 
-- **stable**: dist-tag de npm `latest`.
-- **beta**: dist-tag de npm `beta` (compilaciones en prueba).
-- **dev**: cabeza móvil de `main` (git). dist-tag de npm: `dev` (cuando se publica).
+- **stable**: npm dist-tag `latest`.
+- **beta**: npm dist-tag `beta` (compilaciones en prueba).
+- **dev**: cabeza móvil de `main` (git). npm dist-tag: `dev` (cuando se publica).
 
 Publicamos compilaciones en **beta**, las probamos y luego **promovemos una compilación validada a `latest`**
 sin cambiar el número de versión; los dist-tags son la fuente de verdad para las instalaciones de npm.
 
 ## Cambio de canales
 
-Checkout de git:
+Checkout de Git:
 
 ```bash
 openclaw update --channel stable
@@ -36,8 +36,8 @@ openclaw update --channel beta
 openclaw update --channel dev
 ```
 
-- `stable`/`beta` hace checkout de la etiqueta coincidente más reciente (a menudo la misma etiqueta).
-- `dev` cambia a `main` y hace rebase sobre el upstream.
+- `stable`/`beta` hacen checkout de la etiqueta coincidente más reciente (a menudo la misma etiqueta).
+- `dev` cambia a `main` y rebasea sobre el upstream.
 
 Instalación global con npm/pnpm:
 
@@ -52,31 +52,31 @@ Esto se actualiza mediante el dist-tag de npm correspondiente (`latest`, `beta`,
 Cuando **explícitamente** cambia de canal con `--channel`, OpenClaw también alinea
 el método de instalación:
 
-- `dev` garantiza un checkout de git (valor predeterminado `~/openclaw`, sobrescriba con `OPENCLAW_GIT_DIR`),
-  lo actualiza e instala el CLI global desde ese checkout.
-- `stable`/`beta` instala desde npm usando el dist-tag coincidente.
+- `dev` garantiza un checkout de git (predeterminado `~/openclaw`, sobrescriba con `OPENCLAW_GIT_DIR`),
+  lo actualiza e instala la CLI global desde ese checkout.
+- `stable`/`beta` instalan desde npm usando el dist-tag coincidente.
 
 Consejo: si desea stable + dev en paralelo, mantenga dos clones y apunte su Gateway al estable.
 
 ## Plugins y canales
 
-Cuando cambia de canal con `openclaw update`, OpenClaw también sincroniza las fuentes de los plugins:
+Cuando cambia de canal con `openclaw update`, OpenClaw también sincroniza las fuentes de plugins:
 
 - `dev` prefiere los plugins incluidos desde el checkout de git.
 - `stable` y `beta` restauran los paquetes de plugins instalados desde npm.
 
 ## Mejores prácticas de etiquetado
 
-- Etiquete las versiones a las que desea que apunten los checkouts de git (`vYYYY.M.D` o `vYYYY.M.D-<patch>`).
+- Etiquete las versiones a las que desea que lleguen los checkouts de git (`vYYYY.M.D` o `vYYYY.M.D-<patch>`).
 - Mantenga las etiquetas inmutables: nunca mueva ni reutilice una etiqueta.
 - Los dist-tags de npm siguen siendo la fuente de verdad para las instalaciones de npm:
-  - `latest` → estable
+  - `latest` → stable
   - `beta` → compilación candidata
   - `dev` → instantánea de main (opcional)
 
-## Disponibilidad de la app para macOS
+## Disponibilidad de la app de macOS
 
-Las compilaciones beta y dev pueden **no** incluir una versión de la app para macOS. Está bien:
+Las compilaciones beta y dev pueden **no** incluir una versión de la app de macOS. No hay problema:
 
 - La etiqueta de git y el dist-tag de npm aún pueden publicarse.
-- Indique “sin compilación para macOS para esta beta” en las notas de la versión o el registro de cambios.
+- Indique “sin compilación de macOS para esta beta” en las notas de la versión o el registro de cambios.

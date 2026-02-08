@@ -1,21 +1,21 @@
 ---
-summary: "Solucione problemas de pareamento de nodes, requisitos de primeiro plano, permissoes e falhas de ferramentas"
+summary: "Solução de problemas de pareamento de nós, requisitos de primeiro plano, permissões e falhas de ferramentas"
 read_when:
-  - O Node esta conectado, mas as ferramentas de camera/canvas/tela/exec falham
-  - Voce precisa do modelo mental de pareamento do node versus aprovacoes
-title: "Solucao de problemas do Node"
+  - O Node está conectado, mas as ferramentas de câmera/canvas/tela/exec falham
+  - Você precisa do modelo mental de pareamento de nós versus aprovações
+title: "Solução de problemas do Node"
 x-i18n:
   source_path: nodes/troubleshooting.md
   source_hash: 5c40d298c9feaf8e
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:15:19Z
+  generated_at: 2026-02-08T09:31:22Z
 ---
 
-# Solucao de problemas do Node
+# Solução de problemas do Node
 
-Use esta pagina quando um node aparece como visivel no status, mas as ferramentas do node falham.
+Use esta página quando um node estiver visível no status, mas as ferramentas do node falharem.
 
 ## Escada de comandos
 
@@ -27,7 +27,7 @@ openclaw doctor
 openclaw channels status --probe
 ```
 
-Em seguida, execute verificacoes especificas do node:
+Em seguida, execute verificações específicas do node:
 
 ```bash
 openclaw nodes status
@@ -35,17 +35,17 @@ openclaw nodes describe --node <idOrNameOrIp>
 openclaw approvals get --node <idOrNameOrIp>
 ```
 
-Sinais de saude:
+Sinais de funcionamento correto:
 
-- O node esta conectado e pareado para a funcao `node`.
-- `nodes describe` inclui a capacidade que voce esta chamando.
-- As aprovacoes de exec mostram o modo/lista de permissao esperados.
+- O Node está conectado e pareado para a função `node`.
+- `nodes describe` inclui a capacidade que você está chamando.
+- As aprovações de exec mostram o modo/lista de permissões esperados.
 
 ## Requisitos de primeiro plano
 
 `canvas.*`, `camera.*` e `screen.*` funcionam apenas em primeiro plano em nodes iOS/Android.
 
-Verificacao e correcao rapidas:
+Verificação e correção rápidas:
 
 ```bash
 openclaw nodes describe --node <idOrNameOrIp>
@@ -53,25 +53,25 @@ openclaw nodes canvas snapshot --node <idOrNameOrIp>
 openclaw logs --follow
 ```
 
-Se voce vir `NODE_BACKGROUND_UNAVAILABLE`, traga o app do node para o primeiro plano e tente novamente.
+Se você vir `NODE_BACKGROUND_UNAVAILABLE`, traga o app do node para o primeiro plano e tente novamente.
 
-## Matriz de permissoes
+## Matriz de permissões
 
-| Capacidade                   | iOS                                         | Android                                                      | app do node no macOS                     | Codigo de falha tipico         |
-| ---------------------------- | ------------------------------------------- | ------------------------------------------------------------ | ---------------------------------------- | ------------------------------ |
-| `camera.snap`, `camera.clip` | Camera (+ microfone para audio do clipe)    | Camera (+ microfone para audio do clipe)                     | Camera (+ microfone para audio do clipe) | `*_PERMISSION_REQUIRED`        |
-| `screen.record`              | Gravacao de Tela (+ microfone opcional)     | Prompt de captura de tela (+ microfone opcional)             | Gravacao de Tela                         | `*_PERMISSION_REQUIRED`        |
-| `location.get`               | Enquanto em uso ou Sempre (depende do modo) | Localizacao em primeiro plano/segundo plano com base no modo | Permissao de localizacao                 | `LOCATION_PERMISSION_REQUIRED` |
-| `system.run`                 | n/a (caminho do host do node)               | n/a (caminho do host do node)                                | Aprovacoes de exec necessarias           | `SYSTEM_RUN_DENIED`            |
+| Capacidade                   | iOS                                       | Android                                                      | App de node no macOS                     | Código de falha típico         |
+| ---------------------------- | ----------------------------------------- | ------------------------------------------------------------ | ---------------------------------------- | ------------------------------ |
+| `camera.snap`, `camera.clip` | Câmera (+ microfone para áudio do clipe)  | Câmera (+ microfone para áudio do clipe)                     | Câmera (+ microfone para áudio do clipe) | `*_PERMISSION_REQUIRED`        |
+| `screen.record`              | Gravação de Tela (+ microfone opcional)   | Prompt de captura de tela (+ microfone opcional)             | Gravação de Tela                         | `*_PERMISSION_REQUIRED`        |
+| `location.get`               | Durante o uso ou Sempre (depende do modo) | Localização em primeiro plano/segundo plano com base no modo | Permissão de localização                 | `LOCATION_PERMISSION_REQUIRED` |
+| `system.run`                 | n/a (caminho do host do node)             | n/a (caminho do host do node)                                | Aprovações de exec obrigatórias          | `SYSTEM_RUN_DENIED`            |
 
-## Pareamento versus aprovacoes
+## Pareamento versus aprovações
 
-Estes sao portoes diferentes:
+Estes são bloqueios diferentes:
 
-1. **Pareamento do dispositivo**: este node pode se conectar ao Gateway?
-2. **Aprovacoes de exec**: este node pode executar um comando de shell especifico?
+1. **Pareamento do dispositivo**: este node pode se conectar ao gateway?
+2. **Aprovações de exec**: este node pode executar um comando de shell específico?
 
-Verificacoes rapidas:
+Verificações rápidas:
 
 ```bash
 openclaw devices list
@@ -81,20 +81,20 @@ openclaw approvals allowlist add --node <idOrNameOrIp> "/usr/bin/uname"
 ```
 
 Se o pareamento estiver ausente, aprove primeiro o dispositivo do node.
-Se o pareamento estiver ok, mas `system.run` falhar, corrija as aprovacoes/lista de permissao de exec.
+Se o pareamento estiver ok, mas `system.run` falhar, corrija as aprovações de exec/lista de permissões.
 
-## Codigos comuns de erro do node
+## Códigos comuns de erro do node
 
-- `NODE_BACKGROUND_UNAVAILABLE` → o app esta em segundo plano; traga-o para o primeiro plano.
-- `CAMERA_DISABLED` → alternancia da camera desativada nas configuracoes do node.
-- `*_PERMISSION_REQUIRED` → permissao do SO ausente/negada.
-- `LOCATION_DISABLED` → modo de localizacao desligado.
-- `LOCATION_PERMISSION_REQUIRED` → modo de localizacao solicitado nao concedido.
-- `LOCATION_BACKGROUND_UNAVAILABLE` → o app esta em segundo plano, mas existe apenas a permissao Enquanto em uso.
-- `SYSTEM_RUN_DENIED: approval required` → a solicitacao de exec precisa de aprovacao explicita.
-- `SYSTEM_RUN_DENIED: allowlist miss` → comando bloqueado pelo modo de lista de permissao.
+- `NODE_BACKGROUND_UNAVAILABLE` → o app está em segundo plano; traga-o para o primeiro plano.
+- `CAMERA_DISABLED` → alternância da câmera desativada nas configurações do node.
+- `*_PERMISSION_REQUIRED` → permissão do SO ausente/negada.
+- `LOCATION_DISABLED` → o modo de localização está desativado.
+- `LOCATION_PERMISSION_REQUIRED` → o modo de localização solicitado não foi concedido.
+- `LOCATION_BACKGROUND_UNAVAILABLE` → o app está em segundo plano, mas existe apenas a permissão Durante o uso.
+- `SYSTEM_RUN_DENIED: approval required` → a solicitação de exec precisa de aprovação explícita.
+- `SYSTEM_RUN_DENIED: allowlist miss` → comando bloqueado pelo modo de lista de permissões.
 
-## Loop de recuperacao rapida
+## Loop rápido de recuperação
 
 ```bash
 openclaw nodes status
@@ -103,12 +103,12 @@ openclaw approvals get --node <idOrNameOrIp>
 openclaw logs --follow
 ```
 
-Se ainda estiver travado:
+Se ainda estiver com problemas:
 
 - Reaprovar o pareamento do dispositivo.
 - Reabrir o app do node (primeiro plano).
-- Conceder novamente as permissoes do SO.
-- Recriar/ajustar a politica de aprovacao de exec.
+- Re conceder as permissões do SO.
+- Recriar/ajustar a política de aprovação de exec.
 
 Relacionado:
 

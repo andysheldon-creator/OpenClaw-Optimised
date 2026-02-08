@@ -2,7 +2,7 @@
 summary: "Tham chiếu CLI cho `openclaw uninstall` (gỡ dịch vụ gateway + dữ liệu cục bộ)"
 read_when:
   - Bạn muốn gỡ dịch vụ gateway và/hoặc trạng thái cục bộ
-  - Bạn muốn chạy thử khô trước
+  - Bạn muốn chạy thử trước (dry-run)
 title: "gỡ cài đặt"
 x-i18n:
   source_path: cli/uninstall.md
@@ -10,7 +10,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:31Z
+  generated_at: 2026-02-08T09:38:22Z
 ---
 
 # `openclaw uninstall`

@@ -10,26 +10,26 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:11Z
+  generated_at: 2026-02-08T09:38:59Z
 ---
 
 # Nhiều Gateway (cùng máy chủ)
 
-Hầu hết các thiết lập chỉ nên dùng một Gateway vì một Gateway có thể xử lý nhiều kết nối nhắn tin và nhiều tác tử. Nếu bạn cần mức cách ly hoặc dự phòng cao hơn (ví dụ: bot cứu hộ), hãy chạy các Gateway riêng biệt với hồ sơ/cổng được cách ly.
+Hầu hết các thiết lập chỉ nên dùng một Gateway vì một Gateway có thể xử lý nhiều kết nối nhắn tin và nhiều tác tử. Nếu bạn cần mức cách ly hoặc dự phòng cao hơn (ví dụ: một bot cứu hộ), hãy chạy các Gateway riêng biệt với hồ sơ/cổng được cách ly.
 
 ## Danh sách kiểm tra cách ly (bắt buộc)
 
-- `OPENCLAW_CONFIG_PATH` — tệp cấu hình cho từng phiên bản
-- `OPENCLAW_STATE_DIR` — phiên, thông tin xác thực, bộ nhớ đệm cho từng phiên bản
-- `agents.defaults.workspace` — thư mục gốc workspace cho từng phiên bản
-- `gateway.port` (hoặc `--port`) — duy nhất cho từng phiên bản
-- Các cổng phát sinh (trình duyệt/canvas) không được trùng nhau
+- `OPENCLAW_CONFIG_PATH` — tệp cấu hình theo từng instance
+- `OPENCLAW_STATE_DIR` — phiên, thông tin xác thực, bộ nhớ đệm theo từng instance
+- `agents.defaults.workspace` — thư mục gốc workspace theo từng instance
+- `gateway.port` (hoặc `--port`) — duy nhất cho mỗi instance
+- Các cổng dẫn xuất (browser/canvas) không được trùng lặp
 
-Nếu những phần này được chia sẻ, bạn sẽ gặp xung đột cấu hình và xung đột cổng.
+Nếu các mục này bị dùng chung, bạn sẽ gặp xung đột cấu hình và va chạm cổng.
 
-## Khuyến nghị: hồ sơ (`--profile`)
+## Khuyến nghị: profiles (`--profile`)
 
-Hồ sơ tự động phạm vi `OPENCLAW_STATE_DIR` + `OPENCLAW_CONFIG_PATH` và thêm hậu tố cho tên dịch vụ.
+Profiles tự động phạm vi hóa `OPENCLAW_STATE_DIR` + `OPENCLAW_CONFIG_PATH` và thêm hậu tố vào tên dịch vụ.
 
 ```bash
 # main
@@ -41,7 +41,7 @@ openclaw --profile rescue setup
 openclaw --profile rescue gateway --port 19001
 ```
 
-Dịch vụ theo từng hồ sơ:
+Dịch vụ theo từng profile:
 
 ```bash
 openclaw --profile main gateway install
@@ -50,16 +50,16 @@ openclaw --profile rescue gateway install
 
 ## Hướng dẫn bot cứu hộ
 
-Chạy Gateway thứ hai trên cùng máy chủ với các thành phần riêng của nó:
+Chạy Gateway thứ hai trên cùng máy chủ với các thành phần riêng:
 
-- hồ sơ/cấu hình
+- profile/cấu hình
 - thư mục trạng thái
 - workspace
-- cổng cơ sở (cộng thêm các cổng phát sinh)
+- cổng cơ sở (cùng các cổng dẫn xuất)
 
-Điều này giữ cho bot cứu hộ được cách ly khỏi bot chính để nó có thể gỡ lỗi hoặc áp dụng thay đổi cấu hình nếu bot chính bị ngừng hoạt động.
+Điều này giúp bot cứu hộ được cách ly khỏi bot chính để có thể gỡ lỗi hoặc áp dụng thay đổi cấu hình khi bot chính ngừng hoạt động.
 
-Khoảng cách cổng: chừa ít nhất 20 cổng giữa các cổng cơ sở để các cổng trình duyệt/canvas/CDP phát sinh không bao giờ va chạm.
+Khoảng cách cổng: chừa ít nhất 20 cổng giữa các cổng cơ sở để các cổng browser/canvas/CDP dẫn xuất không bao giờ trùng nhau.
 
 ### Cách cài đặt (bot cứu hộ)
 
@@ -81,22 +81,22 @@ openclaw --profile rescue onboard
 openclaw --profile rescue gateway install
 ```
 
-## Ánh xạ cổng (phát sinh)
+## Ánh xạ cổng (dẫn xuất)
 
 Cổng cơ sở = `gateway.port` (hoặc `OPENCLAW_GATEWAY_PORT` / `--port`).
 
 - cổng dịch vụ điều khiển trình duyệt = cổng cơ sở + 2 (chỉ local loopback)
 - `canvasHost.port = base + 4`
-- Các cổng CDP hồ sơ trình duyệt tự động cấp phát từ `browser.controlPort + 9 .. + 108`
+- Các cổng CDP của hồ sơ trình duyệt tự động cấp phát từ `browser.controlPort + 9 .. + 108`
 
-Nếu bạn ghi đè bất kỳ mục nào trong số này bằng cấu hình hoặc biến môi trường, bạn phải giữ chúng là duy nhất cho từng phiên bản.
+Nếu bạn ghi đè bất kỳ mục nào trong cấu hình hoặc biến môi trường, bạn phải giữ chúng là duy nhất cho từng instance.
 
-## Lưu ý về Trình duyệt/CDP (bẫy thường gặp)
+## Ghi chú Browser/CDP (bẫy thường gặp)
 
-- **Không** cố định `browser.cdpUrl` vào cùng một giá trị trên nhiều phiên bản.
-- Mỗi phiên bản cần cổng điều khiển trình duyệt và dải CDP riêng (phát sinh từ cổng gateway của nó).
-- Nếu bạn cần cổng CDP tường minh, hãy đặt `browser.profiles.<name>.cdpPort` cho từng phiên bản.
-- Chrome từ xa: dùng `browser.profiles.<name>.cdpUrl` (theo từng hồ sơ, từng phiên bản).
+- **Không** cố định `browser.cdpUrl` cùng một giá trị trên nhiều instance.
+- Mỗi instance cần cổng điều khiển trình duyệt và dải CDP riêng (dẫn xuất từ cổng gateway của nó).
+- Nếu cần cổng CDP tường minh, hãy đặt `browser.profiles.<name>.cdpPort` cho từng instance.
+- Chrome từ xa: dùng `browser.profiles.<name>.cdpUrl` (theo profile, theo instance).
 
 ## Ví dụ env thủ công
 

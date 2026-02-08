@@ -1,50 +1,50 @@
 ---
-summary: "Trung tâm hosting VPS cho OpenClaw (Oracle/Fly/Hetzner/GCP/exe.dev)"
+summary: "Trung tâm lưu trữ VPS cho OpenClaw (Oracle/Fly/Hetzner/GCP/exe.dev)"
 read_when:
-  - Ban muon chay Gateway tren dam may
-  - Ban can ban do nhanh ve cac huong dan VPS/hosting
-title: "Hosting VPS"
+  - Bạn muốn chạy Gateway trên đám mây
+  - Bạn cần bản đồ nhanh các hướng dẫn VPS/lưu trữ
+title: "Lưu trữ VPS"
 x-i18n:
   source_path: vps.md
-  source_hash: 38e3e254853e5839
+  source_hash: 96593a1550b56040
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:08:47Z
+  generated_at: 2026-02-08T09:40:31Z
 ---
 
-# Hosting VPS
+# Lưu trữ VPS
 
-Trung tâm nay lien ket den cac huong dan VPS/hosting duoc ho tro va giai thich cach
-cac trien khai dam may hoat dong o muc cao.
+Trang trung tâm này liên kết đến các hướng dẫn VPS/lưu trữ được hỗ trợ và giải thích
+cách triển khai trên đám mây ở mức tổng quan.
 
-## Chon nha cung cap
+## Chọn nhà cung cấp
 
-- **Railway** (one‑click + thiet lap tren trinh duyet): [Railway](/install/railway)
-- **Northflank** (one‑click + thiet lap tren trinh duyet): [Northflank](/install/northflank)
-- **Oracle Cloud (Always Free)**: [Oracle](/platforms/oracle) — $0/thang (Always Free, ARM; dung luong/dang ky co the hoi kho)
+- **Railway** (thiết lập một cú nhấp + trên trình duyệt): [Railway](/install/railway)
+- **Northflank** (thiết lập một cú nhấp + trên trình duyệt): [Northflank](/install/northflank)
+- **Oracle Cloud (Always Free)**: [Oracle](/platforms/oracle) — $0/tháng (Always Free, ARM; dung lượng/đăng ký có thể hơi khó)
 - **Fly.io**: [Fly.io](/install/fly)
 - **Hetzner (Docker)**: [Hetzner](/install/hetzner)
 - **GCP (Compute Engine)**: [GCP](/install/gcp)
-- **exe.dev** (VM + HTTPS proxy): [exe.dev](/install/exe-dev)
-- **AWS (EC2/Lightsail/free tier)**: cung hoat dong rat tot. Huong dan video:
-  https://x.com/techfrenAJ/status/2014934471095812547
+- **exe.dev** (VM + proxy HTTPS): [exe.dev](/install/exe-dev)
+- **AWS (EC2/Lightsail/free tier)**: cũng hoạt động rất tốt. Video hướng dẫn:
+  [https://x.com/techfrenAJ/status/2014934471095812547](https://x.com/techfrenAJ/status/2014934471095812547)
 
-## Cach thiet lap tren dam may hoat dong
+## Cách hoạt động của thiết lập đám mây
 
-- **Gateway chay tren VPS** va quan ly trang thai + workspace.
-- Ban ket noi tu laptop/dien thoai qua **Control UI** hoac **Tailscale/SSH**.
-- Hay coi VPS la nguon su that va **sao luu** trang thai + workspace.
-- Bao mat mac dinh: giu Gateway tren local loopback va truy cap qua SSH tunnel hoac Tailscale Serve.
-  Neu ban bind vao `lan`/`tailnet`, hay yeu cau `gateway.auth.token` hoac `gateway.auth.password`.
+- **Gateway chạy trên VPS** và quản lý trạng thái + workspace.
+- Bạn kết nối từ laptop/điện thoại qua **Control UI** hoặc **Tailscale/SSH**.
+- Xem VPS là nguồn sự thật và **sao lưu** trạng thái + workspace.
+- Mặc định an toàn: giữ Gateway trên loopback và truy cập qua đường hầm SSH hoặc Tailscale Serve.
+  Nếu bạn bind tới `lan`/`tailnet`, hãy yêu cầu `gateway.auth.token` hoặc `gateway.auth.password`.
 
-Truy cap tu xa: [Gateway remote](/gateway/remote)  
-Trung tam nen tang: [Platforms](/platforms)
+Truy cập từ xa: [Gateway remote](/gateway/remote)  
+Trung tâm nền tảng: [Platforms](/platforms)
 
-## Su dung nodes voi VPS
+## Sử dụng nodes với VPS
 
-Ban co the giu Gateway tren dam may va ghep cap **nodes** tren cac thiet bi cuc bo
-(Mac/iOS/Android/headless). Nodes cung cap man hinh/camera/canvas cuc bo va cac kha nang `system.run`
-trong khi Gateway van o tren dam may.
+Bạn có thể giữ Gateway trên đám mây và ghép **nodes** trên các thiết bị cục bộ
+(Mac/iOS/Android/headless). Nodes cung cấp màn hình/camera/canvas cục bộ và các khả năng `system.run`
+trong khi Gateway vẫn ở trên đám mây.
 
-Tai lieu: [Nodes](/nodes), [Nodes CLI](/cli/nodes)
+Tài liệu: [Nodes](/nodes), [Nodes CLI](/cli/nodes)

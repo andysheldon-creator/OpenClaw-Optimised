@@ -10,12 +10,12 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:36Z
+  generated_at: 2026-02-08T09:38:28Z
 ---
 
 # `openclaw webhooks`
 
-Các trợ giúp và tích hợp webhook (Gmail Pub/Sub, các trợ giúp webhook).
+Các trợ giúp và tích hợp webhook (Gmail Pub/Sub, trợ giúp webhook).
 
 Liên quan:
 
@@ -29,4 +29,4 @@ openclaw webhooks gmail setup --account you@example.com
 openclaw webhooks gmail run
 ```
 
-Xem [tài liệu Gmail Pub/Sub](/automation/gmail-pubsub) để biết thêm chi tiết.
+Xem [tài liệu Gmail Pub/Sub](/automation/gmail-pubsub) để biết chi tiết.

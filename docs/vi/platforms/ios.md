@@ -3,7 +3,7 @@ summary: "Ứng dụng node iOS: kết nối tới Gateway, ghép cặp, canvas 
 read_when:
   - Ghép cặp hoặc kết nối lại node iOS
   - Chạy ứng dụng iOS từ mã nguồn
-  - Gỡ lỗi phát hiện gateway hoặc lệnh canvas
+  - Gỡ lỗi khám phá gateway hoặc các lệnh canvas
 title: "Ứng dụng iOS"
 x-i18n:
   source_path: platforms/ios.md
@@ -11,28 +11,28 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:49Z
+  generated_at: 2026-02-08T09:39:35Z
 ---
 
 # Ứng dụng iOS (Node)
 
-Khả dụng: bản xem trước nội bộ. Ứng dụng iOS hiện chưa được phân phối công khai.
+Tình trạng: bản xem trước nội bộ. Ứng dụng iOS hiện chưa được phân phối công khai.
 
 ## Chức năng
 
 - Kết nối tới Gateway qua WebSocket (LAN hoặc tailnet).
-- Mở các khả năng của node: Canvas, chụp ảnh màn hình, chụp camera, vị trí, chế độ nói chuyện, đánh thức bằng giọng nói.
+- Cung cấp các khả năng của node: Canvas, chụp màn hình, chụp camera, vị trí, chế độ nói, kích hoạt bằng giọng nói.
 - Nhận các lệnh `node.invoke` và báo cáo các sự kiện trạng thái của node.
 
 ## Yêu cầu
 
-- Gateway chạy trên một thiết bị khác (macOS, Linux, hoặc Windows qua WSL2).
-- Đường mạng:
+- Gateway chạy trên một thiết bị khác (macOS, Linux hoặc Windows qua WSL2).
+- Đường dẫn mạng:
   - Cùng LAN qua Bonjour, **hoặc**
   - Tailnet qua unicast DNS-SD (ví dụ domain: `openclaw.internal.`), **hoặc**
-  - Host/cổng thủ công (phương án dự phòng).
+  - Nhập host/cổng thủ công (dự phòng).
 
-## Khoi dong nhanh (ghép cặp + kết nối)
+## Khởi động nhanh (ghép cặp + kết nối)
 
 1. Khởi động Gateway:
 
@@ -40,7 +40,7 @@ Khả dụng: bản xem trước nội bộ. Ứng dụng iOS hiện chưa đư�
 openclaw gateway --port 18789
 ```
 
-2. Trong ứng dụng iOS, mở Settings và chọn một gateway được phát hiện (hoặc bật Manual Host và nhập host/cổng).
+2. Trong ứng dụng iOS, mở Settings và chọn một gateway đã được phát hiện (hoặc bật Manual Host và nhập host/cổng).
 
 3. Phê duyệt yêu cầu ghép cặp trên máy chủ gateway:
 
@@ -56,15 +56,15 @@ openclaw nodes status
 openclaw gateway call node.list --params "{}"
 ```
 
-## Các đường phát hiện
+## Các cách khám phá
 
 ### Bonjour (LAN)
 
-Gateway quảng bá `_openclaw-gw._tcp` trên `local.`. Ứng dụng iOS sẽ tự động liệt kê các mục này.
+Gateway quảng bá `_openclaw-gw._tcp` trên `local.`. Ứng dụng iOS sẽ tự động liệt kê các gateway này.
 
 ### Tailnet (xuyên mạng)
 
-Nếu mDNS bị chặn, hãy dùng một vùng unicast DNS-SD (chọn một domain; ví dụ: `openclaw.internal.`) và Tailscale split DNS.
+Nếu mDNS bị chặn, hãy dùng một vùng unicast DNS-SD (chọn một domain; ví dụ: `openclaw.internal.`) và cấu hình Tailscale split DNS.
 Xem [Bonjour](/gateway/bonjour) để biết ví dụ CoreDNS.
 
 ### Host/cổng thủ công
@@ -73,7 +73,7 @@ Trong Settings, bật **Manual Host** và nhập host + cổng của gateway (m�
 
 ## Canvas + A2UI
 
-Node iOS hiển thị canvas bằng WKWebView. Dùng `node.invoke` để điều khiển:
+Node iOS hiển thị canvas bằng WKWebView. Sử dụng `node.invoke` để điều khiển:
 
 ```bash
 openclaw nodes invoke --node "iOS Node" --command canvas.navigate --params '{"url":"http://<gateway-host>:18793/__openclaw__/canvas/"}'
@@ -83,7 +83,7 @@ Ghi chú:
 
 - Máy chủ canvas của Gateway phục vụ `/__openclaw__/canvas/` và `/__openclaw__/a2ui/`.
 - Node iOS tự động điều hướng tới A2UI khi kết nối nếu có quảng bá URL máy chủ canvas.
-- Quay lại scaffold tích hợp bằng `canvas.navigate` và `{"url":""}`.
+- Quay lại scaffold tích hợp sẵn bằng `canvas.navigate` và `{"url":""}`.
 
 ### Canvas eval / snapshot
 
@@ -95,20 +95,20 @@ openclaw nodes invoke --node "iOS Node" --command canvas.eval --params '{"javaSc
 openclaw nodes invoke --node "iOS Node" --command canvas.snapshot --params '{"maxWidth":900,"format":"jpeg"}'
 ```
 
-## Đánh thức bằng giọng nói + chế độ nói chuyện
+## Kích hoạt bằng giọng nói + chế độ nói
 
-- Đánh thức bằng giọng nói và chế độ nói chuyện có sẵn trong Settings.
-- iOS có thể tạm dừng âm thanh nền; hãy coi các tính năng giọng nói là best-effort khi ứng dụng không hoạt động.
+- Kích hoạt bằng giọng nói và chế độ nói có sẵn trong Settings.
+- iOS có thể tạm dừng âm thanh nền; hãy coi các tính năng giọng nói là best-effort khi ứng dụng không ở trạng thái hoạt động.
 
 ## Lỗi thường gặp
 
 - `NODE_BACKGROUND_UNAVAILABLE`: đưa ứng dụng iOS lên foreground (các lệnh canvas/camera/màn hình yêu cầu điều này).
-- `A2UI_HOST_NOT_CONFIGURED`: Gateway không quảng bá URL máy chủ canvas; kiểm tra `canvasHost` trong [Cau hinh Gateway](/gateway/configuration).
+- `A2UI_HOST_NOT_CONFIGURED`: Gateway không quảng bá URL máy chủ canvas; kiểm tra `canvasHost` trong [Cấu hình Gateway](/gateway/configuration).
 - Không thấy lời nhắc ghép cặp: chạy `openclaw nodes pending` và phê duyệt thủ công.
 - Kết nối lại thất bại sau khi cài lại: token ghép cặp trong Keychain đã bị xóa; hãy ghép cặp lại node.
 
 ## Tài liệu liên quan
 
-- [Ghép cặp](/gateway/pairing)
-- [Kham pha](/gateway/discovery)
+- [Pairing](/gateway/pairing)
+- [Discovery](/gateway/discovery)
 - [Bonjour](/gateway/bonjour)

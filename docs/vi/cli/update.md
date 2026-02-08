@@ -1,21 +1,21 @@
 ---
-summary: "Tham chiếu CLI cho `openclaw update` (cập nhật mã nguồn an toàn tương đối + Gateway tự khởi động lại)"
+summary: "Tham chiếu CLI cho `openclaw update` (cập nhật nguồn an toàn tương đối + tự động khởi động lại gateway)"
 read_when:
-  - Bạn muốn cập nhật một bản checkout mã nguồn một cách an toàn
-  - Bạn cần hiểu hành vi viết tắt của `--update`
-title: "cap nhat"
+  - Bạn muốn cập nhật một bản checkout nguồn một cách an toàn
+  - Bạn cần hiểu hành vi viết tắt `--update`
+title: "update"
 x-i18n:
   source_path: cli/update.md
   source_hash: 3a08e8ac797612c4
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:40Z
+  generated_at: 2026-02-08T09:38:31Z
 ---
 
 # `openclaw update`
 
-Cập nhật OpenClaw an toàn và chuyển đổi giữa các kênh stable/beta/dev.
+Cập nhật OpenClaw một cách an toàn và chuyển đổi giữa các kênh stable/beta/dev.
 
 Nếu bạn cài đặt qua **npm/pnpm** (cài đặt toàn cục, không có metadata git), việc cập nhật diễn ra theo luồng của trình quản lý gói trong [Updating](/install/updating).
 
@@ -39,13 +39,13 @@ openclaw --update
 - `--channel <stable|beta|dev>`: đặt kênh cập nhật (git + npm; được lưu trong cấu hình).
 - `--tag <dist-tag|version>`: ghi đè dist-tag hoặc phiên bản npm chỉ cho lần cập nhật này.
 - `--json`: in JSON `UpdateRunResult` có thể đọc bằng máy.
-- `--timeout <seconds>`: thời gian chờ cho từng bước (mặc định là 1200s).
+- `--timeout <seconds>`: thời gian chờ cho mỗi bước (mặc định là 1200s).
 
-Lưu ý: hạ cấp phiên bản yêu cầu xác nhận vì các phiên bản cũ có thể làm hỏng cấu hình.
+Lưu ý: hạ cấp phiên bản cần xác nhận vì các phiên bản cũ có thể làm hỏng cấu hình.
 
 ## `update status`
 
-Hiển thị kênh cập nhật đang hoạt động + git tag/branch/SHA (đối với bản checkout mã nguồn), cùng với tình trạng khả dụng của bản cập nhật.
+Hiển thị kênh cập nhật đang hoạt động + thẻ/nhánh/SHA git (đối với bản checkout nguồn), cùng với tình trạng có bản cập nhật hay không.
 
 ```bash
 openclaw update status
@@ -56,17 +56,18 @@ openclaw update status --timeout 10
 Options:
 
 - `--json`: in JSON trạng thái có thể đọc bằng máy.
-- `--timeout <seconds>`: thời gian chờ cho các bước kiểm tra (mặc định là 3s).
+- `--timeout <seconds>`: thời gian chờ cho kiểm tra (mặc định là 3s).
 
 ## `update wizard`
 
-Luồng tương tác để chọn kênh cập nhật và xác nhận có khởi động lại Gateway
-sau khi cập nhật hay không (mặc định là khởi động lại). Nếu bạn chọn `dev` mà không có bản checkout git, hệ thống sẽ đề nghị tạo một bản.
+Luồng tương tác để chọn kênh cập nhật và xác nhận có khởi động lại Gateway sau khi cập nhật hay không
+(mặc định là khởi động lại). Nếu bạn chọn `dev` mà không có bản checkout git, công cụ sẽ
+đề nghị tạo một bản.
 
 ## What it does
 
 Khi bạn chuyển kênh một cách tường minh (`--channel ...`), OpenClaw cũng giữ cho
-phương thức cài đặt được đồng bộ:
+phương thức cài đặt được căn chỉnh:
 
 - `dev` → đảm bảo có một bản checkout git (mặc định: `~/openclaw`, ghi đè bằng `OPENCLAW_GIT_DIR`),
   cập nhật nó và cài đặt CLI toàn cục từ bản checkout đó.
@@ -76,21 +77,21 @@ phương thức cài đặt được đồng bộ:
 
 Channels:
 
-- `stable`: checkout tag không phải beta mới nhất, sau đó build + doctor.
-- `beta`: checkout tag `-beta` mới nhất, sau đó build + doctor.
+- `stable`: checkout thẻ non-beta mới nhất, sau đó build + doctor.
+- `beta`: checkout thẻ `-beta` mới nhất, sau đó build + doctor.
 - `dev`: checkout `main`, sau đó fetch + rebase.
 
 High-level:
 
 1. Yêu cầu worktree sạch (không có thay đổi chưa commit).
-2. Chuyển sang kênh đã chọn (tag hoặc branch).
+2. Chuyển sang kênh đã chọn (thẻ hoặc nhánh).
 3. Fetch upstream (chỉ dev).
-4. Chỉ dev: chạy lint tiền kiểm + build TypeScript trong một worktree tạm; nếu tip thất bại, lùi tối đa 10 commit để tìm bản build sạch mới nhất.
+4. Chỉ dev: lint tiền kiểm + build TypeScript trong một worktree tạm; nếu tip thất bại, lùi tối đa 10 commit để tìm bản build sạch mới nhất.
 5. Rebase lên commit đã chọn (chỉ dev).
-6. Cài đặt dependencies (ưu tiên pnpm; fallback npm).
+6. Cài đặt phụ thuộc (ưu tiên pnpm; npm dự phòng).
 7. Build + build Control UI.
 8. Chạy `openclaw doctor` như bước kiểm tra “cập nhật an toàn” cuối cùng.
-9. Đồng bộ plugin theo kênh đang hoạt động (dev dùng extension đóng gói sẵn; stable/beta dùng npm) và cập nhật các plugin cài bằng npm.
+9. Đồng bộ plugin theo kênh đang hoạt động (dev dùng các extension đóng gói sẵn; stable/beta dùng npm) và cập nhật các plugin cài bằng npm.
 
 ## `--update` shorthand
 
@@ -98,7 +99,7 @@ High-level:
 
 ## See also
 
-- `openclaw doctor` (đề nghị chạy update trước trên các bản checkout git)
+- `openclaw doctor` (đề nghị chạy cập nhật trước trên các bản checkout git)
 - [Development channels](/install/development-channels)
 - [Updating](/install/updating)
 - [CLI reference](/cli)

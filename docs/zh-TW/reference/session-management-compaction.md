@@ -1,32 +1,32 @@
 ---
-summary: "深入解析：工作階段儲存區 + 逐字稿、生命週期，以及（自動）壓縮的內部機制"
+summary: "深入解析：工作階段儲存庫 + 逐字稿、生命週期，以及（自動）壓縮的內部機制"
 read_when:
-  - 你需要除錯工作階段 id、逐字稿 JSONL，或 sessions.json 欄位
-  - 你正在變更自動壓縮行為，或新增「壓縮前」的例行整理工作
-  - 你想要實作記憶體寫入或靜默的系統回合
-title: "工作階段管理深入解析"
+  - 你需要除錯工作階段 ID、逐字稿 JSONL，或 sessions.json 欄位
+  - 你正在變更自動壓縮行為，或新增「壓縮前」的例行整理
+  - 你想要實作記憶體寫入或無聲的系統回合
+title: "工作階段管理深度解析"
 x-i18n:
   source_path: reference/session-management-compaction.md
-  source_hash: bf3715770ba63436
+  source_hash: 6344a9eaf8797eb4
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:54:52Z
+  generated_at: 2026-02-08T09:29:34Z
 ---
 
-# 工作階段管理與壓縮（深入解析）
+# 工作階段管理與壓縮（深度解析）
 
 本文件說明 OpenClaw 如何端到端管理工作階段：
 
 - **工作階段路由**（傳入訊息如何對應到一個 `sessionKey`）
-- **工作階段儲存區**（`sessions.json`）以及它所追蹤的內容
-- **逐字稿持久化**（`*.jsonl`）及其結構
-- **逐字稿衛生**（執行前的提供者特定修補）
-- **上下文限制**（上下文視窗 vs 已追蹤的 token）
-- **壓縮**（手動 + 自動壓縮）以及可掛載壓縮前工作的地方
-- **靜默例行整理**（例如不應產生使用者可見輸出的記憶體寫入）
+- **工作階段儲存庫**（`sessions.json`）及其追蹤內容
+- **逐字稿持久化**（`*.jsonl`）與其結構
+- **逐字稿衛生**（在執行前的提供者特定修正）
+- **上下文限制**（上下文視窗 vs 追蹤的權杖）
+- **壓縮**（手動 + 自動壓縮）以及可掛接壓縮前工作的時點
+- **無聲例行整理**（例如不應產生使用者可見輸出的記憶體寫入）
 
-如果你想先看較高層次的概覽，請從以下開始：
+如果你想先看高層概覽，請從以下開始：
 
 - [/concepts/session](/concepts/session)
 - [/concepts/compaction](/concepts/compaction)
@@ -35,12 +35,12 @@ x-i18n:
 
 ---
 
-## 單一事實來源：Gateway 閘道器
+## 真實來源：Gateway 閘道器
 
 OpenClaw 的設計以單一 **Gateway process** 為核心，負責擁有工作階段狀態。
 
-- UI（macOS app、網頁 Control UI、TUI）應向 Gateway 查詢工作階段清單與 token 計數。
-- 在遠端模式下，工作階段檔案位於遠端主機；「檢查你本機 Mac 的檔案」不會反映 Gateway 實際使用的內容。
+- UI（macOS app、Web Control UI、TUI）應向 Gateway 閘道器查詢工作階段清單與權杖計數。
+- 在遠端模式下，工作階段檔案位於遠端主機；「檢查你本機 Mac 的檔案」不會反映 Gateway 閘道器實際使用的內容。
 
 ---
 
@@ -48,23 +48,23 @@ OpenClaw 的設計以單一 **Gateway process** 為核心，負責擁有工作�
 
 OpenClaw 以兩層方式持久化工作階段：
 
-1. **工作階段儲存區（`sessions.json`）**
-   - Key/value 對映：`sessionKey -> SessionEntry`
-   - 小型、可變更，且可安全編輯（或刪除項目）
-   - 追蹤工作階段中繼資料（目前的工作階段 id、最後活動時間、切換項目、token 計數器等）
+1. **工作階段儲存庫（`sessions.json`）**
+   - 鍵／值對映：`sessionKey -> SessionEntry`
+   - 小型、可變更、可安全編輯（或刪除項目）
+   - 追蹤工作階段中繼資料（目前的工作階段 ID、最後活動時間、切換開關、權杖計數器等）
 
 2. **逐字稿（`<sessionId>.jsonl`）**
-   - 具樹狀結構的附加寫入逐字稿（項目具有 `id` + `parentId`）
-   - 儲存實際的對話 + 工具呼叫 + 壓縮摘要
-   - 用於重建後續回合的模型上下文
+   - 具有樹狀結構的附加寫入逐字稿（項目具有 `id` + `parentId`）
+   - 儲存實際對話 + 工具呼叫 + 壓縮摘要
+   - 用於重建未來回合的模型上下文
 
 ---
 
 ## 磁碟上的位置
 
-每個代理程式，在 Gateway 主機上：
+在 Gateway 閘道器主機上，依代理程式區分：
 
-- 儲存區：`~/.openclaw/agents/<agentId>/sessions/sessions.json`
+- 儲存庫：`~/.openclaw/agents/<agentId>/sessions/sessions.json`
 - 逐字稿：`~/.openclaw/agents/<agentId>/sessions/<sessionId>.jsonl`
   - Telegram 主題工作階段：`.../<sessionId>-topic-<threadId>.jsonl`
 
@@ -72,15 +72,15 @@ OpenClaw 透過 `src/config/sessions.ts` 解析這些路徑。
 
 ---
 
-## 工作階段鍵（`sessionKey`）
+## 工作階段金鑰（`sessionKey`）
 
-一個 `sessionKey` 用來識別你目前所在的「對話桶」（路由 + 隔離）。
+`sessionKey` 用來識別你所在的「對話桶」（路由 + 隔離）。
 
 常見模式：
 
-- 主／直接聊天（每個代理程式）：`agent:<agentId>:<mainKey>`（預設 `main`）
+- 主要／直接聊天（每個代理程式）：`agent:<agentId>:<mainKey>`（預設 `main`）
 - 群組：`agent:<agentId>:<channel>:group:<id>`
-- 房間／頻道（Discord/Slack）：`agent:<agentId>:<channel>:channel:<id>` 或 `...:room:<id>`
+- 房間／頻道（Discord／Slack）：`agent:<agentId>:<channel>:channel:<id>` 或 `...:room:<id>`
 - Cron：`cron:<job.id>`
 - Webhook：`hook:<uuid>`（除非被覆寫）
 
@@ -88,43 +88,43 @@ OpenClaw 透過 `src/config/sessions.ts` 解析這些路徑。
 
 ---
 
-## 工作階段 id（`sessionId`）
+## 工作階段 ID（`sessionId`）
 
 每個 `sessionKey` 都指向一個目前的 `sessionId`（持續該對話的逐字稿檔案）。
 
 經驗法則：
 
 - **重設**（`/new`、`/reset`）會為該 `sessionKey` 建立新的 `sessionId`。
-- **每日重設**（預設為 Gateway 主機本地時間凌晨 4:00）會在跨越重設邊界後的下一則訊息建立新的 `sessionId`。
-- **閒置到期**（`session.reset.idleMinutes` 或舊版 `session.idleMinutes`）會在超過閒置視窗後收到訊息時建立新的 `sessionId`。當每日與閒置同時設定時，以先到期者為準。
+- **每日重設**（預設為 Gateway 閘道器主機的當地時間凌晨 4:00）會在重設邊界後的下一則訊息建立新的 `sessionId`。
+- **閒置到期**（`session.reset.idleMinutes` 或舊版 `session.idleMinutes`）在超過閒置視窗後收到訊息時建立新的 `sessionId`。若同時設定每日 + 閒置，以先到期者為準。
 
-實作細節：決策發生於 `src/auto-reply/reply/session.ts` 中的 `initSessionState()`。
+實作細節：判斷發生於 `src/auto-reply/reply/session.ts` 中的 `initSessionState()`。
 
 ---
 
-## 工作階段儲存區結構（`sessions.json`）
+## 工作階段儲存庫結構（`sessions.json`）
 
-儲存區的值型別是 `src/config/sessions.ts` 中的 `SessionEntry`。
+儲存庫的值型別為 `src/config/sessions.ts` 中的 `SessionEntry`。
 
-關鍵欄位（非完整清單）：
+主要欄位（非完整）：
 
-- `sessionId`：目前的逐字稿 id（除非設定 `sessionFile`，否則檔名由此推導）
+- `sessionId`：目前逐字稿 ID（除非設定 `sessionFile`，否則檔名由此衍生）
 - `updatedAt`：最後活動時間戳
-- `sessionFile`：可選的明確逐字稿路徑覆寫
-- `chatType`：`direct | group | room`（協助 UI 與傳送策略）
-- `provider`、`subject`、`room`、`space`、`displayName`：群組／頻道標籤的中繼資料
-- 切換項目：
+- `sessionFile`：可選的逐字稿路徑覆寫
+- `chatType`：`direct | group | room`（協助 UI 與傳送政策）
+- `provider`、`subject`、`room`、`space`、`displayName`：群組／頻道標示的中繼資料
+- 切換開關：
   - `thinkingLevel`、`verboseLevel`、`reasoningLevel`、`elevatedLevel`
   - `sendPolicy`（每個工作階段的覆寫）
 - 模型選擇：
   - `providerOverride`、`modelOverride`、`authProfileOverride`
-- Token 計數器（盡力而為／依提供者而異）：
+- 權杖計數器（盡力而為／依提供者而異）：
   - `inputTokens`、`outputTokens`、`totalTokens`、`contextTokens`
-- `compactionCount`：此工作階段鍵完成自動壓縮的次數
+- `compactionCount`：此工作階段金鑰完成自動壓縮的次數
 - `memoryFlushAt`：上一次壓縮前記憶體寫入的時間戳
-- `memoryFlushCompactionCount`：最後一次寫入時的壓縮計數
+- `memoryFlushCompactionCount`：上一次寫入執行時的壓縮計數
 
-儲存區可安全編輯，但 Gateway 是權威來源：在工作階段執行期間，它可能會重寫或重新補齊項目。
+儲存庫可安全編輯，但 Gateway 閘道器是權威來源：隨著工作階段執行，可能會重寫或重新補齊項目。
 
 ---
 
@@ -132,67 +132,67 @@ OpenClaw 透過 `src/config/sessions.ts` 解析這些路徑。
 
 逐字稿由 `@mariozechner/pi-coding-agent` 的 `SessionManager` 管理。
 
-檔案格式為 JSONL：
+檔案為 JSONL：
 
 - 第一行：工作階段標頭（`type: "session"`，包含 `id`、`cwd`、`timestamp`，以及可選的 `parentSession`）
 - 接著：具有 `id` + `parentId`（樹狀）的工作階段項目
 
-值得注意的項目類型：
+重要的項目類型：
 
 - `message`：使用者／助理／toolResult 訊息
-- `custom_message`：由擴充功能注入、且「會」進入模型上下文的訊息（可對 UI 隱藏）
-- `custom`：擴充功能狀態，且「不會」進入模型上下文
-- `compaction`：持久化的壓縮摘要，包含 `firstKeptEntryId` 與 `tokensBefore`
-- `branch_summary`：在瀏覽樹狀分支時持久化的摘要
+- `custom_message`：由擴充注入、**會**進入模型上下文的訊息（可在 UI 中隱藏）
+- `custom`：不會進入模型上下文的擴充狀態
+- `compaction`：具有 `firstKeptEntryId` 與 `tokensBefore` 的持久化壓縮摘要
+- `branch_summary`：在樹分支導覽時的持久化摘要
 
-OpenClaw 有意 **不**「修補」逐字稿；Gateway 使用 `SessionManager` 來讀寫它們。
-
----
-
-## 上下文視窗 vs 已追蹤 token
-
-有兩個不同的概念需要注意：
-
-1. **模型上下文視窗**：每個模型的硬性上限（模型可見的 token）
-2. **工作階段儲存區計數器**：寫入 `sessions.json` 的滾動統計（用於 /status 與儀表板）
-
-若你正在調校限制：
-
-- 上下文視窗來自模型目錄（可透過設定覆寫）。
-- 儲存區中的 `contextTokens` 是執行期估算／回報值；請勿將其視為嚴格保證。
-
-更多資訊請見 [/token-use](/token-use)。
+OpenClaw 有意 **不**「修補」逐字稿；Gateway 閘道器使用 `SessionManager` 來讀寫它們。
 
 ---
 
-## 壓縮：它是什麼
+## 上下文視窗 vs 追蹤的權杖
 
-壓縮會將較舊的對話摘要為逐字稿中一個持久化的 `compaction` 項目，並保留近期訊息不變。
+有兩個不同概念需要注意：
+
+1. **模型上下文視窗**：每個模型的硬性上限（模型可見的權杖）
+2. **工作階段儲存庫計數器**：寫入 `sessions.json` 的滾動統計（用於 /status 與儀表板）
+
+若你在調整限制：
+
+- 上下文視窗來自模型目錄（也可透過設定覆寫）。
+- 儲存庫中的 `contextTokens` 是執行時估計／回報值；不要把它當成嚴格保證。
+
+更多資訊請見 [/token-use](/reference/token-use)。
+
+---
+
+## 壓縮：是什麼
+
+壓縮會將較舊的對話摘要為逐字稿中持久化的 `compaction` 項目，並保留最近的訊息。
 
 壓縮後，後續回合會看到：
 
 - 壓縮摘要
 - `firstKeptEntryId` 之後的訊息
 
-壓縮是 **持久化的**（不同於工作階段修剪）。請見 [/concepts/session-pruning](/concepts/session-pruning)。
+壓縮是 **持久化** 的（不同於工作階段修剪）。請見 [/concepts/session-pruning](/concepts/session-pruning)。
 
 ---
 
-## 自動壓縮何時發生（Pi runtime）
+## 自動壓縮何時發生（Pi 執行階段）
 
-在嵌入式 Pi 代理程式中，自動壓縮在兩種情況下觸發：
+在內嵌的 Pi 代理程式中，自動壓縮會在兩種情況觸發：
 
 1. **溢位復原**：模型回傳上下文溢位錯誤 → 壓縮 → 重試。
-2. **門檻維持**：在成功完成一個回合後，當：
+2. **閾值維護**：成功完成一個回合後，當：
 
 `contextTokens > contextWindow - reserveTokens`
 
 其中：
 
 - `contextWindow` 是模型的上下文視窗
-- `reserveTokens` 是為提示詞 + 下一次模型輸出保留的緩衝空間
+- `reserveTokens` 是為提示詞 + 下一次模型輸出保留的餘裕
 
-這些是 Pi runtime 的語義（OpenClaw 會消費事件，但是否壓縮由 Pi 決定）。
+這些是 Pi 執行階段的語意（OpenClaw 會消費事件，但是否壓縮由 Pi 決定）。
 
 ---
 
@@ -210,16 +210,16 @@ Pi 的壓縮設定位於 Pi 設定中：
 }
 ```
 
-OpenClaw 也會對嵌入式執行套用安全下限：
+OpenClaw 也會為內嵌執行強制一個安全下限：
 
 - 若 `compaction.reserveTokens < reserveTokensFloor`，OpenClaw 會提高它。
-- 預設下限為 `20000` 個 token。
-- 設定 `agents.defaults.compaction.reserveTokensFloor: 0` 可停用此下限。
-- 若原本已更高，OpenClaw 會保持不變。
+- 預設下限為 `20000` 個權杖。
+- 設定 `agents.defaults.compaction.reserveTokensFloor: 0` 可停用下限。
+- 若原本已更高，OpenClaw 會維持不變。
 
-原因：在壓縮不可避免之前，保留足夠空間以進行多回合的「例行整理」（例如記憶體寫入）。
+原因：在壓縮變得不可避免之前，保留足夠餘裕以支援多回合的「例行整理」（例如記憶體寫入）。
 
-實作位置：`src/agents/pi-settings.ts` 中的 `ensurePiCompactionReserveTokens()`
+實作：`src/agents/pi-settings.ts` 中的 `ensurePiCompactionReserveTokens()`
 （由 `src/agents/pi-embedded-runner.ts` 呼叫）。
 
 ---
@@ -231,62 +231,62 @@ OpenClaw 也會對嵌入式執行套用安全下限：
 - `/status`（任何聊天工作階段中）
 - `openclaw status`（CLI）
 - `openclaw sessions` / `sessions --json`
-- 詳細模式：`🧹 Auto-compaction complete` + 壓縮計數
+- 詳細模式：`🧹 Auto-compaction complete` + 壓縮次數
 
 ---
 
-## 靜默例行整理（`NO_REPLY`）
+## 無聲例行整理（`NO_REPLY`）
 
-OpenClaw 支援「靜默」回合，用於使用者不應看到中間輸出的背景任務。
+OpenClaw 支援用於背景工作的「無聲」回合，使用者不應看到中間輸出。
 
 慣例：
 
-- 助理的輸出以 `NO_REPLY` 開頭，表示「不要向使用者傳遞回覆」。
-- OpenClaw 會在傳遞層剝除／抑制這些內容。
+- 助理以 `NO_REPLY` 開頭輸出，表示「不要將回覆傳遞給使用者」。
+- OpenClaw 會在傳遞層移除／抑制它。
 
-自 `2026.1.10` 起，當部分串流區塊以 `NO_REPLY` 開頭時，OpenClaw 也會抑制 **草稿／輸入中串流**，避免靜默操作在回合中途洩漏部分輸出。
+自 `2026.1.10` 起，當部分串流區塊以 `NO_REPLY` 開頭時，OpenClaw 也會抑制 **草稿／輸入中串流**，避免無聲操作在回合中途洩漏部分輸出。
 
 ---
 
 ## 壓縮前「記憶體寫入」（已實作）
 
-目標：在自動壓縮發生前，執行一次靜默的代理程式回合，將持久狀態寫入磁碟
-（例如代理程式工作區中的 `memory/YYYY-MM-DD.md`），讓壓縮無法
+目標：在自動壓縮發生之前，執行一次無聲的代理程式回合，將可持久化的
+狀態寫入磁碟（例如代理程式工作區中的 `memory/YYYY-MM-DD.md`），以確保壓縮不會
 抹除關鍵上下文。
 
-OpenClaw 採用 **門檻前寫入** 的方式：
+OpenClaw 採用 **壓縮前閾值寫入** 的方式：
 
 1. 監控工作階段的上下文使用量。
-2. 當其跨越「軟門檻」（低於 Pi 的壓縮門檻）時，向代理程式執行一次靜默的
+2. 當超過「軟性閾值」（低於 Pi 的壓縮閾值）時，對代理程式執行一次無聲的
    「立即寫入記憶體」指令。
-3. 使用 `NO_REPLY`，讓使用者什麼都看不到。
+3. 使用 `NO_REPLY`，讓使用者看不到任何輸出。
 
 設定（`agents.defaults.compaction.memoryFlush`）：
 
 - `enabled`（預設：`true`）
 - `softThresholdTokens`（預設：`4000`）
 - `prompt`（寫入回合的使用者訊息）
-- `systemPrompt`（為寫入回合附加的額外系統提示）
+- `systemPrompt`（附加於寫入回合的額外系統提示）
 
-備註：
+注意事項：
 
-- 預設提示與系統提示包含 `NO_REPLY` 提示以抑制傳遞。
-- 每個壓縮循環只會執行一次寫入（記錄於 `sessions.json`）。
-- 寫入僅適用於嵌入式 Pi 工作階段（CLI 後端會略過）。
-- 當工作階段工作區為唯讀時會略過寫入（`workspaceAccess: "ro"` 或 `"none"`）。
-- 工作區檔案配置與寫入模式請見 [Memory](/concepts/memory)。
+- 預設的提示／系統提示包含 `NO_REPLY` 提示以抑制傳遞。
+- 每個壓縮週期僅執行一次寫入（記錄於 `sessions.json`）。
+- 僅對內嵌 Pi 工作階段執行（CLI 後端會略過）。
+- 當工作階段工作區為唯讀時會略過（`workspaceAccess: "ro"` 或 `"none"`）。
+- 關於工作區檔案配置與寫入模式，請見 [Memory](/concepts/memory)。
 
-Pi 也在擴充功能 API 中提供 `session_before_compact` 掛鉤，但 OpenClaw 的
-寫入邏輯目前位於 Gateway 端。
+Pi 也在擴充 API 中提供 `session_before_compact` 掛鉤，但 OpenClaw 的
+寫入邏輯目前位於 Gateway 閘道器端。
 
 ---
 
 ## 疑難排解檢查清單
 
-- 工作階段鍵錯誤？從 [/concepts/session](/concepts/session) 開始，並確認 `/status` 中的 `sessionKey`。
-- 儲存區與逐字稿不一致？確認 Gateway 主機，以及來自 `openclaw status` 的儲存區路徑。
+- 工作階段金鑰錯誤？先從 [/concepts/session](/concepts/session) 開始，並確認 `/status` 中的 `sessionKey`。
+- 儲存庫與逐字稿不一致？確認 Gateway 閘道器主機，以及 `openclaw status` 中的儲存庫路徑。
 - 壓縮過於頻繁？檢查：
   - 模型上下文視窗（是否過小）
-  - 壓縮設定（`reserveTokens` 對於模型視窗過高會導致提早壓縮）
-  - 工具結果膨脹：啟用／調校工作階段修剪
-- 靜默回合外洩？確認回覆以 `NO_REPLY`（完全相同的 token）開頭，且你使用的版本包含串流抑制修正。
+  - 壓縮設定（`reserveTokens` 對模型視窗而言過高，可能導致提早壓縮）
+  - 工具結果膨脹：啟用／調整工作階段修剪
+- 無聲回合洩漏？確認回覆以 `NO_REPLY`（完全相同的權杖）開頭，且你使用的版本包含串流抑制修正。

@@ -7,22 +7,24 @@ read_when:
 title: LINE
 x-i18n:
   source_path: channels/line.md
-  source_hash: 8fbac126786f95b9
+  source_hash: 52eb66d06d616173
   provider: openai
-  model: gpt-5.2-pro
+  model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-06T04:45:11Z
+  generated_at: 2026-02-08T09:20:47Z
 ---
 
 # LINE（プラグイン）
 
-LINE は、LINE Messaging API を介して OpenClaw に接続します。このプラグインは Gateway（ゲートウェイ）上で webhook 受信者として動作し、認証にはチャネルアクセストークンとチャネルシークレットを使用します。
+LINE は LINE Messaging API を介して OpenClaw に接続します。本プラグインはゲートウェイ上で webhook
+レシーバーとして動作し、認証にはチャンネルアクセストークンとチャンネルシークレットを使用します。
 
-ステータス: プラグイン経由でサポートされています。ダイレクトメッセージ、グループチャット、メディア、位置情報、Flex メッセージ、テンプレートメッセージ、クイックリプライがサポートされています。リアクションとスレッドはサポートされていません。
+ステータス: プラグイン経由でサポートされています。ダイレクトメッセージ、グループチャット、メディア、位置情報、Flex
+メッセージ、テンプレートメッセージ、クイックリプライがサポートされています。リアクションとスレッドはサポートされていません。
 
-## プラグインが必要です
+## プラグインが必要
 
-LINE プラグインをインストールします:
+LINE プラグインをインストールします。
 
 ```bash
 openclaw plugins install @openclaw/line
@@ -36,23 +38,24 @@ openclaw plugins install ./extensions/line
 
 ## セットアップ
 
-1. LINE Developers アカウントを作成し、Console を開きます:
-   https://developers.line.biz/console/
-2. プロバイダーを作成（または選択）し、**Messaging API** チャネルを追加します。
-3. チャネル設定から **Channel access token** と **Channel secret** をコピーします。
-4. Messaging API 設定で **Use webhook** を有効にします。
-5. webhook URL を Gateway（ゲートウェイ）のエンドポイントに設定します（HTTPS 必須）:
+1. LINE Developers アカウントを作成し、コンソールを開きます:
+   [https://developers.line.biz/console/](https://developers.line.biz/console/)
+2. プロバイダーを作成（または選択）し、**Messaging API** チャンネルを追加します。
+3. チャンネル設定から **Channel access token** と **Channel secret** をコピーします。
+4. Messaging API の設定で **Use webhook** を有効にします。
+5. webhook URL をゲートウェイのエンドポイントに設定します（HTTPS が必須）:
 
 ```
 https://gateway-host/line/webhook
 ```
 
-Gateway（ゲートウェイ）は LINE の webhook 検証（GET）と受信イベント（POST）に応答します。カスタムパスが必要な場合は、`channels.line.webhookPath` または
-`channels.line.accounts.<id>.webhookPath` を設定し、URL もそれに合わせて更新してください。
+ゲートウェイは LINE の webhook 検証（GET）および受信イベント（POST）に応答します。
+カスタムパスが必要な場合は `channels.line.webhookPath` または
+`channels.line.accounts.<id>.webhookPath` を設定し、それに合わせて URL を更新してください。
 
 ## 設定
 
-最小設定:
+最小構成:
 
 ```json5
 {
@@ -72,7 +75,7 @@ Gateway（ゲートウェイ）は LINE の webhook 検証（GET）と受信イ�
 - `LINE_CHANNEL_ACCESS_TOKEN`
 - `LINE_CHANNEL_SECRET`
 
-トークン/シークレットファイル:
+トークン／シークレットのファイル:
 
 ```json5
 {
@@ -105,7 +108,8 @@ Gateway（ゲートウェイ）は LINE の webhook 検証（GET）と受信イ�
 
 ## アクセス制御
 
-ダイレクトメッセージはデフォルトでペアリングになります。未知の送信者にはペアリングコードが送られ、承認されるまでそのメッセージは無視されます。
+ダイレクトメッセージは既定でペアリングが有効です。未知の送信者にはペアリングコードが送信され、
+承認されるまでメッセージは無視されます。
 
 ```bash
 openclaw pairing list line
@@ -115,27 +119,30 @@ openclaw pairing approve line <CODE>
 許可リストとポリシー:
 
 - `channels.line.dmPolicy`: `pairing | allowlist | open | disabled`
-- `channels.line.allowFrom`: ダイレクトメッセージ用に許可リスト登録された LINE ユーザー ID
+- `channels.line.allowFrom`: ダイレクトメッセージ用に許可された LINE ユーザー ID
 - `channels.line.groupPolicy`: `allowlist | open | disabled`
-- `channels.line.groupAllowFrom`: グループ用に許可リスト登録された LINE ユーザー ID
+- `channels.line.groupAllowFrom`: グループ用に許可された LINE ユーザー ID
 - グループごとの上書き: `channels.line.groups.<groupId>.allowFrom`
 
-LINE ID は大文字・小文字を区別します。有効な ID は次のような形式です:
+LINE ID は大文字と小文字を区別します。有効な ID は次の形式です。
 
-- ユーザー: `U` + 32 個の 16 進文字
-- グループ: `C` + 32 個の 16 進文字
-- ルーム: `R` + 32 個の 16 進文字
+- ユーザー: `U` + 32 桁の 16 進数
+- グループ: `C` + 32 桁の 16 進数
+- ルーム: `R` + 32 桁の 16 進数
 
 ## メッセージの挙動
 
 - テキストは 5000 文字で分割されます。
-- Markdown 書式は除去されます。可能な場合、コードブロックとテーブルは Flex カードに変換されます。
-- ストリーミング応答はバッファリングされます。エージェントが処理している間、LINE はローディングアニメーション付きで完全なチャンクを受け取ります。
-- メディアのダウンロードは `channels.line.mediaMaxMb`（デフォルト 10）で上限が設定されます。
+- Markdown の書式は除去されます。コードブロックと表は可能な場合に Flex
+  カードへ変換されます。
+- ストリーミング応答はバッファリングされます。エージェントが処理中の間、LINE にはローディング
+  アニメーション付きで完全なチャンクが送信されます。
+- メディアのダウンロード数は `channels.line.mediaMaxMb`（既定値 10）で制限されます。
 
 ## チャンネルデータ（リッチメッセージ）
 
-クイックリプライ、位置情報、Flex カード、またはテンプレートメッセージを送信するには `channelData.line` を使用します。
+`channelData.line` を使用して、クイックリプライ、位置情報、Flex カード、またはテンプレート
+メッセージを送信します。
 
 ```json5
 {
@@ -168,7 +175,7 @@ LINE ID は大文字・小文字を区別します。有効な ID は次のよ�
 }
 ```
 
-LINE プラグインには、Flex メッセージのプリセット用の `/card` コマンドも同梱されています:
+LINE プラグインには、Flex メッセージのプリセット用の `/card` コマンドも同梱されています。
 
 ```
 /card info "Welcome" "Thanks for joining!"
@@ -176,6 +183,9 @@ LINE プラグインには、Flex メッセージのプリセット用の `/card
 
 ## トラブルシューティング
 
-- **Webhook 検証に失敗する:** webhook URL が HTTPS であること、ならびに `channelSecret` が LINE コンソールと一致することを確認してください。
-- **受信イベントがない:** webhook パスが `channels.line.webhookPath` と一致していること、そして Gateway（ゲートウェイ）が LINE から到達可能であることを確認してください。
-- **メディアのダウンロードエラー:** メディアがデフォルトの上限を超える場合は `channels.line.mediaMaxMb` を増やしてください。
+- **Webhook の検証に失敗する:** webhook URL が HTTPS であること、および
+  `channelSecret` が LINE コンソールと一致していることを確認してください。
+- **受信イベントがない:** webhook のパスが `channels.line.webhookPath` と一致していること、
+  そしてゲートウェイが LINE から到達可能であることを確認してください。
+- **メディアのダウンロードエラー:** メディアが既定の制限を超える場合は
+  `channels.line.mediaMaxMb` を引き上げてください。

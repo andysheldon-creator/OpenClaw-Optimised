@@ -1,9 +1,9 @@
 ---
-summary: "Chrome-Erweiterung: OpenClaw steuert Ihren bestehenden Chrome-Tab"
+summary: "Chrome-Erweiterung: Lassen Sie OpenClaw Ihren bestehenden Chrome-Tab steuern"
 read_when:
   - Sie möchten, dass der Agent einen bestehenden Chrome-Tab steuert (Toolbar-Schaltfläche)
-  - Sie benötigen einen entfernten Gateway + lokale Browser-Automatisierung über Tailscale
-  - Sie möchten die Sicherheitsauswirkungen einer Browser-Übernahme verstehen
+  - Sie benötigen ein Remote-Gateway + lokale Browser-Automatisierung über Tailscale
+  - Sie möchten die Sicherheitsimplikationen einer Browser-Übernahme verstehen
 title: "Chrome-Erweiterung"
 x-i18n:
   source_path: tools/chrome-extension.md
@@ -11,24 +11,24 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:49Z
+  generated_at: 2026-02-08T09:37:38Z
 ---
 
 # Chrome-Erweiterung (Browser-Relay)
 
-Die OpenClaw Chrome-Erweiterung ermöglicht es dem Agenten, Ihre **bestehenden Chrome-Tabs** (Ihr normales Chrome-Fenster) zu steuern, anstatt ein separates, von OpenClaw verwaltetes Chrome-Profil zu starten.
+Die OpenClaw-Chrome-Erweiterung ermöglicht es dem Agenten, Ihre **bestehenden Chrome-Tabs** (Ihr normales Chrome-Fenster) zu steuern, anstatt ein separates, von OpenClaw verwaltetes Chrome-Profil zu starten.
 
-Das Anhängen/Trennen erfolgt über **eine einzelne Chrome-Toolbar-Schaltfläche**.
+Das An- und Abkoppeln erfolgt über **eine einzelne Chrome-Toolbar-Schaltfläche**.
 
 ## Was es ist (Konzept)
 
-Es gibt drei Bestandteile:
+Es gibt drei Teile:
 
-- **Browser-Steuerungsdienst** (Gateway oder Node): die API, die der Agent/das Werkzeug aufruft (über den Gateway)
-- **Lokaler Relay-Server** (loopback CDP): vermittelt zwischen dem Steuerungsserver und der Erweiterung (standardmäßig `http://127.0.0.1:18792`)
-- **Chrome MV3-Erweiterung**: hängt sich mit `chrome.debugger` an den aktiven Tab an und leitet CDP-Nachrichten an das Relay weiter
+- **Browser-Control-Service** (Gateway oder Node): die API, die der Agent/das Werkzeug aufruft (über das Gateway)
+- **Lokaler Relay-Server** (Loopback-CDP): verbindet den Control-Server mit der Erweiterung (`http://127.0.0.1:18792` standardmäßig)
+- **Chrome-MV3-Erweiterung**: koppelt sich an den aktiven Tab mittels `chrome.debugger` an und leitet CDP-Nachrichten an das Relay weiter
 
-OpenClaw steuert den angehängten Tab anschließend über die normale `browser`-Werkzeugoberfläche (unter Auswahl des richtigen Profils).
+OpenClaw steuert den angekoppelten Tab anschließend über die normale `browser`-Werkzeugoberfläche (unter Auswahl des richtigen Profils).
 
 ## Installieren / Laden (unpacked)
 
@@ -38,7 +38,7 @@ OpenClaw steuert den angehängten Tab anschließend über die normale `browser`-
 openclaw browser extension install
 ```
 
-2. Geben Sie den installierten Erweiterungsverzeichnis-Pfad aus:
+2. Geben Sie den installierten Verzeichnispfad der Erweiterung aus:
 
 ```bash
 openclaw browser extension path
@@ -49,22 +49,22 @@ openclaw browser extension path
 - „Developer mode“ aktivieren
 - „Load unpacked“ → das oben ausgegebene Verzeichnis auswählen
 
-4. Die Erweiterung anpinnen.
+4. Heften Sie die Erweiterung an.
 
 ## Updates (kein Build-Schritt)
 
-Die Erweiterung wird innerhalb der OpenClaw-Version (npm-Paket) als statische Dateien ausgeliefert. Es gibt keinen separaten „Build“-Schritt.
+Die Erweiterung wird innerhalb des OpenClaw-Releases (npm-Paket) als statische Dateien ausgeliefert. Es gibt keinen separaten „Build“-Schritt.
 
-Nach einem Upgrade von OpenClaw:
+Nach dem Upgrade von OpenClaw:
 
-- Führen Sie `openclaw browser extension install` erneut aus, um die installierten Dateien unter Ihrem OpenClaw-Zustandsverzeichnis zu aktualisieren.
+- Führen Sie `openclaw browser extension install` erneut aus, um die installierten Dateien unter Ihrem OpenClaw-State-Verzeichnis zu aktualisieren.
 - Chrome → `chrome://extensions` → klicken Sie bei der Erweiterung auf „Reload“.
 
-## Nutzung (keine zusätzliche Konfiguration)
+## Verwendung (keine zusätzliche Konfiguration)
 
-OpenClaw wird mit einem integrierten Browserprofil namens `chrome` ausgeliefert, das auf das Erweiterungs-Relay am Standardport zielt.
+OpenClaw wird mit einem integrierten Browser-Profil namens `chrome` ausgeliefert, das auf das Extension-Relay auf dem Standardport abzielt.
 
-So verwenden Sie es:
+Verwendung:
 
 - CLI: `openclaw browser --browser-profile chrome tabs`
 - Agent-Werkzeug: `browser` mit `profile="chrome"`
@@ -79,55 +79,55 @@ openclaw browser create-profile \
   --color "#00AA00"
 ```
 
-## Anhängen / Trennen (Toolbar-Schaltfläche)
+## An- / Abkoppeln (Toolbar-Schaltfläche)
 
 - Öffnen Sie den Tab, den OpenClaw steuern soll.
 - Klicken Sie auf das Erweiterungssymbol.
-  - Das Badge zeigt `ON` an, wenn angehängt.
-- Klicken Sie erneut, um zu trennen.
+  - Das Badge zeigt `ON` an, wenn angekoppelt.
+- Klicken Sie erneut, um zu entkoppeln.
 
 ## Welchen Tab steuert es?
 
 - Es steuert **nicht** automatisch „den Tab, den Sie gerade ansehen“.
-- Es steuert **nur die Tabs, die Sie explizit angehängt** haben, indem Sie auf die Toolbar-Schaltfläche geklickt haben.
+- Es steuert **nur die Tabs, die Sie explizit angekoppelt haben**, indem Sie auf die Toolbar-Schaltfläche klicken.
 - Zum Wechseln: Öffnen Sie den anderen Tab und klicken Sie dort auf das Erweiterungssymbol.
 
 ## Badge + häufige Fehler
 
-- `ON`: angehängt; OpenClaw kann diesen Tab steuern.
+- `ON`: angekoppelt; OpenClaw kann diesen Tab steuern.
 - `…`: Verbindung zum lokalen Relay wird hergestellt.
-- `!`: Relay nicht erreichbar (am häufigsten: der Browser-Relay-Server läuft auf diesem Rechner nicht).
+- `!`: Relay nicht erreichbar (am häufigsten: der Browser-Relay-Server läuft auf dieser Maschine nicht).
 
 Wenn Sie `!` sehen:
 
-- Stellen Sie sicher, dass der Gateway lokal läuft (Standardeinrichtung), oder starten Sie einen Node-Host auf diesem Rechner, wenn der Gateway woanders läuft.
-- Öffnen Sie die Optionsseite der Erweiterung; dort wird angezeigt, ob das Relay erreichbar ist.
+- Stellen Sie sicher, dass das Gateway lokal läuft (Standardeinrichtung), oder starten Sie einen Node-Host auf dieser Maschine, wenn das Gateway woanders läuft.
+- Öffnen Sie die Options-Seite der Erweiterung; dort wird angezeigt, ob das Relay erreichbar ist.
 
-## Remote Gateway (Node-Host verwenden)
+## Remote-Gateway (Node-Host verwenden)
 
-### Lokaler Gateway (gleicher Rechner wie Chrome) — in der Regel **keine zusätzlichen Schritte**
+### Lokales Gateway (gleiche Maschine wie Chrome) — in der Regel **keine zusätzlichen Schritte**
 
-Wenn der Gateway auf demselben Rechner wie Chrome läuft, startet er den Browser-Steuerungsdienst auf loopback
-und startet den Relay-Server automatisch. Die Erweiterung spricht mit dem lokalen Relay; die CLI-/Werkzeugaufrufe gehen an den Gateway.
+Wenn das Gateway auf derselben Maschine wie Chrome läuft, startet es den Browser-Control-Service auf local loopback
+und startet den Relay-Server automatisch. Die Erweiterung spricht mit dem lokalen Relay; die CLI-/Werkzeug-Aufrufe gehen an das Gateway.
 
-### Remote Gateway (Gateway läuft woanders) — **Node-Host ausführen**
+### Remote-Gateway (Gateway läuft woanders) — **Node-Host ausführen**
 
-Wenn Ihr Gateway auf einem anderen Rechner läuft, starten Sie einen Node-Host auf dem Rechner, auf dem Chrome läuft.
-Der Gateway proxyt Browser-Aktionen zu diesem Node; die Erweiterung + das Relay bleiben lokal auf dem Browser-Rechner.
+Wenn Ihr Gateway auf einer anderen Maschine läuft, starten Sie einen Node-Host auf der Maschine, auf der Chrome läuft.
+Das Gateway proxyt Browser-Aktionen zu diesem Node; die Erweiterung + das Relay bleiben lokal auf der Browser-Maschine.
 
 Wenn mehrere Nodes verbunden sind, fixieren Sie einen mit `gateway.nodes.browser.node` oder setzen Sie `gateway.nodes.browser.mode`.
 
 ## Sandboxing (Werkzeug-Container)
 
-Wenn Ihre Agent-Sitzung in einer Sandbox läuft (`agents.defaults.sandbox.mode != "off"`), kann das `browser`-Werkzeug eingeschränkt sein:
+Wenn Ihre Agent-Sitzung sandboxed ist (`agents.defaults.sandbox.mode != "off"`), kann das `browser`-Werkzeug eingeschränkt sein:
 
-- Standardmäßig zielen Sitzungen in einer Sandbox oft auf den **Sandbox-Browser** (`target="sandbox"`), nicht auf Ihren Host-Chrome.
-- Die Übernahme über das Chrome-Erweiterungs-Relay erfordert die Kontrolle des **Host**-Browser-Steuerungsservers.
+- Standardmäßig zielen sandboxed Sitzungen häufig auf den **Sandbox-Browser** (`target="sandbox"`), nicht auf Ihren Host-Chrome.
+- Die Übernahme über das Chrome-Erweiterungs-Relay erfordert die Kontrolle des **Host**-Browser-Control-Servers.
 
 Optionen:
 
-- Am einfachsten: Verwenden Sie die Erweiterung aus einer **nicht in einer Sandbox** laufenden Sitzung/einem Agenten.
-- Oder erlauben Sie die Host-Browser-Steuerung für Sitzungen in einer Sandbox:
+- Am einfachsten: Verwenden Sie die Erweiterung aus einer **nicht sandboxed** Sitzung/einem Agenten.
+- Oder erlauben Sie Host-Browser-Kontrolle für sandboxed Sitzungen:
 
 ```json5
 {
@@ -143,43 +143,43 @@ Optionen:
 }
 ```
 
-Stellen Sie anschließend sicher, dass das Werkzeug nicht durch die Werkzeugrichtlinie verweigert wird, und rufen Sie (falls erforderlich) `browser` mit `target="host"` auf.
+Stellen Sie anschließend sicher, dass das Werkzeug nicht durch die Werkzeugrichtlinie verweigert wird, und rufen Sie (falls nötig) `browser` mit `target="host"` auf.
 
 Debugging: `openclaw sandbox explain`
 
 ## Tipps für den Remote-Zugriff
 
-- Halten Sie Gateway und Node-Host im selben Tailnet; vermeiden Sie es, Relay-Ports im LAN oder im öffentlichen Internet freizugeben.
-- Koppeln Sie Nodes bewusst; deaktivieren Sie das Browser-Proxy-Routing, wenn Sie keine Fernsteuerung möchten (`gateway.nodes.browser.mode="off"`).
+- Halten Sie Gateway und Node-Host im selben Tailnet; vermeiden Sie es, Relay-Ports ins LAN oder ins öffentliche Internet zu exponieren.
+- Koppeln Sie Nodes gezielt; deaktivieren Sie Browser-Proxy-Routing, wenn Sie keine Fernsteuerung wünschen (`gateway.nodes.browser.mode="off"`).
 
-## Wie der „extension path“ funktioniert
+## Wie der „Extension Path“ funktioniert
 
-`openclaw browser extension path` gibt das **installierte** Verzeichnis auf der Festplatte aus, das die Erweiterungsdateien enthält.
+`openclaw browser extension path` gibt das **installierte** On-Disk-Verzeichnis aus, das die Erweiterungsdateien enthält.
 
-Die CLI gibt absichtlich **keinen** `node_modules`-Pfad aus. Führen Sie immer zuerst `openclaw browser extension install` aus, um die Erweiterung an einen stabilen Ort unter Ihrem OpenClaw-Zustandsverzeichnis zu kopieren.
+Die CLI gibt absichtlich **keinen** `node_modules`-Pfad aus. Führen Sie immer zuerst `openclaw browser extension install` aus, um die Erweiterung in einen stabilen Speicherort unter Ihrem OpenClaw-State-Verzeichnis zu kopieren.
 
 Wenn Sie dieses Installationsverzeichnis verschieben oder löschen, markiert Chrome die Erweiterung als defekt, bis Sie sie von einem gültigen Pfad erneut laden.
 
-## Sicherheitsauswirkungen (bitte lesen)
+## Sicherheitsimplikationen (bitte lesen)
 
 Dies ist leistungsfähig und riskant. Behandeln Sie es so, als würden Sie dem Modell „Hände an Ihrem Browser“ geben.
 
-- Die Erweiterung nutzt die Debugger-API von Chrome (`chrome.debugger`). Wenn sie angehängt ist, kann das Modell:
-  - klicken/schreiben/navigieren in diesem Tab
+- Die Erweiterung verwendet die Debugger-API von Chrome (`chrome.debugger`). Wenn sie angekoppelt ist, kann das Modell:
+  - in diesem Tab klicken/schreiben/navigieren
   - Seiteninhalte lesen
-  - auf alles zugreifen, worauf die angemeldete Sitzung des Tabs Zugriff hat
+  - auf alles zugreifen, worauf die im Tab angemeldete Sitzung Zugriff hat
 - **Dies ist nicht isoliert** wie das dedizierte, von OpenClaw verwaltete Profil.
-  - Wenn Sie Ihr tägliches Profil/Tab anhängen, gewähren Sie Zugriff auf diesen Kontozustand.
+  - Wenn Sie Ihr Alltagsprofil/-tab ankoppeln, gewähren Sie Zugriff auf diesen Kontostatus.
 
 Empfehlungen:
 
-- Bevorzugen Sie ein dediziertes Chrome-Profil (getrennt von Ihrem persönlichen Surfen) für die Nutzung des Erweiterungs-Relays.
-- Halten Sie den Gateway und alle Node-Hosts ausschließlich im Tailnet; verlassen Sie sich auf Gateway-Authentifizierung + Node-Kopplung.
-- Vermeiden Sie es, Relay-Ports über das LAN freizugeben (`0.0.0.0`) und vermeiden Sie Funnel (öffentlich).
+- Bevorzugen Sie ein dediziertes Chrome-Profil (getrennt von Ihrem persönlichen Browsing) für die Nutzung des Erweiterungs-Relays.
+- Halten Sie das Gateway und alle Node-Hosts auf Tailnet beschränkt; verlassen Sie sich auf Gateway-Authentifizierung + Node-Kopplung.
+- Vermeiden Sie das Exponieren von Relay-Ports über das LAN (`0.0.0.0`) und vermeiden Sie Funnel (öffentlich).
 - Das Relay blockiert Nicht-Erweiterungs-Ursprünge und erfordert ein internes Auth-Token für CDP-Clients.
 
 Verwandt:
 
-- Übersicht zum Browser-Werkzeug: [Browser](/tools/browser)
+- Browser-Werkzeug-Überblick: [Browser](/tools/browser)
 - Sicherheitsaudit: [Security](/gateway/security)
-- Tailscale-Einrichtung: [Tailscale](/gateway/tailscale)
+- Tailscale-Setup: [Tailscale](/gateway/tailscale)

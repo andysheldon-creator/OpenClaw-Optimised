@@ -1,35 +1,35 @@
 ---
-summary: „Perplexity-Sonar-Einrichtung fuer web_search“
+summary: „Perplexity-Sonar-Einrichtung für web_search“
 read_when:
-  - Sie moechten Perplexity Sonar fuer die Websuche verwenden
-  - Sie benoetigen PERPLEXITY_API_KEY oder eine OpenRouter-Einrichtung
+  - Sie möchten Perplexity Sonar für die Websuche verwenden
+  - Sie benötigen PERPLEXITY_API_KEY oder eine OpenRouter-Einrichtung
 title: „Perplexity Sonar“
 x-i18n:
   source_path: perplexity.md
-  source_hash: 264d08e62e3bec85
+  source_hash: f6c9824ad9bebe38
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:04:49Z
+  generated_at: 2026-02-08T09:36:47Z
 ---
 
 # Perplexity Sonar
 
-OpenClaw kann Perplexity Sonar fuer das `web_search`-Werkzeug verwenden. Sie koennen eine Verbindung
-ueber die direkte API von Perplexity oder ueber OpenRouter herstellen.
+OpenClaw kann Perplexity Sonar für das Werkzeug `web_search` verwenden. Sie können
+sich entweder über die direkte API von Perplexity oder über OpenRouter verbinden.
 
 ## API-Optionen
 
 ### Perplexity (direkt)
 
-- Basis-URL: https://api.perplexity.ai
+- Basis-URL: [https://api.perplexity.ai](https://api.perplexity.ai)
 - Umgebungsvariable: `PERPLEXITY_API_KEY`
 
 ### OpenRouter (Alternative)
 
-- Basis-URL: https://openrouter.ai/api/v1
+- Basis-URL: [https://openrouter.ai/api/v1](https://openrouter.ai/api/v1)
 - Umgebungsvariable: `OPENROUTER_API_KEY`
-- Unterstuetzt Prepaid-/Krypto-Guthaben.
+- Unterstützt Prepaid-/Krypto-Guthaben.
 
 ## Konfigurationsbeispiel
 
@@ -70,18 +70,18 @@ ueber die direkte API von Perplexity oder ueber OpenRouter herstellen.
 
 Wenn sowohl `PERPLEXITY_API_KEY` als auch `OPENROUTER_API_KEY` gesetzt sind, setzen Sie
 `tools.web.search.perplexity.baseUrl` (oder `tools.web.search.perplexity.apiKey`),
-um eine eindeutige Zuordnung vorzunehmen.
+um die Zuordnung eindeutig festzulegen.
 
-Wenn keine Basis-URL gesetzt ist, waehlt OpenClaw einen Standard basierend auf der Quelle des API-Schluessels:
+Wenn keine Basis-URL gesetzt ist, wählt OpenClaw standardmäßig eine auf Grundlage der API-Schlüsselquelle:
 
 - `PERPLEXITY_API_KEY` oder `pplx-...` → direktes Perplexity (`https://api.perplexity.ai`)
 - `OPENROUTER_API_KEY` oder `sk-or-...` → OpenRouter (`https://openrouter.ai/api/v1`)
-- Unbekannte Schluesselformate → OpenRouter (sicherer Fallback)
+- Unbekannte Schlüsselformate → OpenRouter (sicherer Fallback)
 
 ## Modelle
 
 - `perplexity/sonar` — schnelle Q&A mit Websuche
-- `perplexity/sonar-pro` (Standard) — mehrstufiges Schlussfolgern + Websuche
-- `perplexity/sonar-reasoning-pro` — Tiefenrecherche
+- `perplexity/sonar-pro` (Standard) — mehrstufige Schlussfolgerung + Websuche
+- `perplexity/sonar-reasoning-pro` — tiefgehende Recherche
 
-Siehe [Web tools](/tools/web) fuer die vollstaendige web_search-Konfiguration.
+Siehe [Web-Tools](/tools/web) für die vollständige web_search-Konfiguration.

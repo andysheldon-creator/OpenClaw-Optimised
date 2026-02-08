@@ -1,15 +1,15 @@
 ---
-summary: "Cómo funciona el sandboxing de OpenClaw: modos, alcances, acceso al espacio de trabajo e imágenes"
+summary: "Cómo funciona el sandboxing de OpenClaw: modos, alcances, acceso al workspace e imágenes"
 title: Sandboxing
 read_when: "Quiere una explicación dedicada del sandboxing o necesita ajustar agents.defaults.sandbox."
 status: active
 x-i18n:
   source_path: gateway/sandboxing.md
-  source_hash: 184fc53001fc6b28
+  source_hash: c1bb7fd4ac37ef73
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:59:11Z
+  generated_at: 2026-02-08T09:33:43Z
 ---
 
 # Sandboxing
@@ -20,34 +20,34 @@ Esto es **opcional** y está controlado por la configuración (`agents.defaults.
 El Gateway permanece en el host; la ejecución de herramientas se realiza en un sandbox aislado
 cuando está habilitado.
 
-Esto no es un límite de seguridad perfecto, pero limita materialmente el acceso al sistema de archivos
-y a los procesos cuando el modelo hace algo incorrecto.
+Esto no es un límite de seguridad perfecto, pero limita de forma material el acceso al sistema de archivos
+y a los procesos cuando el modelo hace algo indebido.
 
-## Qué se ejecuta en sandbox
+## Qué se sandboxea
 
 - Ejecución de herramientas (`exec`, `read`, `write`, `edit`, `apply_patch`, `process`, etc.).
-- Navegador en sandbox opcional (`agents.defaults.sandbox.browser`).
-  - De forma predeterminada, el navegador en sandbox se inicia automáticamente (asegura que CDP sea accesible) cuando la herramienta de navegador lo necesita.
+- Navegador opcional en sandbox (`agents.defaults.sandbox.browser`).
+  - De forma predeterminada, el navegador del sandbox se inicia automáticamente (asegura que CDP sea accesible) cuando la herramienta de navegador lo necesita.
     Configure mediante `agents.defaults.sandbox.browser.autoStart` y `agents.defaults.sandbox.browser.autoStartTimeoutMs`.
   - `agents.defaults.sandbox.browser.allowHostControl` permite que las sesiones en sandbox apunten explícitamente al navegador del host.
   - Las allowlists opcionales controlan `target: "custom"`: `allowedControlUrls`, `allowedControlHosts`, `allowedControlPorts`.
 
-No se ejecuta en sandbox:
+No se sandboxea:
 
 - El propio proceso del Gateway.
-- Cualquier herramienta permitida explícitamente para ejecutarse en el host (p. ej., `tools.elevated`).
+- Cualquier herramienta permitida explícitamente para ejecutarse en el host (por ejemplo, `tools.elevated`).
   - **La ejecución elevada se ejecuta en el host y omite el sandboxing.**
   - Si el sandboxing está desactivado, `tools.elevated` no cambia la ejecución (ya está en el host). Consulte [Elevated Mode](/tools/elevated).
 
 ## Modos
 
-`agents.defaults.sandbox.mode` controla **cuándo** se usa el sandboxing:
+`agents.defaults.sandbox.mode` controla **cuándo** se utiliza el sandboxing:
 
 - `"off"`: sin sandboxing.
-- `"non-main"`: sandbox solo para sesiones **no principales** (predeterminado si desea chats normales en el host).
+- `"non-main"`: sandbox solo para sesiones **no principales** (valor predeterminado si quiere chats normales en el host).
 - `"all"`: cada sesión se ejecuta en un sandbox.
-  Nota: `"non-main"` se basa en `session.mainKey` (predeterminado `"main"`), no en el id del agente.
-  Las sesiones de grupo/canal usan sus propias claves, por lo que cuentan como no principales y se ejecutarán en sandbox.
+  Nota: `"non-main"` se basa en `session.mainKey` (valor predeterminado `"main"`), no en el id del agente.
+  Las sesiones de grupo/canal usan sus propias claves, por lo que cuentan como no principales y se sandboxean.
 
 ## Alcance
 
@@ -57,28 +57,28 @@ No se ejecuta en sandbox:
 - `"agent"`: un contenedor por agente.
 - `"shared"`: un contenedor compartido por todas las sesiones en sandbox.
 
-## Acceso al espacio de trabajo
+## Acceso al workspace
 
 `agents.defaults.sandbox.workspaceAccess` controla **qué puede ver el sandbox**:
 
-- `"none"` (predeterminado): las herramientas ven un espacio de trabajo en sandbox bajo `~/.openclaw/sandboxes`.
-- `"ro"`: monta el espacio de trabajo del agente en solo lectura en `/agent` (deshabilita `write`/`edit`/`apply_patch`).
-- `"rw"`: monta el espacio de trabajo del agente en lectura/escritura en `/workspace`.
+- `"none"` (predeterminado): las herramientas ven un workspace del sandbox bajo `~/.openclaw/sandboxes`.
+- `"ro"`: monta el workspace del agente en solo lectura en `/agent` (deshabilita `write`/`edit`/`apply_patch`).
+- `"rw"`: monta el workspace del agente en lectura/escritura en `/workspace`.
 
-Los medios entrantes se copian en el espacio de trabajo activo del sandbox (`media/inbound/*`).
+Los medios entrantes se copian en el workspace activo del sandbox (`media/inbound/*`).
 Nota de Skills: la herramienta `read` está enraizada en el sandbox. Con `workspaceAccess: "none"`,
-OpenClaw refleja las skills elegibles en el espacio de trabajo del sandbox (`.../skills`) para
-que puedan leerse. Con `"rw"`, las skills del espacio de trabajo se pueden leer desde
+OpenClaw refleja las skills elegibles en el workspace del sandbox (`.../skills`) para
+que puedan leerse. Con `"rw"`, las skills del workspace son legibles desde
 `/workspace/skills`.
 
 ## Montajes bind personalizados
 
 `agents.defaults.sandbox.docker.binds` monta directorios adicionales del host dentro del contenedor.
-Formato: `host:container:mode` (p. ej., `"/home/user/source:/source:rw"`).
+Formato: `host:container:mode` (por ejemplo, `"/home/user/source:/source:rw"`).
 
-Los binds globales y por agente se **combinan** (no se reemplazan). Bajo `scope: "shared"`, los binds por agente se ignoran.
+Los binds globales y por agente se **fusionan** (no se reemplazan). Bajo `scope: "shared"`, los binds por agente se ignoran.
 
-Ejemplo (origen de solo lectura + socket de docker):
+Ejemplo (origen de solo lectura + socket de Docker):
 
 ```json5
 {
@@ -106,10 +106,10 @@ Ejemplo (origen de solo lectura + socket de docker):
 
 Notas de seguridad:
 
-- Los binds omiten el sistema de archivos del sandbox: exponen rutas del host con el modo que establezca (`:ro` o `:rw`).
-- Los montajes sensibles (p. ej., `docker.sock`, secretos, claves SSH) deberían ser `:ro` salvo que sea absolutamente necesario.
-- Combine con `workspaceAccess: "ro"` si solo necesita acceso de lectura al espacio de trabajo; los modos de bind permanecen independientes.
-- Consulte [Sandbox vs Tool Policy vs Elevated](/gateway/sandbox-vs-tool-policy-vs-elevated) para ver cómo los binds interactúan con la política de herramientas y la ejecución elevada.
+- Los binds omiten el sistema de archivos del sandbox: exponen rutas del host con el modo que usted establezca (`:ro` o `:rw`).
+- Los montajes sensibles (por ejemplo, `docker.sock`, secretos, claves SSH) deben ser `:ro` salvo que sea absolutamente necesario.
+- Combine con `workspaceAccess: "ro"` si solo necesita acceso de lectura al workspace; los modos de bind permanecen independientes.
+- Consulte [Sandbox vs Tool Policy vs Elevated](/gateway/sandbox-vs-tool-policy-vs-elevated) para saber cómo interactúan los binds con la política de herramientas y la ejecución elevada.
 
 ## Imágenes + configuración
 
@@ -122,8 +122,8 @@ scripts/sandbox-setup.sh
 ```
 
 Nota: la imagen predeterminada **no** incluye Node. Si una skill necesita Node (u
-otros runtimes), cree una imagen personalizada o instale mediante
-`sandbox.docker.setupCommand` (requiere salida de red + raíz escribible +
+otros runtimes), hornee una imagen personalizada o instale mediante
+`sandbox.docker.setupCommand` (requiere egreso de red + raíz escribible +
 usuario root).
 
 Imagen del navegador en sandbox:
@@ -132,7 +132,7 @@ Imagen del navegador en sandbox:
 scripts/sandbox-browser-setup.sh
 ```
 
-De forma predeterminada, los contenedores en sandbox se ejecutan **sin red**.
+De forma predeterminada, los contenedores del sandbox se ejecutan **sin red**.
 Anule esto con `agents.defaults.sandbox.docker.network`.
 
 Las instalaciones de Docker y el Gateway en contenedores viven aquí:
@@ -140,7 +140,7 @@ Las instalaciones de Docker y el Gateway en contenedores viven aquí:
 
 ## setupCommand (configuración única del contenedor)
 
-`setupCommand` se ejecuta **una sola vez** después de que se crea el contenedor del sandbox (no en cada ejecución).
+`setupCommand` se ejecuta **una vez** después de que se crea el contenedor del sandbox (no en cada ejecución).
 Se ejecuta dentro del contenedor mediante `sh -lc`.
 
 Rutas:
@@ -148,34 +148,34 @@ Rutas:
 - Global: `agents.defaults.sandbox.docker.setupCommand`
 - Por agente: `agents.list[].sandbox.docker.setupCommand`
 
-Errores comunes:
+Problemas comunes:
 
-- El `docker.network` predeterminado es `"none"` (sin salida), por lo que las instalaciones de paquetes fallarán.
-- `readOnlyRoot: true` impide escrituras; establezca `readOnlyRoot: false` o cree una imagen personalizada.
+- El valor predeterminado de `docker.network` es `"none"` (sin egreso), por lo que las instalaciones de paquetes fallarán.
+- `readOnlyRoot: true` impide escrituras; establezca `readOnlyRoot: false` o hornee una imagen personalizada.
 - `user` debe ser root para instalaciones de paquetes (omita `user` o establezca `user: "0:0"`).
 - La ejecución en sandbox **no** hereda las `process.env` del host. Use
   `agents.defaults.sandbox.docker.env` (o una imagen personalizada) para las claves de API de skills.
 
 ## Política de herramientas + vías de escape
 
-Las políticas de permitir/denegar herramientas aún se aplican antes de las reglas de sandbox. Si una herramienta está denegada
-globalmente o por agente, el sandboxing no la restaura.
+Las políticas de permitir/denegar herramientas siguen aplicándose antes de las reglas del sandbox. Si una herramienta está denegada
+globalmente o por agente, el sandboxing no la restablece.
 
 `tools.elevated` es una vía de escape explícita que ejecuta `exec` en el host.
-Las directivas `/exec` solo se aplican a remitentes autorizados y persisten por sesión; para deshabilitar
-`exec` de forma estricta, use la denegación en la política de herramientas (consulte [Sandbox vs Tool Policy vs Elevated](/gateway/sandbox-vs-tool-policy-vs-elevated)).
+Las directivas `/exec` solo se aplican a remitentes autorizados y persisten por sesión; para deshabilitar de forma estricta
+`exec`, use la denegación en la política de herramientas (consulte [Sandbox vs Tool Policy vs Elevated](/gateway/sandbox-vs-tool-policy-vs-elevated)).
 
 Depuración:
 
-- Use `openclaw sandbox explain` para inspeccionar el modo efectivo de sandbox, la política de herramientas y las claves de configuración de corrección.
-- Consulte [Sandbox vs Tool Policy vs Elevated](/gateway/sandbox-vs-tool-policy-vs-elevated) para el modelo mental de “¿por qué está bloqueado?”.
+- Use `openclaw sandbox explain` para inspeccionar el modo efectivo del sandbox, la política de herramientas y las claves de configuración de corrección.
+- Consulte [Sandbox vs Tool Policy vs Elevated](/gateway/sandbox-vs-tool-policy-vs-elevated) para el modelo mental de “¿por qué esto está bloqueado?”.
   Manténgalo bloqueado.
 
-## Anulaciones multiagente
+## Anulaciones multi‑agente
 
 Cada agente puede anular sandbox + herramientas:
 `agents.list[].sandbox` y `agents.list[].tools` (además de `agents.list[].tools.sandbox.tools` para la política de herramientas del sandbox).
-Consulte [Multi-Agent Sandbox & Tools](/multi-agent-sandbox-tools) para la precedencia.
+Consulte [Multi-Agent Sandbox & Tools](/tools/multi-agent-sandbox-tools) para la precedencia.
 
 ## Ejemplo mínimo de habilitación
 
@@ -196,5 +196,5 @@ Consulte [Multi-Agent Sandbox & Tools](/multi-agent-sandbox-tools) para la prece
 ## Documentos relacionados
 
 - [Sandbox Configuration](/gateway/configuration#agentsdefaults-sandbox)
-- [Multi-Agent Sandbox & Tools](/multi-agent-sandbox-tools)
+- [Multi-Agent Sandbox & Tools](/tools/multi-agent-sandbox-tools)
 - [Security](/gateway/security)

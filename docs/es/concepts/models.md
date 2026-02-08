@@ -1,89 +1,88 @@
 ---
 summary: "CLI de modelos: listar, establecer, alias, alternativas, escanear, estado"
 read_when:
-  - Al agregar o modificar el CLI de modelos (models list/set/scan/aliases/fallbacks)
-  - Al cambiar el comportamiento de alternativas de modelos o la UX de selección
-  - Al actualizar las sondas de escaneo de modelos (herramientas/imágenes)
-title: "CLI de Modelos"
+  - Agregar o modificar la CLI de modelos (models list/set/scan/aliases/fallbacks)
+  - Cambiar el comportamiento de alternativas de modelos o la UX de selección
+  - Actualizar sondeos de escaneo de modelos (herramientas/imágenes)
+title: "CLI de modelos"
 x-i18n:
   source_path: concepts/models.md
-  source_hash: c4eeb0236c645b55
+  source_hash: 13e17a306245e0cc
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:58:42Z
+  generated_at: 2026-02-08T09:33:21Z
 ---
 
-# CLI de Modelos
+# CLI de modelos
 
-Consulte [/concepts/model-failover](/concepts/model-failover) para la rotación de
-perfiles de autenticación, los periodos de enfriamiento y cómo interactúa eso con
-las alternativas.
+Vea [/concepts/model-failover](/concepts/model-failover) para la rotación de perfiles de autenticación,
+los enfriamientos y cómo eso interactúa con las alternativas.
 Resumen rápido de proveedores + ejemplos: [/concepts/model-providers](/concepts/model-providers).
 
 ## Cómo funciona la selección de modelos
 
-OpenClaw selecciona los modelos en este orden:
+OpenClaw selecciona modelos en este orden:
 
 1. **Primario** (`agents.defaults.model.primary` o `agents.defaults.model`).
 2. **Alternativas** en `agents.defaults.model.fallbacks` (en orden).
-3. **Conmutación por error de autenticación del proveedor** ocurre dentro de un
-   proveedor antes de pasar al siguiente modelo.
+3. **Conmutación por error de autenticación del proveedor** ocurre dentro de un proveedor antes de pasar al
+   siguiente modelo.
 
 Relacionado:
 
-- `agents.defaults.models` es la lista permitida/catálogo de modelos que OpenClaw puede usar (más alias).
+- `agents.defaults.models` es la lista de permitidos/catálogo de modelos que OpenClaw puede usar (más alias).
 - `agents.defaults.imageModel` se usa **solo cuando** el modelo primario no puede aceptar imágenes.
-- Los valores predeterminados por agente pueden sobrescribir `agents.defaults.model` mediante `agents.list[].model` más enlaces (consulte [/concepts/multi-agent](/concepts/multi-agent)).
+- Los valores predeterminados por agente pueden sobrescribir `agents.defaults.model` mediante `agents.list[].model` más enlaces (ver [/concepts/multi-agent](/concepts/multi-agent)).
 
-## Selecciones rápidas de modelos (anecdótico)
+## Selecciones rápidas de modelos (anecdóticas)
 
 - **GLM**: un poco mejor para programación/llamadas a herramientas.
-- **MiniMax**: mejor para escritura y estilo.
+- **MiniMax**: mejor para redacción y estilo.
 
 ## Asistente de configuración (recomendado)
 
-Si no quiere editar la configuración a mano, ejecute el asistente de incorporación:
+Si no desea editar la configuración a mano, ejecute el asistente de incorporación:
 
 ```bash
 openclaw onboard
 ```
 
-Puede configurar modelo + autenticación para proveedores comunes, incluyendo **OpenAI Code (Codex)
-subscription** (OAuth) y **Anthropic** (se recomienda clave API; `claude
+Puede configurar modelo + autenticación para proveedores comunes, incluidos **OpenAI Code (Codex)
+subscription** (OAuth) y **Anthropic** (se recomienda clave de API; `claude
 setup-token` también es compatible).
 
 ## Claves de configuración (resumen)
 
 - `agents.defaults.model.primary` y `agents.defaults.model.fallbacks`
 - `agents.defaults.imageModel.primary` y `agents.defaults.imageModel.fallbacks`
-- `agents.defaults.models` (lista permitida + alias + parámetros del proveedor)
+- `agents.defaults.models` (lista de permitidos + alias + parámetros del proveedor)
 - `models.providers` (proveedores personalizados escritos en `models.json`)
 
 Las referencias de modelos se normalizan a minúsculas. Los alias de proveedores como `z.ai/*` se normalizan
 a `zai/*`.
 
-Ejemplos de configuración de proveedores (incluido OpenCode Zen) se encuentran en
+Los ejemplos de configuración de proveedores (incluido OpenCode Zen) están en
 [/gateway/configuration](/gateway/configuration#opencode-zen-multi-model-proxy).
 
 ## “El modelo no está permitido” (y por qué las respuestas se detienen)
 
-Si `agents.defaults.models` está configurado, se convierte en la **lista permitida** para `/model` y para
-las anulaciones de sesión. Cuando un usuario selecciona un modelo que no está en esa lista permitida,
+Si `agents.defaults.models` está configurado, se convierte en la **lista de permitidos** para `/model` y para
+sobrescrituras de sesión. Cuando un usuario selecciona un modelo que no está en esa lista,
 OpenClaw devuelve:
 
 ```
 Model "provider/model" is not allowed. Use /model to list available models.
 ```
 
-Esto ocurre **antes** de que se genere una respuesta normal, por lo que el mensaje puede parecer
-que “no respondió”. La solución es:
+Esto ocurre **antes** de que se genere una respuesta normal, por lo que el mensaje puede sentirse
+como si “no respondiera”. La solución es:
 
 - Agregar el modelo a `agents.defaults.models`, o
-- Limpiar la lista permitida (eliminar `agents.defaults.models`), o
+- Limpiar la lista de permitidos (eliminar `agents.defaults.models`), o
 - Elegir un modelo de `/model list`.
 
-Ejemplo de configuración de lista permitida:
+Ejemplo de configuración de lista de permitidos:
 
 ```json5
 {
@@ -113,14 +112,14 @@ Notas:
 
 - `/model` (y `/model list`) es un selector compacto y numerado (familia de modelos + proveedores disponibles).
 - `/model <#>` selecciona desde ese selector.
-- `/model status` es la vista detallada (candidatos de autenticación y, cuando está configurado, el endpoint del proveedor `baseUrl` + modo `api`).
+- `/model status` es la vista detallada (candidatos de autenticación y, cuando está configurado, el endpoint del proveedor `baseUrl` + el modo `api`).
 - Las referencias de modelos se analizan separando por el **primer** `/`. Use `provider/model` al escribir `/model <ref>`.
 - Si el ID del modelo en sí contiene `/` (estilo OpenRouter), debe incluir el prefijo del proveedor (ejemplo: `/model openrouter/moonshotai/kimi-k2`).
 - Si omite el proveedor, OpenClaw trata la entrada como un alias o un modelo para el **proveedor predeterminado** (solo funciona cuando no hay `/` en el ID del modelo).
 
-Comportamiento completo del comando/configuración: [Slash commands](/tools/slash-commands).
+Comportamiento/configuración completa del comando: [Slash commands](/tools/slash-commands).
 
-## Comandos del CLI
+## Comandos de la CLI
 
 ```bash
 openclaw models list
@@ -162,12 +161,12 @@ de los proveedores configurados. También muestra el estado de caducidad de OAut
 en el almacén de autenticación (advierte dentro de 24 h de forma predeterminada). `--plain` imprime solo el
 modelo primario resuelto.
 El estado de OAuth siempre se muestra (y se incluye en la salida de `--json`). Si un proveedor configurado
-no tiene credenciales, `models status` imprime una sección de **Autenticación faltante**.
+no tiene credenciales, `models status` imprime una sección **Missing auth**.
 El JSON incluye `auth.oauth` (ventana de advertencia + perfiles) y `auth.providers`
 (autenticación efectiva por proveedor).
-Use `--check` para automatización (salida `1` cuando falta/está caducada, `2` cuando está por caducar).
+Use `--check` para automatización (salida `1` cuando falta/está vencida, `2` cuando está por vencer).
 
-La autenticación preferida de Anthropic es el setup-token del CLI de Claude Code (ejecútelo en cualquier lugar; pegue en el host del gateway si es necesario):
+La autenticación preferida de Anthropic es el setup-token de la CLI de Claude Code (ejecútelo en cualquier lugar; péguelo en el host del Gateway si es necesario):
 
 ```bash
 claude setup-token
@@ -183,13 +182,13 @@ Indicadores clave:
 
 - `--no-probe`: omitir sondeos en vivo (solo metadatos)
 - `--min-params <b>`: tamaño mínimo de parámetros (miles de millones)
-- `--max-age-days <days>`: omitir modelos más antiguos
+- `--max-age-days <days>`: omitir modelos antiguos
 - `--provider <name>`: filtro de prefijo de proveedor
 - `--max-candidates <n>`: tamaño de la lista de alternativas
 - `--set-default`: establecer `agents.defaults.model.primary` en la primera selección
 - `--set-image`: establecer `agents.defaults.imageModel.primary` en la primera selección de imágenes
 
-El sondeo requiere una clave API de OpenRouter (desde perfiles de autenticación o
+El sondeo requiere una clave de API de OpenRouter (desde perfiles de autenticación o
 `OPENROUTER_API_KEY`). Sin una clave, use `--no-probe` para listar solo candidatos.
 
 Los resultados del escaneo se clasifican por:
@@ -201,8 +200,8 @@ Los resultados del escaneo se clasifican por:
 
 Entrada
 
-- Lista de `/models` de OpenRouter (filtro `:free`)
-- Requiere clave API de OpenRouter desde perfiles de autenticación o `OPENROUTER_API_KEY` (consulte [/environment](/environment))
+- Lista `/models` de OpenRouter (filtro `:free`)
+- Requiere clave de API de OpenRouter desde perfiles de autenticación o `OPENROUTER_API_KEY` (ver [/environment](/help/environment))
 - Filtros opcionales: `--max-age-days`, `--min-params`, `--provider`, `--max-candidates`
 - Controles de sondeo: `--timeout`, `--concurrency`
 

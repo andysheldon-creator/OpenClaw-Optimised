@@ -1,41 +1,41 @@
 ---
-summary: "exe.dev（VM + HTTPS プロキシ）で OpenClaw Gateway（ゲートウェイ）を実行し、リモートアクセスする"
+summary: 「リモートアクセスのために exe.dev（VM + HTTPS プロキシ）で OpenClaw Gateway（ゲートウェイ）を実行します」
 read_when:
-  - Gateway（ゲートウェイ）用に安価で常時稼働の Linux ホストが必要な場合
-  - 自分で VPS を運用せずにリモートの Control UI へアクセスしたい場合
-title: "exe.dev"
+  - 「Gateway（ゲートウェイ）用に安価で常時稼働の Linux ホストが必要な場合」
+  - 「自分で VPS を運用せずにリモート Control UI にアクセスしたい場合」
+title: 「exe.dev」
 x-i18n:
   source_path: install/exe-dev.md
   source_hash: 72ab798afd058a76
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:34:02Z
+  generated_at: 2026-02-08T09:22:11Z
 ---
 
 # exe.dev
 
-目的: exe.dev の VM 上で OpenClaw Gateway（ゲートウェイ）を実行し、ノート PC から次の経路で到達可能にする: `https://<vm-name>.exe.xyz`
+目的：exe.dev の VM 上で OpenClaw Gateway（ゲートウェイ）を実行し、ノート PC から `https://<vm-name>.exe.xyz` 経由で到達可能にします。
 
 このページは、exe.dev の既定の **exeuntu** イメージを前提としています。別のディストリビューションを選択した場合は、パッケージを適宜読み替えてください。
 
 ## 初心者向けクイックパス
 
 1. [https://exe.new/openclaw](https://exe.new/openclaw)
-2. 必要に応じて認証キー／トークンを入力
-3. VM の横にある「Agent」をクリックし、待機
+2. 必要に応じて認証キー／トークンを入力します
+3. VM の横にある「Agent」をクリックし、待機します…
 4. ???
 5. 利益
 
 ## 必要なもの
 
 - exe.dev アカウント
-- [exe.dev](https://exe.dev) の仮想マシンへの `ssh exe.dev` アクセス（任意）
+- [exe.dev](https://exe.dev) 仮想マシンへの `ssh exe.dev` アクセス（任意）
 
 ## Shelley による自動インストール
 
-exe.dev のエージェントである Shelley は、当社の
-プロンプトを使って OpenClaw を即座にインストールできます。使用するプロンプトは次のとおりです。
+exe.dev のエージェントである Shelley は、当社のプロンプトを使って OpenClaw を即座にインストールできます。
+使用されるプロンプトは以下のとおりです：
 
 ```
 Set up OpenClaw (https://docs.openclaw.ai/install) on this VM. Use the non-interactive and accept-risk flags for openclaw onboarding. Add the supplied auth or token as needed. Configure nginx to forward from the default port 18789 to the root location on the default enabled site config, making sure to enable Websocket support. Pairing is done by "openclaw devices list" and "openclaw device approve <request id>". Make sure the dashboard shows that OpenClaw's health is OK. exe.dev handles forwarding from port 8000 to port 80/443 and HTTPS for us, so the final "reachable" should be <vm-name>.exe.xyz, without port specification.
@@ -43,40 +43,40 @@ Set up OpenClaw (https://docs.openclaw.ai/install) on this VM. Use the non-inter
 
 ## 手動インストール
 
-## 1) VM を作成
+## 1) VM を作成する
 
-ご自身のデバイスから:
+お使いのデバイスから：
 
 ```bash
 ssh exe.dev new
 ```
 
-その後、接続します:
+その後、接続します：
 
 ```bash
 ssh <vm-name>.exe.xyz
 ```
 
-ヒント: この VM は **stateful** のままにしてください。OpenClaw は状態を `~/.openclaw/` および `~/.openclaw/workspace/` 配下に保存します。
+ヒント：この VM は **ステートフル** にしてください。OpenClaw は `~/.openclaw/` および `~/.openclaw/workspace/` の下に状態を保存します。
 
-## 2) 事前要件のインストール（VM 上）
+## 2) 前提条件をインストール（VM 上）
 
 ```bash
 sudo apt-get update
 sudo apt-get install -y git curl jq ca-certificates openssl
 ```
 
-## 3) OpenClaw のインストール
+## 3) OpenClaw をインストール
 
-OpenClaw のインストールスクリプトを実行します。
+OpenClaw のインストールスクリプトを実行します：
 
 ```bash
 curl -fsSL https://openclaw.ai/install.sh | bash
 ```
 
-## 4) nginx を設定して OpenClaw をポート 8000 にプロキシ
+## 4) nginx を設定して OpenClaw をポート 8000 にプロキシする
 
-`/etc/nginx/sites-enabled/default` を次の内容で編集します。
+`/etc/nginx/sites-enabled/default` を編集し、以下を設定します：
 
 ```
 server {
@@ -108,10 +108,9 @@ server {
 }
 ```
 
-## 5) OpenClaw へアクセスして権限を付与
+## 5) OpenClaw にアクセスして権限を付与する
 
-`https://<vm-name>.exe.xyz/` にアクセスします（オンボーディング時の Control UI 出力を参照）。認証を求められた場合は、VM 上の `gateway.auth.token` からトークンを貼り付けてください（`openclaw config get gateway.auth.token` で取得、または `openclaw doctor --generate-gateway-token` で生成できます）。`openclaw devices list` と
-`openclaw devices approve <requestId>` でデバイスを承認します。迷った場合は、ブラウザから Shelley を使用してください。
+`https://<vm-name>.exe.xyz/` にアクセスします（オンボーディング時の Control UI の出力を参照）。認証を求められた場合は、VM 上の `gateway.auth.token` にあるトークンを貼り付けてください（`openclaw config get gateway.auth.token` で取得するか、`openclaw doctor --generate-gateway-token` で生成できます）。`openclaw devices list` および `openclaw devices approve <requestId>` を使用してデバイスを承認します。迷った場合は、ブラウザーから Shelley を使用してください。
 
 ## リモートアクセス
 
@@ -126,4 +125,4 @@ openclaw gateway restart
 openclaw health
 ```
 
-ガイド: [Updating](/install/updating)
+ガイド：[Updating](/install/updating)

@@ -1,171 +1,179 @@
 ---
-summary: "OpenClaw 설치(권장 설치 프로그램, 전역 설치 또는 소스에서 설치)"
+summary: "OpenClaw 설치 — 설치 스크립트, npm/pnpm, 소스에서 빌드, Docker 등"
 read_when:
-  - OpenClaw 설치
-  - GitHub 에서 설치하려는 경우
-title: "설치 개요"
+  - 시작하기 빠른 시작 외의 설치 방법이 필요할 때
+  - 클라우드 플랫폼에 배포하려는 경우
+  - 업데이트, 마이그레이션 또는 제거가 필요할 때
+title: "설치"
 x-i18n:
   source_path: install/index.md
-  source_hash: 228056bb0a2176b8
+  source_hash: 67c029634ba38196
   provider: openai
-  model: gpt-5.2-pro
+  model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-06T05:40:30Z
+  generated_at: 2026-02-08T09:25:28Z
 ---
 
-# 설치 개요
+# 설치
 
-특별한 이유가 없다면 설치 프로그램을 사용합니다. 설치 프로그램은 CLI 를 설정하고 온보딩을 실행합니다.
-
-## 빠른 설치(권장)
-
-```bash
-curl -fsSL https://openclaw.ai/install.sh | bash
-```
-
-Windows(PowerShell):
-
-```powershell
-iwr -useb https://openclaw.ai/install.ps1 | iex
-```
-
-다음 단계(온보딩을 건너뛰었다면):
-
-```bash
-openclaw onboard --install-daemon
-```
+이미 [Getting Started](/start/getting-started)를 완료하셨나요? 그렇다면 준비가 끝났습니다 — 이 페이지는 대체 설치 방법, 플랫폼별 지침, 그리고 유지 관리에 관한 내용입니다.
 
 ## 시스템 요구 사항
 
-- **Node >=22**
-- macOS, Linux 또는 WSL2 를 통한 Windows
-- 소스에서 빌드하는 경우에만 `pnpm`
+- **[Node 22+](/install/node)** ([설치 스크립트](#install-methods)가 누락된 경우 설치합니다)
+- macOS, Linux 또는 Windows
+- 소스에서 빌드하는 경우에만 `pnpm` 필요
 
-## 설치 경로 선택
+<Note>
+Windows 에서는 [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install)에서 OpenClaw 를 실행하는 것을 강력히 권장합니다.
+</Note>
 
-### 1) 설치 프로그램 스크립트(권장)
+## 설치 방법
 
-npm 을 통해 `openclaw` 를 전역으로 설치하고 온보딩을 실행합니다.
+<Tip>
+**설치 스크립트**는 OpenClaw 를 설치하는 권장 방법입니다. Node 감지, 설치, 온보딩을 한 단계로 처리합니다.
+</Tip>
 
-```bash
-curl -fsSL https://openclaw.ai/install.sh | bash
-```
+<AccordionGroup>
+  <Accordion title="설치 스크립트" icon="rocket" defaultOpen>
+    CLI 를 다운로드하고 npm 을 통해 전역으로 설치한 다음 온보딩 마법사를 실행합니다.
 
-설치 프로그램 플래그:
+    <Tabs>
+      <Tab title="macOS / Linux / WSL2">
+        ```bash
+        curl -fsSL https://openclaw.ai/install.sh | bash
+        ```
+      </Tab>
+      <Tab title="Windows (PowerShell)">
+        ```powershell
+        iwr -useb https://openclaw.ai/install.ps1 | iex
+        ```
+      </Tab>
+    </Tabs>
 
-```bash
-curl -fsSL https://openclaw.ai/install.sh | bash -s -- --help
-```
+    이상입니다 — 스크립트가 Node 감지, 설치, 온보딩을 모두 처리합니다.
 
-자세한 내용은 [Installer internals](/install/installer) 를 참고합니다.
+    온보딩을 건너뛰고 바이너리만 설치하려면 다음을 사용하십시오.
 
-비대화형(온보딩 건너뛰기):
+    <Tabs>
+      <Tab title="macOS / Linux / WSL2">
+        ```bash
+        curl -fsSL https://openclaw.ai/install.sh | bash -s -- --no-onboard
+        ```
+      </Tab>
+      <Tab title="Windows (PowerShell)">
+        ```powershell
+        & ([scriptblock]::Create((iwr -useb https://openclaw.ai/install.ps1))) -NoOnboard
+        ```
+      </Tab>
+    </Tabs>
 
-```bash
-curl -fsSL https://openclaw.ai/install.sh | bash -s -- --no-onboard
-```
+    모든 플래그, 환경 변수, CI/자동화 옵션에 대해서는 [Installer internals](/install/installer)를 참고하십시오.
 
-### 2) 전역 설치(수동)
+  </Accordion>
 
-이미 Node 가 있다면:
+  <Accordion title="npm / pnpm" icon="package">
+    이미 Node 22+ 가 설치되어 있고 설치를 직접 관리하고 싶다면 다음을 사용하십시오.
 
-```bash
-npm install -g openclaw@latest
-```
+    <Tabs>
+      <Tab title="npm">
+        ```bash
+        npm install -g openclaw@latest
+        openclaw onboard --install-daemon
+        ```
 
-전역으로 libvips 가 설치되어 있고(macOS 에서는 Homebrew 로 흔함) `sharp` 설치에 실패한다면, 프리빌트 바이너리를 강제합니다:
+        <Accordion title="sharp 빌드 오류가 발생하나요?">
+          (macOS 에서 Homebrew 를 통해 설치하는 경우가 흔한) libvips 가 전역으로 설치되어 있고 `sharp` 가 실패한다면, 미리 빌드된 바이너리를 강제로 사용하십시오.
 
-```bash
-SHARP_IGNORE_GLOBAL_LIBVIPS=1 npm install -g openclaw@latest
-```
+          ```bash
+          SHARP_IGNORE_GLOBAL_LIBVIPS=1 npm install -g openclaw@latest
+          ```
 
-`sharp: Please add node-gyp to your dependencies` 가 보이면, 빌드 도구(macOS: Xcode CLT + `npm install -g node-gyp`)를 설치하거나 위의 `SHARP_IGNORE_GLOBAL_LIBVIPS=1` 우회 방법을 사용해 네이티브 빌드를 건너뜁니다.
+          `sharp: Please add node-gyp to your dependencies` 가 표시된다면, 빌드 도구를 설치(macOS: Xcode CLT + `npm install -g node-gyp`)하거나 위의 환경 변수를 사용하십시오.
+        </Accordion>
+      </Tab>
+      <Tab title="pnpm">
+        ```bash
+        pnpm add -g openclaw@latest
+        pnpm approve-builds -g        # approve openclaw, node-llama-cpp, sharp, etc.
+        openclaw onboard --install-daemon
+        ```
 
-또는 pnpm 사용:
+        <Note>
+        pnpm 은 빌드 스크립트가 있는 패키지에 대해 명시적인 승인이 필요합니다. 첫 설치에서 "Ignored build scripts" 경고가 표시된 후, `pnpm approve-builds -g` 를 실행하고 나열된 패키지를 선택하십시오.
+        </Note>
+      </Tab>
+    </Tabs>
 
-```bash
-pnpm add -g openclaw@latest
-pnpm approve-builds -g                # approve openclaw, node-llama-cpp, sharp, etc.
-```
+  </Accordion>
 
-pnpm 은 빌드 스크립트가 있는 패키지에 대해 명시적 승인이 필요합니다. 첫 설치에서 "Ignored build scripts" 경고가 표시되면, `pnpm approve-builds -g` 를 실행하고 목록에 있는 패키지를 선택합니다.
+  <Accordion title="소스에서" icon="github">
+    기여자이거나 로컬 체크아웃에서 실행하려는 경우에 적합합니다.
 
-그다음:
+    <Steps>
+      <Step title="클론 및 빌드">
+        [OpenClaw repo](https://github.com/openclaw/openclaw)를 클론한 후 빌드하십시오.
 
-```bash
-openclaw onboard --install-daemon
-```
+        ```bash
+        git clone https://github.com/openclaw/openclaw.git
+        cd openclaw
+        pnpm install
+        pnpm ui:build
+        pnpm build
+        ```
+      </Step>
+      <Step title="CLI 연결">
+        `openclaw` 명령을 전역에서 사용할 수 있도록 합니다.
 
-### 3) 소스에서 설치(기여자/개발자)
+        ```bash
+        pnpm link --global
+        ```
 
-```bash
-git clone https://github.com/openclaw/openclaw.git
-cd openclaw
-pnpm install
-pnpm ui:build # auto-installs UI deps on first run
-pnpm build
-openclaw onboard --install-daemon
-```
+        또는 링크를 건너뛰고, 리포지토리 내부에서 `pnpm openclaw ...` 를 통해 명령을 실행할 수 있습니다.
+      </Step>
+      <Step title="온보딩 실행">
+        ```bash
+        openclaw onboard --install-daemon
+        ```
+      </Step>
+    </Steps>
 
-팁: 아직 전역 설치가 없다면, `pnpm openclaw ...` 를 통해 저장소 명령을 실행합니다.
+    보다 심화된 개발 워크플로우에 대해서는 [Setup](/start/setup)을 참고하십시오.
 
-더 심화된 개발 워크플로는 [Setup](/start/setup) 를 참고합니다.
+  </Accordion>
+</AccordionGroup>
 
-### 4) 기타 설치 옵션
+## 기타 설치 방법
 
-- Docker: [Docker](/install/docker)
-- Nix: [Nix](/install/nix)
-- Ansible: [Ansible](/install/ansible)
-- Bun(CLI 전용): [Bun](/install/bun)
+<CardGroup cols={2}>
+  <Card title="Docker" href="/install/docker" icon="container">
+    컨테이너화 또는 헤드리스 배포.
+  </Card>
+  <Card title="Nix" href="/install/nix" icon="snowflake">
+    Nix 를 통한 선언적 설치.
+  </Card>
+  <Card title="Ansible" href="/install/ansible" icon="server">
+    자동화된 대규모 프로비저닝.
+  </Card>
+  <Card title="Bun" href="/install/bun" icon="zap">
+    Bun 런타임을 통한 CLI 전용 사용.
+  </Card>
+</CardGroup>
 
 ## 설치 후
 
-- 온보딩 실행: `openclaw onboard --install-daemon`
-- 빠른 확인: `openclaw doctor`
-- Gateway(게이트웨이) 상태 확인: `openclaw status` + `openclaw health`
-- 대시보드 열기: `openclaw dashboard`
-
-## 설치 방법: npm vs git(설치 프로그램)
-
-설치 프로그램은 두 가지 방법을 지원합니다:
-
-- `npm`(기본값): `npm install -g openclaw@latest`
-- `git`: GitHub 에서 클론/빌드하고 소스 체크아웃에서 실행
-
-### CLI 플래그
+모든 것이 정상적으로 작동하는지 확인하십시오.
 
 ```bash
-# Explicit npm
-curl -fsSL https://openclaw.ai/install.sh | bash -s -- --install-method npm
-
-# Install from GitHub (source checkout)
-curl -fsSL https://openclaw.ai/install.sh | bash -s -- --install-method git
+openclaw doctor         # check for config issues
+openclaw status         # gateway status
+openclaw dashboard      # open the browser UI
 ```
 
-일반적인 플래그:
+## 문제 해결: `openclaw` 을(를) 찾을 수 없음
 
-- `--install-method npm|git`
-- `--git-dir <path>`(기본값: `~/openclaw`)
-- `--no-git-update`(기존 체크아웃을 사용할 때 `git pull` 건너뛰기)
-- `--no-prompt`(프롬프트 비활성화; CI/자동화에서 필요)
-- `--dry-run`(무슨 일이 일어날지 출력; 변경 없음)
-- `--no-onboard`(온보딩 건너뛰기)
-
-### 환경 변수
-
-동등한 환경 변수(자동화에 유용):
-
-- `OPENCLAW_INSTALL_METHOD=git|npm`
-- `OPENCLAW_GIT_DIR=...`
-- `OPENCLAW_GIT_UPDATE=0|1`
-- `OPENCLAW_NO_PROMPT=1`
-- `OPENCLAW_DRY_RUN=1`
-- `OPENCLAW_NO_ONBOARD=1`
-- `SHARP_IGNORE_GLOBAL_LIBVIPS=0|1`(기본값: `1`; 시스템 libvips 에 대해 `sharp` 가 빌드되는 것을 방지)
-
-## 문제 해결: `openclaw` 를 찾을 수 없음(PATH)
-
-빠른 진단:
+<Accordion title="PATH 진단 및 수정">
+  빠른 진단:
 
 ```bash
 node -v
@@ -174,21 +182,29 @@ npm prefix -g
 echo "$PATH"
 ```
 
-`echo "$PATH"` 안에 `$(npm prefix -g)/bin`(macOS/Linux) 또는 `$(npm prefix -g)`(Windows)가 **없다면**, 셸이 전역 npm 바이너리(`openclaw` 포함)를 찾을 수 없습니다.
+`$(npm prefix -g)/bin` (macOS/Linux) 또는 `$(npm prefix -g)` (Windows) 가 `$PATH` 에 **포함되어 있지 않다면**, 셸에서 전역 npm 바이너리(`openclaw` 포함)를 찾을 수 없습니다.
 
-해결: 셸 시작 파일(zsh: `~/.zshrc`, bash: `~/.bashrc`)에 추가합니다:
+해결 방법 — 셸 시작 파일(`~/.zshrc` 또는 `~/.bashrc`)에 이를 추가하십시오.
 
 ```bash
-# macOS / Linux
 export PATH="$(npm prefix -g)/bin:$PATH"
 ```
 
-Windows 에서는 `npm prefix -g` 출력 값을 PATH 에 추가합니다.
+Windows 에서는 `npm prefix -g` 의 출력 값을 PATH 에 추가하십시오.
 
-그다음 새 터미널을 열거나(zsh 에서는 `rehash` / bash 에서는 `hash -r`)를 실행합니다.
+그런 다음 새 터미널을 열거나(zsh 에서는 `rehash`, bash 에서는 `hash -r` 를 실행하십시오).
+</Accordion>
 
 ## 업데이트 / 제거
 
-- 업데이트: [Updating](/install/updating)
-- 새 머신으로 마이그레이션: [Migrating](/install/migrating)
-- 제거: [Uninstall](/install/uninstall)
+<CardGroup cols={3}>
+  <Card title="업데이트" href="/install/updating" icon="refresh-cw">
+    OpenClaw 를 최신 상태로 유지합니다.
+  </Card>
+  <Card title="마이그레이션" href="/install/migrating" icon="arrow-right">
+    새 머신으로 이동합니다.
+  </Card>
+  <Card title="제거" href="/install/uninstall" icon="trash-2">
+    OpenClaw 를 완전히 제거합니다.
+  </Card>
+</CardGroup>

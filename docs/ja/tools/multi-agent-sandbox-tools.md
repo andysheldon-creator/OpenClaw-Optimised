@@ -1,7 +1,7 @@
 ---
-summary: "エージェントごとのサンドボックス + ツール制限、優先順位、例"
-title: マルチエージェント サンドボックス & ツール
-read_when: "マルチエージェント ゲートウェイで、エージェントごとのサンドボックス化やツールの許可／拒否ポリシーが必要な場合。"
+summary: "エージェントごとのサンドボックス化 + ツール制限、優先順位、および例"
+title: マルチエージェントのサンドボックス & ツール
+read_when: "マルチエージェント ゲートウェイで、エージェントごとのサンドボックス化やツールの許可 / 拒否ポリシーが必要な場合。"
 status: active
 x-i18n:
   source_path: tools/multi-agent-sandbox-tools.md
@@ -9,10 +9,10 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:14:57Z
+  generated_at: 2026-02-08T09:23:45Z
 ---
 
-# マルチエージェント サンドボックス & ツール 設定
+# マルチエージェントのサンドボックス & ツール設定
 
 ## 概要
 
@@ -23,29 +23,28 @@ x-i18n:
 
 これにより、異なるセキュリティ プロファイルで複数のエージェントを実行できます。
 
-- フル アクセスのパーソナル アシスタント
-- 制限付きツールの家族／仕事用エージェント
+- フル アクセスの個人アシスタント
+- ツールを制限した家族 / 仕事用エージェント
 - サンドボックス内の公開向けエージェント
 
-`setupCommand` は `sandbox.docker`（グローバルまたはエージェント単位）の配下に置かれ、コンテナ作成時に一度だけ実行されます。
+`setupCommand` は `sandbox.docker`（グローバルまたはエージェントごと）の配下に属し、コンテナ作成時に一度だけ実行されます。
 
-認証はエージェント単位です。各エージェントは次の場所にある自身の `agentDir` 認証ストアから読み取ります。
+認証はエージェント単位です。各エージェントは次の場所にある自身の `agentDir` 認証ストアを読み取ります。
 
 ```
 ~/.openclaw/agents/<agentId>/agent/auth-profiles.json
 ```
 
-資格情報はエージェント間で**共有されません**。エージェント間で `agentDir` を再利用しないでください。
-資格情報を共有したい場合は、`auth-profiles.json` を別のエージェントの `agentDir` にコピーしてください。
+資格情報はエージェント間で**共有されません**。`agentDir` をエージェント間で再利用しないでください。資格情報を共有したい場合は、`auth-profiles.json` を別のエージェントの `agentDir` にコピーしてください。
 
-実行時のサンドボックスの挙動については [Sandboxing](/gateway/sandboxing) を参照してください。
-「なぜブロックされているのか？」のデバッグについては [Sandbox vs Tool Policy vs Elevated](/gateway/sandbox-vs-tool-policy-vs-elevated) と `openclaw sandbox explain` を参照してください。
+実行時のサンドボックスの挙動については、[Sandboxing](/gateway/sandboxing) を参照してください。
+「なぜブロックされるのか？」のデバッグについては、[Sandbox vs Tool Policy vs Elevated](/gateway/sandbox-vs-tool-policy-vs-elevated) と `openclaw sandbox explain` を参照してください。
 
 ---
 
 ## 設定例
 
-### 例 1: パーソナル + 制限付きファミリー エージェント
+### 例 1: 個人用 + 制限付き家族用エージェント
 
 ```json
 {
@@ -91,12 +90,12 @@ x-i18n:
 
 **結果:**
 
-- `main` エージェント: ホスト上で実行、フル ツール アクセス
-- `family` エージェント: Docker で実行（エージェントごとに 1 コンテナ）、`read` ツールのみ
+- `main` エージェント: ホスト上で実行、ツールはフル アクセス
+- `family` エージェント: Docker 内で実行（エージェントごとに 1 コンテナ）、`read` ツールのみ
 
 ---
 
-### 例 2: 共有サンドボックスのワーク エージェント
+### 例 2: 共有サンドボックスの仕事用エージェント
 
 ```json
 {
@@ -145,7 +144,7 @@ x-i18n:
 
 **結果:**
 
-- デフォルト エージェントはコーディング ツールを利用可能
+- デフォルトのエージェントはコーディング ツールを使用可能
 - `support` エージェントはメッセージング専用（+ Slack ツール）
 
 ---
@@ -208,7 +207,7 @@ agents.list[].sandbox.prune.* > agents.defaults.sandbox.prune.*
 
 **注記:**
 
-- そのエージェントに対して `agents.list[].sandbox.{docker,browser,prune}.*` が `agents.defaults.sandbox.{docker,browser,prune}.*` を上書きします（サンドボックスのスコープが `"shared"` に解決される場合は無視されます）。
+- そのエージェントでは `agents.list[].sandbox.{docker,browser,prune}.*` が `agents.defaults.sandbox.{docker,browser,prune}.*` を上書きします（サンドボックス スコープが `"shared"` に解決される場合は無視されます）。
 
 ### ツール制限
 
@@ -218,15 +217,15 @@ agents.list[].sandbox.prune.* > agents.defaults.sandbox.prune.*
 2. **プロバイダー ツール プロファイル**（`tools.byProvider[provider].profile` または `agents.list[].tools.byProvider[provider].profile`）
 3. **グローバル ツール ポリシー**（`tools.allow` / `tools.deny`）
 4. **プロバイダー ツール ポリシー**（`tools.byProvider[provider].allow/deny`）
-5. **エージェント固有 ツール ポリシー**（`agents.list[].tools.allow/deny`）
+5. **エージェント固有のツール ポリシー**（`agents.list[].tools.allow/deny`）
 6. **エージェント プロバイダー ポリシー**（`agents.list[].tools.byProvider[provider].allow/deny`）
 7. **サンドボックス ツール ポリシー**（`tools.sandbox.tools` または `agents.list[].tools.sandbox.tools`）
-8. **サブエージェント ツール ポリシー**（該当する場合は `tools.subagents.tools`）
+8. **サブエージェント ツール ポリシー**（`tools.subagents.tools`、該当する場合）
 
-各レベルはツールをさらに制限できますが、前段で拒否されたツールを復活させることはできません。
+各レベルはツールをさらに制限できますが、前段で拒否されたツールを再度許可することはできません。
 `agents.list[].tools.sandbox.tools` が設定されている場合、そのエージェントでは `tools.sandbox.tools` を置き換えます。
 `agents.list[].tools.profile` が設定されている場合、そのエージェントでは `tools.profile` を上書きします。
-プロバイダー ツールのキーは、`provider`（例: `google-antigravity`）または `provider/model`（例: `openai/gpt-5.2`）のいずれかを受け付けます。
+プロバイダー ツールのキーは、`provider`（例: `google-antigravity`）または `provider/model`（例: `openai/gpt-5.2`）のいずれも受け付けます。
 
 ### ツール グループ（ショートハンド）
 
@@ -240,18 +239,18 @@ agents.list[].sandbox.prune.* > agents.defaults.sandbox.prune.*
 - `group:automation`: `cron`, `gateway`
 - `group:messaging`: `message`
 - `group:nodes`: `nodes`
-- `group:openclaw`: 組み込みの OpenClaw ツールすべて（プロバイダー プラグインは除外）
+- `group:openclaw`: すべての組み込み OpenClaw ツール（プロバイダー プラグインは除外）
 
 ### Elevated モード
 
-`tools.elevated` はグローバルのベースライン（送信者ベースの許可リスト）です。`agents.list[].tools.elevated` は特定のエージェントに対して Elevated をさらに制限できます（両方が許可する必要があります）。
+`tools.elevated` はグローバルのベースライン（送信者ベースの許可リスト）です。`agents.list[].tools.elevated` は、特定のエージェントに対して Elevated をさらに制限できます（両方で許可される必要があります）。
 
 緩和パターン:
 
-- 信頼されていないエージェント（`agents.list[].tools.deny: ["exec"]`）に対して `exec` を拒否
-- 制限付きエージェントにルーティングする送信者を許可リストに追加しない
-- サンドボックス実行のみを望む場合は、グローバルで Elevated を無効化（`tools.elevated.enabled: false`）
-- 機密プロファイルでは、エージェント単位で Elevated を無効化（`agents.list[].tools.elevated.enabled: false`）
+- 信頼できないエージェントでは `exec` を拒否（`agents.list[].tools.deny: ["exec"]`）
+- 制限付きエージェントへルーティングされる送信者を許可リストに追加しない
+- サンドボックス化された実行のみを望む場合は、グローバルで Elevated を無効化（`tools.elevated.enabled: false`）
+- 機微なプロファイルでは、エージェント単位で Elevated を無効化（`agents.list[].tools.elevated.enabled: false`）
 
 ---
 
@@ -280,7 +279,7 @@ agents.list[].sandbox.prune.* > agents.defaults.sandbox.prune.*
 }
 ```
 
-**After（異なるプロファイルを持つマルチエージェント）:**
+**After（異なるプロファイルのマルチエージェント）:**
 
 ```json
 {
@@ -341,8 +340,7 @@ agents.list[].sandbox.prune.* > agents.defaults.sandbox.prune.*
 ## よくある落とし穴: 「non-main」
 
 `agents.defaults.sandbox.mode: "non-main"` はエージェント ID ではなく、`session.mainKey`（デフォルトは `"main"`）に基づきます。
-グループ／チャンネル セッションは常に独自のキーを持つため、non-main として扱われ、サンドボックス化されます。
-エージェントを決してサンドボックス化したくない場合は、`agents.list[].sandbox.mode: "off"` を設定してください。
+グループ / チャンネル セッションは常に独自のキーを取得するため、non-main として扱われ、サンドボックス化されます。エージェントを常にサンドボックス化しない場合は、`agents.list[].sandbox.mode: "off"` を設定してください。
 
 ---
 
@@ -378,14 +376,14 @@ agents.list[].sandbox.prune.* > agents.defaults.sandbox.prune.*
 
 ### `mode: "all"` にもかかわらずエージェントがサンドボックス化されない
 
-- 上書きするグローバルな `agents.defaults.sandbox.mode` がないか確認
+- 上書きするグローバルの `agents.defaults.sandbox.mode` がないか確認
 - エージェント固有の設定が優先されるため、`agents.list[].sandbox.mode: "all"` を設定
 
-### 拒否リストがあるのにツールが利用可能
+### 拒否リストがあるのにツールが使用可能なまま
 
-- ツール フィルタリング順を確認: グローバル → エージェント → サンドボックス → サブエージェント
-- 各レベルは制限のみ可能で、復活は不可
-- ログで検証: `[tools] filtering tools for agent:${agentId}`
+- ツールのフィルタリング順を確認: グローバル → エージェント → サンドボックス → サブエージェント
+- 各レベルは制限のみ可能で、再付与は不可
+- ログで確認: `[tools] filtering tools for agent:${agentId}`
 
 ### エージェントごとにコンテナが分離されない
 
@@ -394,7 +392,7 @@ agents.list[].sandbox.prune.* > agents.defaults.sandbox.prune.*
 
 ---
 
-## 参照
+## 関連項目
 
 - [Multi-Agent Routing](/concepts/multi-agent)
 - [Sandbox Configuration](/gateway/configuration#agentsdefaults-sandbox)

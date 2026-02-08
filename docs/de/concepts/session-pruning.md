@@ -1,56 +1,56 @@
 ---
-summary: „Session-Pruning: Trimmen von Werkzeugergebnissen zur Reduzierung von Kontextaufblähung“
+summary: „Session Pruning: Kürzen von Werkzeugergebnissen zur Reduzierung von Kontextaufblähung“
 read_when:
-  - Sie möchten das Wachstum des LLM-Kontexts durch Werkzeugausgaben reduzieren
-  - Sie optimieren agents.defaults.contextPruning
+  - Sie möchten das Wachstum des LLM‑Kontexts durch Werkzeugausgaben reduzieren
+  - Sie stimmen agents.defaults.contextPruning ab
 x-i18n:
   source_path: concepts/session-pruning.md
   source_hash: 9b0aa2d1abea7050
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:04:07Z
+  generated_at: 2026-02-08T09:35:59Z
 ---
 
-# Session-Pruning
+# Session Pruning
 
-Session-Pruning trimmt **alte Werkzeugergebnisse** aus dem In-Memory-Kontext unmittelbar vor jedem LLM-Aufruf. Es schreibt die On-Disk-Sitzungshistorie **nicht** um (`*.jsonl`).
+Session Pruning kürzt **alte Werkzeugergebnisse** aus dem In‑Memory‑Kontext unmittelbar vor jedem LLM‑Aufruf. Die auf der Festplatte gespeicherte Sitzungsverlaufshistorie wird **nicht** umgeschrieben (`*.jsonl`).
 
 ## Wann es ausgeführt wird
 
-- Wenn `mode: "cache-ttl"` aktiviert ist und der letzte Anthropic-Aufruf für die Sitzung älter ist als `ttl`.
+- Wenn `mode: "cache-ttl"` aktiviert ist und der letzte Anthropic‑Aufruf für die Sitzung älter als `ttl` ist.
 - Betrifft nur die Nachrichten, die für diese Anfrage an das Modell gesendet werden.
-- Nur aktiv für Anthropic-API-Aufrufe (und OpenRouter-Anthropic-Modelle).
+- Aktiv nur für Anthropic‑API‑Aufrufe (und OpenRouter‑Anthropic‑Modelle).
 - Für beste Ergebnisse stimmen Sie `ttl` auf Ihr Modell `cacheControlTtl` ab.
-- Nach einem Prune wird das TTL-Fenster zurückgesetzt, sodass nachfolgende Anfragen den Cache behalten, bis `ttl` erneut abläuft.
+- Nach einem Prune wird das TTL‑Fenster zurückgesetzt, sodass nachfolgende Anfragen den Cache behalten, bis `ttl` erneut abläuft.
 
 ## Intelligente Standardwerte (Anthropic)
 
-- **OAuth- oder Setup-Token**-Profile: `cache-ttl`-Pruning aktivieren und Heartbeat auf `1h` setzen.
-- **API-Key**-Profile: `cache-ttl`-Pruning aktivieren, Heartbeat auf `30m` setzen und `cacheControlTtl` standardmäßig auf `1h` für Anthropic-Modelle setzen.
-- Wenn Sie einen dieser Werte explizit setzen, überschreibt OpenClaw sie **nicht**.
+- **OAuth‑ oder setup-token**‑Profile: Aktivieren Sie `cache-ttl`‑Pruning und setzen Sie den Heartbeat auf `1h`.
+- **API‑Schlüssel**‑Profile: Aktivieren Sie `cache-ttl`‑Pruning, setzen Sie den Heartbeat auf `30m` und setzen Sie den Standardwert `cacheControlTtl` bei Anthropic‑Modellen auf `1h`.
+- Wenn Sie einen dieser Werte explizit setzen, überschreibt OpenClaw diese **nicht**.
 
-## Was dies verbessert (Kosten + Cache-Verhalten)
+## Was dies verbessert (Kosten + Cache‑Verhalten)
 
-- **Warum prunen:** Anthropic-Prompt-Caching gilt nur innerhalb der TTL. Wenn eine Sitzung länger als die TTL inaktiv ist, cached die nächste Anfrage den vollständigen Prompt erneut, sofern Sie ihn nicht vorher trimmen.
-- **Was günstiger wird:** Pruning reduziert die **cacheWrite**-Größe für diese erste Anfrage nach Ablauf der TTL.
-- **Warum das Zurücksetzen der TTL wichtig ist:** Sobald Pruning ausgeführt wurde, setzt sich das Cache-Fenster zurück, sodass Folgeanfragen den frisch gecachten Prompt wiederverwenden können, statt die komplette Historie erneut zu cachen.
-- **Was es nicht tut:** Pruning fügt keine Tokens hinzu und „verdoppelt“ keine Kosten; es ändert nur, was bei dieser ersten Anfrage nach der TTL gecacht wird.
+- **Warum prunen:** Anthropic‑Prompt‑Caching gilt nur innerhalb der TTL. Wenn eine Sitzung länger als die TTL inaktiv ist, cached die nächste Anfrage den vollständigen Prompt erneut, sofern Sie ihn nicht zuvor kürzen.
+- **Was günstiger wird:** Pruning reduziert die **cacheWrite**‑Größe für diese erste Anfrage nach Ablauf der TTL.
+- **Warum das Zurücksetzen der TTL wichtig ist:** Sobald Pruning ausgeführt wurde, wird das Cache‑Fenster zurückgesetzt, sodass Folgeanfragen den frisch gecachten Prompt wiederverwenden können, statt die vollständige Historie erneut zu cachen.
+- **Was es nicht tut:** Pruning fügt keine Tokens hinzu und verdoppelt keine Kosten; es ändert lediglich, was bei dieser ersten Anfrage nach der TTL gecacht wird.
 
-## Was gepruned werden kann
+## Was gekürzt werden kann
 
-- Nur `toolResult`-Nachrichten.
-- Benutzer- und Assistenten-Nachrichten werden **niemals** verändert.
-- Die letzten `keepLastAssistants` Assistenten-Nachrichten sind geschützt; Werkzeugergebnisse nach diesem Cutoff werden nicht gepruned.
-- Wenn es nicht genügend Assistenten-Nachrichten gibt, um den Cutoff festzulegen, wird Pruning übersprungen.
-- Werkzeugergebnisse mit **Bildblöcken** werden übersprungen (niemals getrimmt/geleert).
+- Nur `toolResult`‑Nachrichten.
+- Nutzer‑ und Assistenten‑Nachrichten werden **niemals** verändert.
+- Die letzten `keepLastAssistants` Assistenten‑Nachrichten sind geschützt; Werkzeugergebnisse nach diesem Cutoff werden nicht gekürzt.
+- Wenn es nicht genügend Assistenten‑Nachrichten gibt, um den Cutoff festzulegen, wird Pruning übersprungen.
+- Werkzeugergebnisse mit **Image‑Blöcken** werden übersprungen (niemals gekürzt/geleert).
 
 ## Schätzung des Kontextfensters
 
 Pruning verwendet ein geschätztes Kontextfenster (Zeichen ≈ Tokens × 4). Das Basisfenster wird in dieser Reihenfolge ermittelt:
 
-1. `models.providers.*.models[].contextWindow`-Override.
-2. Modell-Definition `contextWindow` (aus dem Modell-Register).
+1. `models.providers.*.models[].contextWindow`‑Override.
+2. Modell‑Definition `contextWindow` (aus dem Modell‑Registry).
 3. Standard `200000` Tokens.
 
 Wenn `agents.defaults.contextTokens` gesetzt ist, wird es als Obergrenze (min) für das ermittelte Fenster behandelt.
@@ -59,27 +59,27 @@ Wenn `agents.defaults.contextTokens` gesetzt ist, wird es als Obergrenze (min) f
 
 ### cache-ttl
 
-- Pruning wird nur ausgeführt, wenn der letzte Anthropic-Aufruf älter ist als `ttl` (Standard `5m`).
-- Beim Ausführen: gleiches Soft-Trim- + Hard-Clear-Verhalten wie zuvor.
+- Pruning wird nur ausgeführt, wenn der letzte Anthropic‑Aufruf älter als `ttl` ist (Standard `5m`).
+- Bei Ausführung: Gleiches Soft‑Trim‑ plus Hard‑Clear‑Verhalten wie zuvor.
 
-## Soft- vs. Hard-Pruning
+## Soft‑ vs. Hard‑Pruning
 
-- **Soft-Trim**: nur für übergroße Werkzeugergebnisse.
-  - Behält Kopf + Ende, fügt `...` ein und hängt eine Notiz mit der ursprünglichen Größe an.
-  - Überspringt Ergebnisse mit Bildblöcken.
-- **Hard-Clear**: ersetzt das gesamte Werkzeugergebnis durch `hardClear.placeholder`.
+- **Soft‑Trim**: nur für übergroße Werkzeugergebnisse.
+  - Behält Anfang + Ende bei, fügt `...` ein und hängt einen Hinweis mit der ursprünglichen Größe an.
+  - Überspringt Ergebnisse mit Image‑Blöcken.
+- **Hard‑Clear**: ersetzt das gesamte Werkzeugergebnis durch `hardClear.placeholder`.
 
 ## Werkzeugauswahl
 
-- `tools.allow` / `tools.deny` unterstützen `*`-Wildcards.
-- Deny hat Vorrang.
-- Abgleich ist nicht case-sensitiv.
-- Leere Allow-Liste ⇒ alle Werkzeuge erlaubt.
+- `tools.allow` / `tools.deny` unterstützen `*`‑Wildcards.
+- „Deny“ hat Vorrang.
+- Abgleich ist nicht zwischen Groß‑/Kleinschreibung unterscheidend.
+- Leere Allowlist ⇒ alle Werkzeuge erlaubt.
 
 ## Interaktion mit anderen Limits
 
-- Eingebaute Werkzeuge kürzen ihre eigene Ausgabe bereits; Session-Pruning ist eine zusätzliche Schicht, die verhindert, dass sich in lang laufenden Chats zu viele Werkzeugausgaben im Modellkontext ansammeln.
-- Kompaktierung ist separat: Kompaktierung fasst zusammen und persistiert, Pruning ist transient pro Anfrage. Siehe [/concepts/compaction](/concepts/compaction).
+- Eingebaute Werkzeuge kürzen ihre Ausgabe bereits selbst; Session Pruning ist eine zusätzliche Ebene, die verhindert, dass sich in lang laufenden Chats zu viel Werkzeugausgabe im Modellkontext ansammelt.
+- Kompaktierung ist separat: Kompaktierung fasst zusammen und persistiert, Pruning ist pro Anfrage transient. Siehe [/concepts/compaction](/concepts/compaction).
 
 ## Standardwerte (wenn aktiviert)
 
@@ -103,7 +103,7 @@ Standard (aus):
 }
 ```
 
-TTL-bewusstes Pruning aktivieren:
+TTL‑bewusstes Pruning aktivieren:
 
 ```json5
 {

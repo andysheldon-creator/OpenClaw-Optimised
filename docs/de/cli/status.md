@@ -1,8 +1,8 @@
 ---
 summary: "CLI-Referenz für `openclaw status` (Diagnose, Probes, Nutzungs-Snapshots)"
 read_when:
-  - Sie möchten eine schnelle Diagnose des Kanalzustands + der jüngsten Sitzungsempfänger
-  - Sie möchten einen einfügbaren „all“-Status für die Fehlersuche
+  - Sie möchten eine schnelle Diagnose der Kanal-Gesundheit und der jüngsten Sitzungs-Empfänger
+  - Sie möchten einen einfügbaren „all“-Status für das Debugging
 title: "Status"
 x-i18n:
   source_path: cli/status.md
@@ -10,12 +10,12 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:52Z
+  generated_at: 2026-02-08T09:35:46Z
 ---
 
 # `openclaw status`
 
-Diagnosen für Kanäle + Sitzungen.
+Diagnose für Kanäle + Sitzungen.
 
 ```bash
 openclaw status
@@ -26,8 +26,8 @@ openclaw status --usage
 
 Hinweise:
 
-- `--deep` führt Live-Prüfungen aus (WhatsApp Web + Telegram + Discord + Google Chat + Slack + Signal).
-- Die Ausgabe enthält Sitzungsspeicher pro Agent, wenn mehrere Agenten konfiguriert sind.
-- Die Übersicht enthält den Installations- und Laufzeitstatus von Gateway- und Node-Host-Dienst, sofern verfügbar.
-- Die Übersicht enthält Update-Kanal + Git-SHA (für Quellcode-Checkouts).
-- Update-Informationen erscheinen in der Übersicht; ist ein Update verfügbar, gibt der Status einen Hinweis aus, `openclaw update` auszuführen (siehe [Updating](/install/updating)).
+- `--deep` führt Live-Probes aus (WhatsApp Web + Telegram + Discord + Google Chat + Slack + Signal).
+- Die Ausgabe enthält pro Agent Sitzungs-Speicher, wenn mehrere Agenten konfiguriert sind.
+- Der Überblick enthält den Installations-/Laufzeitstatus von Gateway + Node-Host-Dienst, sofern verfügbar.
+- Der Überblick enthält Update-Kanal + git-SHA (für Source-Checkouts).
+- Update-Informationen werden im Überblick angezeigt; wenn ein Update verfügbar ist, gibt der Status einen Hinweis aus, `openclaw update` auszuführen (siehe [Updating](/install/updating)).

@@ -10,24 +10,24 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:59Z
+  generated_at: 2026-02-08T09:39:47Z
 ---
 
 # Zalo Personal (plugin)
 
 Hỗ trợ Zalo Personal cho OpenClaw thông qua một plugin, sử dụng `zca-cli` để tự động hóa một tài khoản người dùng Zalo thông thường.
 
-> **Cảnh báo:** Tự động hóa không chính thức có thể dẫn đến việc tài khoản bị tạm khóa/cấm. Sử dụng với rủi ro của riêng bạn.
+> **Cảnh báo:** Tự động hóa không chính thức có thể dẫn đến việc tài khoản bị đình chỉ/cấm. Tự chịu rủi ro khi sử dụng.
 
 ## Đặt tên
 
-Channel id là `zalouser` để làm rõ rằng đây là tự động hóa **tài khoản người dùng Zalo cá nhân** (không chính thức). Chúng tôi giữ `zalo` cho khả năng tích hợp API Zalo chính thức trong tương lai.
+ID kênh là `zalouser` để làm rõ rằng đây là tự động hóa **tài khoản Zalo cá nhân** (không chính thức). Chúng tôi giữ `zalo` để dành cho khả năng tích hợp API Zalo chính thức trong tương lai.
 
 ## Nơi chạy
 
 Plugin này chạy **bên trong tiến trình Gateway**.
 
-Nếu bạn dùng Gateway từ xa, hãy cài đặt/cấu hình trên **máy chạy Gateway**, sau đó khởi động lại Gateway.
+Nếu bạn dùng Gateway từ xa, hãy cài đặt/cấu hình nó trên **máy đang chạy Gateway**, sau đó khởi động lại Gateway.
 
 ## Cài đặt
 
@@ -50,7 +50,7 @@ Sau đó khởi động lại Gateway.
 
 ## Điều kiện tiên quyết: zca-cli
 
-Máy chạy Gateway phải có `zca` trên `PATH`:
+Máy Gateway phải có `zca` trên `PATH`:
 
 ```bash
 zca --version
@@ -81,7 +81,7 @@ openclaw message send --channel zalouser --target <threadId> --message "Hello fr
 openclaw directory peers list --channel zalouser --query "name"
 ```
 
-## Công cụ agent
+## Công cụ của tác tử
 
 Tên công cụ: `zalouser`
 

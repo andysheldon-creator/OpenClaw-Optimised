@@ -6,21 +6,21 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:40:13Z
+  generated_at: 2026-02-08T09:25:55Z
 ---
 
 # Pi 통합 아키텍처
 
-이 문서는 OpenClaw 가 [pi-coding-agent](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) 및 그 형제 패키지들(`pi-ai`, `pi-agent-core`, `pi-tui`)과 어떻게 통합되어 AI 에이전트 기능을 구동하는지를 설명합니다.
+이 문서는 OpenClaw 가 [pi-coding-agent](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) 및 그 형제 패키지(`pi-ai`, `pi-agent-core`, `pi-tui`)와 통합되어 AI 에이전트 기능을 구동하는 방식을 설명합니다.
 
 ## 개요
 
-OpenClaw 는 pi SDK 를 사용하여 메시징 Gateway(게이트웨이) 아키텍처에 AI 코딩 에이전트를 임베드합니다. pi 를 서브프로세스로 실행하거나 RPC 모드를 사용하는 대신, OpenClaw 는 `createAgentSession()` 를 통해 pi 의 `AgentSession` 를 직접 임포트하고 인스턴스화합니다. 이러한 임베디드 접근 방식은 다음을 제공합니다.
+OpenClaw 는 pi SDK 를 사용하여 메시징 Gateway(게이트웨이) 아키텍처에 AI 코딩 에이전트를 내장합니다. pi 를 서브프로세스로 생성하거나 RPC 모드를 사용하는 대신, OpenClaw 는 `createAgentSession()` 를 통해 pi 의 `AgentSession` 를 직접 임포트하고 인스턴스화합니다. 이 임베디드 방식은 다음을 제공합니다.
 
 - 세션 라이프사이클 및 이벤트 처리에 대한 완전한 제어
 - 커스텀 도구 주입(메시징, 샌드박스, 채널별 액션)
 - 채널/컨텍스트별 시스템 프롬프트 커스터마이징
-- 브랜칭/컴팩션 지원을 포함한 세션 영속성
+- 분기/압축을 지원하는 세션 영속성
 - 장애 조치를 포함한 다중 계정 인증 프로파일 로테이션
 - 프로바이더에 독립적인 모델 전환
 
@@ -219,15 +219,15 @@ const subscription = subscribeEmbeddedPiSession({
 
 처리되는 이벤트에는 다음이 포함됩니다.
 
-- `message_start` / `message_end` / `message_update` (텍스트/사고 과정 스트리밍)
+- `message_start` / `message_end` / `message_update` (스트리밍 텍스트/사고)
 - `tool_execution_start` / `tool_execution_update` / `tool_execution_end`
 - `turn_start` / `turn_end`
 - `agent_start` / `agent_end`
 - `auto_compaction_start` / `auto_compaction_end`
 
-### 4. 프롬프트 처리
+### 4. 프롬프팅
 
-설정이 완료되면 세션에 프롬프트를 적용합니다.
+설정이 완료되면 세션이 프롬프트됩니다.
 
 ```typescript
 await session.prompt(effectivePrompt, { images: imageResult.images });
@@ -240,12 +240,12 @@ SDK 는 LLM 전송, 도구 호출 실행, 응답 스트리밍을 포함한 전�
 ### 도구 파이프라인
 
 1. **기본 도구**: pi 의 `codingTools` (read, bash, edit, write)
-2. **커스텀 대체**: OpenClaw 는 bash 를 `exec`/`process` 로 대체하고, 샌드박스를 위해 read/edit/write 를 커스터마이즈합니다.
-3. **OpenClaw 도구**: 메시징, 브라우저, 캔버스, 세션, cron, gateway 등
+2. **커스텀 대체**: OpenClaw 는 bash 를 `exec`/`process` 로 교체하고, 샌드박스를 위해 read/edit/write 를 커스터마이징합니다.
+3. **OpenClaw 도구**: 메시징, 브라우저, 캔버스, 세션, cron, Gateway(게이트웨이) 등
 4. **채널 도구**: Discord/Telegram/Slack/WhatsApp 전용 액션 도구
 5. **정책 필터링**: 프로파일, 프로바이더, 에이전트, 그룹, 샌드박스 정책에 따라 도구 필터링
-6. **스키마 정규화**: Gemini/OpenAI 특이사항을 고려한 스키마 정리
-7. **AbortSignal 래핑**: 중단 신호를 준수하도록 도구 래핑
+6. **스키마 정규화**: Gemini/OpenAI 특이사항을 위한 스키마 정리
+7. **AbortSignal 래핑**: 중단 신호를 존중하도록 도구 래핑
 
 ### 도구 정의 어댑터
 
@@ -268,7 +268,7 @@ export function toToolDefinitions(tools: AnyAgentTool[]): ToolDefinition[] {
 
 ### 도구 분할 전략
 
-`splitSdkTools()` 는 모든 도구를 `customTools` 를 통해 전달합니다.
+`splitSdkTools()` 는 `customTools` 를 통해 모든 도구를 전달합니다.
 
 ```typescript
 export function splitSdkTools(options: { tools: AnyAgentTool[]; sandboxEnabled: boolean }) {
@@ -279,13 +279,13 @@ export function splitSdkTools(options: { tools: AnyAgentTool[]; sandboxEnabled: 
 }
 ```
 
-이를 통해 OpenClaw 의 정책 필터링, 샌드박스 통합, 확장된 도구 세트가 프로바이더 전반에서 일관되게 유지됩니다.
+이를 통해 OpenClaw 의 정책 필터링, 샌드박스 통합, 확장된 도구 세트가 프로바이더 전반에 걸쳐 일관되게 유지됩니다.
 
 ## 시스템 프롬프트 구성
 
-시스템 프롬프트는 `system-prompt.ts` 에 있는 `buildAgentSystemPrompt()` 에서 빌드됩니다. Tooling, Tool Call Style, Safety guardrails, OpenClaw CLI 참조, Skills, Docs, Workspace, Sandbox, Messaging, Reply Tags, Voice, Silent Replies, Heartbeats, Runtime 메타데이터 섹션을 포함한 전체 프롬프트를 조립하며, 활성화 시 Memory 와 Reactions, 그리고 선택적 컨텍스트 파일과 추가 시스템 프롬프트 콘텐츠를 포함합니다. 하위 에이전트에서 사용되는 최소 프롬프트 모드를 위해 섹션은 트리밍됩니다.
+시스템 프롬프트는 `buildAgentSystemPrompt()` (`system-prompt.ts`) 에서 빌드됩니다. Tooling, Tool Call Style, Safety guardrails, OpenClaw CLI 참조, Skills, Docs, Workspace, Sandbox, Messaging, Reply Tags, Voice, Silent Replies, Heartbeats, Runtime 메타데이터 섹션을 포함한 전체 프롬프트를 조합합니다. 활성화된 경우 Memory 와 Reactions, 그리고 선택적 컨텍스트 파일 및 추가 시스템 프롬프트 콘텐츠도 포함됩니다. 서브에이전트에서 사용하는 최소 프롬프트 모드를 위해 섹션은 트리밍됩니다.
 
-프롬프트는 `applySystemPromptOverrideToSession()` 를 통해 세션 생성 이후에 적용됩니다.
+프롬프트는 세션 생성 후 `applySystemPromptOverrideToSession()` 를 통해 적용됩니다.
 
 ```typescript
 const systemPromptOverride = createSystemPromptOverride(appendPrompt);
@@ -296,7 +296,7 @@ applySystemPromptOverrideToSession(session, systemPromptOverride);
 
 ### 세션 파일
 
-세션은 트리 구조(id/parentId 연결)를 가진 JSONL 파일입니다. pi 의 `SessionManager` 가 영속성을 처리합니다.
+세션은 트리 구조(id/parentId 연결)의 JSONL 파일입니다. pi 의 `SessionManager` 가 영속성을 처리합니다.
 
 ```typescript
 const sessionManager = SessionManager.open(params.sessionFile);
@@ -306,7 +306,7 @@ OpenClaw 는 도구 결과 안전성을 위해 이를 `guardSessionManager()` �
 
 ### 세션 캐싱
 
-`session-manager-cache.ts` 는 반복적인 파일 파싱을 피하기 위해 SessionManager 인스턴스를 캐싱합니다.
+`session-manager-cache.ts` 는 반복적인 파일 파싱을 피하기 위해 SessionManager 인스턴스를 캐시합니다.
 
 ```typescript
 await prewarmSessionFile(params.sessionFile);
@@ -316,11 +316,11 @@ trackSessionManagerAccess(params.sessionFile);
 
 ### 히스토리 제한
 
-`limitHistoryTurns()` 는 채널 유형(다이렉트 메시지 vs 그룹)에 따라 대화 기록을 트리밍합니다.
+`limitHistoryTurns()` 는 채널 유형(DM vs 그룹)에 따라 대화 히스토리를 트리밍합니다.
 
-### 컴팩션
+### 압축
 
-컨텍스트 오버플로 시 자동 컴팩션이 트리거됩니다. 수동 컴팩션은 `compactEmbeddedPiSessionDirect()` 가 처리합니다.
+컨텍스트 오버플로우 시 자동 압축이 트리거됩니다. `compactEmbeddedPiSessionDirect()` 는 수동 압축을 처리합니다.
 
 ```typescript
 const compactResult = await compactEmbeddedPiSessionDirect({
@@ -332,14 +332,14 @@ const compactResult = await compactEmbeddedPiSessionDirect({
 
 ### 인증 프로파일
 
-OpenClaw 는 프로바이더별로 여러 API 키를 포함하는 인증 프로파일 저장소를 유지합니다.
+OpenClaw 는 프로바이더별로 여러 API 키를 포함하는 인증 프로파일 스토어를 유지합니다.
 
 ```typescript
 const authStore = ensureAuthProfileStore(agentDir, { allowKeychainPrompt: false });
 const profileOrder = resolveAuthProfileOrder({ cfg, store: authStore, provider, preferredProfile });
 ```
 
-실패 시 쿨다운 추적과 함께 프로파일이 로테이션됩니다.
+프로파일은 실패 시 쿨다운 추적과 함께 로테이션됩니다.
 
 ```typescript
 await markAuthProfileFailure({ store, profileId, reason, cfg, agentDir });
@@ -380,11 +380,11 @@ if (fallbackConfigured && isFailoverErrorMessage(errorText)) {
 
 ## Pi 확장
 
-OpenClaw 는 특수한 동작을 위해 커스텀 pi 확장을 로드합니다.
+OpenClaw 는 특수 동작을 위해 커스텀 pi 확장을 로드합니다.
 
-### 컴팩션 보호장치
+### 압축 안전장치
 
-`pi-extensions/compaction-safeguard.ts` 는 적응형 토큰 버짓팅과 도구 실패 및 파일 작업 요약을 포함하여 컴팩션에 가드레일을 추가합니다.
+`pi-extensions/compaction-safeguard.ts` 는 적응형 토큰 예산 책정과 도구 실패 및 파일 작업 요약을 포함한 압축 가드레일을 추가합니다.
 
 ```typescript
 if (resolveCompactionMode(params.cfg) === "safeguard") {
@@ -393,9 +393,9 @@ if (resolveCompactionMode(params.cfg) === "safeguard") {
 }
 ```
 
-### 컨텍스트 프루닝
+### 컨텍스트 가지치기
 
-`pi-extensions/context-pruning.ts` 는 캐시 TTL 기반 컨텍스트 프루닝을 구현합니다.
+`pi-extensions/context-pruning.ts` 는 캐시 TTL 기반 컨텍스트 가지치기를 구현합니다.
 
 ```typescript
 if (cfg?.agents?.defaults?.contextPruning?.mode === "cache-ttl") {
@@ -419,7 +419,7 @@ if (cfg?.agents?.defaults?.contextPruning?.mode === "cache-ttl") {
 const blockChunker = blockChunking ? new EmbeddedBlockChunker(blockChunking) : null;
 ```
 
-### Thinking/Final 태그 제거
+### 사고/최종 태그 제거
 
 스트리밍 출력은 `<think>`/`<thinking>` 블록을 제거하고 `<final>` 콘텐츠를 추출하도록 처리됩니다.
 
@@ -430,9 +430,9 @@ const stripBlockTags = (text: string, state: { thinking: boolean; final: boolean
 };
 ```
 
-### 응답 지시자
+### 응답 지시문
 
-`[[media:url]]`, `[[voice]]`, `[[reply:id]]` 와 같은 응답 지시자가 파싱 및 추출됩니다.
+`[[media:url]]`, `[[voice]]`, `[[reply:id]]` 와 같은 응답 지시문이 파싱 및 추출됩니다.
 
 ```typescript
 const { text: cleanedText, mediaUrls, audioAsVoice, replyToId } = consumeReplyDirectives(chunk);
@@ -453,9 +453,9 @@ isFailoverAssistantError(...)         // Should failover
 classifyFailoverReason(errorText)     // "auth" | "rate_limit" | "quota" | "timeout" | ...
 ```
 
-### Thinking 레벨 폴백
+### 사고 레벨 폴백
 
-Thinking 레벨이 지원되지 않는 경우 폴백이 적용됩니다.
+사고 레벨이 지원되지 않는 경우 폴백됩니다.
 
 ```typescript
 const fallbackThinking = pickFallbackThinkingLevel({
@@ -490,7 +490,7 @@ if (sandboxRoot) {
 
 ### Anthropic
 
-- 거절 매직 문자열 스크러빙
+- 거절 매직 문자열 정리
 - 연속 역할에 대한 턴 검증
 - Claude Code 파라미터 호환성
 
@@ -503,7 +503,7 @@ if (sandboxRoot) {
 ### OpenAI
 
 - Codex 모델을 위한 `apply_patch` 도구
-- Thinking 레벨 다운그레이드 처리
+- 사고 레벨 다운그레이드 처리
 
 ## TUI 통합
 
@@ -520,7 +520,7 @@ import { ... } from "@mariozechner/pi-tui";
 
 | 항목            | Pi CLI                  | OpenClaw 임베디드                                                                                |
 | --------------- | ----------------------- | ------------------------------------------------------------------------------------------------ |
-| 호출 방식       | `pi` 명령 / RPC         | `createAgentSession()` 를 통한 SDK                                                               |
+| 호출            | `pi` 명령 / RPC         | `createAgentSession()` 를 통한 SDK                                                               |
 | 도구            | 기본 코딩 도구          | 커스텀 OpenClaw 도구 세트                                                                        |
 | 시스템 프롬프트 | AGENTS.md + 프롬프트    | 채널/컨텍스트별 동적 구성                                                                        |
 | 세션 저장소     | `~/.pi/agent/sessions/` | `~/.openclaw/agents/<agentId>/sessions/` (또는 `$OPENCLAW_STATE_DIR/agents/<agentId>/sessions/`) |
@@ -530,17 +530,17 @@ import { ... } from "@mariozechner/pi-tui";
 
 ## 향후 고려 사항
 
-재작업 가능성이 있는 영역은 다음과 같습니다.
+잠재적 재작업 영역:
 
-1. **도구 시그니처 정렬**: 현재 pi-agent-core 와 pi-coding-agent 시그니처 간 어댑팅 필요
-2. **세션 매니저 래핑**: `guardSessionManager` 는 안전성을 추가하지만 복잡도를 증가시킴
+1. **도구 시그니처 정렬**: 현재 pi-agent-core 와 pi-coding-agent 시그니처 간 어댑팅
+2. **세션 매니저 래핑**: `guardSessionManager` 는 안전성을 추가하지만 복잡성을 증가시킴
 3. **확장 로딩**: pi 의 `ResourceLoader` 를 보다 직접적으로 사용할 수 있음
-4. **스트리밍 핸들러 복잡도**: `subscribeEmbeddedPiSession` 가 크게 확장됨
+4. **스트리밍 핸들러 복잡성**: `subscribeEmbeddedPiSession` 가 크게 확장됨
 5. **프로바이더 특이사항**: pi 가 잠재적으로 처리할 수 있는 많은 프로바이더별 코드 경로
 
 ## 테스트
 
-pi 통합과 해당 확장을 커버하는 모든 기존 테스트는 다음과 같습니다.
+pi 통합 및 그 확장을 다루는 모든 기존 테스트:
 
 - `src/agents/pi-embedded-block-chunker.test.ts`
 - `src/agents/pi-embedded-helpers.buildbootstrapcontextfiles.test.ts`
@@ -569,7 +569,7 @@ pi 통합과 해당 확장을 커버하는 모든 기존 테스트는 다음과 
 - `src/agents/pi-embedded-helpers.sanitizeuserfacingtext.test.ts`
 - `src/agents/pi-embedded-helpers.stripthoughtsignatures.test.ts`
 - `src/agents/pi-embedded-helpers.validate-turns.test.ts`
-- `src/agents/pi-embedded-runner-extraparams.live.test.ts` (live)
+- `src/agents/pi-embedded-runner-extraparams.live.test.ts` (라이브)
 - `src/agents/pi-embedded-runner-extraparams.test.ts`
 - `src/agents/pi-embedded-runner.applygoogleturnorderingfix.test.ts`
 - `src/agents/pi-embedded-runner.buildembeddedsandboxinfo.test.ts`

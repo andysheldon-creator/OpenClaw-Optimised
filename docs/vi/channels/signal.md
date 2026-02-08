@@ -1,31 +1,31 @@
 ---
-summary: "Ho tro Signal thong qua signal-cli (JSON-RPC + SSE), thiet lap va mo hinh so"
+summary: "Hỗ trợ Signal qua signal-cli (JSON-RPC + SSE), thiết lập và mô hình số"
 read_when:
-  - Thiet lap ho tro Signal
-  - Xu ly su co gui/nhan Signal
+  - Thiết lập hỗ trợ Signal
+  - Gỡ lỗi gửi/nhận Signal
 title: "Signal"
 x-i18n:
   source_path: channels/signal.md
-  source_hash: ca4de8b3685017f5
+  source_hash: b336b603edeb17a3
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:30Z
+  generated_at: 2026-02-08T09:38:16Z
 ---
 
 # Signal (signal-cli)
 
-Trang thai: tich hop CLI ben ngoai. Gateway giao tiep voi `signal-cli` qua HTTP JSON-RPC + SSE.
+Trạng thái: tích hợp CLI bên ngoài. Gateway giao tiếp với `signal-cli` qua HTTP JSON-RPC + SSE.
 
-## Quick setup (beginner)
+## Thiết lập nhanh (cho người mới)
 
-1. Su dung **mot so Signal rieng** cho bot (khuyen nghi).
-2. Cai dat `signal-cli` (can Java).
-3. Lien ket thiet bi bot va khoi dong daemon:
+1. Dùng **một số Signal riêng** cho bot (khuyến nghị).
+2. Cài đặt `signal-cli` (cần Java).
+3. Liên kết thiết bị bot và khởi động daemon:
    - `signal-cli link -n "OpenClaw"`
-4. Cau hinh OpenClaw va khoi dong gateway.
+4. Cấu hình OpenClaw và khởi động gateway.
 
-Cau hinh toi thieu:
+Cấu hình tối thiểu:
 
 ```json5
 {
@@ -41,17 +41,17 @@ Cau hinh toi thieu:
 }
 ```
 
-## What it is
+## Nó là gì
 
-- Kenh Signal thong qua `signal-cli` (khong phai libsignal tich hop).
-- Dinh tuyen xac dinh: phan hoi luon quay lai Signal.
-- DMs chia se phien chinh cua tac tu; nhom duoc tach rieng (`agent:<agentId>:signal:group:<groupId>`).
+- Kênh Signal qua `signal-cli` (không phải libsignal nhúng).
+- Định tuyến xác định: phản hồi luôn quay lại Signal.
+- DM dùng chung phiên chính của tác tử; nhóm được cô lập (`agent:<agentId>:signal:group:<groupId>`).
 
-## Config writes
+## Ghi cấu hình
 
-Mac dinh, Signal duoc phep ghi cap nhat cau hinh duoc kich hoat boi `/config set|unset` (can `commands.config: true`).
+Theo mặc định, Signal được phép ghi cập nhật cấu hình do `/config set|unset` kích hoạt (cần `commands.config: true`).
 
-Tat bang:
+Tắt bằng:
 
 ```json5
 {
@@ -59,20 +59,20 @@ Tat bang:
 }
 ```
 
-## The number model (important)
+## Mô hình số (quan trọng)
 
-- Gateway ket noi toi **mot thiet bi Signal** (tai khoan `signal-cli`).
-- Neu chay bot tren **tai khoan Signal ca nhan** cua ban, no se bo qua tin nhan cua chinh ban (bao ve vong lap).
-- De co “toi nhan tin cho bot va no tra loi”, hay dung **mot so bot rieng**.
+- Gateway kết nối tới **một thiết bị Signal** (tài khoản `signal-cli`).
+- Nếu chạy bot trên **tài khoản Signal cá nhân của bạn**, nó sẽ bỏ qua tin nhắn của chính bạn (bảo vệ vòng lặp).
+- Để có hành vi “tôi nhắn bot và nó trả lời”, hãy dùng **một số bot riêng**.
 
-## Setup (fast path)
+## Thiết lập (nhanh)
 
-1. Cai dat `signal-cli` (can Java).
-2. Lien ket mot tai khoan bot:
-   - `signal-cli link -n "OpenClaw"` roi quet QR trong Signal.
-3. Cau hinh Signal va khoi dong gateway.
+1. Cài đặt `signal-cli` (cần Java).
+2. Liên kết một tài khoản bot:
+   - `signal-cli link -n "OpenClaw"` rồi quét QR trong Signal.
+3. Cấu hình Signal và khởi động gateway.
 
-Vi du:
+Ví dụ:
 
 ```json5
 {
@@ -88,11 +88,11 @@ Vi du:
 }
 ```
 
-Ho tro nhieu tai khoan: su dung `channels.signal.accounts` voi cau hinh theo tung tai khoan va tuy chon `name`. Xem [`gateway/configuration`](/gateway/configuration#telegramaccounts--discordaccounts--slackaccounts--signalaccounts--imessageaccounts) de biet mau dung chung.
+Hỗ trợ nhiều tài khoản: dùng `channels.signal.accounts` với cấu hình theo từng tài khoản và `name` tùy chọn. Xem [`gateway/configuration`](/gateway/configuration#telegramaccounts--discordaccounts--slackaccounts--signalaccounts--imessageaccounts) để biết mẫu dùng chung.
 
-## External daemon mode (httpUrl)
+## Chế độ daemon bên ngoài (httpUrl)
 
-Neu ban muon tu quan ly `signal-cli` (khoi dong JVM lanh cham, khoi tao container, hoac CPU chia se), hay chay daemon rieng va tro OpenClaw toi no:
+Nếu bạn muốn tự quản lý `signal-cli` (khởi động JVM chậm, init container, hoặc CPU dùng chung), hãy chạy daemon riêng và trỏ OpenClaw tới đó:
 
 ```json5
 {
@@ -105,54 +105,54 @@ Neu ban muon tu quan ly `signal-cli` (khoi dong JVM lanh cham, khoi tao containe
 }
 ```
 
-Cach nay bo qua tu dong spawn va thoi gian cho khoi dong ben trong OpenClaw. Voi khoi dong cham khi tu dong spawn, dat `channels.signal.startupTimeoutMs`.
+Cách này bỏ qua tự động khởi chạy và thời gian chờ khởi động bên trong OpenClaw. Với khởi động chậm khi tự khởi chạy, đặt `channels.signal.startupTimeoutMs`.
 
-## Access control (DMs + groups)
+## Kiểm soát truy cập (DM + nhóm)
 
-DMs:
+DM:
 
-- Mac dinh: `channels.signal.dmPolicy = "pairing"`.
-- Nguoi gui chua biet nhan mot ma ghep cap; tin nhan bi bo qua cho toi khi duoc chap thuan (ma het han sau 1 gio).
-- Phe duyet bang:
+- Mặc định: `channels.signal.dmPolicy = "pairing"`.
+- Người gửi chưa biết sẽ nhận mã ghép cặp; tin nhắn bị bỏ qua cho đến khi được duyệt (mã hết hạn sau 1 giờ).
+- Duyệt qua:
   - `openclaw pairing list signal`
   - `openclaw pairing approve signal <CODE>`
-- Ghep cap la co che trao doi token mac dinh cho DMs Signal. Chi tiet: [Pairing](/start/pairing)
-- Nguoi gui chi co UUID (tu `sourceUuid`) duoc luu la `uuid:<id>` trong `channels.signal.allowFrom`.
+- Ghép cặp là cơ chế trao đổi token mặc định cho DM Signal. Chi tiết: [Pairing](/channels/pairing)
+- Người gửi chỉ có UUID (từ `sourceUuid`) được lưu dưới dạng `uuid:<id>` trong `channels.signal.allowFrom`.
 
-Groups:
+Nhóm:
 
 - `channels.signal.groupPolicy = open | allowlist | disabled`.
-- `channels.signal.groupAllowFrom` dieu khien ai co the kich hoat trong nhom khi `allowlist` duoc dat.
+- `channels.signal.groupAllowFrom` kiểm soát ai có thể kích hoạt trong nhóm khi đặt `allowlist`.
 
-## How it works (behavior)
+## Cách hoạt động (hành vi)
 
-- `signal-cli` chay nhu mot daemon; gateway doc su kien qua SSE.
-- Tin nhan vao duoc chuan hoa thanh bao boc kenh dung chung.
-- Phan hoi luon duoc dinh tuyen tro lai cung so hoac nhom.
+- `signal-cli` chạy như một daemon; gateway đọc sự kiện qua SSE.
+- Tin nhắn vào được chuẩn hóa vào phong bì kênh dùng chung.
+- Phản hồi luôn được định tuyến về cùng số hoặc nhóm.
 
-## Media + limits
+## Media + giới hạn
 
-- Van ban gui ra duoc chia thanh cac doan `channels.signal.textChunkLimit` (mac dinh 4000).
-- Chia theo dong moi tuy chon: dat `channels.signal.chunkMode="newline"` de tach theo dong trong (ranh gioi doan) truoc khi chia theo do dai.
-- Ho tro tep dinh kem (base64 lay tu `signal-cli`).
-- Gioi han media mac dinh: `channels.signal.mediaMaxMb` (mac dinh 8).
-- Su dung `channels.signal.ignoreAttachments` de bo qua tai media.
-- Ngu canh lich su nhom dung `channels.signal.historyLimit` (hoac `channels.signal.accounts.*.historyLimit`), quay ve `messages.groupChat.historyLimit`. Dat `0` de tat (mac dinh 50).
+- Văn bản gửi đi được chia khối theo `channels.signal.textChunkLimit` (mặc định 4000).
+- Tùy chọn chia theo dòng mới: đặt `channels.signal.chunkMode="newline"` để tách theo dòng trống (ranh giới đoạn) trước khi chia theo độ dài.
+- Hỗ trợ tệp đính kèm (base64 lấy từ `signal-cli`).
+- Giới hạn media mặc định: `channels.signal.mediaMaxMb` (mặc định 8).
+- Dùng `channels.signal.ignoreAttachments` để bỏ qua tải media.
+- Ngữ cảnh lịch sử nhóm dùng `channels.signal.historyLimit` (hoặc `channels.signal.accounts.*.historyLimit`), dự phòng về `messages.groupChat.historyLimit`. Đặt `0` để tắt (mặc định 50).
 
-## Typing + read receipts
+## Đang gõ + biên nhận đã đọc
 
-- **Chi bao dang go**: OpenClaw gui tin hieu dang go qua `signal-cli sendTyping` va lam moi trong khi dang tra loi.
-- **Bien nhan da doc**: khi `channels.signal.sendReadReceipts` la true, OpenClaw chuyen tiep bien nhan da doc cho DMs duoc phep.
-- Signal-cli khong cung cap bien nhan da doc cho nhom.
+- **Chỉ báo đang gõ**: OpenClaw gửi tín hiệu đang gõ qua `signal-cli sendTyping` và làm mới trong khi đang tạo phản hồi.
+- **Biên nhận đã đọc**: khi `channels.signal.sendReadReceipts` là true, OpenClaw chuyển tiếp biên nhận đã đọc cho các DM được phép.
+- signal-cli không cung cấp biên nhận đã đọc cho nhóm.
 
-## Reactions (message tool)
+## Phản ứng (công cụ tin nhắn)
 
-- Su dung `message action=react` voi `channel=signal`.
-- Doi tuong: nguoi gui E.164 hoac UUID (su dung `uuid:<id>` tu dau ra ghep cap; UUID thuan cung dung).
-- `messageId` la dau thoi gian Signal cua tin nhan ban dang phan ung.
-- Phan ung trong nhom can `targetAuthor` hoac `targetAuthorUuid`.
+- Dùng `message action=react` với `channel=signal`.
+- Đích: E.164 hoặc UUID của người gửi (dùng `uuid:<id>` từ đầu ra ghép cặp; UUID trần cũng dùng được).
+- `messageId` là dấu thời gian Signal của tin nhắn bạn đang phản ứng.
+- Phản ứng trong nhóm cần `targetAuthor` hoặc `targetAuthorUuid`.
 
-Vi du:
+Ví dụ:
 
 ```
 message action=react channel=signal target=uuid:123e4567-e89b-12d3-a456-426614174000 messageId=1737630212345 emoji=🔥
@@ -160,50 +160,76 @@ message action=react channel=signal target=+15551234567 messageId=1737630212345 
 message action=react channel=signal target=signal:group:<groupId> targetAuthor=uuid:<sender-uuid> messageId=1737630212345 emoji=✅
 ```
 
-Cau hinh:
+Cấu hình:
 
-- `channels.signal.actions.reactions`: bat/tat hanh dong phan ung (mac dinh true).
+- `channels.signal.actions.reactions`: bật/tắt hành động phản ứng (mặc định true).
 - `channels.signal.reactionLevel`: `off | ack | minimal | extensive`.
-  - `off`/`ack` tat phan ung cua tac tu (cong cu tin nhan `react` se bao loi).
-  - `minimal`/`extensive` bat phan ung cua tac tu va dat muc huong dan.
-- Ghi de theo tai khoan: `channels.signal.accounts.<id>.actions.reactions`, `channels.signal.accounts.<id>.reactionLevel`.
+  - `off`/`ack` tắt phản ứng của tác tử (công cụ tin nhắn `react` sẽ báo lỗi).
+  - `minimal`/`extensive` bật phản ứng của tác tử và đặt mức hướng dẫn.
+- Ghi đè theo tài khoản: `channels.signal.accounts.<id>.actions.reactions`, `channels.signal.accounts.<id>.reactionLevel`.
 
-## Delivery targets (CLI/cron)
+## Đích gửi (CLI/cron)
 
-- DMs: `signal:+15551234567` (hoac E.164 thuan).
-- DMs UUID: `uuid:<id>` (hoac UUID thuan).
-- Groups: `signal:group:<groupId>`.
-- Ten nguoi dung: `username:<name>` (neu duoc tai khoan Signal cua ban ho tro).
+- DM: `signal:+15551234567` (hoặc E.164 trần).
+- DM bằng UUID: `uuid:<id>` (hoặc UUID trần).
+- Nhóm: `signal:group:<groupId>`.
+- Tên người dùng: `username:<name>` (nếu tài khoản Signal của bạn hỗ trợ).
 
-## Configuration reference (Signal)
+## Xử lý sự cố
 
-Cau hinh day du: [Configuration](/gateway/configuration)
+Chạy thang kiểm tra này trước:
 
-Tuy chon nha cung cap:
+```bash
+openclaw status
+openclaw gateway status
+openclaw logs --follow
+openclaw doctor
+openclaw channels status --probe
+```
 
-- `channels.signal.enabled`: bat/tat khoi dong kenh.
-- `channels.signal.account`: E.164 cho tai khoan bot.
-- `channels.signal.cliPath`: duong dan toi `signal-cli`.
-- `channels.signal.httpUrl`: URL daemon day du (ghi de host/port).
-- `channels.signal.httpHost`, `channels.signal.httpPort`: rang buoc daemon (mac dinh 127.0.0.1:8080).
-- `channels.signal.autoStart`: tu dong spawn daemon (mac dinh true neu `httpUrl` chua dat).
-- `channels.signal.startupTimeoutMs`: thoi gian cho khoi dong (ms) (tran 120000).
+Sau đó xác nhận trạng thái ghép cặp DM nếu cần:
+
+```bash
+openclaw pairing list signal
+```
+
+Lỗi thường gặp:
+
+- Daemon truy cập được nhưng không có phản hồi: kiểm tra cài đặt tài khoản/daemon (`httpUrl`, `account`) và chế độ nhận.
+- DM bị bỏ qua: người gửi đang chờ duyệt ghép cặp.
+- Tin nhắn nhóm bị bỏ qua: chặn do kiểm soát người gửi/nhắc tên trong nhóm.
+
+Luồng phân tích sự cố: [/channels/troubleshooting](/channels/troubleshooting).
+
+## Tham chiếu cấu hình (Signal)
+
+Cấu hình đầy đủ: [Configuration](/gateway/configuration)
+
+Tùy chọn nhà cung cấp:
+
+- `channels.signal.enabled`: bật/tắt khởi động kênh.
+- `channels.signal.account`: E.164 cho tài khoản bot.
+- `channels.signal.cliPath`: đường dẫn tới `signal-cli`.
+- `channels.signal.httpUrl`: URL daemon đầy đủ (ghi đè host/port).
+- `channels.signal.httpHost`, `channels.signal.httpPort`: bind daemon (mặc định 127.0.0.1:8080).
+- `channels.signal.autoStart`: tự khởi chạy daemon (mặc định true nếu `httpUrl` chưa đặt).
+- `channels.signal.startupTimeoutMs`: thời gian chờ khởi động tính bằng ms (giới hạn 120000).
 - `channels.signal.receiveMode`: `on-start | manual`.
-- `channels.signal.ignoreAttachments`: bo qua tai tep dinh kem.
-- `channels.signal.ignoreStories`: bo qua stories tu daemon.
-- `channels.signal.sendReadReceipts`: chuyen tiep bien nhan da doc.
-- `channels.signal.dmPolicy`: `pairing | allowlist | open | disabled` (mac dinh: pairing).
-- `channels.signal.allowFrom`: danh sach cho phep DM (E.164 hoac `uuid:<id>`). `open` can `"*"`. Signal khong co ten nguoi dung; dung ID so dien thoai/UUID.
-- `channels.signal.groupPolicy`: `open | allowlist | disabled` (mac dinh: allowlist).
-- `channels.signal.groupAllowFrom`: allowlist nguoi gui trong nhom.
-- `channels.signal.historyLimit`: so tin nhan nhom toi da dua vao ngu canh (0 de tat).
-- `channels.signal.dmHistoryLimit`: gioi han lich su DM theo luot nguoi dung. Ghi de theo nguoi dung: `channels.signal.dms["<phone_or_uuid>"].historyLimit`.
-- `channels.signal.textChunkLimit`: kich thuoc chia doan gui ra (ky tu).
-- `channels.signal.chunkMode`: `length` (mac dinh) hoac `newline` de tach theo dong trong (ranh gioi doan) truoc khi chia theo do dai.
-- `channels.signal.mediaMaxMb`: gioi han media vao/ra (MB).
+- `channels.signal.ignoreAttachments`: bỏ qua tải tệp đính kèm.
+- `channels.signal.ignoreStories`: bỏ qua stories từ daemon.
+- `channels.signal.sendReadReceipts`: chuyển tiếp biên nhận đã đọc.
+- `channels.signal.dmPolicy`: `pairing | allowlist | open | disabled` (mặc định: ghép cặp).
+- `channels.signal.allowFrom`: danh sách cho phép DM (E.164 hoặc `uuid:<id>`). `open` cần `"*"`. Signal không có tên người dùng; dùng id điện thoại/UUID.
+- `channels.signal.groupPolicy`: `open | allowlist | disabled` (mặc định: danh sách cho phép).
+- `channels.signal.groupAllowFrom`: danh sách cho phép người gửi trong nhóm.
+- `channels.signal.historyLimit`: số tin nhắn nhóm tối đa để đưa vào ngữ cảnh (0 để tắt).
+- `channels.signal.dmHistoryLimit`: giới hạn lịch sử DM theo lượt người dùng. Ghi đè theo từng người dùng: `channels.signal.dms["<phone_or_uuid>"].historyLimit`.
+- `channels.signal.textChunkLimit`: kích thước chia khối gửi đi (ký tự).
+- `channels.signal.chunkMode`: `length` (mặc định) hoặc `newline` để tách theo dòng trống (ranh giới đoạn) trước khi chia theo độ dài.
+- `channels.signal.mediaMaxMb`: giới hạn media vào/ra (MB).
 
-Tuy chon toan cuc lien quan:
+Tùy chọn toàn cục liên quan:
 
-- `agents.list[].groupChat.mentionPatterns` (Signal khong ho tro mentions goc).
-- `messages.groupChat.mentionPatterns` (du phong toan cuc).
+- `agents.list[].groupChat.mentionPatterns` (Signal không hỗ trợ nhắc tên gốc).
+- `messages.groupChat.mentionPatterns` (dự phòng toàn cục).
 - `messages.responsePrefix`.

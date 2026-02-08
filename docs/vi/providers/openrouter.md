@@ -1,8 +1,8 @@
 ---
-summary: "Su dung API thong nhat cua OpenRouter de truy cap nhieu mo hinh trong OpenClaw"
+summary: "Dùng API hợp nhất của OpenRouter để truy cập nhiều mô hình trong OpenClaw"
 read_when:
-  - Ban muon mot khoa API duy nhat cho nhieu LLM
-  - Ban muon chay cac mo hinh thong qua OpenRouter trong OpenClaw
+  - Bạn muốn một khóa API duy nhất cho nhiều LLM
+  - Bạn muốn chạy các mô hình qua OpenRouter trong OpenClaw
 title: "OpenRouter"
 x-i18n:
   source_path: providers/openrouter.md
@@ -10,21 +10,21 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:08:10Z
+  generated_at: 2026-02-08T09:39:54Z
 ---
 
 # OpenRouter
 
-OpenRouter cung cap mot **API thong nhat** dinh tuyen cac yeu cau den nhieu mo hinh phia sau mot
-diem cuoi va mot khoa API duy nhat. No tuong thich OpenAI, vi vay hau het cac SDK OpenAI hoat dong bang cach chuyen doi base URL.
+OpenRouter cung cấp một **API hợp nhất** định tuyến các yêu cầu tới nhiều mô hình phía sau một
+endpoint và khóa API duy nhất. API này tương thích OpenAI, nên hầu hết các SDK OpenAI hoạt động chỉ bằng cách đổi base URL.
 
-## Thiet lap CLI
+## Thiết lập CLI
 
 ```bash
 openclaw onboard --auth-choice apiKey --token-provider openrouter --token "$OPENROUTER_API_KEY"
 ```
 
-## Doan cau hinh
+## Đoạn cấu hình
 
 ```json5
 {
@@ -37,8 +37,8 @@ openclaw onboard --auth-choice apiKey --token-provider openrouter --token "$OPEN
 }
 ```
 
-## Ghi chu
+## Ghi chú
 
-- Tham chieu model la `openrouter/<provider>/<model>`.
-- De biet them cac tuy chon model/nha cung cap, xem [/concepts/model-providers](/concepts/model-providers).
-- OpenRouter su dung Bearer token voi khoa API cua ban o ben trong.
+- Tham chiếu mô hình là `openrouter/<provider>/<model>`.
+- Để biết thêm tùy chọn mô hình/nhà cung cấp, xem [/concepts/model-providers](/concepts/model-providers).
+- OpenRouter sử dụng Bearer token với khóa API của bạn ở phía dưới.

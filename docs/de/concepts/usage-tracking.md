@@ -1,8 +1,8 @@
 ---
-summary: „Oberflaechen zur Nutzungsverfolgung und Anforderungen an Anmeldeinformationen“
+summary: „Oberflächen zur Nutzungsverfolgung und Anforderungen an Anmeldeinformationen“
 read_when:
-  - Sie verdrahten Oberflaechen fuer Anbieter‑Nutzung/Kontingente
-  - Sie muessen das Verhalten der Nutzungsverfolgung oder Auth‑Anforderungen erklaeren
+  - Sie verdrahten Oberflächen für Anbieter-Nutzung/Quoten
+  - Sie müssen das Verhalten der Nutzungsverfolgung oder Authentifizierungsanforderungen erklären
 title: „Nutzungsverfolgung“
 x-i18n:
   source_path: concepts/usage-tracking.md
@@ -10,24 +10,24 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:04:12Z
+  generated_at: 2026-02-08T09:36:00Z
 ---
 
 # Nutzungsverfolgung
 
 ## Was es ist
 
-- Ruft Anbieter‑Nutzungs‑/Kontingentdaten direkt von deren Nutzungsendpunkten ab.
-- Keine geschaetzten Kosten; nur die vom Anbieter gemeldeten Zeitfenster.
+- Ruft die Nutzung/Quote der Anbieter direkt von deren Nutzungsendpunkten ab.
+- Keine geschätzten Kosten; nur die vom Anbieter gemeldeten Zeitfenster.
 
 ## Wo es angezeigt wird
 
-- `/status` in Chats: Emoji‑reiche Statuskarte mit Sitzungstokens + geschaetzten Kosten (nur API‑Schluessel). Die Anbieter‑Nutzung wird fuer den **aktuellen Modellanbieter** angezeigt, sofern verfuegbar.
+- `/status` in Chats: Emoji‑reiche Statuskarte mit Sitzungstokens + geschätzten Kosten (nur API‑Schlüssel). Die Anbieter‑Nutzung wird für den **aktuellen Modellanbieter** angezeigt, sofern verfügbar.
 - `/usage off|tokens|full` in Chats: Nutzungs‑Footer pro Antwort (OAuth zeigt nur Tokens).
-- `/usage cost` in Chats: lokale Kostenuebersicht, aggregiert aus OpenClaw‑Sitzungsprotokollen.
-- CLI: `openclaw status --usage` gibt eine vollstaendige Aufschluesselung pro Anbieter aus.
-- CLI: `openclaw channels list` gibt denselben Nutzungsschnappschuss zusammen mit der Anbieter‑Konfiguration aus (verwenden Sie `--no-usage` zum Ueberspringen).
-- macOS‑Menueleiste: Abschnitt „Usage“ unter „Context“ (nur wenn verfuegbar).
+- `/usage cost` in Chats: lokale Kostenübersicht, aggregiert aus OpenClaw‑Sitzungsprotokollen.
+- CLI: `openclaw status --usage` gibt eine vollständige Aufschlüsselung pro Anbieter aus.
+- CLI: `openclaw channels list` gibt denselben Nutzungsschnappschuss zusammen mit der Anbieter‑Konfiguration aus (verwenden Sie `--no-usage`, um dies zu überspringen).
+- macOS‑Menüleiste: Abschnitt „Usage“ unter Context (nur falls verfügbar).
 
 ## Anbieter + Anmeldeinformationen
 
@@ -35,8 +35,8 @@ x-i18n:
 - **GitHub Copilot**: OAuth‑Tokens in Auth‑Profilen.
 - **Gemini CLI**: OAuth‑Tokens in Auth‑Profilen.
 - **Antigravity**: OAuth‑Tokens in Auth‑Profilen.
-- **OpenAI Codex**: OAuth‑Tokens in Auth‑Profilen (accountId wird verwendet, wenn vorhanden).
-- **MiniMax**: API‑Schluessel (Coding‑Plan‑Schluessel; `MINIMAX_CODE_PLAN_KEY` oder `MINIMAX_API_KEY`); verwendet das 5‑Stunden‑Coding‑Plan‑Zeitfenster.
-- **z.ai**: API‑Schluessel ueber env/config/Auth‑Store.
+- **OpenAI Codex**: OAuth‑Tokens in Auth‑Profilen (accountId wird verwendet, falls vorhanden).
+- **MiniMax**: API‑Schlüssel (Coding‑Plan‑Schlüssel; `MINIMAX_CODE_PLAN_KEY` oder `MINIMAX_API_KEY`); verwendet das 5‑Stunden‑Coding‑Plan‑Zeitfenster.
+- **z.ai**: API‑Schlüssel über env/Konfiguration/Auth‑Store.
 
 Die Nutzung wird ausgeblendet, wenn keine passenden OAuth‑/API‑Anmeldeinformationen vorhanden sind.

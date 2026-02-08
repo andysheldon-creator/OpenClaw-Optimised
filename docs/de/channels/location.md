@@ -1,26 +1,26 @@
 ---
-summary: "Parsing eingehender Kanalstandorte (Telegram + WhatsApp) und Kontextfelder"
+summary: „Parsing eingehender Kanalstandorte (Telegram + WhatsApp) und Kontextfelder“
 read_when:
-  - Hinzufuegen oder Aendern der Kanal-Standortverarbeitung
-  - Verwendung von Standort-Kontextfeldern in Agent-Prompts oder Werkzeugen
-title: "Parsing von Kanalstandorten"
+  - Beim Hinzufügen oder Ändern des Kanal-Standort-Parsing
+  - Beim Verwenden von Standort-Kontextfeldern in Agent-Prompts oder Werkzeugen
+title: „Kanal-Standort-Parsing“
 x-i18n:
   source_path: channels/location.md
   source_hash: 5602ef105c3da7e4
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:25Z
+  generated_at: 2026-02-08T09:35:11Z
 ---
 
-# Parsing von Kanalstandorten
+# Kanal-Standort-Parsing
 
-OpenClaw normalisiert geteilte Standorte aus Chat-Kanaelen zu:
+OpenClaw normalisiert geteilte Standorte aus Chat-Kanälen zu:
 
-- menschenlesbarem Text, der an den eingehenden Text angehaengt wird, und
-- strukturierten Feldern in der Kontext-Nutzlast der automatischen Antwort.
+- menschenlesbarem Text, der an den eingehenden Nachrichtentext angehängt wird, und
+- strukturierten Feldern im Kontext-Payload der automatischen Antwort.
 
-Derzeit unterstuetzt:
+Derzeit unterstützt:
 
 - **Telegram** (Standort-Pins + Orte + Live-Standorte)
 - **WhatsApp** (locationMessage + liveLocationMessage)
@@ -37,7 +37,7 @@ Standorte werden als freundliche Zeilen ohne Klammern dargestellt:
 - Live-Freigabe:
   - `🛰 Live location: 48.858844, 2.294351 ±12m`
 
-Wenn der Kanal eine Beschriftung/einen Kommentar enthaelt, wird dieser in der naechsten Zeile angehaengt:
+Wenn der Kanal eine Bildunterschrift/einen Kommentar enthält, wird dieser in der nächsten Zeile angehängt:
 
 ```
 📍 48.858844, 2.294351 ±12m
@@ -46,7 +46,7 @@ Meet here
 
 ## Kontextfelder
 
-Wenn ein Standort vorhanden ist, werden diese Felder zu `ctx` hinzugefuegt:
+Wenn ein Standort vorhanden ist, werden diese Felder zu `ctx` hinzugefügt:
 
 - `LocationLat` (Zahl)
 - `LocationLon` (Zahl)
@@ -54,10 +54,10 @@ Wenn ein Standort vorhanden ist, werden diese Felder zu `ctx` hinzugefuegt:
 - `LocationName` (Zeichenkette; optional)
 - `LocationAddress` (Zeichenkette; optional)
 - `LocationSource` (`pin | place | live`)
-- `LocationIsLive` (Boolesch)
+- `LocationIsLive` (Boolean)
 
 ## Kanalhinweise
 
 - **Telegram**: Orte werden auf `LocationName/LocationAddress` abgebildet; Live-Standorte verwenden `live_period`.
-- **WhatsApp**: `locationMessage.comment` und `liveLocationMessage.caption` werden als Beschriftungszeile angehaengt.
-- **Matrix**: `geo_uri` wird als Pin-Standort geparst; die Hoehe wird ignoriert und `LocationIsLive` ist immer false.
+- **WhatsApp**: `locationMessage.comment` und `liveLocationMessage.caption` werden als Beschriftungszeile angehängt.
+- **Matrix**: `geo_uri` wird als Pin-Standort geparst; die Höhe wird ignoriert und `LocationIsLive` ist immer false.

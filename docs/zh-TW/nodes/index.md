@@ -1,35 +1,36 @@
 ---
-summary: "Nodes：配對、能力、權限，以及 canvas／camera／screen／system 的 CLI 輔助工具"
+summary: "節點：配對、能力、權限，以及適用於畫布／相機／螢幕／系統的 CLI 輔助工具"
 read_when:
-  - 將 iOS／Android 節點配對到 Gateway 閘道器
-  - 使用節點的 canvas／camera 作為代理程式情境
+  - 將 iOS／Android 節點與 Gateway 閘道器配對
+  - 使用節點畫布／相機作為代理程式脈絡
   - 新增節點指令或 CLI 輔助工具
-title: "Nodes"
+title: "節點"
 x-i18n:
   source_path: nodes/index.md
-  source_hash: 74e9420f61c653e4
+  source_hash: ba259b5c384b9329
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:54:11Z
+  generated_at: 2026-02-08T09:28:53Z
 ---
 
-# Nodes
+# 節點
 
-**node** 是一個配套裝置（macOS／iOS／Android／headless），會連線到 Gateway **WebSocket**（與 operators 相同的連接埠），使用 `role: "node"`，並透過 `node.invoke` 暴露指令介面（例如 `canvas.*`、`camera.*`、`system.*`）。協定細節請見：[Gateway protocol](/gateway/protocol)。
+**節點** 是一種配套裝置（macOS／iOS／Android／無介面），會連線至 Gateway **WebSocket**（與操作員相同的連接埠），透過 `role: "node"`，並經由 `node.invoke` 暴露指令介面（例如 `canvas.*`、`camera.*`、`system.*`）。通訊協定細節：[Gateway protocol](/gateway/protocol)。
 
-舊版傳輸方式：[Bridge protocol](/gateway/bridge-protocol)（TCP JSONL；已淘汰／目前節點已移除）。
+舊版傳輸方式：[Bridge protocol](/gateway/bridge-protocol)（TCP JSONL；已淘汰／自目前節點移除）。
 
-macOS 也可在 **node mode** 下執行：選單列應用程式會連線到 Gateway 的 WS 伺服器，並將其本機的 canvas／camera 指令作為節點暴露（因此 `openclaw nodes …` 可針對此 Mac 使用）。
+macOS 也可以在 **節點模式** 下執行：選單列應用程式會連線到 Gateway 的 WS 伺服器，並將其本機的畫布／相機指令作為節點暴露（因此 `openclaw nodes …` 可針對這台 Mac 運作）。
 
 注意事項：
 
-- Nodes 是**周邊裝置**，不是 Gateway。它們不會執行 gateway 服務。
-- Telegram／WhatsApp／等訊息會送達 **gateway**，而不是 nodes。
+- 節點是 **周邊裝置**，不是 Gateway 閘道器；它們不會執行 gateway 服務。
+- Telegram／WhatsApp 等訊息會進入 **gateway**，而不是節點。
+- 疑難排解手冊：[/nodes/troubleshooting](/nodes/troubleshooting)
 
-## Pairing + status
+## 配對與狀態
 
-**WS nodes 使用裝置配對。** Nodes 在 `connect` 期間提供裝置身分；Gateway 會為 `role: node` 建立裝置配對請求。請透過裝置的 CLI（或 UI）核准。
+**WS 節點使用裝置配對。** 節點在 `connect` 期間提供裝置身分；Gateway 會為 `role: node` 建立裝置配對請求。請透過裝置的 CLI（或 UI）核准。
 
 快速 CLI：
 
@@ -43,20 +44,21 @@ openclaw nodes describe --node <idOrNameOrIp>
 
 注意事項：
 
-- 當其裝置配對角色包含 `node` 時，`nodes status` 會將節點標記為**已配對**。
-- `node.pair.*`（CLI：`openclaw nodes pending/approve/reject`）是由 gateway 擁有的獨立節點配對儲存；它**不會**限制 WS 的 `connect` 交握。
+- 當裝置配對角色包含 `node` 時，`nodes status` 會將節點標記為 **已配對**。
+- `node.pair.*`（CLI：`openclaw nodes pending/approve/reject`）是獨立、由 gateway 擁有的
+  節點配對儲存區；它 **不會** 管控 WS 的 `connect` 握手。
 
-## Remote node host（system.run）
+## 遠端節點主機（system.run）
 
-當 Gateway 執行在一台機器上，而你希望指令在另一台機器上執行時，請使用 **node host**。模型仍與 **gateway** 對話；當選擇 `host=node` 時，gateway 會將 `exec` 呼叫轉送至 **node host**。
+當你的 Gateway 執行在一台機器上，而你希望在另一台機器上執行指令時，請使用 **節點主機**。模型仍然與 **gateway** 對話；當選擇 `host=node` 時，gateway 會將 `exec` 呼叫轉送至 **節點主機**。
 
-### What runs where
+### 哪些內容在哪裡執行
 
-- **Gateway host**：接收訊息、執行模型、路由工具呼叫。
-- **Node host**：在節點機器上執行 `system.run`／`system.which`。
-- **Approvals**：由 `~/.openclaw/exec-approvals.json` 在 node host 上強制執行。
+- **Gateway 主機**：接收訊息、執行模型、路由工具呼叫。
+- **節點主機**：在節點機器上執行 `system.run`／`system.which`。
+- **核准**：透過 `~/.openclaw/exec-approvals.json` 在節點主機上強制執行。
 
-### Start a node host（foreground）
+### 啟動節點主機（前景）
 
 在節點機器上：
 
@@ -64,11 +66,11 @@ openclaw nodes describe --node <idOrNameOrIp>
 openclaw node run --host <gateway-host> --port 18789 --display-name "Build Node"
 ```
 
-### Remote gateway via SSH tunnel（loopback bind）
+### 透過 SSH 通道的遠端 Gateway（loopback 綁定）
 
-若 Gateway 綁定到 loopback（`gateway.bind=loopback`，本機模式預設），遠端 node host 無法直接連線。請建立 SSH tunnel，並將 node host 指向 tunnel 的本機端。
+如果 Gateway 綁定到 loopback（`gateway.bind=loopback`，本機模式的預設值），遠端節點主機將無法直接連線。請建立 SSH 通道，並將節點主機指向通道的本機端。
 
-範例（node host -> gateway host）：
+範例（節點主機 -> gateway 主機）：
 
 ```bash
 # Terminal A (keep running): forward local 18790 -> gateway 127.0.0.1:18789
@@ -81,19 +83,19 @@ openclaw node run --host 127.0.0.1 --port 18790 --display-name "Build Node"
 
 注意事項：
 
-- 權杖來自 gateway 設定中的 `gateway.auth.token`（在 gateway host 上的 `~/.openclaw/openclaw.json`）。
+- 權杖是來自 gateway 設定中的 `gateway.auth.token`（位於 gateway 主機上的 `~/.openclaw/openclaw.json`）。
 - `openclaw node run` 會讀取 `OPENCLAW_GATEWAY_TOKEN` 進行驗證。
 
-### Start a node host（service）
+### 啟動節點主機（服務）
 
 ```bash
 openclaw node install --host <gateway-host> --port 18789 --display-name "Build Node"
 openclaw node restart
 ```
 
-### Pair + name
+### 配對與命名
 
-在 gateway host 上：
+在 gateway 主機上：
 
 ```bash
 openclaw nodes pending
@@ -103,21 +105,21 @@ openclaw nodes list
 
 命名選項：
 
-- 在 `openclaw node run`／`openclaw node install` 上設定 `--display-name`（會持久化到節點上的 `~/.openclaw/node.json`）。
+- 在 `openclaw node run`／`openclaw node install` 上設定 `--display-name`（會持久化於節點上的 `~/.openclaw/node.json`）。
 - `openclaw nodes rename --node <id|name|ip> --name "Build Node"`（gateway 覆寫）。
 
-### Allowlist the commands
+### 將指令加入允許清單
 
-Exec 核准是**以 node host 為單位**。請從 gateway 新增 allowlist 項目：
+執行核准是 **以節點主機為單位**。請從 gateway 新增允許清單項目：
 
 ```bash
 openclaw approvals allowlist add --node <id|name|ip> "/usr/bin/uname"
 openclaw approvals allowlist add --node <id|name|ip> "/usr/bin/sw_vers"
 ```
 
-核准資料會儲存在 node host 的 `~/.openclaw/exec-approvals.json`。
+核准內容會儲存在節點主機的 `~/.openclaw/exec-approvals.json`。
 
-### Point exec at the node
+### 將 exec 指向節點
 
 設定預設值（gateway 設定）：
 
@@ -127,13 +129,13 @@ openclaw config set tools.exec.security allowlist
 openclaw config set tools.exec.node "<id-or-name>"
 ```
 
-或於每個 session 設定：
+或依工作階段設定：
 
 ```
 /exec host=node security=allowlist node=<id-or-name>
 ```
 
-設定完成後，任何帶有 `host=node` 的 `exec` 呼叫都會在 node host 上執行（受限於節點的 allowlist／核准）。
+設定完成後，任何帶有 `host=node` 的 `exec` 呼叫都會在節點主機上執行（需符合節點允許清單／核准）。
 
 相關：
 
@@ -141,19 +143,19 @@ openclaw config set tools.exec.node "<id-or-name>"
 - [Exec tool](/tools/exec)
 - [Exec approvals](/tools/exec-approvals)
 
-## Invoking commands
+## 呼叫指令
 
-低階（raw RPC）：
+低階（原始 RPC）：
 
 ```bash
 openclaw nodes invoke --node <idOrNameOrIp> --command canvas.eval --params '{"javaScript":"location.href"}'
 ```
 
-針對常見的「為代理程式提供 MEDIA 附件」工作流程，提供了更高階的輔助工具。
+對於常見的「為代理程式提供 MEDIA 附件」工作流程，已有更高階的輔助工具。
 
-## Screenshots（canvas snapshots）
+## 螢幕截圖（畫布快照）
 
-若節點正在顯示 Canvas（WebView），`canvas.snapshot` 會回傳 `{ format, base64 }`。
+如果節點正在顯示 Canvas（WebView），`canvas.snapshot` 會回傳 `{ format, base64 }`。
 
 CLI 輔助工具（寫入暫存檔並輸出 `MEDIA:<path>`）：
 
@@ -162,7 +164,7 @@ openclaw nodes canvas snapshot --node <idOrNameOrIp> --format png
 openclaw nodes canvas snapshot --node <idOrNameOrIp> --format jpg --max-width 1200 --quality 0.9
 ```
 
-### Canvas controls
+### 畫布控制
 
 ```bash
 openclaw nodes canvas present --node <idOrNameOrIp> --target https://example.com
@@ -176,7 +178,7 @@ openclaw nodes canvas eval --node <idOrNameOrIp> --js "document.title"
 - `canvas present` 接受 URL 或本機檔案路徑（`--target`），以及用於定位的選用 `--x/--y/--width/--height`。
 - `canvas eval` 接受內嵌 JS（`--js`）或位置參數。
 
-### A2UI（Canvas）
+### A2UI（畫布）
 
 ```bash
 openclaw nodes canvas a2ui push --node <idOrNameOrIp> --text "Hello"
@@ -188,7 +190,7 @@ openclaw nodes canvas a2ui reset --node <idOrNameOrIp>
 
 - 僅支援 A2UI v0.8 JSONL（v0.9／createSurface 會被拒絕）。
 
-## Photos + videos（node camera）
+## 照片與影片（節點相機）
 
 照片（`jpg`）：
 
@@ -207,13 +209,13 @@ openclaw nodes camera clip --node <idOrNameOrIp> --duration 3000 --no-audio
 
 注意事項：
 
-- `canvas.*` 與 `camera.*` 需要節點在**前景**（背景呼叫會回傳 `NODE_BACKGROUND_UNAVAILABLE`）。
-- 片段時長會被限制（目前為 `<= 60s`），以避免過大的 base64 負載。
-- Android 會在可能時提示 `CAMERA`／`RECORD_AUDIO` 權限；被拒絕的權限會以 `*_PERMISSION_REQUIRED` 失敗。
+- `canvas.*` 與 `camera.*` 需要節點處於 **前景**（背景呼叫會回傳 `NODE_BACKGROUND_UNAVAILABLE`）。
+- 片段長度會被限制（目前為 `<= 60s`），以避免過大的 base64 負載。
+- Android 會在可行時提示 `CAMERA`／`RECORD_AUDIO` 權限；被拒絕的權限會以 `*_PERMISSION_REQUIRED` 失敗。
 
-## Screen recordings（nodes）
+## 螢幕錄製（節點）
 
-Nodes 會暴露 `screen.record`（mp4）。範例：
+節點會暴露 `screen.record`（mp4）。範例：
 
 ```bash
 openclaw nodes screen record --node <idOrNameOrIp> --duration 10s --fps 10
@@ -222,15 +224,15 @@ openclaw nodes screen record --node <idOrNameOrIp> --duration 10s --fps 10 --no-
 
 注意事項：
 
-- `screen.record` 需要節點應用程式在前景。
-- Android 在錄製前會顯示系統螢幕擷取提示。
+- `screen.record` 需要節點應用程式處於前景。
+- Android 會在錄製前顯示系統螢幕擷取提示。
 - 螢幕錄製會被限制為 `<= 60s`。
 - `--no-audio` 會停用麥克風錄音（iOS／Android 支援；macOS 使用系統擷取音訊）。
-- 使用 `--screen <index>` 在有多個螢幕時選擇顯示器。
+- 當有多個螢幕可用時，使用 `--screen <index>` 選擇顯示器。
 
-## Location（nodes）
+## 位置（節點）
 
-當設定中啟用 Location 時，Nodes 會暴露 `location.get`。
+當設定中啟用位置時，節點會暴露 `location.get`。
 
 CLI 輔助工具：
 
@@ -241,13 +243,13 @@ openclaw nodes location get --node <idOrNameOrIp> --accuracy precise --max-age 1
 
 注意事項：
 
-- Location 預設為**關閉**。
-- 「Always」需要系統權限；背景擷取為最佳努力。
-- 回應包含 緯度／經度、精度（公尺），以及時間戳記。
+- 位置 **預設為關閉**。
+- 「永遠」需要系統權限；背景擷取為盡力而為。
+- 回應包含緯度／經度、精確度（公尺）與時間戳記。
 
-## SMS（Android nodes）
+## 簡訊（Android 節點）
 
-當使用者授予 **SMS** 權限且裝置支援電信功能時，Android nodes 可暴露 `sms.send`。
+當使用者授予 **SMS** 權限且裝置支援電信功能時，Android 節點可以暴露 `sms.send`。
 
 低階呼叫：
 
@@ -257,13 +259,13 @@ openclaw nodes invoke --node <idOrNameOrIp> --command sms.send --params '{"to":"
 
 注意事項：
 
-- 在 Android 裝置上必須先接受權限提示，能力才會被宣告。
-- 僅 Wi‑Fi、未支援電信的裝置不會宣告 `sms.send`。
+- 在能力被宣告之前，必須在 Android 裝置上接受權限提示。
+- 不具備電信功能、僅 Wi‑Fi 的裝置不會宣告 `sms.send`。
 
-## System commands（node host／mac node）
+## 系統指令（節點主機／Mac 節點）
 
-macOS node 會暴露 `system.run`、`system.notify`、以及 `system.execApprovals.get/set`。
-headless node host 會暴露 `system.run`、`system.which`、以及 `system.execApprovals.get/set`。
+macOS 節點會暴露 `system.run`、`system.notify` 與 `system.execApprovals.get/set`。
+無介面節點主機會暴露 `system.run`、`system.which` 與 `system.execApprovals.get/set`。
 
 範例：
 
@@ -274,19 +276,19 @@ openclaw nodes notify --node <idOrNameOrIp> --title "Ping" --body "Gateway ready
 
 注意事項：
 
-- `system.run` 會在負載中回傳 stdout／stderr／exit code。
+- `system.run` 會在負載中回傳 stdout／stderr／結束碼。
 - `system.notify` 會遵循 macOS 應用程式的通知權限狀態。
-- `system.run` 支援 `--cwd`、`--env KEY=VAL`、`--command-timeout`、以及 `--needs-screen-recording`。
+- `system.run` 支援 `--cwd`、`--env KEY=VAL`、`--command-timeout` 與 `--needs-screen-recording`。
 - `system.notify` 支援 `--priority <passive|active|timeSensitive>` 與 `--delivery <system|overlay|auto>`。
-- macOS nodes 會忽略 `PATH` 覆寫；headless node hosts 僅在其前置 node host PATH 時接受 `PATH`。
-- 在 macOS node mode 下，`system.run` 受 macOS 應用程式中的 exec 核准（設定 → Exec approvals）所限制。
-  Ask／allowlist／full 的行為與 headless node host 相同；被拒絕的提示會回傳 `SYSTEM_RUN_DENIED`。
-- 在 headless node host 上，`system.run` 受 exec 核准（`~/.openclaw/exec-approvals.json`）所限制。
+- macOS 節點會忽略 `PATH` 覆寫；無介面節點主機僅在其會將節點主機 PATH 作為前綴時接受 `PATH`。
+- 在 macOS 節點模式下，`system.run` 受 macOS 應用程式中的執行核准所管控（設定 → Exec approvals）。
+  詢問／允許清單／完全 的行為與無介面節點主機相同；被拒絕的提示會回傳 `SYSTEM_RUN_DENIED`。
+- 在無介面節點主機上，`system.run` 受執行核准（`~/.openclaw/exec-approvals.json`）所管控。
 
-## Exec node binding
+## Exec 節點綁定
 
-當有多個 nodes 可用時，你可以將 exec 綁定到特定 node。
-這會為 `exec host=node` 設定預設 node（也可依代理程式覆寫）。
+當有多個節點可用時，你可以將 exec 綁定到特定節點。
+這會為 `exec host=node` 設定預設節點（且可依代理程式覆寫）。
 
 全域預設：
 
@@ -294,30 +296,30 @@ openclaw nodes notify --node <idOrNameOrIp> --title "Ping" --body "Gateway ready
 openclaw config set tools.exec.node "node-id-or-name"
 ```
 
-每個代理程式覆寫：
+依代理程式覆寫：
 
 ```bash
 openclaw config get agents.list
 openclaw config set agents.list[0].tools.exec.node "node-id-or-name"
 ```
 
-取消設定以允許任何 node：
+取消設定以允許任何節點：
 
 ```bash
 openclaw config unset tools.exec.node
 openclaw config unset agents.list[0].tools.exec.node
 ```
 
-## Permissions map
+## 權限對照表
 
-Nodes 可能會在 `node.list`／`node.describe` 中包含 `permissions` 對應表，
-以權限名稱為鍵（例如 `screenRecording`、`accessibility`），值為布林（`true` = 已授權）。
+節點可能在 `node.list`／`node.describe` 中包含一個 `permissions` 對照表，
+以權限名稱作為鍵（例如 `screenRecording`、`accessibility`），值為布林值（`true` = 已授予）。
 
-## Headless node host（cross-platform）
+## 無介面節點主機（跨平台）
 
-OpenClaw 可執行 **headless node host**（無 UI），連線到 Gateway
-WebSocket 並暴露 `system.run`／`system.which`。這對於 Linux／Windows
-或在伺服器旁執行最小化節點非常有用。
+OpenClaw 可執行 **無介面節點主機**（無 UI），連線至 Gateway
+WebSocket，並暴露 `system.run`／`system.which`。這對於 Linux／Windows
+或在伺服器旁執行最小化節點非常實用。
 
 啟動方式：
 
@@ -328,15 +330,14 @@ openclaw node run --host <gateway-host> --port 18789
 注意事項：
 
 - 仍需要配對（Gateway 會顯示節點核准提示）。
-- node host 會將其 node id、token、顯示名稱，以及 gateway 連線資訊儲存在 `~/.openclaw/node.json`。
-- Exec 核准會透過 `~/.openclaw/exec-approvals.json` 在本機強制執行
-  （請見 [Exec approvals](/tools/exec-approvals)）。
-- 在 macOS 上，headless node host 在可連線時會優先使用配套應用程式的 exec host，
-  若應用程式不可用則回退為本機執行。設定 `OPENCLAW_NODE_EXEC_HOST=app` 以要求
-  必須使用應用程式，或設定 `OPENCLAW_NODE_EXEC_FALLBACK=0` 以停用回退。
-- 當 Gateway WS 使用 TLS 時，加入 `--tls`／`--tls-fingerprint`。
+- 節點主機會將其節點 id、權杖、顯示名稱與 gateway 連線資訊儲存在 `~/.openclaw/node.json`。
+- 執行核准會透過 `~/.openclaw/exec-approvals.json` 在本機強制執行
+  （請參閱 [Exec approvals](/tools/exec-approvals)）。
+- 在 macOS 上，無介面節點主機在可連線時會偏好配套應用程式的 exec 主機，若應用程式不可用則回退至本機執行。設定 `OPENCLAW_NODE_EXEC_HOST=app` 以要求
+  應用程式，或設定 `OPENCLAW_NODE_EXEC_FALLBACK=0` 以停用回退。
+- 當 Gateway WS 使用 TLS 時，請加入 `--tls`／`--tls-fingerprint`。
 
-## Mac node mode
+## Mac 節點模式
 
-- macOS 選單列應用程式會以 node 身分連線到 Gateway WS 伺服器（因此 `openclaw nodes …` 可針對此 Mac 使用）。
-- 在遠端模式下，應用程式會為 Gateway 連接埠開啟 SSH tunnel，並連線到 `localhost`。
+- macOS 選單列應用程式會以節點身分連線至 Gateway WS 伺服器（因此 `openclaw nodes …` 可針對這台 Mac 運作）。
+- 在遠端模式下，應用程式會為 Gateway 連接埠開啟 SSH 通道，並連線至 `localhost`。

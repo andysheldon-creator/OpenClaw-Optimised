@@ -1,35 +1,35 @@
 ---
-title: "Tao Skills"
+title: "Tạo Skills"
 x-i18n:
   source_path: tools/creating-skills.md
   source_hash: ad801da34fe361ff
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:08:41Z
+  generated_at: 2026-02-08T09:40:21Z
 ---
 
-# Tao Skills tuy chinh 🛠
+# Tạo Skills Tùy chỉnh 🛠
 
-OpenClaw duoc thiet ke de de dang mo rong. "Skills" la cach chinh de them cac kha nang moi cho tro ly cua ban.
+OpenClaw được thiết kế để dễ dàng mở rộng. "Skills" là cách chính để thêm các khả năng mới cho trợ lý của bạn.
 
-## Skill la gi?
+## Skill là gì?
 
-Mot skill la mot thu muc chua tep `SKILL.md` (cung cap huong dan va dinh nghia cong cu cho LLM) va tuy chon mot so script hoac tai nguyen.
+Một skill là một thư mục chứa tệp `SKILL.md` (cung cấp hướng dẫn và định nghĩa công cụ cho LLM) và có thể kèm theo một số script hoặc tài nguyên.
 
-## Tung buoc: Skill dau tien cua ban
+## Từng bước: Skill đầu tiên của bạn
 
-### 1. Tao Thu Muc
+### 1. Tạo thư mục
 
-Skills nam trong workspace cua ban, thuong la `~/.openclaw/workspace/skills/`. Tao mot thu muc moi cho skill cua ban:
+Skills nằm trong workspace của bạn, thường là `~/.openclaw/workspace/skills/`. Tạo một thư mục mới cho skill của bạn:
 
 ```bash
 mkdir -p ~/.openclaw/workspace/skills/hello-world
 ```
 
-### 2. Dinh Nghia `SKILL.md`
+### 2. Định nghĩa `SKILL.md`
 
-Tao tep `SKILL.md` trong thu muc do. Tep nay su dung frontmatter YAML cho metadata va Markdown cho huong dan.
+Tạo tệp `SKILL.md` trong thư mục đó. Tệp này sử dụng frontmatter YAML cho metadata và Markdown cho hướng dẫn.
 
 ```markdown
 ---
@@ -42,20 +42,20 @@ description: A simple skill that says hello.
 When the user asks for a greeting, use the `echo` tool to say "Hello from your custom skill!".
 ```
 
-### 3. Them Cong Cu (Tuy Chon)
+### 3. Thêm công cụ (Tùy chọn)
 
-Ban co the dinh nghia cac cong cu tuy chinh trong frontmatter hoac huong dan tac tu su dung cac cong cu he thong san co (nhu `bash` hoac `browser`).
+Bạn có thể định nghĩa các công cụ tùy chỉnh trong frontmatter hoặc hướng dẫn tác tử sử dụng các công cụ hệ thống hiện có (như `bash` hoặc `browser`).
 
-### 4. Lam Moi OpenClaw
+### 4. Làm mới OpenClaw
 
-Yeu cau tac tu cua ban "refresh skills" hoac khoi dong lai Gateway. OpenClaw se phat hien thu muc moi va lap chi muc `SKILL.md`.
+Yêu cầu tác tử của bạn "refresh skills" hoặc khởi động lại gateway. OpenClaw sẽ phát hiện thư mục mới và lập chỉ mục `SKILL.md`.
 
-## Thuc Hanh Tot Nhat
+## Thực hành tốt nhất
 
-- **Ngan Gon**: Huong dan mo hinh _lam gi_, khong phai cach tro thanh mot AI.
-- **An Toan Truoc Het**: Neu skill cua ban su dung `bash`, hay dam bao prompt khong cho phep tiem lenh tuy y tu dau vao nguoi dung khong dang tin cay.
-- **Kiem Thu Cuc Bo**: Su dung `openclaw agent --message "use my new skill"` de kiem thu.
+- **Ngắn gọn**: Hướng dẫn mô hình về _làm gì_, không phải cách trở thành một AI.
+- **An toàn là trên hết**: Nếu skill của bạn sử dụng `bash`, hãy đảm bảo các prompt không cho phép chèn lệnh tùy ý từ dữ liệu người dùng không đáng tin cậy.
+- **Kiểm thử cục bộ**: Sử dụng `openclaw agent --message "use my new skill"` để kiểm thử.
 
-## Skills Chia Se
+## Skills dùng chung
 
-Ban cung co the duyet va dong gop skills tai [ClawHub](https://clawhub.com).
+Bạn cũng có thể duyệt và đóng góp skills tại [ClawHub](https://clawhub.com).

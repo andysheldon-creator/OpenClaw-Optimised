@@ -1,65 +1,140 @@
 ---
-title: "Node.js + npm (PATH‑Überprüfung)"
-summary: "Node.js + npm‑Installationsprüfung: Versionen, PATH und globale Installationen"
+title: "Node.js"
+summary: "Node.js für OpenClaw installieren und konfigurieren — Versionsanforderungen, Installationsoptionen und PATH-Fehlerbehebung"
 read_when:
-  - "Sie haben OpenClaw installiert, aber `openclaw` ist „command not found“"
-  - "Sie richten Node.js/npm auf einem neuen Rechner ein"
-  - "`npm install -g ...` schlägt mit Berechtigungs‑ oder PATH‑Problemen fehl"
+  - "Sie müssen Node.js installieren, bevor Sie OpenClaw installieren"
+  - "Sie haben OpenClaw installiert, aber `openclaw` ist ein Befehl nicht gefunden"
+  - "`npm install -g` schlägt mit Berechtigungs- oder PATH-Problemen fehl"
 x-i18n:
   source_path: install/node.md
-  source_hash: 9f6d83be362e3e14
+  source_hash: f848d6473a183090
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:04:44Z
+  generated_at: 2026-02-08T09:36:38Z
 ---
 
-# Node.js + npm (PATH‑Überprüfung)
+# Node.js
 
-Die Laufzeit‑Basis von OpenClaw ist **Node 22+**.
+OpenClaw erfordert **Node 22 oder neuer**. Das [Installationsskript](/install#install-methods) erkennt und installiert Node automatisch — diese Seite ist für den Fall gedacht, dass Sie Node selbst einrichten möchten und sicherstellen wollen, dass alles korrekt verbunden ist (Versionen, PATH, globale Installationen).
 
-Wenn Sie `npm install -g openclaw@latest` ausführen können, später aber `openclaw: command not found` sehen, ist es fast immer ein **PATH**‑Problem: Das Verzeichnis, in dem npm globale Binaries ablegt, befindet sich nicht im PATH Ihrer Shell.
-
-## Schnelle Diagnose
-
-Führen Sie aus:
+## Version prüfen
 
 ```bash
 node -v
-npm -v
-npm prefix -g
-echo "$PATH"
 ```
 
-Wenn `$(npm prefix -g)/bin` (macOS/Linux) oder `$(npm prefix -g)` (Windows) **nicht** innerhalb von `echo "$PATH"` vorhanden ist, kann Ihre Shell globale npm‑Binaries (einschließlich `openclaw`) nicht finden.
+Wenn dies `v22.x.x` oder höher ausgibt, ist alles in Ordnung. Wenn Node nicht installiert ist oder die Version zu alt ist, wählen Sie unten eine Installationsmethode.
 
-## Fix: globales npm‑Bin‑Verzeichnis zum PATH hinzufügen
+## Node installieren
 
-1. Ermitteln Sie Ihr globales npm‑Prefix:
+<Tabs>
+  <Tab title="macOS">
+    **Homebrew** (empfohlen):
+
+    ```bash
+    brew install node
+    ```
+
+    Oder laden Sie den macOS-Installer von [nodejs.org](https://nodejs.org/) herunter.
+
+  </Tab>
+  <Tab title="Linux">
+    **Ubuntu / Debian:**
+
+    ```bash
+    curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+    sudo apt-get install -y nodejs
+    ```
+
+    **Fedora / RHEL:**
+
+    ```bash
+    sudo dnf install nodejs
+    ```
+
+    Oder verwenden Sie einen Versionsmanager (siehe unten).
+
+  </Tab>
+  <Tab title="Windows">
+    **winget** (empfohlen):
+
+    ```powershell
+    winget install OpenJS.NodeJS.LTS
+    ```
+
+    **Chocolatey:**
+
+    ```powershell
+    choco install nodejs-lts
+    ```
+
+    Oder laden Sie den Windows-Installer von [nodejs.org](https://nodejs.org/) herunter.
+
+  </Tab>
+</Tabs>
+
+<Accordion title="Einen Versionsmanager verwenden (nvm, fnm, mise, asdf)">
+  Versionsmanager ermöglichen es Ihnen, einfach zwischen Node-Versionen zu wechseln. Beliebte Optionen:
+
+- [**fnm**](https://github.com/Schniz/fnm) — schnell, plattformübergreifend
+- [**nvm**](https://github.com/nvm-sh/nvm) — weit verbreitet auf macOS/Linux
+- [**mise**](https://mise.jdx.dev/) — polyglott (Node, Python, Ruby usw.)
+
+Beispiel mit fnm:
 
 ```bash
-npm prefix -g
+fnm install 22
+fnm use 22
 ```
 
-2. Fügen Sie das globale npm‑Bin‑Verzeichnis Ihrer Shell‑Startdatei hinzu:
+  <Warning>
+  Stellen Sie sicher, dass Ihr Versionsmanager in Ihrer Shell-Startdatei initialisiert ist (`~/.zshrc` oder `~/.bashrc`). Ist dies nicht der Fall, wird `openclaw` in neuen Terminal-Sitzungen möglicherweise nicht gefunden, da der PATH das bin-Verzeichnis von Node nicht enthält.
+  </Warning>
+</Accordion>
 
-- zsh: `~/.zshrc`
-- bash: `~/.bashrc`
+## Fehlerbehebung
 
-Beispiel (ersetzen Sie den Pfad durch die Ausgabe von `npm prefix -g`):
+### `openclaw: command not found`
 
-```bash
-# macOS / Linux
-export PATH="/path/from/npm/prefix/bin:$PATH"
-```
+Das bedeutet fast immer, dass das globale bin-Verzeichnis von npm nicht in Ihrem PATH enthalten ist.
 
-Öffnen Sie anschließend ein **neues Terminal** (oder führen Sie `rehash` in zsh / `hash -r` in bash aus).
+<Steps>
+  <Step title="Globalen npm-Präfix ermitteln">
+    ```bash
+    npm prefix -g
+    ```
+  </Step>
+  <Step title="Prüfen, ob er im PATH enthalten ist">
+    ```bash
+    echo "$PATH"
+    ```
 
-Unter Windows fügen Sie die Ausgabe von `npm prefix -g` zu Ihrem PATH hinzu.
+    Suchen Sie in der Ausgabe nach `<npm-prefix>/bin` (macOS/Linux) oder `<npm-prefix>` (Windows).
 
-## Fix: `sudo npm install -g`‑/Berechtigungsfehler vermeiden (Linux)
+  </Step>
+  <Step title="Zur Shell-Startdatei hinzufügen">
+    <Tabs>
+      <Tab title="macOS / Linux">
+        Fügen Sie es zu `~/.zshrc` oder `~/.bashrc` hinzu:
 
-Wenn `npm install -g ...` mit `EACCES` fehlschlägt, stellen Sie das globale npm‑Prefix auf ein für den Benutzer beschreibbares Verzeichnis um:
+        ```bash
+        export PATH="$(npm prefix -g)/bin:$PATH"
+        ```
+
+        Öffnen Sie anschließend ein neues Terminal (oder führen Sie `rehash` in zsh / `hash -r` in bash aus).
+      </Tab>
+      <Tab title="Windows">
+        Fügen Sie die Ausgabe von `npm prefix -g` über Einstellungen → System → Umgebungsvariablen zu Ihrem System-PATH hinzu.
+      </Tab>
+    </Tabs>
+
+  </Step>
+</Steps>
+
+### Berechtigungsfehler bei `npm install -g` (Linux)
+
+Wenn Sie `EACCES`-Fehler sehen, wechseln Sie den globalen npm-Präfix zu einem für Benutzer beschreibbaren Verzeichnis:
 
 ```bash
 mkdir -p "$HOME/.npm-global"
@@ -67,19 +142,4 @@ npm config set prefix "$HOME/.npm-global"
 export PATH="$HOME/.npm-global/bin:$PATH"
 ```
 
-Persistieren Sie die Zeile `export PATH=...` in Ihrer Shell‑Startdatei.
-
-## Empfohlene Node‑Installationsoptionen
-
-Sie haben die wenigsten Überraschungen, wenn Node/npm so installiert sind, dass:
-
-- Node aktuell bleibt (22+)
-- das globale npm‑Bin‑Verzeichnis stabil ist und in neuen Shells im PATH liegt
-
-Gängige Optionen:
-
-- macOS: Homebrew (`brew install node`) oder ein Versionsmanager
-- Linux: Ihr bevorzugter Versionsmanager oder eine distributionsunterstützte Installation, die Node 22+ bereitstellt
-- Windows: offizieller Node‑Installer, `winget`, oder ein Windows‑Node‑Versionsmanager
-
-Wenn Sie einen Versionsmanager (nvm/fnm/asdf/etc.) verwenden, stellen Sie sicher, dass er in der Shell initialisiert wird, die Sie täglich nutzen (zsh vs. bash), damit der gesetzte PATH beim Ausführen von Installern vorhanden ist.
+Fügen Sie die Zeile `export PATH=...` zu Ihrer `~/.bashrc` oder `~/.zshrc` hinzu, um dies dauerhaft zu machen.

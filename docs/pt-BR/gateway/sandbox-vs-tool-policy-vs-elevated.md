@@ -1,7 +1,7 @@
 ---
-title: Sandbox vs Politica de Ferramentas vs Elevado
-summary: "Por que uma ferramenta e bloqueada: runtime de sandbox, politica de permitir/negar ferramentas e portas de execucao elevada"
-read_when: "Voce encontrou o 'sandbox jail' ou viu uma recusa de ferramenta/elevado e quer a chave de configuracao exata a alterar."
+title: Sandbox vs Política de Ferramentas vs Elevado
+summary: "Por que uma ferramenta é bloqueada: runtime de sandbox, política de permitir/negar ferramentas e portões de exec elevado"
+read_when: "Você cai na 'prisão do sandbox' ou vê uma recusa de ferramenta/elevado e quer a chave de configuração exata para mudar."
 status: active
 x-i18n:
   source_path: gateway/sandbox-vs-tool-policy-vs-elevated.md
@@ -9,20 +9,20 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:56:30Z
+  generated_at: 2026-02-08T09:31:06Z
 ---
 
-# Sandbox vs Politica de Ferramentas vs Elevado
+# Sandbox vs Política de Ferramentas vs Elevado
 
-O OpenClaw tem tres controles relacionados (mas diferentes):
+O OpenClaw tem três controles relacionados (mas diferentes):
 
-1. **Sandbox** (`agents.defaults.sandbox.*` / `agents.list[].sandbox.*`) decide **onde as ferramentas rodam** (Docker vs host).
-2. **Politica de ferramentas** (`tools.*`, `tools.sandbox.tools.*`, `agents.list[].tools.*`) decide **quais ferramentas estao disponiveis/permitidas**.
-3. **Elevado** (`tools.elevated.*`, `agents.list[].tools.elevated.*`) e uma **escapatoria apenas para execucao** para rodar no host quando voce esta em sandbox.
+1. **Sandbox** (`agents.defaults.sandbox.*` / `agents.list[].sandbox.*`) decide **onde as ferramentas são executadas** (Docker vs host).
+2. **Política de ferramentas** (`tools.*`, `tools.sandbox.tools.*`, `agents.list[].tools.*`) decide **quais ferramentas estão disponíveis/permitidas**.
+3. **Elevado** (`tools.elevated.*`, `agents.list[].tools.elevated.*`) é uma **válvula de escape apenas para exec** para executar no host quando você está em sandbox.
 
-## Depuracao rapida
+## Depuração rápida
 
-Use o inspetor para ver o que o OpenClaw esta _realmente_ fazendo:
+Use o inspetor para ver o que o OpenClaw está _realmente_ fazendo:
 
 ```bash
 openclaw sandbox explain
@@ -34,49 +34,49 @@ openclaw sandbox explain --json
 Ele imprime:
 
 - modo/escopo/acesso ao workspace efetivos do sandbox
-- se a sessao esta atualmente em sandbox (main vs nao-main)
-- permitir/negar efetivo de ferramentas no sandbox (e se veio de agente/global/padrao)
-- portas de elevado e caminhos de chaves de correcao
+- se a sessão está atualmente em sandbox (principal vs não principal)
+- permitir/negar efetivo de ferramentas no sandbox (e se veio de agente/global/padrão)
+- portões de elevado e caminhos de chaves de correção
 
-## Sandbox: onde as ferramentas rodam
+## Sandbox: onde as ferramentas são executadas
 
-O Sandboxing e controlado por `agents.defaults.sandbox.mode`:
+O sandboxing é controlado por `agents.defaults.sandbox.mode`:
 
-- `"off"`: tudo roda no host.
-- `"non-main"`: apenas sessoes nao-main sao colocadas em sandbox (surpresa comum para grupos/canais).
+- `"off"`: tudo é executado no host.
+- `"non-main"`: apenas sessões não principais ficam em sandbox (surpresa comum para grupos/canais).
 - `"all"`: tudo fica em sandbox.
 
-Veja [Sandboxing](/gateway/sandboxing) para a matriz completa (escopo, montagens de workspace, imagens).
+Veja [Sandboxing](/gateway/sandboxing) para a matriz completa (escopo, mounts de workspace, imagens).
 
-### Bind mounts (verificacao rapida de seguranca)
+### Bind mounts (verificação rápida de segurança)
 
-- `docker.binds` _perfora_ o sistema de arquivos do sandbox: tudo o que voce monta fica visivel dentro do container com o modo que voce definir (`:ro` ou `:rw`).
-- O padrao e leitura-escrita se voce omitir o modo; prefira `:ro` para codigo-fonte/segredos.
+- `docker.binds` _atravessa_ o sistema de arquivos do sandbox: o que você montar fica visível dentro do contêiner com o modo que você definir (`:ro` ou `:rw`).
+- O padrão é leitura-escrita se você omitir o modo; prefira `:ro` para código-fonte/segredos.
 - `scope: "shared"` ignora binds por agente (apenas binds globais se aplicam).
-- Vincular `/var/run/docker.sock` efetivamente entrega o controle do host ao sandbox; faca isso apenas intencionalmente.
-- O acesso ao workspace (`workspaceAccess: "ro"`/`"rw"`) e independente dos modos de bind.
+- Vincular `/var/run/docker.sock` efetivamente entrega o controle do host ao sandbox; faça isso apenas de forma intencional.
+- O acesso ao workspace (`workspaceAccess: "ro"`/`"rw"`) é independente dos modos de bind.
 
-## Politica de ferramentas: quais ferramentas existem/sao chamaveis
+## Política de ferramentas: quais ferramentas existem/podem ser chamadas
 
 Duas camadas importam:
 
-- **Perfil de ferramentas**: `tools.profile` e `agents.list[].tools.profile` (lista base de permitidas)
+- **Perfil de ferramentas**: `tools.profile` e `agents.list[].tools.profile` (lista de permissões base)
 - **Perfil de ferramentas do provedor**: `tools.byProvider[provider].profile` e `agents.list[].tools.byProvider[provider].profile`
-- **Politica de ferramentas global/por agente**: `tools.allow`/`tools.deny` e `agents.list[].tools.allow`/`agents.list[].tools.deny`
-- **Politica de ferramentas do provedor**: `tools.byProvider[provider].allow/deny` e `agents.list[].tools.byProvider[provider].allow/deny`
-- **Politica de ferramentas do sandbox** (aplica-se apenas quando em sandbox): `tools.sandbox.tools.allow`/`tools.sandbox.tools.deny` e `agents.list[].tools.sandbox.tools.*`
+- **Política global/por agente de ferramentas**: `tools.allow`/`tools.deny` e `agents.list[].tools.allow`/`agents.list[].tools.deny`
+- **Política de ferramentas do provedor**: `tools.byProvider[provider].allow/deny` e `agents.list[].tools.byProvider[provider].allow/deny`
+- **Política de ferramentas do sandbox** (aplica-se apenas quando em sandbox): `tools.sandbox.tools.allow`/`tools.sandbox.tools.deny` e `agents.list[].tools.sandbox.tools.*`
 
-Regras praticas:
+Regras gerais:
 
 - `deny` sempre vence.
-- Se `allow` nao estiver vazio, todo o resto e tratado como bloqueado.
-- Politica de ferramentas e o bloqueio definitivo: `/exec` nao pode sobrescrever uma ferramenta `exec` negada.
-- `/exec` apenas altera padroes de sessao para remetentes autorizados; nao concede acesso a ferramentas.
+- Se `allow` não estiver vazio, todo o resto é tratado como bloqueado.
+- Política de ferramentas é o bloqueio definitivo: `/exec` não pode sobrescrever uma ferramenta `exec` negada.
+- `/exec` apenas altera padrões da sessão para remetentes autorizados; não concede acesso a ferramentas.
   As chaves de ferramentas do provedor aceitam `provider` (ex.: `google-antigravity`) ou `provider/model` (ex.: `openai/gpt-5.2`).
 
 ### Grupos de ferramentas (atalhos)
 
-As politicas de ferramentas (global, agente, sandbox) suportam entradas `group:*` que se expandem para varias ferramentas:
+As políticas de ferramentas (global, agente, sandbox) suportam entradas `group:*` que se expandem para várias ferramentas:
 
 ```json5
 {
@@ -90,7 +90,7 @@ As politicas de ferramentas (global, agente, sandbox) suportam entradas `group:*
 }
 ```
 
-Grupos disponiveis:
+Grupos disponíveis:
 
 - `group:runtime`: `exec`, `bash`, `process`
 - `group:fs`: `read`, `write`, `edit`, `apply_patch`
@@ -100,36 +100,36 @@ Grupos disponiveis:
 - `group:automation`: `cron`, `gateway`
 - `group:messaging`: `message`
 - `group:nodes`: `nodes`
-- `group:openclaw`: todas as ferramentas integradas do OpenClaw (exclui plugins de provedores)
+- `group:openclaw`: todas as ferramentas internas do OpenClaw (exclui plugins de provedores)
 
-## Elevado: execucao apenas “rodar no host”
+## Elevado: “executar no host” apenas para exec
 
-Elevado **nao** concede ferramentas extras; ele apenas afeta `exec`.
+Elevado **não** concede ferramentas extras; ele só afeta `exec`.
 
-- Se voce estiver em sandbox, `/elevated on` (ou `exec` com `elevated: true`) roda no host (aprovacoes ainda podem se aplicar).
-- Use `/elevated full` para pular aprovacoes de execucao para a sessao.
-- Se voce ja estiver rodando direto, elevado e efetivamente um no-op (ainda com portas).
-- Elevado **nao** e escopado por skill e **nao** sobrescreve permitir/negar de ferramentas.
-- `/exec` e separado de elevado. Ele apenas ajusta padroes de execucao por sessao para remetentes autorizados.
+- Se você estiver em sandbox, `/elevated on` (ou `exec` com `elevated: true`) executa no host (aprovações ainda podem se aplicar).
+- Use `/elevated full` para pular aprovações de exec para a sessão.
+- Se você já estiver executando direto, elevado é efetivamente um no-op (ainda com portões).
+- Elevado **não** é escopado por skill e **não** sobrescreve permitir/negar de ferramentas.
+- `/exec` é separado de elevado. Ele apenas ajusta padrões de exec por sessão para remetentes autorizados.
 
-Portas:
+Portões:
 
-- Habilitacao: `tools.elevated.enabled` (e opcionalmente `agents.list[].tools.elevated.enabled`)
-- Listas de permissao de remetentes: `tools.elevated.allowFrom.<provider>` (e opcionalmente `agents.list[].tools.elevated.allowFrom.<provider>`)
+- Ativação: `tools.elevated.enabled` (e opcionalmente `agents.list[].tools.elevated.enabled`)
+- Listas de permissões de remetentes: `tools.elevated.allowFrom.<provider>` (e opcionalmente `agents.list[].tools.elevated.allowFrom.<provider>`)
 
-Veja [Modo Elevado](/tools/elevated).
+Veja [Elevated Mode](/tools/elevated).
 
-## Correcoes comuns de “sandbox jail”
+## Correções comuns de “prisão do sandbox”
 
-### “Ferramenta X bloqueada pela politica de ferramentas do sandbox”
+### “Ferramenta X bloqueada pela política de ferramentas do sandbox”
 
-Chaves de correcao (escolha uma):
+Chaves de correção (escolha uma):
 
-- Desativar sandbox: `agents.defaults.sandbox.mode=off` (ou por agente `agents.list[].sandbox.mode=off`)
+- Desativar o sandbox: `agents.defaults.sandbox.mode=off` (ou por agente `agents.list[].sandbox.mode=off`)
 - Permitir a ferramenta dentro do sandbox:
-  - removê-la de `tools.sandbox.tools.deny` (ou por agente `agents.list[].tools.sandbox.tools.deny`)
-  - ou adicioná-la a `tools.sandbox.tools.allow` (ou permitir por agente)
+  - remover de `tools.sandbox.tools.deny` (ou por agente `agents.list[].tools.sandbox.tools.deny`)
+  - ou adicionar a `tools.sandbox.tools.allow` (ou permitir por agente)
 
-### “Achei que isso fosse main, por que esta em sandbox?”
+### “Achei que isso era principal, por que está em sandbox?”
 
-No modo `"non-main"`, chaves de grupo/canal _nao_ sao main. Use a chave de sessao main (mostrada por `sandbox explain`) ou mude o modo para `"off"`.
+No modo `"non-main"`, chaves de grupo/canal _não_ são principais. Use a chave da sessão principal (mostrada por `sandbox explain`) ou mude o modo para `"off"`.

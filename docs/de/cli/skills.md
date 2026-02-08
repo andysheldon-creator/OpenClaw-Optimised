@@ -1,8 +1,8 @@
 ---
-summary: "CLI-Referenz fuer `openclaw skills` (list/info/check) und Skill-Berechtigung"
+summary: "CLI-Referenz für `openclaw skills` (list/info/check) und die Eignung von Skills"
 read_when:
-  - Sie moechten sehen, welche Skills verfuegbar und startbereit sind
-  - Sie moechten fehlende Binaries/Umgebungsvariablen/Konfigurationen fuer Skills debuggen
+  - Sie möchten sehen, welche Skills verfügbar und einsatzbereit sind
+  - Sie möchten fehlende Binaries/Umgebungsvariablen/Konfigurationen für Skills debuggen
 title: "Skills"
 x-i18n:
   source_path: cli/skills.md
@@ -10,12 +10,12 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:48Z
+  generated_at: 2026-02-08T09:35:40Z
 ---
 
 # `openclaw skills`
 
-Untersuchen Sie Skills (gebuendelt + Workspace + verwaltete Overrides) und sehen Sie, was berechtigt ist vs. fehlende Anforderungen.
+Untersuchen Sie Skills (gebündelt + Workspace + verwaltete Overrides) und sehen Sie, was einsatzfähig ist bzw. welche Anforderungen fehlen.
 
 Verwandt:
 

@@ -1,24 +1,24 @@
 ---
-summary: "Referencia da CLI para `openclaw pairing` (aprovar/listar solicitacoes de pareamento)"
+summary: "Referência da CLI para `openclaw pairing` (aprovar/listar solicitações de emparelhamento)"
 read_when:
-  - Voce esta usando Mensagens diretas em modo de pareamento e precisa aprovar remetentes
-title: "pareamento"
+  - Você está usando DMs no modo de emparelhamento e precisa aprovar remetentes
+title: "emparelhamento"
 x-i18n:
   source_path: cli/pairing.md
-  source_hash: e0bc9707294463c9
+  source_hash: 785869d24d953141
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:44Z
+  generated_at: 2026-02-08T09:30:21Z
 ---
 
 # `openclaw pairing`
 
-Aprove ou inspecione solicitacoes de pareamento de Mensagem direta (para canais que oferecem suporte a pareamento).
+Aprove ou inspecione solicitações de emparelhamento de DM (para canais que oferecem suporte a emparelhamento).
 
 Relacionado:
 
-- Fluxo de pareamento: [Pareamento](/start/pairing)
+- Fluxo de emparelhamento: [Pairing](/channels/pairing)
 
 ## Comandos
 

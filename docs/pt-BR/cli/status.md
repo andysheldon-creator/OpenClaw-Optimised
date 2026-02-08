@@ -1,8 +1,8 @@
 ---
-summary: "Referencia de CLI para `openclaw status` (diagnosticos, verificacoes e snapshots de uso)"
+summary: "Referência da CLI para `openclaw status` (diagnósticos, sondagens, snapshots de uso)"
 read_when:
-  - Voce quer um diagnostico rapido da saude dos canais + destinatarios de sessoes recentes
-  - Voce quer um status “completo” colavel para depuracao
+  - Voce quer um diagnóstico rápido da saúde dos canais + destinatários de sessões recentes
+  - Voce quer um status “all” colável para depuração
 title: "status"
 x-i18n:
   source_path: cli/status.md
@@ -10,12 +10,12 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:50Z
+  generated_at: 2026-02-08T09:30:26Z
 ---
 
 # `openclaw status`
 
-Diagnosticos para canais + sessoes.
+Diagnósticos para canais + sessões.
 
 ```bash
 openclaw status
@@ -26,8 +26,8 @@ openclaw status --usage
 
 Notas:
 
-- `--deep` executa verificacoes ao vivo (WhatsApp Web + Telegram + Discord + Google Chat + Slack + Signal).
-- A saida inclui armazenamentos de sessao por agente quando varios agentes estao configurados.
-- A visao geral inclui o status de instalacao/execucao do Gateway + servico de host do node quando disponivel.
-- A visao geral inclui o canal de atualizacao + git SHA (para checkouts de codigo-fonte).
-- As informacoes de atualizacao aparecem na Visao geral; se uma atualizacao estiver disponivel, o status imprime uma dica para executar `openclaw update` (veja [Updating](/install/updating)).
+- `--deep` executa sondagens ao vivo (WhatsApp Web + Telegram + Discord + Google Chat + Slack + Signal).
+- A saída inclui armazenamentos de sessão por agente quando vários agentes estão configurados.
+- A visão geral inclui o status de instalação/execução do serviço do Gateway + do host do nó quando disponível.
+- A visão geral inclui o canal de atualização + o SHA do git (para checkouts de código-fonte).
+- As informações de atualização aparecem na Visão geral; se uma atualização estiver disponível, o status imprime uma dica para executar `openclaw update` (veja [Updating](/install/updating)).

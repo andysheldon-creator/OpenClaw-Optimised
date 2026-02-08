@@ -3,23 +3,23 @@ summary: "Atualizando o OpenClaw com segurança (instalação global ou a partir
 read_when:
   - Atualizando o OpenClaw
   - Algo quebra após uma atualização
-title: "Atualizando"
+title: "Atualização"
 x-i18n:
   source_path: install/updating.md
-  source_hash: 38cccac0839f0f22
+  source_hash: c95c31766fb7de8c
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:56:48Z
+  generated_at: 2026-02-08T09:31:24Z
 ---
 
-# Atualizando
+# Atualização
 
-O OpenClaw está evoluindo rapidamente (pré “1.0”). Trate atualizações como infraestrutura em produção: atualizar → rodar verificações → reiniciar (ou usar `openclaw update`, que reinicia) → verificar.
+O OpenClaw está evoluindo rapidamente (pré “1.0”). Trate atualizações como infraestrutura de produção: atualizar → executar verificações → reiniciar (ou usar `openclaw update`, que reinicia) → verificar.
 
-## Recomendado: reexecutar o instalador do site (upgrade no local)
+## Recomendado: executar novamente o instalador do site (atualização no local)
 
-O caminho de atualização **preferido** é reexecutar o instalador do site. Ele
+O caminho **preferido** de atualização é executar novamente o instalador a partir do site. Ele
 detecta instalações existentes, atualiza no local e executa `openclaw doctor` quando
 necessário.
 
@@ -29,21 +29,24 @@ curl -fsSL https://openclaw.ai/install.sh | bash
 
 Notas:
 
-- Adicione `--no-onboard` se você não quiser que o assistente de integracao inicial rode novamente.
+- Adicione `--no-onboard` se você não quiser que o assistente de integração inicial seja executado novamente.
 - Para **instalações a partir do código-fonte**, use:
+
   ```bash
   curl -fsSL https://openclaw.ai/install.sh | bash -s -- --install-method git --no-onboard
   ```
+
   O instalador fará `git pull --rebase` **apenas** se o repositório estiver limpo.
-- Para **instalações globais**, o script usa `npm install -g openclaw@latest` por baixo dos panos.
-- Nota de legado: `clawdbot` permanece disponível como um shim de compatibilidade.
+
+- Para **instalações globais**, o script usa `npm install -g openclaw@latest` internamente.
+- Nota legada: `clawdbot` permanece disponível como um shim de compatibilidade.
 
 ## Antes de atualizar
 
 - Saiba como você instalou: **global** (npm/pnpm) vs **a partir do código-fonte** (git clone).
 - Saiba como seu Gateway está rodando: **terminal em primeiro plano** vs **serviço supervisionado** (launchd/systemd).
-- Faça um snapshot do seu ajuste fino:
-  - Config: `~/.openclaw/openclaw.json`
+- Faça um snapshot do seu ajuste:
+  - Configuração: `~/.openclaw/openclaw.json`
   - Credenciais: `~/.openclaw/credentials/`
   - Workspace: `~/.openclaw/workspace`
 
@@ -69,13 +72,13 @@ openclaw update --channel dev
 openclaw update --channel stable
 ```
 
-Use `--tag <dist-tag|version>` para instalar uma tag/versão específica.
+Use `--tag <dist-tag|version>` para uma instalação pontual por tag/versão.
 
-Veja [Canais de desenvolvimento](/install/development-channels) para a semântica dos canais e notas de lançamento.
+Veja [Canais de desenvolvimento](/install/development-channels) para a semântica dos canais e notas de versão.
 
 Nota: em instalações via npm, o gateway registra uma dica de atualização na inicialização (verifica a tag do canal atual). Desative via `update.checkOnStart: false`.
 
-Em seguida:
+Depois:
 
 ```bash
 openclaw doctor
@@ -99,7 +102,7 @@ openclaw update
 Ele executa um fluxo de atualização relativamente seguro:
 
 - Requer uma árvore de trabalho limpa.
-- Troca para o canal selecionado (tag ou branch).
+- Alterna para o canal selecionado (tag ou branch).
 - Faz fetch + rebase contra o upstream configurado (canal dev).
 - Instala dependências, compila, compila a Control UI e executa `openclaw doctor`.
 - Reinicia o gateway por padrão (use `--no-restart` para pular).
@@ -108,11 +111,11 @@ Se você instalou via **npm/pnpm** (sem metadados git), `openclaw update` tentar
 
 ## Atualizar (Control UI / RPC)
 
-A Control UI tem **Atualizar & Reiniciar** (RPC: `update.run`). Ela:
+A Control UI tem **Update & Restart** (RPC: `update.run`). Ela:
 
 1. Executa o mesmo fluxo de atualização a partir do código-fonte que `openclaw update` (apenas git checkout).
-2. Escreve um sentinela de reinício com um relatório estruturado (cauda de stdout/stderr).
-3. Reinicia o gateway e faz ping da última sessao ativa com o relatório.
+2. Grava um sentinel de reinício com um relatório estruturado (stdout/stderr tail).
+3. Reinicia o gateway e envia um ping para a última sessão ativa com o relatório.
 
 Se o rebase falhar, o gateway aborta e reinicia sem aplicar a atualização.
 
@@ -140,23 +143,23 @@ openclaw health
 Notas:
 
 - `pnpm build` importa quando você executa o binário empacotado `openclaw` ([`openclaw.mjs`](https://github.com/openclaw/openclaw/blob/main/openclaw.mjs)) ou usa Node para executar `dist/`.
-- Se você executa a partir de um checkout do repositório sem uma instalação global, use `pnpm openclaw ...` para comandos de CLI.
-- Se você executa diretamente a partir de TypeScript (`pnpm openclaw ...`), uma recompilação geralmente é desnecessária, mas **migrações de config ainda se aplicam** → execute o doctor.
-- Alternar entre instalações globais e via git é fácil: instale a outra variante e, em seguida, execute `openclaw doctor` para que o entrypoint do serviço do gateway seja reescrito para a instalação atual.
+- Se você roda a partir de um checkout do repositório sem uma instalação global, use `pnpm openclaw ...` para comandos da CLI.
+- Se você roda diretamente a partir de TypeScript (`pnpm openclaw ...`), geralmente uma recompilação é desnecessária, mas **migrações de configuração ainda se aplicam** → execute o doctor.
+- Alternar entre instalações globais e via git é fácil: instale o outro formato e, em seguida, execute `openclaw doctor` para que o entrypoint do serviço do gateway seja reescrito para a instalação atual.
 
-## Sempre Execute: `openclaw doctor`
+## Sempre execute: `openclaw doctor`
 
-Doctor é o comando de “atualização segura”. Ele é intencionalmente sem graça: reparar + migrar + avisar.
+Doctor é o comando de “atualização segura”. Ele é intencionalmente simples: reparar + migrar + avisar.
 
 Nota: se você estiver em uma **instalação a partir do código-fonte** (git checkout), `openclaw doctor` oferecerá executar `openclaw update` primeiro.
 
 Coisas típicas que ele faz:
 
-- Migrar chaves de config obsoletas / locais legados de arquivos de config.
-- Auditar políticas de Mensagem direta e alertar sobre configurações “abertas” arriscadas.
-- Verificar a saúde do Gateway e pode oferecer reiniciar.
-- Detectar e migrar serviços antigos do gateway (launchd/systemd; schtasks legados) para os serviços atuais do OpenClaw.
-- No Linux, garantir o lingering de usuário do systemd (para que o Gateway sobreviva ao logout).
+- Migra chaves de configuração obsoletas / locais legados de arquivos de configuração.
+- Audita políticas de DM e avisa sobre configurações “abertas” arriscadas.
+- Verifica a saúde do Gateway e pode oferecer reiniciar.
+- Detecta e migra serviços de gateway antigos (launchd/systemd; schtasks legados) para os serviços atuais do OpenClaw.
+- No Linux, garante o lingering do usuário no systemd (para que o Gateway sobreviva ao logout).
 
 Detalhes: [Doctor](/gateway/doctor)
 
@@ -172,14 +175,14 @@ openclaw gateway --port 18789
 openclaw logs --follow
 ```
 
-Se você estiver supervisionado:
+Se você usa supervisão:
 
 - macOS launchd (LaunchAgent empacotado no app): `launchctl kickstart -k gui/$UID/bot.molt.gateway` (use `bot.molt.<profile>`; o legado `com.openclaw.*` ainda funciona)
 - Linux systemd user service: `systemctl --user restart openclaw-gateway[-<profile>].service`
 - Windows (WSL2): `systemctl --user restart openclaw-gateway[-<profile>].service`
   - `launchctl`/`systemctl` só funcionam se o serviço estiver instalado; caso contrário, execute `openclaw gateway install`.
 
-Runbook + rótulos exatos de serviço: [Runbook do Gateway](/gateway)
+Runbook + rótulos exatos de serviços: [Gateway runbook](/gateway)
 
 ## Rollback / fixação (quando algo quebra)
 
@@ -213,7 +216,7 @@ git fetch origin
 git checkout "$(git rev-list -n 1 --before=\"2026-01-01\" origin/main)"
 ```
 
-Depois reinstale as dependências + reinicie:
+Depois reinstale dependências + reinicie:
 
 ```bash
 pnpm install
@@ -221,7 +224,7 @@ pnpm build
 openclaw gateway restart
 ```
 
-Se você quiser voltar para a mais recente depois:
+Se quiser voltar para o mais recente depois:
 
 ```bash
 git checkout main
@@ -230,6 +233,6 @@ git pull
 
 ## Se você estiver travado
 
-- Execute `openclaw doctor` novamente e leia a saída com atenção (ela frequentemente diz qual é a correção).
-- Confira: [Solucao de problemas](/gateway/troubleshooting)
-- Pergunte no Discord: https://discord.gg/clawd
+- Execute `openclaw doctor` novamente e leia a saída com atenção (ela frequentemente indica a correção).
+- Confira: [Solução de problemas](/gateway/troubleshooting)
+- Pergunte no Discord: [https://discord.gg/clawd](https://discord.gg/clawd)

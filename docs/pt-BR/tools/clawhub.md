@@ -1,9 +1,9 @@
 ---
-summary: "Guia do ClawHub: registro publico de skills + fluxos de trabalho da CLI"
+summary: "Guia do ClawHub: registro público de skills + fluxos de trabalho da CLI"
 read_when:
-  - Apresentando o ClawHub a novos usuarios
-  - Instalando, pesquisando ou publicando skills
-  - Explicando flags da CLI do ClawHub e o comportamento de sincronizacao
+  - Apresentando o ClawHub a novos usuários
+  - Instalando, buscando ou publicando skills
+  - Explicando flags da CLI do ClawHub e o comportamento de sincronização
 title: "ClawHub"
 x-i18n:
   source_path: tools/clawhub.md
@@ -11,57 +11,57 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:57:46Z
+  generated_at: 2026-02-08T09:32:17Z
 ---
 
 # ClawHub
 
-ClawHub é o **registro publico de skills do OpenClaw**. É um servico gratuito: todas as skills sao publicas, abertas e visiveis para todos para compartilhamento e reutilizacao. Uma skill é apenas uma pasta com um arquivo `SKILL.md` (alem de arquivos de texto de suporte). Voce pode navegar pelas skills no aplicativo web ou usar a CLI para pesquisar, instalar, atualizar e publicar skills.
+ClawHub é o **registro público de skills para OpenClaw**. É um serviço gratuito: todas as skills são públicas, abertas e visíveis para todos, para compartilhamento e reutilização. Uma skill é apenas uma pasta com um arquivo `SKILL.md` (além de arquivos de texto de suporte). Você pode navegar pelas skills no app web ou usar a CLI para buscar, instalar, atualizar e publicar skills.
 
 Site: [clawhub.ai](https://clawhub.ai)
 
 ## O que é o ClawHub
 
-- Um registro publico para skills do OpenClaw.
+- Um registro público para skills do OpenClaw.
 - Um repositório versionado de pacotes de skills e metadados.
-- Uma superficie de descoberta para busca, tags e sinais de uso.
+- Uma superfície de descoberta para busca, tags e sinais de uso.
 
 ## Como funciona
 
-1. Um usuario publica um pacote de skill (arquivos + metadados).
-2. O ClawHub armazena o pacote, analisa os metadados e atribui uma versao.
+1. Um usuário publica um pacote de skill (arquivos + metadados).
+2. O ClawHub armazena o pacote, analisa os metadados e atribui uma versão.
 3. O registro indexa a skill para busca e descoberta.
-4. Usuarios navegam, baixam e instalam skills no OpenClaw.
+4. Usuários navegam, baixam e instalam skills no OpenClaw.
 
-## O que voce pode fazer
+## O que você pode fazer
 
-- Publicar novas skills e novas versoes de skills existentes.
+- Publicar novas skills e novas versões de skills existentes.
 - Descobrir skills por nome, tags ou busca.
 - Baixar pacotes de skills e inspecionar seus arquivos.
 - Denunciar skills que sejam abusivas ou inseguras.
-- Se voce for moderador, ocultar, reexibir, excluir ou banir.
+- Se você for moderador, ocultar, reexibir, excluir ou banir.
 
-## Para quem isso é (amigavel para iniciantes)
+## Para quem é (amigável para iniciantes)
 
-Se voce quer adicionar novas capacidades ao seu agente OpenClaw, o ClawHub é a forma mais facil de encontrar e instalar skills. Voce nao precisa saber como o backend funciona. Voce pode:
+Se você quer adicionar novas capacidades ao seu agente OpenClaw, o ClawHub é a maneira mais fácil de encontrar e instalar skills. Você não precisa saber como o backend funciona. Você pode:
 
-- Pesquisar skills usando linguagem simples.
+- Buscar skills usando linguagem simples.
 - Instalar uma skill no seu workspace.
-- Atualizar skills depois com um unico comando.
-- Fazer backup das suas proprias skills publicando-as.
+- Atualizar skills depois com um único comando.
+- Fazer backup das suas próprias skills publicando-as.
 
-## Inicio rapido (nao tecnico)
+## Início rápido (não técnico)
 
-1. Instale a CLI (veja a proxima secao).
-2. Pesquise algo de que voce precisa:
+1. Instale a CLI (veja a próxima seção).
+2. Busque algo de que você precisa:
    - `clawhub search "calendar"`
 3. Instale uma skill:
    - `clawhub install <skill-slug>`
-4. Inicie uma nova sessao do OpenClaw para que a nova skill seja carregada.
+4. Inicie uma nova sessão do OpenClaw para que ele reconheça a nova skill.
 
 ## Instalar a CLI
 
-Escolha uma opcao:
+Escolha uma opção:
 
 ```bash
 npm i -g clawhub
@@ -73,128 +73,128 @@ pnpm add -g clawhub
 
 ## Como isso se encaixa no OpenClaw
 
-Por padrao, a CLI instala skills em `./skills` dentro do seu diretorio de trabalho atual. Se um workspace do OpenClaw estiver configurado, `clawhub` recorre a esse workspace, a menos que voce sobrescreva `--workdir` (ou `CLAWHUB_WORKDIR`). O OpenClaw carrega skills do workspace a partir de `<workspace>/skills` e as reconhece na **proxima** sessao. Se voce ja usa `~/.openclaw/skills` ou skills empacotadas, as skills do workspace tem precedencia.
+Por padrão, a CLI instala skills em `./skills` dentro do seu diretório de trabalho atual. Se um workspace do OpenClaw estiver configurado, `clawhub` recorre a esse workspace, a menos que você sobrescreva `--workdir` (ou `CLAWHUB_WORKDIR`). O OpenClaw carrega skills do workspace a partir de `<workspace>/skills` e as reconhecerá na **próxima** sessão. Se você já usa `~/.openclaw/skills` ou skills empacotadas, as skills do workspace têm precedência.
 
-Para mais detalhes sobre como as skills sao carregadas, compartilhadas e controladas, veja
+Para mais detalhes sobre como as skills são carregadas, compartilhadas e controladas, veja
 [Skills](/tools/skills).
 
-## Visao geral do sistema de skills
+## Visão geral do sistema de skills
 
 Uma skill é um pacote versionado de arquivos que ensina o OpenClaw a executar uma
-tarefa especifica. Cada publicacao cria uma nova versao, e o registro mantem um
-historico de versoes para que usuarios possam auditar mudancas.
+tarefa específica. Cada publicação cria uma nova versão, e o registro mantém um
+histórico de versões para que os usuários possam auditar mudanças.
 
-Uma skill tipica inclui:
+Uma skill típica inclui:
 
-- Um arquivo `SKILL.md` com a descricao principal e uso.
-- Configuracoes opcionais, scripts ou arquivos de suporte usados pela skill.
-- Metadados como tags, resumo e requisitos de instalacao.
+- Um arquivo `SKILL.md` com a descrição principal e o uso.
+- Configurações, scripts ou arquivos de suporte opcionais usados pela skill.
+- Metadados como tags, resumo e requisitos de instalação.
 
-O ClawHub usa metadados para impulsionar a descoberta e expor com seguranca as capacidades das skills.
-O registro tambem acompanha sinais de uso (como estrelas e downloads) para melhorar
+O ClawHub usa metadados para impulsionar a descoberta e expor com segurança as capacidades das skills.
+O registro também acompanha sinais de uso (como estrelas e downloads) para melhorar
 o ranqueamento e a visibilidade.
 
-## O que o servico oferece (recursos)
+## O que o serviço oferece (recursos)
 
-- **Navegacao publica** de skills e de seu conteudo `SKILL.md`.
-- **Busca** baseada em embeddings (busca vetorial), nao apenas em palavras-chave.
+- **Navegação pública** de skills e do conteúdo `SKILL.md`.
+- **Busca** alimentada por embeddings (busca vetorial), não apenas por palavras-chave.
 - **Versionamento** com semver, changelogs e tags (incluindo `latest`).
-- **Downloads** como um zip por versao.
-- **Estrelas e comentarios** para feedback da comunidade.
-- **Moderacao** com ganchos para aprovacoes e auditorias.
-- **API amigavel para CLI** para automacao e scripts.
+- **Downloads** como um zip por versão.
+- **Estrelas e comentários** para feedback da comunidade.
+- **Moderação** com ganchos para aprovações e auditorias.
+- **API amigável à CLI** para automação e scripts.
 
-## Seguranca e moderacao
+## Segurança e moderação
 
-O ClawHub é aberto por padrao. Qualquer pessoa pode enviar skills, mas uma conta do GitHub
-precisa ter pelo menos uma semana para publicar. Isso ajuda a reduzir abusos sem bloquear
-contribuidores legitimos.
+O ClawHub é aberto por padrão. Qualquer pessoa pode enviar skills, mas uma conta do GitHub
+precisa ter pelo menos uma semana para publicar. Isso ajuda a desacelerar abusos sem bloquear
+contribuidores legítimos.
 
-Denuncias e moderacao:
+Denúncias e moderação:
 
-- Qualquer usuario autenticado pode denunciar uma skill.
-- Motivos de denuncia sao obrigatorios e registrados.
-- Cada usuario pode ter ate 20 denuncias ativas por vez.
-- Skills com mais de 3 denuncias unicas sao ocultadas automaticamente por padrao.
-- Moderadores podem ver skills ocultas, reexibi-las, exclui-las ou banir usuarios.
-- Abusar do recurso de denuncia pode resultar em banimento de conta.
+- Qualquer usuário autenticado pode denunciar uma skill.
+- Motivos de denúncia são obrigatórios e registrados.
+- Cada usuário pode ter até 20 denúncias ativas ao mesmo tempo.
+- Skills com mais de 3 denúncias únicas são ocultadas automaticamente por padrão.
+- Moderadores podem ver skills ocultas, reexibi-las, excluí-las ou banir usuários.
+- Abusar do recurso de denúncia pode resultar em banimento da conta.
 
-Interessado em se tornar um moderador? Pergunte no Discord do OpenClaw e entre em contato com um
+Interessado em se tornar moderador? Pergunte no Discord do OpenClaw e entre em contato com um
 moderador ou mantenedor.
 
-## Comandos e parametros da CLI
+## Comandos e parâmetros da CLI
 
-Opcoes globais (aplicam-se a todos os comandos):
+Opções globais (aplicam-se a todos os comandos):
 
-- `--workdir <dir>`: Diretorio de trabalho (padrao: diretorio atual; recorre ao workspace do OpenClaw).
-- `--dir <dir>`: Diretorio de skills, relativo ao workdir (padrao: `skills`).
-- `--site <url>`: URL base do site (login no navegador).
+- `--workdir <dir>`: Diretório de trabalho (padrão: diretório atual; recorre ao workspace do OpenClaw).
+- `--dir <dir>`: Diretório de skills, relativo ao workdir (padrão: `skills`).
+- `--site <url>`: URL base do site (login pelo navegador).
 - `--registry <url>`: URL base da API do registro.
-- `--no-input`: Desativar prompts (nao interativo).
-- `-V, --cli-version`: Exibir a versao da CLI.
+- `--no-input`: Desativar prompts (não interativo).
+- `-V, --cli-version`: Imprimir a versão da CLI.
 
-Autenticacao:
+Autenticação:
 
-- `clawhub login` (fluxo via navegador) ou `clawhub login --token <token>`
+- `clawhub login` (fluxo pelo navegador) ou `clawhub login --token <token>`
 - `clawhub logout`
 - `clawhub whoami`
 
-Opcoes:
+Opções:
 
 - `--token <token>`: Colar um token de API.
-- `--label <label>`: Rotulo armazenado para tokens de login via navegador (padrao: `CLI token`).
-- `--no-browser`: Nao abrir um navegador (requer `--token`).
+- `--label <label>`: Rótulo armazenado para tokens de login pelo navegador (padrão: `CLI token`).
+- `--no-browser`: Não abrir um navegador (requer `--token`).
 
 Busca:
 
 - `clawhub search "query"`
-- `--limit <n>`: Maximo de resultados.
+- `--limit <n>`: Máximo de resultados.
 
-Instalar:
+Instalação:
 
 - `clawhub install <slug>`
-- `--version <version>`: Instalar uma versao especifica.
-- `--force`: Sobrescrever se a pasta ja existir.
+- `--version <version>`: Instalar uma versão específica.
+- `--force`: Sobrescrever se a pasta já existir.
 
-Atualizar:
+Atualização:
 
 - `clawhub update <slug>`
 - `clawhub update --all`
-- `--version <version>`: Atualizar para uma versao especifica (apenas um slug).
-- `--force`: Sobrescrever quando os arquivos locais nao correspondem a nenhuma versao publicada.
+- `--version <version>`: Atualizar para uma versão específica (apenas um slug).
+- `--force`: Sobrescrever quando arquivos locais não corresponderem a nenhuma versão publicada.
 
-Listar:
+Listagem:
 
-- `clawhub list` (le `.clawhub/lock.json`)
+- `clawhub list` (lê `.clawhub/lock.json`)
 
-Publicar:
+Publicação:
 
 - `clawhub publish <path>`
 - `--slug <slug>`: Slug da skill.
-- `--name <name>`: Nome de exibicao.
-- `--version <version>`: Versao semver.
-- `--changelog <text>`: Texto do changelog (pode estar vazio).
-- `--tags <tags>`: Tags separadas por virgula (padrao: `latest`).
+- `--name <name>`: Nome de exibição.
+- `--version <version>`: Versão semver.
+- `--changelog <text>`: Texto do changelog (pode ser vazio).
+- `--tags <tags>`: Tags separadas por vírgula (padrão: `latest`).
 
-Excluir/restaurar (apenas proprietario/admin):
+Excluir/restaurar (apenas proprietário/admin):
 
 - `clawhub delete <slug> --yes`
 - `clawhub undelete <slug> --yes`
 
-Sync (varrer skills locais + publicar novas/atualizadas):
+Sincronizar (varrer skills locais + publicar novas/atualizadas):
 
 - `clawhub sync`
-- `--root <dir...>`: Raizes extras para varredura.
+- `--root <dir...>`: Raízes extras de varredura.
 - `--all`: Enviar tudo sem prompts.
 - `--dry-run`: Mostrar o que seria enviado.
-- `--bump <type>`: `patch|minor|major` para atualizacoes (padrao: `patch`).
-- `--changelog <text>`: Changelog para atualizacoes nao interativas.
-- `--tags <tags>`: Tags separadas por virgula (padrao: `latest`).
-- `--concurrency <n>`: Verificacoes do registro (padrao: 4).
+- `--bump <type>`: `patch|minor|major` para atualizações (padrão: `patch`).
+- `--changelog <text>`: Changelog para atualizações não interativas.
+- `--tags <tags>`: Tags separadas por vírgula (padrão: `latest`).
+- `--concurrency <n>`: Verificações do registro (padrão: 4).
 
 ## Fluxos de trabalho comuns para agentes
 
-### Pesquisar skills
+### Buscar skills
 
 ```bash
 clawhub search "postgres backups"
@@ -214,7 +214,7 @@ clawhub update --all
 
 ### Fazer backup das suas skills (publicar ou sincronizar)
 
-Para uma unica pasta de skill:
+Para uma única pasta de skill:
 
 ```bash
 clawhub publish ./my-skill --slug my-skill --name "My Skill" --version 1.0.0 --tags latest
@@ -226,39 +226,39 @@ Para varrer e fazer backup de muitas skills de uma vez:
 clawhub sync --all
 ```
 
-## Detalhes avancados (tecnico)
+## Detalhes avançados (técnicos)
 
 ### Versionamento e tags
 
-- Cada publicacao cria uma nova **semver** `SkillVersion`.
-- Tags (como `latest`) apontam para uma versao; mover tags permite reverter.
-- Changelogs sao anexados por versao e podem estar vazios ao sincronizar ou publicar atualizacoes.
+- Cada publicação cria uma nova **semver** `SkillVersion`.
+- Tags (como `latest`) apontam para uma versão; mover tags permite fazer rollback.
+- Changelogs são anexados por versão e podem ficar vazios ao sincronizar ou publicar atualizações.
 
-### Mudancas locais vs versoes do registro
+### Alterações locais vs versões do registro
 
-As atualizacoes comparam o conteudo local da skill com as versoes do registro usando um hash de conteudo. Se os arquivos locais nao corresponderem a nenhuma versao publicada, a CLI pergunta antes de sobrescrever (ou exige `--force` em execucoes nao interativas).
+Atualizações comparam o conteúdo local da skill com versões do registro usando um hash de conteúdo. Se os arquivos locais não corresponderem a nenhuma versão publicada, a CLI pergunta antes de sobrescrever (ou exige `--force` em execuções não interativas).
 
-### Varredura do sync e raizes de fallback
+### Varredura de sincronização e raízes de fallback
 
-`clawhub sync` varre primeiro o seu workdir atual. Se nenhuma skill for encontrada, ele recorre a locais legados conhecidos (por exemplo `~/openclaw/skills` e `~/.openclaw/skills`). Isso foi projetado para encontrar instalacoes antigas de skills sem flags extras.
+`clawhub sync` primeiro varre seu workdir atual. Se nenhuma skill for encontrada, recorre a locais legados conhecidos (por exemplo, `~/openclaw/skills` e `~/.openclaw/skills`). Isso foi projetado para encontrar instalações antigas de skills sem flags extras.
 
 ### Armazenamento e arquivo de bloqueio
 
-- Skills instaladas sao registradas em `.clawhub/lock.json` dentro do seu workdir.
-- Tokens de autenticacao sao armazenados no arquivo de configuracao da CLI do ClawHub (sobrescreva via `CLAWHUB_CONFIG_PATH`).
+- Skills instaladas são registradas em `.clawhub/lock.json` dentro do seu workdir.
+- Tokens de autenticação são armazenados no arquivo de configuração da CLI do ClawHub (substitua via `CLAWHUB_CONFIG_PATH`).
 
-### Telemetria (contagens de instalacao)
+### Telemetria (contagem de instalações)
 
-Quando voce executa `clawhub sync` enquanto esta autenticado, a CLI envia um snapshot minimo para calcular contagens de instalacao. Voce pode desativar isso completamente:
+Quando você executa `clawhub sync` enquanto está autenticado, a CLI envia um snapshot mínimo para calcular contagens de instalação. Você pode desativar isso completamente:
 
 ```bash
 export CLAWHUB_DISABLE_TELEMETRY=1
 ```
 
-## Variaveis de ambiente
+## Variáveis de ambiente
 
-- `CLAWHUB_SITE`: Sobrescrever a URL do site.
-- `CLAWHUB_REGISTRY`: Sobrescrever a URL da API do registro.
-- `CLAWHUB_CONFIG_PATH`: Sobrescrever onde a CLI armazena o token/configuracao.
-- `CLAWHUB_WORKDIR`: Sobrescrever o workdir padrao.
+- `CLAWHUB_SITE`: Substituir a URL do site.
+- `CLAWHUB_REGISTRY`: Substituir a URL da API do registro.
+- `CLAWHUB_CONFIG_PATH`: Substituir onde a CLI armazena o token/configuração.
+- `CLAWHUB_WORKDIR`: Substituir o workdir padrão.
 - `CLAWHUB_DISABLE_TELEMETRY=1`: Desativar telemetria em `sync`.

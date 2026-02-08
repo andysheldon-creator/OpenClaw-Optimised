@@ -10,15 +10,15 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:15Z
+  generated_at: 2026-02-08T09:38:13Z
 ---
 
 # acp
 
 Chạy cầu nối ACP (Agent Client Protocol) giao tiếp với một OpenClaw Gateway.
 
-Lệnh này nói chuyện ACP qua stdio cho các IDE và chuyển tiếp prompt tới Gateway
-qua WebSocket. Nó giữ các phiên ACP được ánh xạ với các khóa phiên của Gateway.
+Lệnh này nói ACP qua stdio cho các IDE và chuyển tiếp prompt tới Gateway
+qua WebSocket. Nó giữ các phiên ACP được ánh xạ tới khóa phiên của Gateway.
 
 ## Usage
 
@@ -53,13 +53,13 @@ openclaw acp client --server-args --url wss://gateway-host:18789 --token <token>
 openclaw acp client --server "node" --server-args openclaw.mjs acp --url ws://127.0.0.1:19001
 ```
 
-## Cách sử dụng
+## How to use this
 
 Sử dụng ACP khi một IDE (hoặc client khác) nói Agent Client Protocol và bạn muốn
 nó điều khiển một phiên OpenClaw Gateway.
 
 1. Đảm bảo Gateway đang chạy (cục bộ hoặc từ xa).
-2. Cấu hình đích Gateway (qua cấu hình hoặc cờ).
+2. Cấu hình mục tiêu Gateway (cấu hình hoặc cờ).
 3. Trỏ IDE của bạn chạy `openclaw acp` qua stdio.
 
 Ví dụ cấu hình (được lưu):
@@ -75,11 +75,11 @@ Ví dụ chạy trực tiếp (không ghi cấu hình):
 openclaw acp --url wss://gateway-host:18789 --token <token>
 ```
 
-## Chọn agent
+## Selecting agents
 
-ACP không chọn agent trực tiếp. Nó định tuyến theo khóa phiên Gateway.
+ACP không chọn tác tử trực tiếp. Nó định tuyến theo khóa phiên của Gateway.
 
-Sử dụng khóa phiên theo phạm vi agent để nhắm tới một agent cụ thể:
+Sử dụng khóa phiên theo phạm vi tác tử để nhắm tới một tác tử cụ thể:
 
 ```bash
 openclaw acp --session agent:main:main
@@ -87,13 +87,13 @@ openclaw acp --session agent:design:main
 openclaw acp --session agent:qa:bug-123
 ```
 
-Mỗi phiên ACP ánh xạ tới một khóa phiên Gateway duy nhất. Một agent có thể có
-nhiều phiên; ACP mặc định dùng một phiên `acp:<uuid>` tách biệt trừ khi bạn
-ghi đè khóa hoặc nhãn.
+Mỗi phiên ACP ánh xạ tới một khóa phiên Gateway duy nhất. Một tác tử có thể có
+nhiều phiên; ACP mặc định dùng một phiên `acp:<uuid>` biệt lập trừ khi bạn ghi đè
+khóa hoặc nhãn.
 
-## Thiết lập Zed editor
+## Zed editor setup
 
-Thêm một ACP agent tùy chỉnh trong `~/.config/zed/settings.json` (hoặc dùng UI Settings của Zed):
+Thêm một tác tử ACP tùy chỉnh trong `~/.config/zed/settings.json` (hoặc dùng UI Cài đặt của Zed):
 
 ```json
 {
@@ -108,7 +108,7 @@ Thêm một ACP agent tùy chỉnh trong `~/.config/zed/settings.json` (hoặc d
 }
 ```
 
-Để nhắm tới một Gateway hoặc agent cụ thể:
+Để nhắm tới một Gateway hoặc tác tử cụ thể:
 
 ```json
 {
@@ -133,10 +133,10 @@ Thêm một ACP agent tùy chỉnh trong `~/.config/zed/settings.json` (hoặc d
 
 Trong Zed, mở bảng Agent và chọn “OpenClaw ACP” để bắt đầu một luồng.
 
-## Ánh xạ phiên
+## Session mapping
 
-Theo mặc định, các phiên ACP nhận một khóa phiên Gateway tách biệt với tiền tố `acp:`.
-Để tái sử dụng một phiên đã biết, truyền khóa phiên hoặc nhãn:
+Theo mặc định, các phiên ACP nhận một khóa phiên Gateway biệt lập với tiền tố `acp:`.
+Để dùng lại một phiên đã biết, hãy truyền khóa phiên hoặc nhãn:
 
 - `--session <key>`: dùng một khóa phiên Gateway cụ thể.
 - `--session-label <label>`: phân giải một phiên hiện có theo nhãn.
@@ -165,13 +165,13 @@ Tìm hiểu thêm về khóa phiên tại [/concepts/session](/concepts/session)
 - `--session-label <label>`: nhãn phiên mặc định để phân giải.
 - `--require-existing`: thất bại nếu khóa/nhãn phiên không tồn tại.
 - `--reset-session`: đặt lại khóa phiên trước lần sử dụng đầu tiên.
-- `--no-prefix-cwd`: không thêm tiền tố thư mục làm việc vào prompt.
+- `--no-prefix-cwd`: không tiền tố prompt bằng thư mục làm việc.
 - `--verbose, -v`: ghi log chi tiết ra stderr.
 
-### Các tùy chọn `acp client`
+### `acp client` options
 
 - `--cwd <dir>`: thư mục làm việc cho phiên ACP.
 - `--server <command>`: lệnh máy chủ ACP (mặc định: `openclaw`).
-- `--server-args <args...>`: các đối số bổ sung truyền cho máy chủ ACP.
+- `--server-args <args...>`: đối số bổ sung truyền cho máy chủ ACP.
 - `--server-verbose`: bật ghi log chi tiết trên máy chủ ACP.
 - `--verbose, -v`: ghi log chi tiết phía client.

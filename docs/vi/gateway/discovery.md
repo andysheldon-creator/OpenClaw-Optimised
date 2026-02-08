@@ -1,123 +1,123 @@
 ---
-summary: "Kham pha nut va cac phuong thuc truyen tai (Bonjour, Tailscale, SSH) de tim Gateway"
+summary: "Khám phá node và các phương thức truyền tải (Bonjour, Tailscale, SSH) để tìm gateway"
 read_when:
-  - Trien khai hoac thay doi co che kham pha/quang cao Bonjour
-  - Dieu chinh cac che do ket noi tu xa (truc tiep vs SSH)
-  - Thiet ke kham pha nut + ghep cap cho cac nut tu xa
-title: "Kham pha va Truyen tai"
+  - Triển khai hoặc thay đổi cơ chế khám phá/quảng bá Bonjour
+  - Điều chỉnh các chế độ kết nối từ xa (trực tiếp so với SSH)
+  - Thiết kế khám phá node + ghép cặp cho các node từ xa
+title: "Khám phá và phương thức truyền tải"
 x-i18n:
   source_path: gateway/discovery.md
   source_hash: e12172c181515bfa
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:24Z
+  generated_at: 2026-02-08T09:39:02Z
 ---
 
-# Discovery & transports
+# Khám phá & phương thức truyền tải
 
-OpenClaw co hai van de rieng biet, be ngoai trong giong nhau:
+OpenClaw có hai vấn đề khác nhau nhưng trông khá giống nhau ở bề mặt:
 
-1. **Dieu khien tu xa cua nguoi van hanh**: ung dung menu bar macOS dieu khien mot gateway chay o noi khac.
-2. **Ghep cap nut**: iOS/Android (va cac nut tuong lai) tim mot gateway va ghep cap an toan.
+1. **Điều khiển từ xa của người vận hành**: ứng dụng thanh menu macOS điều khiển một gateway chạy ở nơi khác.
+2. **Ghép cặp node**: iOS/Android (và các node trong tương lai) tìm gateway và ghép cặp một cách an toàn.
 
-Muc tieu thiet ke la giu toan bo kham pha/quang cao mang trong **Node Gateway** (`openclaw gateway`) va giu cac client (ung dung mac, iOS) o vai tro nguoi tieu thu.
+Mục tiêu thiết kế là giữ toàn bộ việc khám phá/quảng bá mạng trong **Node Gateway** (`openclaw gateway`) và để các client (ứng dụng mac, iOS) chỉ đóng vai trò người tiêu thụ.
 
-## Thuat ngu
+## Thuật ngữ
 
-- **Gateway**: mot tien trinh gateway chay dai han, so huu trang thai (phien, ghep cap, so dang ky nut) va chay cac kenh. Phan lon thiet lap dung mot gateway moi host; cac thiet lap nhieu gateway tach biet la co the.
-- **Gateway WS (control plane)**: diem cuoi WebSocket mac dinh tai `127.0.0.1:18789`; co the bind vao LAN/tailnet thong qua `gateway.bind`.
-- **Direct WS transport**: diem cuoi Gateway WS huong LAN/tailnet (khong SSH).
-- **SSH transport (fallback)**: dieu khien tu xa bang cach chuyen tiep `127.0.0.1:18789` qua SSH.
-- **Legacy TCP bridge (deprecated/removed)**: truyen tai nut cu (xem [Bridge protocol](/gateway/bridge-protocol)); khong con duoc quang cao cho kham pha.
+- **Gateway**: một tiến trình gateway chạy lâu dài, sở hữu trạng thái (phiên, ghép cặp, sổ đăng ký node) và chạy các kênh. Hầu hết thiết lập dùng một gateway cho mỗi máy chủ; cũng có thể có các thiết lập nhiều gateway cách ly.
+- **Gateway WS (control plane)**: endpoint WebSocket trên `127.0.0.1:18789` theo mặc định; có thể bind vào LAN/tailnet qua `gateway.bind`.
+- **Direct WS transport**: endpoint Gateway WS hướng LAN/tailnet (không dùng SSH).
+- **SSH transport (fallback)**: điều khiển từ xa bằng cách chuyển tiếp `127.0.0.1:18789` qua SSH.
+- **Legacy TCP bridge (deprecated/removed)**: phương thức truyền tải node cũ (xem [Bridge protocol](/gateway/bridge-protocol)); không còn được quảng bá để khám phá.
 
-Chi tiet giao thuc:
+Chi tiết giao thức:
 
 - [Gateway protocol](/gateway/protocol)
 - [Bridge protocol (legacy)](/gateway/bridge-protocol)
 
-## Vi sao chung toi giu ca “direct” va SSH
+## Vì sao chúng tôi giữ cả “direct” và SSH
 
-- **Direct WS** mang lai UX tot nhat tren cung mang va trong mot tailnet:
-  - tu dong kham pha tren LAN qua Bonjour
-  - token ghep cap + ACL do gateway so huu
-  - khong can truy cap shell; be mat giao thuc co the gon nhe va de kiem toan
-- **SSH** van la phuong an du phong pho quat:
-  - hoat dong o bat ky dau ban co quyen SSH (ke ca qua cac mang khong lien quan)
-  - vuot qua cac van de multicast/mDNS
-  - khong can mo cong inbound moi ngoai SSH
+- **Direct WS** mang lại UX tốt nhất trong cùng mạng và trong tailnet:
+  - tự động khám phá trên LAN qua Bonjour
+  - token ghép cặp + ACLs do gateway sở hữu
+  - không cần quyền truy cập shell; bề mặt giao thức có thể gọn và dễ kiểm toán
+- **SSH** vẫn là phương án dự phòng phổ quát:
+  - hoạt động ở bất cứ đâu bạn có quyền SSH (kể cả qua các mạng không liên quan)
+  - vượt qua các vấn đề multicast/mDNS
+  - không cần mở thêm cổng inbound nào ngoài SSH
 
-## Dau vao kham pha (cach client biet gateway o dau)
+## Đầu vào khám phá (cách client biết gateway ở đâu)
 
-### 1) Bonjour / mDNS (chi LAN)
+### 1) Bonjour / mDNS (chỉ LAN)
 
-Bonjour la best-effort va khong vuot qua cac mang. No chi duoc dung de thuan tien tren “cung LAN”.
+Bonjour là best-effort và không vượt qua các mạng khác nhau. Nó chỉ dùng cho tiện lợi “cùng LAN”.
 
-Huong muc tieu:
+Hướng mục tiêu:
 
-- **gateway** quang cao diem cuoi WS cua no qua Bonjour.
-- Client duyet va hien thi danh sach “chon mot gateway”, sau do luu diem cuoi da chon.
+- **Gateway** quảng bá endpoint WS của mình qua Bonjour.
+- Client duyệt và hiển thị danh sách “chọn một gateway”, sau đó lưu endpoint đã chọn.
 
-Chi tiet xu ly su co va beacon: [Bonjour](/gateway/bonjour).
+Chi tiết xử lý sự cố và beacon: [Bonjour](/gateway/bonjour).
 
-#### Chi tiet service beacon
+#### Chi tiết service beacon
 
-- Kieu dich vu:
-  - `_openclaw-gw._tcp` (beacon truyen tai gateway)
-- Khoa TXT (khong bi mat):
+- Loại dịch vụ:
+  - `_openclaw-gw._tcp` (beacon truyền tải gateway)
+- Khóa TXT (không bí mật):
   - `role=gateway`
   - `lanHost=<hostname>.local`
-  - `sshPort=22` (hoac bat ky gia tri nao duoc quang cao)
+  - `sshPort=22` (hoặc bất cứ giá trị nào được quảng bá)
   - `gatewayPort=18789` (Gateway WS + HTTP)
-  - `gatewayTls=1` (chi khi TLS duoc bat)
-  - `gatewayTlsSha256=<sha256>` (chi khi TLS duoc bat va co fingerprint)
-  - `canvasPort=18793` (cong host canvas mac dinh; phuc vu `/__openclaw__/canvas/`)
-  - `cliPath=<path>` (tuy chon; duong dan tuyet doi toi entrypoint `openclaw` co the chay hoac binary)
-  - `tailnetDns=<magicdns>` (goi y tuy chon; tu dong phat hien khi Tailscale kha dung)
+  - `gatewayTls=1` (chỉ khi bật TLS)
+  - `gatewayTlsSha256=<sha256>` (chỉ khi bật TLS và có fingerprint)
+  - `canvasPort=18793` (cổng máy chủ canvas mặc định; phục vụ `/__openclaw__/canvas/`)
+  - `cliPath=<path>` (tùy chọn; đường dẫn tuyệt đối tới entrypoint hoặc binary `openclaw` có thể chạy)
+  - `tailnetDns=<magicdns>` (gợi ý tùy chọn; tự động phát hiện khi có Tailscale)
 
-Tat/ghi de:
+Tắt/ghi đè:
 
-- `OPENCLAW_DISABLE_BONJOUR=1` tat quang cao.
-- `gateway.bind` trong `~/.openclaw/openclaw.json` dieu khien che do bind cua Gateway.
-- `OPENCLAW_SSH_PORT` ghi de cong SSH duoc quang cao trong TXT (mac dinh la 22).
-- `OPENCLAW_TAILNET_DNS` cong bo mot goi y `tailnetDns` (MagicDNS).
-- `OPENCLAW_CLI_PATH` ghi de duong dan CLI duoc quang cao.
+- `OPENCLAW_DISABLE_BONJOUR=1` tắt quảng bá.
+- `gateway.bind` trong `~/.openclaw/openclaw.json` kiểm soát chế độ bind của Gateway.
+- `OPENCLAW_SSH_PORT` ghi đè cổng SSH được quảng bá trong TXT (mặc định là 22).
+- `OPENCLAW_TAILNET_DNS` xuất bản gợi ý `tailnetDns` (MagicDNS).
+- `OPENCLAW_CLI_PATH` ghi đè đường dẫn CLI được quảng bá.
 
-### 2) Tailnet (xuyen mang)
+### 2) Tailnet (xuyên mạng)
 
-Voi cac thiet lap kieu London/Vienna, Bonjour se khong giup duoc. Dich den “direct” duoc khuyen nghi la:
+Với các thiết lập kiểu London/Vienna, Bonjour sẽ không giúp được. Mục tiêu “direct” được khuyến nghị là:
 
-- Ten MagicDNS cua Tailscale (uu tien) hoac mot IP tailnet on dinh.
+- Tên Tailscale MagicDNS (ưu tiên) hoặc một IP tailnet ổn định.
 
-Neu gateway co the phat hien no dang chay duoi Tailscale, no se cong bo `tailnetDns` nhu mot goi y tuy chon cho client (bao gom ca beacon pham vi rong).
+Nếu gateway có thể phát hiện nó đang chạy dưới Tailscale, nó sẽ công bố `tailnetDns` như một gợi ý tùy chọn cho client (bao gồm cả beacon diện rộng).
 
-### 3) Muc tieu thu cong / SSH
+### 3) Mục tiêu thủ công / SSH
 
-Khi khong co duong truc tiep (hoac direct bi tat), client luon co the ket noi qua SSH bang cach chuyen tiep cong gateway local loopback.
+Khi không có tuyến direct (hoặc direct bị tắt), client luôn có thể kết nối qua SSH bằng cách chuyển tiếp cổng gateway trên local loopback.
 
 Xem [Remote access](/gateway/remote).
 
-## Lua chon truyen tai (chinh sach client)
+## Lựa chọn phương thức truyền tải (chính sách client)
 
-Hanh vi client duoc khuyen nghi:
+Hành vi client được khuyến nghị:
 
-1. Neu diem cuoi direct da ghep cap duoc cau hinh va co the truy cap, hay dung no.
-2. Neu khong, neu Bonjour tim thay mot gateway tren LAN, de xuat lua chon “Dung gateway nay” chi mot cham va luu no lam diem cuoi direct.
-3. Neu khong, neu mot DNS/IP tailnet da duoc cau hinh, thu direct.
-4. Neu khong, quay ve SSH.
+1. Nếu đã cấu hình một endpoint direct đã ghép cặp và có thể truy cập, hãy dùng nó.
+2. Nếu không, nếu Bonjour tìm thấy một gateway trên LAN, cung cấp lựa chọn “Dùng gateway này” chỉ với một chạm và lưu nó làm endpoint direct.
+3. Nếu không, nếu đã cấu hình DNS/IP tailnet, thử direct.
+4. Nếu không, rơi về SSH.
 
-## Ghep cap + xac thuc (direct transport)
+## Ghép cặp + xác thực (phương thức direct)
 
-Gateway la nguon su that cho viec chap nhan nut/client.
+Gateway là nguồn sự thật cho việc chấp nhận node/client.
 
-- Yeu cau ghep cap duoc tao/phe duyet/tu choi trong gateway (xem [Gateway pairing](/gateway/pairing)).
-- Gateway thuc thi:
-  - xac thuc (token / cap khoa)
-  - pham vi/ACL (gateway khong phai la proxy tho toi moi phuong thuc)
-  - gioi han toc do
+- Yêu cầu ghép cặp được tạo/phê duyệt/từ chối trong gateway (xem [Gateway pairing](/gateway/pairing)).
+- Gateway thực thi:
+  - xác thực (token / cặp khóa)
+  - phạm vi/ACLs (gateway không phải là proxy thô tới mọi phương thức)
+  - giới hạn tốc độ
 
-## Trach nhiem theo thanh phan
+## Trách nhiệm theo từng thành phần
 
-- **Gateway**: quang cao beacon kham pha, so huu quyet dinh ghep cap, va luu tru diem cuoi WS.
-- **ung dung macOS**: giup ban chon mot gateway, hien thi loi nhac ghep cap, va chi dung SSH lam du phong.
-- **nut iOS/Android**: duyet Bonjour nhu mot thuan tien va ket noi toi Gateway WS da ghep cap.
+- **Gateway**: quảng bá beacon khám phá, quyết định ghép cặp, và lưu trữ endpoint WS.
+- **Ứng dụng macOS**: giúp bạn chọn gateway, hiển thị lời nhắc ghép cặp, và chỉ dùng SSH như phương án dự phòng.
+- **Node iOS/Android**: duyệt Bonjour như một tiện lợi và kết nối tới Gateway WS đã ghép cặp.

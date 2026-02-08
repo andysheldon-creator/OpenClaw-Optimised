@@ -1,21 +1,21 @@
 ---
-summary: "Feishu 봇 개요, 기능 및 설정"
+summary: "Feishu 봇 개요, 기능 및 구성"
 read_when:
   - Feishu/Lark 봇을 연결하려는 경우
-  - Feishu 채널을 설정하는 경우
+  - Feishu 채널을 구성하는 경우
 title: Feishu
 x-i18n:
   source_path: channels/feishu.md
-  source_hash: fd2c93ebb6dbeabf
+  source_hash: c9349983562d1a98
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:35:22Z
+  generated_at: 2026-02-08T09:24:08Z
 ---
 
 # Feishu 봇
 
-Feishu (Lark)는 기업에서 메시징과 협업을 위해 사용하는 팀 채팅 플랫폼입니다. 이 플러그인은 플랫폼의 WebSocket 이벤트 구독을 사용하여 OpenClaw 를 Feishu/Lark 봇에 연결하므로, 공개 webhook URL 을 노출하지 않고도 메시지를 수신할 수 있습니다.
+Feishu (Lark) 는 기업에서 메시징과 협업을 위해 사용하는 팀 채팅 플랫폼입니다. 이 플러그인은 플랫폼의 WebSocket 이벤트 구독을 사용하여 OpenClaw 를 Feishu/Lark 봇에 연결하므로, 공개 webhook URL 을 노출하지 않고도 메시지를 수신할 수 있습니다.
 
 ---
 
@@ -50,17 +50,17 @@ openclaw onboard
 마법사는 다음 과정을 안내합니다:
 
 1. Feishu 앱 생성 및 자격 증명 수집
-2. OpenClaw 에 앱 자격 증명 설정
+2. OpenClaw 에 앱 자격 증명 구성
 3. Gateway(게이트웨이) 시작
 
-✅ **설정 완료 후**, Gateway(게이트웨이) 상태를 확인합니다:
+✅ **구성 후**, Gateway 상태를 확인합니다:
 
 - `openclaw gateway status`
 - `openclaw logs --follow`
 
 ### 방법 2: CLI 설정
 
-초기 설치를 이미 완료했다면 CLI 를 통해 채널을 추가합니다:
+이미 초기 설치를 완료했다면 CLI 를 통해 채널을 추가합니다:
 
 ```bash
 openclaw channels add
@@ -68,7 +68,7 @@ openclaw channels add
 
 **Feishu** 를 선택한 다음 App ID 와 App Secret 을 입력합니다.
 
-✅ **설정 완료 후**, Gateway(게이트웨이)를 관리합니다:
+✅ **구성 후**, Gateway 를 관리합니다:
 
 - `openclaw gateway status`
 - `openclaw gateway restart`
@@ -80,15 +80,15 @@ openclaw channels add
 
 ### 1. Feishu Open Platform 열기
 
-[Feishu Open Platform](https://open.feishu.cn/app)을 방문하여 로그인합니다.
+[Feishu Open Platform](https://open.feishu.cn/app) 에 접속하여 로그인합니다.
 
-Lark (글로벌) 테넌트는 https://open.larksuite.com/app 을 사용하고 Feishu 설정에서 `domain: "lark"` 를 설정해야 합니다.
+Lark (글로벌) 테넌트는 [https://open.larksuite.com/app](https://open.larksuite.com/app) 을 사용하고 Feishu 설정에서 `domain: "lark"` 를 설정해야 합니다.
 
 ### 2. 앱 생성
 
-1. **Create enterprise app** 클릭
-2. 앱 이름과 설명 입력
-3. 앱 아이콘 선택
+1. **Create enterprise app** 을 클릭합니다
+2. 앱 이름과 설명을 입력합니다
+3. 앱 아이콘을 선택합니다
 
 ![Create enterprise app](../images/feishu-step2-create-app.png)
 
@@ -99,11 +99,11 @@ Lark (글로벌) 테넌트는 https://open.larksuite.com/app 을 사용하고 Fe
 - **App ID** (형식: `cli_xxx`)
 - **App Secret**
 
-❗ **중요:** App Secret 은 반드시 비공개로 유지해야 합니다.
+❗ **중요:** App Secret 은 반드시 비공개로 유지하십시오.
 
 ![Get credentials](../images/feishu-step3-credentials.png)
 
-### 4. 권한 설정
+### 4. 권한 구성
 
 **Permissions** 에서 **Batch import** 를 클릭하고 다음을 붙여넣습니다:
 
@@ -139,38 +139,38 @@ Lark (글로벌) 테넌트는 https://open.larksuite.com/app 을 사용하고 Fe
 
 **App Capability** > **Bot** 에서:
 
-1. 봇 기능 활성화
-2. 봇 이름 설정
+1. 봇 기능을 활성화합니다
+2. 봇 이름을 설정합니다
 
 ![Enable bot capability](../images/feishu-step5-bot-capability.png)
 
-### 6. 이벤트 구독 설정
+### 6. 이벤트 구독 구성
 
-⚠️ **중요:** 이벤트 구독을 설정하기 전에 다음을 확인합니다:
+⚠️ **중요:** 이벤트 구독을 설정하기 전에 다음을 확인하십시오:
 
-1. Feishu 용으로 `openclaw channels add` 를 이미 실행했는지
-2. Gateway(게이트웨이)가 실행 중인지 (`openclaw gateway status`)
+1. Feishu 용 `openclaw channels add` 를 이미 실행했습니다
+2. Gateway 가 실행 중입니다 (`openclaw gateway status`)
 
 **Event Subscription** 에서:
 
-1. **Use long connection to receive events** (WebSocket) 선택
-2. 이벤트 추가: `im.message.receive_v1`
+1. **Use long connection to receive events** (WebSocket) 를 선택합니다
+2. 이벤트를 추가합니다: `im.message.receive_v1`
 
-⚠️ Gateway(게이트웨이)가 실행 중이 아니면 장기 연결 설정이 저장되지 않을 수 있습니다.
+⚠️ Gateway 가 실행 중이 아니면 long-connection 설정이 저장되지 않을 수 있습니다.
 
 ![Configure event subscription](../images/feishu-step6-event-subscription.png)
 
 ### 7. 앱 게시
 
-1. **Version Management & Release** 에서 버전 생성
-2. 검토 제출 및 게시
-3. 관리자 승인 대기 (엔터프라이즈 앱은 보통 자동 승인)
+1. **Version Management & Release** 에서 버전을 생성합니다
+2. 심사를 제출하고 게시합니다
+3. 관리자 승인을 기다립니다 (엔터프라이즈 앱은 보통 자동 승인됩니다)
 
 ---
 
-## 2단계: OpenClaw 설정
+## 2단계: OpenClaw 구성
 
-### 마법사로 설정 (권장)
+### 마법사로 구성 (권장)
 
 ```bash
 openclaw channels add
@@ -178,7 +178,7 @@ openclaw channels add
 
 **Feishu** 를 선택하고 App ID 와 App Secret 을 붙여넣습니다.
 
-### 설정 파일로 구성
+### 구성 파일로 설정
 
 `~/.openclaw/openclaw.json` 를 편집합니다:
 
@@ -209,7 +209,7 @@ export FEISHU_APP_SECRET="xxx"
 
 ### Lark (글로벌) 도메인
 
-테넌트가 Lark (국제) 인 경우 도메인을 `lark` (또는 전체 도메인 문자열)로 설정합니다. 이는 `channels.feishu.domain` 또는 계정별 (`channels.feishu.accounts.<id>.domain`) 로 설정할 수 있습니다.
+테넌트가 Lark (국제) 인 경우 도메인을 `lark` (또는 전체 도메인 문자열) 로 설정하십시오. 이는 `channels.feishu.domain` 또는 계정별 (`channels.feishu.accounts.<id>.domain`) 로 설정할 수 있습니다.
 
 ```json5
 {
@@ -229,9 +229,9 @@ export FEISHU_APP_SECRET="xxx"
 
 ---
 
-## 3단계: 시작 + 테스트
+## 3단계: 시작 및 테스트
 
-### 1. Gateway(게이트웨이) 시작
+### 1. Gateway 시작
 
 ```bash
 openclaw gateway
@@ -239,7 +239,7 @@ openclaw gateway
 
 ### 2. 테스트 메시지 전송
 
-Feishu 에서 봇을 찾아 메시지를 보냅니다.
+Feishu 에서 봇을 찾아 메시지를 전송합니다.
 
 ### 3. 페어링 승인
 
@@ -255,9 +255,9 @@ openclaw pairing approve feishu <CODE>
 
 ## 개요
 
-- **Feishu 봇 채널**: Gateway(게이트웨이)에서 관리되는 Feishu 봇
-- **결정적 라우팅**: 응답은 항상 Feishu 로 반환됨
-- **세션 격리**: 다이렉트 메시지는 메인 세션을 공유하고, 그룹은 격리됨
+- **Feishu 봇 채널**: Gateway 가 관리하는 Feishu 봇
+- **결정적 라우팅**: 응답은 항상 Feishu 로 반환됩니다
+- **세션 격리**: 다이렉트 메시지 는 메인 세션을 공유하며, 그룹은 서로 격리됩니다
 - **WebSocket 연결**: Feishu SDK 를 통한 장기 연결, 공개 URL 불필요
 
 ---
@@ -268,11 +268,13 @@ openclaw pairing approve feishu <CODE>
 
 - **기본값**: `dmPolicy: "pairing"` (알 수 없는 사용자는 페어링 코드를 받음)
 - **페어링 승인**:
+
   ```bash
   openclaw pairing list feishu
   openclaw pairing approve feishu <CODE>
   ```
-- **허용 목록 모드**: 허용된 Open ID 를 포함하도록 `channels.feishu.allowFrom` 설정
+
+- **허용 목록 모드**: 허용된 Open ID 를 사용하여 `channels.feishu.allowFrom` 를 설정합니다
 
 ### 그룹 채팅
 
@@ -289,7 +291,7 @@ openclaw pairing approve feishu <CODE>
 
 ---
 
-## 그룹 설정 예시
+## 그룹 구성 예시
 
 ### 모든 그룹 허용, @멘션 필요 (기본값)
 
@@ -341,8 +343,8 @@ openclaw pairing approve feishu <CODE>
 
 **방법 1 (권장)**
 
-1. Gateway(게이트웨이)를 시작하고 그룹에서 봇을 @멘션
-2. `openclaw logs --follow` 를 실행하고 `chat_id` 를 확인
+1. Gateway 를 시작하고 그룹에서 봇을 @멘션합니다
+2. `openclaw logs --follow` 를 실행하고 `chat_id` 를 찾습니다
 
 **방법 2**
 
@@ -350,12 +352,12 @@ Feishu API 디버거를 사용하여 그룹 채팅 목록을 조회합니다.
 
 ### 사용자 ID (open_id)
 
-사용자 ID 는 `ou_xxx` 와 같은 형태입니다.
+사용자 ID 는 `ou_xxx` 과 같은 형태입니다.
 
 **방법 1 (권장)**
 
-1. Gateway(게이트웨이)를 시작하고 봇에 다이렉트 메시지를 보냅니다
-2. `openclaw logs --follow` 를 실행하고 `open_id` 를 확인
+1. Gateway 를 시작하고 봇에게 다이렉트 메시지 를 보냅니다
+2. `openclaw logs --follow` 를 실행하고 `open_id` 를 찾습니다
 
 **방법 2**
 
@@ -369,23 +371,23 @@ openclaw pairing list feishu
 
 ## 공통 명령어
 
-| 명령어    | 설명           |
+| Command   | Description    |
 | --------- | -------------- |
 | `/status` | 봇 상태 표시   |
 | `/reset`  | 세션 초기화    |
 | `/model`  | 모델 표시/전환 |
 
-> 참고: Feishu 는 아직 네이티브 명령 메뉴를 지원하지 않으므로, 명령어는 텍스트로 전송해야 합니다.
+> 참고: Feishu 는 아직 네이티브 명령 메뉴를 지원하지 않으므로, 명령은 텍스트로 전송해야 합니다.
 
-## Gateway(게이트웨이) 관리 명령어
+## Gateway 관리 명령어
 
-| 명령어                     | 설명                                 |
-| -------------------------- | ------------------------------------ |
-| `openclaw gateway status`  | Gateway(게이트웨이) 상태 표시        |
-| `openclaw gateway install` | Gateway(게이트웨이) 서비스 설치/시작 |
-| `openclaw gateway stop`    | Gateway(게이트웨이) 서비스 중지      |
-| `openclaw gateway restart` | Gateway(게이트웨이) 서비스 재시작    |
-| `openclaw logs --follow`   | Gateway(게이트웨이) 로그 확인        |
+| Command                    | Description              |
+| -------------------------- | ------------------------ |
+| `openclaw gateway status`  | Gateway 상태 표시        |
+| `openclaw gateway install` | Gateway 서비스 설치/시작 |
+| `openclaw gateway stop`    | Gateway 서비스 중지      |
+| `openclaw gateway restart` | Gateway 서비스 재시작    |
+| `openclaw logs --follow`   | Gateway 로그 실시간 조회 |
 
 ---
 
@@ -393,37 +395,37 @@ openclaw pairing list feishu
 
 ### 그룹 채팅에서 봇이 응답하지 않는 경우
 
-1. 봇이 그룹에 추가되어 있는지 확인
-2. 봇을 @멘션했는지 확인 (기본 동작)
-3. `groupPolicy` 이 `"disabled"` 로 설정되어 있지 않은지 확인
-4. 로그 확인: `openclaw logs --follow`
+1. 봇이 그룹에 추가되어 있는지 확인합니다
+2. 봇을 @멘션했는지 확인합니다 (기본 동작)
+3. `groupPolicy` 가 `"disabled"` 로 설정되어 있지 않은지 확인합니다
+4. 로그를 확인합니다: `openclaw logs --follow`
 
 ### 봇이 메시지를 수신하지 못하는 경우
 
-1. 앱이 게시되고 승인되었는지 확인
-2. 이벤트 구독에 `im.message.receive_v1` 이 포함되어 있는지 확인
-3. **장기 연결** 이 활성화되어 있는지 확인
-4. 앱 권한이 모두 설정되었는지 확인
-5. Gateway(게이트웨이)가 실행 중인지 확인: `openclaw gateway status`
-6. 로그 확인: `openclaw logs --follow`
+1. 앱이 게시 및 승인되었는지 확인합니다
+2. 이벤트 구독에 `im.message.receive_v1` 이 포함되어 있는지 확인합니다
+3. **long connection** 이 활성화되어 있는지 확인합니다
+4. 앱 권한이 완전한지 확인합니다
+5. Gateway 가 실행 중인지 확인합니다: `openclaw gateway status`
+6. 로그를 확인합니다: `openclaw logs --follow`
 
 ### App Secret 유출
 
-1. Feishu Open Platform 에서 App Secret 재설정
-2. 설정에서 App Secret 업데이트
-3. Gateway(게이트웨이) 재시작
+1. Feishu Open Platform 에서 App Secret 을 재설정합니다
+2. 구성에서 App Secret 을 업데이트합니다
+3. Gateway 를 재시작합니다
 
 ### 메시지 전송 실패
 
-1. 앱에 `im:message:send_as_bot` 권한이 있는지 확인
-2. 앱이 게시되었는지 확인
-3. 상세 오류는 로그에서 확인
+1. 앱에 `im:message:send_as_bot` 권한이 있는지 확인합니다
+2. 앱이 게시되었는지 확인합니다
+3. 상세 오류를 위해 로그를 확인합니다
 
 ---
 
-## 고급 설정
+## 고급 구성
 
-### 다중 계정
+### 여러 계정
 
 ```json5
 {
@@ -449,12 +451,12 @@ openclaw pairing list feishu
 
 ### 메시지 제한
 
-- `textChunkLimit`: 발신 텍스트 청크 크기 (기본값: 2000 자)
+- `textChunkLimit`: 발신 텍스트 청크 크기 (기본값: 2000자)
 - `mediaMaxMb`: 미디어 업로드/다운로드 제한 (기본값: 30MB)
 
 ### 스트리밍
 
-Feishu 는 인터랙티브 카드로 스트리밍 응답을 지원합니다. 활성화하면 봇이 텍스트를 생성하는 동안 카드를 업데이트합니다.
+Feishu 는 인터랙티브 카드를 통한 스트리밍 응답을 지원합니다. 활성화하면 봇이 텍스트를 생성하는 동안 카드를 업데이트합니다.
 
 ```json5
 {
@@ -467,11 +469,11 @@ Feishu 는 인터랙티브 카드로 스트리밍 응답을 지원합니다. 활
 }
 ```
 
-전체 응답을 기다린 후 전송하려면 `streaming: false` 를 설정합니다.
+전체 응답을 받은 후 전송하려면 `streaming: false` 를 설정합니다.
 
 ### 멀티 에이전트 라우팅
 
-`bindings` 를 사용하여 Feishu 다이렉트 메시지 또는 그룹을 서로 다른 에이전트로 라우팅할 수 있습니다.
+`bindings` 를 사용하여 Feishu 다이렉트 메시지 또는 그룹을 서로 다른 에이전트로 라우팅합니다.
 
 ```json5
 {
@@ -522,28 +524,28 @@ Feishu 는 인터랙티브 카드로 스트리밍 응답을 지원합니다. 활
 - `match.peer.kind`: `"dm"` 또는 `"group"`
 - `match.peer.id`: 사용자 Open ID (`ou_xxx`) 또는 그룹 ID (`oc_xxx`)
 
-조회 팁은 [그룹/사용자 ID 가져오기](#get-groupuser-ids)를 참고하십시오.
+조회 팁은 [그룹/사용자 ID 가져오기](#get-groupuser-ids) 를 참고하십시오.
 
 ---
 
-## 설정 참조
+## 구성 참조
 
-전체 설정: [Gateway configuration](/gateway/configuration)
+전체 구성: [Gateway configuration](/gateway/configuration)
 
 주요 옵션:
 
-| 설정                                              | 설명                                     | 기본값    |
+| Setting                                           | Description                              | Default   |
 | ------------------------------------------------- | ---------------------------------------- | --------- |
 | `channels.feishu.enabled`                         | 채널 활성화/비활성화                     | `true`    |
 | `channels.feishu.domain`                          | API 도메인 (`feishu` 또는 `lark`)        | `feishu`  |
 | `channels.feishu.accounts.<id>.appId`             | App ID                                   | -         |
 | `channels.feishu.accounts.<id>.appSecret`         | App Secret                               | -         |
-| `channels.feishu.accounts.<id>.domain`            | 계정별 API 도메인 오버라이드             | `feishu`  |
+| `channels.feishu.accounts.<id>.domain`            | 계정별 API 도메인 재정의                 | `feishu`  |
 | `channels.feishu.dmPolicy`                        | 다이렉트 메시지 정책                     | `pairing` |
 | `channels.feishu.allowFrom`                       | 다이렉트 메시지 허용 목록 (open_id 목록) | -         |
 | `channels.feishu.groupPolicy`                     | 그룹 정책                                | `open`    |
 | `channels.feishu.groupAllowFrom`                  | 그룹 허용 목록                           | -         |
-| `channels.feishu.groups.<chat_id>.requireMention` | @멘션 필요 여부                          | `true`    |
+| `channels.feishu.groups.<chat_id>.requireMention` | @멘션 필요                               | `true`    |
 | `channels.feishu.groups.<chat_id>.enabled`        | 그룹 활성화                              | `true`    |
 | `channels.feishu.textChunkLimit`                  | 메시지 청크 크기                         | `2000`    |
 | `channels.feishu.mediaMaxMb`                      | 미디어 크기 제한                         | `30`      |
@@ -554,11 +556,11 @@ Feishu 는 인터랙티브 카드로 스트리밍 응답을 지원합니다. 활
 
 ## dmPolicy 참조
 
-| 값            | 동작                                                           |
+| Value         | Behavior                                                       |
 | ------------- | -------------------------------------------------------------- |
 | `"pairing"`   | **기본값.** 알 수 없는 사용자는 페어링 코드를 받으며 승인 필요 |
-| `"allowlist"` | `allowFrom` 에 포함된 사용자만 채팅 가능                       |
-| `"open"`      | 모든 사용자 허용 (`"*"` 가 allowFrom 에 필요)                  |
+| `"allowlist"` | `allowFrom` 에 있는 사용자만 대화 가능                         |
+| `"open"`      | 모든 사용자 허용 (`"*"` 이 allowFrom 에 필요)                  |
 | `"disabled"`  | 다이렉트 메시지 비활성화                                       |
 
 ---

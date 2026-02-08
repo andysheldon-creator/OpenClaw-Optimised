@@ -1,40 +1,40 @@
 ---
-summary: "ヘッドレスノードホスト向けの `openclaw node` の CLI リファレンス"
+summary: "「openclaw node」（ヘッドレス ノード ホスト）の CLI リファレンス"
 read_when:
-  - ヘッドレスノードホストを実行する場合
+  - ヘッドレス ノード ホストを実行する場合
   - system.run のために非 macOS ノードをペアリングする場合
 title: "node"
 x-i18n:
   source_path: cli/node.md
   source_hash: a8b1a57712663e22
   provider: openai
-  model: gpt-5.2-pro
+  model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-06T05:00:45Z
+  generated_at: 2026-02-08T09:21:13Z
 ---
 
 # `openclaw node`
 
 Gateway WebSocket に接続し、このマシン上で
-`system.run` / `system.which` を公開する **ヘッドレスノードホスト** を実行します。
+`system.run` / `system.which` を公開する **ヘッドレス ノード ホスト** を実行します。
 
-## なぜノードホストを使うのですか？
+## なぜノード ホストを使用するのですか？
 
-フル機能の macOS コンパニオンアプリをそこにインストールせずに、ネットワーク内の **他のマシンでコマンドを実行** したい場合にノードホストを使用します。
+ネットワーク内の **別のマシンでコマンドを実行** させたいが、そこに完全な macOS コンパニオンアプリをインストールしたくない場合に、ノード ホストを使用します。
 
 一般的なユースケース:
 
-- リモートの Linux/Windows ボックス（ビルドサーバー、ラボマシン、NAS）でコマンドを実行する。
-- exec を Gateway（ゲートウェイ）上で **サンドボックス化された** 状態に保ちつつ、承認済みの実行を他のホストに委任する。
+- リモートの Linux / Windows マシン（ビルドサーバー、ラボ用マシン、NAS）でコマンドを実行する。
+- exec をゲートウェイ上で **サンドボックス化** したまま、承認済みの実行を他のホストに委任する。
 - 自動化や CI ノード向けに、軽量でヘッドレスな実行ターゲットを提供する。
 
-実行は引き続き **exec 承認** と、ノードホスト上のエージェントごとの許可リストによって保護されるため、コマンドアクセスを範囲指定して明示的に保てます。
+実行は引き続き **実行承認** と、ノード ホスト上のエージェントごとの許可リストによって保護されるため、コマンドアクセスを限定的かつ明示的に保てます。
 
-## ブラウザープロキシ（ゼロ設定）
+## ブラウザ プロキシ（ゼロ設定）
 
-ノード上で `browser.enabled` が無効化されていない場合、ノードホストは自動的にブラウザープロキシをアドバタイズします。これにより、追加設定なしで、そのノード上のブラウザー自動化をエージェントが使用できます。
+ノード上で `browser.enabled` が無効化されていない場合、ノード ホストは自動的にブラウザ プロキシをアドバタイズします。これにより、追加の設定なしで、そのノード上のブラウザ自動化をエージェントから利用できます。
 
-必要に応じてノード側で無効化してください:
+必要に応じてノード上で無効化してください:
 
 ```json5
 {
@@ -58,12 +58,12 @@ openclaw node run --host <gateway-host> --port 18789
 - `--port <port>`: Gateway WebSocket ポート（デフォルト: `18789`）
 - `--tls`: ゲートウェイ接続に TLS を使用する
 - `--tls-fingerprint <sha256>`: 期待される TLS 証明書フィンガープリント（sha256）
-- `--node-id <id>`: ノード id を上書きする（ペアリングトークンをクリアします）
+- `--node-id <id>`: ノード ID を上書きする（ペアリング トークンをクリア）
 - `--display-name <name>`: ノードの表示名を上書きする
 
 ## サービス（バックグラウンド）
 
-ヘッドレスノードホストをユーザーサービスとしてインストールします。
+ヘッドレス ノード ホストをユーザー サービスとしてインストールします。
 
 ```bash
 openclaw node install --host <gateway-host> --port 18789
@@ -75,12 +75,12 @@ openclaw node install --host <gateway-host> --port 18789
 - `--port <port>`: Gateway WebSocket ポート（デフォルト: `18789`）
 - `--tls`: ゲートウェイ接続に TLS を使用する
 - `--tls-fingerprint <sha256>`: 期待される TLS 証明書フィンガープリント（sha256）
-- `--node-id <id>`: ノード id を上書きする（ペアリングトークンをクリアします）
+- `--node-id <id>`: ノード ID を上書きする（ペアリング トークンをクリア）
 - `--display-name <name>`: ノードの表示名を上書きする
 - `--runtime <runtime>`: サービスのランタイム（`node` または `bun`）
-- `--force`: すでにインストール済みの場合は再インストール/上書きする
+- `--force`: 既にインストールされている場合に再インストール／上書きする
 
-サービスを管理します:
+サービスの管理:
 
 ```bash
 openclaw node status
@@ -89,26 +89,27 @@ openclaw node restart
 openclaw node uninstall
 ```
 
-サービスなしのフォアグラウンドノードホストには `openclaw node run` を使用します。
+フォアグラウンドのノード ホスト（サービスなし）には `openclaw node run` を使用してください。
 
-サービスコマンドは、機械可読な出力のために `--json` を受け付けます。
+サービス コマンドは、機械可読な出力のために `--json` を受け付けます。
 
 ## ペアリング
 
-最初の接続により、Gateway（ゲートウェイ）上に保留中のノードペアリクエストが作成されます。次の方法で承認してください:
+最初の接続時に、Gateway 上で保留中のノード ペア要求が作成されます。
+次の方法で承認してください:
 
 ```bash
 openclaw nodes pending
 openclaw nodes approve <requestId>
 ```
 
-ノードホストは、ノード id、トークン、表示名、ゲートウェイ接続情報を
+ノード ホストは、ノード ID、トークン、表示名、およびゲートウェイ接続情報を
 `~/.openclaw/node.json` に保存します。
 
-## Exec 承認
+## 実行承認
 
-`system.run` はローカルの exec 承認によって制御されます:
+`system.run` は、ローカルの実行承認によって制御されます:
 
 - `~/.openclaw/exec-approvals.json`
-- [Exec 承認](/tools/exec-approvals)
-- `openclaw approvals --node <id|name|ip>`（Gateway（ゲートウェイ）から編集します）
+- [実行承認](/tools/exec-approvals)
+- `openclaw approvals --node <id|name|ip>`（Gateway から編集）

@@ -2,24 +2,24 @@
 summary: "Ollama（ローカル LLM ランタイム）で OpenClaw を実行します"
 read_when:
   - Ollama を介してローカルモデルで OpenClaw を実行したい場合
-  - Ollama のセットアップと設定ガイダンスが必要な場合
+  - Ollama のセットアップおよび設定ガイダンスが必要な場合
 title: "Ollama"
 x-i18n:
   source_path: providers/ollama.md
-  source_hash: 2992dd0a456d19c3
+  source_hash: 61f88017027beb20
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:34:47Z
+  generated_at: 2026-02-08T09:23:05Z
 ---
 
 # Ollama
 
-Ollama は、オープンソースモデルを手元のマシンで簡単に実行できるローカル LLM ランタイムです。OpenClaw は Ollama の OpenAI 互換 API と統合されており、`OLLAMA_API_KEY`（または認証プロファイル）を有効にし、明示的な `models.providers.ollama` エントリを定義しない場合に、**ツール対応モデルを自動検出**できます。
+Ollama は、オープンソースモデルを自身のマシンで簡単に実行できるローカル LLM ランタイムです。OpenClaw は Ollama の OpenAI 互換 API と統合されており、`OLLAMA_API_KEY`（または認証プロファイル）を指定してオプトインし、明示的な `models.providers.ollama` エントリーを定義しない場合、**ツール対応モデルを自動検出**できます。
 
 ## クイックスタート
 
-1. Ollama をインストールします: https://ollama.ai
+1. Ollama をインストールします: [https://ollama.ai](https://ollama.ai)
 
 2. モデルを取得します:
 
@@ -57,25 +57,25 @@ openclaw config set models.providers.ollama.apiKey "ollama-local"
 
 ## モデル検出（暗黙的プロバイダー）
 
-`OLLAMA_API_KEY`（または認証プロファイル）を設定し、**`models.providers.ollama` を定義しない**場合、OpenClaw は `http://127.0.0.1:11434` にあるローカルの Ollama インスタンスからモデルを検出します。
+`OLLAMA_API_KEY`（または認証プロファイル）を設定し、`models.providers.ollama` を**定義しない**場合、OpenClaw は `http://127.0.0.1:11434` にあるローカル Ollama インスタンスからモデルを検出します。
 
-- `/api/tags` と `/api/show` をクエリします
+- `/api/tags` と `/api/show` にクエリします
 - `tools` 機能を報告するモデルのみを保持します
-- モデルが `thinking` を報告した場合に `reasoning` をマークします
+- モデルが `thinking` を報告した場合、`reasoning` をマークします
 - 利用可能な場合、`model_info["<arch>.context_length"]` から `contextWindow` を読み取ります
-- `maxTokens` をコンテキストウィンドウの 10 倍に設定します
+- コンテキストウィンドウの 10× を `maxTokens` に設定します
 - すべてのコストを `0` に設定します
 
-これにより、手動でモデルエントリを作成することなく、Ollama の機能と整合したカタログを維持できます。
+これにより、Ollama の機能に合わせてカタログを整合させつつ、手動のモデルエントリーを回避できます。
 
-利用可能なモデルを確認するには、次を実行します。
+利用可能なモデルを確認するには次を実行します:
 
 ```bash
 ollama list
 openclaw models list
 ```
 
-新しいモデルを追加するには、Ollama で取得するだけです。
+新しいモデルを追加するには、Ollama で取得するだけです:
 
 ```bash
 ollama pull mistral
@@ -83,13 +83,13 @@ ollama pull mistral
 
 新しいモデルは自動的に検出され、使用可能になります。
 
-`models.providers.ollama` を明示的に設定した場合、自動検出はスキップされ、モデルを手動で定義する必要があります（以下を参照）。
+`models.providers.ollama` を明示的に設定した場合、自動検出はスキップされ、モデルを手動で定義する必要があります（以下参照）。
 
 ## 設定
 
 ### 基本セットアップ（暗黙的検出）
 
-Ollama を有効化する最も簡単な方法は、環境変数を使用することです。
+Ollama を有効化する最も簡単な方法は、環境変数を使用することです:
 
 ```bash
 export OLLAMA_API_KEY="ollama-local"
@@ -97,9 +97,9 @@ export OLLAMA_API_KEY="ollama-local"
 
 ### 明示的セットアップ（手動モデル）
 
-次の場合は明示的な設定を使用してください。
+次の場合は明示的な設定を使用します:
 
-- Ollama が別のホストやポートで実行されている場合。
+- Ollama が別のホスト／ポートで実行されている場合。
 - 特定のコンテキストウィンドウやモデルリストを強制したい場合。
 - ツールサポートを報告しないモデルを含めたい場合。
 
@@ -129,11 +129,11 @@ export OLLAMA_API_KEY="ollama-local"
 }
 ```
 
-`OLLAMA_API_KEY` が設定されている場合、プロバイダーエントリ内の `apiKey` を省略でき、OpenClaw が可用性チェック用に自動補完します。
+`OLLAMA_API_KEY` が設定されている場合、プロバイダーエントリーで `apiKey` を省略でき、OpenClaw が可用性チェック用に自動補完します。
 
 ### カスタムベース URL（明示的設定）
 
-Ollama が異なるホストまたはポートで実行されている場合（明示的設定では自動検出が無効になるため、モデルを手動で定義してください）。
+Ollama が異なるホストまたはポートで実行されている場合（明示的設定では自動検出が無効になるため、モデルを手動で定義してください）:
 
 ```json5
 {
@@ -150,7 +150,7 @@ Ollama が異なるホストまたはポートで実行されている場合（�
 
 ### モデル選択
 
-設定が完了すると、すべての Ollama モデルが利用可能になります。
+設定後、すべての Ollama モデルが利用可能になります:
 
 ```json5
 {
@@ -169,7 +169,7 @@ Ollama が異なるホストまたはポートで実行されている場合（�
 
 ### 推論モデル
 
-Ollama が `/api/show` 内で `thinking` を報告した場合、OpenClaw はそのモデルを推論対応としてマークします。
+Ollama が `/api/show` 内で `thinking` を報告した場合、OpenClaw はそのモデルを推論対応としてマークします:
 
 ```bash
 ollama pull deepseek-r1:32b
@@ -181,13 +181,13 @@ Ollama は無料でローカル実行されるため、すべてのモデルコ�
 
 ### ストリーミング設定
 
-Ollama のレスポンス形式に関する基盤 SDK の [既知の問題](https://github.com/badlogic/pi-mono/issues/1205) により、Ollama モデルでは **ストリーミングがデフォルトで無効** になっています。これにより、ツール対応モデル使用時のレスポンス破損を防止します。
+Ollama のレスポンス形式に関する基盤 SDK の [既知の問題](https://github.com/badlogic/pi-mono/issues/1205) により、**Ollama モデルではストリーミングはデフォルトで無効**になっています。これにより、ツール対応モデル使用時の破損したレスポンスを防止します。
 
-ストリーミングが無効な場合、レスポンスは一括（非ストリーミングモード）で配信され、コンテンツや推論の差分が混在して出力が乱れる問題を回避できます。
+ストリーミングが無効な場合、レスポンスは一括で配信され（非ストリーミングモード）、コンテンツ／推論のデルタが混在して出力が崩れる問題を回避できます。
 
-#### ストリーミングを再有効化（高度）
+#### ストリーミングの再有効化（高度）
 
-Ollama でストリーミングを再有効化したい場合（ツール対応モデルでは問題が発生する可能性があります）。
+Ollama でストリーミングを再有効化したい場合（ツール対応モデルで問題が発生する可能性があります）:
 
 ```json5
 {
@@ -203,9 +203,9 @@ Ollama でストリーミングを再有効化したい場合（ツール対応�
 }
 ```
 
-#### 他プロバイダーでストリーミングを無効化
+#### 他のプロバイダーでストリーミングを無効化
 
-必要に応じて、任意のプロバイダーでストリーミングを無効化することもできます。
+必要に応じて、任意のプロバイダーでストリーミングを無効化することもできます:
 
 ```json5
 {
@@ -223,19 +223,19 @@ Ollama でストリーミングを再有効化したい場合（ツール対応�
 
 ### コンテキストウィンドウ
 
-自動検出されたモデルでは、OpenClaw は利用可能な場合に Ollama が報告するコンテキストウィンドウを使用し、そうでない場合はデフォルトで `8192` を使用します。明示的なプロバイダー設定では、`contextWindow` と `maxTokens` を上書きできます。
+自動検出されたモデルについては、OpenClaw は利用可能な場合に Ollama が報告するコンテキストウィンドウを使用し、そうでない場合は `8192` を既定値として使用します。明示的なプロバイダー設定では、`contextWindow` および `maxTokens` を上書きできます。
 
 ## トラブルシューティング
 
 ### Ollama が検出されない
 
-Ollama が実行中であること、`OLLAMA_API_KEY`（または認証プロファイル）を設定していること、そして明示的な `models.providers.ollama` エントリを **定義していない** ことを確認してください。
+Ollama が実行中であること、`OLLAMA_API_KEY`（または認証プロファイル）を設定していること、そして明示的な `models.providers.ollama` エントリーを**定義していない**ことを確認してください。
 
 ```bash
 ollama serve
 ```
 
-また、API にアクセスできることを確認してください。
+また、API にアクセス可能であることを確認してください:
 
 ```bash
 curl http://localhost:11434/api/tags
@@ -243,12 +243,12 @@ curl http://localhost:11434/api/tags
 
 ### 利用可能なモデルがない
 
-OpenClaw はツールサポートを報告するモデルのみを自動検出します。モデルが一覧に表示されない場合は、次のいずれかを行ってください。
+OpenClaw は、ツールサポートを報告するモデルのみを自動検出します。モデルが一覧に表示されない場合は、次のいずれかを行ってください:
 
 - ツール対応モデルを取得する、または
-- `models.providers.ollama` でモデルを明示的に定義する。
+- `models.providers.ollama` にモデルを明示的に定義する。
 
-モデルを追加するには、次を実行します。
+モデルを追加するには:
 
 ```bash
 ollama list  # See what's installed
@@ -258,7 +258,7 @@ ollama pull llama3.3     # Or another model
 
 ### 接続が拒否される
 
-Ollama が正しいポートで実行されていることを確認してください。
+Ollama が正しいポートで実行されていることを確認してください:
 
 ```bash
 # Check if Ollama is running
@@ -270,15 +270,15 @@ ollama serve
 
 ### レスポンスの破損や出力内のツール名
 
-Ollama モデル使用時に、ツール名（`sessions_send`、`memory_get` など）を含む乱れたレスポンスや断片化したテキストが表示される場合、これはストリーミングレスポンスに関する上流 SDK の問題が原因です。最新の OpenClaw バージョンでは、Ollama モデルのストリーミングを無効化することで **デフォルトで修正** されています。
+Ollama モデル使用時に、`sessions_send`、`memory_get` のようなツール名を含む文字化けしたレスポンスや断片化されたテキストが表示される場合、これはストリーミングレスポンスに関する上流 SDK の問題が原因です。最新の OpenClaw バージョンでは、Ollama モデルのストリーミングを無効化することで**既定で修正**されています。
 
-手動でストリーミングを有効化していてこの問題が発生する場合は、次のいずれかを行ってください。
+ストリーミングを手動で有効化してこの問題が発生した場合は、次のいずれかを行ってください:
 
-1. Ollama モデルエントリから `streaming: true` 設定を削除する、または
-2. Ollama モデルに対して `streaming: false` を明示的に設定する（[ストリーミング設定](#streaming-configuration) を参照）
+1. Ollama のモデルエントリーから `streaming: true` 設定を削除する、または
+2. Ollama モデルに対して `streaming: false` を明示的に設定する（[ストリーミング設定](#ストリーミング-configuration) を参照）
 
 ## 関連項目
 
 - [Model Providers](/concepts/model-providers) - すべてのプロバイダーの概要
-- [Model Selection](/concepts/models) - モデルの選択方法
+- [Model Selection](/concepts/models) - モデルの選び方
 - [Configuration](/gateway/configuration) - 設定の完全なリファレンス

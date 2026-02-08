@@ -1,26 +1,26 @@
 ---
 summary: "Instale o OpenClaw e execute seu primeiro chat em minutos."
 read_when:
-  - Configuração inicial pela primeira vez do zero
-  - Voce quer o caminho mais rapido para um chat funcional
-title: "Primeiros Passos"
+  - Primeira configuração do zero
+  - Voce quer o caminho mais rápido para um chat funcional
+title: "Primeiros passos"
 x-i18n:
   source_path: start/getting-started.md
-  source_hash: 27aeeb3d18c49538
+  source_hash: 6eeb4d38a70f2ad9
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:57:26Z
+  generated_at: 2026-02-08T09:31:59Z
 ---
 
-# Primeiros Passos
+# Primeiros passos
 
-Objetivo: sair do zero para um primeiro chat funcional com configuração mínima.
+Objetivo: ir do zero até o primeiro chat funcional com configuração mínima.
 
 <Info>
 Chat mais rápido: abra a Control UI (nenhuma configuração de canal necessária). Execute `openclaw dashboard`
 e converse no navegador, ou abra `http://127.0.0.1:18789/` no
-<Tooltip headline="Gateway host" tip="A máquina que executa o serviço do gateway do OpenClaw.">host do gateway</Tooltip>.
+<Tooltip headline="Gateway host" tip="The machine running the OpenClaw gateway service.">host do Gateway</Tooltip>.
 Docs: [Dashboard](/web/dashboard) e [Control UI](/web/control-ui).
 </Info>
 
@@ -29,10 +29,10 @@ Docs: [Dashboard](/web/dashboard) e [Control UI](/web/control-ui).
 - Node 22 ou mais recente
 
 <Tip>
-Verifique sua versão do Node com `node --version` se não tiver certeza.
+Verifique sua versão do Node com `node --version` se tiver dúvidas.
 </Tip>
 
-## Inicio rapido (CLI)
+## Início rápido (CLI)
 
 <Steps>
   <Step title="Instalar o OpenClaw (recomendado)">
@@ -54,13 +54,13 @@ Verifique sua versão do Node com `node --version` se não tiver certeza.
     </Note>
 
   </Step>
-  <Step title="Executar o assistente de integracao inicial">
+  <Step title="Executar o assistente de integração inicial">
     ```bash
     openclaw onboard --install-daemon
     ```
 
     O assistente configura autenticação, configurações do gateway e canais opcionais.
-    Veja [Onboarding Wizard](/start/wizard) para mais detalhes.
+    Veja [Onboarding Wizard](/start/wizard) para detalhes.
 
   </Step>
   <Step title="Verificar o Gateway">
@@ -86,7 +86,7 @@ Se a Control UI carregar, seu Gateway está pronto para uso.
 
 <AccordionGroup>
   <Accordion title="Executar o Gateway em primeiro plano">
-    Útil para testes rápidos ou solucao de problemas.
+    Útil para testes rápidos ou solução de problemas.
 
     ```bash
     openclaw gateway --port 18789
@@ -107,10 +107,10 @@ Se a Control UI carregar, seu Gateway está pronto para uso.
 
 <Columns>
   <Card title="Onboarding Wizard (detalhes)" href="/start/wizard">
-    Referência completa do assistente CLI e opções avançadas.
+    Referência completa do assistente de CLI e opções avançadas.
   </Card>
-  <Card title="Integracao inicial do app macOS" href="/start/onboarding">
-    Fluxo de primeira execução para o app macOS.
+  <Card title="Integração inicial do app macOS" href="/start/onboarding">
+    Fluxo da primeira execução para o app macOS.
   </Card>
 </Columns>
 
@@ -122,6 +122,6 @@ Se a Control UI carregar, seu Gateway está pronto para uso.
 
 ## Próximos passos
 
-- Segurança e aprovações de Mensagens diretas: [Pareamento](/start/pairing)
-- Conectar mais canais: [Canais](/channels)
-- Fluxos avançados e execução a partir do código-fonte: [Configuração](/start/setup)
+- Segurança e aprovações de DM: [Pairing](/channels/pairing)
+- Conectar mais canais: [Channels](/channels)
+- Fluxos avançados e a partir do código-fonte: [Configuração](/start/setup)

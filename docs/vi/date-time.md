@@ -1,34 +1,34 @@
 ---
-summary: "Xu ly ngay va gio tren cac phong bi, prompt, cong cu va connector"
+summary: "Xử lý ngày và giờ trên các envelope, prompt, công cụ và connector"
 read_when:
-  - Ban dang thay doi cach hien thi dau thoi gian cho mo hinh hoac nguoi dung
-  - Ban dang debug dinh dang thoi gian trong tin nhan hoac dau ra system prompt
-title: "Ngay va Gio"
+  - Bạn đang thay đổi cách hiển thị dấu thời gian cho mô hình hoặc người dùng
+  - Bạn đang gỡ lỗi định dạng thời gian trong tin nhắn hoặc đầu ra system prompt
+title: "Ngày và Giờ"
 x-i18n:
   source_path: date-time.md
   source_hash: 753af5946a006215
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:05Z
+  generated_at: 2026-02-08T09:38:50Z
 ---
 
-# Ngay & Gio
+# Ngày & Giờ
 
-OpenClaw mac dinh su dung **thoi gian cuc bo cua may chu cho dau thoi gian van chuyen** va **chi su dung mui gio cua nguoi dung trong system prompt**.
-Dau thoi gian tu nha cung cap duoc giu nguyen de cac cong cu giu duoc ngu nghia ban dia cua chung (thoi gian hien tai co san qua `session_status`).
+OpenClaw mặc định sử dụng **thời gian cục bộ của máy chủ cho dấu thời gian vận chuyển** và **chỉ dùng múi giờ của người dùng trong system prompt**.
+Dấu thời gian từ nhà cung cấp được giữ nguyên để các công cụ giữ được ngữ nghĩa gốc của chúng (thời gian hiện tại có sẵn qua `session_status`).
 
-## Phong bi tin nhan (mac dinh la cuc bo)
+## Message envelope (mặc định là local)
 
-Tin nhan dau vao duoc boc trong mot phong bi co dau thoi gian (do chinh xac theo phut):
+Tin nhắn đến được bao bọc với một dấu thời gian (độ chính xác theo phút):
 
 ```
 [Provider ... 2026-01-05 16:26 PST] message text
 ```
 
-Dau thoi gian phong bi nay **mac dinh la thoi gian cuc bo cua may chu**, bat ke mui gio cua nha cung cap.
+Dấu thời gian của envelope này **mặc định là thời gian cục bộ của máy chủ**, bất kể múi giờ của nhà cung cấp.
 
-Ban co the ghi de hanh vi nay:
+Bạn có thể ghi đè hành vi này:
 
 ```json5
 {
@@ -42,56 +42,57 @@ Ban co the ghi de hanh vi nay:
 }
 ```
 
-- `envelopeTimezone: "utc"` su dung UTC.
-- `envelopeTimezone: "local"` su dung mui gio cua may chu.
-- `envelopeTimezone: "user"` su dung `agents.defaults.userTimezone` (neu khong co thi quay ve mui gio cua may chu).
-- Su dung mot mui gio IANA cu the (vi du: `"America/Chicago"`) cho mot vung co dinh.
-- `envelopeTimestamp: "off"` loai bo dau thoi gian tuyet doi khoi tieu de phong bi.
-- `envelopeElapsed: "off"` loai bo hau to thoi gian da troi qua (kieu `+2m`).
+- `envelopeTimezone: "utc"` sử dụng UTC.
+- `envelopeTimezone: "local"` sử dụng múi giờ của máy chủ.
+- `envelopeTimezone: "user"` sử dụng `agents.defaults.userTimezone` (dự phòng về múi giờ máy chủ).
+- Dùng múi giờ IANA cụ thể (ví dụ: `"America/Chicago"`) cho một vùng cố định.
+- `envelopeTimestamp: "off"` loại bỏ dấu thời gian tuyệt đối khỏi header của envelope.
+- `envelopeElapsed: "off"` loại bỏ hậu tố thời gian đã trôi qua (kiểu `+2m`).
 
-### Vi du
+### Ví dụ
 
-**Cuc bo (mac dinh):**
+**Local (mặc định):**
 
 ```
 [WhatsApp +1555 2026-01-18 00:19 PST] hello
 ```
 
-**Mui gio nguoi dung:**
+**Múi giờ người dùng:**
 
 ```
 [WhatsApp +1555 2026-01-18 00:19 CST] hello
 ```
 
-**Bat thoi gian da troi qua:**
+**Bật thời gian đã trôi qua:**
 
 ```
 [WhatsApp +1555 +30s 2026-01-18T05:19Z] follow-up
 ```
 
-## System prompt: Ngay & Gio Hien Tai
+## System prompt: Ngày & Giờ hiện tại
 
-Neu biet mui gio cua nguoi dung, system prompt se bao gom mot muc rieng
-**Current Date & Time** chi voi **mui gio** (khong co dong ho/dinh dang thoi gian)
-de giu on dinh cho viec cache prompt:
+Nếu biết múi giờ của người dùng, system prompt sẽ bao gồm một mục riêng
+**Ngày & Giờ hiện tại** chỉ với **múi giờ** (không có đồng hồ/định dạng giờ)
+để giữ cho việc cache prompt ổn định:
 
 ```
 Time zone: America/Chicago
 ```
 
-Khi tac tu can thoi gian hien tai, hay dung cong cu `session_status`; the trang thai
-se bao gom mot dong dau thoi gian.
+Khi tác tử cần thời gian hiện tại, hãy dùng công cụ `session_status`; thẻ trạng thái
+sẽ bao gồm một dòng dấu thời gian.
 
-## Dong su kien he thong (mac dinh la cuc bo)
+## Dòng sự kiện hệ thống (mặc định là local)
 
-Cac su kien he thong duoc xep hang va chen vao bo canh tac tu se duoc tien to boi dau thoi gian su dung
-cung lua chon mui gio nhu phong bi tin nhan (mac dinh: thoi gian cuc bo cua may chu).
+Các sự kiện hệ thống được xếp hàng và chèn vào ngữ cảnh của tác tử sẽ được
+tiền tố bằng một dấu thời gian, sử dụng cùng lựa chọn múi giờ như message envelope
+(mặc định: thời gian cục bộ của máy chủ).
 
 ```
 System: [2026-01-12 12:19:17 PST] Model switched.
 ```
 
-### Cau hinh mui gio + dinh dang cho nguoi dung
+### Cấu hình múi giờ + định dạng cho người dùng
 
 ```json5
 {
@@ -104,31 +105,32 @@ System: [2026-01-12 12:19:17 PST] Model switched.
 }
 ```
 
-- `userTimezone` thiet lap **mui gio cuc bo cua nguoi dung** cho bo canh prompt.
-- `timeFormat` dieu khien **hien thi 12h/24h** trong prompt. `auto` theo tuy chon cua he dieu hanh.
+- `userTimezone` đặt **múi giờ cục bộ của người dùng** cho ngữ cảnh prompt.
+- `timeFormat` kiểm soát **hiển thị 12h/24h** trong prompt. `auto` tuân theo tùy chọn của hệ điều hành.
 
-## Phat hien dinh dang thoi gian (tu dong)
+## Phát hiện định dạng thời gian (tự động)
 
-Khi `timeFormat: "auto"`, OpenClaw kiem tra tuy chon cua he dieu hanh (macOS/Windows)
-va quay ve dinh dang theo locale. Gia tri duoc phat hien se **duoc cache theo moi tien trinh**
-de tranh goi he thong lap lai.
+Khi `timeFormat: "auto"`, OpenClaw kiểm tra tùy chọn của hệ điều hành (macOS/Windows)
+và dự phòng sang định dạng theo locale. Giá trị được phát hiện sẽ được **cache theo từng process**
+để tránh các lời gọi hệ thống lặp lại.
 
-## Payload cong cu + connector (thoi gian nha cung cap thuan + truong chuan hoa)
+## Payload công cụ + connector (thời gian thô từ nhà cung cấp + trường chuẩn hóa)
 
-Cac cong cu theo kenh tra ve **dau thoi gian goc cua nha cung cap** va them cac truong chuan hoa de nhat quan:
+Các công cụ theo kênh trả về **dấu thời gian gốc của nhà cung cấp** và thêm các trường
+chuẩn hóa để đảm bảo tính nhất quán:
 
-- `timestampMs`: mili giay epoch (UTC)
-- `timestampUtc`: chuoi ISO 8601 UTC
+- `timestampMs`: mili giây epoch (UTC)
+- `timestampUtc`: chuỗi ISO 8601 UTC
 
-Cac truong goc cua nha cung cap duoc giu nguyen de khong mat mat du lieu.
+Các trường thô từ nhà cung cấp được giữ nguyên để không mất thông tin.
 
-- Slack: chuoi giong epoch tu API
-- Discord: dau thoi gian ISO UTC
-- Telegram/WhatsApp: dau thoi gian so/ISO dac thu nha cung cap
+- Slack: chuỗi dạng epoch từ API
+- Discord: dấu thời gian ISO UTC
+- Telegram/WhatsApp: dấu thời gian số hoặc ISO theo từng nhà cung cấp
 
-Neu ban can thoi gian cuc bo, hay chuyen doi o phia sau su dung mui gio da biet.
+Nếu bạn cần thời gian local, hãy chuyển đổi ở bước downstream bằng múi giờ đã biết.
 
-## Tai lieu lien quan
+## Tài liệu liên quan
 
 - [System Prompt](/concepts/system-prompt)
 - [Timezones](/concepts/timezone)

@@ -1,8 +1,8 @@
 ---
-summary: "Wie OpenClaw Apple-Gerätemodellkennungen für verständliche Namen in der macOS-App bereitstellt."
+summary: "Wie OpenClaw Apple-Gerätemodellkennungen für benutzerfreundliche Namen in der macOS-App bereitstellt."
 read_when:
-  - Beim Aktualisieren von Zuordnungen für Gerätemodellkennungen oder NOTICE-/Lizenzdateien
-  - Beim Ändern der Anzeige von Gerätenamen in der Instances-UI
+  - Aktualisieren der Zuordnungen von Gerätemodellkennungen oder der NOTICE-/Lizenzdateien
+  - Ändern der Darstellung von Gerätenamen in der Instances-UI
 title: "Gerätemodell-Datenbank"
 x-i18n:
   source_path: reference/device-models.md
@@ -10,24 +10,24 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:20Z
+  generated_at: 2026-02-08T09:37:12Z
 ---
 
-# Gerätemodell-Datenbank (verständliche Namen)
+# Gerätemodell-Datenbank (benutzerfreundliche Namen)
 
-Die macOS-Begleit-App zeigt in der **Instances**-UI verständliche Apple-Gerätemodellnamen an, indem Apple-Modellkennungen (z. B. `iPad16,6`, `Mac16,6`) auf für Menschen lesbare Namen abgebildet werden.
+Die macOS-Companion-App zeigt benutzerfreundliche Apple-Gerätemodellnamen in der **Instances**-UI an, indem sie Apple-Modellkennungen (z. B. `iPad16,6`, `Mac16,6`) auf menschenlesbare Namen abbildet.
 
-Die Zuordnung wird als JSON bereitgestellt unter:
+Die Zuordnung wird als JSON unter folgendem Pfad bereitgestellt:
 
 - `apps/macos/Sources/OpenClaw/Resources/DeviceModels/`
 
 ## Datenquelle
 
-Derzeit beziehen wir die Zuordnung aus dem MIT-lizenzierten Repository:
+Derzeit beziehen wir die Zuordnung aus dem unter der MIT-Lizenz stehenden Repository:
 
 - `kyle-seongwoo-jun/apple-device-identifiers`
 
-Um Builds deterministisch zu halten, sind die JSON-Dateien auf bestimmte Upstream-Commits fixiert (vermerkt in `apps/macos/Sources/OpenClaw/Resources/DeviceModels/NOTICE.md`).
+Um deterministische Builds zu gewährleisten, sind die JSON-Dateien auf bestimmte Upstream-Commits fixiert (vermerkt in `apps/macos/Sources/OpenClaw/Resources/DeviceModels/NOTICE.md`).
 
 ## Aktualisieren der Datenbank
 
@@ -46,8 +46,8 @@ curl -fsSL "https://raw.githubusercontent.com/kyle-seongwoo-jun/apple-device-ide
   -o apps/macos/Sources/OpenClaw/Resources/DeviceModels/mac-device-identifiers.json
 ```
 
-4. Stellen Sie sicher, dass `apps/macos/Sources/OpenClaw/Resources/DeviceModels/LICENSE.apple-device-identifiers.txt` weiterhin dem Upstream entspricht (ersetzen Sie sie, falls sich die Upstream-Lizenz ändert).
-5. Verifizieren Sie, dass die macOS-App fehlerfrei baut (keine Warnungen):
+4. Stellen Sie sicher, dass `apps/macos/Sources/OpenClaw/Resources/DeviceModels/LICENSE.apple-device-identifiers.txt` weiterhin dem Upstream entspricht (ersetzen Sie die Datei, falls sich die Upstream-Lizenz ändert).
+5. Verifizieren Sie, dass die macOS-App sauber baut (keine Warnungen):
 
 ```bash
 swift build --package-path apps/macos

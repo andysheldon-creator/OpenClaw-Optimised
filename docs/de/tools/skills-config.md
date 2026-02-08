@@ -10,7 +10,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:47Z
+  generated_at: 2026-02-08T09:37:37Z
 ---
 
 # Skills-Konfiguration
@@ -48,20 +48,20 @@ Die gesamte skillsbezogene Konfiguration befindet sich unter `skills` in `~/.ope
 ## Felder
 
 - `allowBundled`: optionale Allowlist nur für **gebündelte** Skills. Wenn gesetzt, sind nur
-  gebündelte Skills in der Liste zulässig (verwaltete/Workspace-Skills bleiben unberührt).
+  gebündelte Skills in der Liste zulässig (verwaltete/Workspace-Skills sind nicht betroffen).
 - `load.extraDirs`: zusätzliche Skill-Verzeichnisse, die gescannt werden (niedrigste Priorität).
 - `load.watch`: überwacht Skill-Ordner und aktualisiert den Skills-Snapshot (Standard: true).
-- `load.watchDebounceMs`: Entprellzeit für Skill-Watcher-Ereignisse in Millisekunden (Standard: 250).
-- `install.preferBrew`: bevorzugt Brew-Installer, sofern verfügbar (Standard: true).
-- `install.nodeManager`: Präferenz für den Node-Installer (`npm` | `pnpm` | `yarn` | `bun`, Standard: npm).
+- `load.watchDebounceMs`: Entprellung für Skill-Watcher-Ereignisse in Millisekunden (Standard: 250).
+- `install.preferBrew`: bevorzugt Brew-Installer, wenn verfügbar (Standard: true).
+- `install.nodeManager`: Node-Installer-Präferenz (`npm` | `pnpm` | `yarn` | `bun`, Standard: npm).
   Dies betrifft nur **Skill-Installationen**; die Gateway-Laufzeit sollte weiterhin Node sein
-  (Bun wird für WhatsApp/Telegram nicht empfohlen).
+  (Bun nicht empfohlen für WhatsApp/Telegram).
 - `entries.<skillKey>`: skill-spezifische Überschreibungen.
 
 Skill-spezifische Felder:
 
-- `enabled`: setzen Sie `false`, um einen Skill zu deaktivieren, selbst wenn er gebündelt/installiert ist.
-- `env`: Umgebungsvariablen, die für den Agent-Lauf injiziert werden (nur wenn sie nicht bereits gesetzt sind).
+- `enabled`: setzen Sie `false`, um einen Skill zu deaktivieren, auch wenn er gebündelt/installiert ist.
+- `env`: Umgebungsvariablen, die für den Agent-Lauf injiziert werden (nur wenn sie noch nicht gesetzt sind).
 - `apiKey`: optionale Vereinfachung für Skills, die eine primäre Umgebungsvariable deklarieren.
 
 ## Hinweise
@@ -70,9 +70,9 @@ Skill-spezifische Felder:
   `metadata.openclaw.skillKey` definiert, verwenden Sie stattdessen diesen Schlüssel.
 - Änderungen an Skills werden beim nächsten Agent-Zug übernommen, wenn der Watcher aktiviert ist.
 
-### In einer Sandbox ausgeführte Skills + Umgebungsvariablen
+### Sandboxed Skills + Umgebungsvariablen
 
-Wenn eine Sitzung **in einer Sandbox** ausgeführt wird, laufen Skill-Prozesse in Docker. Die Sandbox
+Wenn eine Sitzung **sandboxed** ist, laufen Skill-Prozesse innerhalb von Docker. Die Sandbox
 übernimmt **nicht** die `process.env` des Hosts.
 
 Verwenden Sie eine der folgenden Optionen:

@@ -1,67 +1,68 @@
 ---
-summary: "Cua so ngu canh + compaction: cach OpenClaw giu cac phien nam trong gioi han cua mo hinh"
+summary: "Cửa sổ ngữ cảnh + nén: cách OpenClaw giữ các phiên trong giới hạn của mô hình"
 read_when:
-  - "Ban muon hieu ve auto-compaction va /compact"
-  - "Ban dang debug cac phien dai cham gioi han ngu canh"
-title: "Compaction"
+  - Bạn muốn hiểu về tự động nén và /compact
+  - Bạn đang gỡ lỗi các phiên dài chạm giới hạn ngữ cảnh
+title: "Nén"
 x-i18n:
   source_path: concepts/compaction.md
   source_hash: e1d6791f2902044b
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:44Z
+  generated_at: 2026-02-08T09:38:31Z
 ---
 
-# Cua So Ngu Canh & Compaction
+# Cửa sổ ngữ cảnh & Nén
 
-Moi mo hinh deu co **cua so ngu canh** (so token toi da no co the nhin thay). Cac cuoc tro chuyen chay lau se tich luy thong diep va ket qua cong cu; khi cua so bi chat, OpenClaw **compacts** lich su cu hon de nam trong gioi han.
+Mỗi mô hình đều có **cửa sổ ngữ cảnh** (số token tối đa mà nó có thể thấy). Các cuộc trò chuyện chạy lâu sẽ tích lũy tin nhắn và kết quả công cụ; khi cửa sổ trở nên chật chội, OpenClaw sẽ **nén** lịch sử cũ để giữ trong giới hạn.
 
-## Compaction la gi
+## Nén là gì
 
-Compaction **tom tat cuoc hoi thoai cu hon** thanh mot muc tom tat gon va giu nguyen cac thong diep gan day. Ban tom tat duoc luu trong lich su phien, vi vay cac yeu cau sau se su dung:
+Nén **tóm tắt các đoạn hội thoại cũ hơn** thành một mục tóm tắt gọn và giữ nguyên các tin nhắn gần đây. Bản tóm tắt được lưu trong lịch sử phiên, vì vậy các yêu cầu tiếp theo sẽ sử dụng:
 
-- Ban tom tat compaction
-- Cac thong diep gan day sau diem compaction
+- Bản tóm tắt nén
+- Các tin nhắn gần đây sau điểm nén
 
-Compaction **duoc luu ben vung** trong lich su JSONL cua phien.
+Nén được **lưu bền vững** trong lịch sử JSONL của phiên.
 
-## Cau hinh
+## Cấu hình
 
-Xem [Compaction config & modes](/concepts/compaction) de biet cac cai dat `agents.defaults.compaction`.
+Xem [Cấu hình & chế độ nén](/concepts/compaction) cho các thiết lập `agents.defaults.compaction`.
 
-## Auto-compaction (bat mac dinh)
+## Tự động nén (bật mặc định)
 
-Khi mot phien gan cham hoac vuot qua cua so ngu canh cua mo hinh, OpenClaw kich hoat auto-compaction va co the thu lai yeu cau ban dau bang ngu canh da duoc compact.
+Khi một phiên tiến gần hoặc vượt quá cửa sổ ngữ cảnh của mô hình, OpenClaw kích hoạt tự động nén và có thể thử lại yêu cầu ban đầu bằng ngữ cảnh đã được nén.
 
-Ban se thay:
+Bạn sẽ thấy:
 
-- `🧹 Auto-compaction complete` o che do verbose
-- `/status` hien thi `🧹 Compactions: <count>`
+- `🧹 Auto-compaction complete` ở chế độ verbose
+- `/status` hiển thị `🧹 Compactions: <count>`
 
-Truoc khi compaction, OpenClaw co the chay mot luot **silent memory flush** de luu cac ghi chu ben vung xuong dia. Xem [Memory](/concepts/memory) de biet chi tiet va cau hinh.
+Trước khi nén, OpenClaw có thể chạy một lượt **xả bộ nhớ im lặng** để lưu
+các ghi chú bền vững xuống đĩa. Xem [Memory](/concepts/memory) để biết chi tiết và cấu hình.
 
-## Compaction thu cong
+## Nén thủ công
 
-Su dung `/compact` (tuy chon kem huong dan) de buoc chay mot lan compaction:
+Dùng `/compact` (tùy chọn kèm hướng dẫn) để buộc chạy một lượt nén:
 
 ```
 /compact Focus on decisions and open questions
 ```
 
-## Nguon cua so ngu canh
+## Nguồn cửa sổ ngữ cảnh
 
-Cua so ngu canh phu thuoc vao mo hinh. OpenClaw su dung dinh nghia mo hinh tu danh muc nha cung cap da cau hinh de xac dinh gioi han.
+Cửa sổ ngữ cảnh phụ thuộc vào từng mô hình. OpenClaw sử dụng định nghĩa mô hình từ danh mục nhà cung cấp đã cấu hình để xác định các giới hạn.
 
-## Compaction so voi pruning
+## Nén vs cắt tỉa
 
-- **Compaction**: tom tat va **luu ben vung** trong JSONL.
-- **Session pruning**: chi cat bot **ket qua cong cu** cu, **trong bo nho**, theo moi yeu cau.
+- **Nén**: tóm tắt và **lưu bền vững** vào JSONL.
+- **Cắt tỉa phiên**: chỉ cắt bớt **kết quả công cụ** cũ, **trong bộ nhớ**, theo từng yêu cầu.
 
-Xem [/concepts/session-pruning](/concepts/session-pruning) de biet chi tiet ve pruning.
+Xem [/concepts/session-pruning](/concepts/session-pruning) để biết chi tiết về cắt tỉa.
 
-## Meo
+## Mẹo
 
-- Su dung `/compact` khi phien co cam giac cu hoac ngu canh bi phong to.
-- Dau ra cong cu lon da duoc cat bot san; pruning co the giam them su tich luy ket qua cong cu.
-- Neu ban can bat dau lai tu dau, `/new` hoac `/reset` se bat dau mot session id moi.
+- Dùng `/compact` khi phiên có cảm giác ì trệ hoặc ngữ cảnh bị phình to.
+- Các đầu ra công cụ lớn đã được cắt ngắn sẵn; cắt tỉa có thể tiếp tục giảm sự tích tụ của kết quả công cụ.
+- Nếu bạn cần bắt đầu lại từ đầu, `/new` hoặc `/reset` sẽ tạo một id phiên mới.

@@ -1,25 +1,25 @@
 ---
 summary: "Execute o OpenClaw com o Ollama (runtime local de LLM)"
 read_when:
-  - Voce quer executar o OpenClaw com modelos locais via Ollama
-  - Voce precisa de orientacao de configuracao e setup do Ollama
+  - Você quer executar o OpenClaw com modelos locais via Ollama
+  - Você precisa de orientação de configuração e setup do Ollama
 title: "Ollama"
 x-i18n:
   source_path: providers/ollama.md
-  source_hash: 2992dd0a456d19c3
+  source_hash: 61f88017027beb20
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:57:15Z
+  generated_at: 2026-02-08T09:31:47Z
 ---
 
 # Ollama
 
-Ollama é um runtime local de LLM que facilita executar modelos open-source na sua máquina. O OpenClaw se integra à API compatível com OpenAI do Ollama e pode **descobrir automaticamente modelos com suporte a ferramentas** quando voce opta por `OLLAMA_API_KEY` (ou um perfil de autenticação) e não define uma entrada explícita de `models.providers.ollama`.
+Ollama é um runtime local de LLM que facilita executar modelos open-source na sua máquina. O OpenClaw se integra à API compatível com OpenAI do Ollama e pode **descobrir automaticamente modelos com suporte a ferramentas** quando você opta por `OLLAMA_API_KEY` (ou um perfil de autenticação) e não define uma entrada explícita de `models.providers.ollama`.
 
-## Inicio rapido
+## Início rápido
 
-1. Instale o Ollama: https://ollama.ai
+1. Instale o Ollama: [https://ollama.ai](https://ollama.ai)
 
 2. Baixe um modelo:
 
@@ -57,16 +57,16 @@ openclaw config set models.providers.ollama.apiKey "ollama-local"
 
 ## Descoberta de modelos (provedor implícito)
 
-Quando voce define `OLLAMA_API_KEY` (ou um perfil de autenticação) e **não** define `models.providers.ollama`, o OpenClaw descobre modelos a partir da instância local do Ollama em `http://127.0.0.1:11434`:
+Quando você define `OLLAMA_API_KEY` (ou um perfil de autenticação) e **não** define `models.providers.ollama`, o OpenClaw descobre modelos a partir da instância local do Ollama em `http://127.0.0.1:11434`:
 
 - Consulta `/api/tags` e `/api/show`
-- Mantém apenas modelos que relatam capacidade `tools`
-- Marca `reasoning` quando o modelo relata `thinking`
+- Mantém apenas modelos que reportam capacidade `tools`
+- Marca `reasoning` quando o modelo reporta `thinking`
 - Lê `contextWindow` de `model_info["<arch>.context_length"]` quando disponível
 - Define `maxTokens` como 10× a janela de contexto
 - Define todos os custos como `0`
 
-Isso evita entradas manuais de modelos enquanto mantém o catálogo alinhado às capacidades do Ollama.
+Isso evita entradas manuais de modelos, mantendo o catálogo alinhado com as capacidades do Ollama.
 
 Para ver quais modelos estão disponíveis:
 
@@ -81,27 +81,27 @@ Para adicionar um novo modelo, basta baixá-lo com o Ollama:
 ollama pull mistral
 ```
 
-O novo modelo será automaticamente descoberto e ficará disponível para uso.
+O novo modelo será descoberto automaticamente e ficará disponível para uso.
 
-Se voce definir `models.providers.ollama` explicitamente, a descoberta automática é ignorada e voce deve definir os modelos manualmente (veja abaixo).
+Se você definir `models.providers.ollama` explicitamente, a descoberta automática é ignorada e você deve definir os modelos manualmente (veja abaixo).
 
-## Configuracao
+## Configuração
 
-### Configuracao basica (descoberta implícita)
+### Configuração básica (descoberta implícita)
 
-A forma mais simples de habilitar o Ollama é via variavel de ambiente:
+A forma mais simples de ativar o Ollama é via variável de ambiente:
 
 ```bash
 export OLLAMA_API_KEY="ollama-local"
 ```
 
-### Configuracao explícita (modelos manuais)
+### Configuração explícita (modelos manuais)
 
-Use configuracao explícita quando:
+Use configuração explícita quando:
 
 - O Ollama roda em outro host/porta.
-- Voce quer forçar janelas de contexto específicas ou listas de modelos.
-- Voce quer incluir modelos que não relatam suporte a ferramentas.
+- Você quer forçar janelas de contexto ou listas de modelos específicas.
+- Você quer incluir modelos que não reportam suporte a ferramentas.
 
 ```json5
 {
@@ -129,11 +129,11 @@ Use configuracao explícita quando:
 }
 ```
 
-Se `OLLAMA_API_KEY` estiver definido, voce pode omitir `apiKey` na entrada do provedor e o OpenClaw irá preenchê-lo para verificações de disponibilidade.
+Se `OLLAMA_API_KEY` estiver definido, você pode omitir `apiKey` na entrada do provedor e o OpenClaw irá preenchê-lo para verificações de disponibilidade.
 
-### URL base personalizada (configuracao explícita)
+### URL base personalizada (configuração explícita)
 
-Se o Ollama estiver rodando em um host ou porta diferentes (a configuracao explícita desativa a descoberta automática, portanto defina os modelos manualmente):
+Se o Ollama estiver rodando em um host ou porta diferentes (a configuração explícita desativa a descoberta automática, então defina os modelos manualmente):
 
 ```json5
 {
@@ -165,29 +165,29 @@ Depois de configurado, todos os seus modelos do Ollama ficam disponíveis:
 }
 ```
 
-## Avancado
+## Avançado
 
 ### Modelos de raciocínio
 
-O OpenClaw marca modelos como capazes de raciocínio quando o Ollama relata `thinking` em `/api/show`:
+O OpenClaw marca modelos como capazes de raciocínio quando o Ollama reporta `thinking` em `/api/show`:
 
 ```bash
 ollama pull deepseek-r1:32b
 ```
 
-### Custos dos modelos
+### Custos de modelos
 
-O Ollama é gratuito e roda localmente, então todos os custos dos modelos são definidos como $0.
+O Ollama é gratuito e roda localmente, então todos os custos de modelos são definidos como $0.
 
-### Configuracao de streaming
+### Configuração de streaming
 
-Devido a um [problema conhecido](https://github.com/badlogic/pi-mono/issues/1205) no SDK subjacente com o formato de resposta do Ollama, **o streaming é desativado por padrão** para modelos do Ollama. Isso evita respostas corrompidas ao usar modelos com suporte a ferramentas.
+Devido a um [problema conhecido](https://github.com/badlogic/pi-mono/issues/1205) no SDK subjacente com o formato de resposta do Ollama, o **streaming é desativado por padrão** para modelos do Ollama. Isso evita respostas corrompidas ao usar modelos com suporte a ferramentas.
 
-Quando o streaming está desativado, as respostas são entregues de uma só vez (modo não streaming), o que evita o problema em que deltas intercalados de conteúdo/raciocínio causam saída embaralhada.
+Quando o streaming está desativado, as respostas são entregues de uma só vez (modo não streaming), o que evita o problema em que deltas intercalados de conteúdo/raciocínio causam saída ilegível.
 
-#### Reativar streaming (avancado)
+#### Reativar streaming (avançado)
 
-Se voce quiser reativar o streaming para o Ollama (pode causar problemas com modelos com suporte a ferramentas):
+Se você quiser reativar o streaming para o Ollama (pode causar problemas com modelos com suporte a ferramentas):
 
 ```json5
 {
@@ -205,7 +205,7 @@ Se voce quiser reativar o streaming para o Ollama (pode causar problemas com mod
 
 #### Desativar streaming para outros provedores
 
-Voce também pode desativar o streaming para qualquer provedor, se necessário:
+Você também pode desativar o streaming para qualquer provedor, se necessário:
 
 ```json5
 {
@@ -223,13 +223,13 @@ Voce também pode desativar o streaming para qualquer provedor, se necessário:
 
 ### Janelas de contexto
 
-Para modelos descobertos automaticamente, o OpenClaw usa a janela de contexto relatada pelo Ollama quando disponível; caso contrário, o padrão é `8192`. Voce pode sobrescrever `contextWindow` e `maxTokens` na configuracao explícita do provedor.
+Para modelos descobertos automaticamente, o OpenClaw usa a janela de contexto reportada pelo Ollama quando disponível; caso contrário, o padrão é `8192`. Você pode sobrescrever `contextWindow` e `maxTokens` na configuração explícita do provedor.
 
-## Solucao de problemas
+## Solução de problemas
 
 ### Ollama não detectado
 
-Certifique-se de que o Ollama esteja em execução e que voce tenha definido `OLLAMA_API_KEY` (ou um perfil de autenticação), e que voce **não** tenha definido uma entrada explícita de `models.providers.ollama`:
+Certifique-se de que o Ollama esteja em execução e que você tenha definido `OLLAMA_API_KEY` (ou um perfil de autenticação), e que você **não** tenha definido uma entrada explícita de `models.providers.ollama`:
 
 ```bash
 ollama serve
@@ -243,10 +243,10 @@ curl http://localhost:11434/api/tags
 
 ### Nenhum modelo disponível
 
-O OpenClaw só descobre automaticamente modelos que relatam suporte a ferramentas. Se o seu modelo não estiver listado, faça uma das opções:
+O OpenClaw só descobre automaticamente modelos que reportam suporte a ferramentas. Se o seu modelo não estiver listado, você pode:
 
-- Baixe um modelo com suporte a ferramentas, ou
-- Defina o modelo explicitamente em `models.providers.ollama`.
+- Baixar um modelo com suporte a ferramentas, ou
+- Definir o modelo explicitamente em `models.providers.ollama`.
 
 Para adicionar modelos:
 
@@ -256,7 +256,7 @@ ollama pull gpt-oss:20b  # Pull a tool-capable model
 ollama pull llama3.3     # Or another model
 ```
 
-### Conexao recusada
+### Conexão recusada
 
 Verifique se o Ollama está rodando na porta correta:
 
@@ -270,15 +270,15 @@ ollama serve
 
 ### Respostas corrompidas ou nomes de ferramentas na saída
 
-Se voce vir respostas embaralhadas contendo nomes de ferramentas (como `sessions_send`, `memory_get`) ou texto fragmentado ao usar modelos do Ollama, isso ocorre devido a um problema no SDK upstream com respostas em streaming. **Isso é corrigido por padrão** na versão mais recente do OpenClaw ao desativar o streaming para modelos do Ollama.
+Se você vir respostas ilegíveis contendo nomes de ferramentas (como `sessions_send`, `memory_get`) ou texto fragmentado ao usar modelos do Ollama, isso se deve a um problema upstream do SDK com respostas em streaming. **Isso é corrigido por padrão** na versão mais recente do OpenClaw ao desativar o streaming para modelos do Ollama.
 
-Se voce ativou manualmente o streaming e enfrenta esse problema:
+Se você ativou manualmente o streaming e enfrenta esse problema:
 
-1. Remova a configuracao `streaming: true` das entradas de modelo do Ollama, ou
-2. Defina explicitamente `streaming: false` para modelos do Ollama (veja [Configuracao de streaming](#streaming-configuration))
+1. Remova a configuração `streaming: true` das entradas de modelos do Ollama, ou
+2. Defina explicitamente `streaming: false` para modelos do Ollama (veja [Configuração de streaming](#streaming-configuration))
 
 ## Veja também
 
-- [Provedores de modelo](/concepts/model-providers) - Visao geral de todos os provedores
-- [Seleção de modelos](/concepts/models) - Como escolher modelos
-- [Configuracao](/gateway/configuration) - Referência completa de configuracao
+- [Model Providers](/concepts/model-providers) - Visão geral de todos os provedores
+- [Model Selection](/concepts/models) - Como escolher modelos
+- [Configuration](/gateway/configuration) - Referência completa de configuração

@@ -1,8 +1,8 @@
 ---
 summary: "Envio de enquetes via gateway + CLI"
 read_when:
-  - Adicionar ou modificar suporte a enquetes
-  - Depurar envios de enquetes a partir da CLI ou do gateway
+  - Adicionando ou modificando suporte a enquetes
+  - Depurando envios de enquetes pela CLI ou gateway
 title: "Enquetes"
 x-i18n:
   source_path: automation/poll.md
@@ -10,7 +10,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:07Z
+  generated_at: 2026-02-08T09:29:43Z
 ---
 
 # Enquetes
@@ -41,36 +41,36 @@ openclaw message poll --channel msteams --target conversation:19:abc@thread.tacv
   --poll-question "Lunch?" --poll-option "Pizza" --poll-option "Sushi"
 ```
 
-Opcoes:
+Opções:
 
-- `--channel`: `whatsapp` (padrao), `discord`, ou `msteams`
-- `--poll-multi`: permite selecionar multiplas opcoes
-- `--poll-duration-hours`: apenas Discord (padrao 24 quando omitido)
+- `--channel`: `whatsapp` (padrão), `discord`, ou `msteams`
+- `--poll-multi`: permite selecionar múltiplas opções
+- `--poll-duration-hours`: apenas Discord (padrão 24 quando omitido)
 
 ## Gateway RPC
 
-Metodo: `poll`
+Método: `poll`
 
-Parametros:
+Parâmetros:
 
-- `to` (string, obrigatorio)
-- `question` (string, obrigatorio)
-- `options` (string[], obrigatorio)
+- `to` (string, obrigatório)
+- `question` (string, obrigatório)
+- `options` (string[], obrigatório)
 - `maxSelections` (number, opcional)
 - `durationHours` (number, opcional)
-- `channel` (string, opcional, padrao: `whatsapp`)
-- `idempotencyKey` (string, obrigatorio)
+- `channel` (string, opcional, padrão: `whatsapp`)
+- `idempotencyKey` (string, obrigatório)
 
-## Diferencas entre canais
+## Diferenças entre canais
 
-- WhatsApp: 2-12 opcoes, `maxSelections` deve estar dentro da contagem de opcoes, ignora `durationHours`.
-- Discord: 2-10 opcoes, `durationHours` limitado a 1-768 horas (padrao 24). `maxSelections > 1` habilita selecao multipla; o Discord nao oferece suporte a uma contagem de selecao estrita.
-- MS Teams: Enquetes de Adaptive Card (gerenciadas pelo OpenClaw). Nao ha API nativa de enquetes; `durationHours` e ignorado.
+- WhatsApp: 2–12 opções, `maxSelections` deve estar dentro da contagem de opções, ignora `durationHours`.
+- Discord: 2–10 opções, `durationHours` limitado a 1–768 horas (padrão 24). `maxSelections > 1` habilita seleção múltipla; o Discord não oferece suporte a uma contagem estrita de seleção.
+- MS Teams: enquetes via Adaptive Card (gerenciadas pelo OpenClaw). Não há API nativa de enquetes; `durationHours` é ignorado.
 
 ## Ferramenta do agente (Mensagem)
 
-Use a ferramenta `message` com a acao `poll` (`to`, `pollQuestion`, `pollOption`, opcional `pollMulti`, `pollDurationHours`, `channel`).
+Use a ferramenta `message` com a ação `poll` (`to`, `pollQuestion`, `pollOption`, `pollMulti` opcional, `pollDurationHours`, `channel`).
 
-Observacao: O Discord nao tem modo de “escolher exatamente N”; `pollMulti` mapeia para selecao multipla.
-As enquetes do Teams sao renderizadas como Adaptive Cards e exigem que o gateway permaneça online
+Nota: o Discord não tem modo de “escolher exatamente N”; `pollMulti` mapeia para seleção múltipla.
+As enquetes do Teams são renderizadas como Adaptive Cards e exigem que o gateway permaneça online
 para registrar votos em `~/.openclaw/msteams-polls.json`.

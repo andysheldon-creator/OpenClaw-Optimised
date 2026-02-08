@@ -1,51 +1,51 @@
 ---
-summary: "Mattermost ボットのセットアップと OpenClaw 設定"
+summary: "Mattermost ボットのセットアップと OpenClaw の設定"
 read_when:
   - Mattermost のセットアップ
   - Mattermost ルーティングのデバッグ
 title: "Mattermost"
 x-i18n:
   source_path: channels/mattermost.md
-  source_hash: 57fabe5eb0efbcb8
+  source_hash: 1599abf7539c51f7
   provider: openai
-  model: gpt-5.2-pro
+  model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-06T04:46:18Z
+  generated_at: 2026-02-08T09:20:46Z
 ---
 
 # Mattermost（プラグイン）
 
-ステータス: プラグイン経由でサポートされています（ボットトークン + WebSocket イベント）。チャンネル、グループ、ダイレクトメッセージがサポートされています。
-Mattermost はセルフホスト可能なチームメッセージングプラットフォームです。製品の詳細とダウンロードについては、公式サイト
+ステータス: プラグイン経由でサポート（ボットトークン + WebSocket イベント）。チャンネル、グループ、ダイレクトメッセージがサポートされています。
+Mattermost は自己ホスト可能なチーム向けメッセージングプラットフォームです。製品の詳細やダウンロードについては、公式サイト
 [mattermost.com](https://mattermost.com) を参照してください。
 
-## プラグインが必要です
+## プラグインが必要
 
-Mattermost はプラグインとして提供され、コアインストールには同梱されていません。
+Mattermost はプラグインとして提供されており、コアインストールには同梱されていません。
 
-CLI 経由でインストールします（npm レジストリ）:
+CLI（npm レジストリ）からインストール:
 
 ```bash
 openclaw plugins install @openclaw/mattermost
 ```
 
-ローカルチェックアウト（git リポジトリから実行している場合）:
+ローカルチェックアウト（git リポジトリから実行する場合）:
 
 ```bash
 openclaw plugins install ./extensions/mattermost
 ```
 
-設定/オンボーディング中に Mattermost を選択し、かつ git チェックアウトが検出された場合、
+configure／オンボーディング中に Mattermost を選択し、git のチェックアウトが検出されると、
 OpenClaw はローカルインストールパスを自動的に提示します。
 
-詳細: [Plugins](/plugin)
+詳細: [Plugins](/tools/plugin)
 
 ## クイックセットアップ
 
 1. Mattermost プラグインをインストールします。
 2. Mattermost のボットアカウントを作成し、**ボットトークン**をコピーします。
-3. Mattermost の**ベース URL**をコピーします（例: `https://chat.example.com`）。
-4. OpenClaw を設定して Gateway（ゲートウェイ）を起動します。
+3. Mattermost の **ベース URL** をコピーします（例: `https://chat.example.com`）。
+4. OpenClaw を設定し、ゲートウェイを起動します。
 
 最小構成:
 
@@ -64,18 +64,18 @@ OpenClaw はローカルインストールパスを自動的に提示します�
 
 ## 環境変数（デフォルトアカウント）
 
-環境変数を使用したい場合は、Gateway（ゲートウェイ）ホストで以下を設定してください:
+環境変数を使用する場合は、ゲートウェイ ホストに次を設定してください:
 
 - `MATTERMOST_BOT_TOKEN=...`
 - `MATTERMOST_URL=https://chat.example.com`
 
-環境変数は **default** アカウント（`default`）にのみ適用されます。その他のアカウントは設定値を使用する必要があります。
+環境変数は **デフォルト** アカウント（`default`）にのみ適用されます。その他のアカウントは設定値を使用する必要があります。
 
 ## チャットモード
 
-Mattermost はダイレクトメッセージに自動的に応答します。チャンネルの挙動は `chatmode` で制御されます:
+Mattermost はダイレクトメッセージに自動で応答します。チャンネルの動作は `chatmode` により制御されます:
 
-- `oncall`（デフォルト）: チャンネルでは @メンションされた場合にのみ応答します。
+- `oncall`（デフォルト）: チャンネルでは @メンションされた場合のみ応答します。
 - `onmessage`: すべてのチャンネルメッセージに応答します。
 - `onchar`: メッセージがトリガープレフィックスで始まる場合に応答します。
 
@@ -95,31 +95,31 @@ Mattermost はダイレクトメッセージに自動的に応答します。チ
 注記:
 
 - `onchar` は明示的な @メンションには引き続き応答します。
-- `channels.mattermost.requireMention` はレガシー設定では考慮されますが、`chatmode` を推奨します。
+- `channels.mattermost.requireMention` はレガシー設定では尊重されますが、`chatmode` の使用が推奨されます。
 
 ## アクセス制御（ダイレクトメッセージ）
 
-- デフォルト: `channels.mattermost.dmPolicy = "pairing"`（不明な送信者にはペアリングコードが付与されます）。
+- デフォルト: `channels.mattermost.dmPolicy = "pairing"`（不明な送信者にはペアリングコードが発行されます）。
 - 承認方法:
   - `openclaw pairing list mattermost`
   - `openclaw pairing approve mattermost <CODE>`
-- 公開ダイレクトメッセージ: `channels.mattermost.dmPolicy="open"` に加えて `channels.mattermost.allowFrom=["*"]`。
+- 公開 DM: `channels.mattermost.dmPolicy="open"` に加えて `channels.mattermost.allowFrom=["*"]`。
 
 ## チャンネル（グループ）
 
-- デフォルト: `channels.mattermost.groupPolicy = "allowlist"`（メンション必須）。
-- `channels.mattermost.groupAllowFrom`（ユーザー ID または `@username`）で送信者を許可リスト化します。
-- オープンチャンネル: `channels.mattermost.groupPolicy="open"`（メンション必須）。
+- デフォルト: `channels.mattermost.groupPolicy = "allowlist"`（メンション制御）。
+- `channels.mattermost.groupAllowFrom` で送信者を許可リストに追加します（ユーザー ID または `@username`）。
+- オープンチャンネル: `channels.mattermost.groupPolicy="open"`（メンション制御）。
 
-## アウトバウンド配信の宛先
+## 送信配信のターゲット
 
-`openclaw message send` または cron/webhooks では、以下の宛先フォーマットを使用します:
+`openclaw message send` または cron／webhook で次のターゲット形式を使用します:
 
-- チャンネルには `channel:<id>`
-- ダイレクトメッセージには `user:<id>`
-- ダイレクトメッセージには `@username`（Mattermost API 経由で解決）
+- チャンネル: `channel:<id>`
+- ダイレクトメッセージ: `user:<id>`
+- ダイレクトメッセージ（Mattermost API 経由で解決）: `@username`
 
-素の ID はチャンネルとして扱われます。
+裸の ID はチャンネルとして扱われます。
 
 ## マルチアカウント
 
@@ -140,6 +140,6 @@ Mattermost は `channels.mattermost.accounts` 配下で複数アカウントを�
 
 ## トラブルシューティング
 
-- チャンネルで返信がない: ボットがチャンネルに参加していることを確認し、メンション（oncall）する、トリガープレフィックス（onchar）を使用する、または `chatmode: "onmessage"` を設定してください。
-- 認証エラー: ボットトークン、ベース URL、アカウントが有効かどうかを確認してください。
+- チャンネルで返信がない場合: ボットがチャンネルに参加していることを確認し、@メンション（oncall）する、トリガープレフィックス（onchar）を使用する、または `chatmode: "onmessage"` を設定してください。
+- 認証エラー: ボットトークン、ベース URL、アカウントが有効化されているかを確認してください。
 - マルチアカウントの問題: 環境変数は `default` アカウントにのみ適用されます。

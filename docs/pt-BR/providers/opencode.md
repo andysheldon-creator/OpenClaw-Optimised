@@ -1,8 +1,8 @@
 ---
 summary: "Use o OpenCode Zen (modelos selecionados) com o OpenClaw"
 read_when:
-  - Voce quer o OpenCode Zen para acesso a modelos
-  - Voce quer uma lista selecionada de modelos amigaveis para codificacao
+  - Você quer o OpenCode Zen para acesso a modelos
+  - Você quer uma lista selecionada de modelos amigáveis para codificação
 title: "OpenCode Zen"
 x-i18n:
   source_path: providers/opencode.md
@@ -10,16 +10,16 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:57:07Z
+  generated_at: 2026-02-08T09:31:42Z
 ---
 
 # OpenCode Zen
 
-O OpenCode Zen é uma **lista selecionada de modelos** recomendados pela equipe do OpenCode para agentes de codificacao.
-Ele e um caminho opcional e hospedado de acesso a modelos que usa uma chave de API e o provedor `opencode`.
-O Zen esta atualmente em beta.
+O OpenCode Zen é uma **lista selecionada de modelos** recomendados pela equipe do OpenCode para agentes de codificação.
+É um caminho opcional e hospedado de acesso a modelos que usa uma chave de API e o provedor `opencode`.
+No momento, o Zen está em beta.
 
-## Configuracao da CLI
+## Configuração da CLI
 
 ```bash
 openclaw onboard --auth-choice opencode-zen
@@ -27,7 +27,7 @@ openclaw onboard --auth-choice opencode-zen
 openclaw onboard --opencode-zen-api-key "$OPENCODE_API_KEY"
 ```
 
-## Trecho de configuracao
+## Trecho de configuração
 
 ```json5
 {
@@ -38,6 +38,6 @@ openclaw onboard --opencode-zen-api-key "$OPENCODE_API_KEY"
 
 ## Notas
 
-- `OPENCODE_ZEN_API_KEY` tambem e suportado.
-- Voce faz login no Zen, adiciona os detalhes de faturamento e copia sua chave de API.
-- O OpenCode Zen cobra por solicitacao; verifique o painel do OpenCode para mais detalhes.
+- `OPENCODE_ZEN_API_KEY` também é compatível.
+- Você faz login no Zen, adiciona os detalhes de faturamento e copia sua chave de API.
+- O OpenCode Zen cobra por solicitação; verifique o painel do OpenCode para obter detalhes.

@@ -1,5 +1,5 @@
 ---
-summary: "Giao diện Terminal (TUI): kết nối tới Gateway từ bất kỳ máy nào"
+summary: "Giao diện người dùng Terminal (TUI): kết nối tới Gateway từ bất kỳ máy nào"
 read_when:
   - Bạn muốn một hướng dẫn thân thiện cho người mới về TUI
   - Bạn cần danh sách đầy đủ các tính năng, lệnh và phím tắt của TUI
@@ -10,7 +10,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:16:15Z
+  generated_at: 2026-02-08T09:40:44Z
 ---
 
 # TUI (Terminal UI)
@@ -42,8 +42,8 @@ Dùng `--password` nếu Gateway của bạn dùng xác thực bằng mật kh�
 ## Những gì bạn thấy
 
 - Header: URL kết nối, tác tử hiện tại, phiên hiện tại.
-- Chat log: tin nhắn người dùng, phản hồi của trợ lý, thông báo hệ thống, thẻ công cụ.
-- Status line: trạng thái kết nối/chạy (đang kết nối, đang chạy, đang streaming, nhàn rỗi, lỗi).
+- Nhật ký trò chuyện: tin nhắn người dùng, trả lời của trợ lý, thông báo hệ thống, thẻ công cụ.
+- Dòng trạng thái: trạng thái kết nối/chạy (đang kết nối, đang chạy, đang stream, rảnh, lỗi).
 - Footer: trạng thái kết nối + tác tử + phiên + mô hình + think/verbose/reasoning + số token + deliver.
 - Input: trình soạn thảo văn bản có tự động hoàn thành.
 
@@ -53,16 +53,16 @@ Dùng `--password` nếu Gateway của bạn dùng xác thực bằng mật kh�
 - Phiên thuộc về tác tử hiện tại.
 - Khóa phiên được lưu dưới dạng `agent:<agentId>:<sessionKey>`.
   - Nếu bạn gõ `/session main`, TUI sẽ mở rộng thành `agent:<currentAgent>:main`.
-  - Nếu bạn gõ `/session agent:other:main`, bạn chuyển sang phiên của tác tử đó một cách tường minh.
+  - Nếu bạn gõ `/session agent:other:main`, bạn sẽ chuyển sang phiên của tác tử đó một cách tường minh.
 - Phạm vi phiên:
   - `per-sender` (mặc định): mỗi tác tử có nhiều phiên.
   - `global`: TUI luôn dùng phiên `global` (bộ chọn có thể trống).
 - Tác tử + phiên hiện tại luôn hiển thị ở footer.
 
-## Gửi + phân phối
+## Gửi + chuyển giao
 
-- Tin nhắn được gửi tới Gateway; việc phân phối tới các nhà cung cấp mặc định là tắt.
-- Bật phân phối:
+- Tin nhắn được gửi tới Gateway; việc chuyển giao tới các nhà cung cấp mặc định là tắt.
+- Bật chuyển giao:
   - `/deliver on`
   - hoặc bảng Cài đặt
   - hoặc khởi động với `openclaw tui --deliver`
@@ -70,9 +70,9 @@ Dùng `--password` nếu Gateway của bạn dùng xác thực bằng mật kh�
 ## Bộ chọn + lớp phủ
 
 - Bộ chọn mô hình: liệt kê các mô hình khả dụng và đặt ghi đè cho phiên.
-- Bộ chọn tác tử: chọn tác tử khác.
+- Bộ chọn tác tử: chọn một tác tử khác.
 - Bộ chọn phiên: chỉ hiển thị các phiên của tác tử hiện tại.
-- Cài đặt: bật/tắt phân phối, mở rộng đầu ra công cụ, và hiển thị suy nghĩ.
+- Cài đặt: bật/tắt chuyển giao, mở rộng đầu ra công cụ và hiển thị suy nghĩ.
 
 ## Phím tắt bàn phím
 
@@ -86,7 +86,7 @@ Dùng `--password` nếu Gateway của bạn dùng xác thực bằng mật kh�
 - Ctrl+O: bật/tắt mở rộng đầu ra công cụ
 - Ctrl+T: bật/tắt hiển thị suy nghĩ (tải lại lịch sử)
 
-## Lệnh gạch chéo
+## Lệnh slash
 
 Cốt lõi:
 
@@ -113,14 +113,14 @@ Vòng đời phiên:
 - `/settings`
 - `/exit`
 
-Các lệnh gạch chéo khác của Gateway (ví dụ, `/context`) được chuyển tiếp tới Gateway và hiển thị như đầu ra hệ thống. Xem [Slash commands](/tools/slash-commands).
+Các lệnh slash khác của Gateway (ví dụ, `/context`) được chuyển tiếp tới Gateway và hiển thị như đầu ra hệ thống. Xem [Slash commands](/tools/slash-commands).
 
 ## Lệnh shell cục bộ
 
-- Thêm tiền tố `!` ở đầu dòng để chạy lệnh shell cục bộ trên máy chủ TUI.
+- Thêm tiền tố `!` vào đầu dòng để chạy lệnh shell cục bộ trên máy chủ TUI.
 - TUI sẽ hỏi một lần mỗi phiên để cho phép thực thi cục bộ; từ chối sẽ giữ `!` bị vô hiệu cho phiên đó.
-- Lệnh chạy trong một shell mới, không tương tác, trong thư mục làm việc của TUI (không có `cd`/env tồn tại).
-- Một `!` đơn lẻ được gửi như tin nhắn bình thường; khoảng trắng ở đầu dòng không kích hoạt thực thi cục bộ.
+- Lệnh chạy trong một shell mới, không tương tác, tại thư mục làm việc của TUI (không có `cd`/env bền vững).
+- Một `!` đứng riêng lẻ sẽ được gửi như tin nhắn bình thường; khoảng trắng đầu dòng không kích hoạt thực thi cục bộ.
 
 ## Đầu ra công cụ
 
@@ -130,37 +130,37 @@ Các lệnh gạch chéo khác của Gateway (ví dụ, `/context`) được chu
 
 ## Lịch sử + streaming
 
-- Khi kết nối, TUI tải lịch sử mới nhất (mặc định 200 tin nhắn).
-- Phản hồi streaming được cập nhật tại chỗ cho đến khi hoàn tất.
+- Khi kết nối, TUI tải lịch sử gần nhất (mặc định 200 tin nhắn).
+- Phản hồi streaming cập nhật tại chỗ cho đến khi hoàn tất.
 - TUI cũng lắng nghe các sự kiện công cụ của tác tử để có thẻ công cụ phong phú hơn.
 
 ## Chi tiết kết nối
 
-- TUI đăng ký với Gateway dưới dạng `mode: "tui"`.
-- Việc kết nối lại sẽ hiển thị thông báo hệ thống; các khoảng trống sự kiện được thể hiện trong log.
+- TUI đăng ký với Gateway dưới tên `mode: "tui"`.
+- Khi kết nối lại sẽ hiển thị thông báo hệ thống; các khoảng trống sự kiện sẽ được phản ánh trong nhật ký.
 
 ## Tùy chọn
 
 - `--url <url>`: URL WebSocket của Gateway (mặc định từ cấu hình hoặc `ws://127.0.0.1:<port>`)
-- `--token <token>`: Token Gateway (nếu cần)
-- `--password <password>`: Mật khẩu Gateway (nếu cần)
-- `--session <key>`: Khóa phiên (mặc định: `main`, hoặc `global` khi phạm vi là global)
-- `--deliver`: Phân phối phản hồi của trợ lý tới nhà cung cấp (mặc định tắt)
-- `--thinking <level>`: Ghi đè mức suy nghĩ khi gửi
-- `--timeout-ms <ms>`: Thời gian chờ của tác tử tính bằng ms (mặc định `agents.defaults.timeoutSeconds`)
+- `--token <token>`: token Gateway (nếu cần)
+- `--password <password>`: mật khẩu Gateway (nếu cần)
+- `--session <key>`: khóa phiên (mặc định: `main`, hoặc `global` khi phạm vi là global)
+- `--deliver`: chuyển giao trả lời của trợ lý tới nhà cung cấp (mặc định tắt)
+- `--thinking <level>`: ghi đè mức độ suy nghĩ cho các lần gửi
+- `--timeout-ms <ms>`: thời gian chờ của tác tử tính bằng ms (mặc định `agents.defaults.timeoutSeconds`)
 
-Lưu ý: khi bạn đặt `--url`, TUI sẽ không quay về cấu hình hoặc thông tin xác thực từ biến môi trường.
+Lưu ý: khi bạn đặt `--url`, TUI sẽ không dùng dự phòng từ cấu hình hoặc thông tin xác thực trong môi trường.
 Hãy truyền `--token` hoặc `--password` một cách tường minh. Thiếu thông tin xác thực tường minh là lỗi.
 
 ## Xử lý sự cố
 
 Không có đầu ra sau khi gửi tin nhắn:
 
-- Chạy `/status` trong TUI để xác nhận Gateway đã kết nối và đang nhàn rỗi/bận.
+- Chạy `/status` trong TUI để xác nhận Gateway đã kết nối và đang rảnh/bận.
 - Kiểm tra log của Gateway: `openclaw logs --follow`.
 - Xác nhận tác tử có thể chạy: `openclaw status` và `openclaw models status`.
-- Nếu bạn mong đợi tin nhắn trong một kênh chat, hãy bật phân phối (`/deliver on` hoặc `--deliver`).
-- `--history-limit <n>`: Số mục lịch sử cần tải (mặc định 200)
+- Nếu bạn mong đợi tin nhắn trong một kênh chat, hãy bật chuyển giao (`/deliver on` hoặc `--deliver`).
+- `--history-limit <n>`: số mục lịch sử cần tải (mặc định 200)
 
 ## Xử lý sự cố kết nối
 

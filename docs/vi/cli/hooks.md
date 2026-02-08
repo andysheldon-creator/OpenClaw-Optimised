@@ -6,21 +6,21 @@ read_when:
 title: "hooks"
 x-i18n:
   source_path: cli/hooks.md
-  source_hash: e2032e61ff4b9135
+  source_hash: b3cb5c4ce63c5ad3
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:31Z
+  generated_at: 2026-02-08T09:38:25Z
 ---
 
 # `openclaw hooks`
 
-Quản lý hook tác tử (tự động hóa theo sự kiện cho các lệnh như `/new`, `/reset`, và khi Gateway khởi động).
+Quản lý hook tác tử (tự động hóa theo sự kiện cho các lệnh như `/new`, `/reset` và khi gateway khởi động).
 
 Liên quan:
 
-- Hooks: [Hooks](/hooks)
-- Hook plugin: [Plugins](/plugin#plugin-hooks)
+- Hooks: [Hooks](/automation/hooks)
+- Hook plugin: [Plugins](/tools/plugin#plugin-hooks)
 
 ## Liệt kê tất cả Hook
 
@@ -28,7 +28,7 @@ Liên quan:
 openclaw hooks list
 ```
 
-Liệt kê tất cả hook được phát hiện từ các thư mục workspace, managed và bundled.
+Liệt kê tất cả các hook được phát hiện từ các thư mục workspace, managed và bundled.
 
 **Tùy chọn:**
 
@@ -62,7 +62,7 @@ Hiển thị các yêu cầu còn thiếu đối với các hook không đủ đ
 openclaw hooks list --json
 ```
 
-Trả về JSON có cấu trúc để sử dụng theo chương trình.
+Trả về JSON có cấu trúc để sử dụng theo cách lập trình.
 
 ## Lấy thông tin Hook
 
@@ -104,13 +104,13 @@ Requirements:
   Config: ✓ workspace.dir
 ```
 
-## Kiểm tra tính đủ điều kiện của Hook
+## Kiểm tra điều kiện Hook
 
 ```bash
 openclaw hooks check
 ```
 
-Hiển thị tóm tắt trạng thái đủ điều kiện của hook (bao nhiêu hook sẵn sàng so với chưa sẵn sàng).
+Hiển thị tóm tắt trạng thái đủ điều kiện của hook (bao nhiêu sẵn sàng so với chưa sẵn sàng).
 
 **Tùy chọn:**
 
@@ -134,7 +134,7 @@ openclaw hooks enable <name>
 
 Bật một hook cụ thể bằng cách thêm nó vào cấu hình của bạn (`~/.openclaw/config.json`).
 
-**Lưu ý:** Các hook được quản lý bởi plugin hiển thị `plugin:<id>` trong `openclaw hooks list` và
+**Lưu ý:** Các hook được quản lý bởi plugin sẽ hiển thị `plugin:<id>` trong `openclaw hooks list` và
 không thể bật/tắt tại đây. Thay vào đó, hãy bật/tắt plugin.
 
 **Đối số:**
@@ -153,15 +153,15 @@ openclaw hooks enable session-memory
 ✓ Enabled hook: 💾 session-memory
 ```
 
-**Nó làm gì:**
+**Những gì lệnh thực hiện:**
 
-- Kiểm tra hook có tồn tại và đủ điều kiện hay không
+- Kiểm tra xem hook có tồn tại và đủ điều kiện hay không
 - Cập nhật `hooks.internal.entries.<name>.enabled = true` trong cấu hình của bạn
 - Lưu cấu hình xuống đĩa
 
 **Sau khi bật:**
 
-- Khởi động lại Gateway để hook được tải lại (khởi động lại ứng dụng menu bar trên macOS, hoặc khởi động lại tiến trình Gateway trong môi trường dev).
+- Khởi động lại gateway để hook được tải lại (khởi động lại ứng dụng menu bar trên macOS, hoặc khởi động lại tiến trình gateway trong môi trường dev).
 
 ## Tắt một Hook
 
@@ -189,7 +189,7 @@ openclaw hooks disable command-logger
 
 **Sau khi tắt:**
 
-- Khởi động lại Gateway để hook được tải lại
+- Khởi động lại gateway để hook được tải lại
 
 ## Cài đặt Hook
 
@@ -197,19 +197,19 @@ openclaw hooks disable command-logger
 openclaw hooks install <path-or-spec>
 ```
 
-Cài đặt một gói hook từ thư mục/tệp nén cục bộ hoặc npm.
+Cài đặt một gói hook từ thư mục/tệp nén cục bộ hoặc từ npm.
 
-**Nó làm gì:**
+**Những gì lệnh thực hiện:**
 
 - Sao chép gói hook vào `~/.openclaw/hooks/<id>`
 - Bật các hook đã cài đặt trong `hooks.internal.entries.*`
-- Ghi lại lần cài đặt dưới `hooks.internal.installs`
+- Ghi nhận việc cài đặt dưới `hooks.internal.installs`
 
 **Tùy chọn:**
 
 - `-l, --link`: Liên kết một thư mục cục bộ thay vì sao chép (thêm nó vào `hooks.internal.load.extraDirs`)
 
-**Định dạng tệp nén được hỗ trợ:** `.zip`, `.tgz`, `.tar.gz`, `.tar`
+**Các định dạng lưu trữ được hỗ trợ:** `.zip`, `.tgz`, `.tar.gz`, `.tar`
 
 **Ví dụ:**
 
@@ -239,9 +239,9 @@ Cập nhật các gói hook đã cài đặt (chỉ áp dụng cho cài đặt t
 **Tùy chọn:**
 
 - `--all`: Cập nhật tất cả các gói hook đang được theo dõi
-- `--dry-run`: Hiển thị những gì sẽ thay đổi mà không ghi dữ liệu
+- `--dry-run`: Hiển thị những thay đổi sẽ xảy ra mà không ghi ra đĩa
 
-## Hook được đóng gói sẵn
+## Hook đi kèm
 
 ### session-memory
 
@@ -255,11 +255,11 @@ openclaw hooks enable session-memory
 
 **Đầu ra:** `~/.openclaw/workspace/memory/YYYY-MM-DD-slug.md`
 
-**Xem:** [tài liệu session-memory](/hooks#session-memory)
+**Xem:** [tài liệu session-memory](/automation/hooks#session-memory)
 
 ### command-logger
 
-Ghi log tất cả các sự kiện lệnh vào một tệp kiểm toán tập trung.
+Ghi log tất cả các sự kiện lệnh vào một tệp audit tập trung.
 
 **Bật:**
 
@@ -282,11 +282,11 @@ cat ~/.openclaw/logs/commands.log | jq .
 grep '"action":"new"' ~/.openclaw/logs/commands.log | jq .
 ```
 
-**Xem:** [tài liệu command-logger](/hooks#command-logger)
+**Xem:** [tài liệu command-logger](/automation/hooks#command-logger)
 
 ### soul-evil
 
-Hoán đổi nội dung `SOUL.md` được chèn bằng `SOUL_EVIL.md` trong một khoảng thời gian purge hoặc theo xác suất ngẫu nhiên.
+Hoán đổi nội dung `SOUL.md` được chèn bằng `SOUL_EVIL.md` trong một khoảng purge hoặc ngẫu nhiên.
 
 **Bật:**
 
@@ -298,7 +298,7 @@ openclaw hooks enable soul-evil
 
 ### boot-md
 
-Chạy `BOOT.md` khi Gateway khởi động (sau khi các kênh bắt đầu).
+Chạy `BOOT.md` khi gateway khởi động (sau khi các kênh khởi động).
 
 **Sự kiện**: `gateway:startup`
 
@@ -308,4 +308,4 @@ Chạy `BOOT.md` khi Gateway khởi động (sau khi các kênh bắt đầu).
 openclaw hooks enable boot-md
 ```
 
-**Xem:** [tài liệu boot-md](/hooks#boot-md)
+**Xem:** [tài liệu boot-md](/automation/hooks#boot-md)

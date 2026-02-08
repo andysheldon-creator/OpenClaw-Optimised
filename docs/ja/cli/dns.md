@@ -1,26 +1,26 @@
 ---
-summary: "Tailscale + CoreDNS による広域デバイス検出ヘルパー向けの `openclaw dns` の CLI リファレンス"
+summary: "「openclaw dns」の CLI リファレンス（広域ディスカバリー向けヘルパー）"
 read_when:
-  - Tailscale + CoreDNS による広域デバイス検出（DNS-SD）が必要な場合
-  - カスタムデバイス検出ドメイン（例: openclaw.internal）向けにスプリット DNS を設定する場合
+  - Tailscale + CoreDNS による広域ディスカバリー（DNS-SD）を利用したい場合
+  - カスタムのディスカバリードメイン（例: openclaw.internal）向けにスプリット DNS を設定する場合
 title: "dns"
 x-i18n:
   source_path: cli/dns.md
   source_hash: d2011e41982ffb4b
   provider: openai
-  model: gpt-5.2-pro
+  model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-06T05:00:21Z
+  generated_at: 2026-02-08T09:21:07Z
 ---
 
 # `openclaw dns`
 
-広域デバイス検出（Tailscale + CoreDNS）向けの DNS ヘルパーです。現在は macOS + Homebrew CoreDNS に重点を置いています。
+広域ディスカバリー向けの DNS ヘルパー（Tailscale + CoreDNS）です。現在は macOS + Homebrew CoreDNS に重点を置いています。
 
-関連:
+関連情報:
 
-- Gateway（ゲートウェイ）のデバイス検出: [Discovery](/gateway/discovery)
-- 広域デバイス検出の設定: [Configuration](/gateway/configuration)
+- Gateway ディスカバリー: [Discovery](/gateway/discovery)
+- 広域ディスカバリーの設定: [Configuration](/gateway/configuration)
 
 ## セットアップ
 

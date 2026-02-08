@@ -1,8 +1,8 @@
 ---
 summary: „Verwenden Sie die einheitliche API von OpenRouter, um in OpenClaw auf viele Modelle zuzugreifen“
 read_when:
-  - Sie moechten einen einzelnen API-Schluessel fuer viele LLMs
-  - Sie moechten Modelle ueber OpenRouter in OpenClaw ausfuehren
+  - Sie möchten einen einzelnen API-Schlüssel für viele LLMs
+  - Sie möchten Modelle über OpenRouter in OpenClaw ausführen
 title: „OpenRouter“
 x-i18n:
   source_path: providers/openrouter.md
@@ -10,20 +10,21 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:14Z
+  generated_at: 2026-02-08T09:37:03Z
 ---
 
 # OpenRouter
 
-OpenRouter stellt eine **einheitliche API** bereit, die Anfragen ueber einen einzigen Endpunkt und API-Schluessel an viele Modelle weiterleitet. Sie ist OpenAI-kompatibel, sodass die meisten OpenAI-SDKs funktionieren, wenn Sie die Basis-URL umstellen.
+OpenRouter stellt eine **einheitliche API** bereit, die Anfragen über einen einzelnen
+Endpunkt und API-Schlüssel an viele Modelle weiterleitet. Sie ist OpenAI-kompatibel, sodass die meisten OpenAI-SDKs durch das Umschalten der Basis-URL funktionieren.
 
-## CLI-Einrichtung
+## CLI setup
 
 ```bash
 openclaw onboard --auth-choice apiKey --token-provider openrouter --token "$OPENROUTER_API_KEY"
 ```
 
-## Konfigurationsausschnitt
+## Config snippet
 
 ```json5
 {
@@ -36,8 +37,8 @@ openclaw onboard --auth-choice apiKey --token-provider openrouter --token "$OPEN
 }
 ```
 
-## Hinweise
+## Notes
 
 - Modell-Referenzen sind `openrouter/<provider>/<model>`.
-- Fuer weitere Modell-/Anbieteroptionen siehe [/concepts/model-providers](/concepts/model-providers).
-- OpenRouter verwendet unter der Haube einen Bearer-Token mit Ihrem API-Schluessel.
+- Weitere Modell-/Anbieteroptionen finden Sie unter [/concepts/model-providers](/concepts/model-providers).
+- OpenRouter verwendet intern ein Bearer-Token mit Ihrem API-Schlüssel.

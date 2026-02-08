@@ -1,23 +1,23 @@
 ---
 summary: "Sử dụng OpenAI qua khóa API hoặc đăng ký Codex trong OpenClaw"
 read_when:
-  - Bạn muốn sử dụng các mô hình OpenAI trong OpenClaw
+  - Bạn muốn dùng các mô hình OpenAI trong OpenClaw
   - Bạn muốn xác thực bằng đăng ký Codex thay vì khóa API
 title: "OpenAI"
 x-i18n:
   source_path: providers/openai.md
-  source_hash: 13d8fd7f1f935b0a
+  source_hash: 6d78698351c3d2f5
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:08:05Z
+  generated_at: 2026-02-08T09:39:52Z
 ---
 
 # OpenAI
 
-OpenAI cung cấp các API cho nhà phát triển đối với các mô hình GPT. Codex hỗ trợ **đăng nhập ChatGPT** cho quyền truy cập theo đăng ký hoặc **đăng nhập bằng khóa API** cho quyền truy cập tính phí theo mức sử dụng. Codex cloud yêu cầu đăng nhập ChatGPT.
+OpenAI cung cấp các API dành cho nhà phát triển cho các mô hình GPT. Codex hỗ trợ **đăng nhập ChatGPT** cho quyền truy cập theo đăng ký hoặc **đăng nhập bằng khóa API** cho truy cập tính phí theo mức sử dụng. Codex cloud yêu cầu đăng nhập ChatGPT.
 
-## Tùy chọn A: Khóa API OpenAI (Nền tảng OpenAI)
+## Tùy chọn A: Khóa API OpenAI (OpenAI Platform)
 
 **Phù hợp nhất cho:** truy cập API trực tiếp và thanh toán theo mức sử dụng.
 Lấy khóa API của bạn từ bảng điều khiển OpenAI.
@@ -44,7 +44,7 @@ openclaw onboard --openai-api-key "$OPENAI_API_KEY"
 **Phù hợp nhất cho:** sử dụng quyền truy cập theo đăng ký ChatGPT/Codex thay vì khóa API.
 Codex cloud yêu cầu đăng nhập ChatGPT, trong khi Codex CLI hỗ trợ đăng nhập bằng ChatGPT hoặc khóa API.
 
-### Thiết lập CLI
+### Thiết lập CLI (Codex OAuth)
 
 ```bash
 # Run Codex OAuth in the wizard
@@ -54,7 +54,7 @@ openclaw onboard --auth-choice openai-codex
 openclaw models auth login --provider openai-codex
 ```
 
-### Đoạn cấu hình
+### Đoạn cấu hình (đăng ký Codex)
 
 ```json5
 {
@@ -64,5 +64,5 @@ openclaw models auth login --provider openai-codex
 
 ## Ghi chú
 
-- Tham chiếu mô hình luôn sử dụng `provider/model` (xem [/concepts/models](/concepts/models)).
-- Chi tiết xác thực + quy tắc tái sử dụng nằm tại [/concepts/oauth](/concepts/oauth).
+- Tham chiếu mô hình luôn dùng `provider/model` (xem [/concepts/models](/concepts/models)).
+- Chi tiết xác thực và quy tắc tái sử dụng nằm trong [/concepts/oauth](/concepts/oauth).

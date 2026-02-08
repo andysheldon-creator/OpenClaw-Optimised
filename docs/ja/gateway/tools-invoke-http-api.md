@@ -1,8 +1,8 @@
 ---
-summary: "Gateway の HTTP エンドポイント経由で単一のツールを直接呼び出します"
+summary: "Gateway HTTP エンドポイント経由で単一のツールを直接呼び出します"
 read_when:
-  - フルのエージェントターンを実行せずにツールを呼び出す場合
-  - ツールポリシーの強制が必要な自動化を構築する場合
+  - フルエージェントのターンを実行せずにツールを呼び出す場合
+  - ツールポリシーの適用が必要な自動化を構築する場合
 title: "Tools Invoke API"
 x-i18n:
   source_path: gateway/tools-invoke-http-api.md
@@ -10,25 +10,25 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:34:01Z
+  generated_at: 2026-02-08T09:21:59Z
 ---
 
 # Tools Invoke（HTTP）
 
-OpenClaw の Gateway（ゲートウェイ）は、単一のツールを直接呼び出すためのシンプルな HTTP エンドポイントを公開しています。これは常に有効ですが、Gateway の認証およびツールポリシーによって制御されます。
+OpenClaw の Gateway は、単一のツールを直接呼び出すためのシンプルな HTTP エンドポイントを公開しています。これは常に有効ですが、Gateway の認証およびツールポリシーによって制御されます。
 
 - `POST /tools/invoke`
-- Gateway と同じポート（WS + HTTP の多重化）: `http://<gateway-host>:<port>/tools/invoke`
+- Gateway と同じポート（WS + HTTP の多重化）：`http://<gateway-host>:<port>/tools/invoke`
 
 デフォルトの最大ペイロードサイズは 2 MB です。
 
 ## 認証
 
-Gateway の認証設定を使用します。Bearer トークンを送信してください。
+Gateway の認証設定を使用します。ベアラートークンを送信してください。
 
 - `Authorization: Bearer <token>`
 
-注意事項:
+注記:
 
 - `gateway.auth.mode="token"` の場合は、`gateway.auth.token`（または `OPENCLAW_GATEWAY_TOKEN`）を使用します。
 - `gateway.auth.mode="password"` の場合は、`gateway.auth.password`（または `OPENCLAW_GATEWAY_PASSWORD`）を使用します。
@@ -48,14 +48,14 @@ Gateway の認証設定を使用します。Bearer トークンを送信して�
 フィールド:
 
 - `tool`（string、必須）: 呼び出すツール名。
-- `action`（string、任意）: ツールスキーマが `action` をサポートしており、args ペイロードで省略されている場合に args にマッピングされます。
+- `action`（string、任意）: ツールスキーマが `action` をサポートし、args ペイロードで省略された場合に args にマッピングされます。
 - `args`（object、任意）: ツール固有の引数。
-- `sessionKey`（string、任意）: 対象のセッションキー。省略された場合、または `"main"` の場合、Gateway は設定されたメインセッションキーを使用します（`session.mainKey` およびデフォルトエージェント、またはグローバルスコープの `global` を考慮します）。
+- `sessionKey`（string、任意）: 対象のセッションキー。省略された場合、または `"main"` の場合、Gateway は設定されたメインのセッションキーを使用します（`session.mainKey` およびデフォルトエージェントを尊重するか、グローバルスコープでは `global` を使用します）。
 - `dryRun`（boolean、任意）: 将来使用のために予約されています。現在は無視されます。
 
-## ポリシー + ルーティング動作
+## ポリシー + ルーティングの挙動
 
-ツールの利用可否は、Gateway エージェントで使用されるのと同じポリシーチェーンを通じて判定されます。
+ツールの可用性は、Gateway エージェントで使用されるのと同じポリシーチェーンを通じてフィルタリングされます。
 
 - `tools.profile` / `tools.byProvider.profile`
 - `tools.allow` / `tools.byProvider.allow`
@@ -63,7 +63,7 @@ Gateway の認証設定を使用します。Bearer トークンを送信して�
 - グループポリシー（セッションキーがグループまたはチャンネルにマッピングされている場合）
 - サブエージェントポリシー（サブエージェントのセッションキーで呼び出す場合）
 
-ツールがポリシーで許可されていない場合、このエンドポイントは **404** を返します。
+ツールがポリシーで許可されていない場合、エンドポイントは **404** を返します。
 
 グループポリシーがコンテキストを解決しやすくするために、任意で次を設定できます。
 
@@ -75,8 +75,8 @@ Gateway の認証設定を使用します。Bearer トークンを送信して�
 - `200` → `{ ok: true, result }`
 - `400` → `{ ok: false, error: { type, message } }`（無効なリクエストまたはツールエラー）
 - `401` → 未認証
-- `404` → ツールが利用不可（未検出または allowlist に未登録）
-- `405` → 許可されていないメソッド
+- `404` → ツールが利用不可（未検出、または許可リストに含まれていない）
+- `405` → メソッドが許可されていません
 
 ## 例
 

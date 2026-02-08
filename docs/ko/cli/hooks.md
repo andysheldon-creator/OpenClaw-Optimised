@@ -1,40 +1,40 @@
 ---
-summary: "`openclaw hooks`(에이전트 후크)에 대한 CLI 참조"
+summary: "`openclaw hooks` (에이전트 훅)용 CLI 참조"
 read_when:
-  - 에이전트 후크를 관리하려는 경우
-  - 후크를 설치하거나 업데이트하려는 경우
+  - 에이전트 훅을 관리하려는 경우
+  - 훅을 설치하거나 업데이트하려는 경우
 title: "hooks"
 x-i18n:
   source_path: cli/hooks.md
-  source_hash: e2032e61ff4b9135
+  source_hash: b3cb5c4ce63c5ad3
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:35:36Z
+  generated_at: 2026-02-08T09:24:25Z
 ---
 
 # `openclaw hooks`
 
-에이전트 후크를 관리합니다(`/new`, `/reset`, 그리고 게이트웨이 시작과 같은 명령을 위한 이벤트 기반 자동화).
+에이전트 훅을 관리합니다(`/new`, `/reset` 및 Gateway(게이트웨이) 시작과 같은 명령을 위한 이벤트 기반 자동화).
 
 관련 항목:
 
-- Hooks: [Hooks](/hooks)
-- 플러그인 후크: [Plugins](/plugin#plugin-hooks)
+- Hooks: [Hooks](/automation/hooks)
+- 플러그인 훅: [Plugins](/tools/plugin#plugin-hooks)
 
-## 모든 후크 나열
+## 모든 훅 나열
 
 ```bash
 openclaw hooks list
 ```
 
-워크스페이스, 관리됨, 번들 디렉토리에서 발견된 모든 후크를 나열합니다.
+워크스페이스, 관리됨, 번들 디렉토리에서 발견된 모든 훅을 나열합니다.
 
 **옵션:**
 
-- `--eligible`: 적격한 후크만 표시(요구 사항 충족)
-- `--json`: JSON 형식으로 출력
-- `-v, --verbose`: 누락된 요구 사항을 포함한 상세 정보 표시
+- `--eligible`: 적격한 훅만 표시(요구 사항 충족)
+- `--json`: JSON 으로 출력
+- `-v, --verbose`: 누락된 요구 사항을 포함한 자세한 정보 표시
 
 **출력 예시:**
 
@@ -48,13 +48,13 @@ Ready:
   😈 soul-evil ✓ - Swap injected SOUL content during a purge window or by random chance
 ```
 
-**예시(상세):**
+**예시(자세히):**
 
 ```bash
 openclaw hooks list --verbose
 ```
 
-부적격한 후크에 대한 누락된 요구 사항을 표시합니다.
+부적격 훅에 대한 누락된 요구 사항을 표시합니다.
 
 **예시(JSON):**
 
@@ -64,21 +64,21 @@ openclaw hooks list --json
 
 프로그래밍 방식 사용을 위한 구조화된 JSON 을 반환합니다.
 
-## 후크 정보 가져오기
+## 훅 정보 가져오기
 
 ```bash
 openclaw hooks info <name>
 ```
 
-특정 후크에 대한 상세 정보를 표시합니다.
+특정 훅에 대한 자세한 정보를 표시합니다.
 
 **인수:**
 
-- `<name>`: 후크 이름(예: `session-memory`)
+- `<name>`: 훅 이름(예: `session-memory`)
 
 **옵션:**
 
-- `--json`: JSON 형식으로 출력
+- `--json`: JSON 으로 출력
 
 **예시:**
 
@@ -104,17 +104,17 @@ Requirements:
   Config: ✓ workspace.dir
 ```
 
-## 후크 적격성 확인
+## 훅 적격성 확인
 
 ```bash
 openclaw hooks check
 ```
 
-후크 적격성 상태 요약을 표시합니다(준비됨 vs. 준비되지 않음의 개수).
+훅 적격성 상태 요약을 표시합니다(준비됨 vs. 준비되지 않음 수).
 
 **옵션:**
 
-- `--json`: JSON 형식으로 출력
+- `--json`: JSON 으로 출력
 
 **출력 예시:**
 
@@ -126,20 +126,20 @@ Ready: 4
 Not ready: 0
 ```
 
-## 후크 활성화
+## 훅 활성화
 
 ```bash
 openclaw hooks enable <name>
 ```
 
-구성(`~/.openclaw/config.json`)에 추가하여 특정 후크를 활성화합니다.
+구성(`~/.openclaw/config.json`)에 추가하여 특정 훅을 활성화합니다.
 
-**참고:** 플러그인에서 관리되는 후크는 `openclaw hooks list` 에서 `plugin:<id>` 로 표시되며,
-여기에서 활성화/비활성화할 수 없습니다. 대신 플러그인을 활성화/비활성화하십시오.
+**참고:** 플러그인에서 관리되는 훅은 `openclaw hooks list` 에서 `plugin:<id>` 로 표시되며,
+여기서 활성화/비활성화할 수 없습니다. 대신 플러그인을 활성화/비활성화하십시오.
 
 **인수:**
 
-- `<name>`: 후크 이름(예: `session-memory`)
+- `<name>`: 훅 이름(예: `session-memory`)
 
 **예시:**
 
@@ -155,25 +155,25 @@ openclaw hooks enable session-memory
 
 **동작 내용:**
 
-- 후크가 존재하고 적격한지 확인
-- 구성에서 `hooks.internal.entries.<name>.enabled = true` 업데이트
+- 훅이 존재하고 적격한지 확인
+- 구성의 `hooks.internal.entries.<name>.enabled = true` 업데이트
 - 구성을 디스크에 저장
 
 **활성화 후:**
 
-- 후크가 다시 로드되도록 게이트웨이를 재시작하십시오(macOS 에서는 메뉴 막대 앱 재시작, 개발 환경에서는 게이트웨이 프로세스 재시작).
+- 훅이 다시 로드되도록 Gateway(게이트웨이)를 재시작하십시오(macOS 에서는 메뉴 막대 앱 재시작, 개발 환경에서는 게이트웨이 프로세스 재시작).
 
-## 후크 비활성화
+## 훅 비활성화
 
 ```bash
 openclaw hooks disable <name>
 ```
 
-구성을 업데이트하여 특정 후크를 비활성화합니다.
+구성을 업데이트하여 특정 훅을 비활성화합니다.
 
 **인수:**
 
-- `<name>`: 후크 이름(예: `command-logger`)
+- `<name>`: 훅 이름(예: `command-logger`)
 
 **예시:**
 
@@ -189,21 +189,21 @@ openclaw hooks disable command-logger
 
 **비활성화 후:**
 
-- 후크가 다시 로드되도록 게이트웨이를 재시작하십시오.
+- 훅이 다시 로드되도록 Gateway(게이트웨이)를 재시작하십시오
 
-## 후크 설치
+## 훅 설치
 
 ```bash
 openclaw hooks install <path-or-spec>
 ```
 
-로컬 폴더/아카이브 또는 npm 에서 후크 팩을 설치합니다.
+로컬 폴더/아카이브 또는 npm 에서 훅 팩을 설치합니다.
 
 **동작 내용:**
 
-- 후크 팩을 `~/.openclaw/hooks/<id>` 로 복사
-- 설치된 후크를 `hooks.internal.entries.*` 에서 활성화
-- `hooks.internal.installs` 아래에 설치 기록 저장
+- 훅 팩을 `~/.openclaw/hooks/<id>` 에 복사
+- 설치된 훅을 `hooks.internal.entries.*` 에서 활성화
+- 설치 기록을 `hooks.internal.installs` 에 저장
 
 **옵션:**
 
@@ -227,21 +227,21 @@ openclaw hooks install @openclaw/my-hook-pack
 openclaw hooks install -l ./my-hook-pack
 ```
 
-## 후크 업데이트
+## 훅 업데이트
 
 ```bash
 openclaw hooks update <id>
 openclaw hooks update --all
 ```
 
-설치된 후크 팩을 업데이트합니다(npm 설치만 해당).
+설치된 훅 팩을 업데이트합니다(npm 설치만 해당).
 
 **옵션:**
 
-- `--all`: 추적 중인 모든 후크 팩 업데이트
-- `--dry-run`: 실제로 기록하지 않고 변경 사항만 표시
+- `--all`: 추적 중인 모든 훅 팩 업데이트
+- `--dry-run`: 쓰기 없이 변경 사항 미리보기
 
-## 번들된 후크
+## 번들 훅
 
 ### session-memory
 
@@ -255,7 +255,7 @@ openclaw hooks enable session-memory
 
 **출력:** `~/.openclaw/workspace/memory/YYYY-MM-DD-slug.md`
 
-**참고:** [session-memory 문서](/hooks#session-memory)
+**참고:** [session-memory 문서](/automation/hooks#session-memory)
 
 ### command-logger
 
@@ -282,11 +282,11 @@ cat ~/.openclaw/logs/commands.log | jq .
 grep '"action":"new"' ~/.openclaw/logs/commands.log | jq .
 ```
 
-**참고:** [command-logger 문서](/hooks#command-logger)
+**참고:** [command-logger 문서](/automation/hooks#command-logger)
 
 ### soul-evil
 
-정화 기간 동안 또는 무작위 확률로 주입된 `SOUL.md` 콘텐츠를 `SOUL_EVIL.md` 로 교체합니다.
+정화 창 동안 또는 무작위 확률로 주입된 `SOUL.md` 콘텐츠를 `SOUL_EVIL.md` 로 교체합니다.
 
 **활성화:**
 
@@ -298,7 +298,7 @@ openclaw hooks enable soul-evil
 
 ### boot-md
 
-게이트웨이가 시작될 때(채널 시작 이후) `BOOT.md` 를 실행합니다.
+Gateway(게이트웨이) 시작 시(채널 시작 이후) `BOOT.md` 를 실행합니다.
 
 **이벤트**: `gateway:startup`
 
@@ -308,4 +308,4 @@ openclaw hooks enable soul-evil
 openclaw hooks enable boot-md
 ```
 
-**참고:** [boot-md 문서](/hooks#boot-md)
+**참고:** [boot-md 문서](/automation/hooks#boot-md)

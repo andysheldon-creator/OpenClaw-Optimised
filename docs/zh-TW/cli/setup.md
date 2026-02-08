@@ -1,8 +1,8 @@
 ---
-summary: "用於 `openclaw setup` 的 CLI 參考（初始化設定 + 工作區）"
+summary: "CLI 參考文件：`openclaw setup`（初始化設定與工作區）"
 read_when:
-  - 你在未使用完整入門引導精靈的情況下進行首次執行設定
-  - 你想要設定預設的工作區路徑
+  - 「在未使用完整入門引導精靈的情況下進行首次執行設定」
+  - 「想要設定預設的工作區路徑」
 title: "設定"
 x-i18n:
   source_path: cli/setup.md
@@ -10,7 +10,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:52:41Z
+  generated_at: 2026-02-08T09:27:27Z
 ---
 
 # `openclaw setup`
@@ -19,7 +19,7 @@ x-i18n:
 
 相關：
 
-- 入門指南：[入門指南](/start/getting-started)
+- 入門指南：[Getting started](/start/getting-started)
 - 精靈：[入門引導](/start/onboarding)
 
 ## 範例

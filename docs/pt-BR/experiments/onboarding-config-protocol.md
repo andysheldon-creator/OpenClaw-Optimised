@@ -1,29 +1,29 @@
 ---
-summary: "Notas do protocolo RPC para o assistente de integracao inicial e o esquema de configuracao"
-read_when: "Ao alterar as etapas do assistente de integracao inicial ou os endpoints do esquema de configuracao"
-title: "Integracao Inicial e Protocolo de Configuracao"
+summary: "Notas do protocolo RPC para o assistente de integração inicial e o esquema de configuração"
+read_when: "Ao alterar as etapas do assistente de integração inicial ou os endpoints do esquema de configuração"
+title: "Protocolo de Integração Inicial e Configuração"
 x-i18n:
   source_path: experiments/onboarding-config-protocol.md
   source_hash: 55163b3ee029c024
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:56:06Z
+  generated_at: 2026-02-08T09:30:46Z
 ---
 
-# Integracao Inicial + Protocolo de Configuracao
+# Protocolo de Integração Inicial + Configuração
 
-Objetivo: superficies compartilhadas de integracao inicial + configuracao entre CLI, app macOS e Web UI.
+Objetivo: superfícies compartilhadas de integração inicial + configuração entre a CLI, o app macOS e a Web UI.
 
 ## Componentes
 
-- Mecanismo do assistente (sessao compartilhada + prompts + estado de integracao inicial).
-- A integracao inicial via CLI usa o mesmo fluxo de assistente que os clientes de UI.
-- O Gateway RPC expõe endpoints do assistente + do esquema de configuracao.
-- A integracao inicial no macOS usa o modelo de etapas do assistente.
-- A Web UI renderiza formularios de configuracao a partir de JSON Schema + dicas de UI.
+- Mecanismo do assistente (sessão compartilhada + prompts + estado de integração inicial).
+- A integração inicial via CLI usa o mesmo fluxo do assistente que os clientes de UI.
+- O RPC do Gateway expõe endpoints do assistente + do esquema de configuração.
+- A integração inicial no macOS usa o modelo de etapas do assistente.
+- A Web UI renderiza formulários de configuração a partir de JSON Schema + dicas de UI.
 
-## Gateway RPC
+## RPC do Gateway
 
 - `wizard.start` params: `{ mode?: "local"|"remote", workspace?: string }`
 - `wizard.next` params: `{ sessionId, answer?: { stepId, value? } }`
@@ -34,14 +34,14 @@ Objetivo: superficies compartilhadas de integracao inicial + configuracao entre 
 Respostas (formato)
 
 - Assistente: `{ sessionId, done, step?, status?, error? }`
-- Esquema de configuracao: `{ schema, uiHints, version, generatedAt }`
+- Esquema de configuração: `{ schema, uiHints, version, generatedAt }`
 
 ## Dicas de UI
 
-- `uiHints` indexadas por caminho; metadados opcionais (label/help/group/order/advanced/sensitive/placeholder).
-- Campos sensiveis sao renderizados como entradas de senha; sem camada de redacao.
-- Nos de esquema nao suportados recorrem ao editor JSON bruto.
+- `uiHints` com chave por caminho; metadados opcionais (rótulo/ajuda/grupo/ordem/avançado/sensível/placeholder).
+- Campos sensíveis são renderizados como entradas de senha; sem camada de redação.
+- Nós de esquema não suportados recorrem ao editor JSON bruto.
 
 ## Notas
 
-- Este documento e o unico local para acompanhar refatoracoes de protocolo para integracao inicial/configuracao.
+- Este documento é o único lugar para acompanhar refatorações de protocolo para integração inicial/configuração.

@@ -1,17 +1,17 @@
 ---
-summary: "Configuración de túnel SSH para OpenClaw.app conectándose a un Gateway remoto"
-read_when: "Conectando la aplicación de macOS a un Gateway remoto por SSH"
-title: "Configuración de Gateway Remoto"
+summary: "Configuración de un túnel SSH para OpenClaw.app al conectarse a un Gateway remoto"
+read_when: "Conectar la app de macOS a un Gateway remoto mediante SSH"
+title: "Configuración del Gateway remoto"
 x-i18n:
   source_path: gateway/remote-gateway-readme.md
   source_hash: b1ae266a7cb4911b
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:58:55Z
+  generated_at: 2026-02-08T09:33:33Z
 ---
 
-# Ejecutar OpenClaw.app con un Gateway Remoto
+# Ejecutar OpenClaw.app con un Gateway remoto
 
 OpenClaw.app utiliza túneles SSH para conectarse a un Gateway remoto. Esta guía le muestra cómo configurarlo.
 
@@ -37,9 +37,9 @@ OpenClaw.app utiliza túneles SSH para conectarse a un Gateway remoto. Esta guí
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## Inicio rapido
+## Configuración rápida
 
-### Paso 1: Agregar configuración SSH
+### Paso 1: Agregar configuración de SSH
 
 Edite `~/.ssh/config` y agregue:
 
@@ -55,7 +55,7 @@ Reemplace `<REMOTE_IP>` y `<REMOTE_USER>` con sus valores.
 
 ### Paso 2: Copiar la clave SSH
 
-Copie su clave pública a la máquina remota (ingrese la contraseña una vez):
+Copie su clave pública a la máquina remota (ingrese la contraseña una sola vez):
 
 ```bash
 ssh-copy-id -i ~/.ssh/id_rsa <REMOTE_USER>@<REMOTE_IP>
@@ -80,13 +80,13 @@ ssh -N remote-gateway &
 open /path/to/OpenClaw.app
 ```
 
-La aplicación ahora se conectará al Gateway remoto a través del túnel SSH.
+La app ahora se conectará al Gateway remoto a través del túnel SSH.
 
 ---
 
 ## Inicio automático del túnel al iniciar sesión
 
-Para que el túnel SSH se inicie automáticamente cuando inicie sesión, cree un Agente de Lanzamiento.
+Para que el túnel SSH se inicie automáticamente cuando usted inicie sesión, cree un Launch Agent.
 
 ### Crear el archivo PLIST
 
@@ -113,7 +113,7 @@ Guarde esto como `~/Library/LaunchAgents/bot.molt.ssh-tunnel.plist`:
 </plist>
 ```
 
-### Cargar el Agente de Lanzamiento
+### Cargar el Launch Agent
 
 ```bash
 launchctl bootstrap gui/$UID ~/Library/LaunchAgents/bot.molt.ssh-tunnel.plist
@@ -121,15 +121,15 @@ launchctl bootstrap gui/$UID ~/Library/LaunchAgents/bot.molt.ssh-tunnel.plist
 
 El túnel ahora:
 
-- Se iniciará automáticamente cuando inicie sesión
+- Se iniciará automáticamente cuando usted inicie sesión
 - Se reiniciará si falla
-- Seguirá ejecutándose en segundo plano
+- Se mantendrá en ejecución en segundo plano
 
 Nota heredada: elimine cualquier LaunchAgent `com.openclaw.ssh-tunnel` restante si existe.
 
 ---
 
-## solucion de problemas
+## Solución de problemas
 
 **Verificar si el túnel está en ejecución:**
 

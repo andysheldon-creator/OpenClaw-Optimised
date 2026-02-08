@@ -1,29 +1,25 @@
 ---
-summary: "Agentenwerkzeuge in einem Plugin schreiben (Schemata, optionale Werkzeuge, Allowlists)"
+summary: "Agent-Werkzeuge in einem Plugin schreiben (Schemas, optionale Werkzeuge, Allowlists)"
 read_when:
-  - Sie möchten ein neues Agentenwerkzeug in einem Plugin hinzufügen
-  - Sie müssen ein Werkzeug per Allowlist optional aktivierbar machen
-title: "Plugin-Agentenwerkzeuge"
+  - Sie möchten in einem Plugin ein neues Agent-Werkzeug hinzufügen
+  - Sie müssen ein Werkzeug per Allowlist optional machen
+title: "Plugin-Agent-Werkzeuge"
 x-i18n:
   source_path: plugins/agent-tools.md
   source_hash: 4479462e9d8b17b6
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:07Z
+  generated_at: 2026-02-08T09:36:58Z
 ---
 
-# Plugin-Agentenwerkzeuge
+# Plugin-Agent-Werkzeuge
 
-OpenClaw-Plugins können **Agentenwerkzeuge** (JSON-Schema-Funktionen) registrieren, die
-dem LLM während Agentenläufen zur Verfügung stehen. Werkzeuge können **erforderlich**
-(immer verfügbar) oder **optional** (Opt-in) sein.
+OpenClaw-Plugins können **Agent-Werkzeuge** (JSON‑Schema‑Funktionen) registrieren, die dem LLM während Agent-Läufen zur Verfügung gestellt werden. Werkzeuge können **erforderlich** (immer verfügbar) oder **optional** (Opt‑in) sein.
 
-Agentenwerkzeuge werden in der Hauptkonfiguration unter `tools` oder pro Agent
-unter `agents.list[].tools` konfiguriert. Die Allowlist-/Denylist-Richtlinie steuert, welche
-Werkzeuge der Agent aufrufen kann.
+Agent-Werkzeuge werden im Hauptkonfigurationsbereich unter `tools` oder agentenweise unter `agents.list[].tools` konfiguriert. Die Allowlist-/Denylist-Richtlinie steuert, welche Werkzeuge der Agent aufrufen kann.
 
-## Grundlegendes Werkzeug
+## Basis-Werkzeug
 
 ```ts
 import { Type } from "@sinclair/typebox";
@@ -42,10 +38,9 @@ export default function (api) {
 }
 ```
 
-## Optionales Werkzeug (Opt-in)
+## Optionales Werkzeug (Opt‑in)
 
-Optionale Werkzeuge werden **niemals** automatisch aktiviert. Benutzer müssen sie zu
-einer Agenten-Allowlist hinzufügen.
+Optionale Werkzeuge werden **niemals** automatisch aktiviert. Nutzer müssen sie einer Agent-Allowlist hinzufügen.
 
 ```ts
 export default function (api) {
@@ -90,19 +85,15 @@ Aktivieren Sie optionale Werkzeuge in `agents.list[].tools.allow` (oder global i
 }
 ```
 
-Weitere Konfigurationsparameter, die die Verfügbarkeit von Werkzeugen beeinflussen:
+Weitere Konfigurationsoptionen, die die Verfügbarkeit von Werkzeugen beeinflussen:
 
-- Allowlists, die nur Plugin-Werkzeuge benennen, werden als Plugin-Opt-ins behandelt;
-  Kernwerkzeuge bleiben aktiviert, es sei denn, Sie nehmen Kernwerkzeuge oder -gruppen
-  ebenfalls in die Allowlist auf.
+- Allowlists, die ausschließlich Plugin-Werkzeuge nennen, werden als Plugin-Opt-ins behandelt; Kernwerkzeuge bleiben aktiviert, sofern Sie nicht auch Kernwerkzeuge oder -gruppen in der Allowlist aufnehmen.
 - `tools.profile` / `agents.list[].tools.profile` (Basis-Allowlist)
-- `tools.byProvider` / `agents.list[].tools.byProvider` (anbieter­spezifisches Allow/Deny)
-- `tools.sandbox.tools.*` (Sandbox-Werkzeugrichtlinie bei Sandboxing)
+- `tools.byProvider` / `agents.list[].tools.byProvider` (anbieter­spezifisches Zulassen/Verweigern)
+- `tools.sandbox.tools.*` (Sandbox-Werkzeugrichtlinie bei Sandbox-Betrieb)
 
 ## Regeln + Tipps
 
-- Werkzeugnamen dürfen **nicht** mit Namen von Kernwerkzeugen kollidieren; kollidierende
-  Werkzeuge werden übersprungen.
+- Werkzeugnamen dürfen **nicht** mit Namen von Kernwerkzeugen kollidieren; kollidierende Werkzeuge werden übersprungen.
 - In Allowlists verwendete Plugin-IDs dürfen nicht mit Namen von Kernwerkzeugen kollidieren.
-- Bevorzugen Sie `optional: true` für Werkzeuge, die Nebenwirkungen auslösen oder
-  zusätzliche Binärdateien/Anmeldeinformationen erfordern.
+- Bevorzugen Sie `optional: true` für Werkzeuge, die Nebenwirkungen auslösen oder zusätzliche Binärdateien/Anmeldedaten erfordern.

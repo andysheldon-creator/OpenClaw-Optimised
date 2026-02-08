@@ -1,23 +1,23 @@
 ---
-summary: "Tài liệu tham chiếu OpenClaw CLI cho các lệnh, lệnh con và tùy chọn `openclaw`"
+summary: "Tài liệu tham chiếu CLI OpenClaw cho các lệnh, lệnh con và tùy chọn của `openclaw`"
 read_when:
-  - Thêm hoặc sửa đổi các lệnh hay tùy chọn CLI
+  - Thêm hoặc sửa đổi các lệnh hoặc tùy chọn CLI
   - Ghi tài liệu cho các bề mặt lệnh mới
 title: "Tham chiếu CLI"
 x-i18n:
   source_path: cli/index.md
-  source_hash: 973e7806d0261c6a
+  source_hash: 0013f522ac602176
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:28Z
+  generated_at: 2026-02-08T09:39:22Z
 ---
 
 # Tham chiếu CLI
 
-Trang này mô tả hành vi CLI hiện tại. Nếu lệnh thay đổi, hãy cập nhật tài liệu này.
+Trang này mô tả hành vi CLI hiện tại. Nếu các lệnh thay đổi, hãy cập nhật tài liệu này.
 
-## Các trang lệnh
+## Trang lệnh
 
 - [`setup`](/cli/setup)
 - [`onboard`](/cli/onboard)
@@ -53,7 +53,7 @@ Trang này mô tả hành vi CLI hiện tại. Nếu lệnh thay đổi, hãy c�
 - [`hooks`](/cli/hooks)
 - [`webhooks`](/cli/webhooks)
 - [`pairing`](/cli/pairing)
-- [`plugins`](/cli/plugins) (các lệnh plugin)
+- [`plugins`](/cli/plugins) (lệnh plugin)
 - [`channels`](/cli/channels)
 - [`security`](/cli/security)
 - [`skills`](/cli/skills)
@@ -61,16 +61,16 @@ Trang này mô tả hành vi CLI hiện tại. Nếu lệnh thay đổi, hãy c�
 
 ## Cờ toàn cục
 
-- `--dev`: cô lập trạng thái dưới `~/.openclaw-dev` và dịch các cổng mặc định.
+- `--dev`: cô lập trạng thái dưới `~/.openclaw-dev` và dịch chuyển các cổng mặc định.
 - `--profile <name>`: cô lập trạng thái dưới `~/.openclaw-<name>`.
 - `--no-color`: tắt màu ANSI.
-- `--update`: viết tắt cho `openclaw update` (chỉ cài đặt từ nguồn).
+- `--update`: dạng viết tắt của `openclaw update` (chỉ cho cài đặt từ nguồn).
 - `-V`, `--version`, `-v`: in phiên bản và thoát.
 
 ## Kiểu hiển thị đầu ra
 
 - Màu ANSI và chỉ báo tiến trình chỉ hiển thị trong phiên TTY.
-- Liên kết OSC-8 hiển thị như liên kết có thể bấm trong terminal được hỗ trợ; nếu không, sẽ dùng URL thuần.
+- Liên kết OSC-8 hiển thị dưới dạng liên kết có thể bấm trong các terminal được hỗ trợ; nếu không sẽ chuyển sang URL thuần.
 - `--json` (và `--plain` khi được hỗ trợ) tắt tạo kiểu để có đầu ra sạch.
 - `--no-color` tắt tạo kiểu ANSI; `NO_COLOR=1` cũng được tôn trọng.
 - Các lệnh chạy lâu hiển thị chỉ báo tiến trình (OSC 9;4 khi được hỗ trợ).
@@ -81,12 +81,12 @@ OpenClaw dùng bảng màu lobster cho đầu ra CLI.
 
 - `accent` (#FF5A2D): tiêu đề, nhãn, điểm nhấn chính.
 - `accentBright` (#FF7A3D): tên lệnh, nhấn mạnh.
-- `accentDim` (#D14A22): văn bản nhấn mạnh phụ.
+- `accentDim` (#D14A22): văn bản nhấn mạnh thứ cấp.
 - `info` (#FF8A5B): giá trị thông tin.
 - `success` (#2FBF71): trạng thái thành công.
-- `warn` (#FFB020): cảnh báo, phương án dự phòng, chú ý.
+- `warn` (#FFB020): cảnh báo, phương án dự phòng, thu hút chú ý.
 - `error` (#E23D2D): lỗi, thất bại.
-- `muted` (#8B7F77): giảm nhấn mạnh, metadata.
+- `muted` (#8B7F77): giảm nhấn mạnh, siêu dữ liệu.
 
 Nguồn chuẩn của bảng màu: `src/terminal/palette.ts` (còn gọi là “lobster seam”).
 
@@ -244,45 +244,45 @@ openclaw [--dev] [--profile <name>] <command>
   tui
 ```
 
-Lưu ý: plugin có thể thêm các lệnh cấp cao mới (ví dụ `openclaw voicecall`).
+Lưu ý: plugin có thể thêm các lệnh cấp cao nhất bổ sung (ví dụ `openclaw voicecall`).
 
 ## Bảo mật
 
-- `openclaw security audit` — kiểm tra cấu hình + trạng thái cục bộ để phát hiện các lỗi bảo mật thường gặp.
-- `openclaw security audit --deep` — thăm dò Gateway trực tiếp theo cách best-effort.
-- `openclaw security audit --fix` — siết chặt mặc định an toàn và chmod trạng thái/cấu hình.
+- `openclaw security audit` — kiểm tra cấu hình + trạng thái cục bộ để phát hiện các lỗi bảo mật phổ biến.
+- `openclaw security audit --deep` — thăm dò Gateway trực tiếp theo kiểu best-effort.
+- `openclaw security audit --fix` — siết chặt các mặc định an toàn và chmod trạng thái/cấu hình.
 
 ## Plugin
 
 Quản lý các phần mở rộng và cấu hình của chúng:
 
 - `openclaw plugins list` — khám phá plugin (dùng `--json` cho đầu ra máy).
-- `openclaw plugins info <id>` — hiển thị chi tiết của một plugin.
-- `openclaw plugins install <path|.tgz|npm-spec>` — cài plugin (hoặc thêm đường dẫn plugin vào `plugins.load.paths`).
+- `openclaw plugins info <id>` — hiển thị chi tiết một plugin.
+- `openclaw plugins install <path|.tgz|npm-spec>` — cài đặt plugin (hoặc thêm đường dẫn plugin vào `plugins.load.paths`).
 - `openclaw plugins enable <id>` / `disable <id>` — bật/tắt `plugins.entries.<id>.enabled`.
 - `openclaw plugins doctor` — báo cáo lỗi tải plugin.
 
-Hầu hết thay đổi plugin cần khởi động lại gateway. Xem [/plugin](/plugin).
+Hầu hết thay đổi plugin yêu cầu khởi động lại gateway. Xem [/plugin](/tools/plugin).
 
-## Bộ nhớ
+## Memory
 
 Tìm kiếm vector trên `MEMORY.md` + `memory/*.md`:
 
 - `openclaw memory status` — hiển thị thống kê chỉ mục.
-- `openclaw memory index` — lập chỉ mục lại các tệp bộ nhớ.
-- `openclaw memory search "<query>"` — tìm kiếm ngữ nghĩa trên bộ nhớ.
+- `openclaw memory index` — lập chỉ mục lại các tệp memory.
+- `openclaw memory search "<query>"` — tìm kiếm ngữ nghĩa trên memory.
 
-## Lệnh slash trong chat
+## Lệnh gạch chéo trong chat
 
 Tin nhắn chat hỗ trợ các lệnh `/...` (văn bản và native). Xem [/tools/slash-commands](/tools/slash-commands).
 
 Điểm nổi bật:
 
 - `/status` để chẩn đoán nhanh.
-- `/config` cho thay đổi cấu hình được lưu.
-- `/debug` cho ghi đè cấu hình chỉ lúc chạy (trong bộ nhớ, không ghi đĩa; yêu cầu `commands.debug: true`).
+- `/config` cho các thay đổi cấu hình được lưu bền.
+- `/debug` cho ghi đè cấu hình chỉ khi chạy (memory, không ghi đĩa; yêu cầu `commands.debug: true`).
 
-## Thiết lập + onboarding
+## Thiết lập + hướng dẫn ban đầu
 
 ### `setup`
 
@@ -290,14 +290,14 @@ Khởi tạo cấu hình + workspace.
 
 Tùy chọn:
 
-- `--workspace <dir>`: đường dẫn workspace của agent (mặc định `~/.openclaw/workspace`).
-- `--wizard`: chạy trình hướng dẫn onboarding.
-- `--non-interactive`: chạy trình hướng dẫn không cần nhắc.
+- `--workspace <dir>`: đường dẫn workspace tác tử (mặc định `~/.openclaw/workspace`).
+- `--wizard`: chạy trình hướng dẫn ban đầu.
+- `--non-interactive`: chạy trình hướng dẫn không có lời nhắc.
 - `--mode <local|remote>`: chế độ trình hướng dẫn.
 - `--remote-url <url>`: URL Gateway từ xa.
 - `--remote-token <token>`: token Gateway từ xa.
 
-Trình hướng dẫn tự chạy khi có bất kỳ cờ wizard nào (`--non-interactive`, `--mode`, `--remote-url`, `--remote-token`).
+Trình hướng dẫn tự chạy khi có bất kỳ cờ trình hướng dẫn nào (`--non-interactive`, `--mode`, `--remote-url`, `--remote-token`).
 
 ### `onboard`
 
@@ -306,7 +306,7 @@ Trình hướng dẫn tương tác để thiết lập gateway, workspace và sk
 Tùy chọn:
 
 - `--workspace <dir>`
-- `--reset` (đặt lại cấu hình + thông tin xác thực + phiên + workspace trước khi chạy wizard)
+- `--reset` (đặt lại cấu hình + thông tin xác thực + phiên + workspace trước khi chạy)
 - `--non-interactive`
 - `--mode <local|remote>`
 - `--flow <quickstart|advanced|manual>` (manual là bí danh của advanced)
@@ -341,33 +341,33 @@ Tùy chọn:
 - `--skip-skills`
 - `--skip-health`
 - `--skip-ui`
-- `--node-manager <npm|pnpm|bun>` (khuyến nghị pnpm; bun không được khuyến nghị cho runtime Gateway)
+- `--node-manager <npm|pnpm|bun>` (khuyến nghị pnpm; không khuyến nghị bun cho runtime Gateway)
 - `--json`
 
 ### `configure`
 
-Trình hướng dẫn cấu hình tương tác (models, channels, skills, gateway).
+Trình hướng dẫn cấu hình tương tác (mô hình, kênh, skills, gateway).
 
 ### `config`
 
-Các trợ giúp cấu hình không tương tác (get/set/unset). Chạy `openclaw config` không có
-lệnh con sẽ khởi chạy wizard.
+Các trợ giúp cấu hình không tương tác (get/set/unset). Chạy `openclaw config` không kèm
+lệnh con sẽ mở trình hướng dẫn.
 
-Các lệnh con:
+Lệnh con:
 
-- `config get <path>`: in một giá trị cấu hình (đường dẫn chấm/ngoặc).
+- `config get <path>`: in một giá trị cấu hình (đường dẫn dot/bracket).
 - `config set <path> <value>`: đặt một giá trị (JSON5 hoặc chuỗi thô).
 - `config unset <path>`: xóa một giá trị.
 
 ### `doctor`
 
-Kiểm tra sức khỏe + sửa nhanh (cấu hình + gateway + dịch vụ legacy).
+Kiểm tra sức khỏe + sửa nhanh (cấu hình + gateway + dịch vụ cũ).
 
 Tùy chọn:
 
-- `--no-workspace-suggestions`: tắt gợi ý bộ nhớ workspace.
-- `--yes`: chấp nhận mặc định không cần nhắc (headless).
-- `--non-interactive`: bỏ qua nhắc; chỉ áp dụng di trú an toàn.
+- `--no-workspace-suggestions`: tắt gợi ý memory của workspace.
+- `--yes`: chấp nhận mặc định không cần hỏi (headless).
+- `--non-interactive`: bỏ qua lời nhắc; chỉ áp dụng di trú an toàn.
 - `--deep`: quét dịch vụ hệ thống để tìm các cài đặt gateway bổ sung.
 
 ## Trợ giúp kênh
@@ -376,16 +376,16 @@ Tùy chọn:
 
 Quản lý tài khoản kênh chat (WhatsApp/Telegram/Discord/Google Chat/Slack/Mattermost (plugin)/Signal/iMessage/MS Teams).
 
-Các lệnh con:
+Lệnh con:
 
 - `channels list`: hiển thị các kênh đã cấu hình và hồ sơ xác thực.
-- `channels status`: kiểm tra khả năng truy cập gateway và sức khỏe kênh (`--probe` chạy thêm kiểm tra; dùng `openclaw health` hoặc `openclaw status --deep` cho thăm dò sức khỏe gateway).
-- Mẹo: `channels status` in cảnh báo kèm đề xuất sửa khi phát hiện cấu hình sai phổ biến (sau đó trỏ bạn tới `openclaw doctor`).
+- `channels status`: kiểm tra khả năng truy cập gateway và sức khỏe kênh (`--probe` chạy thêm kiểm tra; dùng `openclaw health` hoặc `openclaw status --deep` để thăm dò sức khỏe gateway).
+- Mẹo: `channels status` in cảnh báo kèm gợi ý sửa khi phát hiện được các cấu hình sai phổ biến (sau đó trỏ bạn tới `openclaw doctor`).
 - `channels logs`: hiển thị log kênh gần đây từ tệp log gateway.
-- `channels add`: thiết lập theo kiểu wizard khi không truyền cờ; truyền cờ sẽ chuyển sang chế độ không tương tác.
-- `channels remove`: mặc định là tắt; truyền `--delete` để xóa mục cấu hình không cần nhắc.
+- `channels add`: thiết lập kiểu trình hướng dẫn khi không có cờ; dùng cờ để chuyển sang chế độ không tương tác.
+- `channels remove`: mặc định bị vô hiệu; truyền `--delete` để xóa mục cấu hình không cần hỏi.
 - `channels login`: đăng nhập kênh tương tác (chỉ WhatsApp Web).
-- `channels logout`: đăng xuất phiên kênh (nếu được hỗ trợ).
+- `channels logout`: đăng xuất khỏi phiên kênh (nếu được hỗ trợ).
 
 Tùy chọn chung:
 
@@ -406,8 +406,8 @@ Tùy chọn `channels logout`:
 
 Tùy chọn `channels list`:
 
-- `--no-usage`: bỏ qua snapshot sử dụng/hạn mức của nhà cung cấp model (chỉ OAuth/API-backed).
-- `--json`: xuất JSON (bao gồm usage trừ khi đặt `--no-usage`).
+- `--no-usage`: bỏ qua snapshot sử dụng/hạn mức của nhà cung cấp mô hình (chỉ OAuth/API).
+- `--json`: xuất JSON (bao gồm sử dụng trừ khi đặt `--no-usage`).
 
 Tùy chọn `channels logs`:
 
@@ -429,17 +429,17 @@ openclaw status --deep
 
 ### `skills`
 
-Liệt kê và kiểm tra skills khả dụng cùng thông tin sẵn sàng.
+Liệt kê và kiểm tra skills khả dụng kèm thông tin sẵn sàng.
 
-Các lệnh con:
+Lệnh con:
 
 - `skills list`: liệt kê skills (mặc định khi không có lệnh con).
 - `skills info <name>`: hiển thị chi tiết một skill.
-- `skills check`: tóm tắt trạng thái sẵn sàng so với thiếu yêu cầu.
+- `skills check`: tóm tắt yêu cầu đã sẵn sàng so với còn thiếu.
 
 Tùy chọn:
 
-- `--eligible`: chỉ hiển thị skills sẵn sàng.
+- `--eligible`: chỉ hiển thị skills đã sẵn sàng.
 - `--json`: xuất JSON (không tạo kiểu).
 - `-v`, `--verbose`: bao gồm chi tiết yêu cầu còn thiếu.
 
@@ -447,9 +447,9 @@ Mẹo: dùng `npx clawhub` để tìm kiếm, cài đặt và đồng bộ skill
 
 ### `pairing`
 
-Phê duyệt yêu cầu ghép cặp Tin nhan truc tiep trên các kênh.
+Phê duyệt yêu cầu ghép cặp DM trên các kênh.
 
-Các lệnh con:
+Lệnh con:
 
 - `pairing list <channel> [--json]`
 - `pairing approve <channel> <code> [--notify]`
@@ -458,10 +458,10 @@ Các lệnh con:
 
 Thiết lập + chạy hook Gmail Pub/Sub. Xem [/automation/gmail-pubsub](/automation/gmail-pubsub).
 
-Các lệnh con:
+Lệnh con:
 
 - `webhooks gmail setup` (yêu cầu `--account <email>`; hỗ trợ `--project`, `--topic`, `--subscription`, `--label`, `--hook-url`, `--hook-token`, `--push-token`, `--bind`, `--port`, `--path`, `--include-body`, `--max-bytes`, `--renew-minutes`, `--tailscale`, `--tailscale-path`, `--tailscale-target`, `--push-endpoint`, `--json`)
-- `webhooks gmail run` (ghi đè runtime cho cùng các cờ)
+- `webhooks gmail run` (ghi đè runtime cho các cờ tương tự)
 
 ### `dns setup`
 
@@ -469,17 +469,17 @@ Trợ giúp DNS khám phá diện rộng (CoreDNS + Tailscale). Xem [/gateway/di
 
 Tùy chọn:
 
-- `--apply`: cài/cập nhật cấu hình CoreDNS (yêu cầu sudo; chỉ macOS).
+- `--apply`: cài đặt/cập nhật cấu hình CoreDNS (yêu cầu sudo; chỉ macOS).
 
-## Nhắn tin + agent
+## Nhắn tin + tác tử
 
 ### `message`
 
-Nhắn tin đi thống nhất + hành động kênh.
+Nhắn tin gửi đi thống nhất + hành động kênh.
 
 Xem: [/cli/message](/cli/message)
 
-Các lệnh con:
+Lệnh con:
 
 - `message send|poll|react|reactions|read|edit|delete|pin|unpin|pins|permissions|search|timeout|kick|ban`
 - `message thread <create|list|reply>`
@@ -498,7 +498,7 @@ Ví dụ:
 
 ### `agent`
 
-Chạy một lượt agent qua Gateway (hoặc `--local` nhúng).
+Chạy một lượt tác tử qua Gateway (hoặc `--local` nhúng).
 
 Bắt buộc:
 
@@ -508,7 +508,7 @@ Tùy chọn:
 
 - `--to <dest>` (cho khóa phiên và phân phối tùy chọn)
 - `--session-id <id>`
-- `--thinking <off|minimal|low|medium|high|xhigh>` (chỉ các model GPT-5.2 + Codex)
+- `--thinking <off|minimal|low|medium|high|xhigh>` (chỉ mô hình GPT-5.2 + Codex)
 - `--verbose <on|full|off>`
 - `--channel <whatsapp|telegram|discord|slack|mattermost|signal|imessage|msteams>`
 - `--local`
@@ -518,11 +518,11 @@ Tùy chọn:
 
 ### `agents`
 
-Quản lý agent cô lập (workspaces + xác thực + định tuyến).
+Quản lý các tác tử cô lập (workspaces + xác thực + định tuyến).
 
 #### `agents list`
 
-Liệt kê các agent đã cấu hình.
+Liệt kê các tác tử đã cấu hình.
 
 Tùy chọn:
 
@@ -531,22 +531,22 @@ Tùy chọn:
 
 #### `agents add [name]`
 
-Thêm một agent cô lập mới. Chạy wizard hướng dẫn trừ khi truyền cờ (hoặc `--non-interactive`); `--workspace` là bắt buộc ở chế độ không tương tác.
+Thêm một tác tử cô lập mới. Chạy trình hướng dẫn có dẫn dắt trừ khi truyền cờ (hoặc `--non-interactive`); `--workspace` là bắt buộc trong chế độ không tương tác.
 
 Tùy chọn:
 
 - `--workspace <dir>`
 - `--model <id>`
 - `--agent-dir <dir>`
-- `--bind <channel[:accountId]>` (có thể lặp)
+- `--bind <channel[:accountId]>` (lặp lại)
 - `--non-interactive`
 - `--json`
 
-Đặc tả binding dùng `channel[:accountId]`. Khi bỏ `accountId` cho WhatsApp, id tài khoản mặc định sẽ được dùng.
+Đặc tả ràng buộc dùng `channel[:accountId]`. Khi bỏ qua `accountId` cho WhatsApp, id tài khoản mặc định được dùng.
 
 #### `agents delete <id>`
 
-Xóa một agent và dọn workspace + trạng thái của nó.
+Xóa một tác tử và dọn dẹp workspace + trạng thái của nó.
 
 Tùy chọn:
 
@@ -568,35 +568,35 @@ Tùy chọn:
 - `--json`
 - `--all` (chẩn đoán đầy đủ; chỉ đọc, có thể dán)
 - `--deep` (thăm dò kênh)
-- `--usage` (hiển thị sử dụng/hạn mức nhà cung cấp model)
+- `--usage` (hiển thị sử dụng/hạn mức của nhà cung cấp mô hình)
 - `--timeout <ms>`
 - `--verbose`
-- `--debug` (bí danh cho `--verbose`)
+- `--debug` (bí danh của `--verbose`)
 
 Ghi chú:
 
-- Tổng quan bao gồm trạng thái dịch vụ Gateway + node host khi có.
+- Tổng quan bao gồm trạng thái Gateway + dịch vụ máy chủ node khi có.
 
 ### Theo dõi sử dụng
 
 OpenClaw có thể hiển thị sử dụng/hạn mức của nhà cung cấp khi có thông tin xác thực OAuth/API.
 
-Các bề mặt:
+Bề mặt hiển thị:
 
-- `/status` (thêm một dòng sử dụng ngắn của nhà cung cấp khi có)
-- `openclaw status --usage` (in phân tích đầy đủ theo nhà cung cấp)
-- Thanh menu macOS (mục Usage dưới Context)
+- `/status` (thêm một dòng ngắn về sử dụng nhà cung cấp khi có)
+- `openclaw status --usage` (in chi tiết đầy đủ theo nhà cung cấp)
+- Thanh menu macOS (mục Usage trong Context)
 
 Ghi chú:
 
-- Dữ liệu lấy trực tiếp từ endpoint sử dụng của nhà cung cấp (không ước lượng).
-- Nhà cung cấp: Anthropic, GitHub Copilot, OpenAI Codex OAuth, cùng Gemini CLI/Antigravity khi các plugin nhà cung cấp đó được bật.
-- Nếu không có thông tin xác thực phù hợp, usage sẽ bị ẩn.
+- Dữ liệu đến trực tiếp từ endpoint sử dụng của nhà cung cấp (không ước lượng).
+- Nhà cung cấp: Anthropic, GitHub Copilot, OpenAI Codex OAuth, cùng Gemini CLI/Antigravity khi plugin tương ứng được bật.
+- Nếu không có thông tin xác thực phù hợp, sử dụng sẽ bị ẩn.
 - Chi tiết: xem [Usage tracking](/concepts/usage-tracking).
 
 ### `health`
 
-Lấy sức khỏe từ Gateway đang chạy.
+Lấy thông tin sức khỏe từ Gateway đang chạy.
 
 Tùy chọn:
 
@@ -619,7 +619,7 @@ Tùy chọn:
 
 ### `reset`
 
-Đặt lại cấu hình/trạng thái cục bộ (giữ CLI đã cài).
+Đặt lại cấu hình/trạng thái cục bộ (giữ nguyên CLI đã cài).
 
 Tùy chọn:
 
@@ -655,7 +655,7 @@ Ghi chú:
 
 ### `gateway`
 
-Chạy WebSocket Gateway.
+Chạy Gateway WebSocket.
 
 Tùy chọn:
 
@@ -669,11 +669,11 @@ Tùy chọn:
 - `--allow-unconfigured`
 - `--dev`
 - `--reset` (đặt lại cấu hình dev + thông tin xác thực + phiên + workspace)
-- `--force` (kết liễu listener hiện có trên cổng)
+- `--force` (diệt listener đang tồn tại trên cổng)
 - `--verbose`
 - `--claude-cli-logs`
 - `--ws-log <auto|full|compact>`
-- `--compact` (bí danh cho `--ws-log compact`)
+- `--compact` (bí danh của `--ws-log compact`)
 - `--raw-stream`
 - `--raw-stream-path <path>`
 
@@ -681,10 +681,10 @@ Tùy chọn:
 
 Quản lý dịch vụ Gateway (launchd/systemd/schtasks).
 
-Các lệnh con:
+Lệnh con:
 
-- `gateway status` (mặc định thăm dò Gateway RPC)
-- `gateway install` (cài dịch vụ)
+- `gateway status` (mặc định thăm dò RPC của Gateway)
+- `gateway install` (cài đặt dịch vụ)
 - `gateway uninstall`
 - `gateway start`
 - `gateway stop`
@@ -692,12 +692,12 @@ Các lệnh con:
 
 Ghi chú:
 
-- `gateway status` mặc định thăm dò Gateway RPC bằng cổng/cấu hình đã phân giải của dịch vụ (ghi đè bằng `--url/--token/--password`).
+- `gateway status` mặc định thăm dò RPC của Gateway bằng cổng/cấu hình đã phân giải của dịch vụ (ghi đè bằng `--url/--token/--password`).
 - `gateway status` hỗ trợ `--no-probe`, `--deep` và `--json` cho scripting.
-- `gateway status` cũng hiển thị các dịch vụ gateway legacy hoặc bổ sung khi có thể phát hiện (`--deep` thêm quét cấp hệ thống). Các dịch vụ OpenClaw có tên theo profile được coi là hạng nhất và không bị gắn cờ là “extra”.
-- `gateway status` in đường dẫn cấu hình CLI dùng so với cấu hình dịch vụ có khả năng dùng (env dịch vụ), cùng URL mục tiêu thăm dò đã phân giải.
-- `gateway install|uninstall|start|stop|restart` hỗ trợ `--json` cho scripting (đầu ra mặc định vẫn thân thiện với con người).
-- `gateway install` mặc định dùng Node runtime; bun **không được khuyến nghị** (lỗi WhatsApp/Telegram).
+- `gateway status` cũng hiển thị các dịch vụ gateway cũ hoặc bổ sung khi có thể phát hiện (`--deep` thêm quét cấp hệ thống). Các dịch vụ OpenClaw đặt tên theo hồ sơ được xem là hạng nhất và không bị gắn cờ “extra”.
+- `gateway status` in đường dẫn cấu hình CLI đang dùng so với cấu hình mà dịch vụ có khả năng dùng (env của dịch vụ), cùng URL mục tiêu thăm dò đã phân giải.
+- `gateway install|uninstall|start|stop|restart` hỗ trợ `--json` cho scripting (đầu ra mặc định vẫn thân thiện với người).
+- `gateway install` mặc định dùng runtime Node; bun **không được khuyến nghị** (lỗi WhatsApp/Telegram).
 - Tùy chọn `gateway install`: `--port`, `--runtime`, `--token`, `--force`, `--json`.
 
 ### `logs`
@@ -706,8 +706,8 @@ Theo dõi log tệp Gateway qua RPC.
 
 Ghi chú:
 
-- Phiên TTY hiển thị chế độ xem có màu, có cấu trúc; không TTY sẽ dùng văn bản thuần.
-- `--json` xuất JSON phân tách theo dòng (mỗi sự kiện log một dòng).
+- Phiên TTY hiển thị dạng có màu, có cấu trúc; không TTY sẽ chuyển sang văn bản thuần.
+- `--json` xuất JSON phân dòng (mỗi sự kiện log một dòng).
 
 Ví dụ:
 
@@ -721,11 +721,11 @@ openclaw logs --no-color
 
 ### `gateway <subcommand>`
 
-Trợ giúp Gateway CLI (dùng `--url`, `--token`, `--password`, `--timeout`, `--expect-final` cho các lệnh con RPC).
-Khi bạn truyền `--url`, CLI không tự áp dụng cấu hình hay thông tin xác thực môi trường.
+Các trợ giúp CLI của Gateway (dùng `--url`, `--token`, `--password`, `--timeout`, `--expect-final` cho các lệnh con RPC).
+Khi bạn truyền `--url`, CLI sẽ không tự động áp dụng cấu hình hoặc thông tin xác thực từ môi trường.
 Hãy bao gồm `--token` hoặc `--password` một cách tường minh. Thiếu thông tin xác thực tường minh là lỗi.
 
-Các lệnh con:
+Lệnh con:
 
 - `gateway call <method> [--params <json>]`
 - `gateway health`
@@ -735,18 +735,18 @@ Các lệnh con:
 - `gateway install|uninstall|start|stop|restart`
 - `gateway run`
 
-RPC thường dùng:
+RPC phổ biến:
 
 - `config.apply` (xác thực + ghi cấu hình + khởi động lại + đánh thức)
-- `config.patch` (gộp cập nhật từng phần + khởi động lại + đánh thức)
+- `config.patch` (hợp nhất cập nhật một phần + khởi động lại + đánh thức)
 - `update.run` (chạy cập nhật + khởi động lại + đánh thức)
 
 Mẹo: khi gọi trực tiếp `config.set`/`config.apply`/`config.patch`, hãy truyền `baseHash` từ
-`config.get` nếu cấu hình đã tồn tại.
+`config.get` nếu đã tồn tại cấu hình.
 
-## Models
+## Mô hình
 
-Xem [/concepts/models](/concepts/models) để biết hành vi fallback và chiến lược quét.
+Xem [/concepts/models](/concepts/models) để biết hành vi dự phòng và chiến lược quét.
 
 Xác thực Anthropic ưu tiên (setup-token):
 
@@ -762,8 +762,8 @@ openclaw models status
 
 Tùy chọn gốc:
 
-- `--status-json` (bí danh cho `models status --json`)
-- `--status-plain` (bí danh cho `models status --plain`)
+- `--status-json` (bí danh của `models status --json`)
+- `--status-plain` (bí danh của `models status --plain`)
 
 ### `models list`
 
@@ -784,13 +784,13 @@ Tùy chọn:
 - `--check` (thoát 1=hết hạn/thiếu, 2=sắp hết hạn)
 - `--probe` (thăm dò trực tiếp các hồ sơ xác thực đã cấu hình)
 - `--probe-provider <name>`
-- `--probe-profile <id>` (lặp hoặc phân tách bằng dấu phẩy)
+- `--probe-profile <id>` (lặp lại hoặc phân tách bằng dấu phẩy)
 - `--probe-timeout <ms>`
 - `--probe-concurrency <n>`
 - `--probe-max-tokens <n>`
 
 Luôn bao gồm tổng quan xác thực và trạng thái hết hạn OAuth cho các hồ sơ trong kho xác thực.
-`--probe` chạy các yêu cầu trực tiếp (có thể tiêu thụ token và kích hoạt giới hạn tốc độ).
+`--probe` chạy các yêu cầu trực tiếp (có thể tiêu tốn token và kích hoạt giới hạn tốc độ).
 
 ### `models set <model>`
 
@@ -863,7 +863,7 @@ Tùy chọn:
 
 ### `system event`
 
-Đưa một sự kiện hệ thống vào hàng đợi và tùy chọn kích hoạt heartbeat (Gateway RPC).
+Đưa một sự kiện hệ thống vào hàng đợi và tùy chọn kích hoạt heartbeat (RPC của Gateway).
 
 Bắt buộc:
 
@@ -877,7 +877,7 @@ Tùy chọn:
 
 ### `system heartbeat last|enable|disable`
 
-Điều khiển heartbeat (Gateway RPC).
+Điều khiển heartbeat (RPC của Gateway).
 
 Tùy chọn:
 
@@ -886,7 +886,7 @@ Tùy chọn:
 
 ### `system presence`
 
-Liệt kê các mục hiện diện hệ thống (Gateway RPC).
+Liệt kê các mục hiện diện hệ thống (RPC của Gateway).
 
 Tùy chọn:
 
@@ -895,13 +895,13 @@ Tùy chọn:
 
 ## Cron
 
-Quản lý các job theo lịch (Gateway RPC). Xem [/automation/cron-jobs](/automation/cron-jobs).
+Quản lý các tác vụ theo lịch (RPC của Gateway). Xem [/automation/cron-jobs](/automation/cron-jobs).
 
-Các lệnh con:
+Lệnh con:
 
 - `cron status [--json]`
-- `cron list [--all] [--json]` (mặc định xuất bảng; dùng `--json` cho raw)
-- `cron add` (bí danh: `create`; yêu cầu `--name` và chính xác một trong `--at` | `--every` | `--cron`, và chính xác một payload của `--system-event` | `--message`)
+- `cron list [--all] [--json]` (mặc định xuất bảng; dùng `--json` cho dạng thô)
+- `cron add` (bí danh: `create`; yêu cầu `--name` và đúng một trong `--at` | `--every` | `--cron`, và đúng một payload trong `--system-event` | `--message`)
 - `cron edit <id>` (vá các trường)
 - `cron rm <id>` (bí danh: `remove`, `delete`)
 - `cron enable <id>`
@@ -913,10 +913,10 @@ Tất cả các lệnh `cron` chấp nhận `--url`, `--token`, `--timeout`, `--
 
 ## Node host
 
-`node` chạy **node host không giao diện** hoặc quản lý nó như một dịch vụ nền. Xem
+`node` chạy một **node host headless** hoặc quản lý nó như một dịch vụ nền. Xem
 [`openclaw node`](/cli/node).
 
-Các lệnh con:
+Lệnh con:
 
 - `node run --host <gateway-host> --port 18789`
 - `node status`
@@ -933,7 +933,7 @@ Tùy chọn chung:
 
 - `--url`, `--token`, `--timeout`, `--json`
 
-Các lệnh con:
+Lệnh con:
 
 - `nodes status [--connected] [--last-connected <duration>]`
 - `nodes describe --node <id|name|ip>`
@@ -943,7 +943,7 @@ Các lệnh con:
 - `nodes reject <requestId>`
 - `nodes rename --node <id|name|ip> --name <displayName>`
 - `nodes invoke --node <id|name|ip> --command <command> [--params <json>] [--invoke-timeout <ms>] [--idempotency-key <key>]`
-- `nodes run --node <id|name|ip> [--cwd <path>] [--env KEY=VAL] [--command-timeout <ms>] [--needs-screen-recording] [--invoke-timeout <ms>] <command...>` (mac node hoặc headless node host)
+- `nodes run --node <id|name|ip> [--cwd <path>] [--env KEY=VAL] [--command-timeout <ms>] [--needs-screen-recording] [--invoke-timeout <ms>] <command...>` (node mac hoặc node host headless)
 - `nodes notify --node <id|name|ip> [--title <text>] [--body <text>] [--sound <name>] [--priority <passive|active|timeSensitive>] [--delivery <system|overlay|auto>] [--invoke-timeout <ms>]` (chỉ mac)
 
 Camera:
@@ -969,7 +969,7 @@ Vị trí:
 
 ## Trình duyệt
 
-CLI điều khiển trình duyệt (Chrome/Brave/Edge/Chromium chuyên dụng). Xem [`openclaw browser`](/cli/browser) và [Browser tool](/tools/browser).
+CLI điều khiển trình duyệt (Chrome/Brave/Edge/Chromium chuyên dụng). Xem [`openclaw browser`](/cli/browser) và [Công cụ Browser](/tools/browser).
 
 Tùy chọn chung:
 
@@ -1023,7 +1023,7 @@ Tìm kiếm chỉ mục tài liệu trực tiếp.
 
 ### `tui`
 
-Mở giao diện terminal UI kết nối với Gateway.
+Mở giao diện terminal UI kết nối tới Gateway.
 
 Tùy chọn:
 

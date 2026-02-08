@@ -1,29 +1,29 @@
 ---
-summary: "Globale Voice-Wake-Wörter (Gateway-eigen) und wie sie über Knoten hinweg synchronisiert werden"
+summary: „Globale Sprach-Aktivierungswörter (vom Gateway verwaltet) und wie sie über Nodes hinweg synchronisiert werden“
 read_when:
-  - Ändern des Verhaltens oder der Standardwerte für Voice-Wake-Wörter
-  - Hinzufügen neuer Knotenplattformen, die eine Synchronisierung der Wake-Wörter benötigen
-title: "Voice Wake"
+  - „Änderung des Verhaltens oder der Standardwerte von Sprach-Aktivierungswörtern“
+  - „Hinzufügen neuer Node-Plattformen, die eine Synchronisierung der Aktivierungswörter benötigen“
+title: „Sprachaktivierung“
 x-i18n:
   source_path: nodes/voicewake.md
   source_hash: eb34f52dfcdc3fc1
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:04:51Z
+  generated_at: 2026-02-08T09:36:41Z
 ---
 
-# Voice Wake (Globale Wake-Wörter)
+# Sprachaktivierung (Globale Aktivierungswörter)
 
-OpenClaw behandelt **Wake-Wörter als eine einzige globale Liste**, die vom **Gateway** verwaltet wird.
+OpenClaw behandelt **Aktivierungswörter als eine einzige globale Liste**, die vom **Gateway** (Netzwerk-Gateway) verwaltet wird.
 
-- Es gibt **keine knotenspezifischen benutzerdefinierten Wake-Wörter**.
-- **Jede Knoten-/App-UI kann** die Liste bearbeiten; Änderungen werden vom Gateway persistiert und an alle verteilt.
-- Jedes Gerät behält weiterhin seinen eigenen **Voice Wake aktiviert/deaktiviert**-Schalter (lokale UX + Berechtigungen unterscheiden sich).
+- Es gibt **keine Node-spezifischen benutzerdefinierten Aktivierungswörter**.
+- **Jede Node-/App-UI kann** die Liste bearbeiten; Änderungen werden vom Gateway gespeichert und an alle verteilt.
+- Jedes Gerät behält weiterhin seinen eigenen **Schalter für Sprachaktivierung ein/aus** (lokale UX + Berechtigungen unterscheiden sich).
 
 ## Speicherung (Gateway-Host)
 
-Wake-Wörter werden auf der Gateway-Maschine gespeichert unter:
+Aktivierungswörter werden auf der Gateway-Maschine gespeichert unter:
 
 - `~/.openclaw/settings/voicewake.json`
 
@@ -42,31 +42,31 @@ Form:
 
 Hinweise:
 
-- Trigger werden normalisiert (getrimmt, leere Einträge verworfen). Leere Listen fallen auf Standardwerte zurück.
-- Limits werden aus Sicherheitsgründen erzwungen (Obergrenzen für Anzahl/Länge).
+- Trigger werden normalisiert (getrimmt, leere Einträge entfernt). Leere Listen fallen auf Standardwerte zurück.
+- Zur Sicherheit werden Limits durchgesetzt (Begrenzungen für Anzahl/Länge).
 
-### Ereignisse
+### Events
 
 - `voicewake.changed` Payload `{ triggers: string[] }`
 
 Wer es erhält:
 
 - Alle WebSocket-Clients (macOS-App, WebChat usw.)
-- Alle verbundenen Knoten (iOS/Android) sowie auch beim Verbinden eines Knotens als initialer Push des „aktuellen Zustands“.
+- Alle verbundenen Nodes (iOS/Android) sowie zusätzlich beim Verbinden eines Nodes als initiale Push-Übermittlung des „aktuellen Zustands“.
 
 ## Client-Verhalten
 
 ### macOS-App
 
-- Verwendet die globale Liste, um `VoiceWakeRuntime`-Trigger zu steuern.
-- Das Bearbeiten von „Trigger words“ in den Voice-Wake-Einstellungen ruft `voicewake.set` auf und verlässt sich anschließend auf den Broadcast, um andere Clients synchron zu halten.
+- Verwendet die globale Liste zur Steuerung von `VoiceWakeRuntime`-Triggern.
+- Das Bearbeiten von „Trigger words“ in den Einstellungen zur Sprachaktivierung ruft `voicewake.set` auf und verlässt sich anschließend auf die Broadcasts, um andere Clients synchron zu halten.
 
-### iOS-Knoten
+### iOS-Node
 
-- Verwendet die globale Liste für die `VoiceWakeManager`-Trigger-Erkennung.
-- Das Bearbeiten der Wake-Wörter in den Einstellungen ruft `voicewake.set` (über das Gateway-WS) auf und hält außerdem die lokale Wake-Wort-Erkennung reaktionsfähig.
+- Verwendet die globale Liste für die Erkennung von `VoiceWakeManager`-Triggern.
+- Das Bearbeiten der Aktivierungswörter in den Einstellungen ruft `voicewake.set` (über das Gateway-WS) auf und hält außerdem die lokale Aktivierungswort-Erkennung reaktionsfähig.
 
-### Android-Knoten
+### Android-Node
 
-- Stellt in den Einstellungen einen Editor für Wake-Wörter bereit.
-- Ruft `voicewake.set` über das Gateway-WS auf, sodass Änderungen überall synchronisiert werden.
+- Stellt in den Einstellungen einen Editor für Aktivierungswörter bereit.
+- Ruft `voicewake.set` über das Gateway-WS auf, damit Änderungen überall synchronisiert werden.

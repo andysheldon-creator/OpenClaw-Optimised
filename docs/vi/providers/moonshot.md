@@ -1,35 +1,35 @@
 ---
-summary: "Cau hinh Moonshot K2 so voi Kimi Coding (nha cung cap + khoa rieng)"
+summary: "Cấu hình Moonshot K2 so với Kimi Coding (nhà cung cấp + khóa riêng)"
 read_when:
-  - Ban muon thiet lap Moonshot K2 (Moonshot Open Platform) so voi Kimi Coding
-  - Ban can hieu cac endpoint, khoa va tham chieu mo hinh rieng biet
-  - Ban muon cau hinh copy/paste cho tung nha cung cap
+  - Bạn muốn thiết lập Moonshot K2 (Moonshot Open Platform) so với Kimi Coding
+  - Bạn cần hiểu các endpoint, khóa và tham chiếu mô hình riêng biệt
+  - Bạn muốn cấu hình sao chép/dán cho từng nhà cung cấp
 title: "Moonshot AI"
 x-i18n:
   source_path: providers/moonshot.md
-  source_hash: 73b8b691b923ce3d
+  source_hash: 9e4a6192faa21b88
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:08:06Z
+  generated_at: 2026-02-08T09:39:51Z
 ---
 
 # Moonshot AI (Kimi)
 
-Moonshot cung cap Kimi API voi cac endpoint tuong thich OpenAI. Cau hinh
-nha cung cap va dat mo hinh mac dinh la `moonshot/kimi-k2.5`, hoac su dung
-Kimi Coding voi `kimi-coding/k2p5`.
+Moonshot cung cấp API Kimi với các endpoint tương thích OpenAI. Cấu hình
+nhà cung cấp và đặt mô hình mặc định là `moonshot/kimi-k2.5`, hoặc dùng
+Kimi Coding với `kimi-coding/k2p5`.
 
-Cac ID mo hinh Kimi K2 hien tai:
+Các ID mô hình Kimi K2 hiện tại:
 
-{/_ moonshot-kimi-k2-ids:start _/ && null}
+{/_moonshot-kimi-k2-ids:start_/ && null}
 
 - `kimi-k2.5`
 - `kimi-k2-0905-preview`
 - `kimi-k2-turbo-preview`
 - `kimi-k2-thinking`
 - `kimi-k2-thinking-turbo`
-  {/_ moonshot-kimi-k2-ids:end _/ && null}
+  {/_moonshot-kimi-k2-ids:end_/ && null}
 
 ```bash
 openclaw onboard --auth-choice moonshot-api-key
@@ -41,9 +41,9 @@ Kimi Coding:
 openclaw onboard --auth-choice kimi-code-api-key
 ```
 
-Luu y: Moonshot va Kimi Coding la cac nha cung cap rieng biet. Khoa khong the dung chung, endpoint khac nhau, va tham chieu mo hinh khac nhau (Moonshot su dung `moonshot/...`, Kimi Coding su dung `kimi-coding/...`).
+Lưu ý: Moonshot và Kimi Coding là các nhà cung cấp riêng biệt. Khóa không thể dùng chung, endpoint khác nhau và tham chiếu mô hình cũng khác (Moonshot dùng `moonshot/...`, Kimi Coding dùng `kimi-coding/...`).
 
-## Doan cau hinh (Moonshot API)
+## Đoạn cấu hình (Moonshot API)
 
 ```json5
 {
@@ -140,10 +140,10 @@ Luu y: Moonshot va Kimi Coding la cac nha cung cap rieng biet. Khoa khong the du
 }
 ```
 
-## Ghi chu
+## Ghi chú
 
-- Tham chieu mo hinh Moonshot su dung `moonshot/<modelId>`. Tham chieu mo hinh Kimi Coding su dung `kimi-coding/<modelId>`.
-- Ghi de thong tin gia va metadata ngu canh trong `models.providers` neu can.
-- Neu Moonshot cong bo gioi han ngu canh khac cho mot mo hinh, hay dieu chinh
-  `contextWindow` tuong ung.
-- Su dung `https://api.moonshot.ai/v1` cho endpoint quoc te, va `https://api.moonshot.cn/v1` cho endpoint Trung Quoc.
+- Tham chiếu mô hình Moonshot dùng `moonshot/<modelId>`. Tham chiếu mô hình Kimi Coding dùng `kimi-coding/<modelId>`.
+- Ghi đè metadata về giá và ngữ cảnh trong `models.providers` nếu cần.
+- Nếu Moonshot công bố giới hạn ngữ cảnh khác cho một mô hình, hãy điều chỉnh
+  `contextWindow` cho phù hợp.
+- Dùng `https://api.moonshot.ai/v1` cho endpoint quốc tế, và `https://api.moonshot.cn/v1` cho endpoint Trung Quốc.

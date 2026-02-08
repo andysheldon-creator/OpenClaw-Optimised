@@ -1,7 +1,7 @@
 ---
-title: Sandbox vs. Tool-Richtlinie vs. Elevated
-summary: "Warum ein Werkzeug blockiert ist: Sandbox-Laufzeit, Tool-Erlauben/Verweigern-Richtlinie und Elevated-Exec-Gates"
-read_when: "Wenn Sie in der „Sandbox-Haft“ landen oder eine Tool-/Elevated-Verweigerung sehen und den exakten Konfigurationsschlüssel ändern möchten."
+title: Sandbox vs. Tool-Policy vs. Erhöht
+summary: „Warum ein Werkzeug blockiert ist: Sandbox-Laufzeit, Tool-Allow/Deny-Policy und erhöhte Exec-Gates“
+read_when: „Wenn Sie auf ‚Sandbox-Gefängnis‘ stoßen oder eine Tool-/Elevated-Verweigerung sehen und den exakten Konfigurationsschlüssel ändern möchten.“
 status: active
 x-i18n:
   source_path: gateway/sandbox-vs-tool-policy-vs-elevated.md
@@ -9,18 +9,18 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:04:35Z
+  generated_at: 2026-02-08T09:36:27Z
 ---
 
-# Sandbox vs. Tool-Richtlinie vs. Elevated
+# Sandbox vs. Tool-Policy vs. Erhöht
 
-OpenClaw hat drei verwandte (aber unterschiedliche) Kontrollen:
+OpenClaw hat drei zusammenhängende (aber unterschiedliche) Kontrollmechanismen:
 
-1. **Sandbox** (`agents.defaults.sandbox.*` / `agents.list[].sandbox.*`) entscheidet **wo Werkzeuge laufen** (Docker vs. Host).
-2. **Tool-Richtlinie** (`tools.*`, `tools.sandbox.tools.*`, `agents.list[].tools.*`) entscheidet **welche Werkzeuge verfügbar/erlaubt sind**.
-3. **Elevated** (`tools.elevated.*`, `agents.list[].tools.elevated.*`) ist ein **nur-Exec-Notausgang**, um auf dem Host zu laufen, wenn Sie sandboxed sind.
+1. **Sandbox** (`agents.defaults.sandbox.*` / `agents.list[].sandbox.*`) entscheidet, **wo Werkzeuge ausgeführt werden** (Docker vs. Host).
+2. **Tool-Policy** (`tools.*`, `tools.sandbox.tools.*`, `agents.list[].tools.*`) entscheidet, **welche Werkzeuge verfügbar/zulässig sind**.
+3. **Erhöht** (`tools.elevated.*`, `agents.list[].tools.elevated.*`) ist eine **reine Exec-Ausnahme**, um bei aktivierter Sandbox auf dem Host auszuführen.
 
-## Schnell-Debug
+## Schnelle Fehlersuche
 
 Verwenden Sie den Inspector, um zu sehen, was OpenClaw _tatsächlich_ tut:
 
@@ -33,50 +33,50 @@ openclaw sandbox explain --json
 
 Er gibt aus:
 
-- effektiver Sandbox-Modus/-Scope/-Workspace-Zugriff
-- ob die Sitzung aktuell sandboxed ist (Haupt- vs. Nicht-Hauptsitzung)
-- effektives Sandbox-Tool-Erlauben/Verweigern (und ob es von Agent/Global/Standard stammt)
-- Elevated-Gates und Fix-it-Schlüsselpfade
+- effektiven Sandbox-Modus/Scope/Workspace-Zugriff
+- ob die Sitzung aktuell sandboxed ist (Hauptsitzung vs. Nicht‑Hauptsitzung)
+- effektive Sandbox-Tool-Allow/Deny (und ob es von Agent/Global/Default stammt)
+- Elevated-Gates und Fix‑it‑Schlüsselpfade
 
 ## Sandbox: wo Werkzeuge laufen
 
 Sandboxing wird über `agents.defaults.sandbox.mode` gesteuert:
 
 - `"off"`: alles läuft auf dem Host.
-- `"non-main"`: nur Nicht-Hauptsitzungen sind sandboxed (häufige „Überraschung“ für Gruppen/Kanäle).
+- `"non-main"`: nur Nicht‑Hauptsitzungen sind sandboxed (häufige „Überraschung“ für Gruppen/Kanäle).
 - `"all"`: alles ist sandboxed.
 
-Siehe [Sandboxing](/gateway/sandboxing) fuer alle Details (Scope, Workspace-Mounts, Images).
+Siehe [Sandboxing](/gateway/sandboxing) für die vollständige Matrix (Scope, Workspace-Mounts, Images).
 
-### Bind-Mounts (Sicherheits-Schnellcheck)
+### Bind-Mounts (Sicherheits‑Quickcheck)
 
-- `docker.binds` _durchsticht_ das Sandbox-Dateisystem: Alles, was Sie mounten, ist im Container mit dem von Ihnen gesetzten Modus sichtbar (`:ro` oder `:rw`).
-- Standard ist Lesen/Schreiben, wenn Sie den Modus weglassen; bevorzugen Sie `:ro` fuer Source/Secrets.
-- `scope: "shared"` ignoriert agentenspezifische Binds (nur globale Binds gelten).
-- Das Binden von `/var/run/docker.sock` übergibt der Sandbox effektiv die Host-Kontrolle; tun Sie dies nur bewusst.
-- Workspace-Zugriff (`workspaceAccess: "ro"`/`"rw"`) ist unabhängig von Bind-Modi.
+- `docker.binds` _durchstößt_ das Sandbox-Dateisystem: Alles, was Sie mounten, ist im Container mit dem von Ihnen gesetzten Modus sichtbar (`:ro` oder `:rw`).
+- Standard ist Lesen/Schreiben, wenn Sie den Modus weglassen; bevorzugen Sie `:ro` für Quellcode/Secrets.
+- `scope: "shared"` ignoriert agentenspezifische Binds (es gelten nur globale Binds).
+- Das Binden von `/var/run/docker.sock` übergibt effektiv Host‑Kontrolle an die Sandbox; tun Sie dies nur bewusst.
+- Workspace‑Zugriff (`workspaceAccess: "ro"`/`"rw"`) ist unabhängig von Bind‑Modi.
 
-## Tool-Richtlinie: welche Werkzeuge existieren/aufrufbar sind
+## Tool-Policy: welche Werkzeuge existieren/aufrufbar sind
 
 Zwei Ebenen sind relevant:
 
-- **Tool-Profil**: `tools.profile` und `agents.list[].tools.profile` (Basis-Allowlist)
-- **Anbieter-Tool-Profil**: `tools.byProvider[provider].profile` und `agents.list[].tools.byProvider[provider].profile`
-- **Globale/pro-Agent-Tool-Richtlinie**: `tools.allow`/`tools.deny` und `agents.list[].tools.allow`/`agents.list[].tools.deny`
-- **Anbieter-Tool-Richtlinie**: `tools.byProvider[provider].allow/deny` und `agents.list[].tools.byProvider[provider].allow/deny`
-- **Sandbox-Tool-Richtlinie** (gilt nur, wenn sandboxed): `tools.sandbox.tools.allow`/`tools.sandbox.tools.deny` und `agents.list[].tools.sandbox.tools.*`
+- **Tool-Profil**: `tools.profile` und `agents.list[].tools.profile` (Basis‑Allowlist)
+- **Provider‑Tool‑Profil**: `tools.byProvider[provider].profile` und `agents.list[].tools.byProvider[provider].profile`
+- **Globale/agentenspezifische Tool‑Policy**: `tools.allow`/`tools.deny` und `agents.list[].tools.allow`/`agents.list[].tools.deny`
+- **Provider‑Tool‑Policy**: `tools.byProvider[provider].allow/deny` und `agents.list[].tools.byProvider[provider].allow/deny`
+- **Sandbox‑Tool‑Policy** (gilt nur bei aktiver Sandbox): `tools.sandbox.tools.allow`/`tools.sandbox.tools.deny` und `agents.list[].tools.sandbox.tools.*`
 
 Faustregeln:
 
 - `deny` gewinnt immer.
 - Wenn `allow` nicht leer ist, wird alles andere als blockiert behandelt.
-- Die Tool-Richtlinie ist der harte Stopp: `/exec` kann ein verweigertes `exec`-Werkzeug nicht überschreiben.
-- `/exec` ändert nur Sitzungs-Defaults fuer autorisierte Absender; es gewährt keinen Tool-Zugriff.
-  Anbieter-Tool-Schlüssel akzeptieren entweder `provider` (z. B. `google-antigravity`) oder `provider/model` (z. B. `openai/gpt-5.2`).
+- Die Tool‑Policy ist der harte Stopp: `/exec` kann ein verweigertes `exec`‑Werkzeug nicht überschreiben.
+- `/exec` ändert nur Sitzungs‑Defaults für autorisierte Absender; es gewährt keinen Tool‑Zugriff.
+  Provider‑Tool‑Schlüssel akzeptieren entweder `provider` (z. B. `google-antigravity`) oder `provider/model` (z. B. `openai/gpt-5.2`).
 
-### Tool-Gruppen (Kurzschreibweisen)
+### Tool‑Gruppen (Kurzschreibweisen)
 
-Tool-Richtlinien (global, Agent, Sandbox) unterstützen `group:*`-Einträge, die zu mehreren Werkzeugen expandieren:
+Tool‑Policies (global, Agent, Sandbox) unterstützen `group:*`‑Einträge, die zu mehreren Werkzeugen expandieren:
 
 ```json5
 {
@@ -100,36 +100,36 @@ Verfügbare Gruppen:
 - `group:automation`: `cron`, `gateway`
 - `group:messaging`: `message`
 - `group:nodes`: `nodes`
-- `group:openclaw`: alle integrierten OpenClaw-Werkzeuge (ohne Anbieter-Plugins)
+- `group:openclaw`: alle integrierten OpenClaw‑Werkzeuge (ohne Provider‑Plugins)
 
-## Elevated: nur-Exec „auf dem Host ausführen“
+## Erhöht: reines Exec‑„auf dem Host ausführen“
 
-Elevated gewährt **keine** zusätzlichen Werkzeuge; es betrifft nur `exec`.
+Erhöht gewährt **keine** zusätzlichen Werkzeuge; es betrifft nur `exec`.
 
-- Wenn Sie sandboxed sind, läuft `/elevated on` (oder `exec` mit `elevated: true`) auf dem Host (Freigaben können weiterhin erforderlich sein).
-- Verwenden Sie `/elevated full`, um Exec-Freigaben fuer die Sitzung zu überspringen.
-- Wenn Sie bereits direkt laufen, ist Elevated effektiv ein No-op (weiterhin gated).
-- Elevated ist **nicht** Skill-spezifisch und überschreibt **nicht** Tool-Erlauben/Verweigern.
-- `/exec` ist von Elevated getrennt. Es passt nur die Exec-Defaults pro Sitzung fuer autorisierte Absender an.
+- Wenn Sie sandboxed sind, führt `/elevated on` (oder `exec` mit `elevated: true`) auf dem Host aus (Freigaben können weiterhin erforderlich sein).
+- Verwenden Sie `/elevated full`, um Exec‑Freigaben für die Sitzung zu überspringen.
+- Wenn Sie bereits direkt ausführen, ist „erhöht“ effektiv ein No‑op (weiterhin gated).
+- Erhöht ist **nicht** skill‑gebunden und überschreibt **keine** Tool‑Allow/Deny‑Regeln.
+- `/exec` ist von „erhöht“ getrennt. Es passt nur sitzungsweise Exec‑Defaults für autorisierte Absender an.
 
 Gates:
 
 - Aktivierung: `tools.elevated.enabled` (und optional `agents.list[].tools.elevated.enabled`)
-- Absender-Allowlists: `tools.elevated.allowFrom.<provider>` (und optional `agents.list[].tools.elevated.allowFrom.<provider>`)
+- Absender‑Allowlists: `tools.elevated.allowFrom.<provider>` (und optional `agents.list[].tools.elevated.allowFrom.<provider>`)
 
 Siehe [Elevated Mode](/tools/elevated).
 
-## Häufige „Sandbox-Haft“-Fixes
+## Häufige „Sandbox‑Gefängnis“-Fixes
 
-### „Tool X durch Sandbox-Tool-Richtlinie blockiert“
+### „Werkzeug X durch Sandbox‑Tool‑Policy blockiert“
 
-Fix-it-Schlüssel (einen auswählen):
+Fix‑it‑Schlüssel (wählen Sie einen):
 
-- Sandbox deaktivieren: `agents.defaults.sandbox.mode=off` (oder pro Agent `agents.list[].sandbox.mode=off`)
-- Das Werkzeug innerhalb der Sandbox erlauben:
-  - aus `tools.sandbox.tools.deny` entfernen (oder pro Agent `agents.list[].tools.sandbox.tools.deny`)
-  - oder zu `tools.sandbox.tools.allow` hinzufügen (oder pro Agent erlauben)
+- Sandbox deaktivieren: `agents.defaults.sandbox.mode=off` (oder agentenspezifisch `agents.list[].sandbox.mode=off`)
+- Werkzeug innerhalb der Sandbox erlauben:
+  - aus `tools.sandbox.tools.deny` entfernen (oder agentenspezifisch `agents.list[].tools.sandbox.tools.deny`)
+  - oder zu `tools.sandbox.tools.allow` hinzufügen (oder agentenspezifische Allow)
 
-### „Ich dachte, das wäre die Hauptsitzung – warum ist sie sandboxed?“
+### „Ich dachte, das sei ‚main‘ – warum ist es sandboxed?“
 
-Im Modus `"non-main"` sind Gruppen-/Kanal-Schlüssel _nicht_ die Hauptsitzung. Verwenden Sie den Hauptsitzungs-Schlüssel (angezeigt durch `sandbox explain`) oder wechseln Sie den Modus zu `"off"`.
+Im Modus `"non-main"` sind Gruppen-/Kanal‑Schlüssel _nicht_ „main“. Verwenden Sie den Hauptsitzungs‑Schlüssel (angezeigt durch `sandbox explain`) oder wechseln Sie den Modus zu `"off"`.

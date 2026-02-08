@@ -1,31 +1,31 @@
 ---
-summary: "Hook SOUL Evil (intercambia SOUL.md con SOUL_EVIL.md)"
+summary: "Hook SOUL Evil (intercambia SOUL.md por SOUL_EVIL.md)"
 read_when:
-  - Quiere habilitar o ajustar el hook SOUL Evil
-  - Quiere una ventana de purga o un intercambio de persona por probabilidad aleatoria
+  - Desea habilitar o ajustar el hook SOUL Evil
+  - Desea una ventana de purga o un intercambio de persona por probabilidad aleatoria
 title: "Hook SOUL Evil"
 x-i18n:
   source_path: hooks/soul-evil.md
-  source_hash: cc32c1e207f2b692
+  source_hash: 32aba100712317d1
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:59:01Z
+  generated_at: 2026-02-08T09:33:42Z
 ---
 
 # Hook SOUL Evil
 
-El hook SOUL Evil intercambia el contenido **inyectado** `SOUL.md` con `SOUL_EVIL.md` durante
+El hook SOUL Evil intercambia el contenido **inyectado** `SOUL.md` por `SOUL_EVIL.md` durante
 una ventana de purga o por probabilidad aleatoria. **No** modifica archivos en disco.
 
-## Como funciona
+## Cómo funciona
 
-Cuando `agent:bootstrap` se ejecuta, el hook puede reemplazar el contenido `SOUL.md` en memoria
-antes de que se ensamble el prompt del sistema. Si `SOUL_EVIL.md` falta o esta vacio,
+Cuando se ejecuta `agent:bootstrap`, el hook puede reemplazar el contenido `SOUL.md` en memoria
+antes de que se ensamble el prompt del sistema. Si `SOUL_EVIL.md` falta o está vacío,
 OpenClaw registra una advertencia y mantiene el `SOUL.md` normal.
 
-Las ejecuciones de sub-agentes **no** incluyen `SOUL.md` en sus archivos de arranque, por lo que este hook
-no tiene efecto en los sub-agentes.
+Las ejecuciones de subagentes **no** incluyen `SOUL.md` en sus archivos de arranque, por lo que este hook
+no tiene efecto en los subagentes.
 
 ## Habilitar
 
@@ -33,7 +33,7 @@ no tiene efecto en los sub-agentes.
 openclaw hooks enable soul-evil
 ```
 
-Luego configure:
+Luego establezca la configuración:
 
 ```json
 {
@@ -53,24 +53,24 @@ Luego configure:
 }
 ```
 
-Cree `SOUL_EVIL.md` en la raiz del espacio de trabajo del agente (junto a `SOUL.md`).
+Cree `SOUL_EVIL.md` en la raíz del espacio de trabajo del agente (junto a `SOUL.md`).
 
 ## Opciones
 
-- `file` (string): nombre alternativo del archivo SOUL (predeterminado: `SOUL_EVIL.md`)
-- `chance` (numero 0–1): probabilidad aleatoria por ejecucion de usar `SOUL_EVIL.md`
-- `purge.at` (HH:mm): inicio diario de la purga (reloj de 24 horas)
-- `purge.duration` (duracion): longitud de la ventana (p. ej., `30s`, `10m`, `1h`)
+- `file` (cadena): nombre alternativo del archivo SOUL (predeterminado: `SOUL_EVIL.md`)
+- `chance` (número 0–1): probabilidad aleatoria por ejecución para usar `SOUL_EVIL.md`
+- `purge.at` (HH:mm): inicio diario de la purga (formato de 24 horas)
+- `purge.duration` (duración): longitud de la ventana (p. ej., `30s`, `10m`, `1h`)
 
 **Precedencia:** la ventana de purga prevalece sobre la probabilidad.
 
-**Zona horaria:** usa `agents.defaults.userTimezone` cuando esta configurado; de lo contrario, la zona horaria del host.
+**Zona horaria:** usa `agents.defaults.userTimezone` cuando está configurado; de lo contrario, la zona horaria del host.
 
 ## Notas
 
 - No se escriben ni modifican archivos en disco.
-- Si `SOUL.md` no esta en la lista de arranque, el hook no hace nada.
+- Si `SOUL.md` no está en la lista de arranque, el hook no hace nada.
 
-## Ver tambien
+## Ver también
 
-- [Hooks](/hooks)
+- [Hooks](/automation/hooks)

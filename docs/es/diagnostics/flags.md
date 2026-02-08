@@ -1,31 +1,31 @@
 ---
-summary: "Flags de diagnostico para registros de depuracion dirigidos"
+summary: "Indicadores de diagnóstico para registros de depuración dirigidos"
 read_when:
-  - Necesita registros de depuracion dirigidos sin elevar los niveles de registro globales
-  - Necesita capturar registros especificos de subsistemas para soporte
-title: "Flags de Diagnostico"
+  - Necesita registros de depuración dirigidos sin aumentar los niveles de registro globales
+  - Necesita capturar registros específicos de subsistemas para soporte
+title: "Indicadores de diagnóstico"
 x-i18n:
   source_path: diagnostics/flags.md
   source_hash: daf0eca0e6bd1cbc
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:58:43Z
+  generated_at: 2026-02-08T09:33:18Z
 ---
 
-# Flags de Diagnostico
+# Indicadores de diagnóstico
 
-Los flags de diagnostico le permiten habilitar registros de depuracion dirigidos sin activar el registro detallado en todo el sistema. Los flags son de activacion voluntaria y no tienen efecto a menos que un subsistema los verifique.
+Los indicadores de diagnóstico le permiten habilitar registros de depuración dirigidos sin activar el registro detallado en todas partes. Los indicadores son opcionales y no tienen efecto a menos que un subsistema los consulte.
 
-## Como funciona
+## Cómo funciona
 
-- Los flags son cadenas (no distinguen mayusculas y minusculas).
-- Puede habilitar flags en la configuracion o mediante una anulacion por variable de entorno.
+- Los indicadores son cadenas (no distinguen entre mayúsculas y minúsculas).
+- Puede habilitar indicadores en la configuración o mediante una anulación por variable de entorno.
 - Se admiten comodines:
   - `telegram.*` coincide con `telegram.http`
-  - `*` habilita todos los flags
+  - `*` habilita todos los indicadores
 
-## Habilitar via configuracion
+## Habilitar mediante configuración
 
 ```json
 {
@@ -35,7 +35,7 @@ Los flags de diagnostico le permiten habilitar registros de depuracion dirigidos
 }
 ```
 
-Multiples flags:
+Varios indicadores:
 
 ```json
 {
@@ -45,54 +45,54 @@ Multiples flags:
 }
 ```
 
-Reinicie el Gateway despues de cambiar los flags.
+Reinicie el Gateway después de cambiar los indicadores.
 
-## Anulacion por variable de entorno (uso puntual)
+## Anulación por variable de entorno (puntual)
 
 ```bash
 OPENCLAW_DIAGNOSTICS=telegram.http,telegram.payload
 ```
 
-Deshabilitar todos los flags:
+Deshabilitar todos los indicadores:
 
 ```bash
 OPENCLAW_DIAGNOSTICS=0
 ```
 
-## Donde van los registros
+## Dónde van los registros
 
-Los flags emiten registros en el archivo estandar de diagnostico. De forma predeterminada:
+Los indicadores emiten registros en el archivo de diagnóstico estándar. De forma predeterminada:
 
 ```
 /tmp/openclaw/openclaw-YYYY-MM-DD.log
 ```
 
-Si configura `logging.file`, se usara esa ruta en su lugar. Los registros son JSONL (un objeto JSON por linea). La redaccion sigue aplicandose segun `logging.redactSensitive`.
+Si configura `logging.file`, use esa ruta en su lugar. Los registros están en JSONL (un objeto JSON por línea). La redacción sigue aplicándose según `logging.redactSensitive`.
 
 ## Extraer registros
 
-Elija el archivo de registro mas reciente:
+Elija el archivo de registro más reciente:
 
 ```bash
 ls -t /tmp/openclaw/openclaw-*.log | head -n 1
 ```
 
-Filtrar para diagnosticos HTTP de Telegram:
+Filtre diagnósticos HTTP de Telegram:
 
 ```bash
 rg "telegram http error" /tmp/openclaw/openclaw-*.log
 ```
 
-O hacer tail mientras reproduce el problema:
+O haga tail mientras reproduce el problema:
 
 ```bash
 tail -f /tmp/openclaw/openclaw-$(date +%F).log | rg "telegram http error"
 ```
 
-Para Gateways remotos, tambien puede usar `openclaw logs --follow` (vea [/cli/logs](/cli/logs)).
+Para Gateways remotos, también puede usar `openclaw logs --follow` (consulte [/cli/logs](/cli/logs)).
 
 ## Notas
 
-- Si `logging.level` esta configurado a un valor mas alto que `warn`, estos registros pueden suprimirse. El valor predeterminado `info` es adecuado.
-- Es seguro dejar los flags habilitados; solo afectan el volumen de registros del subsistema especifico.
-- Use [/logging](/logging) para cambiar destinos de registro, niveles y redaccion.
+- Si `logging.level` está configurado más alto que `warn`, estos registros pueden suprimirse. El valor predeterminado `info` es adecuado.
+- Es seguro dejar los indicadores habilitados; solo afectan el volumen de registros del subsistema específico.
+- Use [/logging](/logging) para cambiar los destinos de los registros, los niveles y la redacción.

@@ -1,29 +1,29 @@
 ---
-summary: "Linux での OpenClaw ブラウザ制御における Chrome/Brave/Edge/Chromium CDP 起動問題を修正します"
-read_when: "Linux でブラウザ制御が失敗する場合（特に snap の Chromium の場合）"
-title: "ブラウザのトラブルシューティング"
+summary: "Linux 上で OpenClaw のブラウザー制御を使用する際の Chrome/Brave/Edge/Chromium CDP 起動問題を修正します"
+read_when: "特に snap 版 Chromium を使用している場合に、Linux 上でブラウザー制御が失敗するとき"
+title: "ブラウザーのトラブルシューティング"
 x-i18n:
   source_path: tools/browser-linux-troubleshooting.md
   source_hash: bac2301022511a0b
   provider: openai
-  model: gpt-5.2-pro
+  model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-06T05:11:28Z
+  generated_at: 2026-02-08T09:23:21Z
 ---
 
-# ブラウザのトラブルシューティング（Linux）
+# ブラウザーのトラブルシューティング（Linux）
 
 ## 問題: 「Failed to start Chrome CDP on port 18800」
 
-OpenClaw のブラウザ制御サーバーが、次のエラーで Chrome/Brave/Edge/Chromium の起動に失敗します。
+OpenClaw のブラウザー制御サーバーが、次のエラーとともに Chrome/Brave/Edge/Chromium の起動に失敗します。
 
 ```
 {"error":"Error: Failed to start Chrome CDP on port 18800 for profile \"openclaw\"."}
 ```
 
-### 根本原因
+### 原因
 
-Ubuntu（および多くの Linux ディストリビューション）では、既定の Chromium インストールは **snap パッケージ**です。Snap の AppArmor による隔離が、OpenClaw がブラウザプロセスを生成・監視する方法に干渉します。
+Ubuntu（および多くの Linux ディストリビューション）では、既定の Chromium インストールは **snap パッケージ** です。Snap の AppArmor による制限が、OpenClaw によるブラウザープロセスの起動および監視の方法と干渉します。
 
 `apt install chromium` コマンドは、snap にリダイレクトするスタブパッケージをインストールします。
 
@@ -32,7 +32,7 @@ Note, selecting 'chromium-browser' instead of 'chromium'
 chromium-browser is already the newest version (2:1snap1-0ubuntu2).
 ```
 
-これは実際のブラウザではありません。単なるラッパーです。
+これは実際のブラウザーではありません。単なるラッパーです。
 
 ### 解決策 1: Google Chrome をインストールする（推奨）
 
@@ -44,7 +44,7 @@ sudo dpkg -i google-chrome-stable_current_amd64.deb
 sudo apt --fix-broken install -y  # if there are dependency errors
 ```
 
-次に OpenClaw 設定（`~/.openclaw/openclaw.json`）を更新します。
+次に、OpenClaw の設定（`~/.openclaw/openclaw.json`）を更新します。
 
 ```json
 {
@@ -57,9 +57,9 @@ sudo apt --fix-broken install -y  # if there are dependency errors
 }
 ```
 
-### 解決策 2: Snap の Chromium をアタッチのみモードで使用する
+### 解決策 2: Snap 版 Chromium をアタッチ専用モードで使用する
 
-snap の Chromium を使用しなければならない場合は、手動で起動したブラウザにアタッチするよう OpenClaw を設定します。
+snap 版 Chromium を使用する必要がある場合は、手動で起動したブラウザーにアタッチするよう OpenClaw を設定します。
 
 1. 設定を更新します。
 
@@ -83,7 +83,7 @@ chromium-browser --headless --no-sandbox --disable-gpu \
   about:blank &
 ```
 
-3. 必要に応じて、Chrome を自動起動する systemd のユーザーサービスを作成します。
+3. 必要に応じて、Chrome を自動起動する systemd ユーザーサービスを作成します。
 
 ```ini
 # ~/.config/systemd/user/openclaw-browser.service
@@ -100,9 +100,9 @@ RestartSec=5
 WantedBy=default.target
 ```
 
-次で有効化します: `systemctl --user enable --now openclaw-browser.service`
+次のコマンドで有効化します: `systemctl --user enable --now openclaw-browser.service`
 
-### ブラウザが動作することの確認
+### ブラウザーが動作していることを確認する
 
 ステータスを確認します。
 
@@ -119,27 +119,26 @@ curl -s http://127.0.0.1:18791/tabs
 
 ### 設定リファレンス
 
-| Option                   | Description                                                          | Default                                             |
-| ------------------------ | -------------------------------------------------------------------- | --------------------------------------------------- |
-| `browser.enabled`        | ブラウザ制御を有効化します                                           | `true`                                              |
-| `browser.executablePath` | Chromium 系ブラウザバイナリ（Chrome/Brave/Edge/Chromium）へのパス    | 自動検出（Chromium 系の場合、既定のブラウザを優先） |
-| `browser.headless`       | GUI なしで実行します                                                 | `false`                                             |
-| `browser.noSandbox`      | `--no-sandbox` フラグを追加します（一部の Linux セットアップで必要） | `false`                                             |
-| `browser.attachOnly`     | ブラウザを起動せず、既存のものにのみアタッチします                   | `false`                                             |
-| `browser.cdpPort`        | Chrome DevTools Protocol のポート                                    | `18800`                                             |
+| オプション               | 説明                                                              | デフォルト                                            |
+| ------------------------ | ----------------------------------------------------------------- | ----------------------------------------------------- |
+| `browser.enabled`        | ブラウザー制御を有効化                                            | `true`                                                |
+| `browser.executablePath` | Chromium 系ブラウザー（Chrome/Brave/Edge/Chromium）のバイナリパス | 自動検出（Chromium 系の場合は既定のブラウザーを優先） |
+| `browser.headless`       | GUI なしで実行                                                    | `false`                                               |
+| `browser.noSandbox`      | `--no-sandbox` フラグを追加（Linux の一部構成で必要）             | `false`                                               |
+| `browser.attachOnly`     | ブラウザーを起動せず、既存のものにのみアタッチ                    | `false`                                               |
+| `browser.cdpPort`        | Chrome DevTools Protocol のポート                                 | `18800`                                               |
 
 ### 問題: 「Chrome extension relay is running, but no tab is connected」
 
-`chrome` プロファイル（拡張機能リレー）を使用しています。これは、OpenClaw
-ブラウザ拡張機能が稼働中のタブにアタッチされていることを前提としています。
+`chrome` プロファイル（拡張機能リレー）を使用しています。これは、OpenClaw のブラウザー拡張機能がアクティブなタブに接続されていることを前提としています。
 
-修正オプション:
+修正方法:
 
-1. **管理対象ブラウザを使用します:** `openclaw browser start --browser-profile openclaw`
+1. **マネージドブラウザーを使用する:** `openclaw browser start --browser-profile openclaw`
    （または `browser.defaultProfile: "openclaw"` を設定します）。
-2. **拡張機能リレーを使用します:** 拡張機能をインストールし、タブを開いて、OpenClaw 拡張機能アイコンをクリックしてアタッチします。
+2. **拡張機能リレーを使用する:** 拡張機能をインストールし、タブを開いてから OpenClaw 拡張機能アイコンをクリックして接続します。
 
 注記:
 
-- `chrome` プロファイルは、可能な場合に **システム既定の Chromium ブラウザ**を使用します。
-- ローカルの `openclaw` プロファイルは `cdpPort`/`cdpUrl` を自動割り当てします。これらはリモート CDP の場合にのみ設定してください。
+- `chrome` プロファイルは、可能な場合に **システム既定の Chromium ブラウザー** を使用します。
+- ローカルの `openclaw` プロファイルでは `cdpPort`/`cdpUrl` が自動的に割り当てられます。これらはリモート CDP の場合のみ設定してください。

@@ -1,23 +1,23 @@
 ---
-summary: "CLI リファレンス：`openclaw setup`（設定 + ワークスペースの初期化）"
+summary: "「openclaw setup」（設定とワークスペースを初期化）の CLI リファレンス"
 read_when:
-  - 完全なオンボーディングウィザードを使用せずに初回セットアップを行う場合
-  - デフォルトのワークスペースパスを設定したい場合
-title: "setup"
+  - "フルのオンボーディングウィザードを使用せずに初回セットアップを行う場合"
+  - "デフォルトのワークスペースパスを設定したい場合"
+title: "セットアップ"
 x-i18n:
   source_path: cli/setup.md
   source_hash: 7f3fc8b246924edf
   provider: openai
-  model: gpt-5.2-pro
+  model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-06T04:58:38Z
+  generated_at: 2026-02-08T09:21:11Z
 ---
 
 # `openclaw setup`
 
 `~/.openclaw/openclaw.json` とエージェントのワークスペースを初期化します。
 
-関連:
+関連情報:
 
 - はじめに: [Getting started](/start/getting-started)
 - ウィザード: [Onboarding](/start/onboarding)
@@ -29,7 +29,7 @@ openclaw setup
 openclaw setup --workspace ~/.openclaw/workspace
 ```
 
-setup を介してウィザードを実行するには:
+setup 経由でウィザードを実行するには:
 
 ```bash
 openclaw setup --wizard

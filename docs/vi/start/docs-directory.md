@@ -1,71 +1,71 @@
 ---
-summary: "Cac lien ket duoc chon loc den nhung tai lieu OpenClaw duoc su dung nhieu nhat."
+summary: "Các liên kết được tuyển chọn đến những tài liệu OpenClaw được dùng nhiều nhất."
 read_when:
-  - Ban muon truy cap nhanh den cac trang tai lieu quan trong
-title: "Thu muc tai lieu"
+  - Bạn muốn truy cập nhanh các trang tài liệu chính
+title: "Danh mục tài liệu"
 x-i18n:
   source_path: start/docs-directory.md
-  source_hash: 6ce20ed8e5191fb2
+  source_hash: 44d94b7a654801e9
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:08:26Z
+  generated_at: 2026-02-08T09:40:09Z
 ---
 
 <Note>
-Trang nay la mot chi muc duoc chon loc. Neu ban moi bat dau, hay xem [Bat Dau](/start/getting-started).
-De co ban do day du cua tai lieu, xem [Docs hubs](/start/hubs).
+Trang này là một chỉ mục được tuyển chọn. Nếu bạn mới bắt đầu, hãy xem [Bắt đầu](/start/getting-started).
+Để xem bản đồ đầy đủ của tài liệu, hãy xem [Trung tâm tài liệu](/start/hubs).
 </Note>
 
-## Bat dau tai day
+## Bắt đầu tại đây
 
-- [Docs hubs (tat ca trang deu duoc lien ket)](/start/hubs)
-- [Tro giup](/help)
-- [Cau hinh](/gateway/configuration)
-- [Vi du cau hinh](/gateway/configuration-examples)
-- [Lenh slash](/tools/slash-commands)
-- [Dinh tuyen da tac tu](/concepts/multi-agent)
-- [Cap nhat va rollback](/install/updating)
-- [Ghep noi (Tin nhan truc tiep va nodes)](/start/pairing)
-- [Che do Nix](/install/nix)
-- [Thiet lap tro ly OpenClaw](/start/openclaw)
+- [Trung tâm tài liệu (liên kết tất cả các trang)](/start/hubs)
+- [Trợ giúp](/help)
+- [Cấu hình](/gateway/configuration)
+- [Ví dụ cấu hình](/gateway/configuration-examples)
+- [Lệnh slash](/tools/slash-commands)
+- [Định tuyến đa tác tử](/concepts/multi-agent)
+- [Cập nhật và quay lui](/install/updating)
+- [Ghép cặp (DM và node)](/channels/pairing)
+- [Chế độ Nix](/install/nix)
+- [Thiết lập trợ lý OpenClaw](/start/openclaw)
 - [Skills](/tools/skills)
-- [Cau hinh Skills](/tools/skills-config)
-- [Mau workspace](/reference/templates/AGENTS)
-- [Bo dieu hop RPC](/reference/rpc)
+- [Cấu hình Skills](/tools/skills-config)
+- [Mẫu workspace](/reference/templates/AGENTS)
+- [Bộ điều hợp RPC](/reference/rpc)
 - [Runbook Gateway](/gateway)
-- [Nodes (iOS va Android)](/nodes)
-- [Be mat web (Control UI)](/web)
-- [Kham pha va truyen tai](/gateway/discovery)
-- [Truy cap tu xa](/gateway/remote)
+- [Node (iOS và Android)](/nodes)
+- [Bề mặt web (Control UI)](/web)
+- [Khám phá và phương thức truyền](/gateway/discovery)
+- [Truy cập từ xa](/gateway/remote)
 
-## Nha cung cap va UX
+## Nhà cung cấp và UX
 
 - [WebChat](/web/webchat)
-- [Control UI (trinh duyet)](/web/control-ui)
+- [Control UI (trình duyệt)](/web/control-ui)
 - [Telegram](/channels/telegram)
 - [Discord](/channels/discord)
 - [Mattermost (plugin)](/channels/mattermost)
 - [BlueBubbles (iMessage)](/channels/bluebubbles)
-- [iMessage (ke thua)](/channels/imessage)
-- [Nhom](/concepts/groups)
-- [Tin nhan nhom WhatsApp](/concepts/group-messages)
-- [Media hinh anh](/nodes/images)
-- [Media am thanh](/nodes/audio)
+- [iMessage (legacy)](/channels/imessage)
+- [Nhóm](/channels/groups)
+- [Tin nhắn nhóm WhatsApp](/channels/group-messages)
+- [Media hình ảnh](/nodes/images)
+- [Media âm thanh](/nodes/audio)
 
-## Ung dung dong hanh
+## Ứng dụng đồng hành
 
-- [Ung dung macOS](/platforms/macos)
-- [Ung dung iOS](/platforms/ios)
-- [Ung dung Android](/platforms/android)
+- [Ứng dụng macOS](/platforms/macos)
+- [Ứng dụng iOS](/platforms/ios)
+- [Ứng dụng Android](/platforms/android)
 - [Windows (WSL2)](/platforms/windows)
-- [Ung dung Linux](/platforms/linux)
+- [Ứng dụng Linux](/platforms/linux)
 
-## Van hanh va an toan
+## Vận hành và an toàn
 
-- [Phien](/concepts/session)
+- [Phiên](/concepts/session)
 - [Cron jobs](/automation/cron-jobs)
-- [Webhooks](/automation/webhook)
+- [Webhook](/automation/webhook)
 - [Gmail hooks (Pub/Sub)](/automation/gmail-pubsub)
-- [Bao mat](/gateway/security)
-- [Xu ly su co](/gateway/troubleshooting)
+- [Bảo mật](/gateway/security)
+- [Xử lý sự cố](/gateway/troubleshooting)

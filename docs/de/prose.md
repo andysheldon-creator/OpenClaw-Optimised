@@ -1,50 +1,50 @@
 ---
-summary: "OpenProse: .prose-Workflows, Slash-Befehle und Zustand in OpenClaw"
+summary: "OpenProse: .prose-Workflows, Slash-Befehle und Zustände in OpenClaw"
 read_when:
-  - Sie moechten .prose-Workflows ausfuehren oder schreiben
-  - Sie moechten das OpenProse-Plugin aktivieren
-  - Sie muessen die Zustandspeicherung verstehen
+  - Sie möchten .prose-Workflows ausführen oder schreiben
+  - Sie möchten das OpenProse-Plugin aktivieren
+  - Sie müssen die Zustandspeicherung verstehen
 title: "OpenProse"
 x-i18n:
   source_path: prose.md
-  source_hash: cf7301e927b9a463
+  source_hash: 53c161466d278e5f
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:13Z
+  generated_at: 2026-02-08T09:37:05Z
 ---
 
 # OpenProse
 
-OpenProse ist ein portables, Markdown-first-Workflowformat zur Orchestrierung von KI-Sitzungen. In OpenClaw wird es als Plugin ausgeliefert, das ein OpenProse-Skill-Paket sowie einen `/prose`-Slash-Befehl installiert. Programme liegen in `.prose`-Dateien und koennen mehrere Sub-Agenten mit explizitem Kontrollfluss starten.
+OpenProse ist ein portables, Markdown-zentriertes Workflow-Format zur Orchestrierung von KI-Sitzungen. In OpenClaw wird es als Plugin ausgeliefert, das ein OpenProse-Skill-Pack sowie einen `/prose`-Slash-Befehl installiert. Programme liegen in `.prose`-Dateien und können mehrere Sub-Agenten mit expliziter Kontrollflusssteuerung starten.
 
-Offizielle Website: https://www.prose.md
+Offizielle Website: [https://www.prose.md](https://www.prose.md)
 
 ## Was es kann
 
-- Multi-Agenten-Recherche und -Synthese mit expliziter Parallelitaet.
+- Multi-Agenten-Recherche und -Synthese mit expliziter Parallelität.
 - Wiederholbare, freigabesichere Workflows (Code-Review, Incident-Triage, Content-Pipelines).
-- Wiederverwendbare `.prose`-Programme, die Sie ueber unterstuetzte Agent-Runtimes hinweg ausfuehren koennen.
+- Wiederverwendbare `.prose`-Programme, die Sie über unterstützte Agent-Laufzeiten hinweg ausführen können.
 
 ## Installieren + aktivieren
 
-Gebundelte Plugins sind standardmaessig deaktiviert. Aktivieren Sie OpenProse:
+Gebündelte Plugins sind standardmäßig deaktiviert. Aktivieren Sie OpenProse:
 
 ```bash
 openclaw plugins enable open-prose
 ```
 
-Starten Sie das Gateway nach dem Aktivieren des Plugins neu.
+Starten Sie das Gateway nach der Aktivierung des Plugins neu.
 
 Dev-/lokaler Checkout: `openclaw plugins install ./extensions/open-prose`
 
-Zugehoerige Dokumente: [Plugins](/plugin), [Plugin-Manifest](/plugins/manifest), [Skills](/tools/skills).
+Zugehörige Dokumente: [Plugins](/tools/plugin), [Plugin-Manifest](/plugins/manifest), [Skills](/tools/skills).
 
 ## Slash-Befehl
 
-OpenProse registriert `/prose` als vom Benutzer aufrufbaren Skill-Befehl. Er leitet an die OpenProse-VM-Anweisungen weiter und nutzt unter der Haube OpenClaw-Werkzeuge.
+OpenProse registriert `/prose` als vom Benutzer aufrufbaren Skill-Befehl. Er leitet an die OpenProse-VM-Instruktionen weiter und verwendet unter der Haube OpenClaw-Werkzeuge.
 
-Gaengige Befehle:
+Gängige Befehle:
 
 ```
 /prose help
@@ -81,7 +81,7 @@ session "Merge the findings + draft into a final answer."
 context: { findings, draft }
 ```
 
-## Dateiablagen
+## Dateipfade
 
 OpenProse speichert den Zustand unter `.prose/` in Ihrem Workspace:
 
@@ -105,26 +105,26 @@ Persistente Agenten auf Benutzerebene befinden sich unter:
 
 ## Zustandsmodi
 
-OpenProse unterstuetzt mehrere Zustands-Backends:
+OpenProse unterstützt mehrere Zustands-Backends:
 
 - **filesystem** (Standard): `.prose/runs/...`
-- **in-context**: temporaer, fuer kleine Programme
-- **sqlite** (experimentell): erfordert die `sqlite3`-Binary
+- **in-context**: transient, für kleine Programme
+- **sqlite** (experimentell): erfordert das `sqlite3`-Binary
 - **postgres** (experimentell): erfordert `psql` und eine Verbindungszeichenfolge
 
 Hinweise:
 
 - sqlite/postgres sind optional und experimentell.
-- Postgres-Zugangsdaten fliessen in Sub-Agenten-Logs; verwenden Sie eine dedizierte DB mit minimalen Rechten.
+- Postgres-Zugangsdaten fließen in Subagenten-Logs; verwenden Sie eine dedizierte Datenbank mit minimalen Rechten.
 
 ## Remote-Programme
 
-`/prose run <handle/slug>` wird zu `https://p.prose.md/<handle>/<slug>` aufgeloest.
-Direkte URLs werden unveraendert abgerufen. Dies verwendet das `web_fetch`-Werkzeug (oder `exec` fuer POST).
+`/prose run <handle/slug>` wird zu `https://p.prose.md/<handle>/<slug>` aufgelöst.
+Direkte URLs werden unverändert abgerufen. Dies verwendet das `web_fetch`-Werkzeug (oder `exec` für POST).
 
 ## OpenClaw-Runtime-Zuordnung
 
-OpenProse-Programme werden OpenClaw-Primitiven zugeordnet:
+OpenProse-Programme werden auf OpenClaw-Primitiven abgebildet:
 
 | OpenProse-Konzept               | OpenClaw-Werkzeug |
 | ------------------------------- | ----------------- |
@@ -136,6 +136,6 @@ Wenn Ihre Tool-Allowlist diese Werkzeuge blockiert, schlagen OpenProse-Programme
 
 ## Sicherheit + Freigaben
 
-Behandeln Sie `.prose`-Dateien wie Code. Pruefen Sie sie vor der Ausfuehrung. Verwenden Sie OpenClaw-Tool-Allowlists und Freigabe-Gates, um Seiteneffekte zu kontrollieren.
+Behandeln Sie `.prose`-Dateien wie Code. Prüfen Sie sie vor der Ausführung. Verwenden Sie OpenClaw-Tool-Allowlists und Freigabeschranken, um Nebenwirkungen zu kontrollieren.
 
-Fuer deterministische, freigabegesteuerte Workflows vergleichen Sie mit [Lobster](/tools/lobster).
+Für deterministische, freigabegesteuerte Workflows vergleichen Sie mit [Lobster](/tools/lobster).

@@ -1,9 +1,9 @@
 ---
-summary: "Onboarding theo kịch bản và thiết lập tác tử cho OpenClaw CLI"
+summary: "Onboarding bằng script và thiết lập tác tử cho OpenClaw CLI"
 read_when:
-  - Ban dang tu dong hoa onboarding trong script hoac CI
-  - Ban can vi du khong tuong tac cho cac nha cung cap cu the
-title: "Tu dong hoa CLI"
+  - Bạn đang tự động hóa onboarding trong script hoặc CI
+  - Bạn cần các ví dụ không tương tác cho từng nhà cung cấp cụ thể
+title: "Tự động hóa CLI"
 sidebarTitle: "CLI automation"
 x-i18n:
   source_path: start/wizard-cli-automation.md
@@ -11,7 +11,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:08:31Z
+  generated_at: 2026-02-08T09:40:14Z
 ---
 
 # Tự động hóa CLI
@@ -19,10 +19,10 @@ x-i18n:
 Sử dụng `--non-interactive` để tự động hóa `openclaw onboard`.
 
 <Note>
-`--json` không có nghĩa là chế độ không tương tác. Hãy dùng `--non-interactive` (và `--workspace`) cho các script.
+`--json` không đồng nghĩa với chế độ không tương tác. Hãy dùng `--non-interactive` (và `--workspace`) cho các script.
 </Note>
 
-## Ví dụ cơ bản không tương tác
+## Ví dụ không tương tác cơ bản
 
 ```bash
 openclaw onboard --non-interactive \
@@ -36,7 +36,7 @@ openclaw onboard --non-interactive \
   --skip-skills
 ```
 
-Thêm `--json` để có bản tóm tắt dạng máy đọc được.
+Thêm `--json` để có bản tóm tắt ở dạng máy có thể đọc.
 
 ## Ví dụ theo từng nhà cung cấp
 
@@ -118,7 +118,7 @@ Thêm `--json` để có bản tóm tắt dạng máy đọc được.
 ## Thêm một tác tử khác
 
 Sử dụng `openclaw agents add <name>` để tạo một tác tử riêng với workspace,
-các phiên và hồ sơ xác thực riêng. Chạy không có `--workspace` sẽ khởi chạy trình hướng dẫn.
+phiên và hồ sơ xác thực của riêng nó. Chạy mà không có `--workspace` sẽ khởi chạy trình hướng dẫn.
 
 ```bash
 openclaw agents add work \
@@ -143,6 +143,6 @@ Ghi chú:
 
 ## Tài liệu liên quan
 
-- Trung tâm onboarding: [Trình hướng dẫn Onboarding (CLI)](/start/wizard)
-- Tham chiếu đầy đủ: [Tham chiếu Onboarding CLI](/start/wizard-cli-reference)
+- Trung tâm onboarding: [Onboarding Wizard (CLI)](/start/wizard)
+- Tham chiếu đầy đủ: [CLI Onboarding Reference](/start/wizard-cli-reference)
 - Tham chiếu lệnh: [`openclaw onboard`](/cli/onboard)

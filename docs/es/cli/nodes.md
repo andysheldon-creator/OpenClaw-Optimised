@@ -1,16 +1,16 @@
 ---
-summary: "Referencia de CLI para `openclaw nodes` (list/status/approve/invoke, camera/canvas/screen)"
+summary: "Referencia de la CLI para `openclaw nodes` (list/status/approve/invoke, camera/canvas/screen)"
 read_when:
   - Usted está gestionando nodos emparejados (cámaras, pantalla, lienzo)
   - Necesita aprobar solicitudes o invocar comandos de nodos
-title: "nodos"
+title: "nodes"
 x-i18n:
   source_path: cli/nodes.md
   source_hash: 23da6efdd659a82d
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:58:24Z
+  generated_at: 2026-02-08T09:32:58Z
 ---
 
 # `openclaw nodes`
@@ -53,28 +53,28 @@ openclaw nodes run --raw "git status"
 openclaw nodes run --agent main --node <id|name|ip> --raw "git status"
 ```
 
-Banderas de invocación:
+Indicadores de invocación:
 
-- `--params <json>`: cadena de objeto JSON (predeterminado `{}`).
-- `--invoke-timeout <ms>`: tiempo de espera de invocación del nodo (predeterminado `15000`).
+- `--params <json>`: cadena de objeto JSON (valor predeterminado `{}`).
+- `--invoke-timeout <ms>`: tiempo de espera de invocación del nodo (valor predeterminado `15000`).
 - `--idempotency-key <key>`: clave de idempotencia opcional.
 
-### Valores predeterminados estilo exec
+### Valores predeterminados de estilo exec
 
-`nodes run` refleja el comportamiento de exec del modelo (valores predeterminados + aprobaciones):
+`nodes run` refleja el comportamiento exec del modelo (valores predeterminados + aprobaciones):
 
-- Lee `tools.exec.*` (más anulaciones de `agents.list[].tools.exec.*`).
+- Lee `tools.exec.*` (más las anulaciones de `agents.list[].tools.exec.*`).
 - Usa aprobaciones de exec (`exec.approval.request`) antes de invocar `system.run`.
-- `--node` puede omitirse cuando `tools.exec.node` está configurado.
+- `--node` puede omitirse cuando se establece `tools.exec.node`.
 - Requiere un nodo que anuncie `system.run` (aplicación complementaria de macOS o host de nodo sin interfaz).
 
-Banderas:
+Indicadores:
 
 - `--cwd <path>`: directorio de trabajo.
-- `--env <key=val>`: anulación de entorno (repetible).
+- `--env <key=val>`: anulación de variables de entorno (repetible).
 - `--command-timeout <ms>`: tiempo de espera del comando.
-- `--invoke-timeout <ms>`: tiempo de espera de invocación del nodo (predeterminado `30000`).
-- `--needs-screen-recording`: requerir permiso de grabación de pantalla.
+- `--invoke-timeout <ms>`: tiempo de espera de invocación del nodo (valor predeterminado `30000`).
+- `--needs-screen-recording`: requiere permiso de grabación de pantalla.
 - `--raw <command>`: ejecutar una cadena de shell (`/bin/sh -lc` o `cmd.exe /c`).
-- `--agent <id>`: aprobaciones/listas de permitidos con alcance del agente (predeterminado al agente configurado).
+- `--agent <id>`: aprobaciones/listas de permitidos con alcance de agente (predetermina al agente configurado).
 - `--ask <off|on-miss|always>`, `--security <deny|allowlist|full>`: anulaciones.

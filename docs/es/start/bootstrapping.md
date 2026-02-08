@@ -12,13 +12,13 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:59:56Z
+  generated_at: 2026-02-08T09:34:35Z
 ---
 
 # Arranque del agente
 
-El arranque es el ritual de la **primera ejecución** que prepara el espacio de trabajo de un agente y
-recopila detalles de identidad. Ocurre después de la incorporación, cuando el agente se inicia
+El arranque es el ritual de **primera ejecución** que prepara el espacio de trabajo de un agente y
+recopila los detalles de identidad. Ocurre después de la incorporación, cuando el agente se inicia
 por primera vez.
 
 ## Qué hace el arranque
@@ -34,15 +34,15 @@ En la primera ejecución del agente, OpenClaw inicializa el espacio de trabajo (
 ## Dónde se ejecuta
 
 El arranque siempre se ejecuta en el **host del Gateway**. Si la app de macOS se conecta a
-un Gateway remoto, el espacio de trabajo y los archivos de arranque viven en esa máquina
-remota.
+un Gateway remoto, el espacio de trabajo y los archivos de arranque viven en esa
+máquina remota.
 
 <Note>
-Cuando el Gateway se ejecuta en otra máquina, edite los archivos del espacio de trabajo en el host
-del gateway (por ejemplo, `user@gateway-host:~/.openclaw/workspace`).
+Cuando el Gateway se ejecuta en otra máquina, edite los archivos del espacio de trabajo en el host del Gateway
+(por ejemplo, `user@gateway-host:~/.openclaw/workspace`).
 </Note>
 
 ## Documentos relacionados
 
 - Incorporación de la app de macOS: [Onboarding](/start/onboarding)
-- Disposición del espacio de trabajo: [Agent workspace](/concepts/agent-workspace)
+- Diseño del espacio de trabajo: [Agent workspace](/concepts/agent-workpace)

@@ -1,9 +1,9 @@
 ---
-summary: "Raspberry Pi 上の OpenClaw（低予算のセルフホスト構成）"
+summary: "Raspberry Pi 上での OpenClaw（低予算セルフホスト構成）"
 read_when:
-  - Raspberry Pi で OpenClaw をセットアップする場合
-  - ARM デバイスで OpenClaw を実行する場合
-  - 安価で常時稼働のパーソナル AI を構築したい場合
+  - Raspberry Pi に OpenClaw をセットアップする場合
+  - ARM デバイス上で OpenClaw を実行する場合
+  - 安価で常時稼働する個人向け AI を構築する場合
 title: "Raspberry Pi"
 x-i18n:
   source_path: platforms/raspberry-pi.md
@@ -11,56 +11,56 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:34:40Z
+  generated_at: 2026-02-08T09:22:53Z
 ---
 
 # Raspberry Pi 上の OpenClaw
 
-## 目的
+## 目標
 
-Raspberry Pi 上で永続的かつ常時稼働の OpenClaw Gateway（ゲートウェイ）を、**約 $35～80** の初期費用のみ（月額費用なし）で実行します。
+Raspberry Pi 上で、永続的かつ常時稼働の OpenClaw Gateway（ゲートウェイ）を **約 $35〜80** の初期費用（毎月の料金なし）で実行します。
 
 以下の用途に最適です。
 
-- 24 時間 365 日稼働のパーソナル AI アシスタント
-- ホームオートメーションハブ
+- 24/7 稼働の個人向け AI アシスタント
+- ホームオートメーションのハブ
 - 低消費電力で常時利用可能な Telegram / WhatsApp ボット
 
 ## ハードウェア要件
 
-| Pi モデル       | RAM     | 動作可否  | 備考                       |
-| --------------- | ------- | --------- | -------------------------- |
-| **Pi 5**        | 4GB/8GB | ✅ 最適   | 最速、推奨                 |
-| **Pi 4**        | 4GB     | ✅ 良好   | 多くのユーザーにとって最適 |
-| **Pi 4**        | 2GB     | ✅ 可     | 動作するが swap 追加を推奨 |
-| **Pi 4**        | 1GB     | ⚠️ 厳しい | swap と最小構成で可能      |
-| **Pi 3B+**      | 1GB     | ⚠️ 遅い   | 動作するが動作は重め       |
-| **Pi Zero 2 W** | 512MB   | ❌        | 非推奨                     |
+| Pi モデル       | RAM     | 動作可否  | 注記                           |
+| --------------- | ------- | --------- | ------------------------------ |
+| **Pi 5**        | 4GB/8GB | ✅ 最適   | 最速、推奨                     |
+| **Pi 4**        | 4GB     | ✅ 良好   | 多くのユーザーにとっての最適解 |
+| **Pi 4**        | 2GB     | ✅ 可     | 動作可、スワップ追加を推奨     |
+| **Pi 4**        | 1GB     | ⚠️ 厳しい | スワップ併用で可能、最小構成   |
+| **Pi 3B+**      | 1GB     | ⚠️ 遅い   | 動作するがもたつく             |
+| **Pi Zero 2 W** | 512MB   | ❌        | 非推奨                         |
 
 **最小要件:** RAM 1GB、1 コア、ディスク 500MB  
 **推奨:** RAM 2GB 以上、64-bit OS、16GB 以上の SD カード（または USB SSD）
 
 ## 用意するもの
 
-- Raspberry Pi 4 または 5（2GB 以上を推奨）
-- MicroSD カード（16GB 以上）または USB SSD（より高性能）
-- 電源アダプタ（公式 Pi PSU を推奨）
+- Raspberry Pi 4 または 5（2GB 以上推奨）
+- MicroSD カード（16GB 以上）または USB SSD（高性能）
+- 電源（公式 Pi PSU 推奨）
 - ネットワーク接続（Ethernet または WiFi）
 - 約 30 分
 
 ## 1) OS を書き込む
 
-ヘッドレスサーバーとして使用するため、デスクトップ不要の **Raspberry Pi OS Lite (64-bit)** を使用します。
+ヘッドレスサーバー用のため、**Raspberry Pi OS Lite (64-bit)** を使用します（デスクトップ不要）。
 
 1. [Raspberry Pi Imager](https://www.raspberrypi.com/software/) をダウンロード
 2. OS を選択: **Raspberry Pi OS Lite (64-bit)**
-3. 歯車アイコン（⚙️）をクリックして事前設定:
+3. ギアアイコン（⚙️）をクリックして事前設定:
    - ホスト名を設定: `gateway-host`
    - SSH を有効化
    - ユーザー名 / パスワードを設定
-   - WiFi を設定（Ethernet を使用しない場合）
+   - WiFi を設定（Ethernet を使わない場合）
 4. SD カード / USB ドライブに書き込む
-5. Pi に挿入して起動
+5. 挿入して Pi を起動
 
 ## 2) SSH で接続
 
@@ -95,9 +95,9 @@ node --version  # Should show v22.x.x
 npm --version
 ```
 
-## 5) Swap を追加（2GB 以下では重要）
+## 5) スワップを追加（2GB 以下では重要）
 
-Swap はメモリ不足によるクラッシュを防ぎます。
+スワップはメモリ不足によるクラッシュを防ぎます。
 
 ```bash
 # Create 2GB swap file
@@ -122,7 +122,7 @@ sudo sysctl -p
 curl -fsSL https://openclaw.ai/install.sh | bash
 ```
 
-### オプション B: ハック可能なインストール（試行錯誤向け）
+### オプション B: ハッカブルインストール（調整・検証向け）
 
 ```bash
 git clone https://github.com/openclaw/openclaw.git
@@ -132,7 +132,7 @@ npm run build
 npm link
 ```
 
-ハック可能なインストールでは、ログやコードに直接アクセスできます。ARM 固有の問題をデバッグする際に便利です。
+ハッカブルインストールでは、ログやコードに直接アクセスできます。ARM 固有の問題をデバッグする際に便利です。
 
 ## 7) オンボーディングを実行
 
@@ -140,14 +140,14 @@ npm link
 openclaw onboard --install-daemon
 ```
 
-ウィザードに従って設定します。
+ウィザードに従います。
 
-1. **Gateway モード:** ローカル
-2. **認証:** API キー推奨（OAuth はヘッドレス Pi では不安定な場合があります）
-3. **チャンネル:** 最初は Telegram が最も簡単
+1. **Gateway モード:** Local
+2. **認証:** API キー推奨（ヘッドレス Pi では OAuth が不安定な場合があります）
+3. **チャンネル:** Telegram が最も簡単
 4. **デーモン:** はい（systemd）
 
-## 8) インストール確認
+## 8) インストールの確認
 
 ```bash
 # Check status
@@ -172,7 +172,7 @@ ssh -L 18789:localhost:18789 user@gateway-host
 open http://localhost:18789
 ```
 
-または、常時アクセス用に Tailscale を使用します。
+または、常時アクセスするには Tailscale を使用します。
 
 ```bash
 # On the Pi
@@ -188,9 +188,9 @@ sudo systemctl restart openclaw
 
 ## パフォーマンス最適化
 
-### USB SSD を使用（大幅な改善）
+### USB SSD を使用する（大幅な改善）
 
-SD カードは低速で消耗しやすいです。USB SSD を使うことで性能が大幅に向上します。
+SD カードは低速で消耗しやすいです。USB SSD を使うとパフォーマンスが大きく向上します。
 
 ```bash
 # Check if booting from USB
@@ -228,9 +228,9 @@ htop
 
 ### バイナリ互換性
 
-OpenClaw のほとんどの機能は ARM64 で動作しますが、外部バイナリの一部は ARM ビルドが必要です。
+OpenClaw の多くの機能は ARM64 で動作しますが、外部バイナリの一部は ARM ビルドが必要です。
 
-| ツール             | ARM64 状態 | 備考                                |
+| ツール             | ARM64 状況 | 注記                                |
 | ------------------ | ---------- | ----------------------------------- |
 | Node.js            | ✅         | 問題なく動作                        |
 | WhatsApp (Baileys) | ✅         | Pure JS、問題なし                   |
@@ -238,11 +238,11 @@ OpenClaw のほとんどの機能は ARM64 で動作しますが、外部バイ�
 | gog (Gmail CLI)    | ⚠️         | ARM リリースの有無を確認            |
 | Chromium (browser) | ✅         | `sudo apt install chromium-browser` |
 
-Skill が失敗する場合、そのバイナリに ARM ビルドがあるかを確認してください。多くの Go / Rust 製ツールは対応していますが、未対応のものもあります。
+Skill が失敗する場合は、そのバイナリに ARM ビルドがあるか確認してください。多くの Go / Rust ツールは対応していますが、対応していないものもあります。
 
 ### 32-bit と 64-bit
 
-**必ず 64-bit OS を使用してください。** Node.js や多くの最新ツールで必須です。次のコマンドで確認できます。
+**必ず 64-bit OS を使用してください。** Node.js や多くの最新ツールで必須です。次で確認できます。
 
 ```bash
 uname -m
@@ -253,7 +253,7 @@ uname -m
 
 ## 推奨モデル構成
 
-Pi は Gateway（ゲートウェイ）のみを担当し、モデルはクラウドで実行するため、API ベースのモデルを使用します。
+Pi は Gateway のみ（モデルはクラウドで実行）として使うため、API ベースのモデルを使用します。
 
 ```json
 {
@@ -268,13 +268,13 @@ Pi は Gateway（ゲートウェイ）のみを担当し、モデルはクラウ
 }
 ```
 
-**Pi 上でローカル LLM を実行しないでください。** 小規模なモデルでも遅すぎます。Claude / GPT に重い処理を任せましょう。
+**Pi 上でローカル LLM を実行しようとしないでください。** 小規模なモデルでも遅すぎます。Claude / GPT に重い処理を任せましょう。
 
 ---
 
-## 起動時の自動起動
+## 起動時の自動開始
 
-オンボーディングウィザードで設定されますが、確認する場合は以下を実行します。
+オンボーディングウィザードで設定されますが、確認するには次を実行します。
 
 ```bash
 # Check service is enabled
@@ -301,11 +301,11 @@ free -h
 # Or reduce services running on the Pi
 ```
 
-### 動作が遅い場合
+### パフォーマンスが遅い
 
-- SD カードではなく USB SSD を使用
-- 未使用サービスを無効化: `sudo systemctl disable cups bluetooth avahi-daemon`
-- CPU スロットリングを確認: `vcgencmd get_throttled`（`0x0` が返るはずです）
+- SD カードではなく USB SSD を使用する
+- 未使用のサービスを無効化: `sudo systemctl disable cups bluetooth avahi-daemon`
+- CPU のスロットリングを確認: `vcgencmd get_throttled`（`0x0` が返るはずです）
 
 ### サービスが起動しない
 
@@ -329,7 +329,7 @@ Skill が「exec format error」で失敗する場合:
 
 ### WiFi が切断される
 
-ヘッドレス Pi を WiFi で使用する場合:
+WiFi 接続のヘッドレス Pi の場合:
 
 ```bash
 # Disable WiFi power management
@@ -343,23 +343,23 @@ echo 'wireless-power off' | sudo tee -a /etc/network/interfaces
 
 ## コスト比較
 
-| 構成           | 初期費用 | 月額費用 | 備考                   |
-| -------------- | -------- | -------- | ---------------------- |
-| **Pi 4 (2GB)** | ~$45     | $0       | + 電気代（約 $5 / 年） |
-| **Pi 4 (4GB)** | ~$55     | $0       | 推奨                   |
-| **Pi 5 (4GB)** | ~$60     | $0       | 最高のパフォーマンス   |
-| **Pi 5 (8GB)** | ~$80     | $0       | 過剰だが将来性あり     |
-| DigitalOcean   | $0       | $6/月    | 年間 $72               |
-| Hetzner        | $0       | €3.79/月 | 年間 約 $50            |
+| 構成           | 初期費用 | 月額費用 | 注記                 |
+| -------------- | -------- | -------- | -------------------- |
+| **Pi 4 (2GB)** | ~$45     | $0       | + 電力 (~$5/年)      |
+| **Pi 4 (4GB)** | ~$55     | $0       | 推奨                 |
+| **Pi 5 (4GB)** | ~$60     | $0       | 最高のパフォーマンス |
+| **Pi 5 (8GB)** | ~$80     | $0       | 過剰だが将来性あり   |
+| DigitalOcean   | $0       | $6/月    | $72/年               |
+| Hetzner        | $0       | €3.79/月 | 約 $50/年            |
 
-**損益分岐点:** クラウド VPS と比べて、Pi は約 6～12 か月で元が取れます。
+**損益分岐点:** クラウド VPS と比べ、Pi は約 6〜12 か月で元が取れます。
 
 ---
 
-## 関連項目
+## 関連情報
 
-- [Linux ガイド](/platforms/linux) — 一般的な Linux セットアップ
-- [DigitalOcean ガイド](/platforms/digitalocean) — クラウド代替案
-- [Hetzner ガイド](/install/hetzner) — Docker セットアップ
+- [Linux guide](/platforms/linux) — 一般的な Linux セットアップ
+- [DigitalOcean guide](/platforms/digitalocean) — クラウド代替案
+- [Hetzner guide](/install/hetzner) — Docker セットアップ
 - [Tailscale](/gateway/tailscale) — リモートアクセス
-- [Nodes](/nodes) — ノート PC / スマートフォンを Pi Gateway とペアリング
+- [Nodes](/nodes) — ノート PC / スマートフォンを Pi ゲートウェイと連携

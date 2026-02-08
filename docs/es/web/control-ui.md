@@ -1,24 +1,24 @@
 ---
-summary: "Interfaz de control basada en navegador para el Gateway (chat, nodos, configuración)"
+summary: "UI de control basada en navegador para el Gateway (chat, nodos, configuración)"
 read_when:
   - Quiere operar el Gateway desde un navegador
-  - Quiere acceso al Tailnet sin túneles SSH
-title: "Interfaz de Control"
+  - Quiere acceso a Tailnet sin túneles SSH
+title: "UI de control"
 x-i18n:
   source_path: web/control-ui.md
-  source_hash: ad239e4a4354999a
+  source_hash: baaaf73820f0e703
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:00:29Z
+  generated_at: 2026-02-08T09:35:09Z
 ---
 
-# Interfaz de Control (navegador)
+# UI de control (navegador)
 
-La Interfaz de Control es una pequeña app de una sola página **Vite + Lit** servida por el Gateway:
+La UI de control es una pequeña aplicación de una sola página **Vite + Lit** servida por el Gateway:
 
 - predeterminado: `http://<host>:18789/`
-- prefijo opcional: establezca `gateway.controlUi.basePath` (p. ej., `/openclaw`)
+- prefijo opcional: configure `gateway.controlUi.basePath` (p. ej., `/openclaw`)
 
 Se comunica **directamente con el WebSocket del Gateway** en el mismo puerto.
 
@@ -26,22 +26,22 @@ Se comunica **directamente con el WebSocket del Gateway** en el mismo puerto.
 
 Si el Gateway se está ejecutando en la misma computadora, abra:
 
-- http://127.0.0.1:18789/ (o http://localhost:18789/)
+- [http://127.0.0.1:18789/](http://127.0.0.1:18789/) (o [http://localhost:18789/](http://localhost:18789/))
 
 Si la página no carga, inicie primero el Gateway: `openclaw gateway`.
 
-La autenticación se suministra durante el handshake del WebSocket mediante:
+La autenticación se proporciona durante el handshake de WebSocket mediante:
 
 - `connect.params.auth.token`
 - `connect.params.auth.password`
-  El panel de configuración del tablero le permite almacenar un token; las contraseñas no se persisten.
+  El panel de configuración del dashboard le permite almacenar un token; las contraseñas no se persisten.
   El asistente de incorporación genera un token del gateway de forma predeterminada, así que péguelo aquí en la primera conexión.
 
 ## Emparejamiento de dispositivos (primera conexión)
 
-Cuando se conecta a la Interfaz de Control desde un navegador o dispositivo nuevo, el Gateway
-requiere una **aprobación de emparejamiento de una sola vez**, incluso si está en el mismo Tailnet
-con `gateway.auth.allowTailscale: true`. Esta es una medida de seguridad para prevenir
+Cuando se conecta a la UI de control desde un navegador o dispositivo nuevo, el Gateway
+requiere una **aprobación de emparejamiento única** — incluso si está en la misma Tailnet
+con `gateway.auth.allowTailscale: true`. Esto es una medida de seguridad para prevenir
 accesos no autorizados.
 
 **Lo que verá:** "disconnected (1008): pairing required"
@@ -65,7 +65,7 @@ lo revoque con `openclaw devices revoke --device <id> --role <role>`. Consulte
 - Las conexiones locales (`127.0.0.1`) se aprueban automáticamente.
 - Las conexiones remotas (LAN, Tailnet, etc.) requieren aprobación explícita.
 - Cada perfil de navegador genera un ID de dispositivo único, por lo que cambiar de navegador o
-  borrar los datos del navegador requerirá reemparejar.
+  borrar los datos del navegador requerirá volver a emparejar.
 
 ## Qué puede hacer (hoy)
 
@@ -73,29 +73,29 @@ lo revoque con `openclaw devices revoke --device <id> --role <role>`. Consulte
 - Transmitir llamadas a herramientas + tarjetas de salida de herramientas en vivo en Chat (eventos del agente)
 - Canales: estado de WhatsApp/Telegram/Discord/Slack + canales de plugins (Mattermost, etc.) + inicio de sesión por QR + configuración por canal (`channels.status`, `web.login.*`, `config.patch`)
 - Instancias: lista de presencia + actualización (`system-presence`)
-- Sesiones: lista + anulaciones de pensamiento/detallado por sesión (`sessions.list`, `sessions.patch`)
-- Trabajos cron: listar/agregar/ejecutar/habilitar/deshabilitar + historial de ejecuciones (`cron.*`)
+- Sesiones: lista + sobrescrituras de thinking/verbose por sesión (`sessions.list`, `sessions.patch`)
+- Tareas cron: listar/agregar/ejecutar/habilitar/deshabilitar + historial de ejecuciones (`cron.*`)
 - Skills: estado, habilitar/deshabilitar, instalar, actualizaciones de claves de API (`skills.*`)
 - Nodos: lista + capacidades (`node.list`)
-- Aprobaciones de ejecución: editar allowlists del gateway o del nodo + preguntar a la política por `exec host=gateway/node` (`exec.approvals.*`)
+- Aprobaciones de ejecución: editar listas de permitidos del gateway o del nodo + política de solicitud para `exec host=gateway/node` (`exec.approvals.*`)
 - Configuración: ver/editar `~/.openclaw/openclaw.json` (`config.get`, `config.set`)
-- Configuración: aplicar + reiniciar con validación (`config.apply`) y despertar la última sesión activa
-- Las escrituras de configuración incluyen una protección por hash base para evitar sobrescribir ediciones concurrentes
-- Esquema de configuración + renderizado de formularios (`config.schema`, incluidos esquemas de plugins y canales); el editor JSON sin procesar sigue disponible
+- Configuración: aplicar + reiniciar con validación (`config.apply`) y reactivar la última sesión activa
+- Las escrituras de configuración incluyen una protección de hash base para evitar sobrescribir ediciones concurrentes
+- Esquema de configuración + renderizado de formularios (`config.schema`, incluidos esquemas de plugins + canales); el editor de JSON en bruto sigue disponible
 - Depuración: instantáneas de estado/salud/modelos + registro de eventos + llamadas RPC manuales (`status`, `health`, `models.list`)
 - Registros: tail en vivo de los registros de archivos del gateway con filtro/exportación (`logs.tail`)
 - Actualización: ejecutar una actualización de paquetes/git + reiniciar (`update.run`) con un informe de reinicio
 
-Notas del panel de trabajos cron:
+Notas del panel de tareas cron:
 
-- Para trabajos aislados, la entrega predeterminada es anunciar un resumen. Puede cambiar a ninguno si desea ejecuciones solo internas.
-- Los campos de canal/objetivo aparecen cuando se selecciona anunciar.
+- Para tareas aisladas, la entrega predeterminada es anunciar un resumen. Puede cambiar a ninguno si desea ejecuciones solo internas.
+- Los campos de canal/destino aparecen cuando se selecciona anunciar.
 
 ## Comportamiento del chat
 
-- `chat.send` es **no bloqueante**: confirma inmediatamente con `{ runId, status: "started" }` y la respuesta se transmite mediante eventos `chat`.
-- Reenviar con el mismo `idempotencyKey` devuelve `{ status: "in_flight" }` mientras se está ejecutando y `{ status: "ok" }` tras la finalización.
-- `chat.inject` agrega una nota del asistente a la transcripción de la sesión y difunde un evento `chat` para actualizaciones solo de la UI (sin ejecución del agente ni entrega por canal).
+- `chat.send` es **no bloqueante**: confirma de inmediato con `{ runId, status: "started" }` y la respuesta se transmite mediante eventos `chat`.
+- Reenviar con el mismo `idempotencyKey` devuelve `{ status: "in_flight" }` mientras se ejecuta, y `{ status: "ok" }` tras la finalización.
+- `chat.inject` agrega una nota del asistente al transcript de la sesión y difunde un evento `chat` para actualizaciones solo de la UI (sin ejecución del agente, sin entrega a canales).
 - Detener:
   - Haga clic en **Stop** (llama a `chat.abort`)
   - Escriba `/stop` (o `stop|esc|abort|wait|exit|interrupt`) para abortar fuera de banda
@@ -118,12 +118,12 @@ Abra:
 De forma predeterminada, las solicitudes de Serve pueden autenticarse mediante encabezados de identidad de Tailscale
 (`tailscale-user-login`) cuando `gateway.auth.allowTailscale` es `true`. OpenClaw
 verifica la identidad resolviendo la dirección `x-forwarded-for` con
-`tailscale whois` y comparándola con el encabezado, y solo las acepta cuando la
-solicitud llega a loopback con los encabezados `x-forwarded-*` de Tailscale. Establezca
+`tailscale whois` y comparándola con el encabezado, y solo acepta estas cuando la
+solicitud llega a loopback con los encabezados `x-forwarded-*` de Tailscale. Configure
 `gateway.auth.allowTailscale: false` (o fuerce `gateway.auth.mode: "password"`)
-si desea requerir un token/contraseña incluso para el tráfico de Serve.
+si desea requerir un token/contraseña incluso para tráfico de Serve.
 
-### Enlazar al tailnet + token
+### Vincular a tailnet + token
 
 ```bash
 openclaw gateway --bind tailnet --token "$(openssl rand -hex 32)"
@@ -137,14 +137,14 @@ Pegue el token en la configuración de la UI (enviado como `connect.params.auth.
 
 ## HTTP inseguro
 
-Si abre el tablero sobre HTTP sin cifrar (`http://<lan-ip>` o `http://<tailscale-ip>`),
+Si abre el dashboard sobre HTTP sin cifrar (`http://<lan-ip>` o `http://<tailscale-ip>`),
 el navegador se ejecuta en un **contexto no seguro** y bloquea WebCrypto. De forma predeterminada,
-OpenClaw **bloquea** las conexiones de la Interfaz de Control sin identidad de dispositivo.
+OpenClaw **bloquea** las conexiones de la UI de control sin identidad de dispositivo.
 
 **Solución recomendada:** use HTTPS (Tailscale Serve) o abra la UI localmente:
 
 - `https://<magicdns>/` (Serve)
-- `http://127.0.0.1:18789/` (en el host del gateway)
+- `http://127.0.0.1:18789/` (en el host del Gateway)
 
 **Ejemplo de degradación (solo token sobre HTTP):**
 
@@ -158,12 +158,12 @@ OpenClaw **bloquea** las conexiones de la Interfaz de Control sin identidad de d
 }
 ```
 
-Esto deshabilita la identidad de dispositivo + el emparejamiento para la Interfaz de Control (incluso en HTTPS). Úselo
+Esto deshabilita la identidad de dispositivo + el emparejamiento para la UI de control (incluso en HTTPS). Úselo
 solo si confía en la red.
 
 Consulte [Tailscale](/gateway/tailscale) para obtener orientación sobre la configuración de HTTPS.
 
-## Compilación de la UI
+## Construcción de la UI
 
 El Gateway sirve archivos estáticos desde `dist/control-ui`. Compílelos con:
 
@@ -171,7 +171,7 @@ El Gateway sirve archivos estáticos desde `dist/control-ui`. Compílelos con:
 pnpm ui:build # auto-installs UI deps on first run
 ```
 
-Base absoluta opcional (cuando desea URLs de activos fijas):
+Base absoluta opcional (cuando desea URL de recursos fijas):
 
 ```bash
 OPENCLAW_CONTROL_UI_BASE_PATH=/openclaw/ pnpm ui:build
@@ -187,9 +187,9 @@ Luego apunte la UI a la URL de WS de su Gateway (p. ej., `ws://127.0.0.1:18789`)
 
 ## Depuración/pruebas: servidor de desarrollo + Gateway remoto
 
-La Interfaz de Control son archivos estáticos; el destino del WebSocket es configurable y puede ser
-distinto del origen HTTP. Esto es útil cuando desea el servidor de desarrollo de Vite localmente
-pero el Gateway se ejecuta en otro lugar.
+La UI de control son archivos estáticos; el destino de WebSocket es configurable y puede ser
+diferente del origen HTTP. Esto es útil cuando desea el servidor de desarrollo de Vite
+localmente pero el Gateway se ejecuta en otro lugar.
 
 1. Inicie el servidor de desarrollo de la UI: `pnpm ui:dev`
 2. Abra una URL como:
@@ -198,7 +198,7 @@ pero el Gateway se ejecuta en otro lugar.
 http://localhost:5173/?gatewayUrl=ws://<gateway-host>:18789
 ```
 
-Autenticación opcional de una sola vez (si es necesario):
+Autenticación única opcional (si es necesaria):
 
 ```text
 http://localhost:5173/?gatewayUrl=wss://<gateway-host>:18789&token=<gateway-token>
@@ -206,13 +206,14 @@ http://localhost:5173/?gatewayUrl=wss://<gateway-host>:18789&token=<gateway-toke
 
 Notas:
 
-- `gatewayUrl` se almacena en localStorage después de cargar y se elimina de la URL.
+- `gatewayUrl` se almacena en localStorage después de la carga y se elimina de la URL.
 - `token` se almacena en localStorage; `password` se mantiene solo en memoria.
-- Cuando se establece `gatewayUrl`, la UI no recurre a credenciales de configuración o del entorno.
+- Cuando `gatewayUrl` está configurado, la UI no recurre a credenciales de configuración o de entorno.
   Proporcione `token` (o `password`) explícitamente. La falta de credenciales explícitas es un error.
 - Use `wss://` cuando el Gateway esté detrás de TLS (Tailscale Serve, proxy HTTPS, etc.).
-- `gatewayUrl` solo se acepta en una ventana de nivel superior (no incrustada) para evitar clickjacking.
-- Para configuraciones de desarrollo de origen cruzado (p. ej., `pnpm ui:dev` hacia un Gateway remoto), agregue el origen de la UI a `gateway.controlUi.allowedOrigins`.
+- `gatewayUrl` solo se acepta en una ventana de nivel superior (no incrustada) para prevenir clickjacking.
+- Para configuraciones de desarrollo de origen cruzado (p. ej., `pnpm ui:dev` hacia un Gateway remoto), agregue el
+  origen de la UI a `gateway.controlUi.allowedOrigins`.
 
 Ejemplo:
 

@@ -1,7 +1,7 @@
 ---
-summary: "Host estatico de WebChat en loopback y uso de WS del Gateway para la interfaz de chat"
+summary: "Host estático de WebChat en loopback y uso de WS del Gateway para la UI de chat"
 read_when:
-  - Depuracion o configuracion del acceso a WebChat
+  - Depuración o configuración del acceso a WebChat
 title: "WebChat"
 x-i18n:
   source_path: web/webchat.md
@@ -9,48 +9,48 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:00:19Z
+  generated_at: 2026-02-08T09:34:56Z
 ---
 
-# WebChat (Interfaz de Usuario WebSocket del Gateway)
+# WebChat (UI WebSocket del Gateway)
 
-Estado: la interfaz de chat SwiftUI de macOS/iOS se comunica directamente con el WebSocket del Gateway.
+Estado: la UI de chat SwiftUI de macOS/iOS se comunica directamente con el WebSocket del Gateway.
 
-## Que es
+## Qué es
 
-- Una interfaz de chat nativa para el Gateway (sin navegador integrado ni servidor estatico local).
-- Utiliza las mismas sesiones y reglas de enrutamiento que otros canales.
+- Una UI de chat nativa para el Gateway (sin navegador integrado ni servidor estático local).
+- Usa las mismas sesiones y reglas de enrutamiento que otros canales.
 - Enrutamiento determinista: las respuestas siempre regresan a WebChat.
 
-## Inicio rapido
+## Inicio rápido
 
 1. Inicie el Gateway.
-2. Abra la interfaz de WebChat (aplicacion macOS/iOS) o la pestana de chat de la Interfaz de Control.
-3. Asegurese de que la autenticacion del Gateway este configurada (requerida de forma predeterminada, incluso en loopback).
+2. Abra la UI de WebChat (app de macOS/iOS) o la pestaña de chat de la UI de Control.
+3. Asegúrese de que la autenticación del Gateway esté configurada (requerida de forma predeterminada, incluso en loopback).
 
-## Como funciona (comportamiento)
+## Cómo funciona (comportamiento)
 
-- La interfaz se conecta al WebSocket del Gateway y utiliza `chat.history`, `chat.send` y `chat.inject`.
-- `chat.inject` agrega una nota del asistente directamente a la transcripcion y la transmite a la interfaz (sin ejecucion de agente).
-- El historial siempre se obtiene desde el Gateway (sin observacion de archivos locales).
+- La UI se conecta al WebSocket del Gateway y usa `chat.history`, `chat.send` y `chat.inject`.
+- `chat.inject` agrega una nota del asistente directamente a la transcripción y la difunde a la UI (sin ejecución de agente).
+- El historial siempre se obtiene del Gateway (sin observación de archivos locales).
 - Si el Gateway no es accesible, WebChat es de solo lectura.
 
 ## Uso remoto
 
-- El modo remoto tuneliza el WebSocket del Gateway a traves de SSH/Tailscale.
+- El modo remoto tuneliza el WebSocket del Gateway sobre SSH/Tailscale.
 - No necesita ejecutar un servidor de WebChat separado.
 
-## Referencia de configuracion (WebChat)
+## Referencia de configuración (WebChat)
 
-Configuracion completa: [Configuration](/gateway/configuration)
+Configuración completa: [Configuration](/gateway/configuration)
 
 Opciones del canal:
 
-- No hay un bloque `webchat.*` dedicado. WebChat utiliza el endpoint del Gateway + las configuraciones de autenticacion a continuacion.
+- No hay un bloque dedicado `webchat.*`. WebChat usa el endpoint del Gateway + la configuración de autenticación a continuación.
 
 Opciones globales relacionadas:
 
 - `gateway.port`, `gateway.bind`: host/puerto de WebSocket.
-- `gateway.auth.mode`, `gateway.auth.token`, `gateway.auth.password`: autenticacion de WebSocket.
+- `gateway.auth.mode`, `gateway.auth.token`, `gateway.auth.password`: autenticación de WebSocket.
 - `gateway.remote.url`, `gateway.remote.token`, `gateway.remote.password`: destino del Gateway remoto.
 - `session.*`: almacenamiento de sesiones y valores predeterminados de la clave principal.

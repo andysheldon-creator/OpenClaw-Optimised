@@ -1,33 +1,33 @@
 ---
-summary: "Uebersicht der Modellanbieter mit Beispielkonfigurationen und CLI-Abläufen"
+summary: "Überblick über Modellanbieter mit Beispielkonfigurationen + CLI-Flows"
 read_when:
-  - Sie benoetigen eine anbieterweise Referenz zur Modelleinstellung
-  - Sie moechten Beispielkonfigurationen oder CLI-Onboarding-Befehle fuer Modellanbieter
+  - Sie benötigen eine anbieterweise Referenz zur Modelleinstellung
+  - Sie möchten Beispielkonfigurationen oder CLI-Onboarding-Befehle für Modellanbieter
 title: "Modellanbieter"
 x-i18n:
   source_path: concepts/model-providers.md
-  source_hash: 003efe22aaa37e8e
+  source_hash: b086e62236225de6
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:04:06Z
+  generated_at: 2026-02-08T09:35:58Z
 ---
 
 # Modellanbieter
 
-Diese Seite behandelt **LLM-/Modellanbieter** (nicht Chat-Kanaele wie WhatsApp/Telegram).
-Fuer Regeln zur Modellauswahl siehe [/concepts/models](/concepts/models).
+Diese Seite behandelt **LLM-/Modellanbieter** (keine Chat-Kanäle wie WhatsApp/Telegram).
+Zu Regeln für die Modellauswahl siehe [/concepts/models](/concepts/models).
 
 ## Schnelle Regeln
 
-- Modellreferenzen verwenden `provider/model` (Beispiel: `opencode/claude-opus-4-6`).
-- Wenn Sie `agents.defaults.models` setzen, wird diese zur Allowlist.
+- Modell-Refs verwenden `provider/model` (Beispiel: `opencode/claude-opus-4-6`).
+- Wenn Sie `agents.defaults.models` setzen, wird daraus die Allowlist.
 - CLI-Helfer: `openclaw onboard`, `openclaw models list`, `openclaw models set <provider/model>`.
 
 ## Integrierte Anbieter (pi-ai-Katalog)
 
-OpenClaw wird mit dem pi‑ai-Katalog ausgeliefert. Diese Anbieter benoetigen **keine**
-`models.providers`-Konfiguration; setzen Sie einfach die Authentifizierung und waehlen Sie ein Modell.
+OpenClaw wird mit dem pi‑ai-Katalog ausgeliefert. Diese Anbieter erfordern **keine**
+`models.providers`-Konfiguration; setzen Sie lediglich die Authentifizierung und wählen Sie ein Modell.
 
 ### OpenAI
 
@@ -47,7 +47,7 @@ OpenClaw wird mit dem pi‑ai-Katalog ausgeliefert. Diese Anbieter benoetigen **
 - Anbieter: `anthropic`
 - Auth: `ANTHROPIC_API_KEY` oder `claude setup-token`
 - Beispielmodell: `anthropic/claude-opus-4-6`
-- CLI: `openclaw onboard --auth-choice token` (Setup-Token einfuegen) oder `openclaw models auth paste-token --provider anthropic`
+- CLI: `openclaw onboard --auth-choice token` (Setup-Token einfügen) oder `openclaw models auth paste-token --provider anthropic`
 
 ```json5
 {
@@ -81,7 +81,7 @@ OpenClaw wird mit dem pi‑ai-Katalog ausgeliefert. Diese Anbieter benoetigen **
 }
 ```
 
-### Google Gemini (API-Schluessel)
+### Google Gemini (API-Schlüssel)
 
 - Anbieter: `google`
 - Auth: `GEMINI_API_KEY`
@@ -91,14 +91,14 @@ OpenClaw wird mit dem pi‑ai-Katalog ausgeliefert. Diese Anbieter benoetigen **
 ### Google Vertex, Antigravity und Gemini CLI
 
 - Anbieter: `google-vertex`, `google-antigravity`, `google-gemini-cli`
-- Auth: Vertex verwendet gcloud ADC; Antigravity/Gemini CLI verwenden ihre jeweiligen Auth-Flows
-- Antigravity OAuth wird als gebuendeltes Plugin ausgeliefert (`google-antigravity-auth`, standardmaessig deaktiviert).
+- Auth: Vertex verwendet gcloud ADC; Antigravity/Gemini CLI nutzen ihre jeweiligen Auth-Flows
+- Antigravity OAuth wird als gebündeltes Plugin ausgeliefert (`google-antigravity-auth`, standardmäßig deaktiviert).
   - Aktivieren: `openclaw plugins enable google-antigravity-auth`
   - Login: `openclaw models auth login --provider google-antigravity --set-default`
-- Gemini CLI OAuth wird als gebuendeltes Plugin ausgeliefert (`google-gemini-cli-auth`, standardmaessig deaktiviert).
+- Gemini CLI OAuth wird als gebündeltes Plugin ausgeliefert (`google-gemini-cli-auth`, standardmäßig deaktiviert).
   - Aktivieren: `openclaw plugins enable google-gemini-cli-auth`
   - Login: `openclaw models auth login --provider google-gemini-cli --set-default`
-  - Hinweis: Sie fuegen **keine** Client-ID oder kein Secret in `openclaw.json` ein. Der CLI-Login-Flow speichert
+  - Hinweis: Sie fügen **keine** Client-ID oder kein Secret in `openclaw.json` ein. Der CLI-Login-Flow speichert
     Tokens in Auth-Profilen auf dem Gateway-Host.
 
 ### Z.AI (GLM)
@@ -128,29 +128,29 @@ OpenClaw wird mit dem pi‑ai-Katalog ausgeliefert. Diese Anbieter benoetigen **
 - Mistral: `mistral` (`MISTRAL_API_KEY`)
 - GitHub Copilot: `github-copilot` (`COPILOT_GITHUB_TOKEN` / `GH_TOKEN` / `GITHUB_TOKEN`)
 
-## Anbieter ueber `models.providers` (benutzerdefinierte/Basis-URL)
+## Anbieter über `models.providers` (benutzerdefinierte/Basis-URL)
 
 Verwenden Sie `models.providers` (oder `models.json`), um **benutzerdefinierte** Anbieter oder
-OpenAI-/Anthropic-kompatible Proxys hinzuzufuegen.
+OpenAI-/Anthropic‑kompatible Proxys hinzuzufügen.
 
 ### Moonshot AI (Kimi)
 
-Moonshot verwendet OpenAI-kompatible Endpunkte und wird daher als benutzerdefinierter Anbieter konfiguriert:
+Moonshot nutzt OpenAI-kompatible Endpunkte; konfigurieren Sie es daher als benutzerdefinierten Anbieter:
 
 - Anbieter: `moonshot`
 - Auth: `MOONSHOT_API_KEY`
 - Beispielmodell: `moonshot/kimi-k2.5`
 
-Kimi K2 Modell-IDs:
+Kimi-K2-Modell-IDs:
 
-{/_ moonshot-kimi-k2-model-refs:start _/ && null}
+{/_moonshot-kimi-k2-model-refs:start_/ && null}
 
 - `moonshot/kimi-k2.5`
 - `moonshot/kimi-k2-0905-preview`
 - `moonshot/kimi-k2-turbo-preview`
 - `moonshot/kimi-k2-thinking`
 - `moonshot/kimi-k2-thinking-turbo`
-  {/_ moonshot-kimi-k2-model-refs:end _/ && null}
+  {/_moonshot-kimi-k2-model-refs:end_/ && null}
 
 ```json5
 {
@@ -190,24 +190,24 @@ Kimi Coding verwendet den Anthropic-kompatiblen Endpunkt von Moonshot AI:
 
 ### Qwen OAuth (kostenlose Stufe)
 
-Qwen bietet OAuth-Zugriff auf Qwen Coder + Vision ueber einen Device-Code-Flow.
-Aktivieren Sie das gebuendelte Plugin und melden Sie sich dann an:
+Qwen bietet OAuth-Zugriff auf Qwen Coder + Vision über einen Device-Code-Flow.
+Aktivieren Sie das gebündelte Plugin und melden Sie sich anschließend an:
 
 ```bash
 openclaw plugins enable qwen-portal-auth
 openclaw models auth login --provider qwen-portal --set-default
 ```
 
-Modellreferenzen:
+Modell-Refs:
 
 - `qwen-portal/coder-model`
 - `qwen-portal/vision-model`
 
-Siehe [/providers/qwen](/providers/qwen) fuer Einrichtungsdetails und Hinweise.
+Siehe [/providers/qwen](/providers/qwen) für Einrichtungsdetails und Hinweise.
 
 ### Synthetic
 
-Synthetic stellt Anthropic-kompatible Modelle hinter dem Anbieter `synthetic` bereit:
+Synthetic stellt Anthropic-kompatible Modelle über den Anbieter `synthetic` bereit:
 
 - Anbieter: `synthetic`
 - Auth: `SYNTHETIC_API_KEY`
@@ -235,12 +235,12 @@ Synthetic stellt Anthropic-kompatible Modelle hinter dem Anbieter `synthetic` be
 
 ### MiniMax
 
-MiniMax wird ueber `models.providers` konfiguriert, da es benutzerdefinierte Endpunkte verwendet:
+MiniMax wird über `models.providers` konfiguriert, da es benutzerdefinierte Endpunkte verwendet:
 
-- MiniMax (Anthropic-kompatibel): `--auth-choice minimax-api`
+- MiniMax (Anthropic‑kompatibel): `--auth-choice minimax-api`
 - Auth: `MINIMAX_API_KEY`
 
-Siehe [/providers/minimax](/providers/minimax) fuer Einrichtungsdetails, Modelloptionen und Konfigurationsbeispiele.
+Siehe [/providers/minimax](/providers/minimax) für Einrichtungsdetails, Modelloptionen und Konfigurations-Snippets.
 
 ### Ollama
 
@@ -249,7 +249,7 @@ Ollama ist eine lokale LLM-Laufzeitumgebung mit einer OpenAI-kompatiblen API:
 - Anbieter: `ollama`
 - Auth: Keine erforderlich (lokaler Server)
 - Beispielmodell: `ollama/llama3.3`
-- Installation: https://ollama.ai
+- Installation: [https://ollama.ai](https://ollama.ai)
 
 ```bash
 # Install Ollama, then pull a model:
@@ -264,11 +264,11 @@ ollama pull llama3.3
 }
 ```
 
-Ollama wird automatisch erkannt, wenn es lokal unter `http://127.0.0.1:11434/v1` laeuft. Siehe [/providers/ollama](/providers/ollama) fuer Modellempfehlungen und benutzerdefinierte Konfiguration.
+Ollama wird automatisch erkannt, wenn es lokal unter `http://127.0.0.1:11434/v1` ausgeführt wird. Siehe [/providers/ollama](/providers/ollama) für Modell-Empfehlungen und benutzerdefinierte Konfiguration.
 
 ### Lokale Proxys (LM Studio, vLLM, LiteLLM usw.)
 
-Beispiel (OpenAI-kompatibel):
+Beispiel (OpenAI‑kompatibel):
 
 ```json5
 {
@@ -303,8 +303,8 @@ Beispiel (OpenAI-kompatibel):
 
 Hinweise:
 
-- Fuer benutzerdefinierte Anbieter sind `reasoning`, `input`, `cost`, `contextWindow` und `maxTokens` optional.
-  Wenn sie weggelassen werden, verwendet OpenClaw standardmaessig:
+- Für benutzerdefinierte Anbieter sind `reasoning`, `input`, `cost`, `contextWindow` und `maxTokens` optional.
+  Wenn sie weggelassen werden, verwendet OpenClaw standardmäßig:
   - `reasoning: false`
   - `input: ["text"]`
   - `cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }`
@@ -320,4 +320,4 @@ openclaw models set opencode/claude-opus-4-6
 openclaw models list
 ```
 
-Siehe auch: [/gateway/configuration](/gateway/configuration) fuer alle Details und vollstaendige Konfigurationsbeispiele.
+Siehe auch: [/gateway/configuration](/gateway/configuration) für vollständige Konfigurationsbeispiele.

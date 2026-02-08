@@ -1,20 +1,20 @@
 ---
-summary: "Agenten-Sitzungswerkzeuge zum Auflisten von Sitzungen, Abrufen des Verlaufs und Senden von sitzungsübergreifenden Nachrichten"
+summary: „Agenten‑Sitzungswerkzeuge zum Auflisten von Sitzungen, Abrufen der Historie und Senden sitzungsübergreifender Nachrichten“
 read_when:
   - Hinzufügen oder Ändern von Sitzungswerkzeugen
-title: "Sitzungswerkzeuge"
+title: „Sitzungswerkzeuge“
 x-i18n:
   source_path: concepts/session-tool.md
   source_hash: cb6e0982ebf507bc
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:04:15Z
+  generated_at: 2026-02-08T09:36:08Z
 ---
 
 # Sitzungswerkzeuge
 
-Ziel: kleines, schwer fehlzubenutzendes Werkzeugsset, damit Agenten Sitzungen auflisten, den Verlauf abrufen und an eine andere Sitzung senden können.
+Ziel: kleines, schwer fehlzuverwendendes Werkzeugsatz, damit Agenten Sitzungen auflisten, die Historie abrufen und an eine andere Sitzung senden können.
 
 ## Werkzeugnamen
 
@@ -31,7 +31,7 @@ Ziel: kleines, schwer fehlzubenutzendes Werkzeugsset, damit Agenten Sitzungen au
 - Hooks verwenden `hook:<uuid>`, sofern nicht explizit gesetzt.
 - Node‑Sitzungen verwenden `node-<nodeId>`, sofern nicht explizit gesetzt.
 
-`global` und `unknown` sind reservierte Werte und werden niemals gelistet. Falls `session.scope = "global"`, wird es für alle Werkzeuge auf `main` aliasiert, sodass Aufrufer niemals `global` sehen.
+`global` und `unknown` sind reservierte Werte und werden niemals aufgelistet. Falls `session.scope = "global"`, aliasieren wir es für alle Werkzeuge auf `main`, sodass Aufrufer niemals `global` sehen.
 
 ## sessions_list
 
@@ -39,31 +39,31 @@ Listet Sitzungen als Array von Zeilen auf.
 
 Parameter:
 
-- `kinds?: string[]`‑Filter: einer von `"main" | "group" | "cron" | "hook" | "node" | "other"`
-- `limit?: number` maximale Zeilen (Standard: Server‑Standard, z. B. Begrenzung auf 200)
+- `kinds?: string[]` Filter: einer aus `"main" | "group" | "cron" | "hook" | "node" | "other"`
+- `limit?: number` maximale Zeilen (Standard: Server‑Standard, Begrenzung z. B. 200)
 - `activeMinutes?: number` nur Sitzungen, die innerhalb von N Minuten aktualisiert wurden
-- `messageLimit?: number` 0 = keine Nachrichten (Standard 0); >0 = letzte N Nachrichten einschließen
+- `messageLimit?: number` 0 = keine Nachrichten (Standard 0); >0 = die letzten N Nachrichten einschließen
 
 Verhalten:
 
 - `messageLimit > 0` ruft `chat.history` pro Sitzung ab und schließt die letzten N Nachrichten ein.
 - Werkzeugergebnisse werden in der Listenausgabe herausgefiltert; verwenden Sie `sessions_history` für Werkzeugnachrichten.
-- Beim Ausführen in einer **in einer Sandbox** befindlichen Agenten‑Sitzung verwenden Sitzungswerkzeuge standardmäßig **nur Sichtbarkeit für gespawnte Sitzungen** (siehe unten).
+- Bei Ausführung in einer **sandboxed** Agenten‑Sitzung ist die Standardsichtbarkeit der Sitzungswerkzeuge **nur für gespawnte Sitzungen** (siehe unten).
 
 Zeilenform (JSON):
 
-- `key`: Sitzungsschlüssel (string)
+- `key`: Sitzungsschlüssel (String)
 - `kind`: `main | group | cron | hook | node | other`
 - `channel`: `whatsapp | telegram | discord | signal | imessage | webchat | internal | unknown`
-- `displayName` (Gruppen‑Anzeigename, falls verfügbar)
+- `displayName` (Gruppen‑Anzeigelabel, falls verfügbar)
 - `updatedAt` (ms)
 - `sessionId`
 - `model`, `contextTokens`, `totalTokens`
 - `thinkingLevel`, `verboseLevel`, `systemSent`, `abortedLastRun`
 - `sendPolicy` (Sitzungs‑Override, falls gesetzt)
 - `lastChannel`, `lastTo`
-- `deliveryContext` (normalisiert `{ channel, to, accountId }`, wenn verfügbar)
-- `transcriptPath` (Best‑Effort‑Pfad abgeleitet aus Store‑Verzeichnis + sessionId)
+- `deliveryContext` (normalisiertes `{ channel, to, accountId }`, wenn verfügbar)
+- `transcriptPath` (Best‑Effort‑Pfad, abgeleitet aus Store‑Verzeichnis + sessionId)
 - `messages?` (nur wenn `messageLimit > 0`)
 
 ## sessions_history
@@ -79,8 +79,8 @@ Parameter:
 Verhalten:
 
 - `includeTools=false` filtert `role: "toolResult"`‑Nachrichten.
-- Gibt ein Nachrichten‑Array im Roh‑Transkriptformat zurück.
-- Bei Übergabe einer `sessionId` löst OpenClaw diese auf den entsprechenden Sitzungsschlüssel auf (Fehler bei fehlenden IDs).
+- Gibt ein Nachrichten‑Array im rohen Transkriptformat zurück.
+- Bei Angabe einer `sessionId` löst OpenClaw diese auf den entsprechenden Sitzungsschlüssel auf (Fehler bei fehlenden IDs).
 
 ## sessions_send
 
@@ -96,30 +96,30 @@ Verhalten:
 
 - `timeoutSeconds = 0`: einreihen und `{ runId, status: "accepted" }` zurückgeben.
 - `timeoutSeconds > 0`: bis zu N Sekunden auf Abschluss warten und dann `{ runId, status: "ok", reply }` zurückgeben.
-- Wenn das Warten abläuft: `{ runId, status: "timeout", error }`. Lauf wird fortgesetzt; rufen Sie `sessions_history` später auf.
-- Wenn der Lauf fehlschlägt: `{ runId, status: "error", error }`.
-- Ankündigungs‑Läufe werden nach Abschluss des primären Laufs ausgelöst und sind Best‑Effort; `status: "ok"` garantiert nicht, dass die Ankündigung zugestellt wurde.
+- Bei Timeout der Wartezeit: `{ runId, status: "timeout", error }`. Der Lauf wird fortgesetzt; rufen Sie `sessions_history` später auf.
+- Scheitert der Lauf: `{ runId, status: "error", error }`.
+- Zustellungs‑Ankündigungsläufe erfolgen nach Abschluss des Primärlaufs und sind Best‑Effort; `status: "ok"` garantiert nicht, dass die Ankündigung zugestellt wurde.
 - Wartet über Gateway `agent.wait` (serverseitig), sodass Reconnects das Warten nicht abbrechen.
-- Agent‑zu‑Agent‑Nachrichtenkontext wird für den primären Lauf injiziert.
-- Nach Abschluss des primären Laufs führt OpenClaw eine **Reply‑Back‑Schleife** aus:
-  - Runde 2+ wechselt zwischen anfragendem und Ziel‑Agenten.
-  - Antworten Sie exakt `REPLY_SKIP`, um das Ping‑Pong zu beenden.
-  - Maximale Züge sind `session.agentToAgent.maxPingPongTurns` (0–5, Standard 5).
+- Agent‑zu‑Agent‑Nachrichtenkontext wird für den Primärlauf injiziert.
+- Nach Abschluss des Primärlaufs führt OpenClaw eine **Reply‑Back‑Schleife** aus:
+  - Runde 2+ alterniert zwischen anforderndem und Ziel‑Agenten.
+  - Antworten Sie exakt `REPLY_SKIP`, um das Ping‑Pong zu stoppen.
+  - Maximale Züge: `session.agentToAgent.maxPingPongTurns` (0–5, Standard 5).
 - Sobald die Schleife endet, führt OpenClaw den **Agent‑zu‑Agent‑Ankündigungsschritt** aus (nur Ziel‑Agent):
   - Antworten Sie exakt `ANNOUNCE_SKIP`, um stumm zu bleiben.
-  - Jede andere Antwort wird an den Ziel‑Kanal gesendet.
-  - Der Ankündigungsschritt umfasst die ursprüngliche Anfrage + Antwort der Runde 1 + letzte Ping‑Pong‑Antwort.
+  - Jede andere Antwort wird an den Zielkanal gesendet.
+  - Der Ankündigungsschritt enthält die ursprüngliche Anfrage + Antwort aus Runde 1 + die letzte Ping‑Pong‑Antwort.
 
-## Kanalfeld
+## Kanal‑Feld
 
-- Für Gruppen ist `channel` der auf dem Sitzungseintrag aufgezeichnete Kanal.
+- Für Gruppen ist `channel` der im Sitzungseintrag erfasste Kanal.
 - Für Direktchats wird `channel` aus `lastChannel` abgebildet.
 - Für Cron/Hook/Node ist `channel` gleich `internal`.
 - Falls fehlend, ist `channel` gleich `unknown`.
 
-## Sicherheit / Sende‑Richtlinie
+## Sicherheit / Send‑Richtlinie
 
-Richtlinienbasierte Blockierung nach Kanal-/Chat‑Typ (nicht pro Sitzungs‑ID).
+Richtlinienbasiertes Blockieren nach Kanal‑/Chat‑Typ (nicht pro Sitzungs‑ID).
 
 ```json
 {
@@ -149,40 +149,40 @@ Durchsetzungspunkte:
 
 ## sessions_spawn
 
-Startet einen Sub‑Agenten‑Lauf in einer isolierten Sitzung und kündigt das Ergebnis zurück im anfragenden Chat‑Kanal an.
+Startet einen Sub‑Agent‑Lauf in einer isolierten Sitzung und kündigt das Ergebnis im anfordernden Chat‑Kanal an.
 
 Parameter:
 
 - `task` (erforderlich)
 - `label?` (optional; für Logs/UI verwendet)
-- `agentId?` (optional; unter einer anderen Agenten‑ID starten, falls erlaubt)
-- `model?` (optional; überschreibt das Sub‑Agenten‑Modell; ungültige Werte erzeugen einen Fehler)
-- `runTimeoutSeconds?` (Standard 0; wenn gesetzt, bricht den Sub‑Agenten‑Lauf nach N Sekunden ab)
+- `agentId?` (optional; unter einer anderen Agent‑ID starten, falls erlaubt)
+- `model?` (optional; überschreibt das Sub‑Agent‑Modell; ungültige Werte führen zu Fehlern)
+- `runTimeoutSeconds?` (Standard 0; wenn gesetzt, wird der Sub‑Agent‑Lauf nach N Sekunden abgebrochen)
 - `cleanup?` (`delete|keep`, Standard `keep`)
 
 Allowlist:
 
-- `agents.list[].subagents.allowAgents`: Liste der Agenten‑IDs, die über `agentId` erlaubt sind (`["*"]` zum Erlauben beliebiger). Standard: nur der anfragende Agent.
+- `agents.list[].subagents.allowAgents`: Liste der Agent‑IDs, die über `agentId` erlaubt sind (`["*"]` erlaubt alle). Standard: nur der anfordernde Agent.
 
-Erkennung:
+Discovery:
 
-- Verwenden Sie `agents_list`, um zu ermitteln, welche Agenten‑IDs für `sessions_spawn` erlaubt sind.
+- Verwenden Sie `agents_list`, um zu ermitteln, welche Agent‑IDs für `sessions_spawn` erlaubt sind.
 
 Verhalten:
 
 - Startet eine neue `agent:<agentId>:subagent:<uuid>`‑Sitzung mit `deliver: false`.
-- Sub‑Agenten verwenden standardmäßig den vollständigen Werkzeugsatz **minus Sitzungswerkzeuge** (konfigurierbar über `tools.subagents.tools`).
+- Sub‑Agenten verwenden standardmäßig den vollständigen Werkzeugsatz **ohne Sitzungswerkzeuge** (konfigurierbar über `tools.subagents.tools`).
 - Sub‑Agenten dürfen `sessions_spawn` nicht aufrufen (kein Sub‑Agent → Sub‑Agent‑Spawning).
 - Immer nicht blockierend: gibt `{ status: "accepted", runId, childSessionKey }` sofort zurück.
-- Nach Abschluss führt OpenClaw einen Sub‑Agenten‑**Ankündigungsschritt** aus und postet das Ergebnis in den anfragenden Chat‑Kanal.
-- Antworten Sie während des Ankündigungsschritts exakt `ANNOUNCE_SKIP`, um stumm zu bleiben.
+- Nach Abschluss führt OpenClaw einen Sub‑Agent‑**Ankündigungsschritt** aus und postet das Ergebnis in den anfordernden Chat‑Kanal.
+- Antworten Sie im Ankündigungsschritt exakt `ANNOUNCE_SKIP`, um stumm zu bleiben.
 - Ankündigungsantworten werden auf `Status`/`Result`/`Notes` normalisiert; `Status` stammt aus dem Laufzeitergebnis (nicht aus dem Modelltext).
-- Sub‑Agenten‑Sitzungen werden nach `agents.defaults.subagents.archiveAfterMinutes` automatisch archiviert (Standard: 60).
+- Sub‑Agent‑Sitzungen werden nach `agents.defaults.subagents.archiveAfterMinutes` automatisch archiviert (Standard: 60).
 - Ankündigungsantworten enthalten eine Statistikzeile (Laufzeit, Tokens, sessionKey/sessionId, Transkriptpfad und optionale Kosten).
 
 ## Sandbox‑Sitzungssichtbarkeit
 
-Sitzungen in einer Sandbox können Sitzungswerkzeuge verwenden, sehen standardmäßig jedoch nur Sitzungen, die sie über `sessions_spawn` gespawnt haben.
+Sandboxed‑Sitzungen können Sitzungswerkzeuge verwenden, sehen standardmäßig jedoch nur Sitzungen, die sie über `sessions_spawn` gestartet haben.
 
 Konfiguration:
 

@@ -1,25 +1,25 @@
 ---
-summary: "Luồng tin nhắn, phiên, xếp hàng và khả năng hiển thị lập luận"
+summary: "Luồng thông điệp, phiên, xếp hàng và khả năng hiển thị lập luận"
 read_when:
-  - Giải thích cách tin nhắn đến trở thành phản hồi
-  - Làm rõ phiên, các chế độ xếp hàng hoặc hành vi streaming
+  - Giải thích cách thông điệp đến trở thành phản hồi
+  - Làm rõ phiên, chế độ xếp hàng hoặc hành vi streaming
   - Tài liệu hóa khả năng hiển thị lập luận và các tác động khi sử dụng
-title: "Tin nhắn"
+title: "Thông điệp"
 x-i18n:
   source_path: concepts/messages.md
-  source_hash: 32a1b0c50616c550
+  source_hash: 773301d5c0c1e3b8
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:52Z
+  generated_at: 2026-02-08T09:38:45Z
 ---
 
-# Tin nhắn
+# Thông điệp
 
-Trang này kết nối cách OpenClaw xử lý tin nhắn đến, phiên, xếp hàng,
+Trang này liên kết cách OpenClaw xử lý thông điệp đến, phiên, xếp hàng,
 streaming và khả năng hiển thị lập luận.
 
-## Luồng tin nhắn (mức cao)
+## Luồng thông điệp (tổng quan)
 
 ```
 Inbound message
@@ -35,19 +35,19 @@ Các nút điều chỉnh chính nằm trong cấu hình:
 - `agents.defaults.*` cho streaming theo khối và mặc định chia khối.
 - Ghi đè theo kênh (`channels.whatsapp.*`, `channels.telegram.*`, v.v.) cho giới hạn và công tắc streaming.
 
-Xem [Configuration](/gateway/configuration) để biết đầy đủ schema.
+Xem [Cấu hình](/gateway/configuration) để biết đầy đủ lược đồ.
 
-## Khử trùng lặp tin nhắn đến
+## Khử trùng lặp thông điệp đến
 
-Các kênh có thể gửi lại cùng một tin nhắn sau khi kết nối lại. OpenClaw giữ một
-bộ nhớ đệm tồn tại ngắn hạn theo khóa kênh/tài khoản/đối tác/phiên/id tin nhắn để
-các lần gửi trùng lặp không kích hoạt một lượt chạy agent khác.
+Các kênh có thể gửi lại cùng một thông điệp sau khi kết nối lại. OpenClaw giữ một
+bộ nhớ đệm ngắn hạn theo khóa kênh/tài khoản/đối tác/phiên/id thông điệp để các lần gửi trùng
+không kích hoạt một lần chạy tác tử khác.
 
-## Debounce tin nhắn đến
+## Chống dội thông điệp đến
 
-Các tin nhắn liên tiếp nhanh từ **cùng người gửi** có thể được gom thành một lượt
-agent duy nhất thông qua `messages.inbound`. Debounce được phạm vi theo kênh + cuộc trò chuyện
-và dùng tin nhắn mới nhất cho việc gắn luồng trả lời/ID.
+Các thông điệp liên tiếp nhanh từ **cùng một người gửi** có thể được gom thành một lượt
+tác tử duy nhất thông qua `messages.inbound`. Chống dội được áp dụng theo phạm vi kênh + cuộc trò chuyện
+và dùng thông điệp gần nhất cho luồng trả lời/ID.
 
 Cấu hình (mặc định toàn cục + ghi đè theo kênh):
 
@@ -68,94 +68,94 @@ Cấu hình (mặc định toàn cục + ghi đè theo kênh):
 
 Ghi chú:
 
-- Debounce áp dụng cho **chỉ văn bản**; media/tệp đính kèm sẽ xả ngay.
-- Lệnh điều khiển bỏ qua debounce để luôn là các lượt độc lập.
+- Chống dội áp dụng cho **chỉ văn bản**; media/tệp đính kèm sẽ xả ngay.
+- Lệnh điều khiển bỏ qua chống dội để luôn là các mục độc lập.
 
 ## Phiên và thiết bị
 
-Phiên thuộc về gateway, không thuộc về client.
+Phiên thuộc về gateway, không phải client.
 
-- Trò chuyện trực tiếp gộp vào khóa phiên chính của agent.
+- Trò chuyện trực tiếp gộp vào khóa phiên chính của tác tử.
 - Nhóm/kênh có khóa phiên riêng.
 - Kho phiên và bản ghi hội thoại nằm trên máy chủ gateway.
 
 Nhiều thiết bị/kênh có thể ánh xạ tới cùng một phiên, nhưng lịch sử không được
 đồng bộ đầy đủ về mọi client. Khuyến nghị: dùng một thiết bị chính cho các cuộc
-trò chuyện dài để tránh ngữ cảnh bị phân kỳ. Control UI và TUI luôn hiển thị bản
-ghi phiên do gateway lưu trữ, vì vậy chúng là nguồn sự thật.
+trò chuyện dài để tránh ngữ cảnh bị lệch. Control UI và TUI luôn hiển thị bản ghi
+phiên do gateway lưu trữ, nên chúng là nguồn sự thật.
 
-Chi tiết: [Session management](/concepts/session).
+Chi tiết: [Quản lý phiên](/concepts/session).
 
-## Nội dung tin nhắn đến và ngữ cảnh lịch sử
+## Nội dung thông điệp đến và ngữ cảnh lịch sử
 
-OpenClaw tách **phần thân prompt** khỏi **phần thân lệnh**:
+OpenClaw tách **phần nội dung prompt** khỏi **phần nội dung lệnh**:
 
-- `Body`: văn bản prompt gửi tới agent. Có thể bao gồm bao bì kênh và
+- `Body`: văn bản prompt gửi tới tác tử. Có thể bao gồm phong bì kênh và
   các wrapper lịch sử tùy chọn.
-- `CommandBody`: văn bản thô của người dùng cho việc phân tích chỉ thị/lệnh.
+- `CommandBody`: văn bản thô của người dùng để phân tích chỉ thị/lệnh.
 - `RawBody`: bí danh kế thừa của `CommandBody` (giữ để tương thích).
 
-Khi kênh cung cấp lịch sử, nó dùng một wrapper dùng chung:
+Khi kênh cung cấp lịch sử, nó dùng một wrapper chung:
 
 - `[Chat messages since your last reply - for context]`
 - `[Current message - respond to this]`
 
-Đối với **không phải trò chuyện trực tiếp** (nhóm/kênh/phòng), **phần thân tin nhắn hiện tại**
-được thêm tiền tố nhãn người gửi (cùng kiểu dùng cho các mục lịch sử). Điều này giữ cho
-tin nhắn thời gian thực và tin nhắn xếp hàng/lịch sử nhất quán trong prompt của agent.
+Đối với **không phải trò chuyện trực tiếp** (nhóm/kênh/phòng), **nội dung thông điệp hiện tại**
+được thêm tiền tố nhãn người gửi (cùng kiểu dùng cho các mục lịch sử). Điều này
+giữ cho thông điệp thời gian thực và thông điệp xếp hàng/lịch sử nhất quán trong prompt của tác tử.
 
-Bộ đệm lịch sử là **chỉ-pending**: chúng bao gồm các tin nhắn nhóm _không_
-kích hoạt một lượt chạy (ví dụ: tin nhắn bị chặn theo mention) và **loại trừ** các
-tin nhắn đã có trong bản ghi phiên.
+Bộ đệm lịch sử là **chỉ-đang-chờ**: chúng bao gồm các thông điệp nhóm _không_
+kích hoạt một lần chạy (ví dụ, thông điệp bị chặn theo đề cập) và **loại trừ** các thông điệp
+đã có trong bản ghi phiên.
 
-Việc loại bỏ chỉ thị chỉ áp dụng cho **phần tin nhắn hiện tại** để lịch sử
-được giữ nguyên. Các kênh bọc lịch sử nên đặt `CommandBody` (hoặc
-`RawBody`) thành văn bản tin nhắn gốc và giữ `Body` là prompt kết hợp.
+Việc loại bỏ chỉ thị chỉ áp dụng cho phần **thông điệp hiện tại** để lịch sử
+giữ nguyên. Các kênh bọc lịch sử nên đặt `CommandBody` (hoặc
+`RawBody`) thành văn bản thông điệp gốc và giữ `Body` là prompt đã kết hợp.
 Bộ đệm lịch sử có thể cấu hình qua `messages.groupChat.historyLimit` (mặc định
 toàn cục) và các ghi đè theo kênh như `channels.slack.historyLimit` hoặc
 `channels.telegram.accounts.<id>.historyLimit` (đặt `0` để tắt).
 
 ## Xếp hàng và lượt theo sau
 
-Nếu một lượt chạy đã đang hoạt động, các tin nhắn đến có thể được xếp hàng, điều
-hướng vào lượt hiện tại, hoặc thu thập cho một lượt theo sau.
+Nếu một lần chạy đã hoạt động, các thông điệp đến có thể được xếp hàng, điều hướng
+vào lần chạy hiện tại, hoặc thu thập cho một lượt theo sau.
 
 - Cấu hình qua `messages.queue` (và `messages.queue.byChannel`).
-- Các chế độ: `interrupt`, `steer`, `followup`, `collect`, kèm các biến thể backlog.
+- Các chế độ: `interrupt`, `steer`, `followup`, `collect`, cùng các biến thể backlog.
 
-Chi tiết: [Queueing](/concepts/queue).
+Chi tiết: [Xếp hàng](/concepts/queue).
 
 ## Streaming, chia khối và gom lô
 
 Streaming theo khối gửi các phản hồi từng phần khi mô hình tạo ra các khối văn bản.
-Chia khối tôn trọng giới hạn văn bản của kênh và tránh tách code có hàng rào.
+Chia khối tôn trọng giới hạn văn bản của kênh và tránh tách code được rào.
 
-Thiết lập chính:
+Các thiết lập chính:
 
 - `agents.defaults.blockStreamingDefault` (`on|off`, mặc định tắt)
 - `agents.defaults.blockStreamingBreak` (`text_end|message_end`)
 - `agents.defaults.blockStreamingChunk` (`minChars|maxChars|breakPreference`)
-- `agents.defaults.blockStreamingCoalesce` (gom lô dựa trên trạng thái nhàn rỗi)
-- `agents.defaults.humanDelay` (khoảng dừng giống con người giữa các khối trả lời)
+- `agents.defaults.blockStreamingCoalesce` (gom lô dựa trên thời gian nhàn rỗi)
+- `agents.defaults.humanDelay` (tạm dừng giống con người giữa các khối phản hồi)
 - Ghi đè theo kênh: `*.blockStreaming` và `*.blockStreamingCoalesce` (các kênh không phải Telegram yêu cầu đặt rõ `*.blockStreaming: true`)
 
-Chi tiết: [Streaming + chunking](/concepts/streaming).
+Chi tiết: [Streaming + chia khối](/concepts/streaming).
 
 ## Khả năng hiển thị lập luận và token
 
 OpenClaw có thể hiển thị hoặc ẩn lập luận của mô hình:
 
-- `/reasoning on|off|stream` điều khiển khả năng hiển thị.
+- `/reasoning on|off|stream` kiểm soát khả năng hiển thị.
 - Nội dung lập luận vẫn được tính vào mức sử dụng token khi mô hình tạo ra.
 - Telegram hỗ trợ streaming lập luận vào bong bóng bản nháp.
 
-Chi tiết: [Thinking + reasoning directives](/tools/thinking) và [Token use](/token-use).
+Chi tiết: [Chỉ thị suy nghĩ + lập luận](/tools/thinking) và [Sử dụng token](/reference/token-use).
 
-## Tiền tố, gắn luồng và trả lời
+## Tiền tố, luồng hội thoại và trả lời
 
-Định dạng tin nhắn đi được tập trung trong `messages`:
+Định dạng thông điệp gửi đi được tập trung trong `messages`:
 
-- `messages.responsePrefix`, `channels.<channel>.responsePrefix` và `channels.<channel>.accounts.<id>.responsePrefix` (chuỗi tiền tố đi), cùng `channels.whatsapp.messagePrefix` (tiền tố đến của WhatsApp)
-- Gắn luồng trả lời qua `replyToMode` và mặc định theo kênh
+- `messages.responsePrefix`, `channels.<channel>.responsePrefix` và `channels.<channel>.accounts.<id>.responsePrefix` (chuỗi tiền tố gửi đi), cùng `channels.whatsapp.messagePrefix` (tiền tố đến của WhatsApp)
+- Luồng trả lời thông qua `replyToMode` và mặc định theo kênh
 
-Chi tiết: [Configuration](/gateway/configuration#messages) và tài liệu kênh.
+Chi tiết: [Cấu hình](/gateway/configuration#messages) và tài liệu kênh.

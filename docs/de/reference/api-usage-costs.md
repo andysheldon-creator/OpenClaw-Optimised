@@ -1,144 +1,145 @@
 ---
-summary: "Pruefen, was Geld ausgeben kann, welche Schluessel verwendet werden und wie die Nutzung eingesehen wird"
+summary: "Prüfen, was Geld ausgeben kann, welche Schlüssel verwendet werden und wie die Nutzung angezeigt wird"
 read_when:
-  - Sie moechten verstehen, welche Funktionen kostenpflichtige APIs aufrufen koennen
-  - Sie muessen Schluessel, Kosten und Nutzungs-Sichtbarkeit pruefen
-  - Sie erklaeren /status- oder /usage-Kostenberichte
+  - Sie möchten verstehen, welche Funktionen kostenpflichtige APIs aufrufen können
+  - Sie müssen Schlüssel, Kosten und Nutzungstransparenz prüfen
+  - Sie erklären die Kostenberichte von /status oder /usage
 title: "API-Nutzung und Kosten"
 x-i18n:
   source_path: reference/api-usage-costs.md
-  source_hash: 807d0d88801e919a
+  source_hash: 908bfc17811b8f4b
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:27Z
+  generated_at: 2026-02-08T09:37:18Z
 ---
 
 # API-Nutzung & Kosten
 
-Dieses Dokument listet **Funktionen, die API-Schluessel aufrufen koennen**, und wo deren Kosten erscheinen. Der Fokus liegt auf
-OpenClaw-Funktionen, die Anbieter-Nutzung oder kostenpflichtige API-Aufrufe erzeugen koennen.
+Dieses Dokument listet **Funktionen, die API-Schlüssel aufrufen können**, und wo deren Kosten angezeigt werden. Der Fokus liegt auf
+OpenClaw-Funktionen, die Anbieter-Nutzung oder kostenpflichtige API-Aufrufe erzeugen können.
 
-## Wo Kosten erscheinen (Chat + CLI)
+## Wo Kosten angezeigt werden (Chat + CLI)
 
-**Kosten-Schnappschuss pro Sitzung**
+**Kostenübersicht pro Sitzung**
 
 - `/status` zeigt das aktuelle Sitzungsmodell, die Kontextnutzung und die Token der letzten Antwort.
-- Wenn das Modell **API-Schluessel-Authentifizierung** verwendet, zeigt `/status` zusaetzlich die **geschaetzten Kosten** der letzten Antwort an.
+- Wenn das Modell **API-Schlüssel-Authentifizierung** verwendet, zeigt `/status` außerdem die **geschätzten Kosten** für die letzte Antwort an.
 
-**Kosten-Fusszeile pro Nachricht**
+**Kosten-Footer pro Nachricht**
 
-- `/usage full` fuegt jeder Antwort eine Nutzungs-Fusszeile hinzu, inklusive **geschaetzter Kosten** (nur bei API-Schluessel).
-- `/usage tokens` zeigt nur Token; OAuth-Ablaufe blenden die Dollar-Kosten aus.
+- `/usage full` hängt an jede Antwort einen Nutzungs-Footer an, einschließlich **geschätzter Kosten** (nur bei API-Schlüsseln).
+- `/usage tokens` zeigt nur Token an; OAuth-Flows blenden Dollar-Kosten aus.
 
 **CLI-Nutzungsfenster (Anbieter-Kontingente)**
 
 - `openclaw status --usage` und `openclaw channels list` zeigen **Nutzungsfenster** der Anbieter
-  (Kontingent-Schnappschuesse, keine Kosten pro Nachricht).
+  (Kontingent-Snapshots, keine Kosten pro Nachricht).
 
-Siehe [Token use & costs](/token-use) fuer Details und Beispiele.
+Siehe [Token-Nutzung & Kosten](/reference/token-use) für Details und Beispiele.
 
-## Wie Schluessel gefunden werden
+## Wie Schlüssel gefunden werden
 
 OpenClaw kann Zugangsdaten beziehen aus:
 
 - **Auth-Profilen** (pro Agent, gespeichert in `auth-profiles.json`).
-- **Umgebungsvariablen** (z. B. `OPENAI_API_KEY`, `BRAVE_API_KEY`, `FIRECRAWL_API_KEY`).
+- **Umgebungsvariablen** (z. B. `OPENAI_API_KEY`, `BRAVE_API_KEY`, `FIRECRAWL_API_KEY`).
 - **Konfiguration** (`models.providers.*.apiKey`, `tools.web.search.*`, `tools.web.fetch.firecrawl.*`,
   `memorySearch.*`, `talk.apiKey`).
-- **Skills** (`skills.entries.<name>.apiKey`), die Schluessel in die Prozess-Umgebung des Skills exportieren koennen.
+- **Skills** (`skills.entries.<name>.apiKey`), die Schlüssel ggf. in die Umgebungsvariablen des Skill-Prozesses exportieren.
 
-## Funktionen, die Schluessel ausgeben koennen
+## Funktionen, die Schlüssel verbrauchen können
 
-### 1) Kern-Modellantworten (Chat + Werkzeuge)
+### 1) Kernmodell-Antworten (Chat + Werkzeuge)
 
 Jede Antwort oder jeder Werkzeugaufruf verwendet den **aktuellen Modellanbieter** (OpenAI, Anthropic usw.). Dies ist die
-primaere Quelle fuer Nutzung und Kosten.
+primäre Quelle für Nutzung und Kosten.
 
-Siehe [Models](/providers/models) fuer die Preiskonfiguration und [Token use & costs](/token-use) fuer die Anzeige.
+Siehe [Modelle](/providers/models) für die Preis-Konfiguration und [Token-Nutzung & Kosten](/reference/token-use) für die Anzeige.
 
-### 2) Medienverstaendnis (Audio/Bild/Video)
+### 2) Medienverständnis (Audio/Bild/Video)
 
-Eingehende Medien koennen vor der Antwort zusammengefasst oder transkribiert werden. Dies verwendet Modell-/Anbieter-APIs.
+Eingehende Medien können vor der Antwort zusammengefasst/transkribiert werden. Dafür werden Modell-/Anbieter-APIs verwendet.
 
-- Audio: OpenAI / Groq / Deepgram (jetzt **automatisch aktiviert**, wenn Schluessel vorhanden sind).
+- Audio: OpenAI / Groq / Deepgram (jetzt **automatisch aktiviert**, wenn Schlüssel vorhanden sind).
 - Bild: OpenAI / Anthropic / Google.
 - Video: Google.
 
-Siehe [Media understanding](/nodes/media-understanding).
+Siehe [Medienverständnis](/nodes/media-understanding).
 
-### 3) Gedaechtnis-Einbettungen + semantische Suche
+### 3) Speicher-Embeddings + semantische Suche
 
-Die semantische Gedaechtnissuche verwendet **Embedding-APIs**, wenn sie fuer entfernte Anbieter konfiguriert ist:
+Die semantische Speichersuche verwendet **Embedding-APIs**, wenn sie für Remote-Anbieter konfiguriert ist:
 
 - `memorySearch.provider = "openai"` → OpenAI-Embeddings
 - `memorySearch.provider = "gemini"` → Gemini-Embeddings
-- Optionaler Rueckfall auf OpenAI, wenn lokale Embeddings fehlschlagen
+- `memorySearch.provider = "voyage"` → Voyage-Embeddings
+- Optionaler Fallback auf einen Remote-Anbieter, wenn lokale Embeddings fehlschlagen
 
-Sie koennen es lokal halten mit `memorySearch.provider = "local"` (keine API-Nutzung).
+Sie können es mit `memorySearch.provider = "local"` lokal halten (keine API-Nutzung).
 
 Siehe [Memory](/concepts/memory).
 
-### 4) Web-Suchwerkzeug (Brave / Perplexity ueber OpenRouter)
+### 4) Web-Suchwerkzeug (Brave / Perplexity über OpenRouter)
 
-`web_search` verwendet API-Schluessel und kann Nutzungsgebuehren verursachen:
+`web_search` verwendet API-Schlüssel und kann Nutzungskosten verursachen:
 
 - **Brave Search API**: `BRAVE_API_KEY` oder `tools.web.search.apiKey`
-- **Perplexity** (ueber OpenRouter): `PERPLEXITY_API_KEY` oder `OPENROUTER_API_KEY`
+- **Perplexity** (über OpenRouter): `PERPLEXITY_API_KEY` oder `OPENROUTER_API_KEY`
 
-**Brave Free-Tier (grosszuegig):**
+**Brave Free-Tier (großzügig):**
 
 - **2.000 Anfragen/Monat**
 - **1 Anfrage/Sekunde**
-- **Kreditkarte erforderlich** zur Verifizierung (keine Belastung, ausser Sie upgraden)
+- **Kreditkarte erforderlich** zur Verifizierung (keine Kosten, sofern Sie nicht upgraden)
 
-Siehe [Web tools](/tools/web).
+Siehe [Web-Werkzeuge](/tools/web).
 
 ### 5) Web-Fetch-Werkzeug (Firecrawl)
 
-`web_fetch` kann **Firecrawl** aufrufen, wenn ein API-Schluessel vorhanden ist:
+`web_fetch` kann **Firecrawl** aufrufen, wenn ein API-Schlüssel vorhanden ist:
 
 - `FIRECRAWL_API_KEY` oder `tools.web.fetch.firecrawl.apiKey`
 
-Wenn Firecrawl nicht konfiguriert ist, faellt das Werkzeug auf direktes Fetch + Readability zurueck (keine kostenpflichtige API).
+Wenn Firecrawl nicht konfiguriert ist, fällt das Werkzeug auf direkten Fetch + Readability zurück (keine kostenpflichtige API).
 
-Siehe [Web tools](/tools/web).
+Siehe [Web-Werkzeuge](/tools/web).
 
-### 6) Anbieter-Nutzungs-Schnappschuesse (Status/Health)
+### 6) Anbieter-Nutzungs-Snapshots (Status/Health)
 
-Einige Statusbefehle rufen **Nutzungsendpunkte der Anbieter** auf, um Kontingentfenster oder den Authentifizierungsstatus anzuzeigen.
-Dies sind in der Regel Aufrufe mit geringem Volumen, treffen aber dennoch Anbieter-APIs:
+Einige Statusbefehle rufen **Anbieter-Nutzungsendpunkte** auf, um Kontingentfenster oder den Auth-Status anzuzeigen.
+Dies sind typischerweise Aufrufe mit geringem Volumen, treffen aber dennoch Anbieter-APIs:
 
 - `openclaw status --usage`
 - `openclaw models status --json`
 
 Siehe [Models CLI](/cli/models).
 
-### 7) Zusammenfassung durch Kompaktions-Schutzmechanismus
+### 7) Zusammenfassung durch Kompaktions-Schutz
 
-Der Kompaktions-Schutzmechanismus kann den Sitzungsverlauf mit dem **aktuellen Modell** zusammenfassen, wodurch beim Ausfuehren
-Anbieter-APIs aufgerufen werden.
+Der Kompaktions-Schutz kann den Sitzungsverlauf mit dem **aktuellen Modell** zusammenfassen, was
+bei der Ausführung Anbieter-APIs aufruft.
 
-Siehe [Session management + compaction](/reference/session-management-compaction).
+Siehe [Sitzungsverwaltung + Kompaktion](/reference/session-management-compaction).
 
 ### 8) Modell-Scan / -Probe
 
-`openclaw models scan` kann OpenRouter-Modelle pruefen und verwendet `OPENROUTER_API_KEY`, wenn
-die Probe aktiviert ist.
+`openclaw models scan` kann OpenRouter-Modelle prüfen und verwendet `OPENROUTER_API_KEY`, wenn
+das Prüfen aktiviert ist.
 
 Siehe [Models CLI](/cli/models).
 
 ### 9) Talk (Sprache)
 
-Der Talk-Modus kann **ElevenLabs** aufrufen, wenn konfiguriert:
+Der Talk-Modus kann **ElevenLabs** aufrufen, wenn er konfiguriert ist:
 
 - `ELEVENLABS_API_KEY` oder `talk.apiKey`
 
-Siehe [Talk mode](/nodes/talk).
+Siehe [Talk-Modus](/nodes/talk).
 
 ### 10) Skills (Drittanbieter-APIs)
 
-Skills koennen `apiKey` in `skills.entries.<name>.apiKey` speichern. Wenn ein Skill diesen Schluessel fuer externe
-APIs verwendet, koennen entsprechend dem Anbieter des Skills Kosten anfallen.
+Skills können `apiKey` in `skills.entries.<name>.apiKey` speichern. Wenn ein Skill diesen Schlüssel für externe
+APIs verwendet, können entsprechend dem Anbieter des Skills Kosten entstehen.
 
 Siehe [Skills](/tools/skills).

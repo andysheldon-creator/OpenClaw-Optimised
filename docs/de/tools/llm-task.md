@@ -1,8 +1,8 @@
 ---
-summary: "Nur-JSON-LLM-Aufgaben fuer Workflows (optionales Plugin-Werkzeug)"
+summary: "Ausschließlich-JSON-LLM-Aufgaben für Workflows (optionales Plugin-Werkzeug)"
 read_when:
-  - Sie moechten einen reinen JSON-LLM-Schritt innerhalb von Workflows
-  - Sie benoetigen schema-validierte LLM-Ausgaben fuer Automatisierung
+  - Sie möchten einen ausschließlich-JSON-LLM-Schritt innerhalb von Workflows
+  - Sie benötigen schema-validierte LLM-Ausgaben für Automatisierung
 title: "LLM-Aufgabe"
 x-i18n:
   source_path: tools/llm-task.md
@@ -10,16 +10,16 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:47Z
+  generated_at: 2026-02-08T09:37:33Z
 ---
 
 # LLM-Aufgabe
 
-`llm-task` ist ein **optionales Plugin-Werkzeug**, das eine reine JSON-LLM-Aufgabe ausfuehrt und
-strukturierte Ausgabe zurueckgibt (optional gegen JSON Schema validiert).
+`llm-task` ist ein **optionales Plugin-Werkzeug**, das eine ausschließlich-JSON-LLM-Aufgabe ausführt und
+strukturierte Ausgaben zurückgibt (optional gegen JSON Schema validiert).
 
-Dies ist ideal fuer Workflow-Engines wie Lobster: Sie koennen einen einzelnen LLM-Schritt hinzufuegen,
-ohne fuer jeden Workflow eigenen OpenClaw-Code zu schreiben.
+Dies ist ideal für Workflow-Engines wie Lobster: Sie können einen einzelnen LLM-Schritt hinzufügen,
+ohne für jeden Workflow benutzerdefinierten OpenClaw-Code zu schreiben.
 
 ## Plugin aktivieren
 
@@ -72,25 +72,25 @@ ohne fuer jeden Workflow eigenen OpenClaw-Code zu schreiben.
 }
 ```
 
-`allowedModels` ist eine Allowlist von `provider/model`-Strings. Wenn gesetzt, wird jede Anfrage
-ausserhalb der Liste abgelehnt.
+`allowedModels` ist eine Allowlist von `provider/model`-Strings. Falls gesetzt, wird jede Anfrage
+außerhalb der Liste abgelehnt.
 
 ## Werkzeugparameter
 
-- `prompt` (String, erforderlich)
-- `input` (beliebig, optional)
-- `schema` (Objekt, optionales JSON Schema)
-- `provider` (String, optional)
-- `model` (String, optional)
-- `authProfileId` (String, optional)
-- `temperature` (Zahl, optional)
-- `maxTokens` (Zahl, optional)
-- `timeoutMs` (Zahl, optional)
+- `prompt` (string, erforderlich)
+- `input` (any, optional)
+- `schema` (object, optionales JSON Schema)
+- `provider` (string, optional)
+- `model` (string, optional)
+- `authProfileId` (string, optional)
+- `temperature` (number, optional)
+- `maxTokens` (number, optional)
+- `timeoutMs` (number, optional)
 
 ## Ausgabe
 
-Gibt `details.json` zurueck, das das geparste JSON enthaelt (und validiert gegen
-`schema`, wenn bereitgestellt).
+Gibt `details.json` zurück, das das geparste JSON enthält (und validiert es gegen
+`schema`, sofern bereitgestellt).
 
 ## Beispiel: Lobster-Workflow-Schritt
 
@@ -115,8 +115,8 @@ openclaw.invoke --tool llm-task --action json --args-json '{
 
 ## Sicherheitshinweise
 
-- Das Werkzeug ist **nur JSON** und weist das Modell an, ausschliesslich JSON auszugeben (keine
+- Das Werkzeug ist **ausschließlich JSON** und weist das Modell an, nur JSON auszugeben (keine
   Code-Fences, keine Kommentare).
-- Fuer diesen Lauf werden dem Modell keine Werkzeuge bereitgestellt.
-- Behandeln Sie die Ausgabe als nicht vertrauenswuerdig, sofern Sie nicht mit `schema` validieren.
-- Platzieren Sie Freigaben vor jedem Schritt mit Seiteneffekten (senden, posten, ausfuehren).
+- Für diesen Lauf werden dem Modell keine Werkzeuge bereitgestellt.
+- Behandeln Sie die Ausgabe als nicht vertrauenswürdig, sofern Sie nicht mit `schema` validieren.
+- Platzieren Sie Genehmigungen vor jedem Schritt mit Seiteneffekten (senden, posten, ausführen).

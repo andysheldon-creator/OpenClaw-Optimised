@@ -1,17 +1,17 @@
 ---
-summary: "Công cụ tìm kiếm + tải web (Brave Search API, Perplexity direct/OpenRouter)"
+summary: "Công cụ tìm kiếm web + tải nội dung (Brave Search API, Perplexity trực tiếp/OpenRouter)"
 read_when:
   - Bạn muốn bật web_search hoặc web_fetch
   - Bạn cần thiết lập khóa Brave Search API
   - Bạn muốn dùng Perplexity Sonar cho tìm kiếm web
-title: "Web Tools"
+title: "Công cụ Web"
 x-i18n:
   source_path: tools/web.md
-  source_hash: f5f25d2b40ccf1e5
+  source_hash: c2f5e15bc78f09f7
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:08:55Z
+  generated_at: 2026-02-08T09:40:40Z
 ---
 
 # Công cụ web
@@ -19,31 +19,31 @@ x-i18n:
 OpenClaw cung cấp hai công cụ web gọn nhẹ:
 
 - `web_search` — Tìm kiếm web qua Brave Search API (mặc định) hoặc Perplexity Sonar (trực tiếp hoặc qua OpenRouter).
-- `web_fetch` — HTTP fetch + trích xuất nội dung dễ đọc (HTML → markdown/text).
+- `web_fetch` — Tải HTTP + trích xuất nội dung dễ đọc (HTML → markdown/text).
 
-Đây **không** phải là tự động hóa trình duyệt. Với các trang nặng JavaScript hoặc yêu cầu đăng nhập, hãy dùng
-[Browser tool](/tools/browser).
+Đây **không** phải là tự động hóa trình duyệt. Với các trang nặng JS hoặc cần đăng nhập, hãy dùng
+[Công cụ Browser](/tools/browser).
 
 ## Cách hoạt động
 
-- `web_search` gọi nhà cung cấp bạn cấu hình và trả về kết quả.
+- `web_search` gọi nhà cung cấp bạn đã cấu hình và trả về kết quả.
   - **Brave** (mặc định): trả về kết quả có cấu trúc (tiêu đề, URL, đoạn trích).
   - **Perplexity**: trả về câu trả lời do AI tổng hợp kèm trích dẫn từ tìm kiếm web thời gian thực.
 - Kết quả được cache theo truy vấn trong 15 phút (có thể cấu hình).
 - `web_fetch` thực hiện HTTP GET thuần và trích xuất nội dung dễ đọc
-  (HTML → markdown/text). Nó **không** thực thi JavaScript.
+  (HTML → markdown/text). Công cụ **không** thực thi JavaScript.
 - `web_fetch` được bật theo mặc định (trừ khi bị tắt rõ ràng).
 
 ## Chọn nhà cung cấp tìm kiếm
 
-| Nhà cung cấp         | Ưu điểm                                            | Nhược điểm                                    | API Key                                        |
-| -------------------- | -------------------------------------------------- | --------------------------------------------- | ---------------------------------------------- |
-| **Brave** (mặc định) | Nhanh, kết quả có cấu trúc, có gói miễn phí        | Kết quả tìm kiếm truyền thống                 | `BRAVE_API_KEY`                                |
-| **Perplexity**       | Câu trả lời AI tổng hợp, trích dẫn, thời gian thực | Cần quyền truy cập Perplexity hoặc OpenRouter | `OPENROUTER_API_KEY` hoặc `PERPLEXITY_API_KEY` |
+| Nhà cung cấp         | Ưu điểm                                               | Nhược điểm                                    | Khóa API                                       |
+| -------------------- | ----------------------------------------------------- | --------------------------------------------- | ---------------------------------------------- |
+| **Brave** (mặc định) | Nhanh, kết quả có cấu trúc, có gói miễn phí           | Kết quả tìm kiếm truyền thống                 | `BRAVE_API_KEY`                                |
+| **Perplexity**       | Câu trả lời AI tổng hợp, có trích dẫn, thời gian thực | Cần quyền truy cập Perplexity hoặc OpenRouter | `OPENROUTER_API_KEY` hoặc `PERPLEXITY_API_KEY` |
 
-Xem [Brave Search setup](/brave-search) và [Perplexity Sonar](/perplexity) để biết chi tiết theo từng nhà cung cấp.
+Xem [Thiết lập Brave Search](/brave-search) và [Perplexity Sonar](/perplexity) để biết chi tiết theo từng nhà cung cấp.
 
-Đặt nhà cung cấp trong config:
+Đặt nhà cung cấp trong cấu hình:
 
 ```json5
 {
@@ -78,33 +78,33 @@ Ví dụ: chuyển sang Perplexity Sonar (API trực tiếp):
 
 ## Lấy khóa Brave API
 
-1. Tạo tài khoản Brave Search API tại https://brave.com/search/api/
-2. Trong dashboard, chọn gói **Data for Search** (không phải “Data for AI”) và tạo API key.
-3. Chạy `openclaw configure --section web` để lưu khóa vào config (khuyến nghị), hoặc đặt `BRAVE_API_KEY` trong môi trường của bạn.
+1. Tạo tài khoản Brave Search API tại [https://brave.com/search/api/](https://brave.com/search/api/)
+2. Trong bảng điều khiển, chọn gói **Data for Search** (không phải “Data for AI”) và tạo khóa API.
+3. Chạy `openclaw configure --section web` để lưu khóa vào cấu hình (khuyến nghị), hoặc đặt `BRAVE_API_KEY` trong môi trường của bạn.
 
-Brave cung cấp gói miễn phí và các gói trả phí; hãy kiểm tra cổng Brave API để biết
-giới hạn và giá hiện tại.
+Brave cung cấp gói miễn phí cùng các gói trả phí; hãy kiểm tra cổng Brave API để biết
+giới hạn và giá hiện hành.
 
 ### Nơi đặt khóa (khuyến nghị)
 
-**Khuyến nghị:** chạy `openclaw configure --section web`. Lệnh này lưu khóa vào
+**Khuyến nghị:** chạy `openclaw configure --section web`. Lệnh này lưu khóa trong
 `~/.openclaw/openclaw.json` dưới `tools.web.search.apiKey`.
 
 **Phương án môi trường:** đặt `BRAVE_API_KEY` trong môi trường
-process của Gateway. Với cài đặt gateway, đặt trong `~/.openclaw/.env` (hoặc
-môi trường service của bạn). Xem [Env vars](/help/faq#how-does-openclaw-load-environment-variables).
+của tiến trình Gateway. Với cài đặt gateway, đặt trong `~/.openclaw/.env` (hoặc
+môi trường dịch vụ của bạn). Xem [Biến môi trường](/help/faq#how-does-openclaw-load-environment-variables).
 
 ## Dùng Perplexity (trực tiếp hoặc qua OpenRouter)
 
-Các model Perplexity Sonar có khả năng tìm kiếm web tích hợp và trả về
-câu trả lời do AI tổng hợp kèm trích dẫn. Bạn có thể dùng qua OpenRouter (không cần thẻ tín dụng - hỗ trợ
-crypto/trả trước).
+Các mô hình Perplexity Sonar có khả năng tìm kiếm web tích hợp và trả về
+câu trả lời do AI tổng hợp kèm trích dẫn. Bạn có thể dùng qua OpenRouter
+(không cần thẻ tín dụng – hỗ trợ crypto/trả trước).
 
 ### Lấy khóa OpenRouter API
 
-1. Tạo tài khoản tại https://openrouter.ai/
-2. Nạp credit (hỗ trợ crypto, trả trước hoặc thẻ tín dụng)
-3. Tạo API key trong phần cài đặt tài khoản
+1. Tạo tài khoản tại [https://openrouter.ai/](https://openrouter.ai/)
+2. Nạp tín dụng (hỗ trợ crypto, trả trước hoặc thẻ tín dụng)
+3. Tạo khóa API trong phần cài đặt tài khoản
 
 ### Thiết lập tìm kiếm Perplexity
 
@@ -132,32 +132,32 @@ crypto/trả trước).
 **Phương án môi trường:** đặt `OPENROUTER_API_KEY` hoặc `PERPLEXITY_API_KEY` trong môi trường
 Gateway. Với cài đặt gateway, đặt trong `~/.openclaw/.env`.
 
-Nếu không đặt base URL, OpenClaw sẽ chọn mặc định dựa trên nguồn API key:
+Nếu không đặt base URL, OpenClaw sẽ chọn mặc định dựa trên nguồn khóa API:
 
 - `PERPLEXITY_API_KEY` hoặc `pplx-...` → `https://api.perplexity.ai`
 - `OPENROUTER_API_KEY` hoặc `sk-or-...` → `https://openrouter.ai/api/v1`
-- Định dạng khóa không xác định → OpenRouter (phương án dự phòng an toàn)
+- Định dạng khóa không xác định → OpenRouter (phương án an toàn)
 
-### Các model Perplexity khả dụng
+### Các mô hình Perplexity khả dụng
 
-| Model                             | Mô tả                                | Phù hợp nhất     |
+| Mô hình                           | Mô tả                                | Phù hợp nhất     |
 | --------------------------------- | ------------------------------------ | ---------------- |
-| `perplexity/sonar`                | Hỏi đáp nhanh với tìm kiếm web       | Tra cứu nhanh    |
-| `perplexity/sonar-pro` (mặc định) | Suy luận nhiều bước với tìm kiếm web | Câu hỏi phức tạp |
+| `perplexity/sonar`                | Hỏi–đáp nhanh với tìm kiếm web       | Tra cứu nhanh    |
+| `perplexity/sonar-pro` (mặc định) | Lập luận nhiều bước với tìm kiếm web | Câu hỏi phức tạp |
 | `perplexity/sonar-reasoning-pro`  | Phân tích chain-of-thought           | Nghiên cứu sâu   |
 
 ## web_search
 
-Tìm kiếm web bằng nhà cung cấp bạn đã cấu hình.
+Tìm kiếm web bằng nhà cung cấp đã cấu hình.
 
 ### Yêu cầu
 
 - `tools.web.search.enabled` không được là `false` (mặc định: bật)
-- API key cho nhà cung cấp đã chọn:
+- Khóa API cho nhà cung cấp bạn chọn:
   - **Brave**: `BRAVE_API_KEY` hoặc `tools.web.search.apiKey`
   - **Perplexity**: `OPENROUTER_API_KEY`, `PERPLEXITY_API_KEY`, hoặc `tools.web.search.perplexity.apiKey`
 
-### Config
+### Cấu hình
 
 ```json5
 {
@@ -178,8 +178,8 @@ Tìm kiếm web bằng nhà cung cấp bạn đã cấu hình.
 ### Tham số công cụ
 
 - `query` (bắt buộc)
-- `count` (1–10; mặc định lấy từ config)
-- `country` (tùy chọn): mã quốc gia 2 ký tự cho kết quả theo vùng (ví dụ: "DE", "US", "ALL"). Nếu bỏ qua, Brave dùng vùng mặc định.
+- `count` (1–10; mặc định theo cấu hình)
+- `country` (tùy chọn): mã quốc gia 2 chữ cái cho kết quả theo khu vực (ví dụ: "DE", "US", "ALL"). Nếu bỏ qua, Brave chọn vùng mặc định.
 - `search_lang` (tùy chọn): mã ngôn ngữ ISO cho kết quả tìm kiếm (ví dụ: "de", "en", "fr")
 - `ui_lang` (tùy chọn): mã ngôn ngữ ISO cho các thành phần UI
 - `freshness` (tùy chọn, chỉ Brave): lọc theo thời điểm khám phá (`pd`, `pw`, `pm`, `py`, hoặc `YYYY-MM-DDtoYYYY-MM-DD`)
@@ -214,12 +214,12 @@ await web_search({
 
 Tải một URL và trích xuất nội dung dễ đọc.
 
-### Yêu cầu
+### Yêu cầu của web_fetch
 
 - `tools.web.fetch.enabled` không được là `false` (mặc định: bật)
-- Dự phòng Firecrawl (tùy chọn): đặt `tools.web.fetch.firecrawl.apiKey` hoặc `FIRECRAWL_API_KEY`.
+- Tùy chọn dự phòng Firecrawl: đặt `tools.web.fetch.firecrawl.apiKey` hoặc `FIRECRAWL_API_KEY`.
 
-### Config
+### Cấu hình web_fetch
 
 ```json5
 {
@@ -248,21 +248,21 @@ Tải một URL và trích xuất nội dung dễ đọc.
 }
 ```
 
-### Tham số công cụ
+### Tham số công cụ web_fetch
 
 - `url` (bắt buộc, chỉ http/https)
 - `extractMode` (`markdown` | `text`)
-- `maxChars` (cắt ngắn trang dài)
+- `maxChars` (cắt bớt trang dài)
 
 Ghi chú:
 
-- `web_fetch` dùng Readability (trích xuất nội dung chính) trước, sau đó Firecrawl (nếu được cấu hình). Nếu cả hai đều thất bại, công cụ trả về lỗi.
-- Các yêu cầu Firecrawl dùng chế độ tránh chặn bot và cache kết quả theo mặc định.
+- `web_fetch` dùng Readability (trích xuất nội dung chính) trước, sau đó là Firecrawl (nếu được cấu hình). Nếu cả hai đều thất bại, công cụ trả về lỗi.
+- Các yêu cầu Firecrawl dùng chế độ vượt qua chặn bot và mặc định cache kết quả.
 - `web_fetch` gửi User-Agent giống Chrome và `Accept-Language` theo mặc định; ghi đè `userAgent` nếu cần.
-- `web_fetch` chặn hostname riêng/nội bộ và kiểm tra lại redirect (giới hạn bằng `maxRedirects`).
+- `web_fetch` chặn hostname riêng tư/nội bộ và kiểm tra lại chuyển hướng (giới hạn bằng `maxRedirects`).
 - `maxChars` được kẹp ở `tools.web.fetch.maxCharsCap`.
-- `web_fetch` là trích xuất best-effort; một số trang sẽ cần browser tool.
-- Xem [Firecrawl](/tools/firecrawl) để biết thiết lập khóa và chi tiết dịch vụ.
-- Phản hồi được cache (mặc định 15 phút) để giảm việc tải lặp lại.
-- Nếu bạn dùng tool profiles/allowlists, hãy thêm `web_search`/`web_fetch` hoặc `group:web`.
-- Nếu thiếu khóa Brave, `web_search` trả về gợi ý thiết lập ngắn kèm liên kết tài liệu.
+- `web_fetch` là trích xuất theo khả năng; một số trang sẽ cần công cụ browser.
+- Xem [Firecrawl](/tools/firecrawl) để biết cách thiết lập khóa và chi tiết dịch vụ.
+- Phản hồi được cache (mặc định 15 phút) để giảm tải việc tải lặp lại.
+- Nếu bạn dùng hồ sơ công cụ/danh sách cho phép, hãy thêm `web_search`/`web_fetch` hoặc `group:web`.
+- Nếu thiếu khóa Brave, `web_search` sẽ trả về gợi ý thiết lập ngắn kèm liên kết tài liệu.

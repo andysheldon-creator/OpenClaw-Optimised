@@ -1,8 +1,8 @@
 ---
-summary: "Các từ đánh thức bằng giọng nói toàn cục (do Gateway sở hữu) và cách chúng đồng bộ trên các node"
+summary: "Từ đánh thức bằng giọng nói toàn cục (do Gateway sở hữu) và cách chúng đồng bộ trên các node"
 read_when:
-  - Thay đổi hành vi hoặc mặc định của từ đánh thức bằng giọng nói
-  - Thêm nền tảng node mới cần đồng bộ từ đánh thức
+  - Thay đổi hành vi hoặc giá trị mặc định của từ đánh thức bằng giọng nói
+  - Thêm các nền tảng node mới cần đồng bộ từ đánh thức
 title: "Voice Wake"
 x-i18n:
   source_path: nodes/voicewake.md
@@ -10,7 +10,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:41Z
+  generated_at: 2026-02-08T09:39:30Z
 ---
 
 # Voice Wake (Từ đánh thức toàn cục)
@@ -18,16 +18,16 @@ x-i18n:
 OpenClaw coi **từ đánh thức là một danh sách toàn cục duy nhất** do **Gateway** sở hữu.
 
 - **Không có từ đánh thức tùy chỉnh theo từng node**.
-- **Bất kỳ UI node/app nào cũng có thể chỉnh sửa** danh sách; các thay đổi được Gateway lưu lại và phát tới tất cả.
-- Mỗi thiết bị vẫn giữ công tắc **Bật/Tắt Voice Wake** riêng (UX cục bộ + quyền khác nhau).
+- **Bất kỳ UI node/ứng dụng nào cũng có thể chỉnh sửa** danh sách; các thay đổi được Gateway lưu lại và phát tới mọi nơi.
+- Mỗi thiết bị vẫn giữ công tắc **Bật/Tắt Voice Wake** riêng (UX cục bộ + quyền hạn khác nhau).
 
-## Lưu trữ (máy chủ Gateway)
+## Lưu trữ (máy chủ gateway)
 
-Các từ đánh thức được lưu trên máy Gateway tại:
+Từ đánh thức được lưu trên máy gateway tại:
 
 - `~/.openclaw/settings/voicewake.json`
 
-Cấu trúc:
+Dạng dữ liệu:
 
 ```json
 { "triggers": ["openclaw", "claude", "computer"], "updatedAtMs": 1730000000000 }
@@ -42,8 +42,8 @@ Cấu trúc:
 
 Ghi chú:
 
-- Các trigger được chuẩn hóa (cắt khoảng trắng, loại bỏ chuỗi rỗng). Danh sách rỗng sẽ quay về mặc định.
-- Áp dụng các giới hạn an toàn (giới hạn số lượng/độ dài).
+- Các trigger được chuẩn hóa (cắt khoảng trắng, loại bỏ chuỗi rỗng). Danh sách rỗng sẽ quay về giá trị mặc định.
+- Có áp dụng giới hạn để đảm bảo an toàn (giới hạn số lượng/độ dài).
 
 ### Sự kiện
 
@@ -52,14 +52,14 @@ Ghi chú:
 Ai nhận được:
 
 - Tất cả client WebSocket (ứng dụng macOS, WebChat, v.v.)
-- Tất cả các node đang kết nối (iOS/Android), và cả khi node kết nối lần đầu như một lần đẩy “trạng thái hiện tại”.
+- Tất cả các node đã kết nối (iOS/Android), và cũng được gửi khi node kết nối như một lần đẩy “trạng thái hiện tại” ban đầu.
 
 ## Hành vi phía client
 
 ### Ứng dụng macOS
 
 - Sử dụng danh sách toàn cục để kiểm soát các trigger `VoiceWakeRuntime`.
-- Chỉnh sửa “Trigger words” trong cài đặt Voice Wake sẽ gọi `voicewake.set` rồi dựa vào broadcast để giữ các client khác đồng bộ.
+- Chỉnh sửa “Trigger words” trong cài đặt Voice Wake sẽ gọi `voicewake.set` và sau đó dựa vào broadcast để giữ các client khác đồng bộ.
 
 ### Node iOS
 

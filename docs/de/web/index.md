@@ -2,7 +2,7 @@
 summary: "Gateway-Weboberflächen: Control UI, Bind-Modi und Sicherheit"
 read_when:
   - Sie möchten auf das Gateway über Tailscale zugreifen
-  - Sie möchten die browserbasierte Control UI und die Konfigurationsbearbeitung nutzen
+  - Sie möchten die browserbasierte Control UI und die Konfigurationsbearbeitung
 title: "Web"
 x-i18n:
   source_path: web/index.md
@@ -10,23 +10,23 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:53Z
+  generated_at: 2026-02-08T09:37:43Z
 ---
 
 # Web (Gateway)
 
-Das Gateway stellt eine kleine **browserbasierte Control UI** (Vite + Lit) über denselben Port bereit wie den Gateway-WebSocket:
+Das Gateway stellt eine kleine **browserbasierte Control UI** (Vite + Lit) über denselben Port wie das Gateway-WebSocket bereit:
 
 - Standard: `http://<host>:18789/`
 - optionales Präfix: setzen Sie `gateway.controlUi.basePath` (z. B. `/openclaw`)
 
-Die Funktionen finden Sie in der [Control UI](/web/control-ui).
+Funktionen sind in der [Control UI](/web/control-ui) beschrieben.
 Diese Seite konzentriert sich auf Bind-Modi, Sicherheit und webseitige Oberflächen.
 
 ## Webhooks
 
 Wenn `hooks.enabled=true`, stellt das Gateway außerdem einen kleinen Webhook-Endpunkt auf demselben HTTP-Server bereit.
-Siehe [Gateway-Konfiguration](/gateway/configuration) → `hooks` fuer Authentifizierung + Payloads.
+Siehe [Gateway-Konfiguration](/gateway/configuration) → `hooks` für Authentifizierung und Payloads.
 
 ## Konfiguration (standardmäßig aktiviert)
 
@@ -45,7 +45,7 @@ Sie können dies über die Konfiguration steuern:
 
 ### Integriertes Serve (empfohlen)
 
-Belassen Sie das Gateway auf local loopback und lassen Sie es von Tailscale Serve proxyen:
+Belassen Sie das Gateway auf dem Loopback und lassen Sie Tailscale Serve als Proxy fungieren:
 
 ```json5
 {
@@ -62,7 +62,7 @@ Starten Sie dann das Gateway:
 openclaw gateway
 ```
 
-Öffnen:
+Öffnen Sie:
 
 - `https://<magicdns>/` (oder Ihr konfiguriertes `gateway.controlUi.basePath`)
 
@@ -84,7 +84,7 @@ Starten Sie dann das Gateway (Token erforderlich für Nicht-Loopback-Binds):
 openclaw gateway
 ```
 
-Öffnen:
+Öffnen Sie:
 
 - `http://<tailscale-ip>:18789/` (oder Ihr konfiguriertes `gateway.controlUi.basePath`)
 
@@ -104,10 +104,10 @@ openclaw gateway
 
 - Gateway-Authentifizierung ist standardmäßig erforderlich (Token/Passwort oder Tailscale-Identitäts-Header).
 - Nicht-Loopback-Binds **erfordern** weiterhin ein gemeinsames Token/Passwort (`gateway.auth` oder env).
-- Der Assistent erzeugt standardmäßig ein Gateway-Token (auch bei Loopback).
+- Der Assistent generiert standardmäßig ein Gateway-Token (auch auf Loopback).
 - Die UI sendet `connect.params.auth.token` oder `connect.params.auth.password`.
-- Die Control UI sendet Anti-Clickjacking-Header und akzeptiert nur gleichherkunftige Browser-
-  WebSocket-Verbindungen, sofern nicht `gateway.controlUi.allowedOrigins` gesetzt ist.
+- Die Control UI sendet Anti-Clickjacking-Header und akzeptiert nur Same-Origin-Browser-
+  WebSocket-Verbindungen, sofern `gateway.controlUi.allowedOrigins` nicht gesetzt ist.
 - Mit Serve können Tailscale-Identitäts-Header die Authentifizierung erfüllen, wenn
   `gateway.auth.allowTailscale` `true` ist (kein Token/Passwort erforderlich). Setzen Sie
   `gateway.auth.allowTailscale: false`, um explizite Anmeldedaten zu verlangen. Siehe
@@ -116,7 +116,7 @@ openclaw gateway
 
 ## UI bauen
 
-Das Gateway stellt statische Dateien aus `dist/control-ui` bereit. Bauen Sie diese mit:
+Das Gateway stellt statische Dateien aus `dist/control-ui` bereit. Erstellen Sie diese mit:
 
 ```bash
 pnpm ui:build # auto-installs UI deps on first run

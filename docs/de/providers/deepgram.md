@@ -1,33 +1,30 @@
 ---
-summary: „Deepgram-Transkription fuer eingehende Sprachnachrichten“
+summary: „Deepgram-Transkription für eingehende Sprachnachrichten“
 read_when:
-  - Sie moechten Deepgram Speech-to-Text fuer Audio-Anhaenge
-  - Sie benoetigen ein schnelles Deepgram-Konfigurationsbeispiel
+  - Sie möchten Deepgram Speech-to-Text für Audioanhänge verwenden
+  - Sie benötigen ein schnelles Deepgram-Konfigurationsbeispiel
 title: „Deepgram“
 x-i18n:
   source_path: providers/deepgram.md
-  source_hash: 8f19e072f0867211
+  source_hash: dabd1f6942c339fb
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:09Z
+  generated_at: 2026-02-08T09:37:01Z
 ---
 
 # Deepgram (Audio-Transkription)
 
-Deepgram ist eine Speech-to-Text-API. In OpenClaw wird sie fuer die **Transkription eingehender Audio-/Sprachnachrichten**
-ueber `tools.media.audio` verwendet.
+Deepgram ist eine Speech-to-Text-API. In OpenClaw wird sie für die **Transkription eingehender Audio-/Sprachnachrichten** über `tools.media.audio` verwendet.
 
-Wenn aktiviert, laedt OpenClaw die Audiodatei zu Deepgram hoch und fuegt das Transkript
-in die Antwort-Pipeline ein (`{{Transcript}}` + `[Audio]`-Block). Dies ist **kein Streaming**;
-es wird der Endpunkt fuer vorab aufgezeichnete Transkription verwendet.
+Wenn aktiviert, lädt OpenClaw die Audiodatei zu Deepgram hoch und speist das Transkript in die Antwort-Pipeline ein (`{{Transcript}}` + `[Audio]`-Block). Dies ist **kein Streaming**; es wird der Endpunkt für vorab aufgezeichnete Transkription verwendet.
 
-Website: https://deepgram.com  
-Docs: https://developers.deepgram.com
+Website: [https://deepgram.com](https://deepgram.com)  
+Docs: [https://developers.deepgram.com](https://developers.deepgram.com)
 
 ## Schnellstart
 
-1. Setzen Sie Ihren API-Schluessel:
+1. Setzen Sie Ihren API-Schlüssel:
 
 ```
 DEEPGRAM_API_KEY=dg_...
@@ -95,6 +92,6 @@ Beispiel mit Deepgram-Optionen:
 
 ## Hinweise
 
-- Die Authentifizierung folgt der standardmaessigen Anbieter-Reihenfolge; `DEEPGRAM_API_KEY` ist der einfachste Weg.
-- Ueberschreiben Sie Endpunkte oder Header mit `tools.media.audio.baseUrl` und `tools.media.audio.headers`, wenn Sie einen Proxy verwenden.
-- Die Ausgabe folgt denselben Audio-Regeln wie bei anderen Anbietern (Groessenbegrenzungen, Timeouts, Transkript-Injektion).
+- Die Authentifizierung folgt der standardmäßigen Anbieter-Reihenfolge; `DEEPGRAM_API_KEY` ist der einfachste Weg.
+- Überschreiben Sie Endpunkte oder Header mit `tools.media.audio.baseUrl` und `tools.media.audio.headers`, wenn Sie einen Proxy verwenden.
+- Die Ausgabe folgt denselben Audioregeln wie bei anderen Anbietern (Größenbeschränkungen, Timeouts, Einspeisung des Transkripts).

@@ -1,49 +1,49 @@
 ---
-summary: "Aprovacoes de exec, allowlists e prompts de escape de sandbox"
+summary: "Aprovações de exec, listas de permissões e prompts de escape do sandbox"
 read_when:
-  - Configurando aprovacoes de exec ou allowlists
-  - Implementando UX de aprovacao de exec no app macOS
-  - Revisando prompts de escape de sandbox e implicacoes
-title: "Aprovacoes de Exec"
+  - Configurando aprovações de exec ou listas de permissões
+  - Implementando UX de aprovação de exec no app macOS
+  - Revisando prompts de escape do sandbox e implicações
+title: "Aprovações de Exec"
 x-i18n:
   source_path: tools/exec-approvals.md
-  source_hash: 97736427752eb905
+  source_hash: 66630b5d79671dd4
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:57:49Z
+  generated_at: 2026-02-08T09:32:18Z
 ---
 
-# Aprovacoes de exec
+# Aprovações de exec
 
-As aprovacoes de exec sao o **guardrail do aplicativo complementar / host de node** para permitir que um agente em sandbox execute
-comandos em um host real (`gateway` ou `node`). Pense nisso como um intertravamento de seguranca:
-os comandos so sao permitidos quando politica + allowlist + (aprovacao opcional do usuario) concordam.
-As aprovacoes de exec sao **adicionais** a politica de ferramentas e ao gating elevado (a menos que elevated esteja definido como `full`, o que ignora as aprovacoes).
-A politica efetiva e a **mais restritiva** entre `tools.exec.*` e os padroes de aprovacao; se um campo de aprovacao for omitido, o valor de `tools.exec` e usado.
+As aprovações de exec são o **guardrail do aplicativo complementar / host de nó** para permitir que um agente em sandbox execute
+comandos em um host real (`gateway` ou `node`). Pense nisso como um intertravamento de segurança:
+os comandos só são permitidos quando política + lista de permissões + (opcionalmente) aprovação do usuário concordam.
+As aprovações de exec são **além** da política de ferramentas e do gating elevado (a menos que elevated esteja definido como `full`, o que ignora as aprovações).
+A política efetiva é a **mais restritiva** entre `tools.exec.*` e os padrões de aprovações; se um campo de aprovações for omitido, o valor `tools.exec` é usado.
 
-Se a UI do aplicativo complementar **nao estiver disponivel**, qualquer solicitacao que exija um prompt e
-resolvida pelo **ask fallback** (padrao: negar).
+Se a UI do aplicativo complementar **não estiver disponível**, qualquer solicitação que exija um prompt é
+resolvida pelo **ask fallback** (padrão: negar).
 
 ## Onde se aplica
 
-As aprovacoes de exec sao aplicadas localmente no host de execucao:
+As aprovações de exec são aplicadas localmente no host de execução:
 
-- **gateway host** → processo `openclaw` na maquina do gateway
-- **node host** → runner do node (aplicativo complementar macOS ou node host headless)
+- **gateway host** → processo `openclaw` na máquina do gateway
+- **node host** → runner do nó (aplicativo complementar macOS ou host de nó headless)
 
-Divisao no macOS:
+Divisão no macOS:
 
-- **servico do node host** encaminha `system.run` para o **app macOS** via IPC local.
-- **app macOS** aplica as aprovacoes + executa o comando no contexto da UI.
+- **serviço do host de nó** encaminha `system.run` para o **app macOS** via IPC local.
+- **app macOS** aplica as aprovações + executa o comando no contexto da UI.
 
-## Configuracoes e armazenamento
+## Configurações e armazenamento
 
-As aprovacoes ficam em um arquivo JSON local no host de execucao:
+As aprovações ficam em um arquivo JSON local no host de execução:
 
 `~/.openclaw/exec-approvals.json`
 
-Esquema de exemplo:
+Exemplo de esquema:
 
 ```json
 {
@@ -78,112 +78,112 @@ Esquema de exemplo:
 }
 ```
 
-## Ajustes de politica
+## Controles de política
 
-### Seguranca (`exec.security`)
+### Segurança (`exec.security`)
 
-- **deny**: bloqueia todas as solicitacoes de exec no host.
-- **allowlist**: permite apenas comandos presentes na allowlist.
+- **deny**: bloqueia todas as solicitações de exec no host.
+- **allowlist**: permite apenas comandos presentes na lista de permissões.
 - **full**: permite tudo (equivalente a elevated).
 
 ### Ask (`exec.ask`)
 
-- **off**: nunca solicitar.
-- **on-miss**: solicitar apenas quando a allowlist nao corresponder.
-- **always**: solicitar em todo comando.
+- **off**: nunca perguntar.
+- **on-miss**: perguntar apenas quando a lista de permissões não corresponder.
+- **always**: perguntar em todo comando.
 
 ### Ask fallback (`askFallback`)
 
-Se um prompt for necessario, mas nenhuma UI estiver acessivel, o fallback decide:
+Se um prompt for necessário, mas nenhuma UI estiver acessível, o fallback decide:
 
 - **deny**: bloquear.
-- **allowlist**: permitir apenas se a allowlist corresponder.
+- **allowlist**: permitir apenas se a lista de permissões corresponder.
 - **full**: permitir.
 
-## Allowlist (por agente)
+## Lista de permissões (por agente)
 
-As allowlists sao **por agente**. Se existirem varios agentes, alterne qual agente voce esta
-editando no app macOS. Os padroes sao **correspondencias glob sem diferenciar maiusculas/minusculas**.
-Os padroes devem resolver para **caminhos de binarios** (entradas apenas com o basename sao ignoradas).
-Entradas legadas `agents.default` sao migradas para `agents.main` ao carregar.
+As listas de permissões são **por agente**. Se existirem vários agentes, alterne qual agente você está
+editando no app macOS. Os padrões são **correspondências glob sem distinção de maiúsculas/minúsculas**.
+Os padrões devem resolver para **caminhos de binário** (entradas apenas com basename são ignoradas).
+Entradas legadas `agents.default` são migradas para `agents.main` ao carregar.
 
 Exemplos:
 
-- `~/Projects/**/bin/bird`
+- `~/Projects/**/bin/peekaboo`
 - `~/.local/bin/*`
 - `/opt/homebrew/bin/rg`
 
-Cada entrada da allowlist acompanha:
+Cada entrada da lista de permissões rastreia:
 
-- **id** UUID estavel usado para identidade na UI (opcional)
+- **id** UUID estável usado para identidade na UI (opcional)
 - **last used** timestamp
 - **last used command**
 - **last resolved path**
 
-## Auto-allow de CLIs de Skills
+## Auto-permitir CLIs de Skills
 
-Quando **Auto-allow skill CLIs** esta habilitado, executaveis referenciados por skills conhecidas
-sao tratados como allowlisted nos nodes (node macOS ou node host headless). Isso usa
-`skills.bins` via RPC do Gateway para buscar a lista de bins das skills. Desative se voce quiser allowlists manuais estritas.
+Quando **Auto-allow skill CLIs** está ativado, executáveis referenciados por Skills conhecidas
+são tratados como permitidos na lista de permissões nos nós (nó macOS ou host de nó headless). Isso usa
+`skills.bins` via RPC do Gateway para buscar a lista de bins das Skills. Desative isso se você quiser listas de permissões manuais estritas.
 
 ## Safe bins (apenas stdin)
 
-`tools.exec.safeBins` define uma pequena lista de binarios **apenas stdin** (por exemplo `jq`)
-que podem executar em modo allowlist **sem** entradas explicitas na allowlist. Safe bins rejeitam
-argumentos posicionais de arquivo e tokens do tipo caminho, portanto so podem operar sobre o stream de entrada.
-Encadeamento de shell e redirecionamentos nao sao auto-permitidos no modo allowlist.
+`tools.exec.safeBins` define uma pequena lista de binários **somente stdin** (por exemplo `jq`)
+que podem executar no modo de lista de permissões **sem** entradas explícitas na lista de permissões. Os safe bins rejeitam
+argumentos posicionais de arquivo e tokens com aparência de caminho, de modo que só possam operar sobre o stream de entrada.
+Encadeamento de shell e redirecionamentos não são automaticamente permitidos no modo de lista de permissões.
 
-Encadeamento de shell (`&&`, `||`, `;`) e permitido quando cada segmento de nivel superior satisfaz a allowlist
-(incluindo safe bins ou auto-allow de skills). Redirecionamentos continuam sem suporte no modo allowlist.
-Substituicao de comandos (`$()` / crases) e rejeitada durante a analise da allowlist, inclusive dentro de
-aspas duplas; use aspas simples se voce precisar de texto literal `$()`.
+Encadeamento de shell (`&&`, `||`, `;`) é permitido quando cada segmento de nível superior satisfaz a lista de permissões
+(incluindo safe bins ou auto-permissão de Skills). Redirecionamentos continuam não suportados no modo de lista de permissões.
+Substituição de comandos (`$()` / crases) é rejeitada durante a análise da lista de permissões, inclusive dentro de
+aspas duplas; use aspas simples se precisar de texto literal `$()`.
 
-Safe bins padrao: `jq`, `grep`, `cut`, `sort`, `uniq`, `head`, `tail`, `tr`, `wc`.
+Safe bins padrão: `jq`, `grep`, `cut`, `sort`, `uniq`, `head`, `tail`, `tr`, `wc`.
 
-## Edicao pela Control UI
+## Edição pela Control UI
 
-Use o cartao **Control UI → Nodes → Exec approvals** para editar padroes, sobrescritas
-por agente e allowlists. Escolha um escopo (Padroes ou um agente), ajuste a politica,
-adicione/remova padroes da allowlist e clique em **Save**. A UI mostra metadados de **last used**
-por padrao para que voce mantenha a lista organizada.
+Use o cartão **Control UI → Nodes → Exec approvals** para editar padrões, substituições
+por agente e listas de permissões. Escolha um escopo (Padrões ou um agente), ajuste a política,
+adicione/remova padrões da lista de permissões e clique em **Save**. A UI mostra metadados de **last used**
+por padrão para que você mantenha a lista organizada.
 
-O seletor de destino escolhe **Gateway** (aprovacoes locais) ou um **Node**. Os nodes
-devem anunciar `system.execApprovals.get/set` (app macOS ou node host headless).
-Se um node ainda nao anunciar aprovacoes de exec, edite seu
-`~/.openclaw/exec-approvals.json` local diretamente.
+O seletor de destino escolhe **Gateway** (aprovações locais) ou um **Node**. Os nós
+devem anunciar `system.execApprovals.get/set` (app macOS ou host de nó headless).
+Se um nó ainda não anunciar aprovações de exec, edite diretamente seu
+`~/.openclaw/exec-approvals.json` local.
 
-CLI: `openclaw approvals` oferece suporte a edicao no gateway ou no node (veja [Approvals CLI](/cli/approvals)).
+CLI: `openclaw approvals` oferece suporte à edição no gateway ou no nó (veja [Approvals CLI](/cli/approvals)).
 
-## Fluxo de aprovacao
+## Fluxo de aprovação
 
-Quando um prompt e necessario, o gateway transmite `exec.approval.requested` para os clientes operadores.
-A Control UI e o app macOS resolvem isso via `exec.approval.resolve`, e entao o gateway encaminha a
-solicitacao aprovada para o node host.
+Quando um prompt é necessário, o gateway transmite `exec.approval.requested` para os clientes operadores.
+A Control UI e o app macOS resolvem isso via `exec.approval.resolve`, e então o gateway encaminha a
+solicitação aprovada para o host de nó.
 
-Quando aprovacoes sao necessarias, a ferramenta de exec retorna imediatamente com um id de aprovacao. Use esse id para
-correlacionar eventos de sistema posteriores (`Exec finished` / `Exec denied`). Se nenhuma decisao chegar antes do
-timeout, a solicitacao e tratada como timeout de aprovacao e apresentada como motivo de negacao.
+Quando aprovações são necessárias, a ferramenta exec retorna imediatamente com um id de aprovação. Use esse id para
+correlacionar eventos de sistema posteriores (`Exec finished` / `Exec denied`). Se nenhuma decisão chegar antes do
+timeout, a solicitação é tratada como timeout de aprovação e exibida como um motivo de negação.
 
-O dialogo de confirmacao inclui:
+O diálogo de confirmação inclui:
 
-- comando + args
+- comando + argumentos
 - cwd
 - id do agente
-- caminho do executavel resolvido
-- metadados do host + politica
+- caminho do executável resolvido
+- host + metadados de política
 
-Acoes:
+Ações:
 
 - **Allow once** → executar agora
-- **Always allow** → adicionar a allowlist + executar
+- **Always allow** → adicionar à lista de permissões + executar
 - **Deny** → bloquear
 
-## Encaminhamento de aprovacao para canais de chat
+## Encaminhamento de aprovação para canais de chat
 
-Voce pode encaminhar prompts de aprovacao de exec para qualquer canal de chat (incluindo canais de plugins) e aprova-los
-com `/approve`. Isso usa o pipeline normal de entrega de saida.
+Você pode encaminhar prompts de aprovação de exec para qualquer canal de chat (incluindo canais de plugin) e aprová-los
+com `/approve`. Isso usa o pipeline normal de entrega de saída.
 
-Configuracao:
+Configuração:
 
 ```json5
 {
@@ -202,7 +202,7 @@ Configuracao:
 }
 ```
 
-Resposta no chat:
+Responder no chat:
 
 ```
 /approve <id> allow-once
@@ -219,32 +219,32 @@ Gateway -> Node Service (WS)
              Mac App (UI + approvals + system.run)
 ```
 
-Notas de seguranca:
+Notas de segurança:
 
 - Modo de socket Unix `0600`, token armazenado em `exec-approvals.json`.
-- Verificacao de par com mesmo UID.
-- Desafio/resposta (nonce + token HMAC + hash da solicitacao) + TTL curto.
+- Verificação de peer com o mesmo UID.
+- Desafio/resposta (nonce + token HMAC + hash da solicitação) + TTL curto.
 
 ## Eventos do sistema
 
-O ciclo de vida do exec e exposto como mensagens do sistema:
+O ciclo de vida do exec é exposto como mensagens do sistema:
 
-- `Exec running` (apenas se o comando exceder o limite de aviso de execucao)
+- `Exec running` (somente se o comando exceder o limite de aviso de execução)
 - `Exec finished`
 - `Exec denied`
 
-Esses eventos sao publicados na sessao do agente apos o node reportar o evento.
-Aprovacoes de exec no host do gateway emitem os mesmos eventos de ciclo de vida quando o comando termina (e opcionalmente quando executa por mais tempo que o limite).
-Execs com aprovacao reutilizam o id de aprovacao como o `runId` nessas mensagens para facilitar a correlacao.
+Esses eventos são publicados na sessão do agente após o nó reportar o evento.
+Aprovações de exec no host do Gateway emitem os mesmos eventos de ciclo de vida quando o comando termina (e opcionalmente quando executa por mais tempo que o limite).
+Execs com aprovação reutilizam o id de aprovação como o `runId` nessas mensagens para facilitar a correlação.
 
-## Implicacoes
+## Implicações
 
-- **full** e poderoso; prefira allowlists quando possivel.
-- **ask** mantem voce no loop enquanto ainda permite aprovacoes rapidas.
-- Allowlists por agente impedem que aprovacoes de um agente vazem para outros.
-- As aprovacoes so se aplicam a solicitacoes de exec no host de **remetentes autorizados**. Remetentes nao autorizados nao podem emitir `/exec`.
-- `/exec security=full` e uma conveniencia em nivel de sessao para operadores autorizados e ignora aprovacoes por design.
-  Para bloquear rigidamente o exec no host, defina a seguranca de aprovacoes como `deny` ou negue a ferramenta `exec` via politica de ferramentas.
+- **full** é poderoso; prefira listas de permissões quando possível.
+- **ask** mantém você no controle enquanto ainda permite aprovações rápidas.
+- Listas de permissões por agente evitam que aprovações de um agente vazem para outros.
+- As aprovações se aplicam apenas a solicitações de exec no host vindas de **remetentes autorizados**. Remetentes não autorizados não podem emitir `/exec`.
+- `/exec security=full` é uma conveniência em nível de sessão para operadores autorizados e ignora aprovações por design.
+  Para bloquear rigidamente exec no host, defina a segurança de aprovações como `deny` ou negue a ferramenta `exec` via política de ferramentas.
 
 Relacionado:
 

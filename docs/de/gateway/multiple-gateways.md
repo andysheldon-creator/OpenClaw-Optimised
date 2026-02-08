@@ -1,31 +1,31 @@
 ---
-summary: „Mehrere OpenClaw Gateways auf einem Host ausführen (Isolation, Ports und Profile)“
+summary: "Mehrere OpenClaw Gateways auf einem Host ausführen (Isolation, Ports und Profile)"
 read_when:
-  - Mehr als ein Gateway auf derselben Maschine ausführen
+  - Sie betreiben mehr als einen Gateway auf derselben Maschine
   - Sie benötigen isolierte Konfiguration/Zustand/Ports pro Gateway
-title: „Mehrere Gateways“
+title: "Mehrere Gateways"
 x-i18n:
   source_path: gateway/multiple-gateways.md
   source_hash: 09b5035d4e5fb97c
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:04:23Z
+  generated_at: 2026-02-08T09:36:16Z
 ---
 
 # Mehrere Gateways (gleicher Host)
 
-Die meisten Setups sollten ein Gateway verwenden, da ein einzelnes Gateway mehrere Messaging-Verbindungen und Agenten handhaben kann. Wenn Sie stärkere Isolation oder Redundanz benötigen (z. B. einen Rescue-Bot), führen Sie separate Gateways mit isolierten Profilen/Ports aus.
+Die meisten Setups sollten einen Gateway verwenden, da ein einzelner Gateway mehrere Messaging-Verbindungen und Agenten verarbeiten kann. Wenn Sie stärkere Isolation oder Redundanz benötigen (z. B. einen Rettungs-Bot), betreiben Sie separate Gateways mit isolierten Profilen/Ports.
 
 ## Isolations-Checkliste (erforderlich)
 
 - `OPENCLAW_CONFIG_PATH` — Konfigurationsdatei pro Instanz
 - `OPENCLAW_STATE_DIR` — Sitzungen, Zugangsdaten, Caches pro Instanz
 - `agents.defaults.workspace` — Workspace-Root pro Instanz
-- `gateway.port` (oder `--port`) — eindeutig pro Instanz
+- `gateway.port` (oder `--port`) — pro Instanz eindeutig
 - Abgeleitete Ports (Browser/Canvas) dürfen sich nicht überschneiden
 
-Wenn diese gemeinsam genutzt werden, treten Konfigurations-Race-Conditions und Portkonflikte auf.
+Wenn diese geteilt werden, treten Konfigurations-Race-Conditions und Portkonflikte auf.
 
 ## Empfohlen: Profile (`--profile`)
 
@@ -48,20 +48,20 @@ openclaw --profile main gateway install
 openclaw --profile rescue gateway install
 ```
 
-## Rescue-Bot-Anleitung
+## Leitfaden für Rettungs-Bots
 
-Führen Sie ein zweites Gateway auf demselben Host mit eigenen:
+Betreiben Sie einen zweiten Gateway auf demselben Host mit jeweils eigener:
 
 - Profil/Konfiguration
 - Zustandsverzeichnis
 - Workspace
 - Basis-Port (plus abgeleitete Ports)
 
-Dies hält den Rescue-Bot vom Haupt-Bot isoliert, sodass er debuggen oder Konfigurationsänderungen anwenden kann, wenn der primäre Bot ausgefallen ist.
+So bleibt der Rettungs-Bot vom Haupt-Bot isoliert und kann debuggen oder Konfigurationsänderungen anwenden, falls der primäre Bot ausfällt.
 
-Port-Abstand: Lassen Sie mindestens 20 Ports zwischen Basis-Ports, damit die abgeleiteten Browser-/Canvas-/CDP-Ports niemals kollidieren.
+Portabstand: Lassen Sie mindestens 20 Ports zwischen den Basis-Ports, damit die abgeleiteten Browser-/Canvas-/CDP-Ports nie kollidieren.
 
-### Installation (Rescue-Bot)
+### Installation (Rettungs-Bot)
 
 ```bash
 # Main bot (existing or fresh, without --profile param)
@@ -81,22 +81,22 @@ openclaw --profile rescue onboard
 openclaw --profile rescue gateway install
 ```
 
-## Port-Zuordnung (abgeleitet)
+## Portzuordnung (abgeleitet)
 
 Basis-Port = `gateway.port` (oder `OPENCLAW_GATEWAY_PORT` / `--port`).
 
 - Browser-Control-Service-Port = Basis + 2 (nur Loopback)
 - `canvasHost.port = base + 4`
-- Browser-Profil-CDP-Ports werden automatisch aus `browser.controlPort + 9 .. + 108` zugewiesen
+- Browserprofil-CDP-Ports werden automatisch aus `browser.controlPort + 9 .. + 108` zugewiesen
 
 Wenn Sie einen dieser Werte in der Konfiguration oder über Umgebungsvariablen überschreiben, müssen sie pro Instanz eindeutig bleiben.
 
-## Browser/CDP-Hinweise (häufige Stolperfalle)
+## Browser/CDP-Hinweise (häufige Fehlerquelle)
 
-- Heften Sie `browser.cdpUrl` **nicht** auf dieselben Werte bei mehreren Instanzen.
+- **Nicht** `browser.cdpUrl` auf dieselben Werte bei mehreren Instanzen festlegen.
 - Jede Instanz benötigt ihren eigenen Browser-Control-Port und CDP-Bereich (abgeleitet von ihrem Gateway-Port).
 - Wenn Sie explizite CDP-Ports benötigen, setzen Sie `browser.profiles.<name>.cdpPort` pro Instanz.
-- Remote Chrome: Verwenden Sie `browser.profiles.<name>.cdpUrl` (pro Profil, pro Instanz).
+- Remote-Chrome: Verwenden Sie `browser.profiles.<name>.cdpUrl` (pro Profil, pro Instanz).
 
 ## Manuelles Env-Beispiel
 

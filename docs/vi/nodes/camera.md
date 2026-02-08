@@ -1,25 +1,25 @@
 ---
-summary: "Ghi hình camera (node iOS + ứng dụng macOS) để agent sử dụng: ảnh (jpg) và clip video ngắn (mp4)"
+summary: "Chụp camera (node iOS + ứng dụng macOS) để tác tử sử dụng: ảnh (jpg) và clip video ngắn (mp4)"
 read_when:
-  - Thêm hoặc chỉnh sửa tính năng ghi hình camera trên các node iOS hoặc macOS
-  - Mở rộng các quy trình làm việc MEDIA tệp tạm có thể truy cập bởi agent
-title: "Ghi hình Camera"
+  - Thêm hoặc chỉnh sửa chụp camera trên node iOS hoặc macOS
+  - Mở rộng các quy trình MEDIA tệp tạm cho tác tử truy cập
+title: "Chụp Camera"
 x-i18n:
   source_path: nodes/camera.md
-  source_hash: b4d5f5ecbab6f705
+  source_hash: cd6e2edd05a6575d
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:43Z
+  generated_at: 2026-02-08T09:39:33Z
 ---
 
-# Ghi hình camera (agent)
+# Chụp camera (tác tử)
 
-OpenClaw hỗ trợ **ghi hình camera** cho các quy trình làm việc của agent:
+OpenClaw hỗ trợ **chụp camera** cho các quy trình làm việc của tác tử:
 
-- **Node iOS** (ghép cặp qua Gateway): chụp **ảnh** (`jpg`) hoặc **clip video ngắn** (`mp4`, có âm thanh tùy chọn) qua `node.invoke`.
-- **Node Android** (ghép cặp qua Gateway): chụp **ảnh** (`jpg`) hoặc **clip video ngắn** (`mp4`, có âm thanh tùy chọn) qua `node.invoke`.
-- **Ứng dụng macOS** (node qua Gateway): chụp **ảnh** (`jpg`) hoặc **clip video ngắn** (`mp4`, có âm thanh tùy chọn) qua `node.invoke`.
+- **Node iOS** (ghép cặp qua Gateway): chụp **ảnh** (`jpg`) hoặc **clip video ngắn** (`mp4`, có thể kèm âm thanh) qua `node.invoke`.
+- **Node Android** (ghép cặp qua Gateway): chụp **ảnh** (`jpg`) hoặc **clip video ngắn** (`mp4`, có thể kèm âm thanh) qua `node.invoke`.
+- **Ứng dụng macOS** (node qua Gateway): chụp **ảnh** (`jpg`) hoặc **clip video ngắn** (`mp4`, có thể kèm âm thanh) qua `node.invoke`.
 
 Mọi quyền truy cập camera đều được kiểm soát bởi **các cài đặt do người dùng quản lý**.
 
@@ -27,8 +27,8 @@ Mọi quyền truy cập camera đều được kiểm soát bởi **các cài �
 
 ### Cài đặt người dùng (mặc định bật)
 
-- Thẻ Cài đặt iOS → **Camera** → **Allow Camera** (`camera.enabled`)
-  - Mặc định: **bật** (thiếu khóa được coi là đã bật).
+- Tab Cài đặt iOS → **Camera** → **Allow Camera** (`camera.enabled`)
+  - Mặc định: **bật** (thiếu khóa được xem là đã bật).
   - Khi tắt: các lệnh `camera.*` trả về `CAMERA_DISABLED`.
 
 ### Lệnh (qua Gateway `node.invoke`)
@@ -54,7 +54,7 @@ Mọi quyền truy cập camera đều được kiểm soát bởi **các cài �
 - `camera.clip`
   - Tham số:
     - `facing`: `front|back` (mặc định: `front`)
-    - `durationMs`: number (mặc định `3000`, bị kẹp tối đa `60000`)
+    - `durationMs`: number (mặc định `3000`, giới hạn tối đa `60000`)
     - `includeAudio`: boolean (mặc định `true`)
     - `format`: hiện tại `mp4`
     - `deviceId`: string (tùy chọn; từ `camera.list`)
@@ -64,9 +64,9 @@ Mọi quyền truy cập camera đều được kiểm soát bởi **các cài �
     - `durationMs`
     - `hasAudio`
 
-### Yêu cầu tiền cảnh
+### Yêu cầu chạy tiền cảnh
 
-Giống như `canvas.*`, node iOS chỉ cho phép các lệnh `camera.*` khi ở **tiền cảnh**. Các lời gọi chạy nền trả về `NODE_BACKGROUND_UNAVAILABLE`.
+Giống như `canvas.*`, node iOS chỉ cho phép các lệnh `camera.*` khi ở **tiền cảnh**. Gọi ở nền sẽ trả về `NODE_BACKGROUND_UNAVAILABLE`.
 
 ### Trợ giúp CLI (tệp tạm + MEDIA)
 
@@ -83,29 +83,29 @@ openclaw nodes camera clip --node <id> --no-audio
 
 Ghi chú:
 
-- `nodes camera snap` mặc định là **cả hai** hướng camera để agent có cả hai góc nhìn.
-- Các tệp đầu ra là tạm thời (trong thư mục tạm của hệ điều hành) trừ khi bạn tự xây dựng wrapper.
+- `nodes camera snap` mặc định là **cả hai** hướng camera để tác tử có đủ hai góc nhìn.
+- Các tệp đầu ra là tạm thời (trong thư mục temp của hệ điều hành) trừ khi bạn tự xây dựng wrapper riêng.
 
 ## Node Android
 
-### Cài đặt người dùng (mặc định bật)
+### Cài đặt người dùng Android (mặc định bật)
 
 - Trang Cài đặt Android → **Camera** → **Allow Camera** (`camera.enabled`)
-  - Mặc định: **bật** (thiếu khóa được coi là đã bật).
+  - Mặc định: **bật** (thiếu khóa được xem là đã bật).
   - Khi tắt: các lệnh `camera.*` trả về `CAMERA_DISABLED`.
 
 ### Quyền
 
-- Android yêu cầu quyền tại thời điểm chạy:
+- Android yêu cầu quyền runtime:
   - `CAMERA` cho cả `camera.snap` và `camera.clip`.
   - `RECORD_AUDIO` cho `camera.clip` khi `includeAudio=true`.
 
 Nếu thiếu quyền, ứng dụng sẽ nhắc khi có thể; nếu bị từ chối, các yêu cầu `camera.*` sẽ thất bại với lỗi
 `*_PERMISSION_REQUIRED`.
 
-### Yêu cầu tiền cảnh
+### Yêu cầu chạy tiền cảnh trên Android
 
-Giống như `canvas.*`, node Android chỉ cho phép các lệnh `camera.*` khi ở **tiền cảnh**. Các lời gọi chạy nền trả về `NODE_BACKGROUND_UNAVAILABLE`.
+Giống như `canvas.*`, node Android chỉ cho phép các lệnh `camera.*` khi ở **tiền cảnh**. Gọi ở nền sẽ trả về `NODE_BACKGROUND_UNAVAILABLE`.
 
 ### Bảo vệ payload
 
@@ -121,7 +121,7 @@ Giống như `canvas.*`, node Android chỉ cho phép các lệnh `camera.*` khi
   - Mặc định: **tắt**
   - Khi tắt: các yêu cầu camera trả về “Camera disabled by user”.
 
-### Trợ giúp CLI (node invoke)
+### Trợ giúp CLI (gọi node)
 
 Sử dụng CLI chính `openclaw` để gọi các lệnh camera trên node macOS.
 
@@ -141,14 +141,14 @@ openclaw nodes camera clip --node <id> --no-audio
 
 Ghi chú:
 
-- `openclaw nodes camera snap` mặc định là `maxWidth=1600` trừ khi bị ghi đè.
+- `openclaw nodes camera snap` mặc định là `maxWidth=1600` trừ khi được ghi đè.
 - Trên macOS, `camera.snap` chờ `delayMs` (mặc định 2000ms) sau khi làm ấm/ổn định phơi sáng trước khi chụp.
 - Payload ảnh được nén lại để giữ base64 dưới 5 MB.
 
 ## An toàn + giới hạn thực tế
 
-- Quyền truy cập camera và microphone sẽ kích hoạt các hộp thoại quyền của hệ điều hành (và yêu cầu chuỗi mô tả sử dụng trong Info.plist).
-- Các clip video bị giới hạn (hiện tại `<= 60s`) để tránh payload node quá lớn (chi phí base64 + giới hạn thông điệp).
+- Quyền truy cập camera và micro sẽ kích hoạt các hộp thoại xin quyền tiêu chuẩn của hệ điều hành (và yêu cầu chuỗi mô tả sử dụng trong Info.plist).
+- Clip video bị giới hạn (hiện tại `<= 60s`) để tránh payload node quá lớn (độ dư base64 + giới hạn thông điệp).
 
 ## Video màn hình macOS (cấp hệ điều hành)
 

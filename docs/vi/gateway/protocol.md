@@ -3,7 +3,7 @@ summary: "Giao thức WebSocket của Gateway: bắt tay, khung, phiên bản h�
 read_when:
   - Triển khai hoặc cập nhật client WS của gateway
   - Gỡ lỗi sai lệch giao thức hoặc lỗi kết nối
-  - Tạo lại schema/mô hình giao thức
+  - Tái tạo schema/mô hình giao thức
 title: "Giao thức Gateway"
 x-i18n:
   source_path: gateway/protocol.md
@@ -11,22 +11,22 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:24Z
+  generated_at: 2026-02-08T09:39:10Z
 ---
 
 # Giao thức Gateway (WebSocket)
 
-Giao thức WS của Gateway là **một mặt phẳng điều khiển duy nhất + vận chuyển node**
-cho OpenClaw. Tất cả client (CLI, web UI, ứng dụng macOS, node iOS/Android, node
-không giao diện) kết nối qua WebSocket và khai báo **vai trò** + **phạm vi**
-tại thời điểm bắt tay.
+Giao thức WS của Gateway là **mặt phẳng điều khiển duy nhất + kênh truyền nút** cho
+OpenClaw. Tất cả client (CLI, web UI, ứng dụng macOS, các nút iOS/Android, các nút
+headless) kết nối qua WebSocket và khai báo **vai trò** + **phạm vi** tại thời điểm
+bắt tay.
 
-## Vận chuyển
+## Transport
 
 - WebSocket, khung văn bản với payload JSON.
 - Khung đầu tiên **phải** là một yêu cầu `connect`.
 
-## Bắt tay (kết nối)
+## Handshake (kết nối)
 
 Gateway → Client (thử thách trước khi kết nối):
 
@@ -84,7 +84,7 @@ Gateway → Client:
 }
 ```
 
-Khi phát hành token thiết bị, `hello-ok` cũng bao gồm:
+Khi phát hành device token, `hello-ok` cũng bao gồm:
 
 ```json
 {
@@ -131,20 +131,20 @@ Khi phát hành token thiết bị, `hello-ok` cũng bao gồm:
 }
 ```
 
-## Đóng khung
+## Framing
 
-- **Yêu cầu**: `{type:"req", id, method, params}`
-- **Phản hồi**: `{type:"res", id, ok, payload|error}`
-- **Sự kiện**: `{type:"event", event, payload, seq?, stateVersion?}`
+- **Request**: `{type:"req", id, method, params}`
+- **Response**: `{type:"res", id, ok, payload|error}`
+- **Event**: `{type:"event", event, payload, seq?, stateVersion?}`
 
-Các phương thức gây tác dụng phụ yêu cầu **khóa idempotency** (xem schema).
+Các phương thức gây tác dụng phụ yêu cầu **idempotency keys** (xem schema).
 
 ## Vai trò + phạm vi
 
 ### Vai trò
 
 - `operator` = client mặt phẳng điều khiển (CLI/UI/tự động hóa).
-- `node` = máy chủ khả năng (camera/màn hình/canvas/system.run).
+- `node` = máy chủ năng lực (camera/screen/canvas/system.run).
 
 ### Phạm vi (operator)
 
@@ -156,26 +156,26 @@ Các phạm vi phổ biến:
 - `operator.approvals`
 - `operator.pairing`
 
-### Khả năng/lệnh/quyền (node)
+### Caps/lệnh/quyền (node)
 
-Node khai báo các yêu cầu khả năng tại thời điểm kết nối:
+Các node khai báo các claim về năng lực tại thời điểm kết nối:
 
-- `caps`: các danh mục khả năng cấp cao.
-- `commands`: danh sách cho phép lệnh để invoke.
-- `permissions`: các công tắc chi tiết (ví dụ: `screen.record`, `camera.capture`).
+- `caps`: các danh mục năng lực cấp cao.
+- `commands`: allowlist lệnh cho invoke.
+- `permissions`: các bật/tắt chi tiết (ví dụ `screen.record`, `camera.capture`).
 
-Gateway coi đây là các **claim** và thực thi danh sách cho phép phía máy chủ.
+Gateway coi đây là **claims** và thực thi allowlist phía máy chủ.
 
 ## Presence
 
-- `system-presence` trả về các mục được khóa theo định danh thiết bị.
-- Các mục presence bao gồm `deviceId`, `roles` và `scopes` để UI có thể hiển thị một dòng duy nhất cho mỗi thiết bị
-  ngay cả khi nó kết nối với cả **operator** và **node**.
+- `system-presence` trả về các mục được khóa theo danh tính thiết bị.
+- Các mục presence bao gồm `deviceId`, `roles` và `scopes` để UI có thể hiển thị một hàng duy nhất cho mỗi thiết bị
+  ngay cả khi nó kết nối đồng thời với vai trò **operator** và **node**.
 
-### Phương thức hỗ trợ cho node
+### Phương thức trợ giúp cho node
 
-- Node có thể gọi `skills.bins` để lấy danh sách hiện tại các executable của skill
-  nhằm kiểm tra tự động cho phép.
+- Node có thể gọi `skills.bins` để lấy danh sách hiện tại các skill executable
+  phục vụ kiểm tra auto-allow.
 
 ## Phê duyệt exec
 
@@ -194,34 +194,34 @@ Gateway coi đây là các **claim** và thực thi danh sách cho phép phía m
 ## Xác thực
 
 - Nếu `OPENCLAW_GATEWAY_TOKEN` (hoặc `--token`) được đặt, `connect.params.auth.token`
-  phải khớp, nếu không socket sẽ bị đóng.
-- Sau khi ghép cặp, Gateway phát hành một **token thiết bị** được giới hạn theo
-  vai trò + phạm vi của kết nối. Token này được trả về trong `hello-ok.auth.deviceToken` và nên
+  phải khớp nếu không socket sẽ bị đóng.
+- Sau khi ghép cặp, Gateway phát hành một **device token** được gắn phạm vi theo
+  vai trò + phạm vi của kết nối. Token được trả về trong `hello-ok.auth.deviceToken` và nên
   được client lưu lại cho các lần kết nối sau.
-- Token thiết bị có thể được xoay vòng/thu hồi qua `device.token.rotate` và
+- Device token có thể được xoay vòng/thu hồi qua `device.token.rotate` và
   `device.token.revoke` (yêu cầu phạm vi `operator.pairing`).
 
-## Định danh thiết bị + ghép cặp
+## Danh tính thiết bị + ghép cặp
 
-- Node nên bao gồm một định danh thiết bị ổn định (`device.id`) được suy ra từ
+- Node nên bao gồm một danh tính thiết bị ổn định (`device.id`) được suy ra từ
   fingerprint của cặp khóa.
 - Gateway phát hành token theo từng thiết bị + vai trò.
-- Phê duyệt ghép cặp là bắt buộc cho các ID thiết bị mới trừ khi bật tự động phê duyệt cục bộ.
-- Kết nối **cục bộ** bao gồm loopback và địa chỉ tailnet của chính máy chủ gateway
-  (vì vậy các bind tailnet cùng máy chủ vẫn có thể tự động phê duyệt).
-- Tất cả client WS phải bao gồm định danh `device` trong quá trình `connect` (operator + node).
-  UI điều khiển chỉ có thể bỏ qua **duy nhất** khi bật `gateway.controlUi.allowInsecureAuth`
+- Cần phê duyệt ghép cặp cho các ID thiết bị mới trừ khi bật auto-approval cục bộ.
+- Kết nối **Local** bao gồm loopback và địa chỉ tailnet của chính máy chủ gateway
+  (để các ràng buộc tailnet cùng máy chủ vẫn có thể auto-approve).
+- Tất cả client WS phải bao gồm danh tính `device` trong `connect` (operator + node).
+  Control UI chỉ có thể bỏ qua **chỉ khi** `gateway.controlUi.allowInsecureAuth` được bật
   (hoặc `gateway.controlUi.dangerouslyDisableDeviceAuth` cho trường hợp break-glass).
-- Các kết nối không cục bộ phải ký nonce `connect.challenge` do máy chủ cung cấp.
+- Các kết nối không phải local phải ký nonce `connect.challenge` do máy chủ cung cấp.
 
-## TLS + ghim chứng chỉ
+## TLS + pinning
 
 - TLS được hỗ trợ cho các kết nối WS.
-- Client có thể tùy chọn ghim fingerprint chứng chỉ của gateway (xem cấu hình `gateway.tls`
+- Client có thể tùy chọn pin fingerprint chứng chỉ của gateway (xem cấu hình `gateway.tls`
   cùng với `gateway.remote.tlsFingerprint` hoặc CLI `--tls-fingerprint`).
 
 ## Phạm vi
 
 Giao thức này phơi bày **toàn bộ API của gateway** (trạng thái, kênh, mô hình, chat,
-agent, phiên, node, phê duyệt, v.v.). Bề mặt chính xác được xác định bởi các schema
+agent, phiên, node, phê duyệt, v.v.). Bề mặt chính xác được định nghĩa bởi các schema
 TypeBox trong `src/gateway/protocol/schema.ts`.

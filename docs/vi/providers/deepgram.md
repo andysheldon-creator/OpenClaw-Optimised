@@ -1,36 +1,39 @@
 ---
-summary: "Chuyen doi giong noi Deepgram cho tin nhan giong noi dau vao"
+summary: "Phiên âm Deepgram cho tin nhắn thoại đến"
 read_when:
-  - "Ban muon dung Deepgram chuyen giong noi thanh van ban cho tep dinh kem am thanh"
-  - "Ban can mot vi du cau hinh Deepgram nhanh"
+  - Bạn muốn dùng Deepgram chuyển giọng nói thành văn bản cho tệp âm thanh đính kèm
+  - Bạn cần một ví dụ cấu hình Deepgram nhanh
 title: "Deepgram"
 x-i18n:
   source_path: providers/deepgram.md
-  source_hash: 8f19e072f0867211
+  source_hash: dabd1f6942c339fb
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:08:04Z
+  generated_at: 2026-02-08T09:39:50Z
 ---
 
-# Deepgram (Chuyen doi am thanh thanh van ban)
+# Deepgram (Phiên âm âm thanh)
 
-Deepgram la mot API chuyen giong noi thanh van ban. Trong OpenClaw, no duoc su dung cho **chuyen doi am thanh/tin nhan giong noi dau vao** qua `tools.media.audio`.
+Deepgram là một API chuyển giọng nói thành văn bản. Trong OpenClaw, nó được dùng cho **phiên âm âm thanh/tin nhắn thoại đến**
+thông qua `tools.media.audio`.
 
-Khi duoc bat, OpenClaw tai tep am thanh len Deepgram va chen ban ghi chep vao pipeline tra loi (`{{Transcript}}` + khoi `[Audio]`). Day **khong phai la streaming**; no su dung diem cuoi chuyen doi cho ban ghi am co san.
+Khi được bật, OpenClaw tải tệp âm thanh lên Deepgram và chèn bản phiên âm
+vào pipeline phản hồi (`{{Transcript}}` + khối `[Audio]`). Đây **không phải streaming**;
+nó sử dụng endpoint phiên âm cho bản ghi đã được ghi sẵn.
 
-Website: https://deepgram.com  
-Tai lieu: https://developers.deepgram.com
+Website: [https://deepgram.com](https://deepgram.com)  
+Docs: [https://developers.deepgram.com](https://developers.deepgram.com)
 
-## Khoi dong nhanh
+## Khởi động nhanh
 
-1. Thiet lap khoa API cua ban:
+1. Thiết lập khóa API của bạn:
 
 ```
 DEEPGRAM_API_KEY=dg_...
 ```
 
-2. Bat nha cung cap:
+2. Bật nhà cung cấp:
 
 ```json5
 {
@@ -45,15 +48,15 @@ DEEPGRAM_API_KEY=dg_...
 }
 ```
 
-## Tuy chon
+## Tùy chọn
 
-- `model`: ID mo hinh Deepgram (mac dinh: `nova-3`)
-- `language`: goi y ngon ngu (tuy chon)
-- `tools.media.audio.providerOptions.deepgram.detect_language`: bat phat hien ngon ngu (tuy chon)
-- `tools.media.audio.providerOptions.deepgram.punctuate`: bat dau cau (tuy chon)
-- `tools.media.audio.providerOptions.deepgram.smart_format`: bat dinh dang thong minh (tuy chon)
+- `model`: id mô hình Deepgram (mặc định: `nova-3`)
+- `language`: gợi ý ngôn ngữ (tùy chọn)
+- `tools.media.audio.providerOptions.deepgram.detect_language`: bật phát hiện ngôn ngữ (tùy chọn)
+- `tools.media.audio.providerOptions.deepgram.punctuate`: bật dấu câu (tùy chọn)
+- `tools.media.audio.providerOptions.deepgram.smart_format`: bật định dạng thông minh (tùy chọn)
 
-Vi du voi ngon ngu:
+Ví dụ với ngôn ngữ:
 
 ```json5
 {
@@ -68,7 +71,7 @@ Vi du voi ngon ngu:
 }
 ```
 
-Vi du voi cac tuy chon Deepgram:
+Ví dụ với các tùy chọn Deepgram:
 
 ```json5
 {
@@ -90,8 +93,8 @@ Vi du voi cac tuy chon Deepgram:
 }
 ```
 
-## Ghi chu
+## Ghi chú
 
-- Xac thuc tuan theo thu tu xac thuc nha cung cap tieu chuan; `DEEPGRAM_API_KEY` la cach don gian nhat.
-- Ghi de diem cuoi hoac header bang `tools.media.audio.baseUrl` va `tools.media.audio.headers` khi su dung proxy.
-- Dau ra tuan theo cung cac quy tac am thanh nhu cac nha cung cap khac (gioi han kich thuoc, thoi gian cho, chen ban ghi chep).
+- Xác thực tuân theo thứ tự xác thực tiêu chuẩn của nhà cung cấp; `DEEPGRAM_API_KEY` là cách đơn giản nhất.
+- Ghi đè endpoint hoặc header bằng `tools.media.audio.baseUrl` và `tools.media.audio.headers` khi dùng proxy.
+- Đầu ra tuân theo cùng các quy tắc âm thanh như các nhà cung cấp khác (giới hạn kích thước, timeout, chèn bản phiên âm).

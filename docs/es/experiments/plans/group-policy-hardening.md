@@ -1,18 +1,18 @@
 ---
-summary: "Endurecimiento de la allowlist de Telegram: prefijo + normalización de espacios en blanco"
+summary: "Endurecimiento de la lista de permitidos de Telegram: prefijo + normalización de espacios en blanco"
 read_when:
-  - Revisión de cambios históricos de la allowlist de Telegram
-title: "Endurecimiento de la Allowlist de Telegram"
+  - Revisión de cambios históricos de la lista de permitidos de Telegram
+title: "Endurecimiento de la lista de permitidos de Telegram"
 x-i18n:
   source_path: experiments/plans/group-policy-hardening.md
-  source_hash: a2eca5fcc8537694
+  source_hash: 70569968857d4084
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:58:44Z
+  generated_at: 2026-02-08T09:33:20Z
 ---
 
-# Endurecimiento de la Allowlist de Telegram
+# Endurecimiento de la lista de permitidos de Telegram
 
 **Fecha**: 2026-01-05  
 **Estado**: Completo  
@@ -20,13 +20,13 @@ x-i18n:
 
 ## Resumen
 
-Las allowlists de Telegram ahora aceptan los prefijos `telegram:` y `tg:` sin distinguir mayúsculas y minúsculas, y toleran
-espacios en blanco accidentales. Esto alinea las comprobaciones de allowlist entrantes con la normalización de envío saliente.
+Las listas de permitidos de Telegram ahora aceptan los prefijos `telegram:` y `tg:` sin distinguir mayúsculas y minúsculas, y toleran
+espacios en blanco accidentales. Esto alinea las comprobaciones de la lista de permitidos entrante con la normalización de envío saliente.
 
 ## Qué cambió
 
 - Los prefijos `telegram:` y `tg:` se tratan de la misma manera (sin distinguir mayúsculas y minúsculas).
-- Las entradas de la allowlist se recortan; las entradas vacías se ignoran.
+- Las entradas de la lista de permitidos se recortan; las entradas vacías se ignoran.
 
 ## Ejemplos
 
@@ -39,9 +39,9 @@ Todos estos se aceptan para el mismo ID:
 ## Por qué importa
 
 Copiar y pegar desde registros o IDs de chat a menudo incluye prefijos y espacios en blanco. La normalización evita
-falsos negativos al decidir si responder en Mensajes directos o grupos.
+falsos negativos al decidir si responder en mensajes directos o grupos.
 
-## Documentos relacionados
+## Documentación relacionada
 
-- [Chats grupales](/concepts/groups)
+- [Chats de grupo](/channels/groups)
 - [Proveedor de Telegram](/channels/telegram)

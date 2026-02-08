@@ -1,35 +1,40 @@
 ---
-summary: "Bonjour/mDNS による検出 + デバッグ（Gateway（ゲートウェイ）ビーコン、クライアント、および一般的な障害モード）"
+summary: "Bonjour/mDNS による検出とデバッグ（Gateway ビーコン、クライアント、一般的な失敗モード）"
 read_when:
-  - macOS/iOS で Bonjour 検出の問題をデバッグするとき
-  - mDNS サービスタイプ、TXT レコード、または検出 UX を変更するとき
+  - macOS/iOS での Bonjour 検出問題をデバッグする場合
+  - mDNS サービスタイプ、TXT レコード、検出 UX を変更する場合
 title: "Bonjour 検出"
 x-i18n:
   source_path: gateway/bonjour.md
-  source_hash: 47569da55f0c0523
+  source_hash: 6f1d676ded5a500c
   provider: openai
-  model: gpt-5.2-pro
+  model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-06T05:21:56Z
+  generated_at: 2026-02-08T09:21:55Z
 ---
 
 # Bonjour / mDNS 検出
 
-OpenClaw は、アクティブな Gateway（ゲートウェイ）（WebSocket エンドポイント）を検出するための **LAN のみの利便性** として Bonjour（mDNS / DNS‑SD）を使用します。これはベストエフォートであり、SSH や Tailnet ベースの接続性を置き換えるものでは **ありません**。
+OpenClaw は、アクティブな Gateway（WebSocket エンドポイント）を検出するために、**LAN 限定の利便性機能**として Bonjour（mDNS / DNS‑SD）を使用します。これはベストエフォートであり、SSH や
+Tailnet ベースの接続を**置き換えるものではありません**。
 
-## Tailscale 上のワイドエリア Bonjour（ユニキャスト DNS‑SD）
+## Tailscale 経由のワイドエリア Bonjour（ユニキャスト DNS‑SD）
 
-ノードとゲートウェイが異なるネットワーク上にある場合、マルチキャスト mDNS は境界を越えません。Tailscale 上で **ユニキャスト DNS‑SD**（「Wide‑Area Bonjour」）に切り替えることで、同じ検出 UX を維持できます。
+ノードとゲートウェイが異なるネットワーク上にある場合、マルチキャスト mDNS は境界を越えません。同じ検出 UX を維持するには、Tailscale 経由で **ユニキャスト DNS‑SD**
+（「ワイドエリア Bonjour」）に切り替えます。
 
-大まかな手順:
+高レベルの手順:
 
-1. ゲートウェイホスト上で DNS サーバーを実行します（Tailnet 経由で到達可能であること）。
-2. 専用ゾーン（例: `openclaw.internal.`）配下に、`_openclaw-gw._tcp` の DNS‑SD レコードを公開します。
-3. 選択したドメインが、その DNS サーバーでクライアント（iOS を含む）向けに解決されるよう、Tailscale の **split DNS** を設定します。
+1. ゲートウェイ ホスト上で DNS サーバーを実行します（Tailnet 経由で到達可能）。
+2. 専用ゾーン配下に `_openclaw-gw._tcp` 向けの DNS‑SD レコードを公開します
+   （例: `openclaw.internal.`）。
+3. Tailscale の **スプリット DNS** を設定し、選択したドメインがその DNS サーバーで解決されるようにします
+   （iOS を含むクライアント）。
 
-OpenClaw は任意の検出ドメインをサポートします。`openclaw.internal.` は単なる例です。iOS/Android ノードは `local.` と、設定したワイドエリアドメインの両方をブラウズします。
+OpenClaw は任意の検出ドメインをサポートします。`openclaw.internal.` は単なる例です。
+iOS/Android ノードは `local.` と、設定したワイドエリア ドメインの両方をブラウズします。
 
-### Gateway（ゲートウェイ）設定（推奨）
+### Gateway 設定（推奨）
 
 ```json5
 {
@@ -38,7 +43,7 @@ OpenClaw は任意の検出ドメインをサポートします。`openclaw.inte
 }
 ```
 
-### 1 回限りの DNS サーバー設定（ゲートウェイホスト）
+### DNS サーバーの一度きりのセットアップ（Gateway ホスト）
 
 ```bash
 openclaw dns setup --apply
@@ -46,10 +51,10 @@ openclaw dns setup --apply
 
 これにより CoreDNS がインストールされ、次のように設定されます:
 
-- ゲートウェイの Tailscale インターフェース上のみにて、ポート 53 でリッスンする
-- `~/.openclaw/dns/<domain>.db` から、選択したドメイン（例: `openclaw.internal.`）を提供する
+- ゲートウェイの Tailscale インターフェース上でのみ、ポート 53 で待ち受け
+- 選択したドメイン（例: `openclaw.internal.`）を `~/.openclaw/dns/<domain>.db` から提供
 
-tailnet 接続されたマシンから検証します:
+Tailnet に接続されたマシンから検証します:
 
 ```bash
 dns-sd -B _openclaw-gw._tcp openclaw.internal.
@@ -58,64 +63,72 @@ dig @<TAILNET_IPV4> -p 53 _openclaw-gw._tcp.openclaw.internal PTR +short
 
 ### Tailscale DNS 設定
 
-Tailscale 管理コンソールで:
+Tailscale 管理コンソールで次を行います:
 
-- ゲートウェイの tailnet IP（UDP/TCP 53）を指すネームサーバーを追加します。
-- 検出ドメインがそのネームサーバーを使用するように split DNS を追加します。
+- ゲートウェイの Tailnet IP（UDP/TCP 53）を指すネームサーバーを追加します。
+- 検出ドメインがそのネームサーバーを使用するように、スプリット DNS を追加します。
 
-クライアントが tailnet DNS を受け入れると、iOS ノードはマルチキャストなしで、検出ドメイン内の `_openclaw-gw._tcp` をブラウズできます。
+クライアントが Tailnet DNS を受け入れると、iOS ノードはマルチキャストなしで
+検出ドメイン内の `_openclaw-gw._tcp` をブラウズできます。
 
-### Gateway（ゲートウェイ）リスナーのセキュリティ（推奨）
+### Gateway リスナーのセキュリティ（推奨）
 
-Gateway（ゲートウェイ）の WS ポート（デフォルト `18789`）は、既定で loopback にバインドされます。LAN/tailnet アクセスのためには、明示的にバインドし、認証を有効のままにしてください。
+Gateway の WS ポート（デフォルト `18789`）は、既定では loopback にバインドされます。LAN/Tailnet
+アクセスの場合は、明示的にバインドし、認証を有効にしたままにしてください。
 
-tailnet 専用のセットアップの場合:
+Tailnet 専用のセットアップの場合:
 
-- `~/.openclaw/openclaw.json` で `gateway.bind: "tailnet"` を設定します。
-- Gateway（ゲートウェイ）を再起動します（または macOS メニューバーアプリを再起動します）。
+- `~/.openclaw/openclaw.json` 内で `gateway.bind: "tailnet"` を設定します。
+- Gateway を再起動します（または macOS のメニューバー アプリを再起動します）。
 
 ## 広告されるもの
 
-`_openclaw-gw._tcp` を広告するのは Gateway（ゲートウェイ）のみです。
+`_openclaw-gw._tcp` を広告するのは Gateway のみです。
 
 ## サービスタイプ
 
-- `_openclaw-gw._tcp` — ゲートウェイトランスポートビーコン（macOS/iOS/Android ノードが使用）。
+- `_openclaw-gw._tcp` — ゲートウェイ転送ビーコン（macOS/iOS/Android ノードで使用）。
 
-## TXT キー（非秘密のヒント）
+## TXT キー（非機密のヒント）
 
-Gateway（ゲートウェイ）は、UI フローを便利にするために小さな非秘密のヒントを広告します:
+Gateway は、UI フローを便利にするための小さな非機密ヒントを広告します:
 
 - `role=gateway`
 - `displayName=<friendly name>`
 - `lanHost=<hostname>.local`
-- `gatewayPort=<port>`（Gateway（ゲートウェイ）WS + HTTP）
+- `gatewayPort=<port>`（Gateway WS + HTTP）
 - `gatewayTls=1`（TLS が有効な場合のみ）
 - `gatewayTlsSha256=<sha256>`（TLS が有効で、フィンガープリントが利用可能な場合のみ）
-- `canvasPort=<port>`（canvas host が有効な場合のみ。デフォルト `18793`）
-- `sshPort=<port>`（上書きされない場合はデフォルトで 22）
+- `canvasPort=<port>`（キャンバス ホストが有効な場合のみ。デフォルト `18793`）
+- `sshPort=<port>`（上書きされていない場合のデフォルトは 22）
 - `transport=gateway`
-- `cliPath=<path>`（任意。実行可能な `openclaw` エントリーポイントへの絶対パス）
+- `cliPath=<path>`（任意。実行可能な `openclaw` エントリポイントへの絶対パス）
 - `tailnetDns=<magicdns>`（Tailnet が利用可能な場合の任意のヒント）
 
 ## macOS でのデバッグ
 
-便利な組み込みツール:
+役立つ組み込みツール:
 
 - インスタンスをブラウズ:
+
   ```bash
   dns-sd -B _openclaw-gw._tcp local.
   ```
-- 1 つのインスタンスを解決（`<instance>` を置換）:
+
+- 1 つのインスタンスを解決（`<instance>` を置き換え）:
+
   ```bash
   dns-sd -L "<instance>" _openclaw-gw._tcp local.
   ```
 
-ブラウズは動作するが解決が失敗する場合、通常は LAN ポリシーまたは mDNS リゾルバーの問題に当たっています。
+ブラウズは動作するが解決に失敗する場合、通常は LAN ポリシーまたは
+mDNS リゾルバーの問題です。
 
-## Gateway（ゲートウェイ）ログでのデバッグ
+## Gateway ログでのデバッグ
 
-Gateway（ゲートウェイ）はローテーションするログファイルを出力します（起動時に `gateway log file: ...` として表示されます）。`bonjour:` 行、とくに次を探してください:
+Gateway はローテーションされるログファイルを書き込みます（起動時に
+`gateway log file: ...` として出力されます）。特に次の
+`bonjour:` 行を確認してください:
 
 - `bonjour: advertise failed ...`
 - `bonjour: ... name conflict resolved` / `hostname conflict resolved`
@@ -127,34 +140,37 @@ iOS ノードは `NWBrowser` を使用して `_openclaw-gw._tcp` を検出しま
 
 ログを取得するには:
 
-- 設定 → Gateway（ゲートウェイ） → 詳細 → **検出デバッグログ**
-- 設定 → Gateway（ゲートウェイ） → 詳細 → **検出ログ** → 再現 → **コピー**
+- 設定 → Gateway → 詳細 → **検出デバッグログ**
+- 設定 → Gateway → 詳細 → **検出ログ** → 再現 → **コピー**
 
-ログには、ブラウザーの状態遷移と結果セットの変化が含まれます。
+ログには、ブラウザーの状態遷移と結果セットの変更が含まれます。
 
-## 一般的な障害モード
+## 一般的な失敗モード
 
-- **Bonjour はネットワークをまたげません**: Tailnet または SSH を使用してください。
-- **マルチキャストがブロックされる**: 一部の Wi‑Fi ネットワークは mDNS を無効化しています。
-- **スリープ / インターフェースの変動**: macOS は一時的に mDNS の結果を落とすことがあります。再試行してください。
-- **ブラウズは動作するが解決が失敗する**: マシン名はシンプルに保ってください（絵文字や句読点を避ける）。その後 Gateway（ゲートウェイ）を再起動します。サービスインスタンス名はホスト名から派生するため、複雑すぎる名前は一部のリゾルバーを混乱させる可能性があります。
+- **Bonjour はネットワークを越えない**: Tailnet または SSH を使用してください。
+- **マルチキャストがブロックされている**: 一部の Wi‑Fi ネットワークでは mDNS が無効化されています。
+- **スリープ / インターフェースの変動**: macOS は一時的に mDNS の結果を失うことがあります。再試行してください。
+- **ブラウズは成功するが解決に失敗する**: マシン名はシンプルに保ってください（絵文字や
+  句読点を避けます）。その後 Gateway を再起動します。サービス インスタンス名は
+  ホスト名から派生するため、過度に複雑な名前は一部のリゾルバーを混乱させる可能性があります。
 
 ## エスケープされたインスタンス名（`\032`）
 
-Bonjour/DNS‑SD は、サービスインスタンス名内のバイトを 10 進の `\DDD` シーケンスとしてエスケープすることがよくあります（例: スペースは `\032` になります）。
+Bonjour/DNS‑SD では、サービス インスタンス名のバイトが 10 進数の `\DDD`
+シーケンスとしてエスケープされることがよくあります（例: スペースは `\032`）。
 
-- これはプロトコルレベルでは正常です。
-- UI は表示用にデコードすべきです（iOS は `BonjourEscapes.decode` を使用します）。
+- これはプロトコル レベルでは正常です。
+- UI では表示用にデコードする必要があります（iOS は `BonjourEscapes.decode` を使用します）。
 
 ## 無効化 / 設定
 
 - `OPENCLAW_DISABLE_BONJOUR=1` は広告を無効化します（レガシー: `OPENCLAW_DISABLE_BONJOUR`）。
-- `~/.openclaw/openclaw.json` の `gateway.bind` は Gateway（ゲートウェイ）のバインドモードを制御します。
+- `~/.openclaw/openclaw.json` 内の `gateway.bind` は Gateway のバインド モードを制御します。
 - `OPENCLAW_SSH_PORT` は TXT で広告される SSH ポートを上書きします（レガシー: `OPENCLAW_SSH_PORT`）。
-- `OPENCLAW_TAILNET_DNS` は TXT に MagicDNS ヒントを公開します（レガシー: `OPENCLAW_TAILNET_DNS`）。
+- `OPENCLAW_TAILNET_DNS` は TXT に MagicDNS のヒントを公開します（レガシー: `OPENCLAW_TAILNET_DNS`）。
 - `OPENCLAW_CLI_PATH` は広告される CLI パスを上書きします（レガシー: `OPENCLAW_CLI_PATH`）。
 
 ## 関連ドキュメント
 
-- 検出ポリシーとトランスポート選択: [Discovery](/gateway/discovery)
-- ノードのペアリング + 承認: [Gateway pairing](/gateway/pairing)
+- 検出ポリシーと転送選択: [Discovery](/gateway/discovery)
+- ノードのペアリングと承認: [Gateway pairing](/gateway/pairing)

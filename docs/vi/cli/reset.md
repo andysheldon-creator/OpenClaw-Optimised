@@ -1,21 +1,21 @@
 ---
-summary: "Tham chieu CLI cho `openclaw reset` (dat lai trang thai/cau hinh cuc bo)"
+summary: "Tham chiếu CLI cho `openclaw reset` (đặt lại trạng thái/cấu hình cục bộ)"
 read_when:
-  - Ban muon xoa trang thai cuc bo trong khi van giu CLI da cai dat
-  - Ban muon chay thu (dry-run) de xem nhung gi se bi xoa
-title: "dat lai"
+  - Bạn muốn xóa trạng thái cục bộ nhưng vẫn giữ CLI đã cài đặt
+  - Bạn muốn chạy dry-run để xem những gì sẽ bị xóa
+title: "đặt lại"
 x-i18n:
   source_path: cli/reset.md
   source_hash: 08afed5830f892e0
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:29Z
+  generated_at: 2026-02-08T09:38:22Z
 ---
 
 # `openclaw reset`
 
-Dat lai cau hinh/trang thai cuc bo (van giu CLI da cai dat).
+Đặt lại cấu hình/trạng thái cục bộ (giữ nguyên CLI đã cài đặt).
 
 ```bash
 openclaw reset

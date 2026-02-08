@@ -1,38 +1,38 @@
 ---
-summary: „Referenz: anbieterspezifische Regeln zur Transkript-Bereinigung und -Reparatur“
+summary: "Referenz: anbieterspezifische Regeln zur Bereinigung und Reparatur von Transkripten"
 read_when:
-  - Sie debuggen Anbieter-Ablehnungen von Anfragen, die mit der Transkript-Struktur zusammenhängen
-  - Sie ändern die Transkript-Bereinigung oder die Logik zur Reparatur von Tool-Calls
-  - Sie untersuchen Tool-Call-ID-Fehlzuordnungen zwischen Anbietern
-title: „Transkript-Hygiene“
+  - Sie debuggen Anbieter-Ablehnungen von Anfragen, die mit der Struktur des Transkripts zusammenhängen
+  - Sie ändern die Bereinigung von Transkripten oder die Reparaturlogik für Tool-Aufrufe
+  - Sie untersuchen Inkonsistenzen von Tool-Call-IDs über Anbieter hinweg
+title: "Transkript-Hygiene"
 x-i18n:
   source_path: reference/transcript-hygiene.md
   source_hash: 43ed460827d514a8
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:34Z
+  generated_at: 2026-02-08T09:37:27Z
 ---
 
-# Transkript-Hygiene (Provider-Fixups)
+# Transkript-Hygiene (Anbieter-Fixups)
 
-Dieses Dokument beschreibt **anbieterspezifische Korrekturen**, die auf Transkripte angewendet werden, bevor ein Run ausgeführt wird
-(Aufbau des Modellkontexts). Dabei handelt es sich um **In-Memory**-Anpassungen, die verwendet werden, um strenge
-Anbieteranforderungen zu erfüllen. Diese Hygieneschritte schreiben das gespeicherte JSONL-Transkript auf der
-Festplatte **nicht** um; allerdings kann ein separater Reparaturdurchlauf für Sitzungsdateien fehlerhafte JSONL-Dateien
-neu schreiben, indem ungültige Zeilen verworfen werden, bevor die Sitzung geladen wird. Wenn eine Reparatur erfolgt,
-wird die Originaldatei zusammen mit der Sitzungsdatei gesichert.
+Dieses Dokument beschreibt **anbieterspezifische Korrekturen**, die vor einem Run
+(Erstellung des Modellkontexts) auf Transkripte angewendet werden. Dabei handelt es sich um **In-Memory**-Anpassungen, um strenge
+Anbieteranforderungen zu erfüllen. Diese Hygieneschritte schreiben das gespeicherte JSONL-Transkript
+auf der Festplatte **nicht** um; ein separater Reparaturlauf für Sitzungsdateien kann jedoch
+fehlerhafte JSONL-Dateien reparieren, indem ungültige Zeilen verworfen werden, bevor die Sitzung
+geladen wird. Wenn eine Reparatur erfolgt, wird die Originaldatei neben der Sitzungsdatei gesichert.
 
 Der Umfang umfasst:
 
 - Bereinigung von Tool-Call-IDs
 - Validierung von Tool-Call-Eingaben
-- Reparatur der Tool-Ergebnis-Zuordnung
-- Turn-Validierung / -Reihenfolge
+- Reparatur der Zuordnung von Tool-Ergebnissen
+- Validierung/Sortierung von Turns
 - Bereinigung von Thought-Signaturen
 - Bereinigung von Bild-Payloads
 
-Wenn Sie Details zur Transkript-Speicherung benötigen, siehe:
+Wenn Sie Details zur Transkriptspeicherung benötigen, siehe:
 
 - [/reference/session-management-compaction](/reference/session-management-compaction)
 
@@ -54,10 +54,10 @@ Getrennt von der Transkript-Hygiene werden Sitzungsdateien (falls erforderlich) 
 
 ---
 
-## Globale Regel: Bild-Bereinigung
+## Globale Regel: Bildbereinigung
 
-Bild-Payloads werden immer bereinigt, um eine Ablehnung auf Anbieterseite aufgrund von Größen-
-limits zu verhindern (Herunterskalieren/Neu-Komprimieren übergroßer Base64-Bilder).
+Bild-Payloads werden immer bereinigt, um Anbieter-seitige Ablehnungen aufgrund von Größenbeschränkungen
+zu verhindern (Herunterskalieren/Neukomprimieren übergroßer Base64-Bilder).
 
 Implementierung:
 
@@ -66,11 +66,11 @@ Implementierung:
 
 ---
 
-## Globale Regel: fehlerhafte Tool-Calls
+## Globale Regel: fehlerhafte Tool-Aufrufe
 
 Assistant-Tool-Call-Blöcke, denen sowohl `input` als auch `arguments` fehlen, werden verworfen,
-bevor der Modellkontext aufgebaut wird. Dies verhindert Anbieter-Ablehnungen durch teilweise
-persistierte Tool-Calls (zum Beispiel nach einem Rate-Limit-Fehler).
+bevor der Modellkontext erstellt wird. Dies verhindert Anbieter-Ablehnungen durch teilweise
+persistierte Tool-Aufrufe (zum Beispiel nach einem Rate-Limit-Fehler).
 
 Implementierung:
 
@@ -83,26 +83,26 @@ Implementierung:
 
 **OpenAI / OpenAI Codex**
 
-- Nur Bild-Bereinigung.
+- Nur Bildbereinigung.
 - Beim Modellwechsel zu OpenAI Responses/Codex werden verwaiste Reasoning-Signaturen verworfen (eigenständige Reasoning-Elemente ohne nachfolgenden Content-Block).
 - Keine Bereinigung von Tool-Call-IDs.
-- Keine Reparatur der Tool-Ergebnis-Zuordnung.
-- Keine Turn-Validierung oder -Neuordnung.
+- Keine Reparatur der Zuordnung von Tool-Ergebnissen.
+- Keine Turn-Validierung oder -Neusortierung.
 - Keine synthetischen Tool-Ergebnisse.
 - Kein Entfernen von Thought-Signaturen.
 
 **Google (Generative AI / Gemini CLI / Antigravity)**
 
 - Bereinigung von Tool-Call-IDs: strikt alphanumerisch.
-- Reparatur der Tool-Ergebnis-Zuordnung und synthetische Tool-Ergebnisse.
-- Turn-Validierung (Gemini-artige Turn-Alternierung).
-- Google-Turn-Reihenfolge-Fixup (Voranstellen eines winzigen User-Bootstraps, wenn der Verlauf mit dem Assistant beginnt).
-- Antigravity Claude: Normalisierung von Thinking-Signaturen; Verwerfen nicht signierter Thinking-Blöcke.
+- Reparatur der Zuordnung von Tool-Ergebnissen und synthetische Tool-Ergebnisse.
+- Turn-Validierung (Gemini-typische Turn-Alternation).
+- Google-Turn-Reihenfolge-Fixup (Voranstellen eines kleinen User-Bootstraps, wenn die Historie mit dem Assistant beginnt).
+- Antigravity Claude: Normalisierung von Thinking-Signaturen; Entfernen nicht signierter Thinking-Blöcke.
 
 **Anthropic / Minimax (Anthropic-kompatibel)**
 
-- Reparatur der Tool-Ergebnis-Zuordnung und synthetische Tool-Ergebnisse.
-- Turn-Validierung (Zusammenführen aufeinanderfolgender User-Turns, um strikte Alternierung zu erfüllen).
+- Reparatur der Zuordnung von Tool-Ergebnissen und synthetische Tool-Ergebnisse.
+- Turn-Validierung (Zusammenführen aufeinanderfolgender User-Turns, um strikte Alternation zu erfüllen).
 
 **Mistral (einschließlich modell-id-basierter Erkennung)**
 
@@ -110,11 +110,11 @@ Implementierung:
 
 **OpenRouter Gemini**
 
-- Bereinigung von Thought-Signaturen: Entfernen nicht-base64-`thought_signature`-Werte (Base64 bleibt erhalten).
+- Bereinigung von Thought-Signaturen: Entfernen nicht-base64 `thought_signature`-Werte (Base64 beibehalten).
 
 **Alles andere**
 
-- Nur Bild-Bereinigung.
+- Nur Bildbereinigung.
 
 ---
 
@@ -122,16 +122,15 @@ Implementierung:
 
 Vor dem Release 2026.1.22 wendete OpenClaw mehrere Ebenen der Transkript-Hygiene an:
 
-- Eine **transcript-sanitize-Erweiterung** lief bei jedem Kontextaufbau und konnte:
-  - Tool-Nutzungs-/Ergebnis-Zuordnungen reparieren.
+- Eine **Transcript-Sanitize-Extension** lief bei jeder Kontexterstellung und konnte:
+  - Die Zuordnung von Tool-Nutzung/Ergebnissen reparieren.
   - Tool-Call-IDs bereinigen (einschließlich eines nicht-strikten Modus, der `_`/`-` beibehielt).
-- Der Runner führte ebenfalls anbieterspezifische Bereinigung durch, was Arbeit duplizierte.
+- Der Runner führte außerdem anbieterspezifische Bereinigung durch, was Arbeit duplizierte.
 - Zusätzliche Mutationen erfolgten außerhalb der Anbieter-Richtlinie, einschließlich:
   - Entfernen von `<final>`-Tags aus Assistant-Text vor der Persistierung.
   - Verwerfen leerer Assistant-Fehler-Turns.
-  - Kürzen von Assistant-Inhalten nach Tool-Calls.
+  - Kürzen von Assistant-Inhalten nach Tool-Aufrufen.
 
-Diese Komplexität verursachte anbieterübergreifende Regressionen (insbesondere bei der
-`openai-responses`
-`call_id|fc_id`-Zuordnung). Die Bereinigung in 2026.1.22 entfernte die Erweiterung, zentralisierte
-die Logik im Runner und machte OpenAI **no-touch** über die Bild-Bereinigung hinaus.
+Diese Komplexität verursachte providerübergreifende Regressionen (insbesondere bei der Zuordnung von `openai-responses`
+`call_id|fc_id`). Die Bereinigung 2026.1.22 entfernte die Extension, zentralisierte die Logik
+im Runner und machte OpenAI über die Bildbereinigung hinaus **no-touch**.

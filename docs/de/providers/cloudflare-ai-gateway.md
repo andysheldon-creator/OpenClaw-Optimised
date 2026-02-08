@@ -1,32 +1,32 @@
 ---
 title: "Cloudflare AI Gateway"
-summary: "Einrichtung von Cloudflare AI Gateway (Authentifizierung + Modellauswahl)"
+summary: "Einrichtung von Cloudflare AI Gateway (Auth + Modellauswahl)"
 read_when:
-  - Sie moechten Cloudflare AI Gateway mit OpenClaw verwenden
-  - Sie benoetigen die Account-ID, die Gateway-ID oder die API-Schluessel-Umgebungsvariable
+  - Sie möchten Cloudflare AI Gateway mit OpenClaw verwenden
+  - Sie benötigen die Konto-ID, die Gateway-ID oder die API-Schlüssel-Umgebungsvariable
 x-i18n:
   source_path: providers/cloudflare-ai-gateway.md
   source_hash: db77652c37652ca2
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:09Z
+  generated_at: 2026-02-08T09:37:02Z
 ---
 
 # Cloudflare AI Gateway
 
-Cloudflare AI Gateway sitzt vor den APIs der Anbieter und ermoeglicht Ihnen, Analysen, Caching und Kontrollen hinzuzufuegen. Fuer Anthropic verwendet OpenClaw die Anthropic Messages API ueber Ihren Gateway-Endpunkt.
+Cloudflare AI Gateway sitzt vor den Anbieter-APIs und ermöglicht es Ihnen, Analysen, Caching und Kontrollen hinzuzufügen. Für Anthropic verwendet OpenClaw die Anthropic Messages API über Ihren Gateway-Endpunkt.
 
 - Anbieter: `cloudflare-ai-gateway`
 - Basis-URL: `https://gateway.ai.cloudflare.com/v1/<account_id>/<gateway_id>/anthropic`
 - Standardmodell: `cloudflare-ai-gateway/claude-sonnet-4-5`
-- API-Schluessel: `CLOUDFLARE_AI_GATEWAY_API_KEY` (Ihr Anbieter-API-Schluessel fuer Anfragen ueber den Gateway)
+- API-Schlüssel: `CLOUDFLARE_AI_GATEWAY_API_KEY` (Ihr Anbieter-API-Schlüssel für Anfragen über das Gateway)
 
-Fuer Anthropic-Modelle verwenden Sie Ihren Anthropic-API-Schluessel.
+Für Anthropic-Modelle verwenden Sie Ihren Anthropic-API-Schlüssel.
 
 ## Schnellstart
 
-1. Legen Sie den Anbieter-API-Schluessel und die Gateway-Details fest:
+1. Legen Sie den Anbieter-API-Schlüssel und die Gateway-Details fest:
 
 ```bash
 openclaw onboard --auth-choice cloudflare-ai-gateway-api-key
@@ -57,7 +57,7 @@ openclaw onboard --non-interactive \
 
 ## Authentifizierte Gateways
 
-Wenn Sie die Gateway-Authentifizierung in Cloudflare aktiviert haben, fuegen Sie den Header `cf-aig-authorization` hinzu (dies zusaetzlich zu Ihrem Anbieter-API-Schluessel).
+Wenn Sie die Gateway-Authentifizierung in Cloudflare aktiviert haben, fügen Sie den Header `cf-aig-authorization` hinzu (zusätzlich zu Ihrem Anbieter-API-Schlüssel).
 
 ```json5
 {
@@ -73,6 +73,6 @@ Wenn Sie die Gateway-Authentifizierung in Cloudflare aktiviert haben, fuegen Sie
 }
 ```
 
-## Hinweis zur Umgebung
+## Umgebungshinweis
 
-Wenn der Gateway als Daemon laeuft (launchd/systemd), stellen Sie sicher, dass `CLOUDFLARE_AI_GATEWAY_API_KEY` diesem Prozess zur Verfuegung steht (zum Beispiel in `~/.openclaw/.env` oder ueber `env.shellEnv`).
+Wenn das Gateway als Daemon läuft (launchd/systemd), stellen Sie sicher, dass `CLOUDFLARE_AI_GATEWAY_API_KEY` für diesen Prozess verfügbar ist (zum Beispiel in `~/.openclaw/.env` oder über `env.shellEnv`).

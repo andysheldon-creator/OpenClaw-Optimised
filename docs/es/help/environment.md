@@ -11,24 +11,24 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:15:25Z
+  generated_at: 2026-02-08T09:33:38Z
 ---
 
 # Variables de entorno
 
 OpenClaw obtiene variables de entorno de múltiples fuentes. La regla es **nunca sobrescribir valores existentes**.
 
-## Precedencia (mayor → menor)
+## Precedencia (más alta → más baja)
 
-1. **Entorno del proceso** (lo que el proceso del Gateway ya tiene desde el shell/daemon padre).
+1. **Entorno del proceso** (lo que el proceso del Gateway ya tiene del shell/daemon padre).
 2. **`.env` en el directorio de trabajo actual** (valor predeterminado de dotenv; no sobrescribe).
 3. **`.env` global** en `~/.openclaw/.env` (también conocido como `$OPENCLAW_STATE_DIR/.env`; no sobrescribe).
-4. **Bloque de Config `env`** en `~/.openclaw/openclaw.json` (se aplica solo si falta).
-5. **Importación opcional del shell de inicio de sesión** (`env.shellEnv.enabled` o `OPENCLAW_LOAD_SHELL_ENV=1`), aplicada solo para claves esperadas que falten.
+4. **Bloque `env` de configuración** en `~/.openclaw/openclaw.json` (se aplica solo si falta).
+5. **Importación opcional del shell de inicio de sesión** (`env.shellEnv.enabled` o `OPENCLAW_LOAD_SHELL_ENV=1`), aplicada solo para claves esperadas faltantes.
 
 Si el archivo de configuración falta por completo, el paso 4 se omite; la importación del shell aún se ejecuta si está habilitada.
 
-## Bloque de Config `env`
+## Bloque de configuración `env`
 
 Dos formas equivalentes de establecer variables de entorno en línea (ambas no sobrescriben):
 
@@ -45,7 +45,7 @@ Dos formas equivalentes de establecer variables de entorno en línea (ambas no s
 
 ## Importación de variables de entorno del shell
 
-`env.shellEnv` ejecuta su shell de inicio de sesión e importa solo las claves **faltantes** esperadas:
+`env.shellEnv` ejecuta su shell de inicio de sesión e importa solo las claves esperadas **faltantes**:
 
 ```json5
 {
@@ -58,14 +58,14 @@ Dos formas equivalentes de establecer variables de entorno en línea (ambas no s
 }
 ```
 
-Equivalentes como variable de entorno:
+Equivalentes como variables de entorno:
 
 - `OPENCLAW_LOAD_SHELL_ENV=1`
 - `OPENCLAW_SHELL_ENV_TIMEOUT_MS=15000`
 
 ## Sustitución de variables de entorno en la configuración
 
-Puede referenciar variables de entorno directamente en valores de cadenas de la configuración usando la sintaxis `${VAR_NAME}`:
+Puede referenciar variables de entorno directamente en valores de cadena de la configuración usando la sintaxis `${VAR_NAME}`:
 
 ```json5
 {
@@ -79,7 +79,7 @@ Puede referenciar variables de entorno directamente en valores de cadenas de la 
 }
 ```
 
-Consulte [Configuración: Sustitución de variables de entorno](/gateway/configuration#env-var-substitution-in-config) para mas detalles.
+Consulte [Configuración: Sustitución de variables de entorno](/gateway/configuration#env-var-substitution-in-config) para conocer todos los detalles.
 
 ## Relacionado
 

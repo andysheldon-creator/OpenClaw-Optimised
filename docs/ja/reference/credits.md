@@ -1,34 +1,34 @@
 ---
-summary: "プロジェクトの起源、コントリビューター、ライセンス。"
+summary: "プロジェクトの起源、貢献者、ライセンス。"
 read_when:
-  - プロジェクトの背景やコントリビューターのクレジットを知りたいとき
+  - プロジェクトの背景や貢献者のクレジットを知りたいとき
 title: "クレジット"
 x-i18n:
   source_path: reference/credits.md
-  source_hash: d55e520313e13102
+  source_hash: bddc33d4f789099c
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:34:45Z
+  generated_at: 2026-02-08T09:23:03Z
 ---
 
-## 名前
+## 名前の由来
 
-OpenClaw = CLAW + TARDIS。なぜなら、すべての宇宙ロブスターには時空移動マシンが必要だからです。
+OpenClaw = CLAW + TARDIS。なぜなら、すべての宇宙ロブスターには時空マシンが必要だからです。
 
 ## クレジット
 
-- **Peter Steinberger** ([@steipete](https://x.com/steipete)) - クリエイター、ロブスター・ウィスパラー
+- **Peter Steinberger** ([@steipete](https://x.com/steipete)) - クリエイター、ロブスターの囁き手
 - **Mario Zechner** ([@badlogicc](https://x.com/badlogicgames)) - Pi クリエイター、セキュリティのペネトレーションテスター
 - **Clawd** - より良い名前を要求した宇宙ロブスター
 
-## コアコントリビューター
+## コア貢献者
 
-- **Maxim Vovshin** (@Hyaxia, 36747317+Hyaxia@users.noreply.github.com) - Blogwatcher のスキル
-- **Nacho Iacovino** (@nachoiacovino, nacho.iacovino@gmail.com) - 位置情報のパース（Telegram と WhatsApp）
+- **Maxim Vovshin** (@Hyaxia, [36747317+Hyaxia@users.noreply.github.com](mailto:36747317+Hyaxia@users.noreply.github.com)) - Blogwatcher スキル
+- **Nacho Iacovino** (@nachoiacovino, [nacho.iacovino@gmail.com](mailto:nacho.iacovino@gmail.com)) - 位置情報の解析（Telegram と WhatsApp）
 
 ## ライセンス
 
-MIT - 海の中のロブスターのように自由。
+MIT - 海を自由に泳ぐロブスターのように自由です。
 
-> 「私たちは皆、自分自身のプロンプトで遊んでいるだけだ。」（おそらくトークンでハイになった AI）
+> 「私たちは皆、自分自身のプロンプトで遊んでいるだけだ。」（トークンを摂り過ぎた AI かもしれない）

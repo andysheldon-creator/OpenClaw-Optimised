@@ -1,8 +1,8 @@
 ---
 summary: "Plugin Zalo Personal: login por QR + mensagens via zca-cli (instalação do plugin + configuração de canal + CLI + ferramenta)"
 read_when:
-  - Voce quer suporte ao Zalo Personal (não oficial) no OpenClaw
-  - Voce está configurando ou desenvolvendo o plugin zalouser
+  - Você quer suporte ao Zalo Personal (não oficial) no OpenClaw
+  - Você está configurando ou desenvolvendo o plugin zalouser
 title: "Plugin Zalo Personal"
 x-i18n:
   source_path: plugins/zalouser.md
@@ -10,24 +10,24 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:57:01Z
+  generated_at: 2026-02-08T09:31:35Z
 ---
 
 # Zalo Personal (plugin)
 
-Suporte ao Zalo Personal para o OpenClaw via um plugin, usando `zca-cli` para automatizar uma conta normal de usuário do Zalo.
+Suporte ao Zalo Personal para o OpenClaw por meio de um plugin, usando `zca-cli` para automatizar uma conta normal de usuário do Zalo.
 
-> **Aviso:** Automação não oficial pode levar à suspensão/banimento da conta. Use por sua conta e risco.
+> **Aviso:** A automação não oficial pode levar à suspensão/banimento da conta. Use por sua conta e risco.
 
-## Nomenclatura
+## Naming
 
-O id do canal é `zalouser` para deixar explícito que isso automatiza uma **conta pessoal de usuário do Zalo** (não oficial). Mantemos `zalo` reservado para uma possível integração futura com a API oficial do Zalo.
+O ID do canal é `zalouser` para deixar explícito que isso automatiza uma **conta pessoal de usuário do Zalo** (não oficial). Mantemos `zalo` reservado para uma possível integração futura com a API oficial do Zalo.
 
 ## Onde ele roda
 
 Este plugin roda **dentro do processo do Gateway**.
 
-Se voce usar um Gateway remoto, instale/configure-o na **máquina que executa o Gateway** e, em seguida, reinicie o Gateway.
+Se você usa um Gateway remoto, instale/configure-o na **máquina que executa o Gateway** e, em seguida, reinicie o Gateway.
 
 ## Instalação
 

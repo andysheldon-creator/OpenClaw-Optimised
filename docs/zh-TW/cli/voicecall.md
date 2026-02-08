@@ -1,8 +1,8 @@
 ---
-summary: "「openclaw voicecall」（語音通話外掛指令介面）的 CLI 參考"
+summary: "「openclaw voicecall」的 CLI 參考（語音通話外掛的指令介面）"
 read_when:
-  - 你使用語音通話外掛，並想了解 CLI 的進入點
-  - 你想要 `voicecall call|continue|status|tail|expose` 的快速範例
+  - 當你使用語音通話外掛並需要 CLI 進入點時
+  - 當你想要「voicecall call|continue|status|tail|expose」的快速範例時
 title: "voicecall"
 x-i18n:
   source_path: cli/voicecall.md
@@ -10,7 +10,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:52:43Z
+  generated_at: 2026-02-08T09:27:29Z
 ---
 
 # `openclaw voicecall`
@@ -30,7 +30,7 @@ openclaw voicecall continue --call-id <id> --message "Any questions?"
 openclaw voicecall end --call-id <id>
 ```
 
-## 對外公開 Webhook（Tailscale）
+## 公開 Webhook（Tailscale）
 
 ```bash
 openclaw voicecall expose --mode serve
@@ -38,4 +38,4 @@ openclaw voicecall expose --mode funnel
 openclaw voicecall unexpose
 ```
 
-安全性注意事項：僅將 Webhook 端點對你信任的網路公開。可行時，優先使用 Tailscale Serve 而非 Funnel。
+安全性注意事項：僅將 Webhook 端點公開給你信任的網路。可行時，優先使用 Tailscale Serve 而非 Funnel。

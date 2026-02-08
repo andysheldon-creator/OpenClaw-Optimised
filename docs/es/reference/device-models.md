@@ -1,8 +1,8 @@
 ---
-summary: "Cómo OpenClaw integra identificadores de modelos de dispositivos Apple para obtener nombres amigables en la app de macOS."
+summary: "Cómo OpenClaw provee identificadores de modelos de dispositivos Apple con nombres amigables en la app de macOS."
 read_when:
-  - Al actualizar las asignaciones de identificadores de modelos de dispositivos o los archivos NOTICE/licencia
-  - Al cambiar cómo la UI de Instances muestra los nombres de dispositivos
+  - Actualizar las asignaciones de identificadores de modelos de dispositivos o los archivos NOTICE/licencia
+  - Cambiar cómo la UI de Instancias muestra los nombres de dispositivos
 title: "Base de datos de modelos de dispositivos"
 x-i18n:
   source_path: reference/device-models.md
@@ -10,28 +10,28 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:59:46Z
+  generated_at: 2026-02-08T09:34:24Z
 ---
 
 # Base de datos de modelos de dispositivos (nombres amigables)
 
-La aplicación complementaria de macOS muestra nombres amigables de modelos de dispositivos Apple en la UI de **Instances** al asignar identificadores de modelos de Apple (p. ej., `iPad16,6`, `Mac16,6`) a nombres legibles por humanos.
+La aplicación complementaria de macOS muestra nombres amigables de modelos de dispositivos Apple en la UI de **Instancias** mediante la asignación de identificadores de modelos de Apple (p. ej., `iPad16,6`, `Mac16,6`) a nombres legibles para humanos.
 
-La asignación se integra como JSON en:
+La asignación se provee como JSON en:
 
 - `apps/macos/Sources/OpenClaw/Resources/DeviceModels/`
 
 ## Fuente de datos
 
-Actualmente integramos la asignación desde el repositorio con licencia MIT:
+Actualmente proveemos la asignación desde el repositorio con licencia MIT:
 
 - `kyle-seongwoo-jun/apple-device-identifiers`
 
-Para mantener compilaciones deterministas, los archivos JSON se fijan a commits específicos del upstream (registrados en `apps/macos/Sources/OpenClaw/Resources/DeviceModels/NOTICE.md`).
+Para mantener compilaciones deterministas, los archivos JSON están fijados a commits específicos del upstream (registrados en `apps/macos/Sources/OpenClaw/Resources/DeviceModels/NOTICE.md`).
 
 ## Actualización de la base de datos
 
-1. Elija los commits upstream que desea fijar (uno para iOS y uno para macOS).
+1. Elija los commits del upstream que desea fijar (uno para iOS y uno para macOS).
 2. Actualice los hashes de commit en `apps/macos/Sources/OpenClaw/Resources/DeviceModels/NOTICE.md`.
 3. Vuelva a descargar los archivos JSON, fijados a esos commits:
 
@@ -46,7 +46,7 @@ curl -fsSL "https://raw.githubusercontent.com/kyle-seongwoo-jun/apple-device-ide
   -o apps/macos/Sources/OpenClaw/Resources/DeviceModels/mac-device-identifiers.json
 ```
 
-4. Asegúrese de que `apps/macos/Sources/OpenClaw/Resources/DeviceModels/LICENSE.apple-device-identifiers.txt` aún coincida con el upstream (reemplácelo si la licencia upstream cambia).
+4. Asegúrese de que `apps/macos/Sources/OpenClaw/Resources/DeviceModels/LICENSE.apple-device-identifiers.txt` aún coincida con el upstream (reemplácelo si la licencia del upstream cambia).
 5. Verifique que la app de macOS compile correctamente (sin advertencias):
 
 ```bash

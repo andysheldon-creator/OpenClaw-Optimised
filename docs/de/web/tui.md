@@ -1,19 +1,19 @@
 ---
-summary: "Terminal-UI (TUI): Verbindung zum Gateway von jedem Rechner aus"
+summary: „Terminal-UI (TUI): Verbindung zum Gateway von jedem Rechner aus“
 read_when:
   - Sie möchten eine einsteigerfreundliche Einführung in die TUI
   - Sie benötigen die vollständige Liste der TUI-Funktionen, -Befehle und -Tastenkürzel
-title: "TUI"
+title: „TUI“
 x-i18n:
   source_path: web/tui.md
   source_hash: 6ab8174870e4722d
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:16:02Z
+  generated_at: 2026-02-08T09:37:51Z
 ---
 
-# TUI (Terminal UI)
+# TUI (Terminal-UI)
 
 ## Schnellstart
 
@@ -37,23 +37,23 @@ Remote-Gateway:
 openclaw tui --url ws://<host>:<port> --token <gateway-token>
 ```
 
-Verwenden Sie `--password`, wenn Ihr Gateway Passwortauthentifizierung verwendet.
+Verwenden Sie `--password`, wenn Ihr Gateway Passwortauthentifizierung nutzt.
 
 ## Was Sie sehen
 
 - Kopfzeile: Verbindungs-URL, aktueller Agent, aktuelle Sitzung.
 - Chatprotokoll: Benutzernachrichten, Assistentenantworten, Systemhinweise, Werkzeugkarten.
 - Statuszeile: Verbindungs-/Ausführungsstatus (connecting, running, streaming, idle, error).
-- Fußzeile: Verbindungsstatus + Agent + Sitzung + Modell + think/verbose/reasoning + Token-Zähler + Deliver.
+- Fußzeile: Verbindungsstatus + Agent + Sitzung + Modell + think/verbose/reasoning + Token-Zähler + deliver.
 - Eingabe: Texteditor mit Autovervollständigung.
 
-## Mentales Modell: Agenten + Sitzungen
+## Mentales Modell: Agents + Sitzungen
 
-- Agenten sind eindeutige Slugs (z. B. `main`, `research`). Das Gateway stellt die Liste bereit.
-- Sitzungen gehören zum aktuellen Agenten.
+- Agents sind eindeutige Slugs (z. B. `main`, `research`). Das Gateway stellt die Liste bereit.
+- Sitzungen gehören zum aktuellen Agent.
 - Sitzungsschlüssel werden als `agent:<agentId>:<sessionKey>` gespeichert.
   - Wenn Sie `/session main` eingeben, erweitert die TUI dies zu `agent:<currentAgent>:main`.
-  - Wenn Sie `/session agent:other:main` eingeben, wechseln Sie explizit zu dieser Agenten-Sitzung.
+  - Wenn Sie `/session agent:other:main` eingeben, wechseln Sie explizit zu dieser Agent-Sitzung.
 - Sitzungsbereich:
   - `per-sender` (Standard): Jeder Agent hat viele Sitzungen.
   - `global`: Die TUI verwendet immer die Sitzung `global` (der Picker kann leer sein).
@@ -62,7 +62,7 @@ Verwenden Sie `--password`, wenn Ihr Gateway Passwortauthentifizierung verwendet
 ## Senden + Zustellung
 
 - Nachrichten werden an das Gateway gesendet; die Zustellung an Anbieter ist standardmäßig deaktiviert.
-- Aktivieren Sie die Zustellung:
+- Zustellung aktivieren:
   - `/deliver on`
   - oder über das Einstellungs-Panel
   - oder starten Sie mit `openclaw tui --deliver`
@@ -70,15 +70,15 @@ Verwenden Sie `--password`, wenn Ihr Gateway Passwortauthentifizierung verwendet
 ## Picker + Overlays
 
 - Modell-Picker: Verfügbare Modelle auflisten und Sitzungs-Override setzen.
-- Agent-Picker: Anderen Agenten auswählen.
-- Sitzungs-Picker: Zeigt nur Sitzungen für den aktuellen Agenten.
+- Agent-Picker: Einen anderen Agent auswählen.
+- Sitzungs-Picker: Zeigt nur Sitzungen für den aktuellen Agent.
 - Einstellungen: Zustellung, Erweiterung der Werkzeugausgabe und Sichtbarkeit des Denkens umschalten.
 
 ## Tastenkürzel
 
 - Enter: Nachricht senden
-- Esc: Aktive Ausführung abbrechen
-- Ctrl+C: Eingabe löschen (zweimal drücken zum Beenden)
+- Esc: Aktiven Lauf abbrechen
+- Ctrl+C: Eingabe leeren (zweimal drücken zum Beenden)
 - Ctrl+D: Beenden
 - Ctrl+L: Modell-Picker
 - Ctrl+G: Agent-Picker
@@ -109,30 +109,30 @@ Sitzungssteuerung:
 Sitzungslebenszyklus:
 
 - `/new` oder `/reset` (setzt die Sitzung zurück)
-- `/abort` (bricht die aktive Ausführung ab)
+- `/abort` (bricht den aktiven Lauf ab)
 - `/settings`
 - `/exit`
 
-Andere Gateway-Slash-Befehle (zum Beispiel `/context`) werden an das Gateway weitergeleitet und als Systemausgabe angezeigt. Siehe [Slash commands](/tools/slash-commands).
+Andere Gateway-Slash-Befehle (z. B. `/context`) werden an das Gateway weitergeleitet und als Systemausgabe angezeigt. Siehe [Slash-Befehle](/tools/slash-commands).
 
 ## Lokale Shell-Befehle
 
 - Stellen Sie einer Zeile `!` voran, um einen lokalen Shell-Befehl auf dem TUI-Host auszuführen.
 - Die TUI fragt pro Sitzung einmal nach der Erlaubnis zur lokalen Ausführung; bei Ablehnung bleibt `!` für die Sitzung deaktiviert.
-- Befehle laufen in einer frischen, nicht-interaktiven Shell im TUI-Arbeitsverzeichnis (keine persistente `cd`/env).
+- Befehle laufen in einer frischen, nicht-interaktiven Shell im Arbeitsverzeichnis der TUI (keine persistente `cd`/env).
 - Ein einzelnes `!` wird als normale Nachricht gesendet; führende Leerzeichen lösen keine lokale Ausführung aus.
 
 ## Werkzeugausgabe
 
-- Werkzeugaufrufe werden als Karten mit Argumenten + Ergebnissen angezeigt.
-- Ctrl+O schaltet zwischen reduzierter und erweiterter Ansicht um.
-- Während Werkzeuge laufen, werden Teil-Updates in dieselbe Karte gestreamt.
+- Werkzeugaufrufe erscheinen als Karten mit Argumenten + Ergebnissen.
+- Ctrl+O schaltet zwischen eingeklappter/ausgeklappter Ansicht um.
+- Während Werkzeuge laufen, werden Teilaktualisierungen in dieselbe Karte gestreamt.
 
 ## Verlauf + Streaming
 
 - Beim Verbinden lädt die TUI den neuesten Verlauf (standardmäßig 200 Nachrichten).
-- Streaming-Antworten aktualisieren sich an Ort und Stelle, bis sie finalisiert sind.
-- Die TUI hört außerdem auf Agenten-Werkzeugereignisse für umfangreichere Werkzeugkarten.
+- Streaming-Antworten werden bis zur Finalisierung an Ort und Stelle aktualisiert.
+- Die TUI lauscht außerdem auf Agent-Werkzeugereignisse für reichhaltigere Werkzeugkarten.
 
 ## Verbindungsdetails
 
@@ -141,29 +141,29 @@ Andere Gateway-Slash-Befehle (zum Beispiel `/context`) werden an das Gateway wei
 
 ## Optionen
 
-- `--url <url>`: Gateway-WebSocket-URL (Standard: aus der Konfiguration oder `ws://127.0.0.1:<port>`)
+- `--url <url>`: Gateway-WebSocket-URL (Standard aus der Konfiguration oder `ws://127.0.0.1:<port>`)
 - `--token <token>`: Gateway-Token (falls erforderlich)
 - `--password <password>`: Gateway-Passwort (falls erforderlich)
-- `--session <key>`: Sitzungsschlüssel (Standard: `main` oder `global` bei globalem Bereich)
-- `--deliver`: Assistentenantworten an den Anbieter zustellen (standardmäßig aus)
-- `--thinking <level>`: Denkstufe für Sendungen überschreiben
-- `--timeout-ms <ms>`: Agenten-Timeout in ms (Standard: `agents.defaults.timeoutSeconds`)
+- `--session <key>`: Sitzungsschlüssel (Standard: `main` oder `global`, wenn der Bereich global ist)
+- `--deliver`: Zustellung der Assistentenantworten an den Anbieter (standardmäßig aus)
+- `--thinking <level>`: Denkstufe für das Senden überschreiben
+- `--timeout-ms <ms>`: Agent-Timeout in ms (Standard: `agents.defaults.timeoutSeconds`)
 
-Hinweis: Wenn Sie `--url` setzen, greift die TUI nicht auf Konfigurations- oder Umgebungsanmeldeinformationen zurück.
-Übergeben Sie `--token` oder `--password` explizit. Fehlende explizite Anmeldedaten sind ein Fehler.
+Hinweis: Wenn Sie `--url` setzen, greift die TUI nicht auf Konfiguration oder Umgebungsanmeldeinformationen zurück.
+Übergeben Sie `--token` oder `--password` explizit. Fehlende explizite Anmeldeinformationen sind ein Fehler.
 
 ## Fehlerbehebung
 
 Keine Ausgabe nach dem Senden einer Nachricht:
 
-- Führen Sie `/status` in der TUI aus, um zu bestätigen, dass das Gateway verbunden und idle/busy ist.
+- Führen Sie `/status` in der TUI aus, um zu bestätigen, dass das Gateway verbunden und im Leerlauf/beschäftigt ist.
 - Prüfen Sie die Gateway-Logs: `openclaw logs --follow`.
 - Bestätigen Sie, dass der Agent laufen kann: `openclaw status` und `openclaw models status`.
 - Wenn Sie Nachrichten in einem Chat-Kanal erwarten, aktivieren Sie die Zustellung (`/deliver on` oder `--deliver`).
-- `--history-limit <n>`: Anzahl der zu ladenden Verlaufseinträge (Standard: 200)
+- `--history-limit <n>`: Zu ladende Verlaufseinträge (Standard: 200)
 
-## Fehlerbehebung bei Verbindungen
+## Verbindungs-Fehlerbehebung
 
 - `disconnected`: Stellen Sie sicher, dass das Gateway läuft und Ihre `--url/--token/--password` korrekt sind.
-- Keine Agenten im Picker: Prüfen Sie `openclaw agents list` und Ihre Routing-Konfiguration.
+- Keine Agents im Picker: Prüfen Sie `openclaw agents list` und Ihre Routing-Konfiguration.
 - Leerer Sitzungs-Picker: Möglicherweise befinden Sie sich im globalen Bereich oder haben noch keine Sitzungen.

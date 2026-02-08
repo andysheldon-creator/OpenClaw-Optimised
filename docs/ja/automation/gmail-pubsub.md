@@ -1,32 +1,32 @@
 ---
-summary: "gogcli 経由で Gmail Pub/Sub プッシュを OpenClaw Webhooks に接続"
+summary: "gogcli を介して OpenClaw Webhook に接続された Gmail Pub/Sub プッシュ"
 read_when:
-  - Gmail 受信トリガーを OpenClaw に配線する
-  - エージェント起動のための Pub/Sub プッシュを設定する
-title: "Gmail PubSub"
+  - Gmail の受信トリガーを OpenClaw に接続する
+  - エージェント起動のために Pub/Sub プッシュを設定する
+title: "Gmail Pub/Sub"
 x-i18n:
   source_path: automation/gmail-pubsub.md
   source_hash: dfb92133b69177e4
   provider: openai
-  model: gpt-5.2-pro
+  model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-06T04:41:52Z
+  generated_at: 2026-02-08T09:20:59Z
 ---
 
 # Gmail Pub/Sub -> OpenClaw
 
-目的: Gmail watch -> Pub/Sub push -> `gog gmail watch serve` -> OpenClaw webhook。
+目標: Gmail watch -> Pub/Sub プッシュ -> `gog gmail watch serve` -> OpenClaw Webhook。
 
 ## 前提条件
 
-- `gcloud` をインストールし、ログインしていること（[インストールガイド](https://docs.cloud.google.com/sdk/docs/install-sdk)）。
-- `gog`（gogcli）をインストールし、Gmail アカウントに対して認可していること（[gogcli.sh](https://gogcli.sh/)）。
-- OpenClaw hooks を有効化していること（[Webhooks](/automation/webhook) を参照）。
-- `tailscale` にログインしていること（[tailscale.com](https://tailscale.com/)）。サポートされるセットアップは、公開 HTTPS エンドポイントに Tailscale Funnel を使用します。
-  ほかのトンネルサービスでも動作する場合がありますが、DIY/非サポートであり、手動の配線が必要です。
-  現時点では、Tailscale がサポート対象です。
+- `gcloud` がインストールされ、ログイン済みであること（[インストールガイド](https://docs.cloud.google.com/sdk/docs/install-sdk)）。
+- `gog`（gogcli）がインストールされ、Gmail アカウントに対して認可済みであること（[gogcli.sh](https://gogcli.sh/)）。
+- OpenClaw のフックが有効になっていること（[Webhooks](/automation/webhook) を参照）。
+- `tailscale` にログイン済みであること（[tailscale.com](https://tailscale.com/)）。サポートされるセットアップでは、公開 HTTPS エンドポイントに Tailscale Funnel を使用します。
+  他のトンネルサービスも動作する可能性はありますが、DIY／非サポートであり、手動配線が必要です。
+  現在、サポート対象は Tailscale のみです。
 
-フック設定例（Gmail プリセットマッピングを有効化）:
+フック設定の例（Gmail プリセットマッピングを有効化）:
 
 ```json5
 {
@@ -39,7 +39,7 @@ x-i18n:
 }
 ```
 
-Gmail の要約をチャットの送信先に配信するには、`deliver` と任意の `channel`/`to` を設定するマッピングでプリセットを上書きしてください:
+Gmail のサマリーをチャットサーフェスに配信するには、`deliver` と、任意で `channel`/`to` を設定するマッピングでプリセットを上書きします。
 
 ```json5
 {
@@ -65,11 +65,11 @@ Gmail の要約をチャットの送信先に配信するには、`deliver` と�
 }
 ```
 
-固定チャンネルにしたい場合は、`channel` と `to` を設定します。そうでなければ `channel: "last"` は直近の配信ルートを使用します（WhatsApp にフォールバックします）。
+固定チャンネルにしたい場合は、`channel` と `to` を設定します。そうでない場合、`channel: "last"` は直近の配信ルートを使用します（WhatsApp にフォールバックします）。
 
-Gmail 実行に対してより安価なモデルを強制するには、マッピングで `model`（`provider/model` またはエイリアス）を設定します。`agents.defaults.models` を強制する場合は、そこに含めてください。
+Gmail 実行時により安価なモデルを強制するには、マッピング内で `model` を設定します（`provider/model` またはエイリアス）。`agents.defaults.models` を強制する場合は、そこに含めてください。
 
-Gmail hooks 専用にデフォルトのモデルと思考レベルを設定するには、設定に `hooks.gmail.model` / `hooks.gmail.thinking` を追加します:
+Gmail フック専用のデフォルトモデルと思考レベルを設定するには、設定に `hooks.gmail.model` / `hooks.gmail.thinking` を追加します。
 
 ```json5
 {
@@ -84,17 +84,17 @@ Gmail hooks 専用にデフォルトのモデルと思考レベルを設定す�
 
 注記:
 
-- マッピング内のフックごとの `model`/`thinking` は、これらのデフォルトを引き続き上書きします。
-- フォールバック順序: `hooks.gmail.model` → `agents.defaults.model.fallbacks` → primary（auth/rate-limit/timeouts）。
-- `agents.defaults.models` が設定されている場合、Gmail モデルは allowlist に含まれている必要があります。
-- Gmail フック内容はデフォルトで外部コンテンツ安全境界でラップされます。
-  無効化するには（危険です）、`hooks.gmail.allowUnsafeExternalContent: true` を設定してください。
+- マッピング内のフック単位の `model`/`thinking` は、これらのデフォルトを引き続き上書きします。
+- フォールバック順序: `hooks.gmail.model` → `agents.defaults.model.fallbacks` → プライマリ（認証／レート制限／タイムアウト）。
+- `agents.defaults.models` が設定されている場合、Gmail モデルは許可リストに含まれている必要があります。
+- Gmail フックのコンテンツは、デフォルトで外部コンテンツの安全境界でラップされます。
+  無効化するには（危険）、`hooks.gmail.allowUnsafeExternalContent: true` を設定してください。
 
-ペイロード処理をさらにカスタマイズするには、`hooks.mappings` を追加するか、`hooks.transformsDir` 配下に JS/TS の変換モジュールを追加してください（[Webhooks](/automation/webhook) を参照）。
+ペイロード処理をさらにカスタマイズするには、`hooks.mappings` を追加するか、`hooks.transformsDir` 配下に JS/TS の変換モジュールを追加します（[Webhooks](/automation/webhook) を参照）。
 
 ## ウィザード（推奨）
 
-OpenClaw ヘルパーを使ってすべてを配線します（macOS では brew 経由で依存関係をインストールします）:
+OpenClaw ヘルパーを使用して、すべてをまとめて配線します（macOS では brew 経由で依存関係をインストールします）。
 
 ```bash
 openclaw webhooks gmail setup \
@@ -105,28 +105,35 @@ openclaw webhooks gmail setup \
 
 - 公開プッシュエンドポイントに Tailscale Funnel を使用します。
 - `openclaw webhooks gmail run` 向けに `hooks.gmail` 設定を書き込みます。
-- Gmail フックプリセット（`hooks.presets: ["gmail"]`）を有効化します。
+- Gmail フックのプリセット（`hooks.presets: ["gmail"]`）を有効化します。
 
-パスに関する注記: `tailscale.mode` が有効な場合、OpenClaw は自動的に `hooks.gmail.serve.path` を `/` に設定し、公開パスは `hooks.gmail.tailscale.path`（デフォルトは `/gmail-pubsub`）のまま維持します。これは Tailscale がプロキシ前に set-path プレフィックスを取り除くためです。
-バックエンドにプレフィックス付きパスを受信させる必要がある場合は、`hooks.gmail.tailscale.target`（または `--tailscale-target`）を `http://127.0.0.1:8788/gmail-pubsub` のような完全な URL に設定し、`hooks.gmail.serve.path` を一致させてください。
+パスに関する注意: `tailscale.mode` が有効な場合、OpenClaw は自動的に
+`hooks.gmail.serve.path` を `/` に設定し、公開パスを
+`hooks.gmail.tailscale.path`（デフォルト `/gmail-pubsub`）に保持します。これは Tailscale が
+プロキシ時に set-path のプレフィックスを削除するためです。
+バックエンドでプレフィックス付きパスを受信する必要がある場合は、
+`hooks.gmail.tailscale.target`（または `--tailscale-target`）を
+`http://127.0.0.1:8788/gmail-pubsub` のような完全な URL に設定し、`hooks.gmail.serve.path` を一致させてください。
 
-カスタムエンドポイントが必要ですか？ `--push-endpoint <url>` または `--tailscale off` を使用してください。
+カスタムエンドポイントを使用したい場合は、`--push-endpoint <url>` または `--tailscale off` を使用してください。
 
-プラットフォーム注記: macOS では、ウィザードが Homebrew 経由で `gcloud`、`gogcli`、`tailscale` をインストールします。Linux では先に手動でインストールしてください。
+プラットフォームに関する注意: macOS では、ウィザードが Homebrew 経由で `gcloud`、`gogcli`、`tailscale` をインストールします。
+Linux では、事前に手動でインストールしてください。
 
-Gateway（ゲートウェイ）の自動起動（推奨）:
+Gateway の自動起動（推奨）:
 
-- `hooks.enabled=true` と `hooks.gmail.account` が設定されている場合、Gateway（ゲートウェイ）は起動時に `gog gmail watch serve` を開始し、watch を自動更新します。
+- `hooks.enabled=true` と `hooks.gmail.account` が設定されている場合、Gateway は
+  起動時に `gog gmail watch serve` を開始し、watch を自動更新します。
 - オプトアウトするには `OPENCLAW_SKIP_GMAIL_WATCHER=1` を設定します（デーモンを自分で実行する場合に有用です）。
-- 手動デーモンを同時に実行しないでください。実行すると `listen tcp 127.0.0.1:8788: bind: address already in use` に当たります。
+- 手動デーモンを同時に実行しないでください。`listen tcp 127.0.0.1:8788: bind: address already in use` が発生します。
 
-手動デーモン（`gog gmail watch serve` を起動 + 自動更新）:
+手動デーモン（`gog gmail watch serve` を開始 + 自動更新）:
 
 ```bash
 openclaw webhooks gmail run
 ```
 
-## 1 回限りのセットアップ
+## 初回セットアップ
 
 1. `gog` が使用する **OAuth クライアントを所有する** GCP プロジェクトを選択します。
 
@@ -135,21 +142,21 @@ gcloud auth login
 gcloud config set project <project-id>
 ```
 
-注記: Gmail watch では、Pub/Sub topic は OAuth クライアントと同じプロジェクトに存在する必要があります。
+注記: Gmail watch では、Pub/Sub トピックは OAuth クライアントと同じプロジェクトに存在する必要があります。
 
-2. API を有効化します:
+2. API を有効化します。
 
 ```bash
 gcloud services enable gmail.googleapis.com pubsub.googleapis.com
 ```
 
-3. topic を作成します:
+3. トピックを作成します。
 
 ```bash
 gcloud pubsub topics create gog-gmail-watch
 ```
 
-4. Gmail プッシュが publish できるように許可します:
+4. Gmail プッシュの公開を許可します。
 
 ```bash
 gcloud pubsub topics add-iam-policy-binding gog-gmail-watch \
@@ -188,20 +195,20 @@ gog gmail watch serve \
 注記:
 
 - `--token` はプッシュエンドポイント（`x-gog-token` または `?token=`）を保護します。
-- `--hook-url` は OpenClaw の `/hooks/gmail`（マッピング済み。分離実行 + 要約をメインへ）を指します。
-- `--include-body` と `--max-bytes` は OpenClaw に送る本文スニペットを制御します。
+- `--hook-url` は OpenClaw の `/hooks/gmail` を指します（マッピング済み；分離実行 + メインへのサマリー）。
+- `--include-body` と `--max-bytes` は、OpenClaw に送信される本文スニペットを制御します。
 
 推奨: `openclaw webhooks gmail run` は同じフローをラップし、watch を自動更新します。
 
 ## ハンドラーを公開（高度、非サポート）
 
-Tailscale 以外のトンネルが必要な場合は、手動で配線し、プッシュ subscription に公開 URL を使用してください（非サポート、ガードレールなし）:
+Tailscale 以外のトンネルが必要な場合は、手動で配線し、プッシュサブスクリプションに公開 URL を使用してください（非サポート、ガードレールなし）。
 
 ```bash
 cloudflared tunnel --url http://127.0.0.1:8788 --no-autoupdate
 ```
 
-生成された URL をプッシュエンドポイントとして使用します:
+生成された URL をプッシュエンドポイントとして使用します。
 
 ```bash
 gcloud pubsub subscriptions create gog-gmail-watch-push \
@@ -209,7 +216,7 @@ gcloud pubsub subscriptions create gog-gmail-watch-push \
   --push-endpoint "https://<public-url>/gmail-pubsub?token=<shared>"
 ```
 
-本番: 安定した HTTPS エンドポイントを使用し、Pub/Sub OIDC JWT を設定してから、次を実行します:
+本番環境: 安定した HTTPS エンドポイントを使用し、Pub/Sub OIDC JWT を設定してから、次を実行します。
 
 ```bash
 gog gmail watch serve --verify-oidc --oidc-email <svc@...>
@@ -217,7 +224,7 @@ gog gmail watch serve --verify-oidc --oidc-email <svc@...>
 
 ## テスト
 
-監視対象の受信箱へメッセージを送信します:
+監視対象の受信トレイにメッセージを送信します。
 
 ```bash
 gog gmail send \
@@ -227,7 +234,7 @@ gog gmail send \
   --body "ping"
 ```
 
-watch 状態と履歴を確認します:
+watch の状態と履歴を確認します。
 
 ```bash
 gog gmail watch status --account openclaw@gmail.com
@@ -236,8 +243,8 @@ gog gmail history --account openclaw@gmail.com --since <historyId>
 
 ## トラブルシューティング
 
-- `Invalid topicName`: プロジェクト不一致（topic が OAuth クライアントのプロジェクトにありません）。
-- `User not authorized`: topic に `roles/pubsub.publisher` がありません。
+- `Invalid topicName`: プロジェクトの不一致（トピックが OAuth クライアントのプロジェクトにありません）。
+- `User not authorized`: トピックに `roles/pubsub.publisher` がありません。
 - 空のメッセージ: Gmail プッシュは `historyId` のみを提供します。`gog gmail history` 経由で取得してください。
 
 ## クリーンアップ

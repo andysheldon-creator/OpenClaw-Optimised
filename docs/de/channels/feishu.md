@@ -6,16 +6,16 @@ read_when:
 title: Feishu
 x-i18n:
   source_path: channels/feishu.md
-  source_hash: fd2c93ebb6dbeabf
+  source_hash: c9349983562d1a98
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:35Z
+  generated_at: 2026-02-08T09:35:26Z
 ---
 
 # Feishu-Bot
 
-Feishu (Lark) ist eine Team-Chat-Plattform, die von Unternehmen für Messaging und Zusammenarbeit genutzt wird. Dieses Plugin verbindet OpenClaw mit einem Feishu-/Lark-Bot über das WebSocket-Ereignisabonnement der Plattform, sodass Nachrichten empfangen werden können, ohne eine öffentliche Webhook-URL offenzulegen.
+Feishu (Lark) ist eine Team-Chat-Plattform, die von Unternehmen für Messaging und Zusammenarbeit genutzt wird. Dieses Plugin verbindet OpenClaw mit einem Feishu-/Lark-Bot über das WebSocket-Ereignisabonnement der Plattform, sodass Nachrichten empfangen werden können, ohne eine öffentliche Webhook-URL bereitzustellen.
 
 ---
 
@@ -39,7 +39,7 @@ openclaw plugins install ./extensions/feishu
 
 Es gibt zwei Möglichkeiten, den Feishu-Kanal hinzuzufügen:
 
-### Methode 1: Einrichtungsassistent (empfohlen)
+### Methode 1: Onboarding-Assistent (empfohlen)
 
 Wenn Sie OpenClaw gerade installiert haben, starten Sie den Assistenten:
 
@@ -53,20 +53,20 @@ Der Assistent führt Sie durch:
 2. Konfigurieren der App-Zugangsdaten in OpenClaw
 3. Starten des Gateways
 
-✅ **Nach der Konfiguration** prüfen Sie den Gateway-Status:
+✅ **Nach der Konfiguration** überprüfen Sie den Gateway-Status:
 
 - `openclaw gateway status`
 - `openclaw logs --follow`
 
 ### Methode 2: CLI-Einrichtung
 
-Wenn Sie die Ersteinrichtung bereits abgeschlossen haben, fügen Sie den Kanal über die CLI hinzu:
+Wenn Sie die Erstinstallation bereits abgeschlossen haben, fügen Sie den Kanal über die CLI hinzu:
 
 ```bash
 openclaw channels add
 ```
 
-Wählen Sie **Feishu** und geben Sie dann App ID und App Secret ein.
+Wählen Sie **Feishu** und geben Sie anschließend App ID und App Secret ein.
 
 ✅ **Nach der Konfiguration** verwalten Sie das Gateway:
 
@@ -76,18 +76,18 @@ Wählen Sie **Feishu** und geben Sie dann App ID und App Secret ein.
 
 ---
 
-## Schritt 1: Eine Feishu-App erstellen
+## Schritt 1: Feishu-App erstellen
 
 ### 1. Feishu Open Platform öffnen
 
 Besuchen Sie die [Feishu Open Platform](https://open.feishu.cn/app) und melden Sie sich an.
 
-Lark-(global)-Tenants sollten https://open.larksuite.com/app verwenden und `domain: "lark"` in der Feishu-Konfiguration setzen.
+Lark-(global)-Tenants sollten [https://open.larksuite.com/app](https://open.larksuite.com/app) verwenden und `domain: "lark"` in der Feishu-Konfiguration setzen.
 
 ### 2. App erstellen
 
 1. Klicken Sie auf **Create enterprise app**
-2. Geben Sie App-Namen und -Beschreibung ein
+2. Geben Sie App-Namen und Beschreibung ein
 3. Wählen Sie ein App-Symbol
 
 ![Create enterprise app](../images/feishu-step2-create-app.png)
@@ -99,7 +99,7 @@ Kopieren Sie unter **Credentials & Basic Info**:
 - **App ID** (Format: `cli_xxx`)
 - **App Secret**
 
-❗ **Wichtig:** Halten Sie das App Secret privat.
+❗ **Wichtig:** Bewahren Sie das App Secret vertraulich auf.
 
 ![Get credentials](../images/feishu-step3-credentials.png)
 
@@ -146,9 +146,9 @@ Unter **App Capability** > **Bot**:
 
 ### 6. Ereignisabonnement konfigurieren
 
-⚠️ **Wichtig:** Stellen Sie vor dem Einrichten des Ereignisabonnements sicher, dass:
+⚠️ **Wichtig:** Bevor Sie das Ereignisabonnement konfigurieren, stellen Sie sicher:
 
-1. Sie bereits `openclaw channels add` für Feishu ausgeführt haben
+1. Sie haben `openclaw channels add` für Feishu bereits ausgeführt
 2. Das Gateway läuft (`openclaw gateway status`)
 
 Unter **Event Subscription**:
@@ -164,7 +164,7 @@ Unter **Event Subscription**:
 
 1. Erstellen Sie eine Version unter **Version Management & Release**
 2. Reichen Sie sie zur Prüfung ein und veröffentlichen Sie sie
-3. Warten Sie auf die Administratorfreigabe (Enterprise-Apps werden in der Regel automatisch genehmigt)
+3. Warten Sie auf die Admin-Genehmigung (Enterprise-Apps werden meist automatisch genehmigt)
 
 ---
 
@@ -178,7 +178,7 @@ openclaw channels add
 
 Wählen Sie **Feishu** und fügen Sie Ihre App ID und Ihr App Secret ein.
 
-### Konfiguration über die Konfigurationsdatei
+### Konfiguration über Konfigurationsdatei
 
 Bearbeiten Sie `~/.openclaw/openclaw.json`:
 
@@ -209,7 +209,7 @@ export FEISHU_APP_SECRET="xxx"
 
 ### Lark-(global)-Domain
 
-Wenn Ihr Tenant auf Lark (international) ist, setzen Sie die Domain auf `lark` (oder eine vollständige Domain-Zeichenkette). Sie können dies unter `channels.feishu.domain` oder pro Konto (`channels.feishu.accounts.<id>.domain`) festlegen.
+Wenn Ihr Tenant Lark (international) verwendet, setzen Sie die Domain auf `lark` (oder eine vollständige Domain-Zeichenfolge). Sie können dies unter `channels.feishu.domain` oder pro Konto (`channels.feishu.accounts.<id>.domain`) festlegen.
 
 ```json5
 {
@@ -257,7 +257,7 @@ Nach der Genehmigung können Sie normal chatten.
 
 - **Feishu-Bot-Kanal**: Vom Gateway verwalteter Feishu-Bot
 - **Deterministisches Routing**: Antworten kehren immer zu Feishu zurück
-- **Sitzungsisolation**: Direktnachrichten teilen eine Hauptsitzung; Gruppen sind isoliert
+- **Sitzungsisolation**: Direktnachrichten teilen sich eine Hauptsitzung; Gruppen sind isoliert
 - **WebSocket-Verbindung**: Long-Connection über das Feishu-SDK, keine öffentliche URL erforderlich
 
 ---
@@ -266,12 +266,14 @@ Nach der Genehmigung können Sie normal chatten.
 
 ### Direktnachrichten
 
-- **Standard**: `dmPolicy: "pairing"` (unbekannte Nutzer erhalten einen Kopplungscode)
+- **Standard**: `dmPolicy: "pairing"` (unbekannte Benutzer erhalten einen Kopplungscode)
 - **Kopplung genehmigen**:
+
   ```bash
   openclaw pairing list feishu
   openclaw pairing approve feishu <CODE>
   ```
+
 - **Allowlist-Modus**: Setzen Sie `channels.feishu.allowFrom` mit erlaubten Open IDs
 
 ### Gruppenchats
@@ -289,7 +291,7 @@ Nach der Genehmigung können Sie normal chatten.
 
 ---
 
-## Beispiele für Gruppenkonfigurationen
+## Beispiele für Gruppenkonfiguration
 
 ### Alle Gruppen zulassen, @Erwähnung erforderlich (Standard)
 
@@ -318,7 +320,7 @@ Nach der Genehmigung können Sie normal chatten.
 }
 ```
 
-### Nur bestimmte Nutzer in Gruppen zulassen
+### Nur bestimmte Benutzer in Gruppen zulassen
 
 ```json5
 {
@@ -391,7 +393,7 @@ openclaw pairing list feishu
 
 ## Fehlerbehebung
 
-### Bot reagiert nicht in Gruppenchats
+### Bot antwortet nicht in Gruppenchats
 
 1. Stellen Sie sicher, dass der Bot zur Gruppe hinzugefügt wurde
 2. Stellen Sie sicher, dass Sie den Bot @erwähnen (Standardverhalten)
@@ -402,7 +404,7 @@ openclaw pairing list feishu
 
 1. Stellen Sie sicher, dass die App veröffentlicht und genehmigt ist
 2. Stellen Sie sicher, dass das Ereignisabonnement `im.message.receive_v1` enthält
-3. Stellen Sie sicher, dass **Long Connection** aktiviert ist
+3. Stellen Sie sicher, dass **long connection** aktiviert ist
 4. Stellen Sie sicher, dass die App-Berechtigungen vollständig sind
 5. Stellen Sie sicher, dass das Gateway läuft: `openclaw gateway status`
 6. Prüfen Sie die Logs: `openclaw logs --follow`
@@ -449,12 +451,12 @@ openclaw pairing list feishu
 
 ### Nachrichtenlimits
 
-- `textChunkLimit`: Größe von ausgehenden Textblöcken (Standard: 2000 Zeichen)
-- `mediaMaxMb`: Limit für Medien-Upload/Download (Standard: 30 MB)
+- `textChunkLimit`: Größe ausgehender Textsegmente (Standard: 2000 Zeichen)
+- `mediaMaxMb`: Limit für Medien-Upload/-Download (Standard: 30 MB)
 
 ### Streaming
 
-Feishu unterstützt Streaming-Antworten über interaktive Karten. Wenn aktiviert, aktualisiert der Bot eine Karte, während er Text generiert.
+Feishu unterstützt Streaming-Antworten über interaktive Karten. Wenn aktiviert, aktualisiert der Bot eine Karte während der Texterzeugung.
 
 ```json5
 {
@@ -467,11 +469,11 @@ Feishu unterstützt Streaming-Antworten über interaktive Karten. Wenn aktiviert
 }
 ```
 
-Setzen Sie `streaming: false`, um auf die vollständige Antwort zu warten, bevor gesendet wird.
+Setzen Sie `streaming: false`, um vor dem Senden auf die vollständige Antwort zu warten.
 
 ### Multi-Agent-Routing
 
-Verwenden Sie `bindings`, um Feishu-Direktnachrichten oder -Gruppen an verschiedene Agenten zu routen.
+Verwenden Sie `bindings`, um Feishu-Direktnachrichten oder -Gruppen an unterschiedliche Agenten weiterzuleiten.
 
 ```json5
 {
@@ -530,7 +532,7 @@ Siehe [Gruppen-/Benutzer-IDs abrufen](#get-groupuser-ids) für Hinweise zur Ermi
 
 Vollständige Konfiguration: [Gateway-Konfiguration](/gateway/configuration)
 
-Wichtige Optionen:
+Schlüsseloptionen:
 
 | Einstellung                                       | Beschreibung                       | Standard  |
 | ------------------------------------------------- | ---------------------------------- | --------- |
@@ -554,12 +556,12 @@ Wichtige Optionen:
 
 ## dmPolicy-Referenz
 
-| Wert          | Verhalten                                                                              |
-| ------------- | -------------------------------------------------------------------------------------- |
-| `"pairing"`   | **Standard.** Unbekannte Nutzer erhalten einen Kopplungscode; Genehmigung erforderlich |
-| `"allowlist"` | Nur Nutzer in `allowFrom` können chatten                                               |
-| `"open"`      | Alle Nutzer zulassen (erfordert `"*"` in allowFrom)                                    |
-| `"disabled"`  | Direktnachrichten deaktivieren                                                         |
+| Wert          | Verhalten                                                                                  |
+| ------------- | ------------------------------------------------------------------------------------------ |
+| `"pairing"`   | **Standard.** Unbekannte Benutzer erhalten einen Kopplungscode und müssen genehmigt werden |
+| `"allowlist"` | Nur Benutzer in `allowFrom` können chatten                                                 |
+| `"open"`      | Alle Benutzer zulassen (erfordert `"*"` in allowFrom)                                      |
+| `"disabled"`  | Direktnachrichten deaktivieren                                                             |
 
 ---
 

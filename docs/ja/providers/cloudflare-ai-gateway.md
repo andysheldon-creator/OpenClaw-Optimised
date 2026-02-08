@@ -3,36 +3,36 @@ title: "Cloudflare AI Gateway"
 summary: "Cloudflare AI Gateway のセットアップ（認証 + モデル選択）"
 read_when:
   - OpenClaw で Cloudflare AI Gateway を使用したい場合
-  - アカウント ID、Gateway ID、または API キーの 環境変数 が必要な場合
+  - アカウント ID、ゲートウェイ ID、または API キーの環境変数が必要な場合
 x-i18n:
   source_path: providers/cloudflare-ai-gateway.md
   source_hash: db77652c37652ca2
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:34:30Z
+  generated_at: 2026-02-08T09:22:55Z
 ---
 
 # Cloudflare AI Gateway
 
-Cloudflare AI Gateway はプロバイダー API の前段に配置され、分析、キャッシュ、制御を追加できます。Anthropic の場合、OpenClaw は Gateway のエンドポイント経由で Anthropic Messages API を使用します。
+Cloudflare AI Gateway はプロバイダー API の前段に配置され、分析、キャッシュ、制御を追加できます。Anthropic の場合、OpenClaw はゲートウェイ エンドポイントを介して Anthropic Messages API を使用します。
 
 - プロバイダー: `cloudflare-ai-gateway`
 - ベース URL: `https://gateway.ai.cloudflare.com/v1/<account_id>/<gateway_id>/anthropic`
-- デフォルトモデル: `cloudflare-ai-gateway/claude-sonnet-4-5`
-- API キー: `CLOUDFLARE_AI_GATEWAY_API_KEY`（Gateway 経由のリクエストに使用するプロバイダー API キー）
+- デフォルト モデル: `cloudflare-ai-gateway/claude-sonnet-4-5`
+- API キー: `CLOUDFLARE_AI_GATEWAY_API_KEY`（ゲートウェイ経由のリクエストに使用するプロバイダーの API キー）
 
-Anthropic のモデルでは、Anthropic API キーを使用してください。
+Anthropic モデルでは、Anthropic の API キーを使用してください。
 
 ## クイックスタート
 
-1. プロバイダー API キーと Gateway の詳細を設定します:
+1. プロバイダーの API キーとゲートウェイの詳細を設定します。
 
 ```bash
 openclaw onboard --auth-choice cloudflare-ai-gateway-api-key
 ```
 
-2. デフォルトモデルを設定します:
+2. デフォルトのモデルを設定します。
 
 ```json5
 {
@@ -55,9 +55,9 @@ openclaw onboard --non-interactive \
   --cloudflare-ai-gateway-api-key "$CLOUDFLARE_AI_GATEWAY_API_KEY"
 ```
 
-## 認証付き Gateway
+## 認証されたゲートウェイ
 
-Cloudflare で Gateway 認証を有効にしている場合は、`cf-aig-authorization` ヘッダーを追加してください（これはプロバイダー API キーに加えて必要です）。
+Cloudflare でゲートウェイ認証を有効にしている場合は、`cf-aig-authorization` ヘッダーを追加してください（これはプロバイダーの API キーに加えて必要です）。
 
 ```json5
 {
@@ -73,6 +73,6 @@ Cloudflare で Gateway 認証を有効にしている場合は、`cf-aig-authori
 }
 ```
 
-## 環境に関する注意
+## 環境に関する注記
 
-Gateway がデーモン（launchd/systemd）として実行されている場合は、`CLOUDFLARE_AI_GATEWAY_API_KEY` がそのプロセスから利用可能であることを確認してください（例: `~/.openclaw/.env` 内、または `env.shellEnv` 経由）。
+ゲートウェイがデーモン（launchd/systemd）として実行されている場合は、`CLOUDFLARE_AI_GATEWAY_API_KEY` がそのプロセスから利用可能であることを確認してください（例えば、`~/.openclaw/.env` に設定するか、`env.shellEnv` を使用します）。

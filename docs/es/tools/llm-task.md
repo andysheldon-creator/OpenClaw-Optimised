@@ -2,7 +2,7 @@
 summary: "Tareas de LLM solo JSON para flujos de trabajo (herramienta de complemento opcional)"
 read_when:
   - Quiere un paso de LLM solo JSON dentro de flujos de trabajo
-  - Necesita salida de LLM validada por esquema para automatizacion
+  - Necesita salida de LLM validada por esquema para automatización
 title: "Tarea de LLM"
 x-i18n:
   source_path: tools/llm-task.md
@@ -10,7 +10,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:00:10Z
+  generated_at: 2026-02-08T09:34:48Z
 ---
 
 # Tarea de LLM
@@ -18,8 +18,8 @@ x-i18n:
 `llm-task` es una **herramienta de complemento opcional** que ejecuta una tarea de LLM solo JSON y
 devuelve salida estructurada (opcionalmente validada contra JSON Schema).
 
-Esto es ideal para motores de flujos de trabajo como Lobster: puede agregar un solo paso de LLM
-sin escribir codigo personalizado de OpenClaw para cada flujo de trabajo.
+Esto es ideal para motores de flujos de trabajo como Lobster: puede agregar un único paso de LLM
+sin escribir código personalizado de OpenClaw para cada flujo de trabajo.
 
 ## Habilitar el complemento
 
@@ -35,7 +35,7 @@ sin escribir codigo personalizado de OpenClaw para cada flujo de trabajo.
 }
 ```
 
-2. Incluya la herramienta en la lista de permitidos (esta registrada con `optional: true`):
+2. Agregue la herramienta a la lista de permitidos (está registrada con `optional: true`):
 
 ```json
 {
@@ -50,7 +50,7 @@ sin escribir codigo personalizado de OpenClaw para cada flujo de trabajo.
 }
 ```
 
-## Configuracion (opcional)
+## Configuración (opcional)
 
 ```json
 {
@@ -75,7 +75,7 @@ sin escribir codigo personalizado de OpenClaw para cada flujo de trabajo.
 `allowedModels` es una lista de permitidos de cadenas `provider/model`. Si se establece, cualquier solicitud
 fuera de la lista es rechazada.
 
-## Parametros de la herramienta
+## Parámetros de la herramienta
 
 - `prompt` (string, requerido)
 - `input` (any, opcional)
@@ -115,8 +115,8 @@ openclaw.invoke --tool llm-task --action json --args-json '{
 
 ## Notas de seguridad
 
-- La herramienta es **solo JSON** e instruye al modelo a generar solo JSON (sin
-  cercas de codigo, sin comentarios).
-- No se exponen herramientas al modelo para esta ejecucion.
+- La herramienta es **solo JSON** e instruye al modelo a producir únicamente JSON (sin
+  cercas de código ni comentarios).
+- No se exponen herramientas al modelo para esta ejecución.
 - Trate la salida como no confiable a menos que valide con `schema`.
 - Coloque aprobaciones antes de cualquier paso con efectos secundarios (enviar, publicar, ejecutar).

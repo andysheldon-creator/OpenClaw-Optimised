@@ -1,42 +1,42 @@
 ---
-summary: "Status de suporte do bot do Zalo, capacidades e configuracao"
+summary: "Status de suporte do bot Zalo, capacidades e configuração"
 read_when:
   - Trabalhando em recursos ou webhooks do Zalo
 title: "Zalo"
 x-i18n:
   source_path: channels/zalo.md
-  source_hash: 0311d932349f9641
+  source_hash: bd14c0d008a23552
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:35Z
+  generated_at: 2026-02-08T09:30:18Z
 ---
 
 # Zalo (Bot API)
 
-Status: experimental. Apenas mensagens diretas; grupos em breve conforme a documentacao do Zalo.
+Status: experimental. Apenas mensagens diretas; grupos em breve, conforme a documentação do Zalo.
 
-## Plugin necessario
+## Plugin necessário
 
-O Zalo e distribuido como um plugin e nao vem incluido na instalacao principal.
+O Zalo é distribuído como um plugin e não vem incluído na instalação principal.
 
 - Instale via CLI: `openclaw plugins install @openclaw/zalo`
-- Ou selecione **Zalo** durante a integracao inicial e confirme o prompt de instalacao
-- Detalhes: [Plugins](/plugin)
+- Ou selecione **Zalo** durante a integração inicial e confirme o prompt de instalação
+- Detalhes: [Plugins](/tools/plugin)
 
-## Configuracao rapida (iniciante)
+## Configuração rápida (iniciante)
 
 1. Instale o plugin do Zalo:
-   - A partir de um checkout do codigo-fonte: `openclaw plugins install ./extensions/zalo`
+   - A partir de um checkout do código-fonte: `openclaw plugins install ./extensions/zalo`
    - A partir do npm (se publicado): `openclaw plugins install @openclaw/zalo`
-   - Ou escolha **Zalo** na integracao inicial e confirme o prompt de instalacao
+   - Ou escolha **Zalo** na integração inicial e confirme o prompt de instalação
 2. Defina o token:
-   - Variavel de ambiente: `ZALO_BOT_TOKEN=...`
-   - Ou configuracao: `channels.zalo.botToken: "..."`.
-3. Reinicie o Gateway (ou finalize a integracao inicial).
-4. O acesso por Mensagem direta usa emparelhamento por padrao; aprove o codigo de emparelhamento no primeiro contato.
+   - Env: `ZALO_BOT_TOKEN=...`
+   - Ou configuração: `channels.zalo.botToken: "..."`.
+3. Reinicie o gateway (ou conclua a integração inicial).
+4. O acesso por DM usa pareamento por padrão; aprove o código de pareamento no primeiro contato.
 
-Configuracao minima:
+Configuração mínima:
 
 ```json5
 {
@@ -50,25 +50,25 @@ Configuracao minima:
 }
 ```
 
-## O que e
+## O que é
 
-Zalo e um aplicativo de mensagens focado no Vietna; sua Bot API permite que o Gateway execute um bot para conversas 1:1.
-E uma boa opcao para suporte ou notificacoes quando voce quer roteamento deterministico de volta para o Zalo.
+Zalo é um aplicativo de mensagens focado no Vietnã; sua Bot API permite que o Gateway execute um bot para conversas 1:1.
+É uma boa opção para suporte ou notificações quando você deseja roteamento determinístico de volta para o Zalo.
 
-- Um canal da Zalo Bot API controlado pelo Gateway.
-- Roteamento deterministico: as respostas voltam para o Zalo; o modelo nunca escolhe canais.
-- Mensagens diretas compartilham a sessao principal do agente.
-- Grupos ainda nao sao suportados (a documentacao do Zalo indica "em breve").
+- Um canal da Zalo Bot API pertencente ao Gateway.
+- Roteamento determinístico: as respostas voltam para o Zalo; o modelo nunca escolhe canais.
+- DMs compartilham a sessão principal do agente.
+- Grupos ainda não são suportados (a documentação do Zalo indica "em breve").
 
-## Configuracao (caminho rapido)
+## Configuração (caminho rápido)
 
 ### 1) Criar um token de bot (Zalo Bot Platform)
 
-1. Acesse **https://bot.zaloplatforms.com** e faca login.
-2. Crie um novo bot e configure suas opcoes.
+1. Acesse [https://bot.zaloplatforms.com](https://bot.zaloplatforms.com) e faça login.
+2. Crie um novo bot e configure suas opções.
 3. Copie o token do bot (formato: `12345689:abc-xyz`).
 
-### 2) Configurar o token (variavel de ambiente ou configuracao)
+### 2) Configurar o token (env ou configuração)
 
 Exemplo:
 
@@ -84,53 +84,53 @@ Exemplo:
 }
 ```
 
-Opcao via variavel de ambiente: `ZALO_BOT_TOKEN=...` (funciona apenas para a conta padrao).
+Opção via env: `ZALO_BOT_TOKEN=...` (funciona apenas para a conta padrão).
 
-Suporte a multiplas contas: use `channels.zalo.accounts` com tokens por conta e `name` opcional.
+Suporte a múltiplas contas: use `channels.zalo.accounts` com tokens por conta e `name` opcional.
 
-3. Reinicie o Gateway. O Zalo inicia quando um token e resolvido (variavel de ambiente ou configuracao).
-4. O acesso por Mensagem direta usa emparelhamento por padrao. Aprove o codigo quando o bot for contatado pela primeira vez.
+3. Reinicie o gateway. O Zalo inicia quando um token é resolvido (env ou configuração).
+4. O acesso por DM usa pareamento por padrão. Aprove o código quando o bot for contatado pela primeira vez.
 
 ## Como funciona (comportamento)
 
-- Mensagens de entrada sao normalizadas no envelope de canal compartilhado com placeholders de midia.
+- Mensagens de entrada são normalizadas no envelope de canal compartilhado com placeholders de mídia.
 - As respostas sempre retornam para o mesmo chat do Zalo.
-- Long-polling por padrao; modo webhook disponivel com `channels.zalo.webhookUrl`.
+- Long-polling por padrão; modo webhook disponível com `channels.zalo.webhookUrl`.
 
 ## Limites
 
-- Texto de saida e fragmentado em blocos de 2000 caracteres (limite da API do Zalo).
-- Downloads/uploads de midia sao limitados por `channels.zalo.mediaMaxMb` (padrao 5).
-- Streaming e bloqueado por padrao devido ao limite de 2000 caracteres tornar o streaming menos util.
+- Texto de saída é dividido em blocos de 2000 caracteres (limite da API do Zalo).
+- Downloads/uploads de mídia são limitados por `channels.zalo.mediaMaxMb` (padrão 5).
+- Streaming é bloqueado por padrão devido ao limite de 2000 caracteres tornar o streaming menos útil.
 
-## Controle de acesso (Mensagens diretas)
+## Controle de acesso (DMs)
 
-### Acesso por Mensagem direta
+### Acesso por DM
 
-- Padrao: `channels.zalo.dmPolicy = "pairing"`. Remetentes desconhecidos recebem um codigo de emparelhamento; mensagens sao ignoradas ate aprovacao (codigos expiram apos 1 hora).
+- Padrão: `channels.zalo.dmPolicy = "pairing"`. Remetentes desconhecidos recebem um código de pareamento; as mensagens são ignoradas até a aprovação (os códigos expiram após 1 hora).
 - Aprovar via:
   - `openclaw pairing list zalo`
   - `openclaw pairing approve zalo <CODE>`
-- O emparelhamento e a troca de token padrao. Detalhes: [Pairing](/start/pairing)
-- `channels.zalo.allowFrom` aceita IDs numericos de usuario (nao ha busca por nome de usuario).
+- O pareamento é a troca de token padrão. Detalhes: [Pairing](/channels/pairing)
+- `channels.zalo.allowFrom` aceita IDs numéricos de usuários (não há busca por nome de usuário).
 
 ## Long-polling vs webhook
 
-- Padrao: long-polling (nao requer URL publica).
+- Padrão: long-polling (não requer URL pública).
 - Modo webhook: defina `channels.zalo.webhookUrl` e `channels.zalo.webhookSecret`.
-  - O segredo do webhook deve ter entre 8 e 256 caracteres.
+  - O segredo do webhook deve ter de 8 a 256 caracteres.
   - A URL do webhook deve usar HTTPS.
-  - O Zalo envia eventos com o cabecalho `X-Bot-Api-Secret-Token` para verificacao.
-  - O HTTP do Gateway trata requisicoes de webhook em `channels.zalo.webhookPath` (padrao para o caminho da URL do webhook).
+  - O Zalo envia eventos com o cabeçalho `X-Bot-Api-Secret-Token` para verificação.
+  - O HTTP do Gateway trata requisições de webhook em `channels.zalo.webhookPath` (padrão é o caminho da URL do webhook).
 
-**Nota:** getUpdates (polling) e webhook sao mutuamente exclusivos conforme a documentacao da API do Zalo.
+**Nota:** getUpdates (polling) e webhook são mutuamente exclusivos conforme a documentação da API do Zalo.
 
 ## Tipos de mensagens suportados
 
-- **Mensagens de texto**: Suporte completo com fragmentacao em 2000 caracteres.
-- **Mensagens de imagem**: Baixa e processa imagens de entrada; envia imagens via `sendPhoto`.
-- **Figurinhas**: Registradas em log, mas nao totalmente processadas (sem resposta do agente).
-- **Tipos nao suportados**: Registrados em log (por exemplo, mensagens de usuarios protegidos).
+- **Mensagens de texto**: Suporte completo com divisão em blocos de 2000 caracteres.
+- **Mensagens de imagem**: Baixar e processar imagens de entrada; enviar imagens via `sendPhoto`.
+- **Figurinhas**: Registradas em log, mas não totalmente processadas (sem resposta do agente).
+- **Tipos não suportados**: Registrados em log (por exemplo, mensagens de usuários protegidos).
 
 ## Capacidades
 
@@ -138,58 +138,58 @@ Suporte a multiplas contas: use `channels.zalo.accounts` com tokens por conta e 
 | ----------------- | ---------------------------------------- |
 | Mensagens diretas | ✅ Suportado                             |
 | Grupos            | ❌ Em breve (conforme docs do Zalo)      |
-| Midia (imagens)   | ✅ Suportado                             |
-| Reacoes           | ❌ Nao suportado                         |
-| Threads           | ❌ Nao suportado                         |
-| Enquetes          | ❌ Nao suportado                         |
-| Comandos nativos  | ❌ Nao suportado                         |
+| Mídia (imagens)   | ✅ Suportado                             |
+| Reações           | ❌ Não suportado                         |
+| Tópicos           | ❌ Não suportado                         |
+| Enquetes          | ❌ Não suportado                         |
+| Comandos nativos  | ❌ Não suportado                         |
 | Streaming         | ⚠️ Bloqueado (limite de 2000 caracteres) |
 
 ## Destinos de entrega (CLI/cron)
 
-- Use um chat id como destino.
+- Use um ID de chat como destino.
 - Exemplo: `openclaw message send --channel zalo --target 123456789 --message "hi"`.
 
-## Solucao de problemas
+## Solução de problemas
 
-**O bot nao responde:**
+**O bot não responde:**
 
-- Verifique se o token e valido: `openclaw channels status --probe`
-- Confirme se o remetente esta aprovado (emparelhamento ou allowFrom)
-- Verifique os logs do Gateway: `openclaw logs --follow`
+- Verifique se o token é válido: `openclaw channels status --probe`
+- Confirme se o remetente está aprovado (pareamento ou allowFrom)
+- Verifique os logs do gateway: `openclaw logs --follow`
 
-**Webhook nao esta recebendo eventos:**
+**Webhook não está recebendo eventos:**
 
 - Garanta que a URL do webhook use HTTPS
-- Verifique se o token secreto tem entre 8 e 256 caracteres
-- Confirme que o endpoint HTTP do Gateway esta acessivel no caminho configurado
-- Verifique se o polling getUpdates nao esta em execucao (sao mutuamente exclusivos)
+- Verifique se o token secreto tem de 8 a 256 caracteres
+- Confirme que o endpoint HTTP do gateway está acessível no caminho configurado
+- Verifique se o polling getUpdates não está em execução (são mutuamente exclusivos)
 
-## Referencia de configuracao (Zalo)
+## Referência de configuração (Zalo)
 
-Configuracao completa: [Configuration](/gateway/configuration)
+Configuração completa: [Configuration](/gateway/configuration)
 
-Opcoes do provedor:
+Opções do provedor:
 
-- `channels.zalo.enabled`: habilitar/desabilitar a inicializacao do canal.
+- `channels.zalo.enabled`: habilitar/desabilitar a inicialização do canal.
 - `channels.zalo.botToken`: token do bot da Zalo Bot Platform.
-- `channels.zalo.tokenFile`: ler token a partir de um caminho de arquivo.
-- `channels.zalo.dmPolicy`: `pairing | allowlist | open | disabled` (padrao: emparelhamento).
-- `channels.zalo.allowFrom`: lista de permissao para Mensagens diretas (IDs de usuario). `open` requer `"*"`. O assistente solicitara IDs numericos.
-- `channels.zalo.mediaMaxMb`: limite de midia de entrada/saida (MB, padrao 5).
-- `channels.zalo.webhookUrl`: habilitar modo webhook (HTTPS obrigatorio).
+- `channels.zalo.tokenFile`: ler o token a partir de um caminho de arquivo.
+- `channels.zalo.dmPolicy`: `pairing | allowlist | open | disabled` (padrão: pareamento).
+- `channels.zalo.allowFrom`: lista de permissões de DM (IDs de usuários). `open` requer `"*"`. O assistente solicitará IDs numéricos.
+- `channels.zalo.mediaMaxMb`: limite de mídia de entrada/saída (MB, padrão 5).
+- `channels.zalo.webhookUrl`: habilitar modo webhook (HTTPS obrigatório).
 - `channels.zalo.webhookSecret`: segredo do webhook (8-256 caracteres).
-- `channels.zalo.webhookPath`: caminho do webhook no servidor HTTP do Gateway.
-- `channels.zalo.proxy`: URL de proxy para requisicoes da API.
+- `channels.zalo.webhookPath`: caminho do webhook no servidor HTTP do gateway.
+- `channels.zalo.proxy`: URL de proxy para requisições da API.
 
-Opcoes de multiplas contas:
+Opções de múltiplas contas:
 
 - `channels.zalo.accounts.<id>.botToken`: token por conta.
 - `channels.zalo.accounts.<id>.tokenFile`: arquivo de token por conta.
-- `channels.zalo.accounts.<id>.name`: nome de exibicao.
-- `channels.zalo.accounts.<id>.enabled`: habilitar/desabilitar conta.
-- `channels.zalo.accounts.<id>.dmPolicy`: politica de Mensagens diretas por conta.
-- `channels.zalo.accounts.<id>.allowFrom`: lista de permissao por conta.
+- `channels.zalo.accounts.<id>.name`: nome de exibição.
+- `channels.zalo.accounts.<id>.enabled`: habilitar/desabilitar a conta.
+- `channels.zalo.accounts.<id>.dmPolicy`: política de DM por conta.
+- `channels.zalo.accounts.<id>.allowFrom`: lista de permissões por conta.
 - `channels.zalo.accounts.<id>.webhookUrl`: URL de webhook por conta.
 - `channels.zalo.accounts.<id>.webhookSecret`: segredo de webhook por conta.
 - `channels.zalo.accounts.<id>.webhookPath`: caminho de webhook por conta.

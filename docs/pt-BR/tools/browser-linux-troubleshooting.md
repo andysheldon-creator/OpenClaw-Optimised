@@ -1,21 +1,21 @@
 ---
-summary: "Corrija problemas de inicializacao do CDP do Chrome/Brave/Edge/Chromium para o controle de navegador do OpenClaw no Linux"
+summary: "Corrija problemas de inicialização do CDP do Chrome/Brave/Edge/Chromium para o controle de navegador do OpenClaw no Linux"
 read_when: "O controle de navegador falha no Linux, especialmente com o Chromium snap"
-title: "Solucao de problemas do navegador"
+title: "Solução de problemas do navegador"
 x-i18n:
   source_path: tools/browser-linux-troubleshooting.md
   source_hash: bac2301022511a0b
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:57:33Z
+  generated_at: 2026-02-08T09:32:03Z
 ---
 
-# Solucao de problemas do navegador (Linux)
+# Solução de problemas do navegador (Linux)
 
 ## Problema: "Failed to start Chrome CDP on port 18800"
 
-O servidor de controle de navegador do OpenClaw falha ao iniciar Chrome/Brave/Edge/Chromium com o erro:
+O servidor de controle de navegador do OpenClaw não consegue iniciar Chrome/Brave/Edge/Chromium com o erro:
 
 ```
 {"error":"Error: Failed to start Chrome CDP on port 18800 for profile \"openclaw\"."}
@@ -23,7 +23,7 @@ O servidor de controle de navegador do OpenClaw falha ao iniciar Chrome/Brave/Ed
 
 ### Causa raiz
 
-No Ubuntu (e em muitas distros Linux), a instalacao padrao do Chromium e um **pacote snap**. O confinamento do AppArmor do snap interfere na forma como o OpenClaw inicia e monitora o processo do navegador.
+No Ubuntu (e em muitas distribuições Linux), a instalação padrão do Chromium é um **pacote snap**. O confinamento AppArmor do snap interfere na forma como o OpenClaw inicia e monitora o processo do navegador.
 
 O comando `apt install chromium` instala um pacote stub que redireciona para o snap:
 
@@ -32,11 +32,11 @@ Note, selecting 'chromium-browser' instead of 'chromium'
 chromium-browser is already the newest version (2:1snap1-0ubuntu2).
 ```
 
-Este NAO e um navegador real — e apenas um wrapper.
+Este NÃO é um navegador real — é apenas um wrapper.
 
-### Solucao 1: Instalar o Google Chrome (Recomendado)
+### Solução 1: Instalar o Google Chrome (Recomendado)
 
-Instale o pacote oficial do Google Chrome `.deb`, que nao e isolado por snap:
+Instale o pacote oficial do Google Chrome `.deb`, que não é isolado por snap:
 
 ```bash
 wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
@@ -44,7 +44,7 @@ sudo dpkg -i google-chrome-stable_current_amd64.deb
 sudo apt --fix-broken install -y  # if there are dependency errors
 ```
 
-Em seguida, atualize sua configuracao do OpenClaw (`~/.openclaw/openclaw.json`):
+Em seguida, atualize sua configuração do OpenClaw (`~/.openclaw/openclaw.json`):
 
 ```json
 {
@@ -57,11 +57,11 @@ Em seguida, atualize sua configuracao do OpenClaw (`~/.openclaw/openclaw.json`):
 }
 ```
 
-### Solucao 2: Usar o Chromium snap com o modo somente-anexar
+### Solução 2: Usar o Chromium snap com o modo somente anexar
 
-Se voce precisar usar o Chromium snap, configure o OpenClaw para se anexar a um navegador iniciado manualmente:
+Se você precisar usar o Chromium snap, configure o OpenClaw para se anexar a um navegador iniciado manualmente:
 
-1. Atualize a configuracao:
+1. Atualize a configuração:
 
 ```json
 {
@@ -83,7 +83,7 @@ chromium-browser --headless --no-sandbox --disable-gpu \
   about:blank &
 ```
 
-3. Opcionalmente, crie um servico systemd de usuario para iniciar automaticamente o Chrome:
+3. Opcionalmente, crie um serviço systemd de usuário para iniciar o Chrome automaticamente:
 
 ```ini
 # ~/.config/systemd/user/openclaw-browser.service
@@ -110,35 +110,36 @@ Verifique o status:
 curl -s http://127.0.0.1:18791/ | jq '{running, pid, chosenBrowser}'
 ```
 
-Teste a navegacao:
+Teste a navegação:
 
 ```bash
 curl -s -X POST http://127.0.0.1:18791/start
 curl -s http://127.0.0.1:18791/tabs
 ```
 
-### Referencia de configuracao
+### Referência de configuração
 
-| Option                   | Description                                                                           | Default                                                                           |
-| ------------------------ | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `browser.enabled`        | Habilitar controle de navegador                                                       | `true`                                                                            |
-| `browser.executablePath` | Caminho para um binario de navegador baseado em Chromium (Chrome/Brave/Edge/Chromium) | detectado automaticamente (prefere o navegador padrao quando baseado em Chromium) |
-| `browser.headless`       | Executar sem GUI                                                                      | `false`                                                                           |
-| `browser.noSandbox`      | Adicionar a flag `--no-sandbox` (necessaria para algumas configuracoes Linux)         | `false`                                                                           |
-| `browser.attachOnly`     | Nao iniciar o navegador, apenas anexar a um existente                                 | `false`                                                                           |
-| `browser.cdpPort`        | Porta do Chrome DevTools Protocol                                                     | `18800`                                                                           |
+| Opção                    | Descrição                                                                             | Padrão                                                                 |
+| ------------------------ | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `browser.enabled`        | Habilitar controle de navegador                                                       | `true`                                                                 |
+| `browser.executablePath` | Caminho para um binário de navegador baseado em Chromium (Chrome/Brave/Edge/Chromium) | auto-detectado (prefere o navegador padrão quando baseado em Chromium) |
+| `browser.headless`       | Executar sem GUI                                                                      | `false`                                                                |
+| `browser.noSandbox`      | Adicionar a flag `--no-sandbox` (necessária para algumas configurações Linux)         | `false`                                                                |
+| `browser.attachOnly`     | Não iniciar o navegador, apenas anexar a um existente                                 | `false`                                                                |
+| `browser.cdpPort`        | Porta do Chrome DevTools Protocol                                                     | `18800`                                                                |
 
 ### Problema: "Chrome extension relay is running, but no tab is connected"
 
-Voce esta usando o perfil `chrome` (extension relay). Ele espera que a extensao de navegador do OpenClaw esteja anexada a uma aba ativa.
+Você está usando o perfil `chrome` (relay de extensão). Ele espera que a extensão de navegador do OpenClaw esteja anexada a uma aba ativa.
 
-Opcoes de correcao:
+Opções de correção:
 
 1. **Use o navegador gerenciado:** `openclaw browser start --browser-profile openclaw`
    (ou defina `browser.defaultProfile: "openclaw"`).
-2. **Use o extension relay:** instale a extensao, abra uma aba e clique no icone da extensao do OpenClaw para anexar.
+2. **Use o relay de extensão:** instale a extensão, abra uma aba e clique no
+   ícone da extensão OpenClaw para anexá-la.
 
-Observacoes:
+Notas:
 
-- O perfil `chrome` usa o **navegador Chromium padrao do sistema** quando possivel.
+- O perfil `chrome` usa o **navegador Chromium padrão do sistema** quando possível.
 - Perfis locais `openclaw` atribuem automaticamente `cdpPort`/`cdpUrl`; defina-os apenas para CDP remoto.

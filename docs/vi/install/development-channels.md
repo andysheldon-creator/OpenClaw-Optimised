@@ -1,32 +1,32 @@
 ---
 summary: "Các kênh stable, beta và dev: ngữ nghĩa, chuyển đổi và gắn thẻ"
 read_when:
-  - Bạn muốn chuyển giữa stable/beta/dev
-  - Bạn đang gắn thẻ hoặc phát hành bản prerelease
-title: "Kênh Phát Triển"
+  - "Bạn muốn chuyển giữa stable/beta/dev"
+  - "Bạn đang gắn thẻ hoặc phát hành prerelease"
+title: "Các kênh phát triển"
 x-i18n:
   source_path: install/development-channels.md
   source_hash: 2b01219b7e705044
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:25Z
+  generated_at: 2026-02-08T09:39:16Z
 ---
 
-# Kênh phát triển
+# Các kênh phát triển
 
 Cập nhật lần cuối: 2026-01-21
 
 OpenClaw cung cấp ba kênh cập nhật:
 
 - **stable**: npm dist-tag `latest`.
-- **beta**: npm dist-tag `beta` (các bản build đang được kiểm thử).
-- **dev**: head di động của `main` (git). npm dist-tag: `dev` (khi được phát hành).
+- **beta**: npm dist-tag `beta` (các bản build đang được thử nghiệm).
+- **dev**: đầu nhánh luôn thay đổi của `main` (git). npm dist-tag: `dev` (khi được phát hành).
 
-Chúng tôi đưa các bản build lên **beta**, kiểm thử chúng, sau đó **thăng cấp một bản build đã được thẩm định lên `latest`**
-mà không thay đổi số phiên bản — dist-tag là nguồn sự thật cho các cài đặt npm.
+Chúng tôi phát hành các bản build lên **beta**, kiểm thử chúng, sau đó **thăng cấp một bản build đã được thẩm định lên `latest`**
+mà không thay đổi số phiên bản — dist-tag là nguồn chân lý cho các cài đặt npm.
 
-## Chuyển kênh
+## Chuyển đổi kênh
 
 Git checkout:
 
@@ -36,10 +36,10 @@ openclaw update --channel beta
 openclaw update --channel dev
 ```
 
-- `stable`/`beta` checkout thẻ khớp mới nhất (thường là cùng một thẻ).
-- `dev` chuyển sang `main` và rebase lên upstream.
+- `stable`/`beta` checkout thẻ phù hợp mới nhất (thường là cùng một thẻ).
+- `dev` chuyển sang `main` và rebase theo upstream.
 
-Cài đặt npm/pnpm toàn cục:
+Cài đặt toàn cục bằng npm/pnpm:
 
 ```bash
 openclaw update --channel stable
@@ -47,16 +47,16 @@ openclaw update --channel beta
 openclaw update --channel dev
 ```
 
-Cách này cập nhật theo dist-tag npm tương ứng (`latest`, `beta`, `dev`).
+Thao tác này cập nhật thông qua npm dist-tag tương ứng (`latest`, `beta`, `dev`).
 
 Khi bạn **chủ động** chuyển kênh bằng `--channel`, OpenClaw cũng căn chỉnh
 phương thức cài đặt:
 
-- `dev` đảm bảo một git checkout (mặc định `~/openclaw`, ghi đè bằng `OPENCLAW_GIT_DIR`),
+- `dev` đảm bảo một git checkout (mặc định `~/openclaw`, có thể ghi đè bằng `OPENCLAW_GIT_DIR`),
   cập nhật nó và cài đặt CLI toàn cục từ checkout đó.
 - `stable`/`beta` cài đặt từ npm bằng dist-tag tương ứng.
 
-Mẹo: nếu bạn muốn dùng stable + dev song song, hãy giữ hai bản clone và trỏ Gateway của bạn tới bản stable.
+Mẹo: nếu bạn muốn dùng song song stable + dev, hãy giữ hai bản clone và trỏ gateway của bạn tới bản stable.
 
 ## Plugin và kênh
 
@@ -67,16 +67,16 @@ Khi bạn chuyển kênh bằng `openclaw update`, OpenClaw cũng đồng bộ n
 
 ## Thực hành tốt nhất khi gắn thẻ
 
-- Gắn thẻ các bản phát hành mà bạn muốn git checkout dừng lại (`vYYYY.M.D` hoặc `vYYYY.M.D-<patch>`).
+- Gắn thẻ các bản phát hành mà bạn muốn git checkout trỏ tới (`vYYYY.M.D` hoặc `vYYYY.M.D-<patch>`).
 - Giữ thẻ bất biến: không bao giờ di chuyển hoặc tái sử dụng một thẻ.
-- npm dist-tag vẫn là nguồn sự thật cho các cài đặt npm:
+- npm dist-tag vẫn là nguồn chân lý cho các cài đặt npm:
   - `latest` → stable
   - `beta` → bản build ứng viên
-  - `dev` → snapshot của main (tùy chọn)
+  - `dev` → ảnh chụp main (tùy chọn)
 
-## Tính khả dụng của ứng dụng macOS
+## Khả dụng của ứng dụng macOS
 
 Các bản build beta và dev có thể **không** bao gồm bản phát hành ứng dụng macOS. Điều đó là bình thường:
 
-- Thẻ git và npm dist-tag vẫn có thể được phát hành.
-- Nêu rõ “không có bản build macOS cho beta này” trong ghi chú phát hành hoặc changelog.
+- Git tag và npm dist-tag vẫn có thể được phát hành.
+- Nêu rõ “không có bản build macOS cho bản beta này” trong ghi chú phát hành hoặc changelog.

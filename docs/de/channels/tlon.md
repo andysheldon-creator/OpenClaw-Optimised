@@ -1,48 +1,45 @@
 ---
-summary: "Tlon/Urbit-Unterstützungsstatus, Funktionen und Konfiguration"
+summary: "Tlon/Urbit‑Unterstützungsstatus, Fähigkeiten und Konfiguration"
 read_when:
-  - Arbeiten an Tlon/Urbit-Kanalfunktionen
+  - Arbeiten an Tlon/Urbit‑Kanalfunktionen
 title: "Tlon"
 x-i18n:
   source_path: channels/tlon.md
-  source_hash: 19d7ffe23e82239f
+  source_hash: 85fd29cda05b4563
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:28Z
+  generated_at: 2026-02-08T09:35:18Z
 ---
 
 # Tlon (Plugin)
 
-Tlon ist ein dezentraler Messenger auf Basis von Urbit. OpenClaw verbindet sich mit Ihrem Urbit-Ship und kann
-auf Direktnachrichten und Gruppenchat-Nachrichten reagieren. Gruppenantworten erfordern standardmäßig eine @‑Erwähnung und können
-über Allowlisten weiter eingeschränkt werden.
+Tlon ist ein dezentraler Messenger, der auf Urbit basiert. OpenClaw verbindet sich mit Ihrem Urbit‑Ship und kann auf Direktnachrichten sowie Gruppenchat‑Nachrichten reagieren. Gruppenantworten erfordern standardmäßig eine @‑Erwähnung und können zusätzlich über Allowlists eingeschränkt werden.
 
-Status: über Plugin unterstützt. Direktnachrichten, Gruppen-Erwähnungen, Thread-Antworten und textbasierter Medien‑Fallback
-(URL an die Beschriftung angehängt). Reaktionen, Umfragen und native Medien-Uploads werden nicht unterstützt.
+Status: unterstützt über Plugin. Direktnachrichten, Gruppenerwähnungen, Thread‑Antworten und textbasierter Medien‑Fallback (URL an die Beschriftung angehängt). Reaktionen, Umfragen und native Medien‑Uploads werden nicht unterstützt.
 
 ## Plugin erforderlich
 
-Tlon wird als Plugin ausgeliefert und ist nicht im Core-Install enthalten.
+Tlon wird als Plugin bereitgestellt und ist nicht im Core‑Installationspaket enthalten.
 
-Installation über CLI (npm-Registry):
+Installation über die CLI (npm‑Registry):
 
 ```bash
 openclaw plugins install @openclaw/tlon
 ```
 
-Lokaler Checkout (bei Ausführung aus einem Git-Repository):
+Lokaler Checkout (bei Ausführung aus einem Git‑Repository):
 
 ```bash
 openclaw plugins install ./extensions/tlon
 ```
 
-Details: [Plugins](/plugin)
+Details: [Plugins](/tools/plugin)
 
-## Einrichtung
+## Setup
 
-1. Installieren Sie das Tlon-Plugin.
-2. Erfassen Sie die URL Ihres Ships und den Login-Code.
+1. Installieren Sie das Tlon‑Plugin.
+2. Erfassen Sie Ihre Ship‑URL und den Login‑Code.
 3. Konfigurieren Sie `channels.tlon`.
 4. Starten Sie das Gateway neu.
 5. Senden Sie dem Bot eine Direktnachricht oder erwähnen Sie ihn in einem Gruppenkanal.
@@ -64,7 +61,7 @@ Minimale Konfiguration (einzelnes Konto):
 
 ## Gruppenkanäle
 
-Automatische Erkennung ist standardmäßig aktiviert. Sie können Kanäle auch manuell anheften:
+Auto‑Discovery ist standardmäßig aktiviert. Sie können Kanäle auch manuell anheften:
 
 ```json5
 {
@@ -76,7 +73,7 @@ Automatische Erkennung ist standardmäßig aktiviert. Sie können Kanäle auch m
 }
 ```
 
-Automatische Erkennung deaktivieren:
+Auto‑Discovery deaktivieren:
 
 ```json5
 {
@@ -90,7 +87,7 @@ Automatische Erkennung deaktivieren:
 
 ## Zugriffskontrolle
 
-Direktnachrichten-Allowlist (leer = alle zulassen):
+DM‑Allowlist (leer = alle erlauben):
 
 ```json5
 {
@@ -125,15 +122,15 @@ Gruppenautorisierung (standardmäßig eingeschränkt):
 }
 ```
 
-## Zustellziele (CLI/Cron)
+## Zustellungsziele (CLI/Cron)
 
-Verwenden Sie diese mit `openclaw message send` oder der Cron-Zustellung:
+Verwenden Sie diese mit `openclaw message send` oder für die Zustellung per Cron:
 
-- Direktnachricht: `~sampel-palnet` oder `dm/~sampel-palnet`
+- DM: `~sampel-palnet` oder `dm/~sampel-palnet`
 - Gruppe: `chat/~host-ship/channel` oder `group:~host-ship/channel`
 
 ## Hinweise
 
 - Gruppenantworten erfordern eine Erwähnung (z. B. `~your-bot-ship`), um zu antworten.
-- Thread-Antworten: Befindet sich die eingehende Nachricht in einem Thread, antwortet OpenClaw im Thread.
+- Thread‑Antworten: Befindet sich die eingehende Nachricht in einem Thread, antwortet OpenClaw im Thread.
 - Medien: `sendMedia` fällt auf Text + URL zurück (kein nativer Upload).

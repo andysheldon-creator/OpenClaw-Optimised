@@ -1,28 +1,28 @@
 ---
-summary: "Tong quan ho tro nen tang (Gateway + ung dung dong hanh)"
+summary: "Tổng quan hỗ trợ nền tảng (Gateway + ứng dụng đồng hành)"
 read_when:
-  - Dang tim ho tro he dieu hanh hoac duong dan cai dat
-  - Dang quyet dinh noi chay Gateway
-title: "Nen tang"
+  - Tìm hỗ trợ hệ điều hành hoặc đường dẫn cài đặt
+  - Quyết định nơi chạy Gateway
+title: "Nền tảng"
 x-i18n:
   source_path: platforms/index.md
   source_hash: 959479995f9ecca3
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:47Z
+  generated_at: 2026-02-08T09:39:31Z
 ---
 
-# Nen tang
+# Nền tảng
 
-OpenClaw core duoc viet bang TypeScript. **Node la runtime duoc khuyen nghi**.
-Bun khong duoc khuyen nghi cho Gateway (loi WhatsApp/Telegram).
+Lõi OpenClaw được viết bằng TypeScript. **Node là runtime được khuyến nghị**.
+Bun không được khuyến nghị cho Gateway (lỗi WhatsApp/Telegram).
 
-Ung dung dong hanh ton tai tren macOS (ung dung thanh menu) va cac node di dong (iOS/Android). Windows va
-Linux se co ung dung dong hanh trong tuong lai, nhung Gateway da duoc ho tro day du ngay hom nay.
-Ung dung dong hanh native cho Windows cung dang duoc len ke hoach; khuyen nghi chay Gateway qua WSL2.
+Ứng dụng đồng hành có sẵn cho macOS (ứng dụng thanh menu) và các node di động (iOS/Android). Ứng dụng đồng hành cho Windows và
+Linux đang được lên kế hoạch, nhưng Gateway hiện đã được hỗ trợ đầy đủ.
+Ứng dụng đồng hành native cho Windows cũng đang được lên kế hoạch; khuyến nghị chạy Gateway qua WSL2.
 
-## Chon he dieu hanh
+## Chọn hệ điều hành của bạn
 
 - macOS: [macOS](/platforms/macos)
 - iOS: [iOS](/platforms/ios)
@@ -38,23 +38,23 @@ Ung dung dong hanh native cho Windows cung dang duoc len ke hoach; khuyen nghi c
 - GCP (Compute Engine): [GCP](/install/gcp)
 - exe.dev (VM + HTTPS proxy): [exe.dev](/install/exe-dev)
 
-## Lien ket pho bien
+## Liên kết thường dùng
 
-- Huong dan cai dat: [Bat Dau](/start/getting-started)
-- So tay van hanh Gateway: [Gateway](/gateway)
-- Cau hinh Gateway: [Configuration](/gateway/configuration)
-- Trang thai dich vu: `openclaw gateway status`
+- Hướng dẫn cài đặt: [Bắt đầu](/start/getting-started)
+- Runbook Gateway: [Gateway](/gateway)
+- Cấu hình Gateway: [Cấu hình](/gateway/configuration)
+- Trạng thái dịch vụ: `openclaw gateway status`
 
-## Cai dat dich vu Gateway (CLI)
+## Cài đặt dịch vụ Gateway (CLI)
 
-Su dung mot trong cac cach sau (tat ca deu duoc ho tro):
+Sử dụng một trong các cách sau (đều được hỗ trợ):
 
-- Trinh huong dan (khuyen nghi): `openclaw onboard --install-daemon`
-- Truc tiep: `openclaw gateway install`
-- Cau hinh luong: `openclaw configure` → chon **Gateway service**
-- Sua chua/di chuyen: `openclaw doctor` (de xuat cai dat hoac sua dich vu)
+- Trình hướng dẫn (khuyến nghị): `openclaw onboard --install-daemon`
+- Trực tiếp: `openclaw gateway install`
+- Luồng cấu hình: `openclaw configure` → chọn **Gateway service**
+- Sửa chữa/di chuyển: `openclaw doctor` (đề xuất cài đặt hoặc sửa dịch vụ)
 
-Dich vu dich phu thuoc vao he dieu hanh:
+Đích dịch vụ phụ thuộc vào hệ điều hành:
 
-- macOS: LaunchAgent (`bot.molt.gateway` hoac `bot.molt.<profile>`; cu `com.openclaw.*`)
+- macOS: LaunchAgent (`bot.molt.gateway` hoặc `bot.molt.<profile>`; legacy `com.openclaw.*`)
 - Linux/WSL2: systemd user service (`openclaw-gateway[-<profile>].service`)

@@ -1,39 +1,41 @@
 ---
-summary: "Gateway（ゲートウェイ）スケジューラー向けの Cron ジョブ + ウェイクアップ"
+summary: "Gateway スケジューラ向けの Cron ジョブとウェイクアップ"
 read_when:
-  - バックグラウンドジョブまたはウェイクアップをスケジューリングする場合
-  - ハートビートと一緒に、またはハートビートに沿って実行すべき自動化を配線する場合
-  - スケジュールされたタスクでハートビートと Cron のどちらにするかを決める場合
+  - バックグラウンドジョブやウェイクアップのスケジューリングを行うとき
+  - ハートビートと併用、または連動して実行すべき自動化を組み込むとき
+  - スケジュールされたタスクで heartbeat と cron のどちらを使うか判断するとき
 title: "Cron ジョブ"
 x-i18n:
   source_path: automation/cron-jobs.md
-  source_hash: 523721a7da2c4e27
+  source_hash: d2f7bd6c542034b1
   provider: openai
-  model: gpt-5.2-pro
+  model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-06T04:42:35Z
+  generated_at: 2026-02-08T09:21:18Z
 ---
 
-# Cron ジョブ（Gateway（ゲートウェイ）スケジューラー）
+# Cron ジョブ（Gateway スケジューラ）
 
-> **Cron と Heartbeat のどちらですか？** 使い分けの指針は、[Cron vs Heartbeat](/automation/cron-vs-heartbeat) を参照してください。
+> **Cron と Heartbeat の違いは？** それぞれの使い分けについては、[Cron vs Heartbeat](/automation/cron-vs-heartbeat) を参照してください。
 
-Cron は Gateway（ゲートウェイ）組み込みのスケジューラーです。ジョブを永続化し、適切なタイミングでエージェントを起こし、必要に応じて出力をチャットへ返すこともできます。
+Cron は Gateway に組み込まれたスケジューラです。ジョブを永続化し、適切なタイミングでエージェントを起動し、必要に応じて出力をチャットに配信できます。
 
-「毎朝これを実行する」や「20 分後にエージェントを突く」といった用途では、cron がその仕組みです。
+「**毎朝これを実行する**」や「**20 分後にエージェントを起こす**」といった用途には、cron が適しています。
+
+トラブルシューティング: [/automation/troubleshooting](/automation/troubleshooting)
 
 ## TL;DR
 
-- Cron は **Gateway（ゲートウェイ）内**（モデル内ではありません）で動作します。
-- ジョブは `~/.openclaw/cron/` 配下に永続化されるため、再起動してもスケジュールが失われません。
-- 実行スタイルは 2 種類です:
-  - **メインセッション**: システムイベントをキューに投入し、その後の次のハートビートで実行します。
-  - **分離**: `cron:<jobId>` で専用のエージェントターンを実行し、配信（既定では announce、または none）します。
-- ウェイクアップは第一級です: ジョブは「今すぐ起こす」か「次のハートビート」を要求できます。
+- Cron は **Gateway の内部で実行** されます（モデル内部ではありません）。
+- ジョブは `~/.openclaw/cron/` の配下に永続化されるため、再起動してもスケジュールは失われません。
+- 実行スタイルは 2 種類あります:
+  - **メインセッション**: システムイベントをキューに入れ、次のハートビートで実行します。
+  - **分離実行**: `cron:<jobId>` で専用のエージェントターンを実行し、配信（デフォルトは通知、またはなし）を行います。
+- ウェイクアップは第一級の機能です。ジョブは「今すぐ起こす」か「次のハートビート」を指定できます。
 
-## クイックスタート（実行可能）
+## クイックスタート（実践）
 
-ワンショットのリマインダーを作成し、存在を確認して、即時実行します:
+単発のリマインダーを作成し、存在を確認して、すぐに実行します:
 
 ```bash
 openclaw cron add \
@@ -45,11 +47,11 @@ openclaw cron add \
   --delete-after-run
 
 openclaw cron list
-openclaw cron run <job-id> --force
+openclaw cron run <job-id>
 openclaw cron runs --id <job-id>
 ```
 
-配信付きの繰り返し分離ジョブをスケジュールします:
+配信付きの分離実行の定期ジョブをスケジュールします:
 
 ```bash
 openclaw cron add \
@@ -63,180 +65,182 @@ openclaw cron add \
   --to "channel:C1234567890"
 ```
 
-## ツール呼び出しの等価（Gateway（ゲートウェイ）の cron ツール）
+## ツールコール相当（Gateway cron ツール）
 
-正規の JSON 形状と例については、[ツール呼び出しの JSON スキーマ](/automation/cron-jobs#json-schema-for-tool-calls) を参照してください。
+正規の JSON 形状と例については、[ツールコール用 JSON スキーマ](/automation/cron-jobs#json-schema-for-tool-calls) を参照してください。
 
-## cron ジョブの保存先
+## cron ジョブの保存場所
 
-cron ジョブは、既定では Gateway（ゲートウェイ）ホスト上の `~/.openclaw/cron/jobs.json` に永続化されます。
-Gateway（ゲートウェイ）はファイルをメモリに読み込み、変更時に書き戻すため、手動編集が安全なのは Gateway（ゲートウェイ）が停止しているときのみです。変更には `openclaw cron add/edit` または cron ツール呼び出し API を推奨します。
+Cron ジョブは、デフォルトで Gateway ホスト上の `~/.openclaw/cron/jobs.json` に永続化されます。
+Gateway はこのファイルをメモリに読み込み、変更時に書き戻します。そのため、手動編集は Gateway が停止している場合にのみ安全です。変更には `openclaw cron add/edit` または cron ツールコール API の使用を推奨します。
 
-## 初心者向けの概要
+## 初心者向け概要
 
-cron ジョブは、**いつ** 実行するか + **何** を行うか、と考えてください。
+cron ジョブは、**いつ** 実行するか + **何を** 実行するか、という考え方です。
 
 1. **スケジュールを選ぶ**
-   - ワンショットのリマインダー → `schedule.kind = "at"`（CLI: `--at`）
+   - 単発リマインダー → `schedule.kind = "at"`（CLI: `--at`）
    - 繰り返しジョブ → `schedule.kind = "every"` または `schedule.kind = "cron"`
-   - ISO タイムスタンプがタイムゾーンを省略している場合、**UTC** として扱われます。
+   - ISO タイムスタンプにタイムゾーンが含まれない場合、**UTC** として扱われます。
 
-2. **どこで実行するかを選ぶ**
-   - `sessionTarget: "main"` → メインコンテキストで次のハートビート中に実行します。
+2. **実行場所を選ぶ**
+   - `sessionTarget: "main"` → 次のハートビートでメインコンテキストとして実行します。
    - `sessionTarget: "isolated"` → `cron:<jobId>` で専用のエージェントターンを実行します。
 
 3. **ペイロードを選ぶ**
    - メインセッション → `payload.kind = "systemEvent"`
    - 分離セッション → `payload.kind = "agentTurn"`
 
-任意: ワンショットジョブ（`schedule.kind = "at"`）は、既定では成功後に削除されます。保持するには `deleteAfterRun: false` を設定してください（成功後に無効化されます）。
+任意: 単発ジョブ（`schedule.kind = "at"`）は、デフォルトで成功後に削除されます。保持したい場合は `deleteAfterRun: false` を設定してください（成功後は無効化されます）。
 
 ## 概念
 
 ### ジョブ
 
-cron ジョブは次を持つ保存レコードです:
+cron ジョブは、次の情報を持つ保存レコードです:
 
-- **スケジュール**（いつ実行すべきか）
-- **ペイロード**（何をすべきか）
-- 任意の **配信モード**（announce または none）
-- 任意の **エージェントバインディング**（`agentId`）: 特定のエージェントの下でジョブを実行します。未指定または不明な場合、ゲートウェイは既定のエージェントにフォールバックします。
+- **スケジュール**（いつ実行するか）
+- **ペイロード**（何を実行するか）
+- 任意の **配信モード**（通知またはなし）
+- 任意の **エージェントバインディング**（`agentId`）: 特定のエージェントでジョブを実行します。指定がない、または不明な場合は、Gateway がデフォルトのエージェントにフォールバックします。
 
-ジョブは安定した `jobId`（CLI/Gateway（ゲートウェイ）API で使用）で識別されます。
-エージェントのツール呼び出しでは `jobId` が正規であり、互換性のためにレガシーの `id` も受け付けます。
-ワンショットジョブは既定で成功後に自動削除されます。保持するには `deleteAfterRun: false` を設定してください。
+ジョブは安定した `jobId` で識別されます（CLI / Gateway API で使用）。
+エージェントのツールコールでは `jobId` が正規であり、互換性のために旧 `id` も受け付けます。
+単発ジョブはデフォルトで成功後に自動削除されます。保持するには `deleteAfterRun: false` を設定してください。
 
 ### スケジュール
 
-cron は 3 種類のスケジュールをサポートします:
+Cron は 3 種類のスケジュールをサポートします:
 
-- `at`: `schedule.at`（ISO 8601）によるワンショットのタイムスタンプ
-- `every`: 固定間隔（ms）
-- `cron`: IANA タイムゾーン（任意）付きの 5 フィールド cron 式
+- `at`: `schedule.at`（ISO 8601）による単発タイムスタンプ
+- `every`: 固定間隔（ミリ秒）
+- `cron`: オプションの IANA タイムゾーン付き 5 フィールドの cron 式
 
-cron 式は `croner` を使用します。タイムゾーンが省略された場合は、Gateway（ゲートウェイ）ホストのローカルタイムゾーンが使用されます。
+cron 式は `croner` を使用します。タイムゾーンが省略された場合は、Gateway ホストのローカルタイムゾーンが使用されます。
 
 ### メイン実行と分離実行
 
 #### メインセッションジョブ（システムイベント）
 
-メインジョブはシステムイベントをキューに投入し、必要に応じてハートビートランナーを起こします。
+メインジョブはシステムイベントをキューに入れ、必要に応じてハートビートランナーを起動します。
 `payload.kind = "systemEvent"` を使用する必要があります。
 
-- `wakeMode: "next-heartbeat"`（既定）: イベントは次のスケジュールされたハートビートを待ちます。
-- `wakeMode: "now"`: イベントは即時のハートビート実行をトリガーします。
+- `wakeMode: "now"`（デフォルト）: イベントは即座にハートビート実行をトリガーします。
+- `wakeMode: "next-heartbeat"`: イベントは次に予定されたハートビートまで待機します。
 
-通常のハートビートプロンプト + メインセッションコンテキストが欲しい場合に最適です。
-[Heartbeat](/gateway/heartbeat) も参照してください。
+通常のハートビートプロンプトとメインセッションのコンテキストを使いたい場合に最適です。
+[Heartbeat](/gateway/heartbeat) を参照してください。
 
-#### 分離ジョブ（専用の cron セッション）
+#### 分離ジョブ（専用 cron セッション）
 
 分離ジョブは、セッション `cron:<jobId>` で専用のエージェントターンを実行します。
 
 主な挙動:
 
-- 追跡可能性のため、プロンプトの先頭に `[cron:<jobId> <job name>]` が付与されます。
-- 各実行は **新しいセッション id**（過去の会話の持ち越しなし）で開始します。
-- 既定の挙動: `delivery` が省略されると、分離ジョブは要約を announce します（`delivery.mode = "announce"`）。
-- `delivery.mode`（分離専用）が挙動を選択します:
-  - `announce`: 対象チャンネルへ要約を配信し、メインセッションにも短い要約を投稿します。
-  - `none`: 内部のみ（配信なし、メインセッション要約なし）。
-- `wakeMode` は、メインセッション要約が投稿されるタイミングを制御します:
-  - `now`: 即時のハートビート。
-  - `next-heartbeat`: 次のスケジュールされたハートビートを待ちます。
+- プロンプトはトレーサビリティのために `[cron:<jobId> <job name>]` が前置されます。
+- 各実行は **新しいセッション ID** で開始されます（過去の会話は引き継がれません）。
+- デフォルトの挙動: `delivery` が省略された場合、分離ジョブはサマリーを通知します（`delivery.mode = "announce"`）。
+- `delivery.mode`（分離専用）で挙動を選択します:
+  - `announce`: 対象チャンネルにサマリーを配信し、メインセッションにも簡潔なサマリーを投稿します。
+  - `none`: 内部のみ（配信なし、メインセッションのサマリーなし）。
+- `wakeMode` は、メインセッションへのサマリー投稿タイミングを制御します:
+  - `now`: 即時ハートビート。
+  - `next-heartbeat`: 次に予定されたハートビートまで待機。
 
-メインのチャット履歴をスパムしたくない、ノイジーで頻繁な処理や「バックグラウンドの雑務」には分離ジョブを使用してください。
+メインのチャット履歴を汚したくない、ノイズが多い・高頻度な「バックグラウンド作業」には、分離ジョブを使用してください。
 
-### ペイロード形状（実行されるもの）
+### ペイロード形状（実行内容）
 
 サポートされるペイロードは 2 種類です:
 
-- `systemEvent`: メインセッション専用で、ハートビートプロンプト経由でルーティングされます。
-- `agentTurn`: 分離セッション専用で、専用のエージェントターンを実行します。
+- `systemEvent`: メインセッション専用。ハートビートプロンプト経由でルーティングされます。
+- `agentTurn`: 分離セッション専用。専用のエージェントターンを実行します。
 
 共通の `agentTurn` フィールド:
 
 - `message`: 必須のテキストプロンプト
-- `model` / `thinking`: 任意の上書き（下記参照）
+- `model` / `thinking`: 任意の上書き設定（後述）
 - `timeoutSeconds`: 任意のタイムアウト上書き
 
 配信設定（分離ジョブのみ）:
 
-- `delivery.mode`: `none` | `announce`。
-- `delivery.channel`: `last` または特定のチャンネル。
-- `delivery.to`: チャンネル固有の対象（phone/chat/channel id）。
-- `delivery.bestEffort`: announce 配信が失敗してもジョブを失敗扱いにしない。
+- `delivery.mode`: `none` | `announce`
+- `delivery.channel`: `last` または特定のチャンネル
+- `delivery.to`: チャンネル固有のターゲット（電話 / チャット / チャンネル ID）
+- `delivery.bestEffort`: 通知配信が失敗してもジョブを失敗扱いにしない
 
-announce 配信は、その実行でのメッセージングツール送信を抑止します。代わりに `delivery.channel`/`delivery.to` を使用してチャットをターゲットにしてください。`delivery.mode = "none"` の場合、メインセッションへ要約は投稿されません。
+通知配信では、その実行中のメッセージングツール送信が抑制されます。チャットを直接ターゲットにする場合は `delivery.channel` / `delivery.to` を使用してください。`delivery.mode = "none"` の場合、メインセッションへのサマリーは投稿されません。
 
-分離ジョブで `delivery` が省略された場合、OpenClaw は既定で `announce` を使用します。
+分離ジョブで `delivery` が省略された場合、OpenClaw はデフォルトで `announce` を使用します。
 
-#### announce 配信フロー
+#### 通知配信フロー
 
-`delivery.mode = "announce"` の場合、cron はアウトバウンドのチャンネルアダプター経由で直接配信します。
-メインエージェントは、メッセージの作成や転送のために起動されません。
+`delivery.mode = "announce"` の場合、cron はアウトバウンドチャンネルアダプターを介して直接配信します。
+メインエージェントはメッセージの作成や転送のために起動されません。
 
 挙動の詳細:
 
-- コンテンツ: 配信は、分離実行のアウトバウンドペイロード（テキスト/メディア）を、通常のチャンク分割とチャンネル整形で使用します。
-- ハートビートのみの応答（実質的なコンテンツがない `HEARTBEAT_OK`）は配信されません。
-- 分離実行がメッセージツール経由で同じターゲットに既に送信している場合、重複を避けるため配信はスキップされます。
-- 配信ターゲットの欠落または不正は、`delivery.bestEffort = true` でない限りジョブを失敗させます。
-- メインセッションへの短い要約は、`delivery.mode = "announce"` の場合にのみ投稿されます。
-- メインセッション要約は `wakeMode` を尊重します: `now` は即時のハートビートをトリガーし、`next-heartbeat` は次のスケジュールされたハートビートを待ちます。
+- 内容: 配信は、分離実行のアウトバウンドペイロード（テキスト / メディア）を通常の分割とチャンネル整形で使用します。
+- ハートビート専用の応答（実体のある内容を伴わない `HEARTBEAT_OK`）は配信されません。
+- 分離実行がすでに同一ターゲットへメッセージツールで送信している場合、重複回避のため配信はスキップされます。
+- 配信ターゲットが欠落または無効な場合、`delivery.bestEffort = true` がない限りジョブは失敗します。
+- 短いサマリーは、`delivery.mode = "announce"` の場合にのみメインセッションへ投稿されます。
+- メインセッションのサマリーは `wakeMode` に従います。`now` は即時ハートビート、`next-heartbeat` は次に予定されたハートビートを待機します。
 
-### モデルおよび thinking の上書き
+### モデルおよび思考レベルの上書き
 
-分離ジョブ（`agentTurn`）では、モデルと thinking レベルを上書きできます:
+分離ジョブ（`agentTurn`）では、モデルと思考レベルを上書きできます:
 
-- `model`: プロバイダー/モデル文字列（例: `anthropic/claude-sonnet-4-20250514`）またはエイリアス（例: `opus`）
-- `thinking`: Thinking レベル（`off`、`minimal`、`low`、`medium`、`high`、`xhigh`; GPT-5.2 + Codex モデルのみ）
+- `model`: プロバイダー / モデル文字列（例: `anthropic/claude-sonnet-4-20250514`）またはエイリアス（例: `opus`）
+- `thinking`: 思考レベル（`off`, `minimal`, `low`, `medium`, `high`, `xhigh`; GPT-5.2 + Codex モデルのみ）
 
-注: メインセッションジョブでも `model` を設定できますが、共有のメインセッションモデルが変更されます。予期しないコンテキストの変化を避けるため、モデル上書きは分離ジョブにのみ使用することを推奨します。
+注記: メインセッションジョブでも `model` を設定できますが、共有されているメインセッションのモデルが変更されます。予期しないコンテキスト変更を避けるため、モデルの上書きは分離ジョブでのみ行うことを推奨します。
 
-解決の優先順位:
+解決優先順位:
 
-1. ジョブペイロード上書き（最優先）
-2. フック固有の既定（例: `hooks.gmail.model`）
-3. エージェント設定の既定
+1. ジョブペイロードの上書き（最優先）
+2. フック固有のデフォルト（例: `hooks.gmail.model`）
+3. エージェント設定のデフォルト
 
 ### 配信（チャンネル + ターゲット）
 
-分離ジョブは、トップレベルの `delivery` 設定により、チャンネルへ出力を配信できます:
+分離ジョブは、トップレベルの `delivery` 設定を通じてチャンネルに出力を配信できます:
 
-- `delivery.mode`: `announce`（要約を配信）または `none`。
-- `delivery.channel`: `whatsapp` / `telegram` / `discord` / `slack` / `mattermost`（plugin） / `signal` / `imessage` / `last`。
-- `delivery.to`: チャンネル固有の受信者ターゲット。
+- `delivery.mode`: `announce`（サマリーを配信）または `none`
+- `delivery.channel`: `whatsapp` / `telegram` / `discord` / `slack` / `mattermost`（プラグイン） / `signal` / `imessage` / `last`
+- `delivery.to`: チャンネル固有の受信者ターゲット
 
-配信設定は分離ジョブ（`sessionTarget: "isolated"`）でのみ有効です。
+配信設定は分離ジョブでのみ有効です（`sessionTarget: "isolated"`）。
 
-`delivery.channel` または `delivery.to` が省略された場合、cron はメインセッションの「last route」（エージェントが最後に返信した場所）へフォールバックできます。
+`delivery.channel` または `delivery.to` が省略された場合、cron はメインセッションの「最後のルート」（エージェントが最後に返信した場所）にフォールバックできます。
 
-ターゲット形式の注意:
+ターゲット形式の注意点:
 
-- Slack/Discord/Mattermost（plugin）のターゲットは、曖昧さを避けるため明示的な接頭辞（例: `channel:<id>`、`user:<id>`）を使用してください。
+- Slack / Discord / Mattermost（プラグイン）のターゲットは、曖昧さを避けるため明示的なプレフィックス（例: `channel:<id>`, `user:<id>`）を使用してください。
 - Telegram のトピックは `:topic:` 形式を使用してください（下記参照）。
 
 #### Telegram の配信ターゲット（トピック / フォーラムスレッド）
 
-Telegram は `message_thread_id` によりフォーラムトピックをサポートします。cron 配信では、トピック/スレッドを `to` フィールドにエンコードできます:
+Telegram は `message_thread_id` によるフォーラムトピックをサポートしています。cron 配信では、
+トピック / スレッドを `to` フィールドにエンコードできます:
 
-- `-1001234567890`（chat id のみ）
+- `-1001234567890`（チャット ID のみ）
 - `-1001234567890:topic:123`（推奨: 明示的なトピックマーカー）
 - `-1001234567890:123`（省略形: 数値サフィックス）
 
-`telegram:...` / `telegram:group:...` のような接頭辞付きターゲットも受け付けます:
+`telegram:...` / `telegram:group:...` のようなプレフィックス付きターゲットも受け付けられます:
 
 - `telegram:group:-1001234567890:topic:123`
 
-## ツール呼び出しの JSON スキーマ
+## ツールコール用 JSON スキーマ
 
-Gateway（ゲートウェイ）の `cron.*` ツールを直接呼び出す場合（エージェントのツール呼び出しまたは RPC）は、これらの形状を使用してください。
-CLI フラグは `20m` のような人間向けの duration を受け付けますが、ツール呼び出しでは `schedule.at` には ISO 8601 文字列を、`schedule.everyMs` にはミリ秒を使用してください。
+Gateway の `cron.*` ツールを直接呼び出す場合（エージェントのツールコールまたは RPC）は、以下の形状を使用してください。
+CLI フラグは `20m` のような人間可読な期間を受け付けますが、ツールコールでは
+`schedule.at` には ISO 8601 文字列、`schedule.everyMs` にはミリ秒を使用してください。
 
 ### cron.add params
 
-ワンショットのメインセッションジョブ（システムイベント）:
+単発・メインセッションジョブ（システムイベント）:
 
 ```json
 {
@@ -249,7 +253,7 @@ CLI フラグは `20m` のような人間向けの duration を受け付けま�
 }
 ```
 
-配信付きの繰り返し分離ジョブ:
+配信付き・定期・分離ジョブ:
 
 ```json
 {
@@ -272,13 +276,13 @@ CLI フラグは `20m` のような人間向けの duration を受け付けま�
 
 注記:
 
-- `schedule.kind`: `at`（`at`）、`every`（`everyMs`）、または `cron`（`expr`、任意の `tz`）。
-- `schedule.at` は ISO 8601 を受け付けます（タイムゾーンは任意。省略時は UTC として扱われます）。
+- `schedule.kind`: `at`（`at`）、`every`（`everyMs`）、または `cron`（`expr`、任意で `tz`）。
+- `schedule.at` は ISO 8601 を受け付けます（タイムゾーン省略可。省略時は UTC として扱われます）。
 - `everyMs` はミリ秒です。
 - `sessionTarget` は `"main"` または `"isolated"` でなければならず、`payload.kind` と一致する必要があります。
-- 任意フィールド: `agentId`、`description`、`enabled`、`deleteAfterRun`（`at` では既定で true）、
+- 任意フィールド: `agentId`, `description`, `enabled`, `deleteAfterRun`（`at` の場合はデフォルト true）,
   `delivery`。
-- `wakeMode` は省略時に `"next-heartbeat"` が既定になります。
+- `wakeMode` は省略時に `"now"` がデフォルトになります。
 
 ### cron.update params
 
@@ -294,10 +298,10 @@ CLI フラグは `20m` のような人間向けの duration を受け付けま�
 
 注記:
 
-- `jobId` が正規であり、互換性のために `id` も受け付けます。
-- エージェントバインディングをクリアするには、パッチ内で `agentId: null` を使用してください。
+- `jobId` が正規であり、互換性のため `id` も受け付けます。
+- エージェントバインディングを解除するには、パッチ内で `agentId: null` を使用してください。
 
-### cron.run と cron.remove params
+### cron.run および cron.remove params
 
 ```json
 { "jobId": "job-123", "mode": "force" }
@@ -307,11 +311,11 @@ CLI フラグは `20m` のような人間向けの duration を受け付けま�
 { "jobId": "job-123" }
 ```
 
-## ストレージ & 履歴
+## ストレージと履歴
 
-- ジョブストア: `~/.openclaw/cron/jobs.json`（Gateway（ゲートウェイ）管理の JSON）。
-- 実行履歴: `~/.openclaw/cron/runs/<jobId>.jsonl`（JSONL、自動で間引き）。
-- ストアパスの上書き: 設定内の `cron.store`。
+- ジョブストア: `~/.openclaw/cron/jobs.json`（Gateway 管理の JSON）
+- 実行履歴: `~/.openclaw/cron/runs/<jobId>.jsonl`（JSONL、自動的に剪定）
+- ストアパスの上書き: 設定で `cron.store`
 
 ## 設定
 
@@ -325,14 +329,14 @@ CLI フラグは `20m` のような人間向けの duration を受け付けま�
 }
 ```
 
-cron を完全に無効化します:
+cron を完全に無効化する:
 
-- `cron.enabled: false`（config）
-- `OPENCLAW_SKIP_CRON=1`（env）
+- `cron.enabled: false`（設定）
+- `OPENCLAW_SKIP_CRON=1`（環境変数）
 
 ## CLI クイックスタート
 
-ワンショットのリマインダー（UTC ISO、成功後に自動削除）:
+単発リマインダー（UTC ISO、成功後に自動削除）:
 
 ```bash
 openclaw cron add \
@@ -344,7 +348,7 @@ openclaw cron add \
   --delete-after-run
 ```
 
-ワンショットのリマインダー（メインセッション、即時に起床）:
+単発リマインダー（メインセッション、即時ウェイク）:
 
 ```bash
 openclaw cron add \
@@ -355,7 +359,7 @@ openclaw cron add \
   --wake now
 ```
 
-繰り返し分離ジョブ（WhatsApp へ announce）:
+定期・分離ジョブ（WhatsApp に通知）:
 
 ```bash
 openclaw cron add \
@@ -369,7 +373,7 @@ openclaw cron add \
   --to "+15551234567"
 ```
 
-繰り返し分離ジョブ（Telegram のトピックへ配信）:
+定期・分離ジョブ（Telegram のトピックに配信）:
 
 ```bash
 openclaw cron add \
@@ -383,7 +387,7 @@ openclaw cron add \
   --to "-1001234567890:topic:123"
 ```
 
-モデルと thinking の上書き付き分離ジョブ:
+モデルと思考レベルを上書きした分離ジョブ:
 
 ```bash
 openclaw cron add \
@@ -410,10 +414,11 @@ openclaw cron edit <jobId> --agent ops
 openclaw cron edit <jobId> --clear-agent
 ```
 
-手動実行（デバッグ）:
+手動実行（force がデフォルト。期限到来時のみ実行するには `--due` を使用）:
 
 ```bash
-openclaw cron run <jobId> --force
+openclaw cron run <jobId>
+openclaw cron run <jobId> --due
 ```
 
 既存ジョブの編集（フィールドをパッチ）:
@@ -431,27 +436,35 @@ openclaw cron edit <jobId> \
 openclaw cron runs --id <jobId> --limit 50
 ```
 
-ジョブを作成せずに即時システムイベント:
+ジョブを作成せずに即時システムイベントを実行:
 
 ```bash
 openclaw system event --mode now --text "Next heartbeat: check battery."
 ```
 
-## Gateway（ゲートウェイ）API サーフェス
+## Gateway API サーフェス
 
-- `cron.list`、`cron.status`、`cron.add`、`cron.update`、`cron.remove`
-- `cron.run`（force または due）、`cron.runs`
-  ジョブなしの即時システムイベントについては、[`openclaw system event`](/cli/system) を使用してください。
+- `cron.list`, `cron.status`, `cron.add`, `cron.update`, `cron.remove`
+- `cron.run`（force または due）, `cron.runs`
+  ジョブを作成せずに即時システムイベントを実行するには、[`openclaw system event`](/cli/system) を使用してください。
 
 ## トラブルシューティング
 
 ### 「何も実行されない」
 
-- cron が有効になっていることを確認してください: `cron.enabled` と `OPENCLAW_SKIP_CRON`。
-- Gateway（ゲートウェイ）が継続的に稼働していることを確認してください（cron は Gateway（ゲートウェイ）プロセス内で動作します）。
-- `cron` スケジュールの場合: タイムゾーン（`--tz`）とホストのタイムゾーンの差を確認してください。
+- cron が有効になっているか確認してください: `cron.enabled` と `OPENCLAW_SKIP_CRON`。
+- Gateway が継続的に稼働しているか確認してください（cron は Gateway プロセス内部で実行されます）。
+- `cron` スケジュールの場合、タイムゾーン（`--tz`）とホストのタイムゾーンを確認してください。
+
+### 定期ジョブが失敗後に遅延し続ける
+
+- OpenClaw は、連続エラー後の定期ジョブに対して指数バックオフの再試行を適用します:
+  30 秒、1 分、5 分、15 分、その後は 60 分間隔です。
+- 次に成功した実行後、バックオフは自動的にリセットされます。
+- 単発（`at`）ジョブは、終了状態（`ok`, `error`, または `skipped`）後に無効化され、再試行されません。
 
 ### Telegram が誤った場所に配信される
 
-- フォーラムトピックでは、明示的かつ曖昧さのない `-100…:topic:<id>` を使用してください。
-- ログや保存された「last route」ターゲットで `telegram:...` の接頭辞が見える場合でも、それは正常です。cron 配信はそれらを受け付け、トピック ID も正しく解析します。
+- フォーラムトピックの場合は、明示的で曖昧さのない `-100…:topic:<id>` を使用してください。
+- ログや保存された「最後のルート」ターゲットに `telegram:...` プレフィックスが表示される場合がありますが、これは正常です。
+  cron 配信はそれらを受け付け、トピック ID も正しく解析します。

@@ -1,39 +1,39 @@
 ---
-summary: 「Oracle Cloud（Always Free ARM）での OpenClaw」
+summary: "Oracle Cloud（Always Free ARM）上の OpenClaw"
 read_when:
   - Oracle Cloud で OpenClaw をセットアップする場合
   - OpenClaw 向けの低コスト VPS ホスティングを探している場合
-  - 小規模サーバーで 24/7 OpenClaw を動かしたい場合
-title: 「Oracle Cloud」
+  - 小規模サーバーで 24/7 OpenClaw を運用したい場合
+title: "Oracle Cloud"
 x-i18n:
   source_path: platforms/oracle.md
   source_hash: 8ec927ab5055c915
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:34:44Z
+  generated_at: 2026-02-08T09:22:56Z
 ---
 
-# Oracle Cloud（OCI）での OpenClaw
+# Oracle Cloud（OCI）上の OpenClaw
 
-## 目的
+## 目標
 
-Oracle Cloud の **Always Free** ARM ティア上で、永続的な OpenClaw Gateway（ゲートウェイ）を実行します。
+Oracle Cloud の **Always Free** ARM ティアで、永続的な OpenClaw Gateway（ゲートウェイ）を実行します。
 
-Oracle の無料ティアは OpenClaw に非常に適しています（特に、すでに OCI アカウントをお持ちの場合）が、いくつかのトレードオフがあります。
+Oracle の無料ティアは OpenClaw に適している場合があります（特にすでに OCI アカウントを持っている場合）が、いくつかのトレードオフがあります。
 
-- ARM アーキテクチャ（多くのものは動作しますが、一部のバイナリは x86 専用の場合があります）
+- ARM アーキテクチャ（多くは動作しますが、一部のバイナリは x86 専用の場合があります）
 - キャパシティやサインアップが不安定な場合があります
 
 ## コスト比較（2026 年）
 
-| プロバイダー | プラン          | スペック              | 月額  | 備考                              |
-| ------------ | --------------- | --------------------- | ----- | --------------------------------- |
-| Oracle Cloud | Always Free ARM | 最大 4 OCPU、24GB RAM | $0    | ARM、キャパシティ制限             |
-| Hetzner      | CX22            | 2 vCPU、4GB RAM       | 約 $4 | 最安の有料オプション              |
-| DigitalOcean | Basic           | 1 vCPU、1GB RAM       | $6    | 使いやすい UI、良質なドキュメント |
-| Vultr        | Cloud Compute   | 1 vCPU、1GB RAM       | $6    | 多くのロケーション                |
-| Linode       | Nanode          | 1 vCPU、1GB RAM       | $5    | 現在は Akamai の一部              |
+| プロバイダー | プラン          | スペック              | 月額  | 注記                        |
+| ------------ | --------------- | --------------------- | ----- | --------------------------- |
+| Oracle Cloud | Always Free ARM | 最大 4 OCPU、24GB RAM | $0    | ARM、容量制限あり           |
+| Hetzner      | CX22            | 2 vCPU、4GB RAM       | 約 $4 | 最安の有料オプション        |
+| DigitalOcean | Basic           | 1 vCPU、1GB RAM       | $6    | UI が簡単、良いドキュメント |
+| Vultr        | Cloud Compute   | 1 vCPU、1GB RAM       | $6    | ロケーションが豊富          |
+| Linode       | Nanode          | 1 vCPU、1GB RAM       | $5    | 現在は Akamai の一部        |
 
 ---
 
@@ -47,18 +47,18 @@ Oracle の無料ティアは OpenClaw に非常に適しています（特に、
 
 1. [Oracle Cloud Console](https://cloud.oracle.com/) にログインします
 2. **Compute → Instances → Create Instance** に移動します
-3. 以下を設定します。
+3. 次のように設定します。
    - **Name:** `openclaw`
    - **Image:** Ubuntu 24.04（aarch64）
    - **Shape:** `VM.Standard.A1.Flex`（Ampere ARM）
-   - **OCPUs:** 2（または最大 4）
-   - **Memory:** 12 GB（または最大 24 GB）
+   - **OCPUs:** 2（最大 4）
+   - **Memory:** 12 GB（最大 24 GB）
    - **Boot volume:** 50 GB（最大 200 GB まで無料）
    - **SSH key:** 公開鍵を追加
 4. **Create** をクリックします
 5. パブリック IP アドレスを控えておきます
 
-**ヒント:** 「Out of capacity」というエラーでインスタンス作成に失敗する場合は、別の可用性ドメインを試すか、時間をおいて再試行してください。無料ティアのキャパシティには制限があります。
+**Tip:** インスタンス作成時に「Out of capacity」と表示される場合は、別の可用性ドメインを試すか、後でもう一度試してください。無料ティアのキャパシティには制限があります。
 
 ## 2) 接続と更新
 
@@ -71,7 +71,7 @@ sudo apt update && sudo apt upgrade -y
 sudo apt install -y build-essential
 ```
 
-**注意:** 一部の依存関係を ARM でコンパイルするために、`build-essential` が必要です。
+**Note:** 一部の依存関係を ARM でコンパイルするために、`build-essential` が必要です。
 
 ## 3) ユーザーとホスト名の設定
 
@@ -95,13 +95,13 @@ sudo tailscale up --ssh --hostname=openclaw
 
 これにより Tailscale SSH が有効になり、tailnet 上の任意のデバイスから `ssh openclaw` 経由で接続できます。パブリック IP は不要です。
 
-確認:
+確認します。
 
 ```bash
 tailscale status
 ```
 
-**今後は Tailscale 経由で接続してください:** `ssh ubuntu@openclaw`（または Tailscale IP を使用します）。
+**以降は Tailscale 経由で接続します:** `ssh ubuntu@openclaw`（または Tailscale IP を使用してください）。
 
 ## 5) OpenClaw のインストール
 
@@ -110,13 +110,13 @@ curl -fsSL https://openclaw.ai/install.sh | bash
 source ~/.bashrc
 ```
 
-「How do you want to hatch your bot?」と表示されたら、**「Do this later」** を選択します。
+「How do you want to hatch your bot?」と表示されたら、**「Do this later」** を選択してください。
 
-> 注: ARM ネイティブのビルドで問題が発生した場合は、Homebrew を使う前に、まずシステムパッケージ（例: `sudo apt install -y build-essential`）を試してください。
+> Note: ARM ネイティブのビルドで問題が発生した場合は、Homebrew を使う前に、まずシステムパッケージ（例: `sudo apt install -y build-essential`）を試してください。
 
-## 6) Gateway（ループバック + トークン認証）の設定と Tailscale Serve の有効化
+## 6) Gateway（ゲートウェイ）の設定（loopback + トークン認証）と Tailscale Serve の有効化
 
-デフォルトとしてトークン認証を使用します。予測可能で、「insecure auth」の Control UI フラグを有効にする必要がありません。
+デフォルトとしてトークン認証を使用します。これは予測可能で、「insecure auth」の Control UI フラグを必要としません。
 
 ```bash
 # Keep the Gateway private on the VM
@@ -133,7 +133,7 @@ openclaw config set gateway.trustedProxies '["127.0.0.1"]'
 systemctl --user restart openclaw-gateway
 ```
 
-## 7) 確認
+## 7) 検証
 
 ```bash
 # Check version
@@ -151,58 +151,58 @@ curl http://localhost:18789
 
 ## 8) VCN セキュリティのロックダウン
 
-すべてが正常に動作していることを確認したら、Tailscale 以外のすべてのトラフィックをブロックするように VCN をロックダウンします。OCI の Virtual Cloud Network はネットワークエッジでファイアウォールとして機能し、トラフィックはインスタンスに到達する前にブロックされます。
+すべてが正常に動作することを確認したら、Tailscale 以外のすべてのトラフィックをブロックするように VCN をロックダウンします。OCI の Virtual Cloud Network はネットワークエッジでファイアウォールとして機能し、トラフィックはインスタンスに到達する前に遮断されます。
 
 1. OCI コンソールで **Networking → Virtual Cloud Networks** に移動します
-2. 使用中の VCN → **Security Lists** → Default Security List をクリックします
-3. 以下を除き、すべてのインバウンドルールを **削除** します。
+2. 対象の VCN → **Security Lists** → Default Security List をクリックします
+3. 次を除いて、すべてのインバウンドルールを **削除** します。
    - `0.0.0.0/0 UDP 41641`（Tailscale）
-4. デフォルトのアウトバウンドルール（すべて許可）はそのままにします
+4. デフォルトのアウトバウンドルール（すべて許可）は維持します
 
-これにより、ポート 22 の SSH、HTTP、HTTPS、その他すべてがネットワークエッジでブロックされます。今後は Tailscale 経由でのみ接続可能です。
+これにより、ポート 22 の SSH、HTTP、HTTPS、その他すべてがネットワークエッジでブロックされます。以降は Tailscale 経由でのみ接続可能です。
 
 ---
 
 ## Control UI へのアクセス
 
-Tailscale ネットワーク上の任意のデバイスから:
+Tailscale ネットワーク上の任意のデバイスから次を開きます。
 
 ```
 https://openclaw.<tailnet-name>.ts.net/
 ```
 
-`<tailnet-name>` を、あなたの tailnet 名（`tailscale status` に表示されます）に置き換えてください。
+`<tailnet-name>` を自分の tailnet 名（`tailscale status` に表示されます）に置き換えてください。
 
 SSH トンネルは不要です。Tailscale は次を提供します。
 
 - HTTPS 暗号化（自動証明書）
-- Tailscale アイデンティティによる認証
+- Tailscale ID による認証
 - tailnet 上の任意のデバイス（ノート PC、スマートフォンなど）からのアクセス
 
 ---
 
 ## セキュリティ: VCN + Tailscale（推奨ベースライン）
 
-VCN をロックダウン（UDP 41641 のみ開放）し、Gateway（ゲートウェイ）を loopback にバインドすることで、強力な多層防御が実現します。パブリックトラフィックはネットワークエッジで遮断され、管理アクセスは tailnet 経由で行われます。
+VCN をロックダウン（UDP 41641 のみ開放）し、Gateway（ゲートウェイ）を loopback にバインドすることで、多層防御を実現できます。パブリックトラフィックはネットワークエッジで遮断され、管理アクセスは tailnet 経由で行われます。
 
-この構成では、インターネット全体からの SSH ブルートフォースを防ぐ目的だけで、追加のホストベースファイアウォールルールが _不要_ になる場合が多いです。ただし、OS を最新の状態に保ち、`openclaw security audit` を実行し、誤ってパブリックインターフェースで待ち受けていないことを確認してください。
+この構成では、インターネット全体からの SSH ブルートフォースを防ぐ目的だけで、追加のホストベースファイアウォールルールが _不要_ になる場合が多いです。ただし、OS を最新に保ち、`openclaw security audit` を実行し、誤ってパブリックインターフェースで待ち受けていないことを確認してください。
 
-### すでに保護されているもの
+### すでに保護されている項目
 
 | 従来の対策           | 必要？     | 理由                                                                                 |
 | -------------------- | ---------- | ------------------------------------------------------------------------------------ |
-| UFW ファイアウォール | 不要       | VCN がインスタンス到達前にブロックします                                             |
-| fail2ban             | 不要       | VCN でポート 22 がブロックされていればブルートフォースは発生しません                 |
-| sshd のハードニング  | 不要       | Tailscale SSH は sshd を使用しません                                                 |
-| root ログイン無効化  | 不要       | Tailscale はシステムユーザーではなく Tailscale アイデンティティを使用します          |
-| SSH 鍵のみの認証     | 不要       | Tailscale は tailnet 経由で認証します                                                |
-| IPv6 のハードニング  | 通常は不要 | VCN/サブネット設定に依存します。実際に何が割り当て・公開されているか確認してください |
+| UFW ファイアウォール | 不要       | VCN がトラフィックをインスタンス到達前に遮断                                         |
+| fail2ban             | 不要       | VCN でポート 22 がブロックされていればブルートフォースは発生しない                   |
+| sshd の強化          | 不要       | Tailscale SSH は sshd を使用しない                                                   |
+| root ログイン無効化  | 不要       | Tailscale はシステムユーザーではなく Tailscale ID を使用                             |
+| SSH 鍵のみ認証       | 不要       | Tailscale は tailnet 経由で認証                                                      |
+| IPv6 の強化          | 通常は不要 | VCN/サブネット設定に依存します。実際に割り当て・公開されている内容を確認してください |
 
-### 引き続き推奨される項目
+### それでも推奨される事項
 
 - **認証情報の権限管理:** `chmod 700 ~/.openclaw`
 - **セキュリティ監査:** `openclaw security audit`
-- **システム更新:** 定期的に `sudo apt update && sudo apt upgrade`
+- **システム更新:** `sudo apt update && sudo apt upgrade` を定期的に実行
 - **Tailscale の監視:** [Tailscale admin console](https://login.tailscale.com/admin) でデバイスを確認
 
 ### セキュリティ状態の確認
@@ -239,9 +239,9 @@ ssh -L 18789:127.0.0.1:18789 ubuntu@openclaw
 
 無料ティアの ARM インスタンスは人気があります。次を試してください。
 
-- 別の可用性ドメインを使用する
-- オフピーク時間（早朝など）に再試行する
-- シェイプ選択時に「Always Free」フィルターを使用する
+- 別の可用性ドメイン
+- オフピーク時間（早朝など）で再試行
+- シェイプ選択時に「Always Free」フィルターを使用
 
 ### Tailscale が接続できない
 
@@ -276,7 +276,7 @@ systemctl --user restart openclaw-gateway
 
 ### ARM バイナリの問題
 
-一部のツールには ARM ビルドがない場合があります。次を確認してください。
+一部のツールには ARM ビルドが存在しない場合があります。次を確認してください。
 
 ```bash
 uname -m  # Should show aarch64
@@ -291,7 +291,7 @@ uname -m  # Should show aarch64
 すべての状態は次に保存されます。
 
 - `~/.openclaw/` — 設定、認証情報、セッションデータ
-- `~/.openclaw/workspace/` — ワークスペース（SOUL.md、メモリ、アーティファクト）
+- `~/.openclaw/workspace/` — ワークスペース（SOUL.md、メモリ、成果物）
 
 定期的にバックアップしてください。
 
@@ -306,5 +306,5 @@ tar -czvf openclaw-backup.tar.gz ~/.openclaw ~/.openclaw/workspace
 - [Gateway remote access](/gateway/remote) — 他のリモートアクセスパターン
 - [Tailscale integration](/gateway/tailscale) — Tailscale の完全なドキュメント
 - [Gateway configuration](/gateway/configuration) — すべての設定オプション
-- [DigitalOcean guide](/platforms/digitalocean) — 有料だがサインアップが簡単
+- [DigitalOcean guide](/platforms/digitalocean) — 有料でサインアップが簡単な選択肢
 - [Hetzner guide](/install/hetzner) — Docker ベースの代替案

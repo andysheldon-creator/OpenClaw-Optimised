@@ -1,8 +1,8 @@
 ---
-summary: "1 台のホストで複数の OpenClaw Gateway（ゲートウェイ）を実行（分離、ポート、プロファイル）"
+summary: "1 台のホストで複数の OpenClaw Gateway（ゲートウェイ）を実行します（分離、ポート、プロファイル）"
 read_when:
-  - 同一マシンで複数の Gateway（ゲートウェイ）を実行する場合
-  - Gateway（ゲートウェイ）ごとに分離された 設定 / 状態 / ポート が必要な場合
+  - 同一マシン上で複数の Gateway（ゲートウェイ）を実行する場合
+  - Gateway（ゲートウェイ）ごとに分離された設定／状態／ポートが必要な場合
 title: "複数の Gateway（ゲートウェイ）"
 x-i18n:
   source_path: gateway/multiple-gateways.md
@@ -10,24 +10,24 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:31:43Z
+  generated_at: 2026-02-08T09:21:52Z
 ---
 
 # 複数の Gateway（ゲートウェイ）（同一ホスト）
 
-ほとんどの構成では 1 つの Gateway（ゲートウェイ）で十分です。単一の Gateway（ゲートウェイ）で複数のメッセージング接続やエージェントを処理できます。より強力な分離や冗長性（例：レスキューボット）が必要な場合は、分離されたプロファイル / ポートで個別の Gateway（ゲートウェイ）を実行してください。
+ほとんどのセットアップでは 1 つの Gateway（ゲートウェイ）で十分です。単一の Gateway（ゲートウェイ）で複数のメッセージング接続とエージェントを処理できます。より強力な分離や冗長性（例: レスキューボット）が必要な場合は、分離されたプロファイル／ポートを使用して別々の Gateway（ゲートウェイ）を実行してください。
 
 ## 分離チェックリスト（必須）
 
 - `OPENCLAW_CONFIG_PATH` — インスタンスごとの設定ファイル
-- `OPENCLAW_STATE_DIR` — インスタンスごとの セッション、認証情報、キャッシュ
-- `agents.defaults.workspace` — インスタンスごとのワークスペースルート
+- `OPENCLAW_STATE_DIR` — インスタンスごとのセッション、認証情報、キャッシュ
+- `agents.defaults.workspace` — インスタンスごとのワークスペース ルート
 - `gateway.port`（または `--port`）— インスタンスごとに一意
-- 派生ポート（browser / canvas）が重複しないこと
+- 派生ポート（ブラウザ／キャンバス）は重複してはいけません
 
-これらが共有されていると、設定の競合やポート衝突が発生します。
+これらが共有されていると、設定の競合やポートの衝突が発生します。
 
-## 推奨：プロファイル（`--profile`）
+## 推奨: プロファイル（`--profile`）
 
 プロファイルは `OPENCLAW_STATE_DIR` + `OPENCLAW_CONFIG_PATH` を自動的にスコープし、サービス名にサフィックスを付与します。
 
@@ -41,7 +41,7 @@ openclaw --profile rescue setup
 openclaw --profile rescue gateway --port 19001
 ```
 
-プロファイルごとのサービス：
+プロファイルごとのサービス:
 
 ```bash
 openclaw --profile main gateway install
@@ -50,16 +50,16 @@ openclaw --profile rescue gateway install
 
 ## レスキューボット ガイド
 
-同一ホスト上で、以下をそれぞれ独自に持つ 2 つ目の Gateway（ゲートウェイ）を実行します：
+同一ホスト上で 2 つ目の Gateway（ゲートウェイ）を、以下を専用にして実行します。
 
-- プロファイル / 設定
+- プロファイル／設定
 - 状態ディレクトリ
 - ワークスペース
-- ベースポート（＋派生ポート）
+- ベースポート（および派生ポート）
 
-これにより、プライマリ ボットが停止している場合でも、レスキューボットがデバッグや設定変更を行えるよう、メイン ボットから分離されます。
+これにより、レスキューボットがメインのボットから分離され、プライマリ ボットが停止している場合でもデバッグや設定変更を適用できます。
 
-ポート間隔：派生する browser / canvas / CDP ポートが決して衝突しないよう、ベースポート間は少なくとも 20 ポート空けてください。
+ポート間隔: 派生するブラウザ／キャンバス／CDP ポートが決して衝突しないよう、ベースポート間は少なくとも 20 ポート空けてください。
 
 ### インストール方法（レスキューボット）
 
@@ -81,24 +81,24 @@ openclaw --profile rescue onboard
 openclaw --profile rescue gateway install
 ```
 
-## ポート割り当て（派生）
+## ポート マッピング（派生）
 
 ベースポート = `gateway.port`（または `OPENCLAW_GATEWAY_PORT` / `--port`）。
 
-- ブラウザ制御サービスのポート = ベース + 2（local loopback のみ）
+- ブラウザ制御サービス ポート = ベース + 2（local loopback のみ）
 - `canvasHost.port = base + 4`
-- ブラウザ プロファイルの CDP ポートは `browser.controlPort + 9 .. + 108` から自動割り当て
+- ブラウザ プロファイルの CDP ポートは `browser.controlPort + 9 .. + 108` から自動割り当てされます
 
-これらのいずれかを 設定 または 環境変数 で上書きする場合は、インスタンスごとに一意である必要があります。
+これらのいずれかを設定ファイルや環境変数で上書きする場合、インスタンスごとに一意である必要があります。
 
-## Browser / CDP の注意点（よくある落とし穴）
+## ブラウザ／CDP に関する注意（よくある落とし穴）
 
 - 複数のインスタンスで `browser.cdpUrl` を同じ値に固定しないでください。
-- 各インスタンスには、独自のブラウザ制御ポートと CDP 範囲（Gateway（ゲートウェイ）ポートから派生）が必要です。
+- 各インスタンスには、独自のブラウザ制御ポートと CDP 範囲（ゲートウェイ ポートから派生）が必要です。
 - 明示的な CDP ポートが必要な場合は、インスタンスごとに `browser.profiles.<name>.cdpPort` を設定してください。
-- リモート Chrome：`browser.profiles.<name>.cdpUrl` を使用します（プロファイルごと、インスタンスごと）。
+- リモート Chrome: `browser.profiles.<name>.cdpUrl` を使用してください（プロファイルごと、インスタンスごと）。
 
-## 手動 env の例
+## 手動 env 例
 
 ```bash
 OPENCLAW_CONFIG_PATH=~/.openclaw/main.json \

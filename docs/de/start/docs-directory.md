@@ -1,20 +1,20 @@
 ---
-summary: „Kuratiere Links zu den meistgenutzten OpenClaw-Dokumenten.“
+summary: „Kuratierte Links zu den am häufigsten verwendeten OpenClaw-Dokumenten.“
 read_when:
-  - Sie moechten schnellen Zugriff auf zentrale Dokumentationsseiten
-title: „Dokumentationsverzeichnis“
+  - Sie schnellen Zugriff auf zentrale Dokumentationsseiten wünschen
+title: „Dokumentenverzeichnis“
 x-i18n:
   source_path: start/docs-directory.md
-  source_hash: 6ce20ed8e5191fb2
+  source_hash: 44d94b7a654801e9
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:29Z
+  generated_at: 2026-02-08T09:37:20Z
 ---
 
 <Note>
 Diese Seite ist ein kuratierter Index. Wenn Sie neu sind, beginnen Sie mit [Erste Schritte](/start/getting-started).
-Eine vollstaendige Uebersicht der Dokumentation finden Sie unter [Docs hubs](/start/hubs).
+Für eine vollständige Übersicht der Dokumentation siehe [Docs hubs](/start/hubs).
 </Note>
 
 ## Hier starten
@@ -26,17 +26,17 @@ Eine vollstaendige Uebersicht der Dokumentation finden Sie unter [Docs hubs](/st
 - [Slash-Befehle](/tools/slash-commands)
 - [Multi-Agent-Routing](/concepts/multi-agent)
 - [Aktualisieren und Rollback](/install/updating)
-- [Koppeln (Direktnachricht und Knoten)](/start/pairing)
+- [Kopplung (Direktnachrichten und Nodes)](/channels/pairing)
 - [Nix-Modus](/install/nix)
-- [Einrichtung des OpenClaw-Assistenten](/start/openclaw)
+- [OpenClaw-Assistent einrichten](/start/openclaw)
 - [Skills](/tools/skills)
 - [Skills-Konfiguration](/tools/skills-config)
 - [Workspace-Vorlagen](/reference/templates/AGENTS)
 - [RPC-Adapter](/reference/rpc)
 - [Gateway-Runbook](/gateway)
-- [Knoten (iOS und Android)](/nodes)
-- [Web-Oberflaechen (Control UI)](/web)
-- [Erkennung und Transports](/gateway/discovery)
+- [Nodes (iOS und Android)](/nodes)
+- [Web-Oberflächen (Control UI)](/web)
+- [Discovery und Transports](/gateway/discovery)
 - [Remote-Zugriff](/gateway/remote)
 
 ## Anbieter und UX
@@ -48,12 +48,12 @@ Eine vollstaendige Uebersicht der Dokumentation finden Sie unter [Docs hubs](/st
 - [Mattermost (Plugin)](/channels/mattermost)
 - [BlueBubbles (iMessage)](/channels/bluebubbles)
 - [iMessage (Legacy)](/channels/imessage)
-- [Gruppen](/concepts/groups)
-- [WhatsApp-Gruppennachrichten](/concepts/group-messages)
+- [Gruppen](/channels/groups)
+- [WhatsApp-Gruppennachrichten](/channels/group-messages)
 - [Medienbilder](/nodes/images)
 - [Medienaudio](/nodes/audio)
 
-## Begleit-Apps
+## Companion-Apps
 
 - [macOS-App](/platforms/macos)
 - [iOS-App](/platforms/ios)

@@ -1,29 +1,28 @@
 ---
-summary: "Use a OpenAI via chaves de API ou assinatura do Codex no OpenClaw"
+summary: "Use a OpenAI por meio de chaves de API ou assinatura do Codex no OpenClaw"
 read_when:
-  - Voce quer usar modelos da OpenAI no OpenClaw
-  - Voce quer autenticacao por assinatura do Codex em vez de chaves de API
+  - Você quer usar modelos da OpenAI no OpenClaw
+  - Você quer autenticação por assinatura do Codex em vez de chaves de API
 title: "OpenAI"
 x-i18n:
   source_path: providers/openai.md
-  source_hash: 13d8fd7f1f935b0a
+  source_hash: 6d78698351c3d2f5
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:57:05Z
+  generated_at: 2026-02-08T09:31:40Z
 ---
 
 # OpenAI
 
-A OpenAI fornece APIs para desenvolvedores para modelos GPT. O Codex oferece **login com ChatGPT** para acesso por assinatura
-ou **login com chave de API** para acesso baseado em uso. O Codex cloud exige login com ChatGPT.
+A OpenAI fornece APIs para desenvolvedores para modelos GPT. O Codex oferece **login com ChatGPT** para acesso por assinatura ou **login com chave de API** para acesso baseado em uso. A nuvem do Codex exige login com ChatGPT.
 
-## Opcao A: Chave de API da OpenAI (OpenAI Platform)
+## Opção A: Chave de API da OpenAI (OpenAI Platform)
 
-**Melhor para:** acesso direto a API e cobranca baseada em uso.
+**Melhor para:** acesso direto à API e faturamento baseado em uso.
 Obtenha sua chave de API no painel da OpenAI.
 
-### Configuracao via CLI
+### Configuração da CLI
 
 ```bash
 openclaw onboard --auth-choice openai-api-key
@@ -31,7 +30,7 @@ openclaw onboard --auth-choice openai-api-key
 openclaw onboard --openai-api-key "$OPENAI_API_KEY"
 ```
 
-### Trecho de configuracao
+### Trecho de configuração
 
 ```json5
 {
@@ -40,12 +39,12 @@ openclaw onboard --openai-api-key "$OPENAI_API_KEY"
 }
 ```
 
-## Opcao B: Assinatura OpenAI Code (Codex)
+## Opção B: Assinatura do OpenAI Code (Codex)
 
 **Melhor para:** usar acesso por assinatura do ChatGPT/Codex em vez de uma chave de API.
-O Codex cloud exige login com ChatGPT, enquanto a CLI do Codex suporta login com ChatGPT ou chave de API.
+A nuvem do Codex exige login com ChatGPT, enquanto a CLI do Codex oferece suporte a login com ChatGPT ou com chave de API.
 
-### Configuracao via CLI
+### Configuração da CLI (OAuth do Codex)
 
 ```bash
 # Run Codex OAuth in the wizard
@@ -55,7 +54,7 @@ openclaw onboard --auth-choice openai-codex
 openclaw models auth login --provider openai-codex
 ```
 
-### Trecho de configuracao
+### Trecho de configuração (assinatura do Codex)
 
 ```json5
 {
@@ -63,7 +62,7 @@ openclaw models auth login --provider openai-codex
 }
 ```
 
-## Observacoes
+## Notas
 
-- Referencias de modelos sempre usam `provider/model` (veja [/concepts/models](/concepts/models)).
-- Detalhes de autenticacao + regras de reutilizacao estao em [/concepts/oauth](/concepts/oauth).
+- As referências de modelo sempre usam `provider/model` (veja [/concepts/models](/concepts/models)).
+- Detalhes de autenticação e regras de reutilização estão em [/concepts/oauth](/concepts/oauth).

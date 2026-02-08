@@ -10,25 +10,25 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:14Z
+  generated_at: 2026-02-08T09:38:10Z
 ---
 
 # Nostr
 
-**Trạng thái:** Plugin tùy chọn (mặc định bị tắt).
+**Trạng thái:** Plugin tùy chọn (tắt theo mặc định).
 
 Nostr là một giao thức phi tập trung cho mạng xã hội. Kênh này cho phép OpenClaw nhận và phản hồi tin nhắn trực tiếp (DM) được mã hóa qua NIP-04.
 
 ## Cài đặt (theo yêu cầu)
 
-### Onboarding (khuyến nghị)
+### Hướng dẫn ban đầu (khuyến nghị)
 
 - Trình hướng dẫn onboarding (`openclaw onboard`) và `openclaw channels add` liệt kê các plugin kênh tùy chọn.
 - Chọn Nostr sẽ nhắc bạn cài đặt plugin theo yêu cầu.
 
 Cài đặt mặc định:
 
-- **Kênh Dev + có git checkout:** sử dụng đường dẫn plugin cục bộ.
+- **Kênh Dev + có git checkout:** dùng đường dẫn plugin cục bộ.
 - **Stable/Beta:** tải từ npm.
 
 Bạn luôn có thể ghi đè lựa chọn trong lời nhắc.
@@ -39,7 +39,7 @@ Bạn luôn có thể ghi đè lựa chọn trong lời nhắc.
 openclaw plugins install @openclaw/nostr
 ```
 
-Sử dụng bản checkout cục bộ (quy trình dev):
+Dùng bản checkout cục bộ (quy trình dev):
 
 ```bash
 openclaw plugins install --link <path-to-openclaw>/extensions/nostr
@@ -47,7 +47,7 @@ openclaw plugins install --link <path-to-openclaw>/extensions/nostr
 
 Khởi động lại Gateway sau khi cài đặt hoặc bật plugin.
 
-## Thiết lập nhanh
+## Khởi động nhanh
 
 1. Tạo cặp khóa Nostr (nếu cần):
 
@@ -56,7 +56,7 @@ Khởi động lại Gateway sau khi cài đặt hoặc bật plugin.
 nak key generate
 ```
 
-2. Thêm vào config:
+2. Thêm vào cấu hình:
 
 ```json
 {
@@ -78,7 +78,7 @@ export NOSTR_PRIVATE_KEY="nsec1..."
 
 ## Tham chiếu cấu hình
 
-| Key          | Type     | Default                                     | Description                            |
+| Khóa         | Kiểu     | Mặc định                                    | Mô tả                                  |
 | ------------ | -------- | ------------------------------------------- | -------------------------------------- |
 | `privateKey` | string   | required                                    | Khóa riêng ở định dạng `nsec` hoặc hex |
 | `relays`     | string[] | `['wss://relay.damus.io', 'wss://nos.lol']` | URL relay (WebSocket)                  |
@@ -90,7 +90,7 @@ export NOSTR_PRIVATE_KEY="nsec1..."
 
 ## Metadata hồ sơ
 
-Dữ liệu hồ sơ được phát hành dưới dạng sự kiện `kind:0` NIP-01. Bạn có thể quản lý từ Control UI (Channels -> Nostr -> Profile) hoặc đặt trực tiếp trong config.
+Dữ liệu hồ sơ được xuất bản dưới dạng sự kiện NIP-01 `kind:0`. Bạn có thể quản lý từ Control UI (Channels -> Nostr -> Profile) hoặc đặt trực tiếp trong cấu hình.
 
 Ví dụ:
 
@@ -116,17 +116,17 @@ Ví dụ:
 
 Ghi chú:
 
-- URL hồ sơ phải sử dụng `https://`.
-- Nhập từ relay sẽ hợp nhất các trường và giữ nguyên các ghi đè cục bộ.
+- URL hồ sơ phải dùng `https://`.
+- Nhập từ relay sẽ gộp các trường và giữ nguyên các ghi đè cục bộ.
 
 ## Kiểm soát truy cập
 
 ### Chính sách DM
 
 - **pairing** (mặc định): người gửi chưa biết sẽ nhận mã ghép cặp.
-- **allowlist**: chỉ các pubkey trong `allowFrom` mới có thể DM.
-- **open**: DM vào công khai (yêu cầu `allowFrom: ["*"]`).
-- **disabled**: bỏ qua DM đến.
+- **allowlist**: chỉ các pubkey trong `allowFrom` mới được DM.
+- **open**: DM công khai vào (yêu cầu `allowFrom: ["*"]`).
+- **disabled**: bỏ qua DM vào.
 
 ### Ví dụ allowlist
 
@@ -144,7 +144,7 @@ Ghi chú:
 
 ## Định dạng khóa
 
-Các định dạng được chấp nhận:
+Các định dạng chấp nhận:
 
 - **Khóa riêng:** `nsec...` hoặc hex 64 ký tự
 - **Pubkey (`allowFrom`):** `npub...` hoặc hex
@@ -169,7 +169,7 @@ Mẹo:
 - Dùng 2–3 relay để dự phòng.
 - Tránh quá nhiều relay (độ trễ, trùng lặp).
 - Relay trả phí có thể cải thiện độ tin cậy.
-- Relay cục bộ phù hợp để thử nghiệm (`ws://localhost:7777`).
+- Relay cục bộ phù hợp cho thử nghiệm (`ws://localhost:7777`).
 
 ## Hỗ trợ giao thức
 
@@ -204,37 +204,37 @@ docker run -p 7777:7777 ghcr.io/hoytech/strfry
 
 1. Ghi lại pubkey (npub) của bot từ log.
 2. Mở một client Nostr (Damus, Amethyst, v.v.).
-3. DM tới pubkey của bot.
+3. Gửi DM đến pubkey của bot.
 4. Xác minh phản hồi.
 
-## Troubleshooting
+## Xử lý sự cố
 
 ### Không nhận được tin nhắn
 
 - Xác minh khóa riêng hợp lệ.
-- Đảm bảo URL relay truy cập được và dùng `wss://` (hoặc `ws://` cho local).
-- Xác nhận `enabled` không phải là `false`.
+- Đảm bảo URL relay truy cập được và dùng `wss://` (hoặc `ws://` cho cục bộ).
+- Xác nhận `enabled` không phải `false`.
 - Kiểm tra log Gateway để tìm lỗi kết nối relay.
 
 ### Không gửi được phản hồi
 
 - Kiểm tra relay có chấp nhận ghi.
-- Xác minh kết nối outbound.
+- Xác minh kết nối ra ngoài.
 - Theo dõi giới hạn tốc độ của relay.
 
 ### Phản hồi trùng lặp
 
-- Điều này là bình thường khi dùng nhiều relay.
+- Điều này ожида khi dùng nhiều relay.
 - Tin nhắn được khử trùng lặp theo ID sự kiện; chỉ lần giao đầu tiên kích hoạt phản hồi.
 
 ## Bảo mật
 
 - Không bao giờ commit khóa riêng.
 - Dùng biến môi trường cho khóa.
-- Cân nhắc `allowlist` cho bot production.
+- Cân nhắc `allowlist` cho bot sản xuất.
 
 ## Hạn chế (MVP)
 
-- Chỉ hỗ trợ tin nhắn trực tiếp (không có chat nhóm).
-- Không hỗ trợ tệp đính kèm media.
-- Chỉ NIP-04 (NIP-17 gift-wrap dự kiến).
+- Chỉ tin nhắn trực tiếp (không có chat nhóm).
+- Không hỗ trợ tệp media đính kèm.
+- Chỉ NIP-04 (NIP-17 gói quà dự kiến).

@@ -1,22 +1,22 @@
 ---
-summary: "Solucionar problemas de programacion y entrega de cron y heartbeat"
+summary: "Solucione problemas de programación y entrega de cron y heartbeat"
 read_when:
-  - Cron no se ejecuto
-  - Cron se ejecuto pero no se entrego ningun mensaje
-  - Heartbeat parece silencioso o se omite
-title: "Solucion de problemas de automatizacion"
+  - Cron no se ejecutó
+  - Cron se ejecutó pero no se entregó ningún mensaje
+  - Heartbeat parece silencioso u omitido
+title: "Solución de problemas de automatización"
 x-i18n:
   source_path: automation/troubleshooting.md
   source_hash: 10eca4a59119910f
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:15:22Z
+  generated_at: 2026-02-08T09:32:27Z
 ---
 
-# Solucion de problemas de automatizacion
+# Solución de problemas de automatización
 
-Use esta pagina para problemas del programador y de entrega (`cron` + `heartbeat`).
+Use esta página para problemas del programador y de entrega (`cron` + `heartbeat`).
 
 ## Escalera de comandos
 
@@ -28,7 +28,7 @@ openclaw doctor
 openclaw channels status --probe
 ```
 
-Luego ejecute las comprobaciones de automatizacion:
+Luego ejecute las comprobaciones de automatización:
 
 ```bash
 openclaw cron status
@@ -36,7 +36,7 @@ openclaw cron list
 openclaw system heartbeat last
 ```
 
-## Cron no se ejecuta
+## Cron no se activa
 
 ```bash
 openclaw cron status
@@ -45,19 +45,19 @@ openclaw cron runs --id <jobId> --limit 20
 openclaw logs --follow
 ```
 
-Un buen resultado se ve asi:
+Una salida correcta se ve así:
 
 - `cron status` informa habilitado y un `nextWakeAtMs` futuro.
-- El trabajo esta habilitado y tiene una programacion/zona horaria validas.
-- `cron runs` muestra `ok` o un motivo de omision explicito.
+- El trabajo está habilitado y tiene una programación/zona horaria válidas.
+- `cron runs` muestra `ok` o una razón explícita de omisión.
 
 Firmas comunes:
 
-- `cron: scheduler disabled; jobs will not run automatically` → cron deshabilitado en la configuracion/variables de entorno.
-- `cron: timer tick failed` → el tick del programador fallo; inspeccione el contexto de la pila/registros circundantes.
-- `reason: not-due` en la salida de ejecucion → la ejecucion manual se llamo sin `--force` y el trabajo aun no vence.
+- `cron: scheduler disabled; jobs will not run automatically` → cron deshabilitado en la configuración/variables de entorno.
+- `cron: timer tick failed` → el tick del programador falló; inspeccione el contexto de pila/registros circundante.
+- `reason: not-due` en la salida de ejecución → la ejecución manual se llamó sin `--force` y el trabajo aún no vence.
 
-## Cron se ejecuto pero no hubo entrega
+## Cron se activó pero no hubo entrega
 
 ```bash
 openclaw cron runs --id <jobId> --limit 20
@@ -66,17 +66,17 @@ openclaw channels status --probe
 openclaw logs --follow
 ```
 
-Un buen resultado se ve asi:
+Una salida correcta se ve así:
 
-- El estado de la ejecucion es `ok`.
-- El modo/objetivo de entrega estan configurados para trabajos aislados.
-- La sonda del canal informa que el canal de destino esta conectado.
+- El estado de la ejecución es `ok`.
+- El modo/objetivo de entrega están configurados para trabajos aislados.
+- La sonda del canal informa que el canal objetivo está conectado.
 
 Firmas comunes:
 
-- La ejecucion tuvo exito pero el modo de entrega es `none` → no se espera ningun mensaje externo.
-- Objetivo de entrega ausente/invalido (`channel`/`to`) → la ejecucion puede tener exito internamente pero omitir la salida.
-- Errores de autenticacion del canal (`unauthorized`, `missing_scope`, `Forbidden`) → la entrega esta bloqueada por credenciales/permisos del canal.
+- La ejecución tuvo éxito pero el modo de entrega es `none` → no se espera ningún mensaje externo.
+- Objetivo de entrega faltante/inválido (`channel`/`to`) → la ejecución puede tener éxito internamente pero omitir el envío.
+- Errores de autenticación del canal (`unauthorized`, `missing_scope`, `Forbidden`) → la entrega está bloqueada por credenciales/permisos del canal.
 
 ## Heartbeat suprimido u omitido
 
@@ -87,19 +87,19 @@ openclaw config get agents.defaults.heartbeat
 openclaw channels status --probe
 ```
 
-Un buen resultado se ve asi:
+Una salida correcta se ve así:
 
-- Heartbeat habilitado con un intervalo distinto de cero.
-- El ultimo resultado de heartbeat es `ran` (o se entiende el motivo de omision).
+- Heartbeat habilitado con intervalo distinto de cero.
+- El último resultado de heartbeat es `ran` (o se comprende la razón de omisión).
 
 Firmas comunes:
 
 - `heartbeat skipped` con `reason=quiet-hours` → fuera de `activeHours`.
-- `requests-in-flight` → el carril principal esta ocupado; heartbeat diferido.
-- `empty-heartbeat-file` → `HEARTBEAT.md` existe pero no tiene contenido accionable.
-- `alerts-disabled` → la configuracion de visibilidad suprime los mensajes de heartbeat salientes.
+- `requests-in-flight` → el carril principal está ocupado; heartbeat diferido.
+- `empty-heartbeat-file` → existe `HEARTBEAT.md` pero no tiene contenido accionable.
+- `alerts-disabled` → la configuración de visibilidad suprime los mensajes salientes de heartbeat.
 
-## Consideraciones sobre zona horaria y activeHours
+## Trampas de zona horaria y activeHours
 
 ```bash
 openclaw config get agents.defaults.heartbeat.activeHours
@@ -109,16 +109,16 @@ openclaw cron list
 openclaw logs --follow
 ```
 
-Reglas rapidas:
+Reglas rápidas:
 
-- `Config path not found: agents.defaults.userTimezone` significa que la clave no esta configurada; heartbeat recurre a la zona horaria del host (o `activeHours.timezone` si esta configurado).
-- Cron sin `--tz` usa la zona horaria del host del gateway.
-- Heartbeat `activeHours` usa la resolucion de zona horaria configurada (`user`, `local` o una tz IANA explicita).
+- `Config path not found: agents.defaults.userTimezone` significa que la clave no está configurada; heartbeat recurre a la zona horaria del host (o `activeHours.timezone` si está configurada).
+- Cron sin `--tz` usa la zona horaria del host del Gateway.
+- Heartbeat `activeHours` usa la resolución de zona horaria configurada (`user`, `local` o una tz IANA explícita).
 - Las marcas de tiempo ISO sin zona horaria se tratan como UTC para las programaciones de cron `at`.
 
 Firmas comunes:
 
-- Los trabajos se ejecutan a una hora de reloj incorrecta despues de cambios en la zona horaria del host.
+- Los trabajos se ejecutan a una hora de reloj incorrecta después de cambios en la zona horaria del host.
 - Heartbeat siempre se omite durante su horario diurno porque `activeHours.timezone` es incorrecto.
 
 Relacionado:

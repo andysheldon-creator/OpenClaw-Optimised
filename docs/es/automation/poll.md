@@ -1,8 +1,8 @@
 ---
-summary: "Envío de encuestas vía gateway + CLI"
+summary: "Envío de encuestas vía Gateway + CLI"
 read_when:
   - Agregar o modificar el soporte de encuestas
-  - Depurar envíos de encuestas desde el CLI o el gateway
+  - Depurar envíos de encuestas desde la CLI o el Gateway
 title: "Encuestas"
 x-i18n:
   source_path: automation/poll.md
@@ -10,7 +10,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:57:48Z
+  generated_at: 2026-02-08T09:32:21Z
 ---
 
 # Encuestas
@@ -19,7 +19,7 @@ x-i18n:
 
 - WhatsApp (canal web)
 - Discord
-- MS Teams (Tarjetas Adaptativas)
+- MS Teams (Adaptive Cards)
 
 ## CLI
 
@@ -43,9 +43,9 @@ openclaw message poll --channel msteams --target conversation:19:abc@thread.tacv
 
 Opciones:
 
-- `--channel`: `whatsapp` (predeterminado), `discord`, o `msteams`
+- `--channel`: `whatsapp` (predeterminado), `discord` o `msteams`
 - `--poll-multi`: permite seleccionar múltiples opciones
-- `--poll-duration-hours`: solo Discord (predeterminado: 24 cuando se omite)
+- `--poll-duration-hours`: solo Discord (por defecto 24 cuando se omite)
 
 ## Gateway RPC
 
@@ -63,14 +63,14 @@ Parámetros:
 
 ## Diferencias entre canales
 
-- WhatsApp: 2–12 opciones, `maxSelections` debe estar dentro del conteo de opciones, ignora `durationHours`.
-- Discord: 2–10 opciones, `durationHours` se limita a 1–768 horas (predeterminado: 24). `maxSelections > 1` habilita la selección múltiple; Discord no admite un conteo de selección estricto.
-- MS Teams: encuestas con Tarjetas Adaptativas (administradas por OpenClaw). No hay API nativa de encuestas; `durationHours` se ignora.
+- WhatsApp: 2–12 opciones, `maxSelections` debe estar dentro del número de opciones, ignora `durationHours`.
+- Discord: 2–10 opciones, `durationHours` se limita a 1–768 horas (predeterminado 24). `maxSelections > 1` habilita la selección múltiple; Discord no admite un conteo estricto de selección.
+- MS Teams: encuestas con Adaptive Card (administradas por OpenClaw). No hay una API nativa de encuestas; `durationHours` se ignora.
 
 ## Herramienta del agente (Mensaje)
 
-Use la herramienta `message` con la acción `poll` (`to`, `pollQuestion`, `pollOption`, `pollMulti` opcional, `pollDurationHours`, `channel`).
+Use la herramienta `message` con la acción `poll` (`to`, `pollQuestion`, `pollOption`, opcional `pollMulti`, `pollDurationHours`, `channel`).
 
 Nota: Discord no tiene un modo de “elegir exactamente N”; `pollMulti` se asigna a selección múltiple.
-Las encuestas de Teams se renderizan como Tarjetas Adaptativas y requieren que el gateway permanezca en línea
+Las encuestas de Teams se representan como Adaptive Cards y requieren que el Gateway permanezca en línea
 para registrar votos en `~/.openclaw/msteams-polls.json`.

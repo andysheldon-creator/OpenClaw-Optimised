@@ -1,43 +1,43 @@
 ---
-summary: "Exploracao: configuracao de modelo, perfis de autenticacao e comportamento de fallback"
+summary: "Exploração: configuração de modelo, perfis de autenticação e comportamento de fallback"
 read_when:
-  - Explorando ideias futuras de selecao de modelo + perfis de autenticacao
-title: "Exploracao de Configuracao de Modelo"
+  - Explorando ideias futuras de seleção de modelos + perfis de autenticação
+title: "Exploração de Configuração de Modelo"
 x-i18n:
   source_path: experiments/proposals/model-config.md
   source_hash: 48623233d80f874c
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:56:06Z
+  generated_at: 2026-02-08T09:30:45Z
 ---
 
-# Configuracao de Modelo (Exploracao)
+# Configuração de Modelo (Exploração)
 
-Este documento captura **ideias** para futuras configuracoes de modelo. Nao e uma
-especificacao de entrega. Para o comportamento atual, veja:
+Este documento registra **ideias** para a configuração futura de modelos. Não é uma
+especificação pronta para envio. Para o comportamento atual, veja:
 
 - [Models](/concepts/models)
 - [Model failover](/concepts/model-failover)
 - [OAuth + profiles](/concepts/oauth)
 
-## Motivacao
+## Motivação
 
 Operadores querem:
 
-- Multiplos perfis de autenticacao por provedor (pessoal vs trabalho).
-- Selecao simples de `/model` com fallbacks previsiveis.
-- Separacao clara entre modelos de texto e modelos com capacidade de imagem.
+- Vários perfis de autenticação por provedor (pessoal vs. trabalho).
+- Seleção simples de `/model` com fallbacks previsíveis.
+- Separação clara entre modelos de texto e modelos com capacidade de imagem.
 
-## Possivel direcao (alto nivel)
+## Possível direção (alto nível)
 
-- Manter a selecao de modelos simples: `provider/model` com aliases opcionais.
-- Permitir que provedores tenham multiplos perfis de autenticacao, com uma ordem explicita.
-- Usar uma lista global de fallback para que todas as sessoes realizem failover de forma consistente.
-- Substituir o roteamento de imagem apenas quando explicitamente configurado.
+- Manter a seleção de modelos simples: `provider/model` com aliases opcionais.
+- Permitir que provedores tenham vários perfis de autenticação, com uma ordem explícita.
+- Usar uma lista global de fallback para que todas as sessões façam failover de forma consistente.
+- Substituir o roteamento de imagens apenas quando configurado explicitamente.
 
-## Questoes em aberto
+## Perguntas em aberto
 
-- A rotacao de perfis deve ser por provedor ou por modelo?
-- Como a UI deve apresentar a selecao de perfil para uma sessao?
-- Qual e o caminho de migracao mais seguro a partir de chaves de configuracao legadas?
+- A rotação de perfis deve ser por provedor ou por modelo?
+- Como a UI deve apresentar a seleção de perfis para uma sessão?
+- Qual é o caminho de migração mais seguro a partir de chaves de configuração legadas?

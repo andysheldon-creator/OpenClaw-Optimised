@@ -1,32 +1,32 @@
 ---
-summary: "OpenClaw Gateway CLI (`openclaw gateway`) — Gateways ausfuehren, abfragen und entdecken"
+summary: "OpenClaw Gateway CLI (`openclaw gateway`) — Gateways ausführen, abfragen und entdecken"
 read_when:
-  - Ausfuehren des Gateways ueber die CLI (Entwicklung oder Server)
-  - Debugging von Gateway-Authentifizierung, Bind-Modi und Konnektivitaet
-  - Entdecken von Gateways ueber Bonjour (LAN + Tailnet)
-title: "gateway"
+  - Ausführen des Gateway über die CLI (Entwicklung oder Server)
+  - Debugging von Gateway-Authentifizierung, Bind-Modi und Konnektivität
+  - Entdecken von Gateways via Bonjour (LAN + Tailnet)
+title: "Gateway"
 x-i18n:
   source_path: cli/gateway.md
   source_hash: cbc1690e6be84073
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:53Z
+  generated_at: 2026-02-08T09:35:46Z
 ---
 
 # Gateway CLI
 
-Das Gateway ist der WebSocket-Server von OpenClaw (Kanaele, Knoten, Sitzungen, Hooks).
+Der Gateway ist der WebSocket-Server von OpenClaw (Kanäle, Nodes, Sitzungen, Hooks).
 
 Unterbefehle auf dieser Seite befinden sich unter `openclaw gateway …`.
 
-Zugehoerige Dokumente:
+Zugehörige Dokumente:
 
 - [/gateway/bonjour](/gateway/bonjour)
 - [/gateway/discovery](/gateway/discovery)
 - [/gateway/configuration](/gateway/configuration)
 
-## Gateway ausfuehren
+## Gateway ausführen
 
 Einen lokalen Gateway-Prozess starten:
 
@@ -42,30 +42,30 @@ openclaw gateway run
 
 Hinweise:
 
-- Standardmaessig verweigert das Gateway den Start, sofern `gateway.mode=local` nicht in `~/.openclaw/openclaw.json` gesetzt ist. Verwenden Sie `--allow-unconfigured` fuer Ad-hoc-/Entwicklungslaeufe.
-- Binden ueber loopback hinaus ohne Authentifizierung ist blockiert (Sicherheitsleitplanke).
-- `SIGUSR1` loest bei Autorisierung einen In-Process-Neustart aus (aktivieren Sie `commands.restart` oder verwenden Sie das Gateway-Werkzeug/config apply/update).
-- `SIGINT`/`SIGTERM`-Handler stoppen den Gateway-Prozess, stellen jedoch keinen benutzerdefinierten Terminalzustand wieder her. Wenn Sie die CLI mit einer TUI oder Raw-Mode-Eingabe umhuellen, stellen Sie das Terminal vor dem Beenden wieder her.
+- Standardmäßig verweigert der Gateway den Start, sofern `gateway.mode=local` nicht in `~/.openclaw/openclaw.json` gesetzt ist. Verwenden Sie `--allow-unconfigured` für ad-hoc-/Entwicklungsläufe.
+- Binden über den loopback hinaus ohne Authentifizierung ist blockiert (Sicherheitsleitplanke).
+- `SIGUSR1` löst bei Autorisierung einen In-Process-Neustart aus (aktivieren Sie `commands.restart` oder verwenden Sie das Gateway-Werkzeug/Config apply/update).
+- `SIGINT`/`SIGTERM`-Handler stoppen den Gateway-Prozess, stellen jedoch keinen benutzerdefinierten Terminalzustand wieder her. Wenn Sie die CLI mit einer TUI oder Raw-Mode-Eingabe umhüllen, stellen Sie das Terminal vor dem Beenden wieder her.
 
 ### Optionen
 
-- `--port <port>`: WebSocket-Port (Standard kommt aus Konfiguration/Umgebung; meist `18789`).
+- `--port <port>`: WebSocket-Port (Standard kommt aus Konfiguration/Umgebungsvariablen; üblicherweise `18789`).
 - `--bind <loopback|lan|tailnet|auto|custom>`: Listener-Bind-Modus.
-- `--auth <token|password>`: Ueberschreibung des Authentifizierungsmodus.
-- `--token <token>`: Token-Ueberschreibung (setzt auch `OPENCLAW_GATEWAY_TOKEN` fuer den Prozess).
-- `--password <password>`: Passwort-Ueberschreibung (setzt auch `OPENCLAW_GATEWAY_PASSWORD` fuer den Prozess).
-- `--tailscale <off|serve|funnel>`: Gateway ueber Tailscale exponieren.
-- `--tailscale-reset-on-exit`: Tailscale-Serve/Funnel-Konfiguration beim Herunterfahren zuruecksetzen.
+- `--auth <token|password>`: Überschreibung des Authentifizierungsmodus.
+- `--token <token>`: Token-Override (setzt auch `OPENCLAW_GATEWAY_TOKEN` für den Prozess).
+- `--password <password>`: Passwort-Override (setzt auch `OPENCLAW_GATEWAY_PASSWORD` für den Prozess).
+- `--tailscale <off|serve|funnel>`: Gateway über Tailscale exponieren.
+- `--tailscale-reset-on-exit`: Tailscale-Serve/Funnel-Konfiguration beim Herunterfahren zurücksetzen.
 - `--allow-unconfigured`: Gateway-Start ohne `gateway.mode=local` in der Konfiguration erlauben.
-- `--dev`: Dev-Konfiguration + Workspace erstellen, falls fehlend (ueberspringt BOOTSTRAP.md).
-- `--reset`: Dev-Konfiguration + Anmeldedaten + Sitzungen + Workspace zuruecksetzen (erfordert `--dev`).
-- `--force`: Vor dem Start vorhandenen Listener auf dem ausgewaehlten Port beenden.
-- `--verbose`: Ausfuehrliche Logs.
+- `--dev`: Dev-Konfiguration + Workspace erstellen, falls fehlend (überspringt BOOTSTRAP.md).
+- `--reset`: Dev-Konfiguration + Zugangsdaten + Sitzungen + Workspace zurücksetzen (erfordert `--dev`).
+- `--force`: Vor dem Start jeden bestehenden Listener auf dem ausgewählten Port beenden.
+- `--verbose`: Ausführliche Logs.
 - `--claude-cli-logs`: Nur claude-cli-Logs in der Konsole anzeigen (und dessen stdout/stderr aktivieren).
 - `--ws-log <auto|full|compact>`: WebSocket-Logstil (Standard `auto`).
-- `--compact`: Alias fuer `--ws-log compact`.
-- `--raw-stream`: Roh-Model-Stream-Ereignisse in jsonl protokollieren.
-- `--raw-stream-path <path>`: Pfad fuer Raw-Stream-jsonl.
+- `--compact`: Alias für `--ws-log compact`.
+- `--raw-stream`: Rohe Modell-Stream-Ereignisse nach jsonl protokollieren.
+- `--raw-stream-path <path>`: Pfad für raw-stream-jsonl.
 
 ## Einen laufenden Gateway abfragen
 
@@ -73,11 +73,11 @@ Alle Abfragebefehle verwenden WebSocket-RPC.
 
 Ausgabemodi:
 
-- Standard: menschenlesbar (farbig im TTY).
-- `--json`: maschinenlesbares JSON (keine Stile/Spinner).
-- `--no-color` (oder `NO_COLOR=1`): ANSI deaktivieren bei Beibehaltung des menschenlesbaren Layouts.
+- Standard: menschenlesbar (in TTY farbig).
+- `--json`: maschinenlesbares JSON (ohne Styling/Spinner).
+- `--no-color` (oder `NO_COLOR=1`): ANSI deaktivieren bei Beibehaltung des menschlichen Layouts.
 
-Gemeinsame Optionen (wo unterstuetzt):
+Gemeinsame Optionen (wo unterstützt):
 
 - `--url <url>`: Gateway-WebSocket-URL.
 - `--token <token>`: Gateway-Token.
@@ -85,8 +85,8 @@ Gemeinsame Optionen (wo unterstuetzt):
 - `--timeout <ms>`: Timeout/Budget (variiert je Befehl).
 - `--expect-final`: Auf eine „finale“ Antwort warten (Agent-Aufrufe).
 
-Hinweis: Wenn Sie `--url` setzen, faellt die CLI nicht auf Konfigurations- oder Umgebungs-Anmeldedaten zurueck.
-Uebergeben Sie `--token` oder `--password` explizit. Fehlende explizite Anmeldedaten sind ein Fehler.
+Hinweis: Wenn Sie `--url` setzen, greift die CLI nicht auf Konfigurations- oder Umgebungs-Zugangsdaten zurück.
+Übergeben Sie `--token` oder `--password` explizit. Fehlende explizite Zugangsdaten sind ein Fehler.
 
 ### `gateway health`
 
@@ -96,7 +96,7 @@ openclaw gateway health --url ws://127.0.0.1:18789
 
 ### `gateway status`
 
-`gateway status` zeigt den Gateway-Dienst (launchd/systemd/schtasks) plus eine optionale RPC-Sonde.
+`gateway status` zeigt den Gateway-Dienst (launchd/systemd/schtasks) sowie eine optionale RPC-Probe.
 
 ```bash
 openclaw gateway status
@@ -105,32 +105,32 @@ openclaw gateway status --json
 
 Optionen:
 
-- `--url <url>`: Sonden-URL ueberschreiben.
-- `--token <token>`: Token-Authentifizierung fuer die Sonde.
-- `--password <password>`: Passwort-Authentifizierung fuer die Sonde.
-- `--timeout <ms>`: Sonden-Timeout (Standard `10000`).
-- `--no-probe`: RPC-Sonde ueberspringen (nur Dienstansicht).
+- `--url <url>`: Überschreibt die Probe-URL.
+- `--token <token>`: Token-Authentifizierung für die Probe.
+- `--password <password>`: Passwort-Authentifizierung für die Probe.
+- `--timeout <ms>`: Probe-Timeout (Standard `10000`).
+- `--no-probe`: RPC-Probe überspringen (nur Dienstansicht).
 - `--deep`: Auch systemweite Dienste scannen.
 
 ### `gateway probe`
 
-`gateway probe` ist der „Alles debuggen“-Befehl. Er sondiert immer:
+`gateway probe` ist der „alles debuggen“-Befehl. Er prüft immer:
 
-- Ihr konfiguriertes Remote-Gateway (falls gesetzt) und
-- localhost (loopback) **auch wenn ein Remote-Gateway konfiguriert ist**.
+- Ihren konfigurierten Remote-Gateway (falls gesetzt) und
+- localhost (loopback) **selbst wenn ein Remote konfiguriert ist**.
 
-Wenn mehrere Gateways erreichbar sind, werden alle ausgegeben. Mehrere Gateways werden unterstuetzt, wenn Sie isolierte Profile/Ports verwenden (z. B. ein Rescue-Bot), aber die meisten Installationen betreiben weiterhin ein einzelnes Gateway.
+Wenn mehrere Gateways erreichbar sind, werden alle ausgegeben. Mehrere Gateways werden unterstützt, wenn Sie isolierte Profile/Ports verwenden (z. B. ein Rescue-Bot), die meisten Installationen betreiben jedoch weiterhin einen einzelnen Gateway.
 
 ```bash
 openclaw gateway probe
 openclaw gateway probe --json
 ```
 
-#### Remote ueber SSH (macOS-App-Paritaet)
+#### Remote über SSH (Mac-App-Parität)
 
-Der macOS-App-Modus „Remote over SSH“ verwendet eine lokale Portweiterleitung, sodass das Remote-Gateway (das ggf. nur an loopback gebunden ist) unter `ws://127.0.0.1:<port>` erreichbar wird.
+Der macOS-App-Modus „Remote over SSH“ verwendet ein lokales Port-Forwarding, sodass der Remote-Gateway (der ggf. nur an loopback gebunden ist) unter `ws://127.0.0.1:<port>` erreichbar wird.
 
-CLI-Aequivalent:
+CLI-Äquivalent:
 
 ```bash
 openclaw gateway probe --ssh user@gateway-host
@@ -138,9 +138,9 @@ openclaw gateway probe --ssh user@gateway-host
 
 Optionen:
 
-- `--ssh <target>`: `user@host` oder `user@host:port` (Port-Standard `22`).
-- `--ssh-identity <path>`: Identity-Datei.
-- `--ssh-auto`: Ersten entdeckten Gateway-Host als SSH-Ziel waehlen (nur LAN/WAB).
+- `--ssh <target>`: `user@host` oder `user@host:port` (Port standardmäßig `22`).
+- `--ssh-identity <path>`: Identitätsdatei.
+- `--ssh-auto`: Ersten entdeckten Gateway-Host als SSH-Ziel auswählen (nur LAN/WAB).
 
 Konfiguration (optional, als Standardwerte verwendet):
 
@@ -168,27 +168,27 @@ openclaw gateway uninstall
 
 Hinweise:
 
-- `gateway install` unterstuetzt `--port`, `--runtime`, `--token`, `--force`, `--json`.
-- Lifecycle-Befehle akzeptieren `--json` fuer Skripting.
+- `gateway install` unterstützt `--port`, `--runtime`, `--token`, `--force`, `--json`.
+- Lebenszyklusbefehle akzeptieren `--json` für Skripting.
 
 ## Gateways entdecken (Bonjour)
 
 `gateway discover` scannt nach Gateway-Beacons (`_openclaw-gw._tcp`).
 
 - Multicast DNS-SD: `local.`
-- Unicast DNS-SD (Wide-Area Bonjour): Waehlen Sie eine Domain (Beispiel: `openclaw.internal.`) und richten Sie Split-DNS + einen DNS-Server ein; siehe [/gateway/bonjour](/gateway/bonjour)
+- Unicast DNS-SD (Wide-Area Bonjour): Wählen Sie eine Domain (Beispiel: `openclaw.internal.`) und richten Sie Split-DNS + einen DNS-Server ein; siehe [/gateway/bonjour](/gateway/bonjour)
 
-Nur Gateways mit aktivierter Bonjour-Erkennung (Standard) bewerben das Beacon.
+Nur Gateways mit aktivierter Bonjour-Discovery (Standard) senden das Beacon.
 
-Wide-Area-Erkennungsdatensaetze enthalten (TXT):
+Wide-Area-Discovery-Datensätze enthalten (TXT):
 
 - `role` (Gateway-Rollenhinweis)
 - `transport` (Transporthinweis, z. B. `gateway`)
-- `gatewayPort` (WebSocket-Port, meist `18789`)
-- `sshPort` (SSH-Port; Standard `22`, falls nicht vorhanden)
-- `tailnetDns` (MagicDNS-Hostname, falls verfuegbar)
-- `gatewayTls` / `gatewayTlsSha256` (TLS aktiviert + Zertifikats-Fingerprint)
-- `cliPath` (optionaler Hinweis fuer Remote-Installationen)
+- `gatewayPort` (WebSocket-Port, üblicherweise `18789`)
+- `sshPort` (SSH-Port; standardmäßig `22`, falls nicht vorhanden)
+- `tailnetDns` (MagicDNS-Hostname, sofern verfügbar)
+- `gatewayTls` / `gatewayTlsSha256` (TLS aktiviert + Zertifikat-Fingerprint)
+- `cliPath` (optional: Hinweis für Remote-Installationen)
 
 ### `gateway discover`
 
@@ -199,7 +199,7 @@ openclaw gateway discover
 Optionen:
 
 - `--timeout <ms>`: Timeout pro Befehl (Browse/Resolve); Standard `2000`.
-- `--json`: maschinenlesbare Ausgabe (deaktiviert auch Styling/Spinner).
+- `--json`: Maschinenlesbare Ausgabe (deaktiviert auch Styling/Spinner).
 
 Beispiele:
 

@@ -1,35 +1,35 @@
 ---
-summary: "OpenClaw でサポートされているモデルプロバイダー（LLM）"
+summary: "OpenClaw がサポートするモデルプロバイダー（LLM）"
 read_when:
-  - モデルプロバイダーを選択したい場合
-  - LLM の認証とモデル選択のクイックセットアップ例を知りたい場合
+  - モデルプロバイダーを選択したいとき
+  - LLM の認証とモデル選択のクイックなセットアップ例を確認したいとき
 title: "モデルプロバイダー クイックスタート"
 x-i18n:
   source_path: providers/models.md
-  source_hash: c897ca87805f1ec5
+  source_hash: 691d2c97ef6b01cc
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:34:37Z
+  generated_at: 2026-02-08T09:22:51Z
 ---
 
 # モデルプロバイダー
 
-OpenClaw は多くの LLM プロバイダーを利用できます。1 つ選択して認証し、既定の
+OpenClaw は多数の LLM プロバイダーを利用できます。1 つ選択して認証し、既定の
 モデルを `provider/model` として設定します。
 
 ## ハイライト: Venice（Venice AI）
 
-Venice は、プライバシー重視の推論を行うための推奨 Venice AI セットアップで、最も難しいタスクには Opus を使用するオプションがあります。
+Venice は、プライバシー重視の推論を実現するために推奨している Venice AI のセットアップです。最も難しいタスクには Opus を使用するオプションがあります。
 
-- デフォルト: `venice/llama-3.3-70b`
+- 既定: `venice/llama-3.3-70b`
 - 総合的に最良: `venice/claude-opus-45`（Opus は依然として最強です）
 
-詳細は [Venice AI](/providers/venice) を参照してください。
+[Venice AI](/providers/venice) を参照してください。
 
 ## クイックスタート（2 ステップ）
 
-1. プロバイダーで認証します（通常は `openclaw onboard` を使用）。
+1. プロバイダーで認証します（通常は `openclaw onboard` を使用します）。
 2. 既定のモデルを設定します:
 
 ```json5
@@ -38,7 +38,7 @@ Venice は、プライバシー重視の推論を行うための推奨 Venice AI
 }
 ```
 
-## 対応プロバイダー（スターターセット）
+## サポートされているプロバイダー（スターターセット）
 
 - [OpenAI（API + Codex）](/providers/openai)
 - [Anthropic（API + Claude Code CLI）](/providers/anthropic)
@@ -52,7 +52,8 @@ Venice は、プライバシー重視の推論を行うための推奨 Venice AI
 - [GLM models](/providers/glm)
 - [MiniMax](/providers/minimax)
 - [Venice（Venice AI）](/providers/venice)
-- [Amazon Bedrock](/bedrock)
+- [Amazon Bedrock](/providers/bedrock)
+- [Qianfan](/providers/qianfan)
 
-xAI、Groq、Mistral などを含むすべてのプロバイダーカタログや高度な設定については、
-[Model providers](/concepts/model-providers) を参照してください。
+xAI、Groq、Mistral などを含む完全なプロバイダー カタログや高度な設定については、
+[モデルプロバイダー](/concepts/model-providers) を参照してください。

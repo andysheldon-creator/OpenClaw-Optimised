@@ -1,7 +1,7 @@
 ---
 summary: "Exponha um endpoint HTTP /v1/chat/completions compatível com OpenAI a partir do Gateway"
 read_when:
-  - Integrando ferramentas que esperam Chat Completions da OpenAI
+  - Integração de ferramentas que esperam OpenAI Chat Completions
 title: "OpenAI Chat Completions"
 x-i18n:
   source_path: gateway/openai-http-api.md
@@ -9,19 +9,19 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:56:17Z
+  generated_at: 2026-02-08T09:30:54Z
 ---
 
 # OpenAI Chat Completions (HTTP)
 
-O Gateway da OpenClaw pode servir um pequeno endpoint de Chat Completions compatível com OpenAI.
+O Gateway do OpenClaw pode servir um pequeno endpoint de Chat Completions compatível com OpenAI.
 
-Este endpoint é **desativado por padrão**. Ative-o primeiro na configuracao.
+Este endpoint é **desativado por padrão**. Ative-o primeiro na configuração.
 
 - `POST /v1/chat/completions`
 - Mesma porta do Gateway (multiplexação WS + HTTP): `http://<gateway-host>:<port>/v1/chat/completions`
 
-Por baixo dos panos, as solicitações são executadas como uma execução normal de agente do Gateway (mesmo codepath que `openclaw agent`), portanto roteamento/permissões/configuração correspondem ao seu Gateway.
+Por baixo dos panos, as requisições são executadas como uma execução normal de agente do Gateway (mesmo caminho de código que `openclaw agent`), portanto o roteamento/permissões/configuração correspondem ao seu Gateway.
 
 ## Autenticação
 
@@ -36,12 +36,12 @@ Notas:
 
 ## Escolhendo um agente
 
-Nenhum cabeçalho personalizado é necessário: codifique o id do agente no campo OpenAI `model`:
+Nenhum header personalizado é necessário: codifique o id do agente no campo OpenAI `model`:
 
 - `model: "openclaw:<agentId>"` (exemplo: `"openclaw:main"`, `"openclaw:beta"`)
 - `model: "agent:<agentId>"` (alias)
 
-Ou direcione um agente específico da OpenClaw por cabeçalho:
+Ou direcione um agente específico do OpenClaw por header:
 
 - `x-openclaw-agent-id: <agentId>` (padrão: `main`)
 
@@ -83,9 +83,9 @@ Defina `gateway.http.endpoints.chatCompletions.enabled` como `false`:
 
 ## Comportamento de sessão
 
-Por padrão, o endpoint é **sem estado por solicitação** (uma nova chave de sessão é gerada a cada chamada).
+Por padrão, o endpoint é **sem estado por requisição** (uma nova chave de sessão é gerada a cada chamada).
 
-Se a solicitação incluir uma string OpenAI `user`, o Gateway deriva uma chave de sessão estável a partir dela, de modo que chamadas repetidas possam compartilhar uma sessão de agente.
+Se a requisição incluir uma string OpenAI `user`, o Gateway deriva uma chave de sessão estável a partir dela, para que chamadas repetidas possam compartilhar uma sessão de agente.
 
 ## Streaming (SSE)
 

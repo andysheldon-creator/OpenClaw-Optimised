@@ -1,51 +1,51 @@
 ---
-summary: "Monitore a expiracao do OAuth para provedores de modelos"
+summary: "Monitore a expiração de OAuth para provedores de modelo"
 read_when:
-  - Configurar monitoramento ou alertas de expiracao de autenticacao
-  - Automatizar verificacoes de atualizacao de OAuth do Claude Code / Codex
-title: "Monitoramento de Autenticacao"
+  - Configurando monitoramento de expiração de autenticação ou alertas
+  - Automatizando verificações de renovação de OAuth do Claude Code / Codex
+title: "Monitoramento de autenticação"
 x-i18n:
   source_path: automation/auth-monitoring.md
   source_hash: eef179af9545ed7a
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:06Z
+  generated_at: 2026-02-08T09:29:41Z
 ---
 
-# Monitoramento de autenticacao
+# Monitoramento de autenticação
 
-O OpenClaw expõe a saude de expiracao do OAuth via `openclaw models status`. Use isso para
-automacao e alertas; scripts sao extras opcionais para fluxos de trabalho no telefone.
+O OpenClaw expõe a saúde da expiração de OAuth via `openclaw models status`. Use isso para
+automação e alertas; scripts são extras opcionais para fluxos de trabalho no telefone.
 
-## Preferido: verificacao via CLI (portatil)
+## Preferido: verificação via CLI (portátil)
 
 ```bash
 openclaw models status --check
 ```
 
-Codigos de saida:
+Códigos de saída:
 
 - `0`: OK
 - `1`: credenciais expiradas ou ausentes
-- `2`: expirando em breve (em ate 24h)
+- `2`: expirando em breve (dentro de 24h)
 
-Isso funciona em cron/systemd e nao requer scripts extras.
+Isso funciona em cron/systemd e não requer scripts adicionais.
 
 ## Scripts opcionais (ops / fluxos de trabalho no telefone)
 
-Eles ficam em `scripts/` e sao **opcionais**. Eles assumem acesso SSH ao
-host do Gateway e sao ajustados para systemd + Termux.
+Eles ficam em `scripts/` e são **opcionais**. Eles assumem acesso SSH ao
+host do gateway e são ajustados para systemd + Termux.
 
 - `scripts/claude-auth-status.sh` agora usa `openclaw models status --json` como a
-  fonte de verdade (recorrendo a leituras diretas de arquivo se a CLI nao estiver disponivel),
-  entao mantenha `openclaw` em `PATH` para timers.
+  fonte de verdade (recorrendo a leituras diretas de arquivos se a CLI não estiver disponível),
+  então mantenha `openclaw` em `PATH` para os timers.
 - `scripts/auth-monitor.sh`: alvo de timer cron/systemd; envia alertas (ntfy ou telefone).
-- `scripts/systemd/openclaw-auth-monitor.{service,timer}`: timer de usuario do systemd.
-- `scripts/claude-auth-status.sh`: verificador de autenticacao do Claude Code + OpenClaw (completo/json/simples).
-- `scripts/mobile-reauth.sh`: fluxo guiado de reautenticacao via SSH.
-- `scripts/termux-quick-auth.sh`: status em widget de um toque + abrir URL de autenticacao.
-- `scripts/termux-auth-widget.sh`: fluxo completo guiado por widget.
-- `scripts/termux-sync-widget.sh`: sincronizar credenciais do Claude Code → OpenClaw.
+- `scripts/systemd/openclaw-auth-monitor.{service,timer}`: timer de usuário do systemd.
+- `scripts/claude-auth-status.sh`: verificador de autenticação do Claude Code + OpenClaw (completo/json/simples).
+- `scripts/mobile-reauth.sh`: fluxo guiado de reautenticação via SSH.
+- `scripts/termux-quick-auth.sh`: status de widget com um toque + abrir URL de autenticação.
+- `scripts/termux-auth-widget.sh`: fluxo completo guiado de widget.
+- `scripts/termux-sync-widget.sh`: sincroniza credenciais do Claude Code → OpenClaw.
 
-Se voce nao precisa de automacao no telefone ou timers do systemd, ignore esses scripts.
+Se voce não precisa de automação no telefone ou timers do systemd, ignore esses scripts.

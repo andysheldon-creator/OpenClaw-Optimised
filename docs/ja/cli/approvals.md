@@ -1,27 +1,27 @@
 ---
-summary: "CLI から `openclaw approvals`（Gateway（ゲートウェイ）またはノードホストの exec 承認）を参照するためのリファレンスです"
+summary: "CLI 参照：`openclaw approvals`（ゲートウェイまたはノード ホスト向けの実行承認）"
 read_when:
-  - CLI から exec 承認を編集したい場合
-  - Gateway（ゲートウェイ）またはノードホスト上の許可リストを管理する必要がある場合
-title: "承認"
+  - CLI から実行承認を編集したい場合
+  - ゲートウェイまたはノード ホスト上の許可リストを管理する必要がある場合
+title: "approvals"
 x-i18n:
   source_path: cli/approvals.md
   source_hash: 4329cdaaec2c5f5d
   provider: openai
-  model: gpt-5.2-pro
+  model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-06T04:52:35Z
+  generated_at: 2026-02-08T09:20:55Z
 ---
 
 # `openclaw approvals`
 
-**ローカルホスト**、**ゲートウェイホスト**、または **ノードホスト**の exec 承認を管理します。
-デフォルトでは、コマンドはディスク上のローカル承認ファイルを対象にします。ゲートウェイを対象にするには `--gateway` を使用し、特定のノードを対象にするには `--node` を使用してください。
+**ローカル ホスト**、**ゲートウェイ ホスト**、または **ノード ホスト** の実行承認を管理します。  
+既定では、コマンドはディスク上のローカル承認ファイルを対象にします。ゲートウェイを対象にするには `--gateway` を、特定のノードを対象にするには `--node` を使用します。
 
-関連:
+関連項目：
 
-- Exec approvals: [Exec approvals](/tools/exec-approvals)
-- Nodes: [Nodes](/nodes)
+- 実行承認： [Exec approvals](/tools/exec-approvals)
+- ノード： [Nodes](/nodes)
 
 ## 共通コマンド
 
@@ -31,7 +31,7 @@ openclaw approvals get --node <id|name|ip>
 openclaw approvals get --gateway
 ```
 
-## ファイルから承認を置換する
+## ファイルから承認を置き換える
 
 ```bash
 openclaw approvals set --file ./exec-approvals.json
@@ -49,9 +49,9 @@ openclaw approvals allowlist add --agent "*" "/usr/bin/uname"
 openclaw approvals allowlist remove "~/Projects/**/bin/rg"
 ```
 
-## 注意事項
+## 注記
 
-- `--node` は、`openclaw nodes`（id、name、ip、または id のプレフィックス）と同じリゾルバーを使用します。
-- `--agent` はデフォルトで `"*"` になっており、これはすべてのエージェントに適用されます。
-- ノードホストは `system.execApprovals.get/set` をアドバタイズする必要があります（macOS アプリまたはヘッドレスノードホスト）。
+- `--node` は、`openclaw nodes`（id、name、ip、または id プレフィックス）と同じリゾルバーを使用します。
+- `--agent` の既定値は `"*"` で、すべてのエージェントに適用されます。
+- ノード ホストは `system.execApprovals.get/set`（macOS アプリまたはヘッドレス ノード ホスト）をアドバタイズする必要があります。
 - 承認ファイルは、ホストごとに `~/.openclaw/exec-approvals.json` に保存されます。

@@ -1,5 +1,5 @@
 ---
-summary: "用於 `openclaw docs` 的 CLI 參考（搜尋即時文件索引）"
+summary: "「`openclaw docs`」的 CLI 參考（搜尋即時的 OpenClaw 文件索引）"
 read_when:
   - 你想從終端機搜尋即時的 OpenClaw 文件
 title: "文件"
@@ -9,12 +9,12 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:52:35Z
+  generated_at: 2026-02-08T09:27:18Z
 ---
 
 # `openclaw docs`
 
-搜尋即時文件索引。
+搜尋即時的文件索引。
 
 ```bash
 openclaw docs browser extension

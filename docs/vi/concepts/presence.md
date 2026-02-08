@@ -2,7 +2,7 @@
 summary: "Cách các mục presence của OpenClaw được tạo ra, hợp nhất và hiển thị"
 read_when:
   - Gỡ lỗi tab Instances
-  - Điều tra các hàng instance bị trùng lặp hoặc lỗi thời
+  - Điều tra các dòng instance bị trùng lặp hoặc lỗi thời
   - Thay đổi kết nối WS của gateway hoặc các beacon sự kiện hệ thống
 title: "Presence"
 x-i18n:
@@ -11,7 +11,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:50Z
+  generated_at: 2026-02-08T09:38:40Z
 ---
 
 # Presence
@@ -29,58 +29,58 @@ cung cấp khả năng quan sát nhanh cho người vận hành.
 Các mục presence là các đối tượng có cấu trúc với các trường như:
 
 - `instanceId` (tùy chọn nhưng rất khuyến nghị): định danh client ổn định (thường là `connect.client.instanceId`)
-- `host`: tên host thân thiện với người dùng
-- `ip`: địa chỉ IP theo best‑effort
+- `host`: tên máy chủ thân thiện với người dùng
+- `ip`: địa chỉ IP theo kiểu best‑effort
 - `version`: chuỗi phiên bản client
 - `deviceFamily` / `modelIdentifier`: gợi ý phần cứng
 - `mode`: `ui`, `webchat`, `cli`, `backend`, `probe`, `test`, `node`, ...
-- `lastInputSeconds`: “số giây kể từ lần nhập liệu người dùng gần nhất” (nếu biết)
+- `lastInputSeconds`: “số giây kể từ lần có thao tác người dùng gần nhất” (nếu biết)
 - `reason`: `self`, `connect`, `node-connected`, `periodic`, ...
 - `ts`: dấu thời gian cập nhật lần cuối (ms kể từ epoch)
 
 ## Nguồn tạo (presence đến từ đâu)
 
-Các mục presence được tạo từ nhiều nguồn và **được hợp nhất**.
+Các mục presence được tạo bởi nhiều nguồn và được **hợp nhất**.
 
 ### 1) Mục tự thân của Gateway
 
-Gateway luôn khởi tạo một mục “self” khi khởi động để UI hiển thị host gateway
-ngay cả trước khi có client kết nối.
+Gateway luôn khởi tạo một mục “self” khi khởi động để các UI hiển thị máy chủ gateway
+ngay cả trước khi có client nào kết nối.
 
 ### 2) Kết nối WebSocket
 
-Mỗi client WS bắt đầu bằng một yêu cầu `connect`. Khi bắt tay thành công,
-Gateway sẽ upsert một mục presence cho kết nối đó.
+Mỗi client WS bắt đầu bằng một yêu cầu `connect`. Khi bắt tay thành công, Gateway
+upsert một mục presence cho kết nối đó.
 
-#### Vì sao các lệnh CLI một‑lần không hiển thị
+#### Vì sao các lệnh CLI một‑lần không xuất hiện
 
-CLI thường kết nối trong thời gian ngắn cho các lệnh một‑lần. Để tránh làm
-spam danh sách Instances, `client.mode === "cli"` **không** được chuyển thành một mục presence.
+CLI thường chỉ kết nối trong thời gian ngắn cho các lệnh một‑lần. Để tránh làm nhiễu
+danh sách Instances, `client.mode === "cli"` **không** được chuyển thành một mục presence.
 
 ### 3) Beacon `system-event`
 
 Client có thể gửi các beacon định kỳ giàu thông tin hơn thông qua phương thức
-`system-event`. Ứng dụng mac dùng cách này để báo cáo tên host, IP và `lastInputSeconds`.
+`system-event`. Ứng dụng mac dùng cách này để báo cáo tên máy chủ, IP và `lastInputSeconds`.
 
-### 4) Kết nối node (vai trò: node)
+### 4) Node kết nối (vai trò: node)
 
-Khi một node kết nối qua WebSocket của Gateway với `role: node`, Gateway sẽ
-upsert một mục presence cho node đó (cùng luồng như các client WS khác).
+Khi một node kết nối qua Gateway WebSocket với `role: node`, Gateway sẽ upsert
+một mục presence cho node đó (luồng giống các client WS khác).
 
 ## Quy tắc hợp nhất + khử trùng lặp (vì sao `instanceId` quan trọng)
 
-Các mục presence được lưu trong một map bộ nhớ duy nhất:
+Các mục presence được lưu trong một map trong bộ nhớ duy nhất:
 
-- Các mục được khóa bằng một **presence key**.
-- Khóa tốt nhất là một `instanceId` ổn định (từ `connect.client.instanceId`) tồn tại qua các lần khởi động lại.
-- Khóa không phân biệt chữ hoa/thường.
+- Các mục được khóa theo một **presence key**.
+- Khóa tốt nhất là một `instanceId` ổn định (từ `connect.client.instanceId`) có thể tồn tại qua các lần khởi động lại.
+- Khóa không phân biệt chữ hoa/chữ thường.
 
 Nếu một client kết nối lại mà không có `instanceId` ổn định, nó có thể xuất hiện
-thành một hàng **trùng lặp**.
+thành một dòng **trùng lặp**.
 
 ## TTL và kích thước giới hạn
 
-Presence được thiết kế mang tính tạm thời:
+Presence được thiết kế là tạm thời:
 
 - **TTL:** các mục cũ hơn 5 phút sẽ bị loại bỏ
 - **Số mục tối đa:** 200 (loại bỏ mục cũ nhất trước)
@@ -90,20 +90,20 @@ Presence được thiết kế mang tính tạm thời:
 ## Lưu ý về kết nối từ xa/đường hầm (IP loopback)
 
 Khi một client kết nối qua đường hầm SSH / chuyển tiếp cổng cục bộ, Gateway có thể
-thấy địa chỉ từ xa là `127.0.0.1`. Để tránh ghi đè IP tốt do client báo cáo,
-các địa chỉ từ xa loopback sẽ bị bỏ qua.
+nhìn thấy địa chỉ từ xa là `127.0.0.1`. Để tránh ghi đè lên IP tốt do client báo cáo,
+các địa chỉ loopback từ xa sẽ bị bỏ qua.
 
-## Bên tiêu thụ
+## Bên sử dụng
 
 ### Tab Instances trên macOS
 
-Ứng dụng macOS hiển thị đầu ra của `system-presence` và áp dụng một chỉ báo trạng thái
-nhỏ (Active/Idle/Stale) dựa trên độ tuổi của lần cập nhật gần nhất.
+Ứng dụng macOS hiển thị đầu ra của `system-presence` và áp dụng một chỉ báo trạng thái nhỏ
+(Active/Idle/Stale) dựa trên tuổi của lần cập nhật gần nhất.
 
 ## Mẹo gỡ lỗi
 
-- Để xem danh sách thô, gọi `system-presence` tới Gateway.
+- Để xem danh sách thô, hãy gọi `system-presence` tới Gateway.
 - Nếu bạn thấy trùng lặp:
   - xác nhận client gửi một `client.instanceId` ổn định trong quá trình bắt tay
   - xác nhận các beacon định kỳ dùng cùng `instanceId`
-  - kiểm tra xem mục suy ra từ kết nối có thiếu `instanceId` hay không (trùng lặp là điều ожида được)
+  - kiểm tra xem mục phát sinh từ kết nối có thiếu `instanceId` hay không (trùng lặp là điều được dự đoán)

@@ -1,8 +1,8 @@
 ---
-summary: "Referencia de CLI para `openclaw dns` (auxiliares de descoberta de area ampla)"
+summary: "Referência da CLI para `openclaw dns` (auxiliares de descoberta de área ampla)"
 read_when:
-  - Voce quer descoberta de area ampla (DNS-SD) via Tailscale + CoreDNS
-  - Voce esta configurando DNS dividido para um dominio de descoberta personalizado (exemplo: openclaw.internal)
+  - Você quer descoberta de área ampla (DNS-SD) via Tailscale + CoreDNS
+  - Você está configurando DNS dividido para um domínio de descoberta personalizado (exemplo: openclaw.internal)
 title: "dns"
 x-i18n:
   source_path: cli/dns.md
@@ -10,19 +10,19 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:36Z
+  generated_at: 2026-02-08T09:30:14Z
 ---
 
 # `openclaw dns`
 
-Auxiliares de DNS para descoberta de area ampla (Tailscale + CoreDNS). Atualmente focado em macOS + Homebrew CoreDNS.
+Auxiliares de DNS para descoberta de área ampla (Tailscale + CoreDNS). Atualmente focado em macOS + CoreDNS via Homebrew.
 
 Relacionado:
 
-- Descoberta do Gateway: [Descoberta](/gateway/discovery)
-- Configuracao de descoberta de area ampla: [Configuracao](/gateway/configuration)
+- Descoberta do Gateway: [Discovery](/gateway/discovery)
+- Configuração de descoberta de área ampla: [Configuration](/gateway/configuration)
 
-## Configuracao
+## Configuração
 
 ```bash
 openclaw dns setup

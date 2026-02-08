@@ -1,8 +1,8 @@
 ---
-summary: "Descripcion general del soporte de plataformas (Gateway + aplicaciones complementarias)"
+summary: "Descripción general de compatibilidad de plataformas (Gateway + aplicaciones complementarias)"
 read_when:
-  - Buscando soporte de SO o rutas de instalacion
-  - Decidiendo donde ejecutar el Gateway
+  - Buscando compatibilidad de SO o rutas de instalación
+  - Decidiendo dónde ejecutar el Gateway
 title: "Plataformas"
 x-i18n:
   source_path: platforms/index.md
@@ -10,17 +10,17 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:59:21Z
+  generated_at: 2026-02-08T09:34:02Z
 ---
 
 # Plataformas
 
-El nucleo de OpenClaw esta escrito en TypeScript. **Node es el runtime recomendado**.
-Bun no se recomienda para el Gateway (errores con WhatsApp/Telegram).
+El núcleo de OpenClaw está escrito en TypeScript. **Node es el runtime recomendado**.
+Bun no se recomienda para el Gateway (errores de WhatsApp/Telegram).
 
-Existen aplicaciones complementarias para macOS (aplicacion de barra de menu) y nodos moviles (iOS/Android). Las aplicaciones complementarias para Windows y
-Linux estan planificadas, pero el Gateway cuenta con soporte completo hoy.
-Tambien estan planificadas aplicaciones complementarias nativas para Windows; se recomienda el Gateway via WSL2.
+Existen aplicaciones complementarias para macOS (app de barra de menú) y nodos móviles (iOS/Android). Las aplicaciones complementarias para Windows y
+Linux están planificadas, pero el Gateway cuenta con soporte completo hoy.
+También se planifican aplicaciones complementarias nativas para Windows; se recomienda el Gateway mediante WSL2.
 
 ## Elija su SO
 
@@ -40,21 +40,21 @@ Tambien estan planificadas aplicaciones complementarias nativas para Windows; se
 
 ## Enlaces comunes
 
-- Guia de instalacion: [Primeros Pasos](/start/getting-started)
-- Runbook del Gateway: [Gateway](/gateway)
-- Configuracion del Gateway: [Configuracion](/gateway/configuration)
+- Guía de instalación: [Primeros pasos](/start/getting-started)
+- Manual operativo del Gateway: [Gateway](/gateway)
+- Configuración del Gateway: [Configuración](/gateway/configuration)
 - Estado del servicio: `openclaw gateway status`
 
-## Instalacion del servicio Gateway (CLI)
+## Instalación del servicio del Gateway (CLI)
 
-Use una de estas (todas compatibles):
+Use una de estas opciones (todas compatibles):
 
 - Asistente (recomendado): `openclaw onboard --install-daemon`
 - Directo: `openclaw gateway install`
-- Flujo de configuracion: `openclaw configure` → seleccione **servicio Gateway**
+- Configurar flujo: `openclaw configure` → seleccione **Gateway service**
 - Reparar/migrar: `openclaw doctor` (ofrece instalar o corregir el servicio)
 
 El destino del servicio depende del SO:
 
-- macOS: LaunchAgent (`bot.molt.gateway` o `bot.molt.<profile>`; heredado `com.openclaw.*`)
+- macOS: LaunchAgent (`bot.molt.gateway` o `bot.molt.<profile>`; legado `com.openclaw.*`)
 - Linux/WSL2: servicio de usuario systemd (`openclaw-gateway[-<profile>].service`)

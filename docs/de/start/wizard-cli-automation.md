@@ -1,28 +1,28 @@
 ---
-summary: "Skriptgestuetzte Einfuehrung und Agenten-Einrichtung fuer die OpenClaw CLI"
+summary: „Skriptgesteuertes Onboarding und Agent-Einrichtung für die OpenClaw CLI“
 read_when:
-  - Sie automatisieren die Einfuehrung in Skripten oder CI
-  - Sie benoetigen nicht-interaktive Beispiele fuer bestimmte Anbieter
-title: "CLI-Automatisierung"
-sidebarTitle: "CLI automation"
+  - Sie automatisieren das Onboarding in Skripten oder CI
+  - Sie benötigen nicht‑interaktive Beispiele für bestimmte Anbieter
+title: „CLI‑Automatisierung“
+sidebarTitle: „CLI‑Automatisierung“
 x-i18n:
   source_path: start/wizard-cli-automation.md
   source_hash: 5b5463359a87cfe6
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:33Z
+  generated_at: 2026-02-08T09:37:24Z
 ---
 
-# CLI-Automatisierung
+# CLI‑Automatisierung
 
 Verwenden Sie `--non-interactive`, um `openclaw onboard` zu automatisieren.
 
 <Note>
-`--json` bedeutet nicht den nicht-interaktiven Modus. Verwenden Sie `--non-interactive` (und `--workspace`) fuer Skripte.
+`--json` bedeutet nicht den nicht‑interaktiven Modus. Verwenden Sie `--non-interactive` (und `--workspace`) für Skripte.
 </Note>
 
-## Basisbeispiel ohne Interaktion
+## Basisbeispiel (nicht‑interaktiv)
 
 ```bash
 openclaw onboard --non-interactive \
@@ -36,12 +36,12 @@ openclaw onboard --non-interactive \
   --skip-skills
 ```
 
-Fuegen Sie `--json` hinzu, um eine maschinenlesbare Zusammenfassung zu erhalten.
+Fügen Sie `--json` für eine maschinenlesbare Zusammenfassung hinzu.
 
-## Anbieterspezifische Beispiele
+## Anbieter­spezifische Beispiele
 
 <AccordionGroup>
-  <Accordion title="Gemini-Beispiel">
+  <Accordion title="Gemini‑Beispiel">
     ```bash
     openclaw onboard --non-interactive \
       --mode local \
@@ -51,7 +51,7 @@ Fuegen Sie `--json` hinzu, um eine maschinenlesbare Zusammenfassung zu erhalten.
       --gateway-bind loopback
     ```
   </Accordion>
-  <Accordion title="Z.AI-Beispiel">
+  <Accordion title="Z.AI‑Beispiel">
     ```bash
     openclaw onboard --non-interactive \
       --mode local \
@@ -61,7 +61,7 @@ Fuegen Sie `--json` hinzu, um eine maschinenlesbare Zusammenfassung zu erhalten.
       --gateway-bind loopback
     ```
   </Accordion>
-  <Accordion title="Vercel AI Gateway-Beispiel">
+  <Accordion title="Vercel AI Gateway‑Beispiel">
     ```bash
     openclaw onboard --non-interactive \
       --mode local \
@@ -71,7 +71,7 @@ Fuegen Sie `--json` hinzu, um eine maschinenlesbare Zusammenfassung zu erhalten.
       --gateway-bind loopback
     ```
   </Accordion>
-  <Accordion title="Cloudflare AI Gateway-Beispiel">
+  <Accordion title="Cloudflare AI Gateway‑Beispiel">
     ```bash
     openclaw onboard --non-interactive \
       --mode local \
@@ -83,7 +83,7 @@ Fuegen Sie `--json` hinzu, um eine maschinenlesbare Zusammenfassung zu erhalten.
       --gateway-bind loopback
     ```
   </Accordion>
-  <Accordion title="Moonshot-Beispiel">
+  <Accordion title="Moonshot‑Beispiel">
     ```bash
     openclaw onboard --non-interactive \
       --mode local \
@@ -103,7 +103,7 @@ Fuegen Sie `--json` hinzu, um eine maschinenlesbare Zusammenfassung zu erhalten.
       --gateway-bind loopback
     ```
   </Accordion>
-  <Accordion title="OpenCode Zen-Beispiel">
+  <Accordion title="OpenCode Zen‑Beispiel">
     ```bash
     openclaw onboard --non-interactive \
       --mode local \
@@ -115,10 +115,10 @@ Fuegen Sie `--json` hinzu, um eine maschinenlesbare Zusammenfassung zu erhalten.
   </Accordion>
 </AccordionGroup>
 
-## Weiteren Agenten hinzufuegen
+## Weiteren Agent hinzufügen
 
 Verwenden Sie `openclaw agents add <name>`, um einen separaten Agenten mit eigenem Workspace,
-Sitzungen und Auth-Profilen zu erstellen. Die Ausfuehrung ohne `--workspace` startet den Assistenten.
+Sitzungen und Auth‑Profilen zu erstellen. Das Ausführen ohne `--workspace` startet den Assistenten.
 
 ```bash
 openclaw agents add work \
@@ -129,7 +129,7 @@ openclaw agents add work \
   --json
 ```
 
-Was eingerichtet wird:
+Was gesetzt wird:
 
 - `agents.list[].name`
 - `agents.list[].workspace`
@@ -137,12 +137,12 @@ Was eingerichtet wird:
 
 Hinweise:
 
-- Standard-Workspaces folgen `~/.openclaw/workspace-<agentId>`.
-- Fuegen Sie `bindings` hinzu, um eingehende Nachrichten weiterzuleiten (der Assistent kann dies erledigen).
-- Nicht-interaktive Flags: `--model`, `--agent-dir`, `--bind`, `--non-interactive`.
+- Standard‑Workspaces folgen `~/.openclaw/workspace-<agentId>`.
+- Fügen Sie `bindings` hinzu, um eingehende Nachrichten zu routen (der Assistent kann dies erledigen).
+- Nicht‑interaktive Flags: `--model`, `--agent-dir`, `--bind`, `--non-interactive`.
 
-## Verwandte Dokumente
+## Zugehörige Dokumente
 
-- Einfuehrungs-Hub: [Onboarding Wizard (CLI)](/start/wizard)
-- Vollstaendige Referenz: [CLI Onboarding Reference](/start/wizard-cli-reference)
+- Onboarding‑Hub: [Onboarding Wizard (CLI)](/start/wizard)
+- Vollständige Referenz: [CLI‑Onboarding‑Referenz](/start/wizard-cli-reference)
 - Befehlsreferenz: [`openclaw onboard`](/cli/onboard)

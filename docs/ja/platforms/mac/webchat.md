@@ -1,20 +1,20 @@
 ---
-summary: "mac アプリが Gateway WebChat をどのように埋め込み、どのようにデバッグするか"
+summary: "mac アプリが Gateway WebChat を埋め込む方法と、そのデバッグ方法"
 read_when:
-  - mac WebChat ビューまたは loopback ポートのデバッグ時
+  - mac WebChat ビューやループバックポートのデバッグ時
 title: "WebChat"
 x-i18n:
   source_path: platforms/mac/webchat.md
-  source_hash: 04ff448758e53009
+  source_hash: 7c425374673b817a
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:34:27Z
+  generated_at: 2026-02-08T09:22:39Z
 ---
 
 # WebChat（macOS アプリ）
 
-macOS のメニューバーアプリは、WebChat UI をネイティブな SwiftUI ビューとして埋め込みます。Gateway に接続し、選択されたエージェントの **メインセッション** をデフォルトで使用します（他のセッションに切り替えるためのセッションスイッチャーを備えています）。
+macOS のメニューバーアプリは、WebChat UI をネイティブな SwiftUI ビューとして埋め込みます。Gateway（ゲートウェイ）に接続し、選択したエージェントの **メインセッション** をデフォルトで使用します（他のセッションに切り替えるためのセッションスイッチャーがあります）。
 
 - **ローカルモード**：ローカルの Gateway WebSocket に直接接続します。
 - **リモートモード**：Gateway のコントロールポートを SSH 経由でフォワードし、そのトンネルをデータプレーンとして使用します。
@@ -23,9 +23,11 @@ macOS のメニューバーアプリは、WebChat UI をネイティブな Swift
 
 - 手動：Lobster メニュー → 「Open Chat」。
 - テスト用の自動オープン：
+
   ```bash
   dist/OpenClaw.app/Contents/MacOS/OpenClaw --webchat
   ```
+
 - ログ：`./scripts/clawlog.sh`（サブシステム `bot.molt`、カテゴリ `WebChatSwiftUI`）。
 
 ## 配線の仕組み
@@ -35,10 +37,10 @@ macOS のメニューバーアプリは、WebChat UI をネイティブな Swift
 - セッション：デフォルトはプライマリセッション（`main`、スコープがグローバルの場合は `global`）です。UI からセッションを切り替えられます。
 - オンボーディングでは、初回実行時のセットアップを分離するために専用のセッションを使用します。
 
-## セキュリティ表面
+## セキュリティの対象範囲
 
 - リモートモードでは、Gateway WebSocket のコントロールポートのみを SSH 経由でフォワードします。
 
-## 既知の制限事項
+## 既知の制限
 
-- UI はチャットセッション向けに最適化されています（完全なブラウザのサンドボックスではありません）。
+- UI はチャットセッション向けに最適化されています（完全なブラウザーサンドボックスではありません）。

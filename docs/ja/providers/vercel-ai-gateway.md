@@ -10,7 +10,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:34:38Z
+  generated_at: 2026-02-08T09:22:55Z
 ---
 
 # Vercel AI Gateway
@@ -50,8 +50,6 @@ openclaw onboard --non-interactive \
   --ai-gateway-api-key "$AI_GATEWAY_API_KEY"
 ```
 
-## 環境に関する注意
+## 環境に関する注記
 
-Gateway（ゲートウェイ）がデーモン（launchd/systemd）として実行される場合、`AI_GATEWAY_API_KEY`
-がそのプロセスから利用可能であることを確認してください（たとえば、`~/.openclaw/.env` 内、または
-`env.shellEnv` 経由）。
+Gateway（ゲートウェイ）がデーモン（launchd/systemd）として実行される場合は、`AI_GATEWAY_API_KEY` がそのプロセスで利用可能であることを確認してください（例: `~/.openclaw/.env` 内、または `env.shellEnv` 経由）。

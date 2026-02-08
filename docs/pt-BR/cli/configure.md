@@ -1,7 +1,7 @@
 ---
-summary: "Referencia da CLI para `openclaw configure` (prompts interativos de configuracao)"
+summary: "Referência da CLI para `openclaw configure` (prompts interativos de configuração)"
 read_when:
-  - Voce quer ajustar credenciais, dispositivos ou padroes do agente de forma interativa
+  - Você quer ajustar credenciais, dispositivos ou padrões do agente de forma interativa
 title: "configurar"
 x-i18n:
   source_path: cli/configure.md
@@ -9,27 +9,27 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:36Z
+  generated_at: 2026-02-08T09:30:13Z
 ---
 
 # `openclaw configure`
 
-Prompt interativo para configurar credenciais, dispositivos e padroes do agente.
+Prompt interativo para configurar credenciais, dispositivos e padrões do agente.
 
-Nota: A secao **Model** agora inclui uma selecao multipla para a allowlist `agents.defaults.models` (o que aparece em `/model` e no seletor de modelo).
+Nota: A seção **Model** agora inclui uma seleção múltipla para a lista de permissões `agents.defaults.models` (o que aparece em `/model` e no seletor de modelos).
 
 Dica: `openclaw config` sem um subcomando abre o mesmo assistente. Use
-`openclaw config get|set|unset` para edicoes nao interativas.
+`openclaw config get|set|unset` para edições não interativas.
 
-Relacionado:
+Relacionados:
 
-- Referencia de configuracao do Gateway: [Configuration](/gateway/configuration)
-- CLI de configuracao: [Config](/cli/config)
+- Referência de configuração do Gateway: [Configuration](/gateway/configuration)
+- CLI de Configuração: [Config](/cli/config)
 
-Observacoes:
+Notas:
 
-- Escolher onde o Gateway roda sempre atualiza `gateway.mode`. Voce pode selecionar "Continue" sem outras secoes se isso for tudo de que precisa.
-- Servicos orientados a canais (Slack/Discord/Matrix/Microsoft Teams) solicitam allowlists de canal/sala durante a configuracao. Voce pode inserir nomes ou IDs; o assistente resolve nomes para IDs quando possivel.
+- Escolher onde o Gateway é executado sempre atualiza `gateway.mode`. Você pode selecionar "Continuar" sem outras seções se isso for tudo de que precisa.
+- Serviços orientados a canais (Slack/Discord/Matrix/Microsoft Teams) solicitam listas de permissões de canais/salas durante a configuração. Você pode inserir nomes ou IDs; o assistente resolve nomes para IDs quando possível.
 
 ## Exemplos
 

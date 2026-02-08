@@ -1,30 +1,30 @@
 ---
-summary: "Huong dan tac tu OpenClaw mac dinh va danh sach Skills cho cau hinh tro ly ca nhan"
+summary: "Hướng dẫn mặc định cho tác tử OpenClaw và danh sách Skills cho thiết lập trợ lý cá nhân"
 read_when:
-  - Bat dau mot phien tac tu OpenClaw moi
-  - Kich hoat hoac kiem tra cac Skills mac dinh
+  - Bắt đầu một phiên tác tử OpenClaw mới
+  - Bật hoặc kiểm tra các Skills mặc định
 x-i18n:
   source_path: reference/AGENTS.default.md
-  source_hash: 20ec2b8d8fc03c16
+  source_hash: 6cbde95d29e80cbb
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:08:31Z
+  generated_at: 2026-02-08T09:40:09Z
 ---
 
-# AGENTS.md — Tro ly Ca nhan OpenClaw (mac dinh)
+# AGENTS.md — Trợ lý cá nhân OpenClaw (mặc định)
 
-## Lan chay dau tien (khuyen nghi)
+## Lần chạy đầu tiên (khuyến nghị)
 
-OpenClaw su dung mot thu muc workspace rieng cho tac tu. Mac dinh: `~/.openclaw/workspace` (co the cau hinh qua `agents.defaults.workspace`).
+OpenClaw sử dụng một thư mục workspace riêng cho tác tử. Mặc định: `~/.openclaw/workspace` (có thể cấu hình qua `agents.defaults.workspace`).
 
-1. Tao workspace (neu chua ton tai):
+1. Tạo workspace (nếu chưa tồn tại):
 
 ```bash
 mkdir -p ~/.openclaw/workspace
 ```
 
-2. Sao chep cac mau workspace mac dinh vao workspace:
+2. Sao chép các mẫu workspace mặc định vào workspace:
 
 ```bash
 cp docs/reference/templates/AGENTS.md ~/.openclaw/workspace/AGENTS.md
@@ -32,13 +32,13 @@ cp docs/reference/templates/SOUL.md ~/.openclaw/workspace/SOUL.md
 cp docs/reference/templates/TOOLS.md ~/.openclaw/workspace/TOOLS.md
 ```
 
-3. Tuy chon: neu ban muon danh sach Skills cua tro ly ca nhan, thay the AGENTS.md bang tep nay:
+3. Tùy chọn: nếu bạn muốn danh sách Skills cho trợ lý cá nhân, hãy thay thế AGENTS.md bằng tệp này:
 
 ```bash
 cp docs/reference/AGENTS.default.md ~/.openclaw/workspace/AGENTS.md
 ```
 
-4. Tuy chon: chon workspace khac bang cach dat `agents.defaults.workspace` (ho tro `~`):
+4. Tùy chọn: chọn một workspace khác bằng cách đặt `agents.defaults.workspace` (hỗ trợ `~`):
 
 ```json5
 {
@@ -46,44 +46,44 @@ cp docs/reference/AGENTS.default.md ~/.openclaw/workspace/AGENTS.md
 }
 ```
 
-## Mac dinh an toan
+## Mặc định an toàn
 
-- Khong do (dump) thu muc hoac bi mat vao chat.
-- Khong chay lenh pha huy tru khi duoc yeu cau ro rang.
-- Khong gui tra loi tung phan/streaming toi cac nen tang nhan tin ben ngoai (chi gui tra loi cuoi cung).
+- Không đổ toàn bộ thư mục hoặc bí mật vào chat.
+- Không chạy các lệnh mang tính phá hủy trừ khi được yêu cầu rõ ràng.
+- Không gửi trả lời từng phần/streaming tới các bề mặt nhắn tin bên ngoài (chỉ gửi trả lời cuối cùng).
 
-## Bat dau phien (bat buoc)
+## Bắt đầu phiên (bắt buộc)
 
-- Doc `SOUL.md`, `USER.md`, `memory.md`, va hom nay+hom qua trong `memory/`.
-- Thuc hien dieu nay truoc khi phan hoi.
+- Đọc `SOUL.md`, `USER.md`, `memory.md`, và hôm nay + hôm qua trong `memory/`.
+- Thực hiện việc này trước khi phản hồi.
 
-## Linh hon (bat buoc)
+## Linh hồn (bắt buộc)
 
-- `SOUL.md` xac dinh danh tinh, giong dieu va ranh gioi. Hay giu cap nhat.
-- Neu ban thay doi `SOUL.md`, hay thong bao cho nguoi dung.
-- Moi phien ban la mot the hien moi; tinh lien tuc nam trong cac tep nay.
+- `SOUL.md` xác định danh tính, giọng điệu và ranh giới. Giữ cho nó luôn cập nhật.
+- Nếu bạn thay đổi `SOUL.md`, hãy cho người dùng biết.
+- Mỗi phiên bạn là một thực thể mới; tính liên tục nằm trong các tệp này.
 
-## Khong gian chung (khuyen nghi)
+## Không gian dùng chung (khuyến nghị)
 
-- Ban khong phai la giong noi cua nguoi dung; hay than trong trong chat nhom hoac kenh cong khai.
-- Khong chia se du lieu rieng tu, thong tin lien he, hoac ghi chu noi bo.
+- Bạn không phải là tiếng nói của người dùng; hãy cẩn trọng trong các nhóm chat hoặc kênh công khai.
+- Không chia sẻ dữ liệu riêng tư, thông tin liên hệ hoặc ghi chú nội bộ.
 
-## He thong bo nho (khuyen nghi)
+## Hệ thống bộ nhớ (khuyến nghị)
 
-- Nhat ky hang ngay: `memory/YYYY-MM-DD.md` (tao `memory/` neu can).
-- Bo nho dai han: `memory.md` cho su that ben vung, so thich va quyet dinh.
-- Khi bat dau phien, doc hom nay + hom qua + `memory.md` neu co.
-- Ghi nhan: quyet dinh, so thich, rang buoc, vong viec con dang do.
-- Tranh luu bi mat tru khi duoc yeu cau ro rang.
+- Nhật ký hằng ngày: `memory/YYYY-MM-DD.md` (tạo `memory/` nếu cần).
+- Bộ nhớ dài hạn: `memory.md` cho các факт bền vững, sở thích và quyết định.
+- Khi bắt đầu phiên, đọc hôm nay + hôm qua + `memory.md` nếu có.
+- Ghi lại: quyết định, sở thích, ràng buộc, các vòng việc còn mở.
+- Tránh lưu bí mật trừ khi được yêu cầu rõ ràng.
 
-## Cong cu & Skills
+## Công cụ & Skills
 
-- Cong cu nam trong Skills; hay tuan theo `SKILL.md` cua tung skill khi can.
-- Giu cac ghi chu phu thuoc moi truong trong `TOOLS.md` (Notes for Skills).
+- Công cụ nằm trong các skills; hãy làm theo `SKILL.md` của từng skill khi cần.
+- Giữ các ghi chú theo môi trường trong `TOOLS.md` (Notes for Skills).
 
-## Meo sao luu (khuyen nghi)
+## Mẹo sao lưu (khuyến nghị)
 
-Neu ban coi workspace nay la “bo nho” cua Clawd, hay bien no thanh mot git repo (ly tuong la rieng tu) de `AGENTS.md` va cac tep bo nho cua ban duoc sao luu.
+Nếu bạn coi workspace này là “bộ nhớ” của Clawd, hãy biến nó thành một repo git (tốt nhất là riêng tư) để `AGENTS.md` và các tệp bộ nhớ của bạn được sao lưu.
 
 ```bash
 cd ~/.openclaw/workspace
@@ -93,39 +93,38 @@ git commit -m "Add Clawd workspace"
 # Optional: add a private remote + push
 ```
 
-## OpenClaw Lam Gi
+## OpenClaw làm gì
 
-- Chay Gateway WhatsApp + tac tu lap trinh Pi de tro ly co the doc/ghi chat, lay boi canh, va chay Skills qua may Mac chu.
-- Ung dung macOS quan ly quyen (ghi man hinh, thong bao, micro) va mo ra CLI `openclaw` qua nhi phan dong goi cua no.
-- Chat truc tiep duoc gop mac dinh vao phien `main` cua tac tu; nhom duoc giu tach biet thanh `agent:<agentId>:<channel>:group:<id>` (phong/kenh: `agent:<agentId>:<channel>:channel:<id>`); heartbeat giu cac tac vu nen hoat dong.
+- Chạy gateway WhatsApp + tác tử lập trình Pi để trợ lý có thể đọc/ghi chat, lấy ngữ cảnh và chạy Skills thông qua máy Mac chủ.
+- Ứng dụng macOS quản lý quyền (ghi màn hình, thông báo, micro) và cung cấp CLI `openclaw` thông qua binary đi kèm.
+- Chat trực tiếp mặc định gộp vào phiên `main` của tác tử; các nhóm được giữ tách biệt như `agent:<agentId>:<channel>:group:<id>` (phòng/kênh: `agent:<agentId>:<channel>:channel:<id>`); heartbeat giữ cho các tác vụ nền hoạt động.
 
-## Skills Cot Loi (kich hoat trong Settings → Skills)
+## Skills cốt lõi (bật trong Settings → Skills)
 
-- **mcporter** — Runtime/CLI may chu cong cu de quan ly cac backend skill ben ngoai.
-- **Peekaboo** — Chup man hinh macOS nhanh voi phan tich thi giac AI tuy chon.
-- **camsnap** — Thu khung hinh, doan clip, hoac canh bao chuyen dong tu camera an ninh RTSP/ONVIF.
-- **oracle** — CLI tac tu san sang cho OpenAI voi phat lai phien va dieu khien trinh duyet.
-- **eightctl** — Dieu khien giac ngu cua ban tu terminal.
-- **imsg** — Gui, doc, stream iMessage & SMS.
-- **wacli** — WhatsApp CLI: dong bo, tim kiem, gui.
-- **discord** — Hanh dong Discord: tha cam xuc, sticker, binh chon. Su dung dich `user:<id>` hoac `channel:<id>` (id so thuan de gay nham lan).
+- **mcporter** — Runtime/CLI máy chủ công cụ để quản lý các backend skill bên ngoài.
+- **Peekaboo** — Chụp ảnh màn hình macOS nhanh với phân tích thị giác AI tùy chọn.
+- **camsnap** — Ghi khung hình, clip hoặc cảnh báo chuyển động từ camera an ninh RTSP/ONVIF.
+- **oracle** — CLI tác tử sẵn sàng cho OpenAI với phát lại phiên và điều khiển trình duyệt.
+- **eightctl** — Điều khiển giấc ngủ của bạn từ terminal.
+- **imsg** — Gửi, đọc, stream iMessage & SMS.
+- **wacli** — WhatsApp CLI: đồng bộ, tìm kiếm, gửi.
+- **discord** — Hành động Discord: react, sticker, poll. Dùng mục tiêu `user:<id>` hoặc `channel:<id>` (ID số trần có thể gây mơ hồ).
 - **gog** — Google Suite CLI: Gmail, Calendar, Drive, Contacts.
-- **spotify-player** — Trinh khach Spotify tren terminal de tim kiem/xep hang doi/dieu khien phat.
-- **sag** — Giong noi ElevenLabs voi UX kieu mac-style say; mac dinh stream ra loa.
-- **Sonos CLI** — Dieu khien loa Sonos (kham pha/trang thai/phat/am luong/nhom) tu script.
-- **blucli** — Phat, nhom va tu dong hoa trinh phat BluOS tu script.
-- **OpenHue CLI** — Dieu khien den Philips Hue cho canh va tu dong hoa.
-- **OpenAI Whisper** — Chuyen giong noi thanh van ban cuc bo cho doc chinh ta nhanh va ban ghi am hop thu.
-- **Gemini CLI** — Cac mo hinh Google Gemini tu terminal cho hoi dap nhanh.
-- **bird** — X/Twitter CLI de dang tweet, tra loi, doc chuoi va tim kiem khong can trinh duyet.
-- **agent-tools** — Bo cong cu tien ich cho tu dong hoa va script ho tro.
+- **spotify-player** — Trình phát Spotify trong terminal để tìm kiếm/xếp hàng/điều khiển phát.
+- **sag** — Giọng nói ElevenLabs với UX kiểu macOS say; mặc định phát ra loa.
+- **Sonos CLI** — Điều khiển loa Sonos (khám phá/trạng thái/phát/âm lượng/nhóm) từ script.
+- **blucli** — Phát, nhóm và tự động hóa trình phát BluOS từ script.
+- **OpenHue CLI** — Điều khiển đèn Philips Hue cho cảnh và tự động hóa.
+- **OpenAI Whisper** — Chuyển giọng nói sang văn bản cục bộ cho ghi âm nhanh và transcript voicemail.
+- **Gemini CLI** — Mô hình Google Gemini từ terminal cho hỏi đáp nhanh.
+- **agent-tools** — Bộ tiện ích cho tự động hóa và script trợ giúp.
 
-## Ghi Chu Su Dung
+## Ghi chú sử dụng
 
-- Uu tien CLI `openclaw` cho script; ung dung mac xu ly quyen.
-- Chay cai dat tu tab Skills; no an nut neu nhi phan da ton tai.
-- Giu heartbeat duoc bat de tro ly co the lap lich nhac nho, theo doi hop thu, va kich hoat ghi hinh camera.
-- Giao dien Canvas chay toan man hinh voi lop phu goc. Tranh dat dieu khien quan trong o mep tren-trai/tren-phai/duoi; hay them le (gutter) ro rang trong bo cuc va khong phu thuoc vao safe-area insets.
-- De xac minh dua tren trinh duyet, dung `openclaw browser` (tab/trang thai/anh chup) voi ho so Chrome do OpenClaw quan ly.
-- De kiem tra DOM, dung `openclaw browser eval|query|dom|snapshot` (va `--json`/`--out` khi can dau ra cho may).
-- De tuong tac, dung `openclaw browser click|type|hover|drag|select|upload|press|wait|navigate|back|evaluate|run` (click/type can tham chieu snapshot; dung `evaluate` cho bo chon CSS).
+- Ưu tiên CLI `openclaw` cho scripting; ứng dụng macOS xử lý quyền.
+- Chạy cài đặt từ tab Skills; nút sẽ được ẩn nếu binary đã tồn tại.
+- Giữ heartbeat bật để trợ lý có thể lên lịch nhắc nhở, theo dõi hộp thư đến và kích hoạt chụp camera.
+- Giao diện Canvas chạy toàn màn hình với overlay gốc. Tránh đặt các điều khiển quan trọng ở mép trên-trái/trên-phải/dưới; hãy thêm lề (gutter) rõ ràng trong bố cục và không phụ thuộc vào safe-area insets.
+- Với xác minh dựa trên trình duyệt, dùng `openclaw browser` (tab/trạng thái/ảnh chụp màn hình) với profile Chrome do OpenClaw quản lý.
+- Để kiểm tra DOM, dùng `openclaw browser eval|query|dom|snapshot` (và `--json`/`--out` khi cần đầu ra cho máy).
+- Đối với tương tác, dùng `openclaw browser click|type|hover|drag|select|upload|press|wait|navigate|back|evaluate|run` (click/type yêu cầu tham chiếu snapshot; dùng `evaluate` cho CSS selector).

@@ -1,9 +1,9 @@
 ---
-summary: "macOS の UI 自動化向け PeekabooBridge の統合"
+summary: "macOS UI 自動化向けの PeekabooBridge 統合"
 read_when:
   - OpenClaw.app で PeekabooBridge をホストする場合
   - Swift Package Manager を介して Peekaboo を統合する場合
-  - PeekabooBridge のプロトコル／パスを変更する場合
+  - PeekabooBridge のプロトコルやパスを変更する場合
 title: "Peekaboo Bridge"
 x-i18n:
   source_path: platforms/mac/peekaboo.md
@@ -11,28 +11,29 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:34:22Z
+  generated_at: 2026-02-08T09:22:37Z
 ---
 
 # Peekaboo Bridge（macOS UI 自動化）
 
-OpenClaw は **PeekabooBridge** を、ローカルで権限を認識する UI 自動化ブローカーとしてホストできます。これにより、`peekaboo` CLI は macOS アプリの TCC 権限を再利用しながら UI 自動化を実行できます。
+OpenClaw は、**PeekabooBridge** をローカルで権限を認識する UI 自動化ブローカーとしてホストできます。
+これにより、`peekaboo` CLI が、macOS アプリの TCC 権限を再利用しながら UI 自動化を実行できます。
 
-## これは何か（何ではないか）
+## これは何か（そして何ではないか）
 
-- **Host**: OpenClaw.app は PeekabooBridge のホストとして動作できます。
-- **Client**: `peekaboo` CLI を使用します（別個の `openclaw ui ...` サーフェスはありません）。
+- **ホスト**: OpenClaw.app は PeekabooBridge のホストとして動作できます。
+- **クライアント**: `peekaboo` CLI を使用します（別途 `openclaw ui ...` の UI はありません）。
 - **UI**: 視覚的なオーバーレイは Peekaboo.app に残り、OpenClaw は薄いブローカーホストです。
 
-## ブリッジを有効化する
+## ブリッジを有効にする
 
-macOS アプリで次を設定します。
+macOS アプリで次を実行します。
 
 - 設定 → **Enable Peekaboo Bridge**
 
-有効にすると、OpenClaw はローカルの UNIX ソケットサーバーを起動します。無効の場合、ホストは停止され、`peekaboo` は他の利用可能なホストにフォールバックします。
+有効にすると、OpenClaw はローカルの UNIX ソケットサーバーを起動します。無効の場合、ホストは停止し、`peekaboo` は他の利用可能なホストにフォールバックします。
 
-## クライアントの検出順序
+## クライアントの検出順
 
 Peekaboo クライアントは通常、次の順序でホストを試行します。
 
@@ -40,7 +41,7 @@ Peekaboo クライアントは通常、次の順序でホストを試行しま�
 2. Claude.app（インストールされている場合）
 3. OpenClaw.app（薄いブローカー）
 
-`peekaboo bridge status --verbose` を使用して、どのホストがアクティブか、どのソケットパスが使用されているかを確認できます。次で上書きすることも可能です。
+`peekaboo bridge status --verbose` を使用すると、どのホストがアクティブか、どのソケットパスが使用されているかを確認できます。次で上書きすることもできます。
 
 ```bash
 export PEEKABOO_BRIDGE_SOCKET=/path/to/bridge.sock
@@ -48,9 +49,9 @@ export PEEKABOO_BRIDGE_SOCKET=/path/to/bridge.sock
 
 ## セキュリティと権限
 
-- ブリッジは **呼び出し元のコード署名** を検証し、TeamID の許可リスト（Peekaboo ホストの TeamID + OpenClaw アプリの TeamID）を強制します。
+- ブリッジは **呼び出し元のコード署名** を検証します。TeamID の許可リストが適用されます（Peekaboo ホストの TeamID + OpenClaw アプリの TeamID）。
 - リクエストは約 10 秒でタイムアウトします。
-- 必要な権限が不足している場合、システム設定を起動するのではなく、明確なエラーメッセージを返します。
+- 必要な権限が不足している場合、ブリッジはシステム設定を起動するのではなく、明確なエラーメッセージを返します。
 
 ## スナップショットの挙動（自動化）
 
@@ -58,5 +59,5 @@ export PEEKABOO_BRIDGE_SOCKET=/path/to/bridge.sock
 
 ## トラブルシューティング
 
-- `peekaboo` が「bridge client is not authorized」と報告する場合、クライアントが適切に署名されていることを確認するか、**デバッグ** モードでのみ `PEEKABOO_ALLOW_UNSIGNED_SOCKET_CLIENTS=1` を付けてホストを実行してください。
-- ホストが見つからない場合は、いずれかのホストアプリ（Peekaboo.app または OpenClaw.app）を開き、権限が付与されていることを確認してください。
+- `peekaboo` が「bridge client is not authorized」と報告する場合、クライアントが適切に署名されていることを確認するか、**デバッグ** モードのみで `PEEKABOO_ALLOW_UNSIGNED_SOCKET_CLIENTS=1` を指定してホストを実行してください。
+- ホストが見つからない場合は、ホストアプリ（Peekaboo.app または OpenClaw.app）のいずれかを開き、権限が付与されていることを確認してください。

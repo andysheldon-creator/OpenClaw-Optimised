@@ -1,28 +1,28 @@
 ---
 summary: "Plugin de llamadas de voz: llamadas salientes + entrantes vía Twilio/Telnyx/Plivo (instalación del plugin + configuración + CLI)"
 read_when:
-  - Desea realizar una llamada de voz saliente desde OpenClaw
+  - Quiere realizar una llamada de voz saliente desde OpenClaw
   - Está configurando o desarrollando el plugin de llamadas de voz
-title: "Plugin de llamadas de voz"
+title: "Plugin de Llamadas de Voz"
 x-i18n:
   source_path: plugins/voice-call.md
   source_hash: 46d05a5912b785d7
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:59:40Z
+  generated_at: 2026-02-08T09:34:20Z
 ---
 
-# Llamada de voz (plugin)
+# Llamadas de Voz (plugin)
 
 Llamadas de voz para OpenClaw mediante un plugin. Admite notificaciones salientes y
-conversaciones de múltiples turnos con políticas de entrada.
+conversaciones de varios turnos con políticas de entrada.
 
 Proveedores actuales:
 
-- `twilio` (Voz programable + Media Streams)
-- `telnyx` (Control de llamadas v2)
-- `plivo` (API de voz + transferencia XML + GetInput de voz)
+- `twilio` (Programmable Voice + Media Streams)
+- `telnyx` (Call Control v2)
+- `plivo` (Voice API + XML transfer + GetInput speech)
 - `mock` (dev/sin red)
 
 Modelo mental rápido:
@@ -34,9 +34,9 @@ Modelo mental rápido:
 
 ## Dónde se ejecuta (local vs remoto)
 
-El plugin de llamadas de voz se ejecuta **dentro del proceso del Gateway**.
+El plugin de Llamadas de Voz se ejecuta **dentro del proceso del Gateway**.
 
-Si utiliza un Gateway remoto, instale/configure el plugin en la **máquina que ejecuta el Gateway**, luego reinicie el Gateway para cargarlo.
+Si usa un Gateway remoto, instale/configure el plugin en la **máquina que ejecuta el Gateway**, luego reinicie el Gateway para cargarlo.
 
 ## Instalación
 
@@ -48,7 +48,7 @@ openclaw plugins install @openclaw/voice-call
 
 Reinicie el Gateway después.
 
-### Opción B: instalar desde una carpeta local (dev, sin copiado)
+### Opción B: instalar desde una carpeta local (dev, sin copias)
 
 ```bash
 openclaw plugins install ./extensions/voice-call
@@ -59,7 +59,7 @@ Reinicie el Gateway después.
 
 ## Configuración
 
-Configure en `plugins.entries.voice-call.config`:
+Establezca la configuración en `plugins.entries.voice-call.config`:
 
 ```json5
 {
@@ -120,21 +120,22 @@ Notas:
 - Plivo requiere una URL de webhook **accesible públicamente**.
 - `mock` es un proveedor local de desarrollo (sin llamadas de red).
 - `skipSignatureVerification` es solo para pruebas locales.
-- Si usa el nivel gratuito de ngrok, configure `publicUrl` con la URL exacta de ngrok; la verificación de firmas siempre se aplica.
+- Si usa el plan gratuito de ngrok, configure `publicUrl` con la URL exacta de ngrok; la verificación de firmas siempre se aplica.
 - `tunnel.allowNgrokFreeTierLoopbackBypass: true` permite webhooks de Twilio con firmas inválidas **solo** cuando `tunnel.provider="ngrok"` y `serve.bind` es loopback (agente local de ngrok). Úselo solo para desarrollo local.
-- Las URLs del nivel gratuito de ngrok pueden cambiar o agregar comportamiento intersticial; si `publicUrl` deriva, las firmas de Twilio fallarán. Para producción, prefiera un dominio estable o un funnel de Tailscale.
+- Las URLs del plan gratuito de ngrok pueden cambiar o añadir comportamiento intersticial; si `publicUrl` se desvía, las firmas de Twilio fallarán. Para producción, prefiera un dominio estable o un funnel de Tailscale.
 
-## Seguridad de webhooks
+## Seguridad de Webhooks
 
 Cuando un proxy o túnel se sitúa delante del Gateway, el plugin reconstruye la
 URL pública para la verificación de firmas. Estas opciones controlan qué encabezados
 reenviados son de confianza.
 
-`webhookSecurity.allowedHosts` agrega a una allowlist los hosts de los encabezados reenviados.
+`webhookSecurity.allowedHosts` agrega a una lista de permitidos los hosts de los encabezados reenviados.
 
-`webhookSecurity.trustForwardingHeaders` confía en los encabezados reenviados sin una allowlist.
+`webhookSecurity.trustForwardingHeaders` confía en los encabezados reenviados sin una lista de permitidos.
 
-`webhookSecurity.trustedProxyIPs` solo confía en los encabezados reenviados cuando la IP remota de la solicitud coincide con la lista.
+`webhookSecurity.trustedProxyIPs` solo confía en los encabezados reenviados cuando la IP remota
+de la solicitud coincide con la lista.
 
 Ejemplo con un host público estable:
 
@@ -157,9 +158,9 @@ Ejemplo con un host público estable:
 
 ## TTS para llamadas
 
-Llamada de voz utiliza la configuración central de `messages.tts` (OpenAI o ElevenLabs) para
-la transmisión de voz en llamadas. Puede sobrescribirla en la configuración del plugin con la
-**misma forma** — se combina en profundidad con `messages.tts`.
+Llamadas de Voz usa la configuración central de `messages.tts` (OpenAI o ElevenLabs) para
+streaming de voz en llamadas. Puede sobrescribirla en la configuración del plugin con la
+**misma forma** — se fusiona en profundidad con `messages.tts`.
 
 ```json5
 {
@@ -175,7 +176,7 @@ la transmisión de voz en llamadas. Puede sobrescribirla en la configuración de
 
 Notas:
 
-- **Edge TTS se ignora para llamadas de voz** (el audio de telefonía requiere PCM; la salida de Edge es poco confiable).
+- **Edge TTS se ignora para llamadas de voz** (el audio de telefonía necesita PCM; la salida de Edge es poco confiable).
 - Se usa el TTS central cuando el streaming de medios de Twilio está habilitado; de lo contrario, las llamadas recurren a las voces nativas del proveedor.
 
 ### Más ejemplos
@@ -216,7 +217,7 @@ Sobrescribir a ElevenLabs solo para llamadas (mantener el valor predeterminado c
 }
 ```
 
-Sobrescribir solo el modelo de OpenAI para llamadas (ejemplo de combinación profunda):
+Sobrescribir solo el modelo de OpenAI para llamadas (ejemplo de fusión profunda):
 
 ```json5
 {
@@ -249,7 +250,7 @@ La política de entrada predeterminada es `disabled`. Para habilitar llamadas en
 }
 ```
 
-Las respuestas automáticas usan el sistema de agentes. Ajuste con:
+Las respuestas automáticas usan el sistema de agente. Ajuste con:
 
 - `responseModel`
 - `responseSystemPrompt`
@@ -267,7 +268,7 @@ openclaw voicecall tail
 openclaw voicecall expose --mode funnel
 ```
 
-## Herramienta de agente
+## Herramienta del agente
 
 Nombre de la herramienta: `voice_call`
 

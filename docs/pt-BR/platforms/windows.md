@@ -6,35 +6,35 @@ read_when:
 title: "Windows (WSL2)"
 x-i18n:
   source_path: platforms/windows.md
-  source_hash: c93d2263b4e5b60c
+  source_hash: d17df1bd5636502e
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:57:00Z
+  generated_at: 2026-02-08T09:31:38Z
 ---
 
 # Windows (WSL2)
 
 O OpenClaw no Windows é recomendado **via WSL2** (Ubuntu recomendado). A
-CLI + Gateway rodam dentro do Linux, o que mantém o ambiente de execucao consistente e torna
-as ferramentas muito mais compativeis (Node/Bun/pnpm, binarios Linux, Skills). O Windows nativo
-pode ser mais complicado. O WSL2 oferece a experiencia Linux completa — um comando
-para instalar: `wsl --install`.
+CLI + o Gateway rodam dentro do Linux, o que mantém o runtime consistente e torna
+as ferramentas muito mais compatíveis (Node/Bun/pnpm, binários Linux, Skills).
+O Windows nativo pode ser mais complicado. O WSL2 oferece a experiência completa
+do Linux — um comando para instalar: `wsl --install`.
 
-Aplicativos complementares nativos para Windows estao planejados.
+Aplicativos complementares nativos para Windows estão planejados.
 
-## Install (WSL2)
+## Instalação (WSL2)
 
-- [Primeiros Passos](/start/getting-started) (usar dentro do WSL)
-- [Instalacao e atualizacoes](/install/updating)
-- Guia oficial do WSL2 (Microsoft): https://learn.microsoft.com/windows/wsl/install
+- [Primeiros passos](/start/getting-started) (use dentro do WSL)
+- [Instalação e atualizações](/install/updating)
+- Guia oficial do WSL2 (Microsoft): [https://learn.microsoft.com/windows/wsl/install](https://learn.microsoft.com/windows/wsl/install)
 
 ## Gateway
 
 - [Runbook do Gateway](/gateway)
-- [Configuracao](/gateway/configuration)
+- [Configuração](/gateway/configuration)
 
-## Instalacao do servico Gateway (CLI)
+## Instalação do serviço do Gateway (CLI)
 
 Dentro do WSL2:
 
@@ -62,12 +62,12 @@ Reparar/migrar:
 openclaw doctor
 ```
 
-## Avancado: expor servicos do WSL na LAN (portproxy)
+## Avançado: expor serviços do WSL na LAN (portproxy)
 
-O WSL tem sua propria rede virtual. Se outra maquina precisar acessar um servico
-rodando **dentro do WSL** (SSH, um servidor TTS local ou o Gateway), voce deve
-encaminhar uma porta do Windows para o IP atual do WSL. O IP do WSL muda apos reinicios,
-entao pode ser necessario atualizar a regra de encaminhamento.
+O WSL tem sua própria rede virtual. Se outra máquina precisar acessar um serviço
+em execução **dentro do WSL** (SSH, um servidor TTS local ou o Gateway), você deve
+encaminhar uma porta do Windows para o IP atual do WSL. O IP do WSL muda após
+reinicializações, então pode ser necessário atualizar a regra de encaminhamento.
 
 Exemplo (PowerShell **como Administrador**):
 
@@ -90,7 +90,7 @@ New-NetFirewallRule -DisplayName "WSL SSH $ListenPort" -Direction Inbound `
   -Protocol TCP -LocalPort $ListenPort -Action Allow
 ```
 
-Atualize o portproxy apos reinicios do WSL:
+Atualize o portproxy após reinicializações do WSL:
 
 ```powershell
 netsh interface portproxy delete v4tov4 listenport=$ListenPort listenaddress=0.0.0.0 | Out-Null
@@ -100,14 +100,14 @@ netsh interface portproxy add v4tov4 listenport=$ListenPort listenaddress=0.0.0.
 
 Notas:
 
-- SSH a partir de outra maquina aponta para o **IP do host Windows** (exemplo: `ssh user@windows-host -p 2222`).
-- Nos remotos devem apontar para uma URL do Gateway **acessivel** (nao `127.0.0.1`); use
+- SSH a partir de outra máquina aponta para o **IP do host Windows** (exemplo: `ssh user@windows-host -p 2222`).
+- Nós remotos devem apontar para uma URL do Gateway **alcançável** (não `127.0.0.1`); use
   `openclaw status --all` para confirmar.
-- Use `listenaddress=0.0.0.0` para acesso via LAN; `127.0.0.1` mantem apenas local.
-- Se quiser automatizar, registre uma Tarefa Agendada para executar a etapa de
-  atualizacao no login.
+- Use `listenaddress=0.0.0.0` para acesso via LAN; `127.0.0.1` mantém apenas local.
+- Se quiser isso automático, registre uma Tarefa Agendada para executar a etapa
+  de atualização no login.
 
-## Instalacao passo a passo do WSL2
+## Instalação passo a passo do WSL2
 
 ### 1) Instalar WSL2 + Ubuntu
 
@@ -122,9 +122,9 @@ wsl --install -d Ubuntu-24.04
 
 Reinicie se o Windows solicitar.
 
-### 2) Habilitar systemd (necessario para a instalacao do Gateway)
+### 2) Ativar systemd (necessário para a instalação do gateway)
 
-No seu terminal do WSL:
+No terminal do WSL:
 
 ```bash
 sudo tee /etc/wsl.conf >/dev/null <<'EOF'
@@ -133,7 +133,7 @@ systemd=true
 EOF
 ```
 
-Depois, no PowerShell:
+Em seguida, no PowerShell:
 
 ```powershell
 wsl --shutdown
@@ -147,7 +147,7 @@ systemctl --user status
 
 ### 3) Instalar o OpenClaw (dentro do WSL)
 
-Siga o fluxo de Primeiros Passos do Linux dentro do WSL:
+Siga o fluxo de Primeiros passos do Linux dentro do WSL:
 
 ```bash
 git clone https://github.com/openclaw/openclaw.git
@@ -158,9 +158,9 @@ pnpm build
 openclaw onboard
 ```
 
-Guia completo: [Primeiros Passos](/start/getting-started)
+Guia completo: [Primeiros passos](/start/getting-started)
 
 ## Aplicativo complementar para Windows
 
-Ainda nao temos um aplicativo complementar para Windows. Contribuicoes sao bem-vindas
-se voce quiser ajudar a tornar isso realidade.
+Ainda não temos um aplicativo complementar para Windows. Contribuições são bem-vindas se você quiser
+ajudar a tornar isso realidade.

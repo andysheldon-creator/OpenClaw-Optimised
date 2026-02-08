@@ -1,21 +1,21 @@
 ---
-summary: "Esquema de configuracao de Skills e exemplos"
+summary: "Esquema de configuração de Skills e exemplos"
 read_when:
-  - Ao adicionar ou modificar a configuracao de Skills
-  - Ao ajustar a allowlist empacotada ou o comportamento de instalacao
-title: "Configuracao de Skills"
+  - Adicionando ou modificando a configuração de Skills
+  - Ajustando a lista de permissões empacotada ou o comportamento de instalação
+title: "Configuração de Skills"
 x-i18n:
   source_path: tools/skills-config.md
   source_hash: e265c93da7856887
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:57:41Z
+  generated_at: 2026-02-08T09:32:11Z
 ---
 
-# Configuracao de Skills
+# Configuração de Skills
 
-Toda a configuracao relacionada a Skills fica em `skills` em `~/.openclaw/openclaw.json`.
+Toda a configuração relacionada a Skills fica em `skills` em `~/.openclaw/openclaw.json`.
 
 ```json5
 {
@@ -47,37 +47,37 @@ Toda a configuracao relacionada a Skills fica em `skills` em `~/.openclaw/opencl
 
 ## Campos
 
-- `allowBundled`: allowlist opcional apenas para Skills **empacotadas**. Quando definida, apenas
-  as Skills empacotadas na lista sao elegiveis (Skills gerenciadas/do workspace nao sao afetadas).
-- `load.extraDirs`: diretorios adicionais de Skills para varrer (menor precedencia).
-- `load.watch`: observar pastas de Skills e atualizar o snapshot de Skills (padrao: true).
-- `load.watchDebounceMs`: debounce para eventos do watcher de Skills em milissegundos (padrao: 250).
-- `install.preferBrew`: preferir instaladores via brew quando disponiveis (padrao: true).
-- `install.nodeManager`: preferencia do instalador Node (`npm` | `pnpm` | `yarn` | `bun`, padrao: npm).
-  Isso afeta apenas **instalacoes de Skills**; o runtime do Gateway ainda deve ser Node
-  (Bun nao recomendado para WhatsApp/Telegram).
-- `entries.<skillKey>`: substituicoes por Skill.
+- `allowBundled`: lista de permissões opcional apenas para Skills **empacotadas**. Quando definida, apenas
+  as Skills empacotadas na lista são elegíveis (Skills gerenciadas/de workspace não são afetadas).
+- `load.extraDirs`: diretórios adicionais de Skills para varrer (menor precedência).
+- `load.watch`: observar pastas de Skills e atualizar o snapshot de Skills (padrão: true).
+- `load.watchDebounceMs`: debounce para eventos do observador de Skills em milissegundos (padrão: 250).
+- `install.preferBrew`: preferir instaladores do brew quando disponíveis (padrão: true).
+- `install.nodeManager`: preferência do instalador Node (`npm` | `pnpm` | `yarn` | `bun`, padrão: npm).
+  Isso afeta apenas **instalações de Skills**; o runtime do Gateway ainda deve ser Node
+  (Bun não recomendado para WhatsApp/Telegram).
+- `entries.<skillKey>`: sobrescritas por Skill.
 
 Campos por Skill:
 
-- `enabled`: definir `false` para desabilitar uma Skill mesmo se ela estiver empacotada/instalada.
-- `env`: variaveis de ambiente injetadas para a execucao do agente (apenas se ainda nao estiverem definidas).
-- `apiKey`: conveniencia opcional para Skills que declaram uma variavel de ambiente primaria.
+- `enabled`: defina `false` para desativar uma Skill mesmo que ela esteja empacotada/instalada.
+- `env`: variáveis de ambiente injetadas para a execução do agente (apenas se ainda não estiverem definidas).
+- `apiKey`: conveniência opcional para Skills que declaram uma variável de ambiente primária.
 
-## Observacoes
+## Notas
 
-- Chaves em `entries` mapeiam para o nome da Skill por padrao. Se uma Skill definir
+- As chaves sob `entries` mapeiam para o nome da Skill por padrão. Se uma Skill definir
   `metadata.openclaw.skillKey`, use essa chave.
-- Mudancas nas Skills sao aplicadas no proximo turno do agente quando o watcher esta habilitado.
+- Alterações nas Skills são captadas no próximo turno do agente quando o observador está habilitado.
 
-### Skills em sandbox + variaveis de ambiente
+### Skills em sandbox + variáveis de ambiente
 
-Quando uma sessao esta **em sandbox**, os processos de Skills rodam dentro do Docker. O sandbox
-**nao** herda `process.env` do host.
+Quando uma sessão está **em sandbox**, os processos de Skills são executados dentro do Docker. O sandbox
+**não** herda o `process.env` do host.
 
-Use uma das opcoes:
+Use uma das opções:
 
-- `agents.defaults.sandbox.docker.env` (ou por-agente `agents.list[].sandbox.docker.env`)
-- incorporar as variaveis de ambiente na sua imagem de sandbox personalizada
+- `agents.defaults.sandbox.docker.env` (ou `agents.list[].sandbox.docker.env` por agente)
+- incorporar as variáveis de ambiente na sua imagem de sandbox personalizada
 
-`env` e `skills.entries.<skill>.env/apiKey` globais se aplicam apenas a execucoes no **host**.
+`env` e `skills.entries.<skill>.env/apiKey` globais se aplicam apenas a execuções no **host**.

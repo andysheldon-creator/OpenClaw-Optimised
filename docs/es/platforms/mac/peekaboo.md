@@ -1,9 +1,9 @@
 ---
-summary: "Integración de PeekabooBridge para la automatización de UI en macOS"
+summary: "Integración de PeekabooBridge para la automatización de la interfaz de usuario en macOS"
 read_when:
-  - Alojando PeekabooBridge en OpenClaw.app
-  - Integrando Peekaboo mediante Swift Package Manager
-  - Cambiando el protocolo/rutas de PeekabooBridge
+  - Alojamiento de PeekabooBridge en OpenClaw.app
+  - Integración de Peekaboo mediante Swift Package Manager
+  - Cambio del protocolo/rutas de PeekabooBridge
 title: "Peekaboo Bridge"
 x-i18n:
   source_path: platforms/mac/peekaboo.md
@@ -11,36 +11,36 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:59:30Z
+  generated_at: 2026-02-08T09:34:08Z
 ---
 
 # Peekaboo Bridge (automatización de UI en macOS)
 
-OpenClaw puede alojar **PeekabooBridge** como un intermediario local de automatización de UI con reconocimiento de permisos. Esto permite que el CLI `peekaboo` controle la automatización de UI reutilizando los permisos TCC de la app de macOS.
+OpenClaw puede alojar **PeekabooBridge** como un intermediario local de automatización de UI con reconocimiento de permisos. Esto permite que la CLI `peekaboo` controle la automatización de la UI reutilizando los permisos TCC de la app de macOS.
 
 ## Qué es (y qué no es)
 
 - **Host**: OpenClaw.app puede actuar como host de PeekabooBridge.
-- **Cliente**: use el CLI `peekaboo` (sin una superficie `openclaw ui ...` separada).
+- **Cliente**: use la CLI `peekaboo` (sin una superficie `openclaw ui ...` separada).
 - **UI**: las superposiciones visuales permanecen en Peekaboo.app; OpenClaw es un host intermediario ligero.
 
 ## Habilitar el bridge
 
 En la app de macOS:
 
-- Settings → **Enable Peekaboo Bridge**
+- Ajustes → **Habilitar Peekaboo Bridge**
 
-Cuando está habilitado, OpenClaw inicia un servidor de socket UNIX local. Si está deshabilitado, el host se detiene y `peekaboo` recurrirá a otros hosts disponibles.
+Cuando está habilitado, OpenClaw inicia un servidor local de socket UNIX. Si está deshabilitado, el host se detiene y `peekaboo` volverá a otros hosts disponibles.
 
 ## Orden de descubrimiento del cliente
 
 Los clientes de Peekaboo normalmente prueban los hosts en este orden:
 
 1. Peekaboo.app (UX completa)
-2. Claude.app (si está instalado)
+2. Claude.app (si está instalada)
 3. OpenClaw.app (intermediario ligero)
 
-Use `peekaboo bridge status --verbose` para ver qué host está activo y qué ruta de socket se está usando. Puede anularlo con:
+Use `peekaboo bridge status --verbose` para ver qué host está activo y qué ruta de socket está en uso. Puede sobrescribirlo con:
 
 ```bash
 export PEEKABOO_BRIDGE_SOCKET=/path/to/bridge.sock
@@ -48,13 +48,13 @@ export PEEKABOO_BRIDGE_SOCKET=/path/to/bridge.sock
 
 ## Seguridad y permisos
 
-- El bridge valida **las firmas de código del llamador**; se aplica una lista de permitidos de TeamIDs (TeamID del host de Peekaboo + TeamID de la app OpenClaw).
+- El bridge valida **firmas de código del llamador**; se aplica una lista de permitidos de TeamIDs (TeamID del host de Peekaboo + TeamID de la app OpenClaw).
 - Las solicitudes expiran después de ~10 segundos.
-- Si faltan permisos requeridos, el bridge devuelve un mensaje de error claro en lugar de abrir System Settings.
+- Si faltan permisos requeridos, el bridge devuelve un mensaje de error claro en lugar de abrir Ajustes del Sistema.
 
 ## Comportamiento de snapshots (automatización)
 
-Las snapshots se almacenan en memoria y expiran automáticamente después de una ventana corta. Si necesita una retención más prolongada, vuelva a capturar desde el cliente.
+Las snapshots se almacenan en memoria y caducan automáticamente después de una ventana corta. Si necesita una retención más prolongada, vuelva a capturar desde el cliente.
 
 ## Solución de problemas
 

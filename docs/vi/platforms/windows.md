@@ -2,36 +2,36 @@
 summary: "Hỗ trợ Windows (WSL2) + trạng thái ứng dụng đồng hành"
 read_when:
   - Cài đặt OpenClaw trên Windows
-  - Tìm trạng thái ứng dụng đồng hành cho Windows
+  - Tìm trạng thái ứng dụng đồng hành trên Windows
 title: "Windows (WSL2)"
 x-i18n:
   source_path: platforms/windows.md
-  source_hash: c93d2263b4e5b60c
+  source_hash: d17df1bd5636502e
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:08:01Z
+  generated_at: 2026-02-08T09:39:48Z
 ---
 
 # Windows (WSL2)
 
-Khuyến nghị chạy OpenClaw trên Windows **qua WSL2** (đề xuất Ubuntu). The
-CLI + Gateway chạy bên trong Linux, giúp môi trường runtime nhất quán và làm
-công cụ tương thích hơn nhiều (Node/Bun/pnpm, Linux binaries, skills). Native
-Windows có thể phức tạp hơn. WSL2 mang lại trải nghiệm Linux đầy đủ — cài đặt chỉ
-bằng một lệnh: `wsl --install`.
+Khuyến nghị chạy OpenClaw trên Windows **thông qua WSL2** (khuyên dùng Ubuntu).  
+CLI + Gateway chạy bên trong Linux, giúp môi trường runtime nhất quán và khiến
+hệ công cụ tương thích hơn nhiều (Node/Bun/pnpm, binary Linux, skills). Chạy
+native trên Windows có thể phức tạp hơn. WSL2 mang lại trải nghiệm Linux đầy đủ —
+một lệnh để cài đặt: `wsl --install`.
 
 Ứng dụng đồng hành native cho Windows đang được lên kế hoạch.
 
 ## Cài đặt (WSL2)
 
-- [Bat Dau](/start/getting-started) (dùng bên trong WSL)
+- [Bắt đầu](/start/getting-started) (dùng bên trong WSL)
 - [Cài đặt & cập nhật](/install/updating)
-- Hướng dẫn WSL2 chính thức (Microsoft): https://learn.microsoft.com/windows/wsl/install
+- Hướng dẫn WSL2 chính thức (Microsoft): [https://learn.microsoft.com/windows/wsl/install](https://learn.microsoft.com/windows/wsl/install)
 
 ## Gateway
 
-- [Gateway runbook](/gateway)
+- [Runbook Gateway](/gateway)
 - [Cấu hình](/gateway/configuration)
 
 ## Cài đặt dịch vụ Gateway (CLI)
@@ -54,7 +54,7 @@ Hoặc:
 openclaw configure
 ```
 
-Chọn **Gateway service** khi được nhắc.
+Chọn **Gateway service** khi được hỏi.
 
 Sửa chữa/di chuyển:
 
@@ -66,7 +66,7 @@ openclaw doctor
 
 WSL có mạng ảo riêng. Nếu một máy khác cần truy cập dịch vụ
 chạy **bên trong WSL** (SSH, máy chủ TTS cục bộ, hoặc Gateway), bạn phải
-chuyển tiếp một cổng Windows tới IP WSL hiện tại. IP WSL thay đổi sau khi khởi động lại,
+chuyển tiếp một cổng Windows tới IP WSL hiện tại. IP WSL thay đổi sau mỗi lần khởi động,
 vì vậy bạn có thể cần làm mới quy tắc chuyển tiếp.
 
 Ví dụ (PowerShell **chạy với quyền Administrator**):
@@ -83,7 +83,7 @@ netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=$ListenPor
   connectaddress=$WslIp connectport=$TargetPort
 ```
 
-Cho phép cổng qua Windows Firewall (một lần):
+Cho phép cổng đi qua Windows Firewall (một lần):
 
 ```powershell
 New-NetFirewallRule -DisplayName "WSL SSH $ListenPort" -Direction Inbound `
@@ -100,8 +100,8 @@ netsh interface portproxy add v4tov4 listenport=$ListenPort listenaddress=0.0.0.
 
 Ghi chú:
 
-- SSH từ máy khác sẽ nhắm tới **IP của máy Windows host** (ví dụ: `ssh user@windows-host -p 2222`).
-- Các node từ xa phải trỏ tới URL Gateway **có thể truy cập được** (không phải `127.0.0.1`); dùng
+- SSH từ máy khác nhắm tới **IP của máy chủ Windows** (ví dụ: `ssh user@windows-host -p 2222`).
+- Các node từ xa phải trỏ tới một URL Gateway **có thể truy cập được** (không phải `127.0.0.1`); dùng
   `openclaw status --all` để xác nhận.
 - Dùng `listenaddress=0.0.0.0` để truy cập LAN; `127.0.0.1` chỉ giữ truy cập cục bộ.
 - Nếu muốn tự động, hãy đăng ký một Scheduled Task để chạy bước làm mới
@@ -122,7 +122,7 @@ wsl --install -d Ubuntu-24.04
 
 Khởi động lại nếu Windows yêu cầu.
 
-### 2) Bật systemd (bắt buộc cho cài đặt Gateway)
+### 2) Bật systemd (bắt buộc cho cài đặt gateway)
 
 Trong terminal WSL của bạn:
 
@@ -139,7 +139,7 @@ Sau đó từ PowerShell:
 wsl --shutdown
 ```
 
-Mở lại Ubuntu, rồi xác minh:
+Mở lại Ubuntu, rồi kiểm tra:
 
 ```bash
 systemctl --user status
@@ -147,7 +147,7 @@ systemctl --user status
 
 ### 3) Cài đặt OpenClaw (bên trong WSL)
 
-Thực hiện luồng Bat Dau cho Linux bên trong WSL:
+Làm theo luồng Bắt đầu cho Linux bên trong WSL:
 
 ```bash
 git clone https://github.com/openclaw/openclaw.git
@@ -158,9 +158,9 @@ pnpm build
 openclaw onboard
 ```
 
-Hướng dẫn đầy đủ: [Bat Dau](/start/getting-started)
+Hướng dẫn đầy đủ: [Bắt đầu](/start/getting-started)
 
-## Ứng dụng đồng hành cho Windows
+## Ứng dụng đồng hành trên Windows
 
-Hiện chưa có ứng dụng đồng hành cho Windows. Chúng tôi hoan nghênh đóng góp nếu bạn muốn
-tham gia xây dựng để hiện thực hóa điều này.
+Hiện chúng tôi chưa có ứng dụng đồng hành cho Windows. Hoan nghênh đóng góp nếu bạn muốn
+tham gia xây dựng để biến điều này thành hiện thực.

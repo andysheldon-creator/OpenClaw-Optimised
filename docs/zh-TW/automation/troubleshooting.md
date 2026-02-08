@@ -1,9 +1,9 @@
 ---
-summary: 「疑難排解 cron 與 heartbeat 的排程與傳送」
+summary: 「疑難排解 cron 與 heartbeat 的排程與傳送問題」
 read_when:
   - Cron 未執行
   - Cron 已執行但未傳送任何訊息
-  - Heartbeat 似乎無聲或被跳過
+  - Heartbeat 似乎無聲或被略過
 title: 「自動化疑難排解」
 x-i18n:
   source_path: automation/troubleshooting.md
@@ -11,12 +11,12 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:15:01Z
+  generated_at: 2026-02-08T09:26:46Z
 ---
 
 # 自動化疑難排解
 
-當排程器與傳送出現問題時，請使用此頁面（`cron` + `heartbeat`）。
+當遇到排程器與傳送問題時，請使用此頁面（`cron` + `heartbeat`）。
 
 ## 指令階梯
 
@@ -45,17 +45,17 @@ openclaw cron runs --id <jobId> --limit 20
 openclaw logs --follow
 ```
 
-良好的輸出看起來像是：
+良好的輸出看起來會是：
 
-- `cron status` 回報已啟用，且有未來的 `nextWakeAtMs`。
-- 工作已啟用，並且具有有效的排程／時區。
-- `cron runs` 顯示 `ok` 或明確的跳過原因。
+- `cron status` 顯示為已啟用，且有未來的 `nextWakeAtMs`。
+- 工作已啟用，且具有有效的排程／時區。
+- `cron runs` 顯示 `ok` 或明確的略過原因。
 
 常見特徵：
 
-- `cron: scheduler disabled; jobs will not run automatically` → 設定／環境變數中已停用 cron。
-- `cron: timer tick failed` → 排程器 tick 當機；請檢視周邊的堆疊／日誌內容。
-- 在執行輸出中出現 `reason: not-due` → 手動執行時未提供 `--force`，且工作尚未到期。
+- `cron: scheduler disabled; jobs will not run automatically` → cron 在設定／環境變數中被停用。
+- `cron: timer tick failed` → 排程器 tick 當掉；請檢查周邊的堆疊／日誌內容。
+- 在執行輸出中出現 `reason: not-due` → 手動執行時未帶 `--force`，且工作尚未到期。
 
 ## Cron 已觸發但未傳送
 
@@ -66,19 +66,19 @@ openclaw channels status --probe
 openclaw logs --follow
 ```
 
-良好的輸出看起來像是：
+良好的輸出看起來會是：
 
 - 執行狀態為 `ok`。
-- 已為隔離的工作設定傳送模式／目標。
+- 隔離的工作已設定傳送模式／目標。
 - 頻道探測回報目標頻道已連線。
 
 常見特徵：
 
-- 執行成功但傳送模式為 `none` → 不預期有任何外部訊息。
-- 傳送目標遺失／無效（`channel`／`to`）→ 內部執行可能成功，但會略過對外傳送。
-- 頻道驗證錯誤（`unauthorized`、`missing_scope`、`Forbidden`）→ 傳送被頻道憑證／權限阻擋。
+- 執行成功但傳送模式為 `none` → 預期不會有對外訊息。
+- 傳送目標遺失／無效（`channel`/`to`）→ 內部執行可能成功，但會略過對外傳送。
+- 頻道驗證錯誤（`unauthorized`、`missing_scope`、`Forbidden`）→ 傳送因頻道憑證／權限而被阻擋。
 
-## Heartbeat 被抑制或跳過
+## Heartbeat 被抑制或略過
 
 ```bash
 openclaw system heartbeat last
@@ -87,19 +87,19 @@ openclaw config get agents.defaults.heartbeat
 openclaw channels status --probe
 ```
 
-良好的輸出看起來像是：
+良好的輸出看起來會是：
 
-- Heartbeat 已啟用且間隔為非零。
-- 最近一次 heartbeat 結果為 `ran`（或能理解其跳過原因）。
+- Heartbeat 已啟用，且間隔為非零。
+- 最近一次 heartbeat 結果為 `ran`（或略過原因已明確）。
 
 常見特徵：
 
-- `heartbeat skipped` 搭配 `reason=quiet-hours` → 位於 `activeHours` 之外。
-- `requests-in-flight` → 主通道繁忙；heartbeat 延後。
-- `empty-heartbeat-file` → `HEARTBEAT.md` 存在，但沒有可採取的內容。
+- `heartbeat skipped` 搭配 `reason=quiet-hours` → 超出 `activeHours`。
+- `requests-in-flight` → 主車道忙碌；heartbeat 被延後。
+- `empty-heartbeat-file` → `HEARTBEAT.md` 存在，但沒有可執行的內容。
 - `alerts-disabled` → 可見性設定抑制了對外的 heartbeat 訊息。
 
-## 時區與 activeHours 的注意事項
+## Timezone 與 activeHours 的陷阱
 
 ```bash
 openclaw config get agents.defaults.heartbeat.activeHours
@@ -111,17 +111,17 @@ openclaw logs --follow
 
 快速規則：
 
-- `Config path not found: agents.defaults.userTimezone` 表示該鍵未設定；heartbeat 會回退至主機時區（或若有設定則為 `activeHours.timezone`）。
-- 未設定 `--tz` 的 cron 會使用 Gateway 閘道器 主機時區。
-- Heartbeat 的 `activeHours` 會使用已設定的時區解析（`user`、`local`，或明確的 IANA tz）。
-- 未含時區的 ISO 時間戳會在 cron 的 `at` 排程中視為 UTC。
+- `Config path not found: agents.defaults.userTimezone` 表示該金鑰未設定；heartbeat 會回退至主機時區（或若有設定則使用 `activeHours.timezone`）。
+- 未指定 `--tz` 的 cron 會使用 Gateway 閘道器主機的時區。
+- Heartbeat 的 `activeHours` 會使用已設定的時區解析（`user`、`local`，或明確的 IANA 時區）。
+- 未含時區的 ISO 時間戳，對於 cron 的 `at` 排程會視為 UTC。
 
 常見特徵：
 
-- 主機時區變更後，工作在錯誤的實際時鐘時間執行。
-- 因為 `activeHours.timezone` 設定錯誤，導致在你的白天時段 heartbeat 總是被跳過。
+- 主機時區變更後，工作在錯誤的實際時間點執行。
+- Heartbeat 在你的白天時段總是被略過，因為 `activeHours.timezone` 設定錯誤。
 
-相關內容：
+相關：
 
 - [/automation/cron-jobs](/automation/cron-jobs)
 - [/gateway/heartbeat](/gateway/heartbeat)

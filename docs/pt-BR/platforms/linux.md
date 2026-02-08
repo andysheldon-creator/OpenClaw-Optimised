@@ -2,7 +2,7 @@
 summary: "Suporte a Linux + status do aplicativo complementar"
 read_when:
   - Procurando o status do aplicativo complementar para Linux
-  - Planejando cobertura de plataformas ou contribuicoes
+  - Planejando cobertura de plataformas ou contribuições
 title: "Aplicativo Linux"
 x-i18n:
   source_path: platforms/linux.md
@@ -10,17 +10,17 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:56:49Z
+  generated_at: 2026-02-08T09:31:22Z
 ---
 
 # Aplicativo Linux
 
-O Gateway tem suporte completo no Linux. **Node e o runtime recomendado**.
-Bun nao e recomendado para o Gateway (bugs com WhatsApp/Telegram).
+O Gateway é totalmente compatível com Linux. **Node é o runtime recomendado**.
+Bun não é recomendado para o Gateway (bugs no WhatsApp/Telegram).
 
-Aplicativos complementares nativos para Linux estao planejados. Contribuicoes sao bem-vindas se voce quiser ajudar a criar um.
+Aplicativos complementares nativos para Linux estão planejados. Contribuições são bem-vindas se você quiser ajudar a criar um.
 
-## Caminho rapido para iniciantes (VPS)
+## Caminho rápido para iniciantes (VPS)
 
 1. Instale Node 22+
 2. `npm i -g openclaw@latest`
@@ -28,20 +28,20 @@ Aplicativos complementares nativos para Linux estao planejados. Contribuicoes sa
 4. Do seu laptop: `ssh -N -L 18789:127.0.0.1:18789 <user>@<host>`
 5. Abra `http://127.0.0.1:18789/` e cole seu token
 
-Guia VPS passo a passo: [exe.dev](/install/exe-dev)
+Guia passo a passo para VPS: [exe.dev](/install/exe-dev)
 
-## Instalacao
+## Instalação
 
-- [Primeiros Passos](/start/getting-started)
-- [Instalacao e atualizacoes](/install/updating)
+- [Primeiros passos](/start/getting-started)
+- [Instalação e atualizações](/install/updating)
 - Fluxos opcionais: [Bun (experimental)](/install/bun), [Nix](/install/nix), [Docker](/install/docker)
 
 ## Gateway
 
 - [Runbook do Gateway](/gateway)
-- [Configuracao](/gateway/configuration)
+- [Configuração](/gateway/configuration)
 
-## Instalacao do servico Gateway (CLI)
+## Instalação do serviço do Gateway (CLI)
 
 Use um destes:
 
@@ -69,13 +69,13 @@ Reparar/migrar:
 openclaw doctor
 ```
 
-## Controle do sistema (unidade de usuario systemd)
+## Controle do sistema (unit de usuário do systemd)
 
-O OpenClaw instala um servico systemd de **usuario** por padrao. Use um servico de **sistema**
-para servidores compartilhados ou sempre ativos. O exemplo completo da unidade e as orientacoes
-estao no [runbook do Gateway](/gateway).
+O OpenClaw instala um serviço **de usuário** do systemd por padrão. Use um serviço
+**do sistema** para servidores compartilhados ou sempre ativos. O exemplo completo da unit e as orientações
+estão no [runbook do Gateway](/gateway).
 
-Configuracao minima:
+Configuração mínima:
 
 Crie `~/.config/systemd/user/openclaw-gateway[-<profile>].service`:
 

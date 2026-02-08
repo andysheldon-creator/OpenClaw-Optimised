@@ -1,15 +1,15 @@
 ---
-summary: "OpenClaw ist ein Mehrkanal-Gateway für KI-Agenten, das auf jedem Betriebssystem läuft."
+summary: "OpenClaw ist ein Multi-Kanal-Gateway für KI-Agenten, das auf jedem Betriebssystem läuft."
 read_when:
-  - OpenClaw neuen Nutzern vorstellen
+  - Einführung von OpenClaw für Neueinsteiger
 title: "OpenClaw"
 x-i18n:
   source_path: index.md
-  source_hash: 97a613c67efb448b
+  source_hash: 22725fdce9eafb33
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:04:38Z
+  generated_at: 2026-02-08T09:36:33Z
 ---
 
 # OpenClaw 🦞
@@ -29,18 +29,18 @@ x-i18n:
     />
 </p>
 
-> _„EXFOLIATE! EXFOLIATE!“_ — Ein Weltraumhummer, vermutlich
+> _„EXFOLIATE! EXFOLIATE!“_ — ein Weltraum-Hummer, vermutlich
 
 <p align="center">
-  <strong>Gateway für KI-Agenten auf jedem Betriebssystem über WhatsApp, Telegram, Discord, iMessage und mehr.</strong><br />
+  <strong>Gateway für KI-Agenten auf jedem Betriebssystem – über WhatsApp, Telegram, Discord, iMessage und mehr.</strong><br />
   Senden Sie eine Nachricht und erhalten Sie eine Agentenantwort direkt aus Ihrer Tasche. Plugins fügen Mattermost und mehr hinzu.
 </p>
 
 <Columns>
   <Card title="Erste Schritte" href="/start/getting-started" icon="rocket">
-    Installieren Sie OpenClaw und starten Sie das Gateway in wenigen Minuten.
+    Installieren Sie OpenClaw und bringen Sie das Gateway in Minuten zum Laufen.
   </Card>
-  <Card title="Assistent ausführen" href="/start/wizard" icon="sparkles">
+  <Card title="Assistent starten" href="/start/wizard" icon="sparkles">
     Geführte Einrichtung mit `openclaw onboard` und Kopplungsabläufen.
   </Card>
   <Card title="Control UI öffnen" href="/web/control-ui" icon="layout-dashboard">
@@ -50,20 +50,20 @@ x-i18n:
 
 ## Was ist OpenClaw?
 
-OpenClaw ist ein **selbst gehostetes Gateway**, das Ihre bevorzugten Chat-Apps — WhatsApp, Telegram, Discord, iMessage und mehr — mit KI-Coding-Agenten wie Pi verbindet. Sie führen einen einzigen Gateway-Prozess auf Ihrer eigenen Maschine (oder einem Server) aus, der als Brücke zwischen Ihren Messaging-Apps und einem jederzeit verfügbaren KI-Assistenten dient.
+OpenClaw ist ein **selbst gehostetes Gateway**, das Ihre bevorzugten Chat-Apps – WhatsApp, Telegram, Discord, iMessage und mehr – mit KI-Coding-Agenten wie Pi verbindet. Sie führen einen einzelnen Gateway-Prozess auf Ihrer eigenen Maschine (oder einem Server) aus, der als Brücke zwischen Ihren Messaging-Apps und einem jederzeit verfügbaren KI-Assistenten dient.
 
-**Für wen ist es gedacht?** Entwickler und Power-User, die einen persönlichen KI-Assistenten möchten, den sie von überall aus anschreiben können — ohne die Kontrolle über ihre Daten aufzugeben oder sich auf einen gehosteten Dienst zu verlassen.
+**Für wen ist es gedacht?** Entwickler und Power-User, die einen persönlichen KI-Assistenten möchten, den sie von überall aus anschreiben können – ohne die Kontrolle über ihre Daten aufzugeben oder sich auf einen gehosteten Dienst zu verlassen.
 
 **Was macht es anders?**
 
 - **Selbst gehostet**: läuft auf Ihrer Hardware, nach Ihren Regeln
-- **Mehrkanal**: ein Gateway bedient WhatsApp, Telegram, Discord und mehr gleichzeitig
+- **Multi-Kanal**: Ein Gateway bedient WhatsApp, Telegram, Discord und mehr gleichzeitig
 - **Agent-nativ**: entwickelt für Coding-Agenten mit Werkzeugnutzung, Sitzungen, Speicher und Multi-Agent-Routing
 - **Open Source**: MIT-lizenziert, community-getrieben
 
 **Was benötigen Sie?** Node 22+, einen API-Schlüssel (Anthropic empfohlen) und 5 Minuten.
 
-## Wie es funktioniert
+## So funktioniert es
 
 ```mermaid
 flowchart LR
@@ -75,12 +75,12 @@ flowchart LR
   B --> G["iOS and Android nodes"]
 ```
 
-Das Gateway ist die einzige Quelle der Wahrheit für Sitzungen, Routing und Kanalverbindungen.
+Das Gateway ist die zentrale Quelle der Wahrheit für Sitzungen, Routing und Kanalverbindungen.
 
-## Zentrale Fähigkeiten
+## Zentrale Funktionen
 
 <Columns>
-  <Card title="Mehrkanal-Gateway" icon="network">
+  <Card title="Multi-Kanal-Gateway" icon="network">
     WhatsApp, Telegram, Discord und iMessage mit einem einzigen Gateway-Prozess.
   </Card>
   <Card title="Plugin-Kanäle" icon="plug">
@@ -108,7 +108,7 @@ Das Gateway ist die einzige Quelle der Wahrheit für Sitzungen, Routing und Kana
     npm install -g openclaw@latest
     ```
   </Step>
-  <Step title="Einführung durchführen und den Dienst installieren">
+  <Step title="Onboarding durchführen und den Dienst installieren">
     ```bash
     openclaw onboard --install-daemon
     ```
@@ -121,13 +121,13 @@ Das Gateway ist die einzige Quelle der Wahrheit für Sitzungen, Routing und Kana
   </Step>
 </Steps>
 
-Benötigen Sie die vollständige Installations- und Entwicklungsumgebung? Siehe [Schnellstart](/start/quickstart).
+Benötigen Sie die vollständige Installation und das Dev-Setup? Siehe [Schnellstart](/start/quickstart).
 
 ## Dashboard
 
 Öffnen Sie die browserbasierte Control UI, nachdem das Gateway gestartet ist.
 
-- Lokaler Standard: http://127.0.0.1:18789/
+- Lokal (Standard): [http://127.0.0.1:18789/](http://127.0.0.1:18789/)
 - Remote-Zugriff: [Web surfaces](/web) und [Tailscale](/gateway/tailscale)
 
 <p align="center">
@@ -138,8 +138,8 @@ Benötigen Sie die vollständige Installations- und Entwicklungsumgebung? Siehe 
 
 Die Konfiguration befindet sich unter `~/.openclaw/openclaw.json`.
 
-- Wenn Sie **nichts tun**, verwendet OpenClaw die gebündelte Pi-Binary im RPC-Modus mit sitzungsbasierter Trennung pro Absender.
-- Wenn Sie es einschränken möchten, beginnen Sie mit `channels.whatsapp.allowFrom` und (für Gruppen) mit Erwähnungsregeln.
+- Wenn Sie **nichts tun**, verwendet OpenClaw das mitgelieferte Pi-Binary im RPC-Modus mit Sitzungen pro Absender.
+- Wenn Sie es absichern möchten, beginnen Sie mit `channels.whatsapp.allowFrom` und (für Gruppen) mit Erwähnungsregeln.
 
 Beispiel:
 
@@ -155,7 +155,7 @@ Beispiel:
 }
 ```
 
-## Hier starten
+## Starten Sie hier
 
 <Columns>
   <Card title="Dokumentations-Hubs" href="/start/hubs" icon="book-open">
@@ -182,10 +182,10 @@ Beispiel:
 
 <Columns>
   <Card title="Vollständige Funktionsliste" href="/concepts/features" icon="list">
-    Vollständige Kanal-, Routing- und Medienfunktionen.
+    Umfassende Kanal-, Routing- und Medienfunktionen.
   </Card>
   <Card title="Multi-Agent-Routing" href="/concepts/multi-agent" icon="route">
-    Workspace-Isolation und sitzungsbasierte Trennung pro Agent.
+    Workspace-Isolierung und Sitzungen pro Agent.
   </Card>
   <Card title="Sicherheit" href="/gateway/security" icon="shield">
     Tokens, Allowlists und Sicherheitskontrollen.
@@ -193,7 +193,7 @@ Beispiel:
   <Card title="Fehlerbehebung" href="/gateway/troubleshooting" icon="wrench">
     Gateway-Diagnose und häufige Fehler.
   </Card>
-  <Card title="Über das Projekt und Danksagungen" href="/reference/credits" icon="info">
-    Projektursprung, Mitwirkende und Lizenz.
+  <Card title="Über das Projekt und Credits" href="/reference/credits" icon="info">
+    Projektursprünge, Mitwirkende und Lizenz.
   </Card>
 </Columns>

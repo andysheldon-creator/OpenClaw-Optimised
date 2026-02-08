@@ -1,35 +1,35 @@
 ---
-summary: "オンボーディングウィザードと設定スキーマの RPC プロトコルメモ"
+summary: "オンボーディングウィザードおよび設定スキーマ向けの RPC プロトコルに関する注記"
 read_when: "オンボーディングウィザードの手順または設定スキーマのエンドポイントを変更する場合"
 title: "オンボーディングと設定プロトコル"
 x-i18n:
   source_path: experiments/onboarding-config-protocol.md
   source_hash: 55163b3ee029c024
   provider: openai
-  model: gpt-5.2-pro
+  model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-06T05:19:03Z
+  generated_at: 2026-02-08T09:21:41Z
 ---
 
 # オンボーディング + 設定プロトコル
 
-目的: CLI、macOS アプリ、Web UI 全体で共有されるオンボーディング + 設定サーフェスです。
+目的: CLI、macOS アプリ、Web UI 全体で共有されるオンボーディングおよび設定のサーフェスを提供します。
 
 ## コンポーネント
 
-- ウィザードエンジン（共有セッション + プロンプト + オンボーディング状態）。
-- CLI のオンボーディングは、UI クライアントと同じウィザードフローを使用します。
-- Gateway（ゲートウェイ）の RPC は、ウィザード + 設定スキーマのエンドポイントを公開します。
-- macOS のオンボーディングは、ウィザードのステップモデルを使用します。
-- Web UI は、JSON Schema + UI ヒントから設定フォームをレンダリングします。
+- ウィザードエンジン（共有セッション、プロンプト、オンボーディング状態）。
+- CLI のオンボーディングは UI クライアントと同一のウィザードフローを使用します。
+- Gateway RPC（リモートプロシージャコール）がウィザードおよび設定スキーマのエンドポイントを公開します。
+- macOS のオンボーディングはウィザードのステップモデルを使用します。
+- Web UI は JSON Schema と UI ヒントから設定フォームをレンダリングします。
 
-## Gateway（ゲートウェイ） RPC
+## Gateway RPC
 
-- `wizard.start` パラメータ: `{ mode?: "local"|"remote", workspace?: string }`
-- `wizard.next` パラメータ: `{ sessionId, answer?: { stepId, value? } }`
-- `wizard.cancel` パラメータ: `{ sessionId }`
-- `wizard.status` パラメータ: `{ sessionId }`
-- `config.schema` パラメータ: `{}`
+- `wizard.start` params: `{ mode?: "local"|"remote", workspace?: string }`
+- `wizard.next` params: `{ sessionId, answer?: { stepId, value? } }`
+- `wizard.cancel` params: `{ sessionId }`
+- `wizard.status` params: `{ sessionId }`
+- `config.schema` params: `{}`
 
 レスポンス（形状）
 
@@ -38,10 +38,10 @@ x-i18n:
 
 ## UI ヒント
 
-- パスでキー付けされた `uiHints`。任意のメタデータ（label/help/group/order/advanced/sensitive/placeholder）。
-- センシティブなフィールドはパスワード入力としてレンダリングされます。マスキング用のレイヤーはありません。
-- サポートされていないスキーマノードは、生の JSON エディタにフォールバックします。
+- `uiHints` はパスでキー付けされます。オプションのメタデータ（label/help/group/order/advanced/sensitive/placeholder）を含みます。
+- 機密フィールドはパスワード入力としてレンダリングされます。リダクション（マスキング）レイヤーはありません。
+- 未対応のスキーマノードは生の JSON エディターにフォールバックします。
 
 ## 注記
 
-- このドキュメントは、オンボーディング/設定に関するプロトコルのリファクタリングを追跡するための単一の場所です。
+- 本ドキュメントは、オンボーディングおよび設定に関するプロトコルのリファクタリングを追跡するための単一の参照点です。

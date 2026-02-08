@@ -1,15 +1,15 @@
 ---
-summary: "Telegram-Allowlist-Härtung: Präfix + Normalisierung von Leerzeichen"
+summary: „Telegram-Allowlist-Härtung: Präfix- und Whitespace-Normalisierung“
 read_when:
-  - Bei der Überprüfung historischer Änderungen an der Telegram-Allowlist
-title: "Telegram-Allowlist-Härtung"
+  - Überprüfung historischer Änderungen an der Telegram-Allowlist
+title: „Telegram-Allowlist-Härtung“
 x-i18n:
   source_path: experiments/plans/group-policy-hardening.md
-  source_hash: a2eca5fcc8537694
+  source_hash: 70569968857d4084
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:04:14Z
+  generated_at: 2026-02-08T09:36:04Z
 ---
 
 # Telegram-Allowlist-Härtung
@@ -20,12 +20,12 @@ x-i18n:
 
 ## Zusammenfassung
 
-Telegram-Allowlists akzeptieren jetzt die Präfixe `telegram:` und `tg:` unabhängig von der Groß-/Kleinschreibung und tolerieren
-versehentliche Leerzeichen. Dadurch werden eingehende Allowlist-Prüfungen an die ausgehende Sendenormalisierung angepasst.
+Telegram-Allowlists akzeptieren jetzt die Präfixe `telegram:` und `tg:` ohne Beachtung der Groß-/Kleinschreibung und tolerieren
+versehentliches Whitespace. Dies gleicht die eingehenden Allowlist-Prüfungen mit der Normalisierung beim ausgehenden Senden ab.
 
 ## Was sich geändert hat
 
-- Die Präfixe `telegram:` und `tg:` werden gleich behandelt (unabhängig von der Groß-/Kleinschreibung).
+- Die Präfixe `telegram:` und `tg:` werden gleich behandelt (ohne Beachtung der Groß-/Kleinschreibung).
 - Allowlist-Einträge werden getrimmt; leere Einträge werden ignoriert.
 
 ## Beispiele
@@ -38,10 +38,10 @@ Alle folgenden Varianten werden für dieselbe ID akzeptiert:
 
 ## Warum das wichtig ist
 
-Kopieren/Einfügen aus Logs oder Chat-IDs enthält häufig Präfixe und Leerzeichen. Die Normalisierung vermeidet
-falsche Negative bei der Entscheidung, ob in Direktnachrichten oder Gruppen geantwortet werden soll.
+Kopieren/Einfügen aus Logs oder Chat-IDs enthält häufig Präfixe und Whitespace. Die Normalisierung vermeidet
+False Negatives bei der Entscheidung, ob in Direktnachrichten oder Gruppen geantwortet werden soll.
 
-## Verwandte Dokumente
+## Zugehörige Dokumente
 
-- [Gruppenchats](/concepts/groups)
-- [Telegram-Anbieter](/channels/telegram)
+- [Group Chats](/channels/groups)
+- [Telegram Provider](/channels/telegram)

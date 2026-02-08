@@ -1,8 +1,8 @@
 ---
-summary: "CLI-Referenz fuer `openclaw voicecall` (Befehlsoberflaeche des Voice-Call-Plugins)"
+summary: "CLI-Referenz für `openclaw voicecall` (Befehlsoberfläche des Voice-Call-Plugins)"
 read_when:
-  - Sie verwenden das Voice-Call-Plugin und moechten die CLI-Einstiegspunkte
-  - Sie moechten schnelle Beispiele fuer `voicecall call|continue|status|tail|expose`
+  - Sie das Voice-Call-Plugin verwenden und die CLI-Einstiegspunkte benötigen
+  - Sie schnelle Beispiele für `voicecall call|continue|status|tail|expose` wünschen
 title: "voicecall"
 x-i18n:
   source_path: cli/voicecall.md
@@ -10,18 +10,18 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:52Z
+  generated_at: 2026-02-08T09:35:43Z
 ---
 
 # `openclaw voicecall`
 
 `voicecall` ist ein vom Plugin bereitgestellter Befehl. Er erscheint nur, wenn das Voice-Call-Plugin installiert und aktiviert ist.
 
-Primaere Dokumentation:
+Hauptdokumentation:
 
 - Voice-Call-Plugin: [Voice Call](/plugins/voice-call)
 
-## Gelaeufige Befehle
+## Häufige Befehle
 
 ```bash
 openclaw voicecall status --call-id <id>
@@ -30,7 +30,7 @@ openclaw voicecall continue --call-id <id> --message "Any questions?"
 openclaw voicecall end --call-id <id>
 ```
 
-## Webhooks exponieren (Tailscale)
+## Webhooks verfügbar machen (Tailscale)
 
 ```bash
 openclaw voicecall expose --mode serve
@@ -38,4 +38,4 @@ openclaw voicecall expose --mode funnel
 openclaw voicecall unexpose
 ```
 
-Sicherheitshinweis: Exponieren Sie den Webhook-Endpunkt nur fuer Netzwerke, denen Sie vertrauen. Bevorzugen Sie nach Moeglichkeit Tailscale Serve gegenueber Funnel.
+Sicherheitshinweis: Stellen Sie den Webhook-Endpunkt nur Netzwerken zur Verfügung, denen Sie vertrauen. Bevorzugen Sie nach Möglichkeit Tailscale Serve gegenüber Funnel.

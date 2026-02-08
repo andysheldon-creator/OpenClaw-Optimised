@@ -1,7 +1,7 @@
 ---
 summary: "Sandbox theo từng tác tử + hạn chế công cụ, thứ tự ưu tiên và ví dụ"
-title: Sandbox & Công cụ Đa Tác Tử
-read_when: "Bạn muốn sandbox theo từng tác tử hoặc chính sách cho phép/từ chối công cụ theo từng tác tử trong một Gateway đa tác tử."
+title: Sandbox & Công cụ đa tác tử
+read_when: "Bạn muốn sandboxing theo từng tác tử hoặc chính sách cho phép/từ chối công cụ theo từng tác tử trong một gateway đa tác tử."
 status: active
 x-i18n:
   source_path: tools/multi-agent-sandbox-tools.md
@@ -9,14 +9,14 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:16:16Z
+  generated_at: 2026-02-08T09:40:38Z
 ---
 
-# Cấu hình Sandbox & Công cụ Đa Tác Tử
+# Cấu hình Sandbox & Công cụ đa tác tử
 
 ## Tổng quan
 
-Mỗi tác tử trong thiết lập đa tác tử giờ đây có thể có riêng:
+Mỗi tác tử trong một thiết lập đa tác tử giờ đây có thể có riêng:
 
 - **Cấu hình sandbox** (`agents.list[].sandbox` ghi đè `agents.defaults.sandbox`)
 - **Hạn chế công cụ** (`tools.allow` / `tools.deny`, cùng với `agents.list[].tools`)
@@ -27,7 +27,7 @@ Mỗi tác tử trong thiết lập đa tác tử giờ đây có thể có riê
 - Tác tử gia đình/công việc với công cụ bị hạn chế
 - Tác tử hướng ra công chúng trong sandbox
 
-`setupCommand` thuộc `sandbox.docker` (toàn cục hoặc theo tác tử) và chỉ chạy một lần
+`setupCommand` thuộc về `sandbox.docker` (toàn cục hoặc theo tác tử) và chỉ chạy một lần
 khi container được tạo.
 
 Xác thực là theo từng tác tử: mỗi tác tử đọc từ kho xác thực `agentDir` riêng của nó tại:
@@ -36,11 +36,11 @@ Xác thực là theo từng tác tử: mỗi tác tử đọc từ kho xác th�
 ~/.openclaw/agents/<agentId>/agent/auth-profiles.json
 ```
 
-Thông tin xác thực **không** được chia sẻ giữa các tác tử. Không bao giờ dùng lại `agentDir` giữa các tác tử.
-Nếu bạn muốn chia sẻ thông tin xác thực, hãy sao chép `auth-profiles.json` vào `agentDir` của tác tử kia.
+Thông tin xác thực **không** được chia sẻ giữa các tác tử. Không bao giờ tái sử dụng `agentDir` giữa các tác tử.
+Nếu bạn muốn chia sẻ thông tin xác thực, hãy sao chép `auth-profiles.json` vào `agentDir` của tác tử khác.
 
-Để biết sandbox hoạt động thế nào khi chạy, xem [Sandboxing](/gateway/sandboxing).
-Để gỡ lỗi “vì sao bị chặn?”, xem [Sandbox vs Tool Policy vs Elevated](/gateway/sandbox-vs-tool-policy-vs-elevated) và `openclaw sandbox explain`.
+Để biết cách sandboxing hoạt động khi chạy, xem [Sandboxing](/gateway/sandboxing).
+Để gỡ lỗi “vì sao cái này bị chặn?”, xem [Sandbox vs Tool Policy vs Elevated](/gateway/sandbox-vs-tool-policy-vs-elevated) và `openclaw sandbox explain`.
 
 ---
 
@@ -92,7 +92,7 @@ Nếu bạn muốn chia sẻ thông tin xác thực, hãy sao chép `auth-profil
 
 **Kết quả:**
 
-- Tác tử `main`: Chạy trên host, quyền truy cập công cụ đầy đủ
+- Tác tử `main`: Chạy trên host, truy cập đầy đủ công cụ
 - Tác tử `family`: Chạy trong Docker (mỗi tác tử một container), chỉ có công cụ `read`
 
 ---
@@ -146,8 +146,8 @@ Nếu bạn muốn chia sẻ thông tin xác thực, hãy sao chép `auth-profil
 
 **Kết quả:**
 
-- các tác tử mặc định có công cụ coding
-- tác tử `support` chỉ dùng nhắn tin (+ công cụ Slack)
+- Các tác tử mặc định có công cụ coding
+- Tác tử `support` chỉ dành cho nhắn tin (+ công cụ Slack)
 
 ---
 
@@ -218,16 +218,16 @@ Thứ tự lọc là:
 1. **Hồ sơ công cụ** (`tools.profile` hoặc `agents.list[].tools.profile`)
 2. **Hồ sơ công cụ theo nhà cung cấp** (`tools.byProvider[provider].profile` hoặc `agents.list[].tools.byProvider[provider].profile`)
 3. **Chính sách công cụ toàn cục** (`tools.allow` / `tools.deny`)
-4. **Chính sách công cụ theo nhà cung cấp** (`tools.byProvider[provider].allow/deny`)
+4. **Chính sách công cụ của nhà cung cấp** (`tools.byProvider[provider].allow/deny`)
 5. **Chính sách công cụ theo tác tử** (`agents.list[].tools.allow/deny`)
 6. **Chính sách nhà cung cấp theo tác tử** (`agents.list[].tools.byProvider[provider].allow/deny`)
 7. **Chính sách công cụ của sandbox** (`tools.sandbox.tools` hoặc `agents.list[].tools.sandbox.tools`)
-8. **Chính sách công cụ của tác tử con** (`tools.subagents.tools`, nếu có)
+8. **Chính sách công cụ của tác tử con** (`tools.subagents.tools`, nếu áp dụng)
 
-Mỗi cấp chỉ có thể hạn chế thêm công cụ, không thể cấp lại công cụ đã bị từ chối ở các cấp trước.
+Mỗi cấp có thể tiếp tục hạn chế công cụ, nhưng không thể cấp lại các công cụ đã bị từ chối ở các cấp trước.
 Nếu đặt `agents.list[].tools.sandbox.tools`, nó sẽ thay thế `tools.sandbox.tools` cho tác tử đó.
 Nếu đặt `agents.list[].tools.profile`, nó sẽ ghi đè `tools.profile` cho tác tử đó.
-Khóa công cụ theo nhà cung cấp chấp nhận `provider` (ví dụ `google-antigravity`) hoặc `provider/model` (ví dụ `openai/gpt-5.2`).
+Các khóa công cụ theo nhà cung cấp chấp nhận `provider` (ví dụ: `google-antigravity`) hoặc `provider/model` (ví dụ: `openai/gpt-5.2`).
 
 ### Nhóm công cụ (viết tắt)
 
@@ -241,18 +241,18 @@ Chính sách công cụ (toàn cục, theo tác tử, sandbox) hỗ trợ các m
 - `group:automation`: `cron`, `gateway`
 - `group:messaging`: `message`
 - `group:nodes`: `nodes`
-- `group:openclaw`: tất cả các công cụ OpenClaw tích hợp sẵn (không bao gồm plugin nhà cung cấp)
+- `group:openclaw`: tất cả các công cụ OpenClaw tích hợp sẵn (không bao gồm plugin của nhà cung cấp)
 
 ### Chế độ Elevated
 
-`tools.elevated` là mức nền toàn cục (danh sách cho phép dựa trên người gửi). `agents.list[].tools.elevated` có thể hạn chế elevated thêm cho các tác tử cụ thể (cả hai đều phải cho phép).
+`tools.elevated` là đường cơ sở toàn cục (allowlist dựa trên người gửi). `agents.list[].tools.elevated` có thể hạn chế thêm elevated cho các tác tử cụ thể (cả hai đều phải cho phép).
 
-Các mẫu giảm thiểu rủi ro:
+Các mẫu giảm thiểu:
 
-- Từ chối `exec` cho các tác tử không tin cậy (`agents.list[].tools.deny: ["exec"]`)
-- Tránh đưa vào danh sách cho phép các người gửi định tuyến tới tác tử bị hạn chế
-- Tắt elevated toàn cục (`tools.elevated.enabled: false`) nếu bạn chỉ muốn thực thi trong sandbox
-- Tắt elevated theo tác tử (`agents.list[].tools.elevated.enabled: false`) cho các hồ sơ nhạy cảm
+- Từ chối `exec` cho các tác tử không đáng tin cậy (`agents.list[].tools.deny: ["exec"]`)
+- Tránh allowlist những người gửi định tuyến tới các tác tử bị hạn chế
+- Vô hiệu hóa elevated toàn cục (`tools.elevated.enabled: false`) nếu bạn chỉ muốn thực thi trong sandbox
+- Vô hiệu hóa elevated theo tác tử (`agents.list[].tools.elevated.enabled: false`) cho các hồ sơ nhạy cảm
 
 ---
 
@@ -315,7 +315,7 @@ Các cấu hình `agent.*` cũ được di chuyển bởi `openclaw doctor`; v�
 }
 ```
 
-### Tác tử thực thi an toàn (không sửa đổi tệp)
+### Tác tử thực thi an toàn (không sửa đổi file)
 
 ```json
 {
@@ -342,9 +342,9 @@ Các cấu hình `agent.*` cũ được di chuyển bởi `openclaw doctor`; v�
 ## Lỗi thường gặp: "non-main"
 
 `agents.defaults.sandbox.mode: "non-main"` dựa trên `session.mainKey` (mặc định `"main"`),
-không phải id tác tử. Các phiên nhóm/kênh luôn có khóa riêng, vì vậy
+không phải id của tác tử. Các phiên nhóm/kênh luôn có khóa riêng, vì vậy
 chúng được xem là non-main và sẽ bị sandbox. Nếu bạn muốn một tác tử không bao giờ
-vào sandbox, hãy đặt `agents.list[].sandbox.mode: "off"`.
+bị sandbox, hãy đặt `agents.list[].sandbox.mode: "off"`.
 
 ---
 
@@ -352,13 +352,13 @@ vào sandbox, hãy đặt `agents.list[].sandbox.mode: "off"`.
 
 Sau khi cấu hình sandbox và công cụ đa tác tử:
 
-1. **Kiểm tra việc phân giải tác tử:**
+1. **Kiểm tra phân giải tác tử:**
 
    ```exec
    openclaw agents list --bindings
    ```
 
-2. **Xác minh container sandbox:**
+2. **Xác minh các container sandbox:**
 
    ```exec
    docker ps --filter "name=openclaw-sbx-"
@@ -366,7 +366,7 @@ Sau khi cấu hình sandbox và công cụ đa tác tử:
 
 3. **Kiểm tra hạn chế công cụ:**
    - Gửi một tin nhắn yêu cầu các công cụ bị hạn chế
-   - Xác minh tác tử không thể dùng các công cụ bị từ chối
+   - Xác nhận tác tử không thể sử dụng các công cụ bị từ chối
 
 4. **Theo dõi log:**
 
@@ -389,7 +389,7 @@ Sau khi cấu hình sandbox và công cụ đa tác tử:
 - Mỗi cấp chỉ có thể hạn chế thêm, không thể cấp lại
 - Xác minh bằng log: `[tools] filtering tools for agent:${agentId}`
 
-### Container không được cô lập theo tác tử
+### Container không được cô lập theo từng tác tử
 
 - Đặt `scope: "agent"` trong cấu hình sandbox theo tác tử
 - Mặc định là `"session"` tạo một container cho mỗi phiên
@@ -398,6 +398,6 @@ Sau khi cấu hình sandbox và công cụ đa tác tử:
 
 ## Xem thêm
 
-- [Định tuyến Đa Tác Tử](/concepts/multi-agent)
-- [Cấu hình Sandbox](/gateway/configuration#agentsdefaults-sandbox)
-- [Quản lý Phiên](/concepts/session)
+- [Multi-Agent Routing](/concepts/multi-agent)
+- [Sandbox Configuration](/gateway/configuration#agentsdefaults-sandbox)
+- [Session Management](/concepts/session)

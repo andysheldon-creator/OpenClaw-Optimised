@@ -1,31 +1,31 @@
 ---
-summary: "Claude Max/Pro のサブスクリプションを OpenAI 互換 API エンドポイントとして使用します"
+summary: 「Claude Max/Pro サブスクリプションを OpenAI 互換 API エンドポイントとして使用します」
 read_when:
-  - OpenAI 互換ツールで Claude Max のサブスクリプションを使用したい場合
+  - OpenAI 互換ツールで Claude Max サブスクリプションを使用したい場合
   - Claude Code CLI をラップするローカル API サーバーが必要な場合
-  - API キーではなくサブスクリプションを使ってコストを節約したい場合
-title: "Claude Max API プロキシ"
+  - API キーではなくサブスクリプションを使用してコストを節約したい場合
+title: 「Claude Max API プロキシ」
 x-i18n:
   source_path: providers/claude-max-api-proxy.md
-  source_hash: 63b61096b96b720c
+  source_hash: 43d0ab1461dd6f1d
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:34:33Z
+  generated_at: 2026-02-08T09:22:49Z
 ---
 
 # Claude Max API プロキシ
 
-**claude-max-api-proxy** は、Claude Max/Pro のサブスクリプションを OpenAI 互換の API エンドポイントとして公開するコミュニティツールです。これにより、OpenAI API 形式をサポートする任意のツールでサブスクリプションを利用できます。
+**claude-max-api-proxy** は、Claude Max/Pro サブスクリプションを OpenAI 互換の API エンドポイントとして公開するコミュニティツールです。これにより、OpenAI API 形式をサポートするあらゆるツールでサブスクリプションを使用できます。
 
-## なぜ使用するのか
+## なぜ使用するのですか？
 
 | アプローチ                    | コスト                                          | 最適な用途                   |
 | ----------------------------- | ----------------------------------------------- | ---------------------------- |
-| Anthropic API                 | トークン課金（Opus で入力 ~$15/M、出力 ~$75/M） | 本番アプリ、高ボリューム     |
+| Anthropic API                 | トークン課金（Opus は入力 ~$15/M、出力 ~$75/M） | 本番アプリ、高ボリューム     |
 | Claude Max サブスクリプション | 月額 $200 の定額                                | 個人利用、開発、無制限の使用 |
 
-Claude Max のサブスクリプションをお持ちで、OpenAI 互換ツールで利用したい場合、このプロキシによって大幅なコスト削減が可能です。
+Claude Max サブスクリプションをお持ちで、OpenAI 互換ツールで使用したい場合、このプロキシにより大幅なコスト削減が可能です。
 
 ## 仕組み
 
@@ -34,11 +34,11 @@ Your App → claude-max-api-proxy → Claude Code CLI → Anthropic (via subscri
      (OpenAI format)              (converts format)      (uses your login)
 ```
 
-このプロキシは次のことを行います。
+このプロキシは次を行います。
 
-1. `http://localhost:3456/v1/chat/completions` で OpenAI 形式のリクエストを受け付けます
-2. それらを Claude Code CLI コマンドに変換します
-3. OpenAI 形式でレスポンスを返します（ストリーミング対応）
+1. `http://localhost:3456/v1/chat/completions` で OpenAI 形式のリクエストを受け付けます。
+2. それらを Claude Code CLI のコマンドに変換します。
+3. OpenAI 形式でレスポンスを返します（ストリーミング対応）。
 
 ## インストール
 
@@ -50,7 +50,7 @@ npm install -g claude-max-api-proxy
 claude --version
 ```
 
-## 使い方
+## 使用方法
 
 ### サーバーを起動する
 
@@ -77,7 +77,7 @@ curl http://localhost:3456/v1/chat/completions \
   }'
 ```
 
-### OpenClaw と併用する場合
+### OpenClaw と併用する
 
 カスタムの OpenAI 互換エンドポイントとして、OpenClaw をこのプロキシに向けることができます。
 
@@ -105,7 +105,7 @@ curl http://localhost:3456/v1/chat/completions \
 
 ## macOS での自動起動
 
-プロキシを自動的に実行するための LaunchAgent を作成します。
+プロキシを自動的に実行するために LaunchAgent を作成します。
 
 ```bash
 cat > ~/Library/LaunchAgents/com.claude-max-api.plist << 'EOF'
@@ -138,18 +138,18 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.claude-max-api.plist
 
 ## リンク
 
-- **npm:** https://www.npmjs.com/package/claude-max-api-proxy
-- **GitHub:** https://github.com/atalovesyou/claude-max-api-proxy
-- **Issues:** https://github.com/atalovesyou/claude-max-api-proxy/issues
+- **npm:** [https://www.npmjs.com/package/claude-max-api-proxy](https://www.npmjs.com/package/claude-max-api-proxy)
+- **GitHub:** [https://github.com/atalovesyou/claude-max-api-proxy](https://github.com/atalovesyou/claude-max-api-proxy)
+- **Issues:** [https://github.com/atalovesyou/claude-max-api-proxy/issues](https://github.com/atalovesyou/claude-max-api-proxy/issues)
 
 ## 注記
 
-- これは **コミュニティツール** であり、Anthropic や OpenClaw による公式サポートはありません
-- Claude Code CLI が認証された有効な Claude Max/Pro サブスクリプションが必要です
-- プロキシはローカルで実行され、データを第三者のサーバーに送信しません
-- ストリーミングレスポンスは完全にサポートされています
+- これは **コミュニティツール** であり、Anthropic または OpenClaw による公式サポートはありません。
+- Claude Code CLI が認証された、有効な Claude Max/Pro サブスクリプションが必要です。
+- プロキシはローカルで実行され、第三者のサーバーにデータを送信しません。
+- ストリーミングレスポンスは完全にサポートされています。
 
 ## 関連項目
 
-- [Anthropic プロバイダー](/providers/anthropic) - setup-token または API キーを使用した Claude のネイティブな OpenClaw 連携
-- [OpenAI プロバイダー](/providers/openai) - OpenAI/Codex のサブスクリプション向け
+- [Anthropic プロバイダー](/providers/anthropic) - setup-token または API キーを用いた Claude のネイティブ OpenClaw 統合
+- [OpenAI プロバイダー](/providers/openai) - OpenAI/Codex サブスクリプション向け

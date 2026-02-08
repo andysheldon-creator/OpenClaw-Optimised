@@ -1,26 +1,26 @@
 ---
-summary: "Plugin-Manifest + Anforderungen an das JSON-Schema (strikte Konfigurationsvalidierung)"
+summary: "Plugin-Manifest + JSON-Schema-Anforderungen (strikte Konfigurationsvalidierung)"
 read_when:
-  - Sie erstellen ein OpenClaw-Plugin
-  - Sie muessen ein Plugin-Konfigurationsschema ausliefern oder Plugin-Validierungsfehler debuggen
+  - Sie entwickeln ein OpenClaw-Plugin
+  - Sie müssen ein Plugin-Konfigurationsschema ausliefern oder Fehler bei der Plugin-Validierung debuggen
 title: "Plugin-Manifest"
 x-i18n:
   source_path: plugins/manifest.md
-  source_hash: 47b3e33c915f47bd
+  source_hash: 234c7c0e77f22f5c
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:11Z
+  generated_at: 2026-02-08T09:37:02Z
 ---
 
 # Plugin-Manifest (openclaw.plugin.json)
 
-Jedes Plugin **muss** eine `openclaw.plugin.json`-Datei im **Plugin-Root** mitliefern.
-OpenClaw verwendet dieses Manifest, um die Konfiguration zu validieren, **ohne Plugin-Code auszufuehren**.
-Fehlende oder ungueltige Manifeste werden als Plugin-Fehler behandelt und blockieren
+Jedes Plugin **muss** eine `openclaw.plugin.json`-Datei im **Plugin-Root** ausliefern.
+OpenClaw verwendet dieses Manifest, um die Konfiguration zu validieren, **ohne Plugin-Code auszuführen**.
+Fehlende oder ungültige Manifeste werden als Plugin-Fehler behandelt und blockieren
 die Konfigurationsvalidierung.
 
-Siehe die vollstaendige Anleitung zum Plugin-System: [Plugins](/plugin).
+Siehe den vollständigen Leitfaden zum Plugin-System: [Plugins](/tools/plugin).
 
 ## Erforderliche Felder
 
@@ -35,44 +35,44 @@ Siehe die vollstaendige Anleitung zum Plugin-System: [Plugins](/plugin).
 }
 ```
 
-Erforderliche Schluessel:
+Erforderliche Schlüssel:
 
 - `id` (string): kanonische Plugin-ID.
-- `configSchema` (object): JSON-Schema fuer die Plugin-Konfiguration (inline).
+- `configSchema` (object): JSON-Schema für die Plugin-Konfiguration (inline).
 
-Optionale Schluessel:
+Optionale Schlüssel:
 
 - `kind` (string): Plugin-Typ (Beispiel: `"memory"`).
 - `channels` (array): von diesem Plugin registrierte Kanal-IDs (Beispiel: `["matrix"]`).
 - `providers` (array): von diesem Plugin registrierte Anbieter-IDs.
-- `skills` (array): zu ladende Skills-Verzeichnisse (relativ zum Plugin-Root).
-- `name` (string): Anzeigename fuer das Plugin.
+- `skills` (array): zu ladende Skill-Verzeichnisse (relativ zum Plugin-Root).
+- `name` (string): Anzeigename des Plugins.
 - `description` (string): kurze Plugin-Zusammenfassung.
-- `uiHints` (object): Bezeichnungen/Platzhalter/Sensitivitaets-Flags fuer Konfigurationsfelder zur UI-Darstellung.
+- `uiHints` (object): Bezeichnungen/Platzhalter/Sensitivitäts-Flags für Konfigurationsfelder zur UI-Darstellung.
 - `version` (string): Plugin-Version (informativ).
 
-## Anforderungen an das JSON-Schema
+## JSON-Schema-Anforderungen
 
-- **Jedes Plugin muss ein JSON-Schema mitliefern**, auch wenn es keine Konfiguration akzeptiert.
-- Ein leeres Schema ist zulaessig (zum Beispiel `{ "type": "object", "additionalProperties": false }`).
+- **Jedes Plugin muss ein JSON-Schema ausliefern**, auch wenn es keine Konfiguration akzeptiert.
+- Ein leeres Schema ist zulässig (zum Beispiel `{ "type": "object", "additionalProperties": false }`).
 - Schemata werden beim Lesen/Schreiben der Konfiguration validiert, nicht zur Laufzeit.
 
 ## Validierungsverhalten
 
-- Unbekannte `channels.*`-Schluessel sind **Fehler**, es sei denn, die Kanal-ID ist
-  durch ein Plugin-Manifest deklariert.
+- Unbekannte `channels.*`-Schlüssel sind **Fehler**, sofern die Kanal-ID nicht durch
+  ein Plugin-Manifest deklariert ist.
 - `plugins.entries.<id>`, `plugins.allow`, `plugins.deny` und `plugins.slots.*`
-  muessen auf **auffindbare** Plugin-IDs verweisen. Unbekannte IDs sind **Fehler**.
-- Wenn ein Plugin installiert ist, aber ein defektes oder fehlendes Manifest oder Schema hat,
-  schlaegt die Validierung fehl und Doctor meldet den Plugin-Fehler.
-- Wenn eine Plugin-Konfiguration existiert, das Plugin jedoch **deaktiviert** ist, bleibt
-  die Konfiguration erhalten und in Doctor + Logs wird eine **Warnung** angezeigt.
+  müssen auf **auffindbare** Plugin-IDs verweisen. Unbekannte IDs sind **Fehler**.
+- Ist ein Plugin installiert, hat aber ein defektes oder fehlendes Manifest oder Schema,
+  schlägt die Validierung fehl und Doctor meldet den Plugin-Fehler.
+- Existiert eine Plugin-Konfiguration, ist das Plugin jedoch **deaktiviert**, wird die
+  Konfiguration beibehalten und in Doctor + Logs eine **Warnung** angezeigt.
 
 ## Hinweise
 
-- Das Manifest ist **fuer alle Plugins erforderlich**, einschliesslich lokaler Ladevorgaenge aus dem Dateisystem.
-- Zur Laufzeit wird das Plugin-Modul weiterhin separat geladen; das Manifest dient nur der
-  Erkennung + Validierung.
-- Wenn Ihr Plugin von nativen Modulen abhaengt, dokumentieren Sie die Build-Schritte und alle
-  Anforderungen an Allowlists von Paketmanagern (zum Beispiel pnpm `allow-build-scripts`
+- Das Manifest ist **für alle Plugins erforderlich**, einschließlich lokaler Dateisystem-Ladevorgänge.
+- Die Laufzeit lädt das Plugin-Modul weiterhin separat; das Manifest dient nur der
+  Discovery (Erkennung) + Validierung.
+- Wenn Ihr Plugin von nativen Modulen abhängt, dokumentieren Sie die Build-Schritte
+  sowie etwaige Allowlist-Anforderungen des Paketmanagers (zum Beispiel pnpm `allow-build-scripts`
   - `pnpm rebuild <package>`).

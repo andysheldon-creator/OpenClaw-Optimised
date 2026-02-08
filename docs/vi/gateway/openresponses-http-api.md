@@ -1,8 +1,8 @@
 ---
-summary: "Phơi bày một endpoint HTTP /v1/responses tương thích OpenResponses từ Gateway"
+summary: "Mở một endpoint HTTP /v1/responses tương thích OpenResponses từ Gateway"
 read_when:
-  - Tích hợp các client nói API OpenResponses
-  - Bạn cần đầu vào theo item, gọi công cụ phía client, hoặc sự kiện SSE
+  - Tích hợp các client sử dụng API OpenResponses
+  - Bạn muốn đầu vào dạng item, client tool calls hoặc sự kiện SSE
 title: "API OpenResponses"
 x-i18n:
   source_path: gateway/openresponses-http-api.md
@@ -10,20 +10,20 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:24Z
+  generated_at: 2026-02-08T09:39:09Z
 ---
 
 # API OpenResponses (HTTP)
 
-Gateway của OpenClaw có thể phục vụ một endpoint `POST /v1/responses` tương thích OpenResponses.
+Gateway của OpenClaw có thể cung cấp một endpoint `POST /v1/responses` tương thích OpenResponses.
 
-Endpoint này **bị tắt theo mặc định**. Hãy bật nó trong cấu hình trước.
+Endpoint này **bị tắt theo mặc định**. Trước tiên hãy bật nó trong cấu hình.
 
 - `POST /v1/responses`
 - Cùng cổng với Gateway (ghép kênh WS + HTTP): `http://<gateway-host>:<port>/v1/responses`
 
-Bên dưới, các yêu cầu được thực thi như một lần chạy agent Gateway bình thường (cùng codepath với
-`openclaw agent`), vì vậy định tuyến/quyền/cấu hình khớp với Gateway của bạn.
+Bên trong, các request được thực thi như một lần chạy tác tử Gateway thông thường (cùng codepath với
+`openclaw agent`), vì vậy việc định tuyến/quyền/cấu hình sẽ khớp với Gateway của bạn.
 
 ## Xác thực
 
@@ -36,14 +36,14 @@ Ghi chú:
 - Khi `gateway.auth.mode="token"`, dùng `gateway.auth.token` (hoặc `OPENCLAW_GATEWAY_TOKEN`).
 - Khi `gateway.auth.mode="password"`, dùng `gateway.auth.password` (hoặc `OPENCLAW_GATEWAY_PASSWORD`).
 
-## Chọn agent
+## Chọn tác tử
 
-Không cần header tùy chỉnh: mã hóa id agent trong trường OpenResponses `model`:
+Không cần header tùy chỉnh: mã hóa agent id trong trường OpenResponses `model`:
 
 - `model: "openclaw:<agentId>"` (ví dụ: `"openclaw:main"`, `"openclaw:beta"`)
 - `model: "agent:<agentId>"` (bí danh)
 
-Hoặc nhắm tới một agent OpenClaw cụ thể bằng header:
+Hoặc nhắm tới một tác tử OpenClaw cụ thể bằng header:
 
 - `x-openclaw-agent-id: <agentId>` (mặc định: `main`)
 
@@ -85,24 +85,24 @@ Nâng cao:
 
 ## Hành vi phiên
 
-Theo mặc định, endpoint là **không trạng thái theo từng yêu cầu** (mỗi lần gọi tạo một khóa phiên mới).
+Theo mặc định, endpoint **không lưu trạng thái theo từng request** (mỗi lần gọi sẽ tạo một khóa phiên mới).
 
-Nếu yêu cầu bao gồm chuỗi OpenResponses `user`, Gateway sẽ suy ra một khóa phiên ổn định
-từ đó, để các lần gọi lặp lại có thể chia sẻ một phiên agent.
+Nếu request bao gồm chuỗi OpenResponses `user`, Gateway sẽ suy ra một khóa phiên ổn định
+từ đó, để các lần gọi lặp lại có thể dùng chung một phiên tác tử.
 
-## Hình dạng yêu cầu (được hỗ trợ)
+## Hình dạng request (được hỗ trợ)
 
-Yêu cầu tuân theo API OpenResponses với đầu vào theo item. Hỗ trợ hiện tại:
+Request tuân theo API OpenResponses với đầu vào dạng item. Hỗ trợ hiện tại:
 
 - `input`: chuỗi hoặc mảng các đối tượng item.
-- `instructions`: gộp vào system prompt.
-- `tools`: định nghĩa công cụ phía client (function tools).
-- `tool_choice`: lọc hoặc yêu cầu công cụ phía client.
+- `instructions`: được gộp vào system prompt.
+- `tools`: định nghĩa client tool (function tools).
+- `tool_choice`: lọc hoặc yêu cầu client tools.
 - `stream`: bật streaming SSE.
-- `max_output_tokens`: giới hạn đầu ra theo best-effort (phụ thuộc provider).
+- `max_output_tokens`: giới hạn đầu ra theo kiểu best-effort (phụ thuộc nhà cung cấp).
 - `user`: định tuyến phiên ổn định.
 
-Được chấp nhận nhưng **hiện bị bỏ qua**:
+Được chấp nhận nhưng **hiện tại bị bỏ qua**:
 
 - `max_tool_calls`
 - `reasoning`
@@ -118,12 +118,12 @@ Yêu cầu tuân theo API OpenResponses với đầu vào theo item. Hỗ trợ 
 Vai trò: `system`, `developer`, `user`, `assistant`.
 
 - `system` và `developer` được thêm vào system prompt.
-- Item `user` hoặc `function_call_output` gần nhất trở thành “thông điệp hiện tại.”
-- Các thông điệp user/assistant trước đó được đưa vào lịch sử để lấy ngữ cảnh.
+- Item `user` hoặc `function_call_output` gần nhất trở thành “thông điệp hiện tại”.
+- Các thông điệp user/assistant trước đó được đưa vào làm lịch sử để lấy ngữ cảnh.
 
 ### `function_call_output` (công cụ theo lượt)
 
-Gửi kết quả công cụ trở lại cho mô hình:
+Gửi kết quả công cụ trở lại mô hình:
 
 ```json
 {
@@ -137,12 +137,12 @@ Gửi kết quả công cụ trở lại cho mô hình:
 
 Được chấp nhận để tương thích schema nhưng bị bỏ qua khi xây dựng prompt.
 
-## Công cụ (function tools phía client)
+## Tools (function tools phía client)
 
-Cung cấp công cụ với `tools: [{ type: "function", function: { name, description?, parameters? } }]`.
+Cung cấp tools với `tools: [{ type: "function", function: { name, description?, parameters? } }]`.
 
-Nếu agent quyết định gọi một công cụ, phản hồi sẽ trả về một item đầu ra `function_call`.
-Sau đó bạn gửi một yêu cầu tiếp theo với `function_call_output` để tiếp tục lượt.
+Nếu tác tử quyết định gọi một tool, phản hồi sẽ trả về một item đầu ra `function_call`.
+Sau đó bạn gửi một request tiếp theo với `function_call_output` để tiếp tục lượt.
 
 ## Hình ảnh (`input_image`)
 
@@ -182,22 +182,22 @@ Kích thước tối đa (hiện tại): 5MB.
 Hành vi hiện tại:
 
 - Nội dung tệp được giải mã và thêm vào **system prompt**, không phải thông điệp user,
-  nên nó mang tính tạm thời (không được lưu trong lịch sử phiên).
-- PDF được phân tích để trích văn bản. Nếu tìm thấy ít văn bản, các trang đầu sẽ được raster hóa
-  thành hình ảnh và chuyển cho mô hình.
+  vì vậy nó mang tính tạm thời (không được lưu trong lịch sử phiên).
+- PDF được phân tích để trích xuất văn bản. Nếu tìm thấy ít văn bản, các trang đầu
+  sẽ được raster hóa thành hình ảnh và đưa vào cho mô hình.
 
-Việc phân tích PDF sử dụng bản legacy `pdfjs-dist` thân thiện với Node (không worker). Bản PDF.js
-hiện đại yêu cầu worker/DOM của trình duyệt, nên không được dùng trong Gateway.
+Việc phân tích PDF sử dụng bản build legacy `pdfjs-dist` thân thiện với Node (không dùng worker). Bản build
+PDF.js hiện đại yêu cầu worker/DOM globals của trình duyệt, nên không được dùng trong Gateway.
 
 Mặc định khi fetch URL:
 
 - `files.allowUrl`: `true`
 - `images.allowUrl`: `true`
-- Yêu cầu được bảo vệ (phân giải DNS, chặn IP riêng, giới hạn chuyển hướng, timeout).
+- Các request được bảo vệ (phân giải DNS, chặn IP riêng, giới hạn chuyển hướng, timeout).
 
 ## Giới hạn tệp + hình ảnh (cấu hình)
 
-Có thể tinh chỉnh các giá trị mặc định dưới `gateway.http.endpoints.responses`:
+Các giá trị mặc định có thể điều chỉnh dưới `gateway.http.endpoints.responses`:
 
 ```json5
 {
@@ -276,9 +276,9 @@ Các loại sự kiện hiện được phát:
 - `response.completed`
 - `response.failed` (khi lỗi)
 
-## Sử dụng
+## Cách dùng
 
-`usage` được điền khi provider bên dưới báo cáo số lượng token.
+`usage` được điền khi nhà cung cấp bên dưới báo cáo số lượng token.
 
 ## Lỗi
 
@@ -291,7 +291,7 @@ Lỗi sử dụng một đối tượng JSON như sau:
 Các trường hợp phổ biến:
 
 - `401` thiếu/không hợp lệ xác thực
-- `400` body yêu cầu không hợp lệ
+- `400` body request không hợp lệ
 - `405` sai phương thức
 
 ## Ví dụ

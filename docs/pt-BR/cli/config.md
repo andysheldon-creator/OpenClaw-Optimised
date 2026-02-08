@@ -1,21 +1,21 @@
 ---
-summary: "Referencia da CLI para `openclaw config` (obter/definir/remover valores de configuracao)"
+summary: "Referência da CLI para `openclaw config` (obter/definir/remover valores de configuração)"
 read_when:
-  - Voce quer ler ou editar a configuracao de forma nao interativa
-title: "config"
+  - Você quer ler ou editar a configuração de forma não interativa
+title: "configuração"
 x-i18n:
   source_path: cli/config.md
   source_hash: d60a35f5330f22bc
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:30Z
+  generated_at: 2026-02-08T09:30:12Z
 ---
 
 # `openclaw config`
 
-Auxiliares de configuracao: obter/definir/remover valores por caminho. Execute sem um subcomando para abrir
-o assistente de configuracao (o mesmo que `openclaw configure`).
+Auxiliares de configuração: obter/definir/remover valores por caminho. Execute sem um subcomando para abrir
+o assistente de configuração (o mesmo que `openclaw configure`).
 
 ## Exemplos
 
@@ -29,14 +29,14 @@ openclaw config unset tools.web.search.apiKey
 
 ## Caminhos
 
-Os caminhos usam notacao por ponto ou colchetes:
+Os caminhos usam notação por ponto ou colchetes:
 
 ```bash
 openclaw config get agents.defaults.workspace
 openclaw config get agents.list[0].id
 ```
 
-Use o indice da lista de agentes para direcionar um agente especifico:
+Use o índice da lista de agentes para direcionar um agente específico:
 
 ```bash
 openclaw config get agents.list
@@ -45,8 +45,8 @@ openclaw config set agents.list[1].tools.exec.node "node-id-or-name"
 
 ## Valores
 
-Os valores sao analisados como JSON5 quando possivel; caso contrario, sao tratados como strings.
-Use `--json` para exigir a analise JSON5.
+Os valores são analisados como JSON5 quando possível; caso contrário, são tratados como strings.
+Use `--json` para exigir a análise JSON5.
 
 ```bash
 openclaw config set agents.defaults.heartbeat.every "0m"
@@ -54,4 +54,4 @@ openclaw config set gateway.port 19001 --json
 openclaw config set channels.whatsapp.groups '["*"]' --json
 ```
 
-Reinicie o Gateway apos as edicoes.
+Reinicie o gateway após as edições.

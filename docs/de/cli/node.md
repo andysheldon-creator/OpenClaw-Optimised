@@ -1,44 +1,44 @@
 ---
-summary: "CLI-Referenz fuer `openclaw node` (headless Node-Host)"
+summary: "CLI-Referenz für `openclaw node` (headless Node-Host)"
 read_when:
-  - Ausfuehren des headless Node-Hosts
-  - Koppeln eines Nicht-macOS-Nodes fuer system.run
-title: "Node"
+  - Beim Ausführen des headless Node-Hosts
+  - Beim Koppeln eines Nicht-macOS-Nodes für system.run
+title: "node"
 x-i18n:
   source_path: cli/node.md
   source_hash: a8b1a57712663e22
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:48Z
+  generated_at: 2026-02-08T09:35:43Z
 ---
 
 # `openclaw node`
 
-Fuehren Sie einen **headless Node-Host** aus, der sich mit dem Gateway-WebSocket verbindet und
+Führen Sie einen **headless Node-Host** aus, der sich mit dem Gateway-WebSocket verbindet und
 `system.run` / `system.which` auf dieser Maschine bereitstellt.
 
 ## Warum einen Node-Host verwenden?
 
-Verwenden Sie einen Node-Host, wenn Sie moechten, dass Agenten **Befehle auf anderen Maschinen**
-in Ihrem Netzwerk ausfuehren, ohne dort eine vollstaendige macOS-Begleit-App zu installieren.
+Verwenden Sie einen Node-Host, wenn Sie möchten, dass Agenten **Befehle auf anderen Maschinen** in Ihrem
+Netzwerk ausführen, ohne dort eine vollständige macOS-Companion-App zu installieren.
 
-Hauefige Anwendungsfaelle:
+Häufige Anwendungsfälle:
 
-- Befehle auf entfernten Linux-/Windows-Rechnern ausfuehren (Build-Server, Laborrechner, NAS).
-- Exec **in einer Sandbox** auf dem Gateway behalten, aber genehmigte Ausfuehrungen an andere Hosts delegieren.
-- Ein leichtgewichtes, headless Ausfuehrungsziel fuer Automatisierung oder CI-Nodes bereitstellen.
+- Ausführen von Befehlen auf entfernten Linux-/Windows-Rechnern (Build-Server, Laborrechner, NAS).
+- **Sandboxed** Exec auf dem Gateway beibehalten, aber genehmigte Ausführungen an andere Hosts delegieren.
+- Bereitstellung eines schlanken, headless Ausführungsziels für Automatisierung oder CI-Nodes.
 
-Die Ausfuehrung wird weiterhin durch **Exec-Genehmigungen** und agentenspezifische Allowlists auf dem
-Node-Host geschuetzt, sodass der Befehlszugriff klar abgegrenzt und explizit bleibt.
+Die Ausführung wird weiterhin durch **Exec-Genehmigungen** und agentenspezifische Allowlists auf dem
+Node-Host abgesichert, sodass der Befehlszugriff klar abgegrenzt und explizit bleibt.
 
 ## Browser-Proxy (Zero-Config)
 
-Node-Hosts kuendigen automatisch einen Browser-Proxy an, wenn `browser.enabled` auf dem Node nicht
-deaktiviert ist. Dadurch kann der Agent Browser-Automatisierung auf diesem Node ohne zusaetzliche
+Node-Hosts bewerben automatisch einen Browser-Proxy, wenn `browser.enabled` auf dem Node nicht
+deaktiviert ist. Dadurch kann der Agent Browser-Automatisierung auf diesem Node ohne zusätzliche
 Konfiguration nutzen.
 
-Deaktivieren Sie dies bei Bedarf auf dem Node:
+Deaktivieren Sie ihn bei Bedarf auf dem Node:
 
 ```json5
 {
@@ -50,7 +50,7 @@ Deaktivieren Sie dies bei Bedarf auf dem Node:
 }
 ```
 
-## Ausfuehren (Vordergrund)
+## Ausführen (Vordergrund)
 
 ```bash
 openclaw node run --host <gateway-host> --port 18789
@@ -60,10 +60,10 @@ Optionen:
 
 - `--host <host>`: Gateway-WebSocket-Host (Standard: `127.0.0.1`)
 - `--port <port>`: Gateway-WebSocket-Port (Standard: `18789`)
-- `--tls`: TLS fuer die Gateway-Verbindung verwenden
-- `--tls-fingerprint <sha256>`: Erwarteter TLS-Zertifikat-Fingerprint (sha256)
-- `--node-id <id>`: Node-ID ueberschreiben (setzt Pairing-Token zurueck)
-- `--display-name <name>`: Anzeigenamen des Nodes ueberschreiben
+- `--tls`: TLS für die Gateway-Verbindung verwenden
+- `--tls-fingerprint <sha256>`: Erwarteter TLS-Zertifikatsfingerabdruck (sha256)
+- `--node-id <id>`: Node-ID überschreiben (löscht Pairing-Token)
+- `--display-name <name>`: Anzeigenamen des Nodes überschreiben
 
 ## Dienst (Hintergrund)
 
@@ -77,12 +77,12 @@ Optionen:
 
 - `--host <host>`: Gateway-WebSocket-Host (Standard: `127.0.0.1`)
 - `--port <port>`: Gateway-WebSocket-Port (Standard: `18789`)
-- `--tls`: TLS fuer die Gateway-Verbindung verwenden
-- `--tls-fingerprint <sha256>`: Erwarteter TLS-Zertifikat-Fingerprint (sha256)
-- `--node-id <id>`: Node-ID ueberschreiben (setzt Pairing-Token zurueck)
-- `--display-name <name>`: Anzeigenamen des Nodes ueberschreiben
-- `--runtime <runtime>`: Laufzeitumgebung des Dienstes (`node` oder `bun`)
-- `--force`: Neu installieren/ueberschreiben, falls bereits installiert
+- `--tls`: TLS für die Gateway-Verbindung verwenden
+- `--tls-fingerprint <sha256>`: Erwarteter TLS-Zertifikatsfingerabdruck (sha256)
+- `--node-id <id>`: Node-ID überschreiben (löscht Pairing-Token)
+- `--display-name <name>`: Anzeigenamen des Nodes überschreiben
+- `--runtime <runtime>`: Laufzeit des Dienstes (`node` oder `bun`)
+- `--force`: Neu installieren/überschreiben, falls bereits installiert
 
 Dienst verwalten:
 
@@ -93,21 +93,21 @@ openclaw node restart
 openclaw node uninstall
 ```
 
-Verwenden Sie `openclaw node run` fuer einen Node-Host im Vordergrund (kein Dienst).
+Verwenden Sie `openclaw node run` für einen Node-Host im Vordergrund (kein Dienst).
 
-Dienstbefehle akzeptieren `--json` fuer maschinenlesbare Ausgabe.
+Dienstbefehle akzeptieren `--json` für maschinenlesbare Ausgabe.
 
 ## Pairing
 
 Die erste Verbindung erstellt eine ausstehende Node-Pairing-Anfrage auf dem Gateway.
-Genehmigen Sie diese ueber:
+Genehmigen Sie sie über:
 
 ```bash
 openclaw nodes pending
 openclaw nodes approve <requestId>
 ```
 
-Der Node-Host speichert seine Node-ID, sein Token, seinen Anzeigenamen sowie die
+Der Node-Host speichert seine Node-ID, sein Token, den Anzeigenamen und die
 Gateway-Verbindungsinformationen in
 `~/.openclaw/node.json`.
 
@@ -116,5 +116,5 @@ Gateway-Verbindungsinformationen in
 `system.run` ist durch lokale Exec-Genehmigungen abgesichert:
 
 - `~/.openclaw/exec-approvals.json`
-- [Exec-Genehmigungen](/tools/exec-approvals)
-- `openclaw approvals --node <id|name|ip>` (vom Gateway aus bearbeiten)
+- [Exec approvals](/tools/exec-approvals)
+- `openclaw approvals --node <id|name|ip>` (Bearbeitung über das Gateway)

@@ -1,9 +1,9 @@
 ---
-summary: "リファクタリング計画: exec ホストのルーティング、ノード承認、ヘッドレスランナー"
+summary: "リファクタリング計画：exec ホストのルーティング、ノード承認、ヘッドレスランナー"
 read_when:
-  - exec ホストのルーティングや exec 承認を設計する場合
-  - ノードランナー + UI IPC を実装する場合
-  - exec ホストのセキュリティモードやスラッシュコマンドを追加する場合
+  - exec ホストのルーティングまたは exec 承認を設計しているとき
+  - ノードランナー + UI IPC を実装するとき
+  - exec ホストのセキュリティモードおよびスラッシュコマンドを追加するとき
 title: "Exec ホストのリファクタリング"
 x-i18n:
   source_path: refactor/exec-host.md
@@ -11,114 +11,114 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:35:02Z
+  generated_at: 2026-02-08T09:23:18Z
 ---
 
 # Exec ホストのリファクタリング計画
 
-## Goals
+## 目標
 
 - **sandbox**、**gateway**、**node** 間で実行をルーティングするために `exec.host` + `exec.security` を追加します。
-- デフォルトを **安全** に保ちます。明示的に有効化されない限り、ホスト間実行は行いません。
-- 実行を **ヘッドレスランナーサービス** に分離し、ローカル IPC を介した任意の UI（macOS アプリ）を提供します。
-- **エージェント単位** のポリシー、許可リスト、確認モード、ノードバインディングを提供します。
-- 許可リストの _有無に関わらず_ 動作する **確認モード** をサポートします。
-- クロスプラットフォーム: Unix ソケット + トークン認証（macOS/Linux/Windows の同等性）。
+- デフォルトを **安全** に保ち、明示的に有効化されない限りクロスホスト実行を行いません。
+- 実行を **ヘッドレスランナーサービス** に分離し、ローカル IPC 経由のオプション UI（macOS アプリ）を提供します。
+- **エージェントごと** のポリシー、許可リスト、確認モード、ノードバインディングを提供します。
+- 許可リストの _有無_ にかかわらず動作する **確認モード** をサポートします。
+- クロスプラットフォーム：Unix ソケット + トークン認証（macOS/Linux/Windows の同等性）。
 
-## Non-goals
+## 非目標
 
 - レガシー許可リストの移行やレガシースキーマのサポートは行いません。
-- ノード exec に対する PTY/ストリーミングは行いません（集約された出力のみ）。
-- 既存の Bridge + Gateway 以外の新しいネットワーク層は追加しません。
+- ノード exec における PTY/ストリーミングは行いません（集約された出力のみ）。
+- 既存の Bridge + Gateway 以外の新しいネットワークレイヤーは追加しません。
 
-## Decisions (locked)
+## 決定事項（確定）
 
-- **Config keys:** `exec.host` + `exec.security`（エージェント単位のオーバーライドを許可）。
-- **Elevation:** `/elevated` を gateway のフルアクセスのエイリアスとして維持します。
-- **Ask default:** `on-miss`。
-- **Approvals store:** `~/.openclaw/exec-approvals.json`（JSON、レガシー移行なし）。
-- **Runner:** ヘッドレスなシステムサービス。UI アプリは承認用の Unix ソケットをホストします。
-- **Node identity:** 既存の `nodeId` を使用します。
-- **Socket auth:** Unix ソケット + トークン（クロスプラットフォーム）。必要に応じて後で分離します。
-- **Node host state:** `~/.openclaw/node.json`（ノード ID + ペアリングトークン）。
-- **macOS exec host:** macOS アプリ内で `system.run` を実行します。ノードホストサービスはローカル IPC 経由でリクエストを転送します。
-- **No XPC helper:** Unix ソケット + トークン + ピアチェックに限定します。
+- **設定キー：** `exec.host` + `exec.security`（エージェントごとの上書きを許可）。
+- **昇格：** `/elevated` を gateway のフルアクセスのエイリアスとして維持します。
+- **確認のデフォルト：** `on-miss`。
+- **承認ストア：** `~/.openclaw/exec-approvals.json`（JSON、レガシー移行なし）。
+- **ランナー：** ヘッドレスのシステムサービス。UI アプリは承認用の Unix ソケットをホストします。
+- **ノード ID：** 既存の `nodeId` を使用します。
+- **ソケット認証：** Unix ソケット + トークン（クロスプラットフォーム）。必要に応じて後で分割します。
+- **ノードホスト状態：** `~/.openclaw/node.json`（ノード ID + ペアリングトークン）。
+- **macOS exec ホスト：** macOS アプリ内で `system.run` を実行し、ノードホストサービスはローカル IPC 経由でリクエストを転送します。
+- **XPC ヘルパーなし：** Unix ソケット + トークン + ピアチェックを使用します。
 
-## Key concepts
+## 主要概念
 
-### Host
+### ホスト
 
-- `sandbox`: Docker exec（現在の挙動）。
-- `gateway`: gateway ホスト上での exec。
-- `node`: Bridge（`system.run`）経由でノードランナー上の exec。
+- `sandbox`：Docker exec（現在の挙動）。
+- `gateway`：ゲートウェイホスト上での exec。
+- `node`：Bridge（`system.run`）経由でノードランナー上の exec。
 
-### Security mode
+### セキュリティモード
 
-- `deny`: 常にブロック。
-- `allowlist`: 一致するもののみ許可。
-- `full`: すべて許可（elevated と同等）。
+- `deny`：常にブロックします。
+- `allowlist`：一致するもののみ許可します。
+- `full`：すべて許可します（昇格と同等）。
 
-### Ask mode
+### 確認モード
 
-- `off`: 決して確認しない。
-- `on-miss`: 許可リストが一致しない場合のみ確認。
-- `always`: 毎回確認。
+- `off`：確認しません。
+- `on-miss`：許可リストに一致しない場合のみ確認します。
+- `always`：毎回確認します。
 
 確認は許可リストと **独立** しています。許可リストは `always` または `on-miss` と併用できます。
 
-### Policy resolution (per exec)
+### ポリシー解決（exec ごと）
 
-1. `exec.host` を解決します（ツールパラメータ → エージェントオーバーライド → グローバルデフォルト）。
+1. `exec.host` を解決します（ツール引数 → エージェント上書き → グローバルデフォルト）。
 2. `exec.security` と `exec.ask` を解決します（同じ優先順位）。
 3. ホストが `sandbox` の場合、ローカルサンドボックス exec を実行します。
 4. ホストが `gateway` または `node` の場合、そのホストでセキュリティ + 確認ポリシーを適用します。
 
-## Default safety
+## デフォルトの安全性
 
 - デフォルトは `exec.host = sandbox`。
-- `gateway` および `node` に対するデフォルトは `exec.security = deny`。
+- `gateway` および `node` のデフォルトは `exec.security = deny`。
 - デフォルトは `exec.ask = on-miss`（セキュリティが許可する場合のみ関連）。
-- ノードバインディングが設定されていない場合、**エージェントは任意のノードを対象にできます** が、ポリシーが許可する場合に限られます。
+- ノードバインディングが設定されていない場合、**エージェントは任意のノードを対象にできます** が、ポリシーが許可する場合に限ります。
 
-## Config surface
+## 設定サーフェス
 
-### Tool parameters
+### ツール引数
 
-- `exec.host`（任意）: `sandbox | gateway | node`。
-- `exec.security`（任意）: `deny | allowlist | full`。
-- `exec.ask`（任意）: `off | on-miss | always`。
-- `exec.node`（任意）: `host=node` の場合に使用するノード ID/名前。
+- `exec.host`（任意）：`sandbox | gateway | node`。
+- `exec.security`（任意）：`deny | allowlist | full`。
+- `exec.ask`（任意）：`off | on-miss | always`。
+- `exec.node`（任意）：`host=node` の場合に使用するノード ID/名前。
 
-### Config keys (global)
+### 設定キー（グローバル）
 
 - `tools.exec.host`
 - `tools.exec.security`
 - `tools.exec.ask`
 - `tools.exec.node`（デフォルトのノードバインディング）
 
-### Config keys (per agent)
+### 設定キー（エージェントごと）
 
 - `agents.list[].tools.exec.host`
 - `agents.list[].tools.exec.security`
 - `agents.list[].tools.exec.ask`
 - `agents.list[].tools.exec.node`
 
-### Alias
+### エイリアス
 
-- `/elevated on` = エージェントセッションに対して `tools.exec.host=gateway`、`tools.exec.security=full` を設定します。
-- `/elevated off` = エージェントセッションの以前の exec 設定を復元します。
+- `/elevated on`：エージェントセッションに対して `tools.exec.host=gateway`、`tools.exec.security=full` を設定します。
+- `/elevated off`：エージェントセッションの以前の exec 設定を復元します。
 
-## Approvals store (JSON)
+## 承認ストア（JSON）
 
-Path: `~/.openclaw/exec-approvals.json`
+パス：`~/.openclaw/exec-approvals.json`
 
-Purpose:
+目的：
 
-- **実行ホスト**（gateway またはノードランナー）向けのローカルポリシー + 許可リスト。
+- **実行ホスト**（gateway またはノードランナー）のローカルポリシー + 許可リスト。
 - UI が利用できない場合の確認フォールバック。
 - UI クライアント用の IPC 資格情報。
 
-Proposed schema (v1):
+提案スキーマ（v1）：
 
 ```json
 {
@@ -149,37 +149,37 @@ Proposed schema (v1):
 }
 ```
 
-Notes:
+注記：
 
-- レガシー許可リスト形式はサポートしません。
-- `askFallback` は、`ask` が必要で、かつ UI に到達できない場合にのみ適用されます。
-- ファイル権限: `0600`。
+- レガシー許可リスト形式はありません。
+- `askFallback` は、`ask` が必要で UI に到達できない場合にのみ適用されます。
+- ファイル権限：`0600`。
 
-## Runner service (headless)
+## ランナーサービス（ヘッドレス）
 
-### Role
+### 役割
 
 - ローカルで `exec.security` + `exec.ask` を強制します。
 - システムコマンドを実行し、出力を返します。
-- exec ライフサイクル用の Bridge イベントを送出します（任意ですが推奨）。
+- exec ライフサイクルの Bridge イベントを送出します（任意ですが推奨）。
 
-### Service lifecycle
+### サービスライフサイクル
 
-- macOS では Launchd/デーモン、Linux/Windows ではシステムサービス。
-- Approvals JSON は実行ホストにローカルです。
+- macOS では launchd/デーモン、Linux/Windows ではシステムサービス。
+- 承認 JSON は実行ホストにローカルです。
 - UI はローカル Unix ソケットをホストし、ランナーはオンデマンドで接続します。
 
-## UI integration (macOS app)
+## UI 連携（macOS アプリ）
 
 ### IPC
 
-- `~/.openclaw/exec-approvals.sock` の Unix ソケット（0600）。
-- `exec-approvals.json` に保存されたトークン（0600）。
-- ピアチェック: 同一 UID のみ。
-- チャレンジ/レスポンス: リプレイ防止のための nonce + HMAC(token, request-hash)。
-- 短い TTL（例: 10 秒）+ 最大ペイロード + レート制限。
+- Unix ソケット：`~/.openclaw/exec-approvals.sock`（0600）。
+- トークン保存先：`exec-approvals.json`（0600）。
+- ピアチェック：同一 UID のみ。
+- チャレンジ/レスポンス：リプレイ防止のため、nonce + HMAC(token, request-hash)。
+- 短い TTL（例：10 秒）+ 最大ペイロード + レート制限。
 
-### Ask flow (macOS app exec host)
+### 確認フロー（macOS アプリ exec ホスト）
 
 1. ノードサービスが gateway から `system.run` を受信します。
 2. ノードサービスがローカルソケットに接続し、プロンプト/exec リクエストを送信します。
@@ -187,11 +187,11 @@ Notes:
 4. アプリが UI コンテキストでコマンドを実行し、出力を返します。
 5. ノードサービスが出力を gateway に返します。
 
-UI が存在しない場合:
+UI が存在しない場合：
 
 - `askFallback`（`deny|allowlist|full`）を適用します。
 
-### Diagram (SCI)
+### 図（SCI）
 
 ```
 Agent -> Gateway -> Bridge -> Node Service (TS)
@@ -200,124 +200,124 @@ Agent -> Gateway -> Bridge -> Node Service (TS)
                      Mac App (UI + TCC + system.run)
 ```
 
-## Node identity + binding
+## ノード ID + バインディング
 
-- Bridge ペアリングから既存の `nodeId` を使用します。
-- バインディングモデル:
+- Bridge ペアリングの既存 `nodeId` を使用します。
+- バインディングモデル：
   - `tools.exec.node` はエージェントを特定のノードに制限します。
-  - 未設定の場合、エージェントは任意のノードを選択できます（ポリシーは引き続きデフォルトを強制します）。
-- ノード選択の解決順:
+  - 未設定の場合、エージェントは任意のノードを選択できます（ポリシーは引き続きデフォルトを強制）。
+- ノード選択の解決順：
   - `nodeId` の完全一致
   - `displayName`（正規化）
   - `remoteIp`
-  - `nodeId` プレフィックス（6 文字以上）
+  - `nodeId` のプレフィックス（6 文字以上）
 
-## Eventing
+## イベント
 
-### Who sees events
+### イベントを受信する主体
 
 - システムイベントは **セッション単位** で、次のプロンプト時にエージェントへ表示されます。
 - gateway のインメモリキュー（`enqueueSystemEvent`）に保存されます。
 
-### Event text
+### イベント文言
 
 - `Exec started (node=<id>, id=<runId>)`
 - `Exec finished (node=<id>, id=<runId>, code=<code>)` + 任意の出力末尾
 - `Exec denied (node=<id>, id=<runId>, <reason>)`
 
-### Transport
+### 伝送
 
-Option A（推奨）:
+オプション A（推奨）：
 
 - ランナーが Bridge の `event` フレーム `exec.started` / `exec.finished` を送信します。
-- gateway の `handleBridgeEvent` がこれらを `enqueueSystemEvent` にマッピングします。
+- gateway がこれらを `enqueueSystemEvent` にマッピングします（`handleBridgeEvent`）。
 
-Option B:
+オプション B：
 
 - gateway の `exec` ツールがライフサイクルを直接処理します（同期のみ）。
 
-## Exec flows
+## Exec フロー
 
-### Sandbox host
+### サンドボックスホスト
 
-- 既存の `exec` の挙動（Docker、または非サンドボックス時のホスト）。
+- 既存の `exec` の挙動（Docker、または非サンドボックス時はホスト）。
 - PTY は非サンドボックスモードでのみサポートされます。
 
-### Gateway host
+### ゲートウェイホスト
 
-- gateway プロセスが自身のマシン上で実行します。
+- Gateway プロセスが自身のマシン上で実行されます。
 - ローカルの `exec-approvals.json`（セキュリティ/確認/許可リスト）を強制します。
 
-### Node host
+### ノードホスト
 
-- gateway が `system.run` を伴って `node.invoke` を呼び出します。
+- Gateway が `system.run` を指定して `node.invoke` を呼び出します。
 - ランナーがローカル承認を強制します。
 - ランナーが集約された stdout/stderr を返します。
-- 開始/終了/拒否に関する Bridge イベントは任意です。
+- 開始/終了/拒否の Bridge イベントは任意です。
 
-## Output caps
+## 出力上限
 
 - stdout+stderr の合計を **200k** に制限し、イベント用に **末尾 20k** を保持します。
-- 明確なサフィックス（例: `"… (truncated)"`）を付けて切り詰めます。
+- 明確なサフィックス（例：`"… (truncated)"`）を付けて切り詰めます。
 
-## Slash commands
+## スラッシュコマンド
 
 - `/exec host=<sandbox|gateway|node> security=<deny|allowlist|full> ask=<off|on-miss|always> node=<id>`
-- エージェント単位・セッション単位のオーバーライドで、設定に保存しない限り非永続です。
-- `/elevated on|off|ask|full` は `host=gateway security=full` のショートカットとして残ります（`full` により承認をスキップ）。
+- エージェントごと、セッションごとの上書き。設定で保存しない限り永続化されません。
+- `/elevated on|off|ask|full` は `host=gateway security=full` のショートカットとして残します（`full` により承認をスキップ）。
 
-## Cross-platform story
+## クロスプラットフォーム対応
 
-- ランナーサービスがポータブルな実行ターゲットです。
+- ランナーサービスが移植可能な実行ターゲットです。
 - UI は任意であり、存在しない場合は `askFallback` が適用されます。
-- Windows/Linux は同じ approvals JSON + ソケットプロトコルをサポートします。
+- Windows/Linux は同一の承認 JSON + ソケットプロトコルをサポートします。
 
-## Implementation phases
+## 実装フェーズ
 
-### Phase 1: config + exec routing
+### フェーズ 1：設定 + exec ルーティング
 
-- `exec.host`、`exec.security`、`exec.ask`、`exec.node` の config スキーマを追加します。
-- ツールの配線を更新し、`exec.host` を尊重するようにします。
-- `/exec` スラッシュコマンドを追加し、`/elevated` のエイリアスを維持します。
+- `exec.host`、`exec.security`、`exec.ask`、`exec.node` の設定スキーマを追加します。
+- `exec.host` を尊重するようツールの配線を更新します。
+- `/exec` のスラッシュコマンドを追加し、`/elevated` のエイリアスを維持します。
 
-### Phase 2: approvals store + gateway enforcement
+### フェーズ 2：承認ストア + gateway 強制
 
 - `exec-approvals.json` のリーダー/ライターを実装します。
 - `gateway` ホストに対して許可リスト + 確認モードを強制します。
-- 出力制限を追加します。
+- 出力上限を追加します。
 
-### Phase 3: node runner enforcement
+### フェーズ 3：ノードランナー強制
 
 - ノードランナーを更新し、許可リスト + 確認を強制します。
-- macOS アプリ UI への Unix ソケット・プロンプトブリッジを追加します。
-- `askFallback` を配線します。
+- macOS アプリ UI への Unix ソケットプロンプトブリッジを追加します。
+- `askFallback` を接続します。
 
-### Phase 4: events
+### フェーズ 4：イベント
 
-- exec ライフサイクルに関するノード → gateway の Bridge イベントを追加します。
-- エージェントプロンプト向けに `enqueueSystemEvent` へマッピングします。
+- exec ライフサイクルのノード → gateway Bridge イベントを追加します。
+- エージェントのプロンプト用に `enqueueSystemEvent` へマッピングします。
 
-### Phase 5: UI polish
+### フェーズ 5：UI の仕上げ
 
-- Mac アプリ: 許可リストエディタ、エージェント単位のスイッチャー、確認ポリシー UI。
-- ノードバインディングの制御（任意）。
+- Mac アプリ：許可リストエディター、エージェントごとの切り替え、確認ポリシー UI。
+- ノードバインディング制御（任意）。
 
-## Testing plan
+## テスト計画
 
-- ユニットテスト: 許可リストの一致判定（glob + 大文字小文字非依存）。
-- ユニットテスト: ポリシー解決の優先順位（ツールパラメータ → エージェントオーバーライド → グローバル）。
-- 統合テスト: ノードランナーの deny/allow/ask フロー。
-- Bridge イベントテスト: ノードイベント → システムイベントのルーティング。
+- ユニットテスト：許可リスト一致（glob + 大文字小文字非依存）。
+- ユニットテスト：ポリシー解決の優先順位（ツール引数 → エージェント上書き → グローバル）。
+- 統合テスト：ノードランナーの拒否/許可/確認フロー。
+- Bridge イベントテスト：ノードイベント → システムイベントのルーティング。
 
-## Open risks
+## 未解決のリスク
 
-- UI の非可用性: `askFallback` が遵守されることを確認します。
-- 長時間実行コマンド: タイムアウト + 出力制限に依存します。
-- マルチノードの曖昧性: ノードバインディングまたは明示的なノードパラメータがない場合はエラー。
+- UI の利用不可：`askFallback` が遵守されることを保証します。
+- 長時間実行コマンド：タイムアウト + 出力上限に依存します。
+- マルチノードの曖昧性：ノードバインディングまたは明示的なノード引数がない場合はエラーとします。
 
-## Related docs
+## 関連ドキュメント
 
-- [Exec tool](/tools/exec)
-- [Exec approvals](/tools/exec-approvals)
-- [Nodes](/nodes)
-- [Elevated mode](/tools/elevated)
+- [Exec ツール](/tools/exec)
+- [Exec 承認](/tools/exec-approvals)
+- [ノード](/nodes)
+- [昇格モード](/tools/elevated)

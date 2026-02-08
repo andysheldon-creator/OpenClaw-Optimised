@@ -1,5 +1,5 @@
 ---
-summary: "`openclaw dashboard`에 대한 CLI 참조(Control UI 열기)"
+summary: "`openclaw dashboard` (Control UI 열기)에 대한 CLI 참조"
 read_when:
   - 현재 토큰으로 Control UI 를 열고자 할 때
   - 브라우저를 실행하지 않고 URL 을 출력하고자 할 때
@@ -10,7 +10,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:35:22Z
+  generated_at: 2026-02-08T09:24:15Z
 ---
 
 # `openclaw dashboard`

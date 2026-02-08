@@ -1,22 +1,22 @@
 ---
-summary: "Testkit: Unit-/E2E-/Live-Suites, Docker-Runner und was jeder Test abdeckt"
+summary: „Testkit: Unit-/E2E-/Live-Suiten, Docker-Runner und was jeder Test abdeckt“
 read_when:
-  - Ausführen von Tests lokal oder in CI
-  - Hinzufügen von Regressionen für Modell-/Anbieter-Bugs
-  - Debugging von Gateway- und Agent-Verhalten
-title: "Testing"
+  - Beim lokalen Ausführen von Tests oder in CI
+  - Beim Hinzufügen von Regressionen für Modell-/Anbieter-Bugs
+  - Beim Debuggen des Gateway- und Agent-Verhaltens
+title: „Tests“
 x-i18n:
   source_path: help/testing.md
   source_hash: 9bb77454e18e1d0b
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:16:24Z
+  generated_at: 2026-02-08T09:36:57Z
 ---
 
-# Testing
+# Tests
 
-OpenClaw verfügt über drei Vitest-Suites (Unit/Integration, E2E, Live) sowie eine kleine Auswahl an Docker-Runnern.
+OpenClaw hat drei Vitest-Suiten (Unit/Integration, E2E, Live) sowie eine kleine Auswahl an Docker-Runnern.
 
 Dieses Dokument ist ein Leitfaden „wie wir testen“:
 
@@ -38,13 +38,13 @@ Wenn Sie Tests anfassen oder zusätzliche Sicherheit wollen:
 
 Beim Debuggen realer Anbieter/Modelle (erfordert echte Zugangsdaten):
 
-- Live-Suite (Modelle + Gateway-Werkzeug/Image-Probes): `pnpm test:live`
+- Live-Suite (Modelle + Gateway-Werkzeug-/Image-Probes): `pnpm test:live`
 
-Tipp: Wenn Sie nur einen fehlschlagenden Fall benötigen, bevorzugen Sie das Einschränken der Live-Tests über die unten beschriebenen Allowlist-Umgebungsvariablen.
+Tipp: Wenn Sie nur einen einzelnen fehlschlagenden Fall benötigen, bevorzugen Sie das Eingrenzen der Live-Tests über die unten beschriebenen Allowlist-Umgebungsvariablen.
 
-## Test-Suites (was wo läuft)
+## Test-Suiten (was wo läuft)
 
-Verstehen Sie die Suites als „zunehmenden Realismus“ (und zunehmende Flakiness/Kosten):
+Betrachten Sie die Suiten als „zunehmenden Realismus“ (und zunehmende Flakiness/Kosten):
 
 ### Unit / Integration (Standard)
 
@@ -53,7 +53,7 @@ Verstehen Sie die Suites als „zunehmenden Realismus“ (und zunehmende Flakine
 - Dateien: `src/**/*.test.ts`
 - Umfang:
   - Reine Unit-Tests
-  - In-Process-Integrationstests (Gateway-Auth, Routing, Tooling, Parsing, Konfiguration)
+  - In-Prozess-Integrationstests (Gateway-Auth, Routing, Tooling, Parsing, Konfiguration)
   - Deterministische Regressionen für bekannte Bugs
 - Erwartungen:
   - Läuft in CI
@@ -67,13 +67,13 @@ Verstehen Sie die Suites als „zunehmenden Realismus“ (und zunehmende Flakine
 - Dateien: `src/**/*.e2e.test.ts`
 - Umfang:
   - End-to-End-Verhalten des Gateways mit mehreren Instanzen
-  - WebSocket-/HTTP-Oberflächen, Node-Pairing und umfangreicheres Networking
+  - WebSocket-/HTTP-Oberflächen, Node-Pairing und schwerere Netzwerklast
 - Erwartungen:
   - Läuft in CI (wenn in der Pipeline aktiviert)
   - Keine echten Schlüssel erforderlich
   - Mehr bewegliche Teile als Unit-Tests (kann langsamer sein)
 
-### Live (echte Anbieter + echte Modelle)
+### Live (reale Anbieter + reale Modelle)
 
 - Befehl: `pnpm test:live`
 - Konfiguration: `vitest.live.config.ts`
@@ -85,53 +85,53 @@ Verstehen Sie die Suites als „zunehmenden Realismus“ (und zunehmende Flakine
 - Erwartungen:
   - Absichtlich nicht CI-stabil (reale Netzwerke, reale Anbieter-Richtlinien, Kontingente, Ausfälle)
   - Verursacht Kosten / nutzt Rate Limits
-  - Bevorzugen Sie eingeschränkte Teilmengen statt „alles“
+  - Bevorzugen Sie eingegrenzte Teilmengen statt „alles“
   - Live-Läufe beziehen `~/.profile`, um fehlende API-Schlüssel zu finden
-  - Anthropic-Schlüsselrotation: setzen Sie `OPENCLAW_LIVE_ANTHROPIC_KEYS="sk-...,sk-..."` (oder `OPENCLAW_LIVE_ANTHROPIC_KEY=sk-...`) oder mehrere `ANTHROPIC_API_KEY*`-Variablen; Tests wiederholen bei Rate Limits
+  - Anthropic-Schlüsselrotation: Setzen Sie `OPENCLAW_LIVE_ANTHROPIC_KEYS="sk-...,sk-..."` (oder `OPENCLAW_LIVE_ANTHROPIC_KEY=sk-...`) oder mehrere `ANTHROPIC_API_KEY*`-Variablen; Tests wiederholen bei Rate Limits
 
 ## Welche Suite sollte ich ausführen?
 
-Verwenden Sie diese Entscheidungstabelle:
+Verwenden Sie diese Entscheidungshilfe:
 
 - Logik/Tests bearbeiten: `pnpm test` ausführen (und `pnpm test:coverage`, wenn Sie viel geändert haben)
-- Gateway-Networking / WS-Protokoll / Pairing anfassen: `pnpm test:e2e` hinzufügen
-- Debugging von „mein Bot ist down“ / anbieterspezifischen Fehlern / Tool-Calling: eine eingeschränkte `pnpm test:live` ausführen
+- Gateway-Netzwerk / WS-Protokoll / Pairing anfassen: `pnpm test:e2e` hinzufügen
+- Debugging von „mein Bot ist down“ / anbieterspezifische Fehler / Tool-Calling: eine eingegrenzte `pnpm test:live` ausführen
 
 ## Live: Modell-Smoke (Profil-Schlüssel)
 
-Live-Tests sind in zwei Ebenen unterteilt, um Fehler zu isolieren:
+Live-Tests sind in zwei Ebenen aufgeteilt, um Fehler zu isolieren:
 
-- „Direktes Modell“ zeigt, dass Anbieter/Modell mit dem gegebenen Schlüssel überhaupt antworten kann.
-- „Gateway-Smoke“ zeigt, dass die vollständige Gateway+Agent-Pipeline für dieses Modell funktioniert (Sitzungen, Verlauf, Tools, Sandbox-Richtlinie usw.).
+- „Direktes Modell“ zeigt, dass der Anbieter/das Modell mit dem gegebenen Schlüssel grundsätzlich antworten kann.
+- „Gateway-Smoke“ zeigt, dass die komplette Gateway+Agent-Pipeline für dieses Modell funktioniert (Sitzungen, Verlauf, Tools, Sandbox-Richtlinien usw.).
 
 ### Ebene 1: Direkte Modell-Completion (kein Gateway)
 
 - Test: `src/agents/models.profiles.live.test.ts`
 - Ziel:
   - Erkannte Modelle auflisten
-  - `getApiKeyForModel` verwenden, um Modelle auszuwählen, für die Sie Zugangsdaten haben
-  - Eine kleine Completion pro Modell ausführen (und gezielte Regressionen bei Bedarf)
+  - Mit `getApiKeyForModel` Modelle auswählen, für die Sie Zugangsdaten haben
+  - Pro Modell eine kleine Completion ausführen (und gezielte Regressionen, wo nötig)
 - Aktivierung:
-  - `pnpm test:live` (oder `OPENCLAW_LIVE_TEST=1` bei direktem Aufruf von Vitest)
-- Setzen Sie `OPENCLAW_LIVE_MODELS=modern` (oder `all`, Alias für modern), um diese Suite tatsächlich auszuführen; andernfalls wird sie übersprungen, um `pnpm test:live` auf Gateway-Smoke zu fokussieren
+  - `pnpm test:live` (oder `OPENCLAW_LIVE_TEST=1`, wenn Vitest direkt aufgerufen wird)
+- Setzen Sie `OPENCLAW_LIVE_MODELS=modern` (oder `all`, Alias für modern), um diese Suite tatsächlich auszuführen; andernfalls wird sie übersprungen, damit `pnpm test:live` auf Gateway-Smoke fokussiert bleibt
 - Modellauswahl:
-  - `OPENCLAW_LIVE_MODELS=modern`, um die moderne Allowlist auszuführen (Opus/Sonnet/Haiku 4.5, GPT-5.x + Codex, Gemini 3, GLM 4.7, MiniMax M2.1, Grok 4)
+  - `OPENCLAW_LIVE_MODELS=modern` für die moderne Allowlist (Opus/Sonnet/Haiku 4.5, GPT-5.x + Codex, Gemini 3, GLM 4.7, MiniMax M2.1, Grok 4)
   - `OPENCLAW_LIVE_MODELS=all` ist ein Alias für die moderne Allowlist
   - oder `OPENCLAW_LIVE_MODELS="openai/gpt-5.2,anthropic/claude-opus-4-6,..."` (Komma-Allowlist)
 - Anbieterauswahl:
   - `OPENCLAW_LIVE_PROVIDERS="google,google-antigravity,google-gemini-cli"` (Komma-Allowlist)
 - Herkunft der Schlüssel:
-  - Standard: Profilspeicher und Env-Fallbacks
-  - Setzen Sie `OPENCLAW_LIVE_REQUIRE_PROFILE_KEYS=1`, um **nur den Profilspeicher** zu erzwingen
+  - Standard: Profil-Store und Env-Fallbacks
+  - Setzen Sie `OPENCLAW_LIVE_REQUIRE_PROFILE_KEYS=1`, um **nur** den Profil-Store zu erzwingen
 - Warum es das gibt:
-  - Trennt „Anbieter-API ist kaputt / Schlüssel ungültig“ von „Gateway-Agent-Pipeline ist kaputt“
+  - Trennt „Anbieter-API ist kaputt / Schlüssel ist ungültig“ von „Gateway-Agent-Pipeline ist kaputt“
   - Enthält kleine, isolierte Regressionen (Beispiel: OpenAI Responses/Codex Responses Reasoning-Replay + Tool-Call-Flows)
 
-### Ebene 2: Gateway + Dev-Agent-Smoke (was „@openclaw“ tatsächlich tut)
+### Ebene 2: Gateway + Dev-Agent-Smoke (das, was „@openclaw“ tatsächlich tut)
 
 - Test: `src/gateway/gateway-models.profiles.live.test.ts`
 - Ziel:
-  - Ein In-Process-Gateway starten
+  - Ein In-Prozess-Gateway starten
   - Eine `agent:dev:*`-Sitzung erstellen/patchen (Modell-Override pro Lauf)
   - Modelle-mit-Schlüsseln iterieren und prüfen:
     - „sinnvolle“ Antwort (keine Tools)
@@ -140,23 +140,23 @@ Live-Tests sind in zwei Ebenen unterteilt, um Fehler zu isolieren:
     - OpenAI-Regressionspfade (nur Tool-Call → Follow-up) funktionieren weiterhin
 - Probe-Details (damit Sie Fehler schnell erklären können):
   - `read`-Probe: Der Test schreibt eine Nonce-Datei in den Workspace und bittet den Agenten, sie zu `read` und die Nonce zurückzugeben.
-  - `exec+read`-Probe: Der Test bittet den Agenten, eine Nonce in eine Temp-Datei `exec`-zu schreiben und sie anschließend wieder zu `read`.
-  - Image-Probe: Der Test hängt ein generiertes PNG (Katze + randomisierter Code) an und erwartet, dass das Modell `cat <CODE>` zurückgibt.
+  - `exec+read`-Probe: Der Test bittet den Agenten, per `exec` eine Nonce in eine Temp-Datei zu schreiben und sie anschließend per `read` zurückzugeben.
+  - Image-Probe: Der Test hängt eine generierte PNG (Katze + randomisierter Code) an und erwartet, dass das Modell `cat <CODE>` zurückgibt.
   - Implementierungsreferenz: `src/gateway/gateway-models.profiles.live.test.ts` und `src/gateway/live-image-probe.ts`.
 - Aktivierung:
-  - `pnpm test:live` (oder `OPENCLAW_LIVE_TEST=1` bei direktem Aufruf von Vitest)
+  - `pnpm test:live` (oder `OPENCLAW_LIVE_TEST=1`, wenn Vitest direkt aufgerufen wird)
 - Modellauswahl:
   - Standard: moderne Allowlist (Opus/Sonnet/Haiku 4.5, GPT-5.x + Codex, Gemini 3, GLM 4.7, MiniMax M2.1, Grok 4)
   - `OPENCLAW_LIVE_GATEWAY_MODELS=all` ist ein Alias für die moderne Allowlist
-  - Oder `OPENCLAW_LIVE_GATEWAY_MODELS="provider/model"` (oder Kommaliste) setzen, um einzugrenzen
-- Anbieterauswahl (vermeidet „OpenRouter alles“):
+  - Oder setzen Sie `OPENCLAW_LIVE_GATEWAY_MODELS="provider/model"` (oder Kommaliste) zur Eingrenzung
+- Anbieterauswahl (vermeiden Sie „OpenRouter alles“):
   - `OPENCLAW_LIVE_GATEWAY_PROVIDERS="google,google-antigravity,google-gemini-cli,openai,anthropic,zai,minimax"` (Komma-Allowlist)
-- Tool- + Image-Probes sind in diesem Live-Test immer aktiv:
+- Tool- und Image-Probes sind in diesem Live-Test immer aktiv:
   - `read`-Probe + `exec+read`-Probe (Tool-Stress)
-  - Image-Probe läuft, wenn das Modell Image-Input-Unterstützung angibt
+  - Image-Probe läuft, wenn das Modell Image-Input unterstützt
   - Ablauf (auf hoher Ebene):
-    - Test erzeugt ein winziges PNG mit „CAT“ + Zufallscode (`src/gateway/live-image-probe.ts`)
-    - Sendet es über `agent` `attachments: [{ mimeType: "image/png", content: "<base64>" }]`
+    - Test generiert eine kleine PNG mit „CAT“ + Zufallscode (`src/gateway/live-image-probe.ts`)
+    - Sendet sie via `agent` `attachments: [{ mimeType: "image/png", content: "<base64>" }]`
     - Gateway parst Anhänge in `images[]` (`src/gateway/server-methods/agent.ts` + `src/gateway/chat-attachments.ts`)
     - Eingebetteter Agent leitet eine multimodale Nutzernachricht an das Modell weiter
     - Assertion: Antwort enthält `cat` + den Code (OCR-Toleranz: kleine Fehler erlaubt)
@@ -173,7 +173,7 @@ openclaw models list --json
 - Test: `src/agents/anthropic.setup-token.live.test.ts`
 - Ziel: Verifizieren, dass das Claude Code CLI Setup-Token (oder ein eingefügtes Setup-Token-Profil) einen Anthropic-Prompt abschließen kann.
 - Aktivieren:
-  - `pnpm test:live` (oder `OPENCLAW_LIVE_TEST=1` bei direktem Vitest-Aufruf)
+  - `pnpm test:live` (oder `OPENCLAW_LIVE_TEST=1`, wenn Vitest direkt aufgerufen wird)
   - `OPENCLAW_LIVE_SETUP_TOKEN=1`
 - Token-Quellen (eine auswählen):
   - Profil: `OPENCLAW_LIVE_SETUP_TOKEN_PROFILE=anthropic:setup-token-test`
@@ -191,9 +191,9 @@ OPENCLAW_LIVE_SETUP_TOKEN=1 OPENCLAW_LIVE_SETUP_TOKEN_PROFILE=anthropic:setup-to
 ## Live: CLI-Backend-Smoke (Claude Code CLI oder andere lokale CLIs)
 
 - Test: `src/gateway/gateway-cli-backend.live.test.ts`
-- Ziel: Validieren der Gateway- + Agent-Pipeline mit einem lokalen CLI-Backend, ohne Ihre Standardkonfiguration anzufassen.
+- Ziel: Validieren der Gateway- + Agent-Pipeline mit einem lokalen CLI-Backend, ohne Ihre Standardkonfiguration anzutasten.
 - Aktivieren:
-  - `pnpm test:live` (oder `OPENCLAW_LIVE_TEST=1` bei direktem Vitest-Aufruf)
+  - `pnpm test:live` (oder `OPENCLAW_LIVE_TEST=1`, wenn Vitest direkt aufgerufen wird)
   - `OPENCLAW_LIVE_CLI_BACKEND=1`
 - Standards:
   - Modell: `claude-cli/claude-sonnet-4-5`
@@ -207,9 +207,9 @@ OPENCLAW_LIVE_SETUP_TOKEN=1 OPENCLAW_LIVE_SETUP_TOKEN_PROFILE=anthropic:setup-to
   - `OPENCLAW_LIVE_CLI_BACKEND_CLEAR_ENV='["ANTHROPIC_API_KEY","ANTHROPIC_API_KEY_OLD"]'`
   - `OPENCLAW_LIVE_CLI_BACKEND_IMAGE_PROBE=1`, um einen echten Image-Anhang zu senden (Pfade werden in den Prompt injiziert).
   - `OPENCLAW_LIVE_CLI_BACKEND_IMAGE_ARG="--image"`, um Image-Dateipfade als CLI-Argumente statt per Prompt-Injektion zu übergeben.
-  - `OPENCLAW_LIVE_CLI_BACKEND_IMAGE_MODE="repeat"` (oder `"list"`), um zu steuern, wie Image-Argumente übergeben werden, wenn `IMAGE_ARG` gesetzt ist.
-  - `OPENCLAW_LIVE_CLI_BACKEND_RESUME_PROBE=1`, um einen zweiten Turn zu senden und den Resume-Flow zu validieren.
-- `OPENCLAW_LIVE_CLI_BACKEND_DISABLE_MCP_CONFIG=0`, um die Claude Code CLI MCP-Konfiguration aktiviert zu lassen (standardmäßig deaktiviert die MCP-Konfiguration mit einer temporären leeren Datei).
+  - `OPENCLAW_LIVE_CLI_BACKEND_IMAGE_MODE="repeat"` (oder `"list"`), um zu steuern, wie Image-Args übergeben werden, wenn `IMAGE_ARG` gesetzt ist.
+  - `OPENCLAW_LIVE_CLI_BACKEND_RESUME_PROBE=1`, um eine zweite Runde zu senden und den Resume-Flow zu validieren.
+- `OPENCLAW_LIVE_CLI_BACKEND_DISABLE_MCP_CONFIG=0`, um die Claude Code CLI MCP-Konfiguration aktiviert zu lassen (standardmäßig wird die MCP-Konfiguration mit einer temporären leeren Datei deaktiviert).
 
 Beispiel:
 
@@ -221,7 +221,7 @@ OPENCLAW_LIVE_CLI_BACKEND=1 \
 
 ### Empfohlene Live-Rezepte
 
-Eingeschränkte, explizite Allowlists sind am schnellsten und am wenigsten flaky:
+Enge, explizite Allowlists sind am schnellsten und am wenigsten fehleranfällig:
 
 - Einzelnes Modell, direkt (kein Gateway):
   - `OPENCLAW_LIVE_MODELS="openai/gpt-5.2" pnpm test:live src/agents/models.profiles.live.test.ts`
@@ -239,19 +239,19 @@ Eingeschränkte, explizite Allowlists sind am schnellsten und am wenigsten flaky
 Hinweise:
 
 - `google/...` verwendet die Gemini API (API-Schlüssel).
-- `google-antigravity/...` verwendet die Antigravity OAuth-Bridge (Cloud-Code-Assist-artiger Agent-Endpunkt).
+- `google-antigravity/...` verwendet die Antigravity-OAuth-Bridge (Cloud-Code-Assist-ähnlicher Agent-Endpunkt).
 - `google-gemini-cli/...` verwendet die lokale Gemini-CLI auf Ihrer Maschine (separate Auth + Tooling-Eigenheiten).
 - Gemini API vs. Gemini CLI:
-  - API: OpenClaw ruft Googles gehostete Gemini-API über HTTP auf (API-Schlüssel / Profil-Auth); das ist es, was die meisten Nutzer mit „Gemini“ meinen.
-  - CLI: OpenClaw ruft ein lokales `gemini`-Binary auf; es hat eigene Authentifizierung und kann sich anders verhalten (Streaming/Tool-Unterstützung/Versionsabweichungen).
+  - API: OpenClaw ruft Googles gehostete Gemini API über HTTP auf (API-Schlüssel / Profil-Auth); das ist das, was die meisten Nutzer mit „Gemini“ meinen.
+  - CLI: OpenClaw ruft ein lokales `gemini`-Binary auf; es hat eigene Authentifizierung und kann sich anders verhalten (Streaming-/Tool-Support/Versionsabweichungen).
 
 ## Live: Modellmatrix (was wir abdecken)
 
 Es gibt keine feste „CI-Modellliste“ (Live ist Opt-in), aber dies sind die **empfohlenen** Modelle, die regelmäßig auf einer Dev-Maschine mit Schlüsseln abgedeckt werden sollten.
 
-### Moderne Smoke-Menge (Tool-Calling + Image)
+### Modernes Smoke-Set (Tool-Calling + Image)
 
-Dies ist der „gängige Modelle“-Lauf, den wir funktionsfähig halten wollen:
+Dies ist der „gängige Modelle“-Lauf, der weiterhin funktionieren soll:
 
 - OpenAI (nicht Codex): `openai/gpt-5.2` (optional: `openai/gpt-5.1`)
 - OpenAI Codex: `openai-codex/gpt-5.3-codex` (optional: `openai-codex/gpt-5.3-codex-codex`)
@@ -264,7 +264,7 @@ Dies ist der „gängige Modelle“-Lauf, den wir funktionsfähig halten wollen:
 Gateway-Smoke mit Tools + Image ausführen:
 `OPENCLAW_LIVE_GATEWAY_MODELS="openai/gpt-5.2,openai-codex/gpt-5.3-codex,anthropic/claude-opus-4-6,google/gemini-3-pro-preview,google/gemini-3-flash-preview,google-antigravity/claude-opus-4-6-thinking,google-antigravity/gemini-3-flash,zai/glm-4.7,minimax/minimax-m2.1" pnpm test:live src/gateway/gateway-models.profiles.live.test.ts`
 
-### Basis: Tool-Calling (Read + optional Exec)
+### Basislinie: Tool-Calling (Read + optional Exec)
 
 Wählen Sie mindestens eines pro Anbieterfamilie:
 
@@ -277,39 +277,39 @@ Wählen Sie mindestens eines pro Anbieterfamilie:
 Optionale zusätzliche Abdeckung (nice to have):
 
 - xAI: `xai/grok-4` (oder neueste verfügbare)
-- Mistral: `mistral/`… (wählen Sie ein „Tools“-fähiges Modell, das Sie aktiviert haben)
+- Mistral: `mistral/`… (ein „tools“-fähiges Modell auswählen, das Sie aktiviert haben)
 - Cerebras: `cerebras/`… (falls Sie Zugriff haben)
 - LM Studio: `lmstudio/`… (lokal; Tool-Calling hängt vom API-Modus ab)
 
 ### Vision: Image-Senden (Anhang → multimodale Nachricht)
 
-Nehmen Sie mindestens ein bildfähiges Modell in `OPENCLAW_LIVE_GATEWAY_MODELS` auf (Claude/Gemini/OpenAI mit Vision-Fähigkeiten usw.), um die Image-Probe auszuführen.
+Nehmen Sie mindestens ein bildfähiges Modell in `OPENCLAW_LIVE_GATEWAY_MODELS` (Claude/Gemini/OpenAI bildfähige Varianten usw.) auf, um die Image-Probe auszuführen.
 
 ### Aggregatoren / alternative Gateways
 
-Wenn Sie Schlüssel aktiviert haben, unterstützen wir Tests auch über:
+Wenn Sie entsprechende Schlüssel aktiviert haben, unterstützen wir Tests auch über:
 
-- OpenRouter: `openrouter/...` (hunderte Modelle; verwenden Sie `openclaw models scan`, um Kandidaten mit Tool+Image-Fähigkeit zu finden)
+- OpenRouter: `openrouter/...` (Hunderte Modelle; verwenden Sie `openclaw models scan`, um Tool- und Image-fähige Kandidaten zu finden)
 - OpenCode Zen: `opencode/...` (Auth über `OPENCODE_API_KEY` / `OPENCODE_ZEN_API_KEY`)
 
-Weitere Anbieter, die Sie in die Live-Matrix aufnehmen können (wenn Sie Zugangsdaten/Konfiguration haben):
+Weitere Anbieter, die Sie in die Live-Matrix aufnehmen können (falls Sie Zugangsdaten/Konfiguration haben):
 
 - Integriert: `openai`, `openai-codex`, `anthropic`, `google`, `google-vertex`, `google-antigravity`, `google-gemini-cli`, `zai`, `openrouter`, `opencode`, `xai`, `groq`, `cerebras`, `mistral`, `github-copilot`
 - Über `models.providers` (benutzerdefinierte Endpunkte): `minimax` (Cloud/API) sowie jeder OpenAI-/Anthropic-kompatible Proxy (LM Studio, vLLM, LiteLLM usw.)
 
-Tipp: Versuchen Sie nicht, „alle Modelle“ in den Docs fest zu verdrahten. Die maßgebliche Liste ist das, was `discoverModels(...)` auf Ihrer Maschine zurückgibt + welche Schlüssel verfügbar sind.
+Tipp: Versuchen Sie nicht, „alle Modelle“ in Dokus fest zu codieren. Die maßgebliche Liste ist das, was `discoverModels(...)` auf Ihrer Maschine zurückgibt, plus die verfügbaren Schlüssel.
 
 ## Zugangsdaten (niemals committen)
 
-Live-Tests entdecken Zugangsdaten auf die gleiche Weise wie die CLI. Praktische Konsequenzen:
+Live-Tests finden Zugangsdaten auf die gleiche Weise wie die CLI. Praktische Konsequenzen:
 
 - Wenn die CLI funktioniert, sollten Live-Tests dieselben Schlüssel finden.
-- Wenn ein Live-Test „keine Zugangsdaten“ meldet, debuggen Sie es genauso wie `openclaw models list` / die Modellauswahl.
+- Wenn ein Live-Test „keine Zugangsdaten“ meldet, debuggen Sie genauso wie bei `openclaw models list` / Modellauswahl.
 
-- Profilspeicher: `~/.openclaw/credentials/` (bevorzugt; das bedeutet „Profil-Schlüssel“ in den Tests)
+- Profil-Store: `~/.openclaw/credentials/` (bevorzugt; das ist mit „Profil-Schlüssel“ in den Tests gemeint)
 - Konfiguration: `~/.openclaw/openclaw.json` (oder `OPENCLAW_CONFIG_PATH`)
 
-Wenn Sie sich auf Env-Schlüssel verlassen möchten (z. B. in Ihrer `~/.profile` exportiert), führen Sie lokale Tests nach `source ~/.profile` aus oder verwenden Sie die Docker-Runner unten (sie können `~/.profile` in den Container mounten).
+Wenn Sie sich auf Env-Schlüssel verlassen wollen (z. B. in Ihrer `~/.profile` exportiert), führen Sie lokale Tests nach `source ~/.profile` aus oder verwenden Sie die Docker-Runner unten (sie können `~/.profile` in den Container mounten).
 
 ## Deepgram Live (Audio-Transkription)
 
@@ -318,29 +318,29 @@ Wenn Sie sich auf Env-Schlüssel verlassen möchten (z. B. in Ihrer `~/.profil
 
 ## Docker-Runner (optionale „funktioniert unter Linux“-Checks)
 
-Diese führen `pnpm test:live` innerhalb des Repo-Docker-Images aus und mounten Ihr lokales Konfigurationsverzeichnis und den Workspace (und beziehen `~/.profile`, falls gemountet):
+Diese führen `pnpm test:live` innerhalb des Repo-Docker-Images aus, mounten Ihr lokales Konfigurationsverzeichnis und den Workspace (und sourcen `~/.profile`, falls gemountet):
 
 - Direkte Modelle: `pnpm test:docker:live-models` (Skript: `scripts/test-live-models-docker.sh`)
 - Gateway + Dev-Agent: `pnpm test:docker:live-gateway` (Skript: `scripts/test-live-gateway-models-docker.sh`)
 - Onboarding-Assistent (TTY, vollständiges Scaffolding): `pnpm test:docker:onboard` (Skript: `scripts/e2e/onboard-docker.sh`)
-- Gateway-Networking (zwei Container, WS-Auth + Health): `pnpm test:docker:gateway-network` (Skript: `scripts/e2e/gateway-network-docker.sh`)
-- Plugins (Custom-Extension-Load + Registry-Smoke): `pnpm test:docker:plugins` (Skript: `scripts/e2e/plugins-docker.sh`)
+- Gateway-Netzwerk (zwei Container, WS-Auth + Health): `pnpm test:docker:gateway-network` (Skript: `scripts/e2e/gateway-network-docker.sh`)
+- Plugins (Custom-Extension-Laden + Registry-Smoke): `pnpm test:docker:plugins` (Skript: `scripts/e2e/plugins-docker.sh`)
 
 Nützliche Umgebungsvariablen:
 
 - `OPENCLAW_CONFIG_DIR=...` (Standard: `~/.openclaw`) gemountet nach `/home/node/.openclaw`
 - `OPENCLAW_WORKSPACE_DIR=...` (Standard: `~/.openclaw/workspace`) gemountet nach `/home/node/.openclaw/workspace`
-- `OPENCLAW_PROFILE_FILE=...` (Standard: `~/.profile`) gemountet nach `/home/node/.profile` und vor dem Testlauf bezogen
-- `OPENCLAW_LIVE_GATEWAY_MODELS=...` / `OPENCLAW_LIVE_MODELS=...`, um den Lauf einzugrenzen
-- `OPENCLAW_LIVE_REQUIRE_PROFILE_KEYS=1`, um sicherzustellen, dass Zugangsdaten aus dem Profilspeicher stammen (nicht aus Env)
+- `OPENCLAW_PROFILE_FILE=...` (Standard: `~/.profile`) gemountet nach `/home/node/.profile` und vor dem Ausführen der Tests gesourct
+- `OPENCLAW_LIVE_GATEWAY_MODELS=...` / `OPENCLAW_LIVE_MODELS=...` zur Eingrenzung des Laufs
+- `OPENCLAW_LIVE_REQUIRE_PROFILE_KEYS=1`, um sicherzustellen, dass Zugangsdaten aus dem Profil-Store stammen (nicht aus Env)
 
 ## Docs-Sanity
 
-Führen Sie nach Doc-Änderungen die Docs-Checks aus: `pnpm docs:list`.
+Führen Sie nach Doku-Änderungen die Docs-Checks aus: `pnpm docs:list`.
 
 ## Offline-Regression (CI-sicher)
 
-Dies sind „echte Pipeline“-Regressionen ohne echte Anbieter:
+Dies sind „echte Pipeline“-Regressionen ohne reale Anbieter:
 
 - Gateway-Tool-Calling (Mock-OpenAI, echtes Gateway + Agent-Loop): `src/gateway/gateway.tool-calling.mock-openai.test.ts`
 - Gateway-Assistent (WS `wizard.start`/`wizard.next`, schreibt Konfiguration + Auth erzwungen): `src/gateway/gateway.wizard.e2e.test.ts`
@@ -350,26 +350,26 @@ Dies sind „echte Pipeline“-Regressionen ohne echte Anbieter:
 Wir haben bereits einige CI-sichere Tests, die sich wie „Agent-Zuverlässigkeits-Evals“ verhalten:
 
 - Mock-Tool-Calling durch den echten Gateway- + Agent-Loop (`src/gateway/gateway.tool-calling.mock-openai.test.ts`).
-- End-to-End-Assistenten-Flows, die Sitzungsverkabelung und Konfigurationseffekte validieren (`src/gateway/gateway.wizard.e2e.test.ts`).
+- End-to-End-Assistenten-Flows, die Sitzungsverdrahtung und Konfigurationseffekte validieren (`src/gateway/gateway.wizard.e2e.test.ts`).
 
 Was für Skills noch fehlt (siehe [Skills](/tools/skills)):
 
 - **Entscheidungsfindung:** Wenn Skills im Prompt gelistet sind, wählt der Agent den richtigen Skill (oder vermeidet irrelevante)?
 - **Compliance:** Liest der Agent `SKILL.md` vor der Nutzung und befolgt erforderliche Schritte/Argumente?
-- **Workflow-Verträge:** Multi-Turn-Szenarien, die Tool-Reihenfolge, Sitzungsverlauf-Übernahme und Sandbox-Grenzen prüfen.
+- **Workflow-Verträge:** Mehrzügige Szenarien, die Tool-Reihenfolge, Sitzungsverlauf-Übernahme und Sandbox-Grenzen prüfen.
 
 Zukünftige Evals sollten zunächst deterministisch bleiben:
 
-- Ein Szenario-Runner mit Mock-Anbietern, um Tool-Calls + Reihenfolge, Skill-Datei-Lesungen und Sitzungsverkabelung zu prüfen.
-- Eine kleine Suite skill-fokussierter Szenarien (nutzen vs. vermeiden, Gating, Prompt-Injection).
-- Optionale Live-Evals (Opt-in, env-gated) erst, nachdem die CI-sichere Suite steht.
+- Ein Szenario-Runner mit Mock-Anbietern, um Tool-Calls + Reihenfolge, Skill-Datei-Lesungen und Sitzungsverdrahtung zu prüfen.
+- Eine kleine Suite skill-fokussierter Szenarien (verwenden vs. vermeiden, Gating, Prompt-Injection).
+- Optionale Live-Evals (Opt-in, env-gated) erst, nachdem die CI-sichere Suite vorhanden ist.
 
 ## Regressionen hinzufügen (Leitfaden)
 
-Wenn Sie ein Anbieter-/Modellproblem beheben, das in Live entdeckt wurde:
+Wenn Sie ein in Live entdecktes Anbieter-/Modellproblem beheben:
 
-- Fügen Sie nach Möglichkeit eine CI-sichere Regression hinzu (Mock/Stub des Anbieters oder Erfassen der exakten Request-Form-Transformation)
-- Wenn es inhärent Live-only ist (Rate Limits, Auth-Richtlinien), halten Sie den Live-Test eng gefasst und Opt-in über Env-Variablen
-- Bevorzugen Sie die kleinste Ebene, die den Bug abfängt:
-  - Anbieter-Request-Konvertierungs-/Replay-Bug → Direktmodelle-Test
+- Fügen Sie, wenn möglich, eine CI-sichere Regression hinzu (Anbieter mocken/stubben oder die exakte Request-Form-Transformation erfassen)
+- Wenn es inhärent nur live ist (Rate Limits, Auth-Richtlinien), halten Sie den Live-Test eng und opt-in über Env-Variablen
+- Bevorzugen Sie die kleinste Ebene, die den Bug einfängt:
+  - Anbieter-Request-Konvertierungs-/Replay-Bug → Direkt-Modelle-Test
   - Gateway-Sitzungs-/Verlaufs-/Tool-Pipeline-Bug → Gateway-Live-Smoke oder CI-sicherer Gateway-Mock-Test

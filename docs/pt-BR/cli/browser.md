@@ -1,37 +1,37 @@
 ---
-summary: "Referencia da CLI para `openclaw browser` (perfis, abas, acoes, relay da extensao)"
+summary: "Referência da CLI para `openclaw browser` (perfis, abas, ações, relay da extensão)"
 read_when:
-  - Voce usa `openclaw browser` e quer exemplos para tarefas comuns
-  - Voce quer controlar um navegador em execucao em outra maquina via um node host
-  - Voce quer usar o relay da extensao do Chrome (anexar/desanexar pelo botao da barra de ferramentas)
-title: "navegador"
+  - Você usa `openclaw browser` e quer exemplos para tarefas comuns
+  - Você quer controlar um navegador rodando em outra máquina via um host de nó
+  - Você quer usar o relay da extensão do Chrome (anexar/desanexar via botão da barra de ferramentas)
+title: "browser"
 x-i18n:
   source_path: cli/browser.md
   source_hash: af35adfd68726fd5
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:32Z
+  generated_at: 2026-02-08T09:30:08Z
 ---
 
 # `openclaw browser`
 
-Gerencie o servidor de controle de navegador do OpenClaw e execute acoes do navegador (abas, snapshots, capturas de tela, navegacao, cliques, digitacao).
+Gerencie o servidor de controle de navegador do OpenClaw e execute ações no navegador (abas, snapshots, capturas de tela, navegação, cliques, digitação).
 
 Relacionado:
 
 - Ferramenta de navegador + API: [Browser tool](/tools/browser)
-- Relay da extensao do Chrome: [Chrome extension](/tools/chrome-extension)
+- Relay da extensão do Chrome: [Chrome extension](/tools/chrome-extension)
 
 ## Flags comuns
 
-- `--url <gatewayWsUrl>`: URL do WebSocket do Gateway (padrao da configuracao).
-- `--token <token>`: token do Gateway (se necessario).
-- `--timeout <ms>`: tempo limite da requisicao (ms).
-- `--browser-profile <name>`: escolher um perfil de navegador (padrao da configuracao).
-- `--json`: saida legivel por maquina (onde suportado).
+- `--url <gatewayWsUrl>`: URL do WebSocket do Gateway (padrão a partir da configuração).
+- `--token <token>`: token do Gateway (se necessário).
+- `--timeout <ms>`: tempo limite da solicitação (ms).
+- `--browser-profile <name>`: escolher um perfil de navegador (padrão a partir da configuração).
+- `--json`: saída legível por máquina (onde suportado).
 
-## Inicio rapido (local)
+## Início rápido (local)
 
 ```bash
 openclaw browser --browser-profile chrome tabs
@@ -42,10 +42,10 @@ openclaw browser --browser-profile openclaw snapshot
 
 ## Perfis
 
-Perfis sao configuracoes nomeadas de roteamento do navegador. Na pratica:
+Perfis são configurações nomeadas de roteamento do navegador. Na prática:
 
-- `openclaw`: inicia/anexa a uma instancia dedicada do Chrome gerenciada pelo OpenClaw (diretorio de dados do usuario isolado).
-- `chrome`: controla suas abas existentes do Chrome via o relay da extensao do Chrome.
+- `openclaw`: inicia/anexa a uma instância dedicada do Chrome gerenciada pelo OpenClaw (diretório de dados do usuário isolado).
+- `chrome`: controla suas abas existentes do Chrome via o relay da extensão do Chrome.
 
 ```bash
 openclaw browser profiles
@@ -53,7 +53,7 @@ openclaw browser create-profile --name work --color "#FF5A36"
 openclaw browser delete-profile --name work
 ```
 
-Use um perfil especifico:
+Use um perfil específico:
 
 ```bash
 openclaw browser --browser-profile work tabs
@@ -68,7 +68,7 @@ openclaw browser focus <targetId>
 openclaw browser close <targetId>
 ```
 
-## Snapshot / captura de tela / acoes
+## Snapshot / captura de tela / ações
 
 Snapshot:
 
@@ -82,7 +82,7 @@ Captura de tela:
 openclaw browser screenshot
 ```
 
-Navegar/clicar/digitar (automacao de UI baseada em ref):
+Navegar/clicar/digitar (automação de UI baseada em referência):
 
 ```bash
 openclaw browser navigate https://example.com
@@ -90,25 +90,25 @@ openclaw browser click <ref>
 openclaw browser type <ref> "hello"
 ```
 
-## Relay da extensao do Chrome (anexar via botao da barra de ferramentas)
+## Relay da extensão do Chrome (anexar via botão da barra de ferramentas)
 
-Este modo permite que o agente controle uma aba existente do Chrome que voce anexa manualmente (nao ha anexo automatico).
+Este modo permite que o agente controle uma aba existente do Chrome que você anexa manualmente (ele não se anexa automaticamente).
 
-Instale a extensao desempacotada em um caminho estavel:
+Instale a extensão descompactada em um caminho estável:
 
 ```bash
 openclaw browser extension install
 openclaw browser extension path
 ```
 
-Em seguida, Chrome → `chrome://extensions` → habilite “Developer mode” → “Load unpacked” → selecione a pasta exibida.
+Depois, Chrome → `chrome://extensions` → habilite “Modo do desenvolvedor” → “Carregar sem compactação” → selecione a pasta exibida.
 
 Guia completo: [Chrome extension](/tools/chrome-extension)
 
-## Controle remoto do navegador (proxy de node host)
+## Controle remoto do navegador (proxy de host de nó)
 
-Se o Gateway roda em uma maquina diferente do navegador, execute um **node host** na maquina que tem Chrome/Brave/Edge/Chromium. O Gateway fara o proxy das acoes do navegador para esse node (nenhum servidor de controle de navegador separado e necessario).
+Se o Gateway estiver em uma máquina diferente do navegador, execute um **host de nó** na máquina que tem Chrome/Brave/Edge/Chromium. O Gateway fará o proxy das ações do navegador para esse nó (nenhum servidor separado de controle do navegador é necessário).
 
-Use `gateway.nodes.browser.mode` para controlar o roteamento automatico e `gateway.nodes.browser.node` para fixar um node especifico se varios estiverem conectados.
+Use `gateway.nodes.browser.mode` para controlar o roteamento automático e `gateway.nodes.browser.node` para fixar um nó específico se vários estiverem conectados.
 
-Seguranca + configuracao remota: [Browser tool](/tools/browser), [Remote access](/gateway/remote), [Tailscale](/gateway/tailscale), [Security](/gateway/security)
+Segurança + configuração remota: [Browser tool](/tools/browser), [Remote access](/gateway/remote), [Tailscale](/gateway/tailscale), [Security](/gateway/security)

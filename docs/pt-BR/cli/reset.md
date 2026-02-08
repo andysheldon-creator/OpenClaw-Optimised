@@ -1,8 +1,8 @@
 ---
-summary: "Referencia da CLI para `openclaw reset` (redefine o estado/configuracao local)"
+summary: "Referência da CLI para `openclaw reset` (redefine o estado/configuração local)"
 read_when:
-  - Voce quer apagar o estado local mantendo a CLI instalada
-  - Voce quer uma simulacao (dry-run) do que seria removido
+  - Você quer apagar o estado local mantendo a CLI instalada
+  - Você quer um dry-run do que seria removido
 title: "reset"
 x-i18n:
   source_path: cli/reset.md
@@ -10,12 +10,12 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:37Z
+  generated_at: 2026-02-08T09:30:23Z
 ---
 
 # `openclaw reset`
 
-Redefine a configuracao/estado local (mantem a CLI instalada).
+Redefine a configuração/estado local (mantém a CLI instalada).
 
 ```bash
 openclaw reset

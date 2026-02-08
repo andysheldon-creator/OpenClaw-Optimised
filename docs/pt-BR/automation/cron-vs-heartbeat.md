@@ -1,9 +1,9 @@
 ---
-summary: "Orientacoes para escolher entre heartbeat e cron jobs para automacao"
+summary: "Orientações para escolher entre heartbeat e jobs cron para automação"
 read_when:
   - Decidindo como agendar tarefas recorrentes
-  - Configurando monitoramento em segundo plano ou notificacoes
-  - Otimizando o uso de tokens para verificacoes periodicas
+  - Configurando monitoramento em segundo plano ou notificações
+  - Otimizando o uso de tokens para verificações periódicas
 title: "Cron vs Heartbeat"
 x-i18n:
   source_path: automation/cron-vs-heartbeat.md
@@ -11,44 +11,44 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:21Z
+  generated_at: 2026-02-08T09:29:56Z
 ---
 
 # Cron vs Heartbeat: Quando usar cada um
 
-Tanto heartbeats quanto cron jobs permitem executar tarefas em um agendamento. Este guia ajuda voce a escolher o mecanismo certo para o seu caso de uso.
+Tanto heartbeats quanto jobs cron permitem executar tarefas em um agendamento. Este guia ajuda voce a escolher o mecanismo certo para o seu caso de uso.
 
-## Guia rapido de decisao
+## Guia rápido de decisão
 
-| Caso de uso                                      | Recomendado         | Por que                                              |
-| ------------------------------------------------ | ------------------- | ---------------------------------------------------- |
-| Verificar inbox a cada 30 min                    | Heartbeat           | Agrupa com outras verificacoes, sensivel ao contexto |
-| Enviar relatorio diario as 9h em ponto           | Cron (isolado)      | Temporizacao exata necessaria                        |
-| Monitorar calendario para eventos futuros        | Heartbeat           | Ajuste natural para consciencia periodica            |
-| Executar analise profunda semanal                | Cron (isolado)      | Tarefa independente, pode usar modelo diferente      |
-| Lembre-me em 20 minutos                          | Cron (main, `--at`) | Execucao unica com temporizacao precisa              |
-| Verificacao de saude do projeto em segundo plano | Heartbeat           | Aproveita o ciclo existente                          |
+| Caso de uso                                      | Recomendado         | Por quê                                            |
+| ------------------------------------------------ | ------------------- | -------------------------------------------------- |
+| Verificar inbox a cada 30 min                    | Heartbeat           | Agrupa com outras verificações, ciente de contexto |
+| Enviar relatório diário às 9h em ponto           | Cron (isolado)      | Necessita de horário exato                         |
+| Monitorar calendário para eventos próximos       | Heartbeat           | Encaixe natural para consciência periódica         |
+| Executar análise profunda semanal                | Cron (isolado)      | Tarefa independente, pode usar modelo diferente    |
+| Lembrar em 20 minutos                            | Cron (main, `--at`) | Execução única com temporização precisa            |
+| Verificação de saúde do projeto em segundo plano | Heartbeat           | Aproveita o ciclo existente                        |
 
-## Heartbeat: Consciencia periodica
+## Heartbeat: Consciência periódica
 
-Heartbeats executam na **sessao principal** em um intervalo regular (padrao: 30 min). Eles foram projetados para que o agente verifique as coisas e traga a tona qualquer coisa importante.
+Heartbeats são executados na **sessão principal** em um intervalo regular (padrão: 30 min). Eles foram projetados para o agente verificar as coisas e destacar o que for importante.
 
 ### Quando usar heartbeat
 
-- **Multiplas verificacoes periodicas**: Em vez de 5 cron jobs separados verificando inbox, calendario, clima, notificacoes e status do projeto, um unico heartbeat pode agrupar tudo isso.
-- **Decisoes sensiveis ao contexto**: O agente tem contexto completo da sessao principal, entao pode tomar decisoes inteligentes sobre o que e urgente vs. o que pode esperar.
-- **Continuidade conversacional**: Execucoes de heartbeat compartilham a mesma sessao, entao o agente se lembra de conversas recentes e pode acompanhar naturalmente.
+- **Múltiplas verificações periódicas**: Em vez de 5 jobs cron separados verificando inbox, calendário, clima, notificações e status do projeto, um único heartbeat pode agrupar tudo isso.
+- **Decisões cientes de contexto**: O agente tem todo o contexto da sessão principal, então pode tomar decisões inteligentes sobre o que é urgente vs. o que pode esperar.
+- **Continuidade conversacional**: Execuções de heartbeat compartilham a mesma sessão, então o agente se lembra de conversas recentes e pode dar seguimento de forma natural.
 - **Monitoramento de baixo overhead**: Um heartbeat substitui muitas pequenas tarefas de polling.
 
 ### Vantagens do heartbeat
 
-- **Agrupa multiplas verificacoes**: Um turno do agente pode revisar inbox, calendario e notificacoes juntos.
-- **Reduz chamadas de API**: Um unico heartbeat e mais barato do que 5 cron jobs isolados.
-- **Sensivel ao contexto**: O agente sabe no que voce tem trabalhado e pode priorizar adequadamente.
-- **Supressao inteligente**: Se nada precisar de atencao, o agente responde `HEARTBEAT_OK` e nenhuma mensagem e entregue.
-- **Temporizacao natural**: Deriva levemente com base na carga da fila, o que e aceitavel para a maioria dos monitoramentos.
+- **Agrupa múltiplas verificações**: Um turno do agente pode revisar inbox, calendário e notificações juntos.
+- **Reduz chamadas de API**: Um único heartbeat é mais barato do que 5 jobs cron isolados.
+- **Ciente de contexto**: O agente sabe no que voce tem trabalhado e pode priorizar de acordo.
+- **Supressão inteligente**: Se nada exigir atenção, o agente responde `HEARTBEAT_OK` e nenhuma mensagem é entregue.
+- **Temporização natural**: Sofre leve deriva com base na carga da fila, o que é aceitável para a maioria dos monitoramentos.
 
-### Exemplo de heartbeat: checklist HEARTBEAT.md
+### Exemplo de heartbeat: checklist do HEARTBEAT.md
 
 ```md
 # Heartbeat checklist
@@ -59,7 +59,7 @@ Heartbeats executam na **sessao principal** em um intervalo regular (padrao: 30 
 - If idle for 8+ hours, send a brief check-in
 ```
 
-O agente le isso em cada heartbeat e trata todos os itens em um unico turno.
+O agente lê isso a cada heartbeat e trata todos os itens em um único turno.
 
 ### Configurando heartbeat
 
@@ -77,32 +77,32 @@ O agente le isso em cada heartbeat e trata todos os itens em um unico turno.
 }
 ```
 
-Veja [Heartbeat](/gateway/heartbeat) para mais detalhes de configuracao.
+Veja [Heartbeat](/gateway/heartbeat) para a configuração completa.
 
 ## Cron: Agendamento preciso
 
-Cron jobs executam em **horarios exatos** e podem rodar em sessoes isoladas sem afetar o contexto principal.
+Jobs cron são executados em **horários exatos** e podem rodar em sessões isoladas sem afetar o contexto principal.
 
 ### Quando usar cron
 
-- **Temporizacao exata necessaria**: "Envie isso as 9:00 da manha toda segunda-feira" (nao "em algum momento por volta das 9").
-- **Tarefas independentes**: Tarefas que nao precisam de contexto conversacional.
-- **Modelo/pensamento diferente**: Analises pesadas que justificam um modelo mais poderoso.
-- **Lembretes de execucao unica**: "Lembre-me em 20 minutos" com `--at`.
-- **Tarefas ruidosas/frequentes**: Tarefas que baguncariam o historico da sessao principal.
-- **Gatilhos externos**: Tarefas que devem rodar independentemente de o agente estar ativo de outra forma.
+- **Horário exato obrigatório**: "Envie isso às 9:00 toda segunda-feira" (não "por volta das 9").
+- **Tarefas independentes**: Tarefas que não precisam de contexto conversacional.
+- **Modelo/pensamento diferente**: Análises pesadas que justificam um modelo mais poderoso.
+- **Lembretes de execução única**: "Lembre-me em 20 minutos" com `--at`.
+- **Tarefas ruidosas/frequentes**: Tarefas que poluiriam o histórico da sessão principal.
+- **Gatilhos externos**: Tarefas que devem rodar independentemente de o agente estar ativo.
 
 ### Vantagens do cron
 
-- **Temporizacao exata**: Expressoes cron de 5 campos com suporte a fuso horario.
-- **Isolamento de sessao**: Executa em `cron:<jobId>` sem poluir o historico principal.
-- **Substituicao de modelo**: Use um modelo mais barato ou mais poderoso por job.
-- **Controle de entrega**: Jobs isolados usam `announce` (resumo) por padrao; escolha `none` conforme necessario.
-- **Entrega imediata**: O modo announce publica diretamente sem esperar pelo heartbeat.
-- **Nenhum contexto do agente necessario**: Executa mesmo se a sessao principal estiver ociosa ou compactada.
-- **Suporte a execucao unica**: `--at` para timestamps futuros precisos.
+- **Horário exato**: Expressões cron de 5 campos com suporte a fuso horário.
+- **Isolamento de sessão**: Executa em `cron:<jobId>` sem poluir o histórico principal.
+- **Sobrescritas de modelo**: Use um modelo mais barato ou mais poderoso por job.
+- **Controle de entrega**: Jobs isolados usam por padrão `announce` (resumo); escolha `none` conforme necessário.
+- **Entrega imediata**: O modo de anúncio publica diretamente sem esperar o heartbeat.
+- **Sem contexto do agente**: Executa mesmo se a sessão principal estiver ociosa ou compactada.
+- **Suporte a execução única**: `--at` para timestamps futuros precisos.
 
-### Exemplo de cron: briefing matinal diario
+### Exemplo de cron: briefing matinal diário
 
 ```bash
 openclaw cron add \
@@ -117,9 +117,9 @@ openclaw cron add \
   --to "+15551234567"
 ```
 
-Isso executa exatamente as 7:00 da manha no horario de Nova York, usa Opus para qualidade e anuncia um resumo diretamente no WhatsApp.
+Isso roda exatamente às 7:00 da manhã no horário de Nova York, usa Opus para qualidade e anuncia um resumo diretamente no WhatsApp.
 
-### Exemplo de cron: lembrete de execucao unica
+### Exemplo de cron: lembrete de execução única
 
 ```bash
 openclaw cron add \
@@ -131,9 +131,9 @@ openclaw cron add \
   --delete-after-run
 ```
 
-Veja [Cron jobs](/automation/cron-jobs) para referencia completa de CLI.
+Veja [Cron jobs](/automation/cron-jobs) para a referência completa da CLI.
 
-## Fluxograma de decisao
+## Fluxograma de decisão
 
 ```
 Does the task need to run at an EXACT time?
@@ -159,12 +159,12 @@ Does it need a different model or thinking level?
 
 ## Combinando ambos
 
-A configuracao mais eficiente usa **ambos**:
+A configuração mais eficiente usa **ambos**:
 
-1. **Heartbeat** cuida do monitoramento rotineiro (inbox, calendario, notificacoes) em um unico turno agrupado a cada 30 minutos.
-2. **Cron** cuida de agendamentos precisos (relatorios diarios, revisoes semanais) e lembretes de execucao unica.
+1. **Heartbeat** cuida do monitoramento de rotina (inbox, calendário, notificações) em um único turno em lote a cada 30 minutos.
+2. **Cron** cuida de agendas precisas (relatórios diários, revisões semanais) e lembretes de execução única.
 
-### Exemplo: configuracao de automacao eficiente
+### Exemplo: configuração de automação eficiente
 
 **HEARTBEAT.md** (verificado a cada 30 min):
 
@@ -177,7 +177,7 @@ A configuracao mais eficiente usa **ambos**:
 - Light check-in if quiet for 8+ hours
 ```
 
-**Cron jobs** (temporizacao precisa):
+**Jobs cron** (temporização precisa):
 
 ```bash
 # Daily morning briefing at 7am
@@ -190,53 +190,53 @@ openclaw cron add --name "Weekly review" --cron "0 9 * * 1" --session isolated -
 openclaw cron add --name "Call back" --at "2h" --session main --system-event "Call back the client" --wake now
 ```
 
-## Lobster: Workflows deterministicas com aprovacoes
+## Lobster: fluxos de trabalho determinísticos com aprovações
 
-Lobster e o runtime de workflow para **pipelines de ferramentas em varias etapas** que precisam de execucao deterministica e aprovacoes explicitas.
-Use quando a tarefa e mais do que um unico turno do agente, e voce quer um workflow retomavel com checkpoints humanos.
+Lobster é o runtime de workflow para **pipelines de ferramentas em múltiplas etapas** que precisam de execução determinística e aprovações explícitas.
+Use quando a tarefa é mais do que um único turno do agente e voce quer um workflow retomável com checkpoints humanos.
 
-### Quando Lobster se encaixa
+### Quando o Lobster se encaixa
 
-- **Automacao em varias etapas**: Voce precisa de um pipeline fixo de chamadas de ferramentas, nao de um prompt pontual.
-- **Portas de aprovacao**: Efeitos colaterais devem pausar ate voce aprovar, e depois retomar.
-- **Execucoes retomaveis**: Continue um workflow pausado sem reexecutar etapas anteriores.
+- **Automação em múltiplas etapas**: Voce precisa de um pipeline fixo de chamadas de ferramentas, não de um prompt pontual.
+- **Portões de aprovação**: Efeitos colaterais devem pausar até voce aprovar e então retomar.
+- **Execuções retomáveis**: Continuar um workflow pausado sem reexecutar etapas anteriores.
 
-### Como ele se combina com heartbeat e cron
+### Como ele se integra com heartbeat e cron
 
-- **Heartbeat/cron** decidem _quando_ uma execucao acontece.
-- **Lobster** define _quais etapas_ acontecem quando a execucao comeca.
+- **Heartbeat/cron** decidem _quando_ uma execução acontece.
+- **Lobster** define _quais etapas_ acontecem quando a execução começa.
 
 Para workflows agendados, use cron ou heartbeat para acionar um turno do agente que chama o Lobster.
 Para workflows ad-hoc, chame o Lobster diretamente.
 
-### Notas operacionais (do codigo)
+### Notas operacionais (do código)
 
-- O Lobster roda como um **subprocesso local** (`lobster` CLI) em modo de ferramenta e retorna um **envelope JSON**.
+- O Lobster roda como um **subprocesso local** (CLI `lobster`) em modo de ferramenta e retorna um **envelope JSON**.
 - Se a ferramenta retornar `needs_approval`, voce retoma com um `resumeToken` e a flag `approve`.
-- A ferramenta e um **plugin opcional**; habilite de forma aditiva via `tools.alsoAllow: ["lobster"]` (recomendado).
+- A ferramenta é um **plugin opcional**; habilite-a de forma aditiva via `tools.alsoAllow: ["lobster"]` (recomendado).
 - Se voce passar `lobsterPath`, ele deve ser um **caminho absoluto**.
 
 Veja [Lobster](/tools/lobster) para uso completo e exemplos.
 
-## Sessao Principal vs Sessao Isolada
+## Sessão principal vs Sessão isolada
 
-Tanto heartbeat quanto cron podem interagir com a sessao principal, mas de formas diferentes:
+Tanto heartbeat quanto cron podem interagir com a sessão principal, mas de maneiras diferentes:
 
 |           | Heartbeat                      | Cron (main)                       | Cron (isolado)           |
 | --------- | ------------------------------ | --------------------------------- | ------------------------ |
-| Sessao    | Principal                      | Principal (via evento do sistema) | `cron:<jobId>`           |
-| Historico | Compartilhado                  | Compartilhado                     | Novo a cada execucao     |
-| Contexto  | Completo                       | Completo                          | Nenhum (comeca limpo)    |
-| Modelo    | Modelo da sessao principal     | Modelo da sessao principal        | Pode substituir          |
-| Saida     | Entregue se nao `HEARTBEAT_OK` | Prompt de heartbeat + evento      | Anunciar resumo (padrao) |
+| Sessão    | Principal                      | Principal (via evento do sistema) | `cron:<jobId>`           |
+| Histórico | Compartilhado                  | Compartilhado                     | Novo a cada execução     |
+| Contexto  | Completo                       | Completo                          | Nenhum (começa limpo)    |
+| Modelo    | Modelo da sessão principal     | Modelo da sessão principal        | Pode sobrescrever        |
+| Saída     | Entregue se não `HEARTBEAT_OK` | Prompt do heartbeat + evento      | Anunciar resumo (padrão) |
 
-### Quando usar cron na sessao principal
+### Quando usar cron na sessão principal
 
 Use `--session main` com `--system-event` quando voce quiser:
 
-- Que o lembrete/evento apareca no contexto da sessao principal
-- Que o agente lide com isso durante o proximo heartbeat com contexto completo
-- Nenhuma execucao isolada separada
+- Que o lembrete/evento apareça no contexto da sessão principal
+- Que o agente lide com isso durante o próximo heartbeat com contexto completo
+- Nenhuma execução isolada separada
 
 ```bash
 openclaw cron add \
@@ -251,10 +251,10 @@ openclaw cron add \
 
 Use `--session isolated` quando voce quiser:
 
-- Um estado limpo sem contexto previo
-- Modelo ou configuracoes de pensamento diferentes
-- Anunciar resumos diretamente em um canal
-- Historico que nao bagunce a sessao principal
+- Um estado limpo sem contexto prévio
+- Configurações diferentes de modelo ou pensamento
+- Anunciar resumos diretamente para um canal
+- Histórico que não polui a sessão principal
 
 ```bash
 openclaw cron add \
@@ -267,23 +267,23 @@ openclaw cron add \
   --announce
 ```
 
-## Consideracoes de custo
+## Considerações de custo
 
 | Mecanismo      | Perfil de custo                                                 |
 | -------------- | --------------------------------------------------------------- |
 | Heartbeat      | Um turno a cada N minutos; escala com o tamanho do HEARTBEAT.md |
-| Cron (main)    | Adiciona evento ao proximo heartbeat (sem turno isolado)        |
+| Cron (main)    | Adiciona evento ao próximo heartbeat (sem turno isolado)        |
 | Cron (isolado) | Turno completo do agente por job; pode usar modelo mais barato  |
 
 **Dicas**:
 
 - Mantenha `HEARTBEAT.md` pequeno para minimizar overhead de tokens.
-- Agrupe verificacoes semelhantes no heartbeat em vez de varios cron jobs.
+- Agrupe verificações semelhantes no heartbeat em vez de múltiplos jobs cron.
 - Use `target: "none"` no heartbeat se voce quiser apenas processamento interno.
 - Use cron isolado com um modelo mais barato para tarefas rotineiras.
 
-## Relacionado
+## Relacionados
 
-- [Heartbeat](/gateway/heartbeat) - configuracao completa de heartbeat
-- [Cron jobs](/automation/cron-jobs) - referencia completa de CLI e API de cron
+- [Heartbeat](/gateway/heartbeat) - configuração completa de heartbeat
+- [Cron jobs](/automation/cron-jobs) - referência completa da CLI e API de cron
 - [System](/cli/system) - eventos do sistema + controles de heartbeat

@@ -2,14 +2,14 @@
 summary: "Tham chiếu CLI cho `openclaw agents` (liệt kê/thêm/xóa/đặt danh tính)"
 read_when:
   - Bạn muốn nhiều tác tử cô lập (không gian làm việc + định tuyến + xác thực)
-title: "tác tử"
+title: "agents"
 x-i18n:
   source_path: cli/agents.md
   source_hash: 30556d81636a9ad8
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:17Z
+  generated_at: 2026-02-08T09:38:15Z
 ---
 
 # `openclaw agents`
@@ -19,7 +19,7 @@ Quản lý các tác tử cô lập (không gian làm việc + xác thực + đ�
 Liên quan:
 
 - Định tuyến đa tác tử: [Multi-Agent Routing](/concepts/multi-agent)
-- Không gian làm việc tác tử: [Agent workspace](/concepts/agent-workspace)
+- Không gian làm việc của tác tử: [Agent workspace](/concepts/agent-workspace)
 
 ## Ví dụ
 
@@ -33,12 +33,12 @@ openclaw agents delete work
 
 ## Tệp danh tính
 
-Mỗi không gian làm việc của tác tử có thể bao gồm một `IDENTITY.md` ở thư mục gốc của không gian làm việc:
+Mỗi không gian làm việc của tác tử có thể bao gồm một `IDENTITY.md` tại thư mục gốc của workspace:
 
 - Đường dẫn ví dụ: `~/.openclaw/workspace/IDENTITY.md`
-- `set-identity --from-identity` đọc từ thư mục gốc của không gian làm việc (hoặc một `--identity-file` được chỉ định rõ)
+- `set-identity --from-identity` đọc từ thư mục gốc của workspace (hoặc một `--identity-file` được chỉ định rõ)
 
-Đường dẫn avatar được phân giải tương đối so với thư mục gốc của không gian làm việc.
+Đường dẫn avatar được phân giải tương đối so với thư mục gốc của workspace.
 
 ## Đặt danh tính
 
@@ -47,7 +47,7 @@ Mỗi không gian làm việc của tác tử có thể bao gồm một `IDENTIT
 - `name`
 - `theme`
 - `emoji`
-- `avatar` (đường dẫn tương đối với không gian làm việc, URL http(s), hoặc data URI)
+- `avatar` (đường dẫn tương đối theo workspace, URL http(s), hoặc data URI)
 
 Tải từ `IDENTITY.md`:
 

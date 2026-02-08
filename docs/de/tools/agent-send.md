@@ -1,7 +1,7 @@
 ---
-summary: "Direkte Ausfuehrungen des `openclaw agent`-CLI (mit optionaler Zustellung)"
+summary: "Direkte `openclaw agent`-CLI-Ausführungen (mit optionaler Zustellung)"
 read_when:
-  - Hinzufuegen oder Aendern des Agent-CLI-Einstiegspunkts
+  - Hinzufügen oder Ändern des Agent-CLI-Einstiegspunkts
 title: "Agent senden"
 x-i18n:
   source_path: tools/agent-send.md
@@ -9,31 +9,31 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:41Z
+  generated_at: 2026-02-08T09:37:29Z
 ---
 
-# `openclaw agent` (direkte Agent-Ausfuehrungen)
+# `openclaw agent` (direkte Agent-Ausführungen)
 
-`openclaw agent` fuehrt einen einzelnen Agenten-Zug aus, ohne dass eine eingehende Chat-Nachricht erforderlich ist.
-Standardmaessig laeuft dies **ueber das Gateway**; fuegen Sie `--local` hinzu, um die eingebettete
-Laufzeit auf der aktuellen Maschine zu erzwingen.
+`openclaw agent` führt einen einzelnen Agent-Durchlauf aus, ohne dass eine eingehende Chat-Nachricht erforderlich ist.
+Standardmäßig erfolgt die Ausführung **über das Gateway**; fügen Sie `--local` hinzu, um die eingebettete
+Laufzeit auf dem aktuellen Rechner zu erzwingen.
 
 ## Verhalten
 
 - Erforderlich: `--message <text>`
-- Sitzungswahl:
-  - `--to <dest>` leitet den Sitzungsschluessel ab (Gruppen-/Kanalziele bewahren die Isolation; Direktchats werden zu `main` zusammengefuehrt), **oder**
-  - `--session-id <id>` verwendet eine bestehende Sitzung per ID wieder, **oder**
-  - `--agent <id>` zielt direkt auf einen konfigurierten Agenten (verwendet den `main`-Sitzungsschluessel dieses Agenten)
-- Fuehrt dieselbe eingebettete Agenten-Laufzeit aus wie normale eingehende Antworten.
-- Thinking-/Verbose-Flags werden im Sitzungsspeicher beibehalten.
+- Sitzungsauswahl:
+  - `--to <dest>` leitet den Sitzungsschlüssel ab (Gruppen-/Kanalziele bewahren die Isolation; Direktchats werden zu `main` zusammengeführt), **oder**
+  - `--session-id <id>` verwendet eine bestehende Sitzung anhand der ID erneut, **oder**
+  - `--agent <id>` adressiert direkt einen konfigurierten Agenten (verwendet den `main`-Sitzungsschlüssel dieses Agenten)
+- Führt dieselbe eingebettete Agent-Laufzeit aus wie normale eingehende Antworten.
+- Thinking-/Verbose-Flags werden im Sitzungsspeicher persistiert.
 - Ausgabe:
-  - Standard: gibt den Antworttext aus (zuzueglich `MEDIA:<url>`-Zeilen)
-  - `--json`: gibt eine strukturierte Nutzlast + Metadaten aus
-- Optionale Zustellung zurueck an einen Kanal mit `--deliver` + `--channel` (Zielformate entsprechen `openclaw message --target`).
-- Verwenden Sie `--reply-channel`/`--reply-to`/`--reply-account`, um die Zustellung zu ueberschreiben, ohne die Sitzung zu aendern.
+  - Standard: gibt den Antworttext aus (zuzüglich `MEDIA:<url>`-Zeilen)
+  - `--json`: gibt strukturierte Nutzlast + Metadaten aus
+- Optionale Zustellung zurück an einen Kanal mit `--deliver` + `--channel` (Zielformate entsprechen `openclaw message --target`).
+- Verwenden Sie `--reply-channel`/`--reply-to`/`--reply-account`, um die Zustellung zu überschreiben, ohne die Sitzung zu ändern.
 
-Wenn das Gateway nicht erreichbar ist, **faellt** das CLI auf die eingebettete lokale Ausfuehrung zurueck.
+Wenn das Gateway nicht erreichbar ist, **fällt** die CLI auf die eingebettete lokale Ausführung zurück.
 
 ## Beispiele
 
@@ -48,13 +48,13 @@ openclaw agent --agent ops --message "Generate report" --deliver --reply-channel
 
 ## Flags
 
-- `--local`: lokal ausfuehren (erfordert API-Schluessel des Modellanbieters in Ihrer Shell)
-- `--deliver`: die Antwort an den ausgewaehlten Kanal senden
-- `--channel`: Zustellkanal (`whatsapp|telegram|discord|googlechat|slack|signal|imessage`, Standard: `whatsapp`)
-- `--reply-to`: Ueberschreibung des Zustellziels
-- `--reply-channel`: Ueberschreibung des Zustellkanals
-- `--reply-account`: Ueberschreibung der Zustellkonto-ID
-- `--thinking <off|minimal|low|medium|high|xhigh>`: Thinking-Stufe beibehalten (nur GPT-5.2- und Codex-Modelle)
-- `--verbose <on|full|off>`: Verbose-Stufe beibehalten
-- `--timeout <seconds>`: Agenten-Timeout ueberschreiben
+- `--local`: lokal ausführen (erfordert API-Schlüssel des Modellanbieters in Ihrer Shell)
+- `--deliver`: sendet die Antwort an den gewählten Kanal
+- `--channel`: Zustellungskanal (`whatsapp|telegram|discord|googlechat|slack|signal|imessage`, Standard: `whatsapp`)
+- `--reply-to`: Überschreibung des Zustellziels
+- `--reply-channel`: Überschreibung des Zustellungskanals
+- `--reply-account`: Überschreibung der Zustellungs-Konto-ID
+- `--thinking <off|minimal|low|medium|high|xhigh>`: Thinking-Level persistieren (nur GPT-5.2- und Codex-Modelle)
+- `--verbose <on|full|off>`: Verbose-Level persistieren
+- `--timeout <seconds>`: Agent-Timeout überschreiben
 - `--json`: strukturierte JSON-Ausgabe

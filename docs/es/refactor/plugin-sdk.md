@@ -1,55 +1,55 @@
 ---
-summary: "Plan: un SDK de plugins limpio + runtime para todos los conectores de mensajeria"
+summary: "Plan: un SDK de plugins limpio + runtime para todos los conectores de mensajería"
 read_when:
-  - Definiendo o refactorizando la arquitectura de plugins
-  - Migrando conectores de canales al SDK/runtime de plugins
-title: "Refactorizacion del SDK de Plugins"
+  - Definir o refactorizar la arquitectura de plugins
+  - Migrar conectores de canal al SDK/runtime de plugins
+title: "Refactorización del SDK de Plugins"
 x-i18n:
   source_path: refactor/plugin-sdk.md
-  source_hash: d1964e2e47a19ee1
+  source_hash: 1f3519f43632fcac
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:59:51Z
+  generated_at: 2026-02-08T09:34:31Z
 ---
 
-# Plan de Refactorizacion del SDK + Runtime de Plugins
+# Plan de refactorización del SDK + Runtime de Plugins
 
-Objetivo: cada conector de mensajeria es un plugin (incluido o externo) que usa una API estable unica.
-Ningun plugin importa directamente desde `src/**`. Todas las dependencias pasan por el SDK o el runtime.
+Objetivo: cada conector de mensajería es un plugin (integrado o externo) que usa una API estable.
+Ningún plugin importa directamente desde `src/**`. Todas las dependencias pasan por el SDK o el runtime.
 
-## Por que ahora
+## Por qué ahora
 
-- Los conectores actuales mezclan patrones: importaciones directas del core, puentes solo de dist y helpers personalizados.
-- Esto hace que las actualizaciones sean fragiles y bloquea una superficie limpia para plugins externos.
+- Los conectores actuales mezclan patrones: importaciones directas del core, puentes solo de distribución y helpers personalizados.
+- Esto vuelve frágiles las actualizaciones y bloquea una superficie limpia para plugins externos.
 
 ## Arquitectura objetivo (dos capas)
 
-### 1) SDK de Plugins (tiempo de compilacion, estable, publicable)
+### 1) SDK de Plugins (tiempo de compilación, estable, publicable)
 
-Alcance: tipos, helpers y utilidades de configuracion. Sin estado en runtime ni efectos secundarios.
+Alcance: tipos, helpers y utilidades de configuración. Sin estado en runtime, sin efectos secundarios.
 
 Contenido (ejemplos):
 
-- Tipos: `ChannelPlugin`, adaptadores, `ChannelMeta`, `ChannelCapabilities`, `ChannelDirectoryEntry`.
-- Helpers de configuracion: `buildChannelConfigSchema`, `setAccountEnabledInConfigSection`, `deleteAccountFromConfigSection`,
+- Tipos: `ChannelPlugin`, adapters, `ChannelMeta`, `ChannelCapabilities`, `ChannelDirectoryEntry`.
+- Helpers de configuración: `buildChannelConfigSchema`, `setAccountEnabledInConfigSection`, `deleteAccountFromConfigSection`,
   `applyAccountNameToChannelSection`.
 - Helpers de emparejamiento: `PAIRING_APPROVED_MESSAGE`, `formatPairingApproveHint`.
-- Helpers de incorporacion: `promptChannelAccessConfig`, `addWildcardAllowFrom`, tipos de incorporacion.
-- Helpers de parametros de herramientas: `createActionGate`, `readStringParam`, `readNumberParam`, `readReactionParams`, `jsonResult`.
-- Helper de enlace a documentacion: `formatDocsLink`.
+- Helpers de onboarding: `promptChannelAccessConfig`, `addWildcardAllowFrom`, tipos de onboarding.
+- Helpers de parámetros de herramientas: `createActionGate`, `readStringParam`, `readNumberParam`, `readReactionParams`, `jsonResult`.
+- Helper de enlace a docs: `formatDocsLink`.
 
 Entrega:
 
 - Publicar como `openclaw/plugin-sdk` (o exportar desde el core bajo `openclaw/plugin-sdk`).
-- Semver con garantias explicitas de estabilidad.
+- Semver con garantías explícitas de estabilidad.
 
-### 2) Runtime de Plugins (superficie de ejecucion, inyectado)
+### 2) Runtime de Plugins (superficie de ejecución, inyectado)
 
 Alcance: todo lo que toca el comportamiento del runtime del core.
-Accedido via `OpenClawPluginApi.runtime` para que los plugins nunca importen `src/**`.
+Se accede vía `OpenClawPluginApi.runtime` para que los plugins nunca importen `src/**`.
 
-Superficie propuesta (minima pero completa):
+Superficie propuesta (mínima pero completa):
 
 ```ts
 export type PluginRuntime = {
@@ -153,69 +153,69 @@ export type PluginRuntime = {
 
 Notas:
 
-- El runtime es la unica forma de acceder al comportamiento del core.
-- El SDK es intencionalmente pequeno y estable.
-- Cada metodo del runtime mapea a una implementacion existente del core (sin duplicacion).
+- El runtime es la única forma de acceder al comportamiento del core.
+- El SDK es intencionalmente pequeño y estable.
+- Cada método del runtime mapea a una implementación existente del core (sin duplicación).
 
-## Plan de migracion (por fases, seguro)
+## Plan de migración (por fases, seguro)
 
 ### Fase 0: andamiaje
 
 - Introducir `openclaw/plugin-sdk`.
 - Agregar `api.runtime` a `OpenClawPluginApi` con la superficie anterior.
-- Mantener las importaciones existentes durante una ventana de transicion (advertencias de deprecacion).
+- Mantener importaciones existentes durante una ventana de transición (advertencias de deprecación).
 
 ### Fase 1: limpieza de puentes (bajo riesgo)
 
-- Reemplazar `core-bridge.ts` por extension con `api.runtime`.
-- Migrar BlueBubbles, Zalo, Zalo Personal primero (ya estan cerca).
-- Eliminar codigo de puente duplicado.
+- Reemplazar `core-bridge.ts` por extensión con `api.runtime`.
+- Migrar primero BlueBubbles, Zalo, Zalo Personal (ya están cerca).
+- Eliminar código de puente duplicado.
 
 ### Fase 2: plugins con importaciones directas ligeras
 
-- Migrar Matrix al SDK + runtime.
-- Validar la incorporacion, el directorio y la logica de menciones de grupo.
+- Migrar Matrix a SDK + runtime.
+- Validar onboarding, directorio y lógica de menciones de grupos.
 
 ### Fase 3: plugins con importaciones directas pesadas
 
-- Migrar MS Teams (el conjunto mas grande de helpers de runtime).
-- Asegurar que la semantica de respuestas/escritura coincida con el comportamiento actual.
+- Migrar MS Teams (el mayor conjunto de helpers de runtime).
+- Asegurar que la semántica de respuestas/escritura coincida con el comportamiento actual.
 
-### Fase 4: pluginizacion de iMessage
+### Fase 4: pluginización de iMessage
 
 - Mover iMessage a `extensions/imessage`.
 - Reemplazar llamadas directas al core con `api.runtime`.
-- Mantener intactas las claves de configuracion, el comportamiento del CLI y la documentacion.
+- Mantener intactas las claves de configuración, el comportamiento de la CLI y la documentación.
 
-### Fase 5: cumplimiento
+### Fase 5: aplicación de reglas
 
-- Agregar regla de lint / verificacion de CI: no `extensions/**` imports desde `src/**`.
-- Agregar verificaciones de compatibilidad de versiones del SDK de plugins (runtime + semver del SDK).
+- Agregar regla de lint / verificación de CI: no importaciones `extensions/**` desde `src/**`.
+- Agregar verificaciones de compatibilidad de SDK/versión de plugins (semver de runtime + SDK).
 
 ## Compatibilidad y versionado
 
 - SDK: semver, cambios publicados y documentados.
 - Runtime: versionado por lanzamiento del core. Agregar `api.runtime.version`.
-- Los plugins declaran un rango de runtime requerido (por ejemplo, `openclawRuntime: ">=2026.2.0"`).
+- Los plugins declaran un rango de runtime requerido (p. ej., `openclawRuntime: ">=2026.2.0"`).
 
 ## Estrategia de pruebas
 
-- Pruebas unitarias a nivel de adaptador (funciones del runtime ejercitadas con la implementacion real del core).
-- Pruebas golden por plugin: asegurar que no haya deriva de comportamiento (enrutamiento, emparejamiento, allowlist, control de menciones).
-- Un unico ejemplo de plugin de extremo a extremo usado en CI (instalar + ejecutar + smoke).
+- Pruebas unitarias a nivel de adapter (funciones del runtime ejercidas con la implementación real del core).
+- Pruebas golden por plugin: asegurar que no haya desviaciones de comportamiento (enrutamiento, emparejamiento, lista de permitidos, control de menciones).
+- Un único plugin de ejemplo de extremo a extremo usado en CI (instalar + ejecutar + smoke).
 
 ## Preguntas abiertas
 
-- Donde alojar los tipos del SDK: paquete separado o exportacion del core?
-- Distribucion de tipos del runtime: en el SDK (solo tipos) o en el core?
-- Como exponer enlaces de documentacion para plugins incluidos vs externos?
-- Permitimos importaciones directas limitadas del core para plugins en el repositorio durante la transicion?
+- ¿Dónde alojar los tipos del SDK: paquete separado o exportación del core?
+- Distribución de tipos del runtime: ¿en el SDK (solo tipos) o en el core?
+- ¿Cómo exponer enlaces a docs para plugins integrados vs externos?
+- ¿Permitimos importaciones directas limitadas del core para plugins en el repo durante la transición?
 
-## Criterios de exito
+## Criterios de éxito
 
-- Todos los conectores de canales son plugins que usan SDK + runtime.
-- Ningun `extensions/**` imports desde `src/**`.
-- Las nuevas plantillas de conectores dependen solo del SDK + runtime.
-- Los plugins externos pueden desarrollarse y actualizarse sin acceso al codigo fuente del core.
+- Todos los conectores de canal son plugins que usan SDK + runtime.
+- Ninguna importación `extensions/**` desde `src/**`.
+- Las plantillas de nuevos conectores dependen solo del SDK + runtime.
+- Los plugins externos pueden desarrollarse y actualizarse sin acceso al código fuente del core.
 
-Documentos relacionados: [Plugins](/plugin), [Channels](/channels/index), [Configuration](/gateway/configuration).
+Docs relacionados: [Plugins](/tools/plugin), [Channels](/channels/index), [Configuration](/gateway/configuration).

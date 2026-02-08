@@ -1,42 +1,42 @@
 ---
-summary: "Cac buoc kiem tra suc khoe cho ket noi kenh"
+summary: "Các bước kiểm tra sức khỏe để xác minh kết nối kênh"
 read_when:
-  - Chan doan suc khoe kenh WhatsApp
-title: "Kiem Tra Suc Khoe"
+  - Chẩn đoán tình trạng kênh WhatsApp
+title: "Kiểm tra sức khỏe"
 x-i18n:
   source_path: gateway/health.md
   source_hash: 74f242e98244c135
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:15Z
+  generated_at: 2026-02-08T09:38:58Z
 ---
 
-# Kiem Tra Suc Khoe (CLI)
+# Kiểm tra sức khỏe (CLI)
 
-Huong dan ngan gon de xac minh ket noi kenh ma khong can doan.
+Hướng dẫn ngắn để xác minh kết nối kênh mà không cần đoán mò.
 
-## Kiem tra nhanh
+## Kiểm tra nhanh
 
-- `openclaw status` — tom tat cuc bo: kha nang truy cap Gateway/che do, goi y cap nhat, tuoi xac thuc kenh da lien ket, phien + hoat dong gan day.
-- `openclaw status --all` — chan doan cuc bo day du (chi doc, co mau, an toan de dan de debug).
-- `openclaw status --deep` — dong thoi kiem tra Gateway dang chay (do tham do theo kenh khi duoc ho tro).
-- `openclaw health --json` — yeu cau Gateway dang chay cung cap anh chup suc khoe day du (chi WS; khong co socket Baileys truc tiep).
-- Gui `/status` nhu mot tin nhan doc lap trong WhatsApp/WebChat de nhan phan hoi trang thai ma khong kich hoat tac tu.
-- Logs: tail `/tmp/openclaw/openclaw-*.log` va loc theo `web-heartbeat`, `web-reconnect`, `web-auto-reply`, `web-inbound`.
+- `openclaw status` — tóm tắt cục bộ: khả năng truy cập/chế độ gateway, gợi ý cập nhật, tuổi xác thực của kênh đã liên kết, các phiên + hoạt động gần đây.
+- `openclaw status --all` — chẩn đoán cục bộ đầy đủ (chỉ đọc, có màu, an toàn để dán khi gỡ lỗi).
+- `openclaw status --deep` — đồng thời thăm dò Gateway đang chạy (thăm dò theo từng kênh khi được hỗ trợ).
+- `openclaw health --json` — yêu cầu Gateway đang chạy cung cấp ảnh chụp sức khỏe đầy đủ (chỉ WS; không có socket Baileys trực tiếp).
+- Gửi `/status` như một tin nhắn độc lập trong WhatsApp/WebChat để nhận phản hồi trạng thái mà không kích hoạt tác tử.
+- Nhật ký: theo dõi `/tmp/openclaw/openclaw-*.log` và lọc `web-heartbeat`, `web-reconnect`, `web-auto-reply`, `web-inbound`.
 
-## Chan doan chuyen sau
+## Chẩn đoán chuyên sâu
 
-- Thong tin dang nhap tren dia: `ls -l ~/.openclaw/credentials/whatsapp/<accountId>/creds.json` (mtime nen la gan day).
-- Kho phien: `ls -l ~/.openclaw/agents/<agentId>/sessions/sessions.json` (duong dan co the ghi de trong cau hinh). So luong va nguoi nhan gan day duoc hien thi qua `status`.
-- Quy trinh lien ket lai: `openclaw channels logout && openclaw channels login --verbose` khi ma trang thai 409–515 hoac `loggedOut` xuat hien trong logs. (Luu y: quy trinh dang nhap QR tu dong khoi dong lai mot lan doi voi trang thai 515 sau khi ghep cap.)
+- Thông tin xác thực trên đĩa: `ls -l ~/.openclaw/credentials/whatsapp/<accountId>/creds.json` (mtime nên là gần đây).
+- Kho phiên: `ls -l ~/.openclaw/agents/<agentId>/sessions/sessions.json` (đường dẫn có thể ghi đè trong cấu hình). Số lượng và người nhận gần đây được hiển thị qua `status`.
+- Luồng liên kết lại: `openclaw channels logout && openclaw channels login --verbose` khi các mã trạng thái 409–515 hoặc `loggedOut` xuất hiện trong nhật ký. (Lưu ý: luồng đăng nhập bằng QR tự động khởi động lại một lần đối với trạng thái 515 sau khi ghép cặp.)
 
-## Khi co su co
+## Khi có sự cố
 
-- `logged out` hoac trang thai 409–515 → lien ket lai bang `openclaw channels logout` sau do `openclaw channels login`.
-- Khong the truy cap Gateway → khoi dong no: `openclaw gateway --port 18789` (dung `--force` neu cong dang ban).
-- Khong co tin nhan vao → xac nhan dien thoai da lien ket dang online va nguoi gui duoc phep (`channels.whatsapp.allowFrom`); voi chat nhom, dam bao quy tac allowlist + mention phu hop (`channels.whatsapp.groups`, `agents.list[].groupChat.mentionPatterns`).
+- `logged out` hoặc trạng thái 409–515 → liên kết lại bằng `openclaw channels logout` rồi `openclaw channels login`.
+- Gateway không truy cập được → khởi động: `openclaw gateway --port 18789` (dùng `--force` nếu cổng đang bận).
+- Không có tin nhắn vào → xác nhận điện thoại đã liên kết đang online và người gửi được cho phép (`channels.whatsapp.allowFrom`); với chat nhóm, đảm bảo quy tắc danh sách cho phép + nhắc tên phù hợp (`channels.whatsapp.groups`, `agents.list[].groupChat.mentionPatterns`).
 
-## Lenh "health" chuyen dung
+## Lệnh "health" chuyên dụng
 
-`openclaw health --json` yeu cau Gateway dang chay cung cap anh chup suc khoe (CLI khong mo socket kenh truc tiep). No bao cao thong tin dang nhap/xac thuc da lien ket khi co, tom tat tham do theo kenh, tom tat kho phien, va thoi gian tham do. Lenh se thoat voi ma khac 0 neu Gateway khong the truy cap hoac tham do that bai/het thoi gian. Dung `--timeout <ms>` de ghi de thoi gian mac dinh 10s.
+`openclaw health --json` yêu cầu Gateway đang chạy cung cấp ảnh chụp sức khỏe của nó (CLI không mở socket kênh trực tiếp). Lệnh báo cáo thông tin xác thực đã liên kết/tuổi xác thực khi có, tóm tắt thăm dò theo từng kênh, tóm tắt kho phiên và thời lượng thăm dò. Lệnh thoát với mã khác 0 nếu Gateway không truy cập được hoặc thăm dò thất bại/hết thời gian chờ. Dùng `--timeout <ms>` để ghi đè mặc định 10 giây.

@@ -2,7 +2,7 @@
 summary: "Linux のサポートおよびコンパニオンアプリの状況"
 read_when:
   - Linux のコンパニオンアプリの状況を確認したい場合
-  - プラットフォーム対応範囲やコントリビューションを計画している場合
+  - プラットフォームの対応範囲やコントリビューションを計画している場合
 title: "Linux アプリ"
 x-i18n:
   source_path: platforms/linux.md
@@ -10,15 +10,15 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:34:17Z
+  generated_at: 2026-02-08T09:22:29Z
 ---
 
 # Linux アプリ
 
-Gateway（ゲートウェイ）は Linux で完全にサポートされています。**推奨ランタイムは Node です**。
-Bun は Gateway（ゲートウェイ）では推奨されません（WhatsApp / Telegram のバグがあるため）。
+Gateway（ゲートウェイ）は Linux で完全にサポートされています。**Node が推奨ランタイム**です。  
+Bun は Gateway では推奨されません（WhatsApp / Telegram の不具合があります）。
 
-ネイティブの Linux コンパニオンアプリは計画中です。開発に参加したい場合は、コントリビューションを歓迎します。
+ネイティブの Linux 向けコンパニオンアプリは計画中です。構築を手伝っていただける場合は、コントリビューションを歓迎します。
 
 ## 初心者向けクイックパス（VPS）
 
@@ -28,22 +28,22 @@ Bun は Gateway（ゲートウェイ）では推奨されません（WhatsApp / 
 4. ノートパソコンから: `ssh -N -L 18789:127.0.0.1:18789 <user>@<host>`
 5. `http://127.0.0.1:18789/` を開き、トークンを貼り付けます
 
-VPS 向けのステップバイステップガイド: [exe.dev](/install/exe-dev)
+VPS のステップバイステップガイド: [exe.dev](/install/exe-dev)
 
 ## インストール
 
-- [Getting Started](/start/getting-started)
-- [Install & updates](/install/updating)
-- オプションのフロー: [Bun（実験的）](/install/bun), [Nix](/install/nix), [Docker](/install/docker)
+- [はじめに](/start/getting-started)
+- [インストールと更新](/install/updating)
+- 任意のフロー: [Bun（実験的）](/install/bun), [Nix](/install/nix), [Docker](/install/docker)
 
-## Gateway
+## Gateway（ゲートウェイ）
 
-- [Gateway runbook](/gateway)
-- [Configuration](/gateway/configuration)
+- [Gateway ランブック](/gateway)
+- [設定](/gateway/configuration)
 
 ## Gateway サービスのインストール（CLI）
 
-次のいずれかを使用します:
+次のいずれかを使用します。
 
 ```
 openclaw onboard --install-daemon
@@ -71,9 +71,7 @@ openclaw doctor
 
 ## システム制御（systemd ユーザーユニット）
 
-OpenClaw は、デフォルトで systemd の **ユーザー** サービスをインストールします。共有サーバーや常時稼働のサーバーでは、**システム**
-サービスを使用してください。完全なユニットの例とガイダンスは
-[Gateway runbook](/gateway) にあります。
+OpenClaw は、デフォルトで systemd の **ユーザー** サービスをインストールします。共有または常時稼働のサーバーでは **システム** サービスを使用してください。完全なユニット例とガイダンスは [Gateway ランブック](/gateway) にあります。
 
 最小構成:
 

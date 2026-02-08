@@ -1,5 +1,5 @@
 ---
-summary: "Tài liệu tham chiếu CLI cho `openclaw sessions` (liệt kê các phiên đã lưu + cách sử dụng)"
+summary: "Tài liệu tham chiếu CLI cho `openclaw sessions` (liệt kê các phiên đã lưu + cách dùng)"
 read_when:
   - Bạn muốn liệt kê các phiên đã lưu và xem hoạt động gần đây
 title: "phiên"
@@ -9,7 +9,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:31Z
+  generated_at: 2026-02-08T09:38:22Z
 ---
 
 # `openclaw sessions`

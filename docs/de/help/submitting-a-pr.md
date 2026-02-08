@@ -1,33 +1,33 @@
 ---
-summary: "Wie Sie einen PR mit hohem Signal einreichen"
-title: "Einreichen eines PR"
+summary: „So reichen Sie einen PR mit hoher Aussagekraft ein“
+title: „Einen PR einreichen“
 x-i18n:
   source_path: help/submitting-a-pr.md
   source_hash: 277b0f51b948d1a9
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:15:50Z
+  generated_at: 2026-02-08T09:36:27Z
 ---
 
-Gute PRs lassen sich leicht prüfen: Reviewer sollten die Absicht schnell erkennen, das Verhalten verifizieren und Änderungen sicher zusammenführen können. Dieser Leitfaden behandelt prägnante PRs mit hohem Signal für menschliche und LLM-Reviews.
+Gute PRs sind leicht zu prüfen: Reviewer sollten die Absicht schnell verstehen, das Verhalten verifizieren und Änderungen sicher zusammenführen können. Dieser Leitfaden behandelt prägnante PRs mit hoher Aussagekraft für menschliche und LLM‑Reviews.
 
 ## Was einen guten PR ausmacht
 
 - [ ] Erklären Sie das Problem, warum es wichtig ist, und die Änderung.
-- [ ] Halten Sie Änderungen fokussiert. Vermeiden Sie breit angelegte Refactorings.
-- [ ] Fassen Sie nutzerseitige/konfigurationsbezogene/Standardänderungen zusammen.
+- [ ] Halten Sie Änderungen fokussiert. Vermeiden Sie breite Refactorings.
+- [ ] Fassen Sie für Nutzer sichtbare/konfigurationsbezogene/Standard‑Änderungen zusammen.
 - [ ] Listen Sie Testabdeckung, Überspringungen und Gründe auf.
 - [ ] Fügen Sie Belege hinzu: Logs, Screenshots oder Aufzeichnungen (UI/UX).
-- [ ] Codewort: Fügen Sie „lobster-biscuit“ in die PR-Beschreibung ein, wenn Sie diesen Leitfaden gelesen haben.
-- [ ] Führen Sie relevante `pnpm`-Befehle aus bzw. beheben Sie Fehler, bevor Sie den PR erstellen.
+- [ ] Codewort: Fügen Sie „lobster-biscuit“ in die PR‑Beschreibung ein, wenn Sie diesen Leitfaden gelesen haben.
+- [ ] Führen Sie vor dem Erstellen des PRs relevante `pnpm`‑Befehle aus und beheben Sie Fehler.
 - [ ] Durchsuchen Sie Codebasis und GitHub nach verwandter Funktionalität/Issues/Fixes.
 - [ ] Stützen Sie Aussagen auf Belege oder Beobachtungen.
 - [ ] Guter Titel: Verb + Umfang + Ergebnis (z. B. `Docs: add PR and issue templates`).
 
 Seien Sie prägnant; prägnante Reviews > Grammatik. Lassen Sie nicht zutreffende Abschnitte weg.
 
-### Basis-Validierungsbefehle (für Ihre Änderung ausführen/Fehler beheben)
+### Basis‑Validierungsbefehle (führen Sie sie aus und beheben Sie Fehler für Ihre Änderung)
 
 - `pnpm lint`
 - `pnpm check`
@@ -42,30 +42,30 @@ Seien Sie prägnant; prägnante Reviews > Grammatik. Lassen Sie nicht zutreffend
 - Danach: Tests/Verifikation
 - Zuletzt: Implementierung/Belege
 
-## Häufige PR-Typen: Besonderheiten
+## Häufige PR‑Typen: Besonderheiten
 
-- [ ] Fix: Repro, Ursache und Verifikation hinzufügen.
+- [ ] Fix: Repro, Grundursache, Verifikation hinzufügen.
 - [ ] Feature: Anwendungsfälle, Verhalten/Demos/Screenshots (UI) hinzufügen.
-- [ ] Refactor: „Keine Verhaltensänderung“ angeben, auflisten, was verschoben/vereinfacht wurde.
-- [ ] Chore: Begründung angeben (z. B. Build-Zeit, CI, Abhängigkeiten).
-- [ ] Docs: Vorher-/Nachher-Kontext, aktualisierte Seite verlinken, `pnpm format` ausführen.
-- [ ] Test: Welche Lücke wird abgedeckt; wie Regressionen verhindert werden.
-- [ ] Perf: Vorher-/Nachher-Metriken hinzufügen und Messmethode beschreiben.
+- [ ] Refactor: „keine Verhaltensänderung“ angeben, auflisten, was verschoben/vereinfacht wurde.
+- [ ] Chore: Begründung angeben (z. B. Build‑Zeit, CI, Abhängigkeiten).
+- [ ] Docs: Vorher/Nachher‑Kontext, aktualisierte Seite verlinken, `pnpm format` ausführen.
+- [ ] Test: Welche Lücke abgedeckt wird; wie Regressionen verhindert werden.
+- [ ] Perf: Vorher/Nachher‑Metriken hinzufügen und Messmethode angeben.
 - [ ] UX/UI: Screenshots/Video, Auswirkungen auf Barrierefreiheit vermerken.
 - [ ] Infra/Build: Umgebungen/Validierung.
-- [ ] Security: Risiko, Repro, Verifikation zusammenfassen, keine sensiblen Daten. Nur belegte Aussagen.
+- [ ] Security: Risiko, Repro, Verifikation zusammenfassen, keine sensiblen Daten. Nur fundierte Aussagen.
 
 ## Checkliste
 
-- [ ] Klares Problem/klare Absicht
+- [ ] Klarer Problem-/Intent
 - [ ] Fokussierter Umfang
 - [ ] Verhaltensänderungen aufgelistet
-- [ ] Auflistung und Ergebnis der Tests
+- [ ] Tests und Ergebnisse aufgelistet
 - [ ] Manuelle Testschritte (falls zutreffend)
 - [ ] Keine Geheimnisse/privaten Daten
-- [ ] Evidenzbasiert
+- [ ] Belegbasiert
 
-## Allgemeine PR-Vorlage
+## Allgemeine PR‑Vorlage
 
 ```md
 #### Summary
@@ -96,7 +96,7 @@ Seien Sie prägnant; prägnante Reviews > Grammatik. Lassen Sie nicht zutreffend
 - Agent notes (optional, cite evidence):
 ```
 
-## PR-Typ-Vorlagen (durch Ihren Typ ersetzen)
+## PR‑Typ‑Vorlagen (durch Ihren Typ ersetzen)
 
 ### Fix
 

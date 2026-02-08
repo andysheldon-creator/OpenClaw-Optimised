@@ -2,19 +2,19 @@
 summary: "Reglas de enrutamiento por canal (WhatsApp, Telegram, Discord, Slack) y contexto compartido"
 read_when:
   - Al cambiar el enrutamiento de canales o el comportamiento de la bandeja de entrada
-title: "Enrutamiento de Canales"
+title: "Enrutamiento de canales"
 x-i18n:
   source_path: channels/channel-routing.md
   source_hash: cfc2cade2984225d
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:15:24Z
+  generated_at: 2026-02-08T09:32:28Z
 ---
 
 # Canales y enrutamiento
 
-OpenClaw enruta las respuestas **de vuelta al canal del que provino el mensaje**. El
+OpenClaw enruta las respuestas **de vuelta al canal de donde provino un mensaje**. El
 modelo no elige un canal; el enrutamiento es determinista y está controlado por la
 configuración del host.
 
@@ -23,11 +23,11 @@ configuración del host.
 - **Canal**: `whatsapp`, `telegram`, `discord`, `slack`, `signal`, `imessage`, `webchat`.
 - **AccountId**: instancia de cuenta por canal (cuando es compatible).
 - **AgentId**: un espacio de trabajo aislado + almacén de sesiones (“cerebro”).
-- **SessionKey**: la clave de agrupación usada para almacenar contexto y controlar la concurrencia.
+- **SessionKey**: la clave de agrupación utilizada para almacenar contexto y controlar la concurrencia.
 
-## Formas de clave de sesión (ejemplos)
+## Formas de claves de sesión (ejemplos)
 
-Los mensajes directos se consolidan en la sesión **principal** del agente:
+Los mensajes directos se agrupan en la sesión **principal** del agente:
 
 - `agent:<agentId>:<mainKey>` (predeterminado: `agent:main:main`)
 
@@ -39,7 +39,7 @@ Los grupos y canales permanecen aislados por canal:
 Hilos:
 
 - Los hilos de Slack/Discord agregan `:thread:<threadId>` a la clave base.
-- Los temas de foros de Telegram incrustan `:topic:<topicId>` en la clave del grupo.
+- Los temas de foros de Telegram integran `:topic:<topicId>` en la clave del grupo.
 
 Ejemplos:
 
@@ -101,15 +101,15 @@ Ejemplo:
 Los almacenes de sesiones viven bajo el directorio de estado (predeterminado `~/.openclaw`):
 
 - `~/.openclaw/agents/<agentId>/sessions/sessions.json`
-- Las transcripciones JSONL viven junto al almacén
+- Las transcripciones JSONL se almacenan junto al almacén
 
-Puede sobrescribir la ruta del almacén mediante plantillas `session.store` y `{agentId}`.
+Puede sobrescribir la ruta del almacén mediante la plantilla `session.store` y `{agentId}`.
 
 ## Comportamiento de WebChat
 
 WebChat se adjunta al **agente seleccionado** y, de forma predeterminada, a la sesión
 principal del agente. Debido a esto, WebChat le permite ver el contexto entre canales
-de ese agente en un solo lugar.
+para ese agente en un solo lugar.
 
 ## Contexto de respuesta
 

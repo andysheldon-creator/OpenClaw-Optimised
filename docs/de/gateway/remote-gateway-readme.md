@@ -1,21 +1,21 @@
 ---
-summary: "Einrichtung eines SSH-Tunnels für OpenClaw.app zur Verbindung mit einem Remote-Gateway"
-read_when: "Verbinden der macOS-App mit einem Remote-Gateway über SSH"
-title: "Einrichtung eines Remote-Gateways"
+summary: "SSH-Tunnel-Einrichtung für OpenClaw.app zur Verbindung mit einem entfernten Gateway"
+read_when: "Verbinden der macOS-App mit einem entfernten Gateway über SSH"
+title: "Einrichtung eines entfernten Gateways"
 x-i18n:
   source_path: gateway/remote-gateway-readme.md
   source_hash: b1ae266a7cb4911b
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:04:25Z
+  generated_at: 2026-02-08T09:36:17Z
 ---
 
-# Ausführen von OpenClaw.app mit einem Remote-Gateway
+# Betrieb von OpenClaw.app mit einem entfernten Gateway
 
-OpenClaw.app verwendet SSH-Tunneling, um eine Verbindung zu einem Remote-Gateway herzustellen. Diese Anleitung zeigt Ihnen, wie Sie dies einrichten.
+OpenClaw.app verwendet SSH-Tunneling, um eine Verbindung zu einem entfernten Gateway herzustellen. Diese Anleitung zeigt Ihnen, wie Sie es einrichten.
 
-## Übersicht
+## Überblick
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -55,7 +55,7 @@ Ersetzen Sie `<REMOTE_IP>` und `<REMOTE_USER>` durch Ihre Werte.
 
 ### Schritt 2: SSH-Schlüssel kopieren
 
-Kopieren Sie Ihren öffentlichen Schlüssel auf die Remote-Maschine (Passwort einmal eingeben):
+Kopieren Sie Ihren öffentlichen Schlüssel auf die entfernte Maschine (Passwort einmal eingeben):
 
 ```bash
 ssh-copy-id -i ~/.ssh/id_rsa <REMOTE_USER>@<REMOTE_IP>
@@ -80,13 +80,13 @@ ssh -N remote-gateway &
 open /path/to/OpenClaw.app
 ```
 
-Die App verbindet sich nun über den SSH-Tunnel mit dem Remote-Gateway.
+Die App verbindet sich nun über den SSH-Tunnel mit dem entfernten Gateway.
 
 ---
 
-## Tunnel beim Anmelden automatisch starten
+## Automatischer Start des Tunnels bei der Anmeldung
 
-Damit der SSH-Tunnel beim Anmelden automatisch startet, erstellen Sie einen Launch Agent.
+Damit der SSH-Tunnel automatisch startet, wenn Sie sich anmelden, erstellen Sie einen Launch Agent.
 
 ### PLIST-Datei erstellen
 
@@ -125,7 +125,7 @@ Der Tunnel wird nun:
 - Neu gestartet, falls er abstürzt
 - Im Hintergrund weiter ausgeführt
 
-Legacy-Hinweis: Entfernen Sie ggf. vorhandene verbleibende `com.openclaw.ssh-tunnel`-LaunchAgents.
+Hinweis zu Legacy-Systemen: Entfernen Sie ggf. vorhandene verbleibende `com.openclaw.ssh-tunnel`-LaunchAgents.
 
 ---
 
@@ -152,13 +152,13 @@ launchctl bootout gui/$UID/bot.molt.ssh-tunnel
 
 ---
 
-## So funktioniert es
+## Funktionsweise
 
-| Komponente                           | Funktion                                                        |
-| ------------------------------------ | --------------------------------------------------------------- |
-| `LocalForward 18789 127.0.0.1:18789` | Leitet den lokalen Port 18789 an den Remote-Port 18789 weiter   |
-| `ssh -N`                             | SSH ohne Ausführung von Remote-Befehlen (nur Portweiterleitung) |
-| `KeepAlive`                          | Startet den Tunnel automatisch neu, wenn er abstürzt            |
-| `RunAtLoad`                          | Startet den Tunnel, wenn der Agent geladen wird                 |
+| Komponente                           | Funktion                                                          |
+| ------------------------------------ | ----------------------------------------------------------------- |
+| `LocalForward 18789 127.0.0.1:18789` | Leitet den lokalen Port 18789 an den entfernten Port 18789 weiter |
+| `ssh -N`                             | SSH ohne Ausführung entfernter Befehle (nur Portweiterleitung)    |
+| `KeepAlive`                          | Startet den Tunnel automatisch neu, falls er abstürzt             |
+| `RunAtLoad`                          | Startet den Tunnel, wenn der Agent geladen wird                   |
 
-OpenClaw.app stellt auf Ihrem Client-Rechner eine Verbindung zu `ws://127.0.0.1:18789` her. Der SSH-Tunnel leitet diese Verbindung an Port 18789 auf der Remote-Maschine weiter, auf der das Gateway ausgeführt wird.
+OpenClaw.app verbindet sich auf Ihrer Client-Maschine mit `ws://127.0.0.1:18789`. Der SSH-Tunnel leitet diese Verbindung an Port 18789 auf der entfernten Maschine weiter, auf der das Gateway ausgeführt wird.

@@ -1,26 +1,26 @@
 ---
-summary: "RPC-Protokollnotizen fuer den Einfuehrungsassistenten und das Konfigurationsschema"
-read_when: "Aendern der Schritte des Einfuehrungsassistenten oder der Endpunkte des Konfigurationsschemas"
-title: "Einfuehrung und Konfigurationsprotokoll"
+summary: "RPC-Protokollhinweise für Onboarding-Assistent und Konfigurationsschema"
+read_when: "Ändern der Schritte des Onboarding-Assistenten oder der Endpunkte des Konfigurationsschemas"
+title: "Onboarding- und Konfigurationsprotokoll"
 x-i18n:
   source_path: experiments/onboarding-config-protocol.md
   source_hash: 55163b3ee029c024
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:04:15Z
+  generated_at: 2026-02-08T09:36:08Z
 ---
 
-# Einfuehrung + Konfigurationsprotokoll
+# Onboarding- und Konfigurationsprotokoll
 
-Zweck: gemeinsame Einfuehrungs- und Konfigurationsoberflaechen ueber CLI, macOS-App und Web-UI hinweg.
+Zweck: Gemeinsame Onboarding- und Konfigurationsoberflächen für CLI, macOS-App und Web-UI.
 
 ## Komponenten
 
-- Assistenten-Engine (gemeinsame Sitzung + Prompts + Einfuehrungsstatus).
-- Die CLI-Einfuehrung verwendet denselben Assistentenablauf wie die UI-Clients.
-- Gateway RPC stellt Endpunkte fuer Assistent und Konfigurationsschema bereit.
-- Die macOS-Einfuehrung verwendet das Assistenten-Schrittmodell.
+- Assistenten-Engine (gemeinsame Sitzung + Eingabeaufforderungen + Onboarding-Status).
+- CLI-Onboarding verwendet denselben Assistentenablauf wie die UI-Clients.
+- Gateway-RPC stellt Endpunkte für Assistent und Konfigurationsschema bereit.
+- macOS-Onboarding verwendet das Modell der Assistentenschritte.
 - Die Web-UI rendert Konfigurationsformulare aus JSON Schema + UI-Hinweisen.
 
 ## Gateway RPC
@@ -31,17 +31,17 @@ Zweck: gemeinsame Einfuehrungs- und Konfigurationsoberflaechen ueber CLI, macOS-
 - `wizard.status` Parameter: `{ sessionId }`
 - `config.schema` Parameter: `{}`
 
-Antworten (Form)
+Antworten (Struktur)
 
 - Assistent: `{ sessionId, done, step?, status?, error? }`
 - Konfigurationsschema: `{ schema, uiHints, version, generatedAt }`
 
 ## UI-Hinweise
 
-- `uiHints` nach Pfad indiziert; optionale Metadaten (Label/Hilfe/Gruppe/Reihenfolge/Erweitert/Sensitiv/Platzhalter).
-- Sensitive Felder werden als Passwort-Eingaben gerendert; keine Redaktionsschicht.
-- Nicht unterstuetzte Schema-Knoten fallen auf den rohen JSON-Editor zurueck.
+- `uiHints` nach Pfad indexiert; optionale Metadaten (label/help/group/order/advanced/sensitive/placeholder).
+- Sensible Felder werden als Passwort-Eingaben gerendert; keine Redaktionsschicht.
+- Nicht unterstützte Schema-Knoten fallen auf den rohen JSON-Editor zurück.
 
 ## Hinweise
 
-- Dieses Dokument ist der einzige Ort, um Protokoll-Refactorings fuer Einfuehrung/Konfiguration zu verfolgen.
+- Dieses Dokument ist der zentrale Ort zur Nachverfolgung von Protokoll-Refactorings für Onboarding/Konfiguration.

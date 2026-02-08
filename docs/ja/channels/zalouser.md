@@ -6,16 +6,16 @@ read_when:
 title: "Zalo Personal"
 x-i18n:
   source_path: channels/zalouser.md
-  source_hash: 2a249728d556e5cc
+  source_hash: ede847ebe6272256
   provider: openai
-  model: gpt-5.2-pro
+  model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-06T04:51:01Z
+  generated_at: 2026-02-08T09:21:00Z
 ---
 
 # Zalo Personal（非公式）
 
-ステータス: 実験的です。この統合は `zca-cli` により **Zalo の個人アカウント** を自動化します。
+ステータス: 実験的。この統合は `zca-cli` を介して **個人の Zalo アカウント** を自動化します。
 
 > **警告:** これは非公式の統合であり、アカウント停止／BAN につながる可能性があります。自己責任で使用してください。
 
@@ -24,22 +24,22 @@ x-i18n:
 Zalo Personal はプラグインとして提供され、コアインストールには同梱されていません。
 
 - CLI でインストール: `openclaw plugins install @openclaw/zalouser`
-- またはソースのチェックアウトから: `openclaw plugins install ./extensions/zalouser`
-- 詳細: [プラグイン](/plugin)
+- またはソースチェックアウトから: `openclaw plugins install ./extensions/zalouser`
+- 詳細: [Plugins](/tools/plugin)
 
 ## 前提条件: zca-cli
 
-Gateway（ゲートウェイ）マシンには、`PATH` に `zca` バイナリが利用可能である必要があります。
+Gateway マシンには、`PATH` に `zca` バイナリが存在する必要があります。
 
 - 確認: `zca --version`
-- ない場合は、zca-cli をインストールしてください（`extensions/zalouser/README.md` または上流の zca-cli ドキュメントを参照）。
+- 見つからない場合は zca-cli をインストールしてください（`extensions/zalouser/README.md` または上流の zca-cli ドキュメントを参照）。
 
-## クイックセットアップ（初心者）
+## クイックセットアップ（初心者向け）
 
 1. プラグインをインストールします（上記参照）。
-2. ログインします（QR、Gateway（ゲートウェイ）マシン上）:
+2. ログイン（Gateway マシン上で QR）:
    - `openclaw channels login --channel zalouser`
-   - 端末に表示された QR コードを Zalo のモバイルアプリでスキャンします。
+   - ターミナルに表示される QR コードを Zalo モバイルアプリでスキャンします。
 3. チャンネルを有効化します:
 
 ```json5
@@ -53,22 +53,22 @@ Gateway（ゲートウェイ）マシンには、`PATH` に `zca` バイナリ�
 }
 ```
 
-4. Gateway（ゲートウェイ）を再起動します（またはオンボーディングを完了します）。
-5. ダイレクトメッセージのアクセスはデフォルトでペアリングです。初回接触時にペアリングコードを承認してください。
+4. Gateway を再起動します（またはオンボーディングを完了します）。
+5. ダイレクトメッセージ（DM）のアクセスはデフォルトでペアリングです。初回接触時にペアリングコードを承認してください。
 
 ## 概要
 
-- `zca listen` を使用して受信メッセージを受け取ります。
-- `zca msg ...` を使用して返信（テキスト／メディア／リンク）を送信します。
+- 受信メッセージの受信に `zca listen` を使用します。
+- 返信（テキスト／メディア／リンク）の送信に `zca msg ...` を使用します。
 - Zalo Bot API が利用できない「個人アカウント」用途向けに設計されています。
 
 ## 命名
 
-チャンネル ID は、**Zalo の個人ユーザーアカウント**（非公式）を自動化することを明確にするため `zalouser` です。将来の公式 Zalo API 統合の可能性に備え、`zalo` は予約しています。
+チャンネル ID は `zalouser` です。**個人の Zalo ユーザーアカウント**（非公式）を自動化することを明確にするためです。将来の公式 Zalo API 統合の可能性に備え、`zalo` は予約しています。
 
-## ID を見つける（ディレクトリ）
+## ID の検索（ディレクトリ）
 
-ディレクトリ CLI を使用して、相手／グループとその ID を検出します:
+ディレクトリ CLI を使用して、ピア／グループとそれらの ID を発見します。
 
 ```bash
 openclaw directory self --channel zalouser
@@ -78,28 +78,28 @@ openclaw directory groups list --channel zalouser --query "work"
 
 ## 制限
 
-- 送信テキストは約 2000 文字ごとに分割されます（Zalo クライアントの制限）。
+- 送信テキストは約 2000 文字で分割されます（Zalo クライアントの制限）。
 - ストリーミングはデフォルトでブロックされます。
 
-## アクセス制御（ダイレクトメッセージ）
+## アクセス制御（DM）
 
 `channels.zalouser.dmPolicy` は `pairing | allowlist | open | disabled` をサポートします（デフォルト: `pairing`）。
-`channels.zalouser.allowFrom` はユーザー ID または名前を受け付けます。ウィザードは利用可能な場合、`zca friend find` を介して名前を ID に解決します。
+`channels.zalouser.allowFrom` はユーザー ID または名前を受け付けます。ウィザードは、利用可能な場合に `zca friend find` を介して名前を ID に解決します。
 
-次で承認します:
+承認方法:
 
 - `openclaw pairing list zalouser`
 - `openclaw pairing approve zalouser <code>`
 
 ## グループアクセス（任意）
 
-- デフォルト: `channels.zalouser.groupPolicy = "open"`（グループを許可）。未設定時のデフォルトを上書きするには `channels.defaults.groupPolicy` を使用します。
+- デフォルト: `channels.zalouser.groupPolicy = "open"`（グループを許可）。未設定の場合、`channels.defaults.groupPolicy` を使用して既定値を上書きできます。
 - 許可リストで制限するには:
   - `channels.zalouser.groupPolicy = "allowlist"`
   - `channels.zalouser.groups`（キーはグループ ID または名前）
 - すべてのグループをブロック: `channels.zalouser.groupPolicy = "disabled"`。
-- 設定ウィザードはグループ許可リストの入力を促すことができます。
-- 起動時に OpenClaw は許可リスト内のグループ／ユーザー名を ID に解決し、対応関係をログに記録します。解決できないエントリは入力どおりに保持されます。
+- 設定ウィザードはグループ許可リストの入力を促すことがあります。
+- 起動時に OpenClaw は許可リスト内のグループ／ユーザー名を ID に解決して対応関係をログに記録します。解決できないエントリは入力どおり保持されます。
 
 例:
 
@@ -119,7 +119,7 @@ openclaw directory groups list --channel zalouser --query "work"
 
 ## マルチアカウント
 
-アカウントは zca プロファイルに対応します。例:
+アカウントは zca プロファイルにマッピングされます。例:
 
 ```json5
 {
@@ -137,11 +137,11 @@ openclaw directory groups list --channel zalouser --query "work"
 
 ## トラブルシューティング
 
-**`zca` が見つかりません:**
+**`zca` が見つからない:**
 
-- zca-cli をインストールし、Gateway（ゲートウェイ）プロセスの `PATH` 上にあることを確認してください。
+- zca-cli をインストールし、Gateway プロセスの `PATH` に含まれていることを確認してください。
 
-**ログインが保持されません:**
+**ログインが保持されない:**
 
 - `openclaw channels status --probe`
 - 再ログイン: `openclaw channels logout --channel zalouser && openclaw channels login --channel zalouser`

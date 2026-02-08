@@ -1,7 +1,7 @@
 ---
-summary: "Referencia de la CLI para `openclaw config` (obtener/establecer/quitar valores de configuracion)"
+summary: "Referencia de la CLI para `openclaw config` (obtener/establecer/quitar valores de configuración)"
 read_when:
-  - Quiere leer o editar la configuracion de forma no interactiva
+  - Quiere leer o editar la configuración de forma no interactiva
 title: "config"
 x-i18n:
   source_path: cli/config.md
@@ -9,15 +9,15 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:58:12Z
+  generated_at: 2026-02-08T09:32:46Z
 ---
 
 # `openclaw config`
 
-Ayudantes de configuracion: obtener/establecer/quitar valores por ruta. Ejecute sin un subcomando para abrir
-el asistente de configuracion (igual que `openclaw configure`).
+Ayudas de configuración: obtener/establecer/quitar valores por ruta. Ejecútelo sin un subcomando para abrir
+el asistente de configuración (igual que `openclaw configure`).
 
-## Examples
+## Ejemplos
 
 ```bash
 openclaw config get browser.executablePath
@@ -27,26 +27,26 @@ openclaw config set agents.list[0].tools.exec.node "node-id-or-name"
 openclaw config unset tools.web.search.apiKey
 ```
 
-## Paths
+## Rutas
 
-Las rutas usan notacion de puntos o corchetes:
+Las rutas usan notación de punto o de corchetes:
 
 ```bash
 openclaw config get agents.defaults.workspace
 openclaw config get agents.list[0].id
 ```
 
-Use el indice de la lista de agentes para apuntar a un agente especifico:
+Use el índice de la lista de agentes para dirigirse a un agente específico:
 
 ```bash
 openclaw config get agents.list
 openclaw config set agents.list[1].tools.exec.node "node-id-or-name"
 ```
 
-## Values
+## Valores
 
 Los valores se analizan como JSON5 cuando es posible; de lo contrario se tratan como cadenas.
-Use `--json` para exigir el analisis JSON5.
+Use `--json` para exigir el análisis JSON5.
 
 ```bash
 openclaw config set agents.defaults.heartbeat.every "0m"
@@ -54,4 +54,4 @@ openclaw config set gateway.port 19001 --json
 openclaw config set channels.whatsapp.groups '["*"]' --json
 ```
 
-Reinicie el Gateway despues de las ediciones.
+Reinicie el Gateway después de realizar ediciones.

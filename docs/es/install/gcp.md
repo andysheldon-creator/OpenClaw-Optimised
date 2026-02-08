@@ -1,49 +1,49 @@
 ---
 summary: "Ejecute OpenClaw Gateway 24/7 en una VM de GCP Compute Engine (Docker) con estado duradero"
 read_when:
-  - Quiere OpenClaw ejecutándose 24/7 en GCP
-  - Quiere un Gateway de nivel producción, siempre activo, en su propia VM
+  - Quiere OpenClaw funcionando 24/7 en GCP
+  - Quiere un Gateway siempre activo, de nivel producción, en su propia VM
   - Quiere control total sobre la persistencia, los binarios y el comportamiento de reinicio
 title: "GCP"
 x-i18n:
   source_path: install/gcp.md
-  source_hash: abb236dd421505d3
+  source_hash: 173d89358506c73c
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:59:20Z
+  generated_at: 2026-02-08T09:34:01Z
 ---
 
-# OpenClaw en GCP Compute Engine (Docker, Guia de VPS en Produccion)
+# OpenClaw en GCP Compute Engine (Docker, Guía de VPS en producción)
 
 ## Objetivo
 
-Ejecutar un OpenClaw Gateway persistente en una VM de GCP Compute Engine usando Docker, con estado duradero, binarios integrados y comportamiento de reinicio seguro.
+Ejecutar un OpenClaw Gateway persistente en una VM de GCP Compute Engine usando Docker, con estado duradero, binarios integrados y un comportamiento de reinicio seguro.
 
-Si quiere "OpenClaw 24/7 por ~$5-12/mes", esta es una configuracion confiable en Google Cloud.
-El precio varía segun el tipo de maquina y la region; elija la VM mas pequeña que se ajuste a su carga de trabajo y escale si encuentra OOM.
+Si quiere “OpenClaw 24/7 por ~$5–12/mes”, esta es una configuración confiable en Google Cloud.
+El precio varía según el tipo de máquina y la región; elija la VM más pequeña que se ajuste a su carga de trabajo y escale si encuentra OOM.
 
-## ¿Que estamos haciendo (en terminos simples)?
+## ¿Qué estamos haciendo (en términos simples)?
 
-- Crear un proyecto de GCP y habilitar la facturacion
+- Crear un proyecto de GCP y habilitar la facturación
 - Crear una VM de Compute Engine
-- Instalar Docker (runtime de aplicaciones aislado)
+- Instalar Docker (entorno de ejecución de aplicaciones aislado)
 - Iniciar el OpenClaw Gateway en Docker
 - Persistir `~/.openclaw` + `~/.openclaw/workspace` en el host (sobrevive reinicios/reconstrucciones)
-- Acceder a la UI de Control desde su laptop mediante un tunel SSH
+- Acceder a la UI de Control desde su laptop mediante un túnel SSH
 
-El Gateway se puede acceder mediante:
+Se puede acceder al Gateway mediante:
 
-- Reenvio de puertos SSH desde su laptop
-- Exposicion directa de puertos si usted gestiona el firewall y los tokens por su cuenta
+- Reenvío de puertos SSH desde su laptop
+- Exposición directa de puertos si usted gestiona el firewall y los tokens por su cuenta
 
-Esta guia usa Debian en GCP Compute Engine.
-Ubuntu tambien funciona; mapee los paquetes en consecuencia.
-Para el flujo generico de Docker, vea [Docker](/install/docker).
+Esta guía usa Debian en GCP Compute Engine.
+Ubuntu también funciona; mapee los paquetes según corresponda.
+Para el flujo genérico de Docker, vea [Docker](/install/docker).
 
 ---
 
-## Ruta rapida (operadores experimentados)
+## Ruta rápida (operadores con experiencia)
 
 1. Crear proyecto de GCP + habilitar la API de Compute Engine
 2. Crear VM de Compute Engine (e2-small, Debian 12, 20GB)
@@ -52,31 +52,31 @@ Para el flujo generico de Docker, vea [Docker](/install/docker).
 5. Clonar el repositorio de OpenClaw
 6. Crear directorios persistentes en el host
 7. Configurar `.env` y `docker-compose.yml`
-8. Integrar los binarios requeridos, construir y lanzar
+8. Integrar los binarios requeridos, compilar y lanzar
 
 ---
 
 ## Lo que necesita
 
-- Cuenta de GCP (el nivel gratuito es elegible para e2-micro)
-- gcloud CLI instalado (o usar Cloud Console)
+- Cuenta de GCP (elegible para el nivel gratuito con e2-micro)
+- CLI de gcloud instalada (o usar Cloud Console)
 - Acceso SSH desde su laptop
-- Comodidad basica con SSH + copiar/pegar
-- ~20-30 minutos
+- Comodidad básica con SSH + copiar/pegar
+- ~20–30 minutos
 - Docker y Docker Compose
-- Credenciales de autenticacion del modelo
+- Credenciales de autenticación del modelo
 - Credenciales opcionales de proveedores
-  - QR de WhatsApp
+  - Código QR de WhatsApp
   - Token de bot de Telegram
   - OAuth de Gmail
 
 ---
 
-## 1) Instalar gcloud CLI (o usar Console)
+## 1) Instalar la CLI de gcloud (o usar la Consola)
 
-**Opcion A: gcloud CLI** (recomendado para automatizacion)
+**Opción A: CLI de gcloud** (recomendado para automatización)
 
-Instale desde https://cloud.google.com/sdk/docs/install
+Instale desde [https://cloud.google.com/sdk/docs/install](https://cloud.google.com/sdk/docs/install)
 
 Inicialice y autentique:
 
@@ -85,9 +85,9 @@ gcloud init
 gcloud auth login
 ```
 
-**Opcion B: Cloud Console**
+**Opción B: Cloud Console**
 
-Todos los pasos se pueden realizar mediante la UI web en https://console.cloud.google.com
+Todos los pasos se pueden realizar mediante la UI web en [https://console.cloud.google.com](https://console.cloud.google.com)
 
 ---
 
@@ -100,7 +100,7 @@ gcloud projects create my-openclaw-project --name="OpenClaw Gateway"
 gcloud config set project my-openclaw-project
 ```
 
-Habilite la facturacion en https://console.cloud.google.com/billing (requerido para Compute Engine).
+Habilite la facturación en [https://console.cloud.google.com/billing](https://console.cloud.google.com/billing) (requerido para Compute Engine).
 
 Habilite la API de Compute Engine:
 
@@ -108,23 +108,23 @@ Habilite la API de Compute Engine:
 gcloud services enable compute.googleapis.com
 ```
 
-**Console:**
+**Consola:**
 
-1. Vaya a IAM y Admin > Crear proyecto
-2. Asigne un nombre y cree el proyecto
-3. Habilite la facturacion para el proyecto
-4. Navegue a APIs y Servicios > Habilitar APIs > busque "Compute Engine API" > Habilitar
+1. Vaya a IAM y administración > Crear proyecto
+2. Asígnele un nombre y créelo
+3. Habilite la facturación para el proyecto
+4. Navegue a APIs y servicios > Habilitar APIs > busque “Compute Engine API” > Habilitar
 
 ---
 
 ## 3) Crear la VM
 
-**Tipos de maquina:**
+**Tipos de máquina:**
 
-| Tipo     | Especificaciones             | Costo                   | Notas                      |
-| -------- | ---------------------------- | ----------------------- | -------------------------- |
-| e2-small | 2 vCPU, 2GB RAM              | ~$12/mes                | Recomendado                |
-| e2-micro | 2 vCPU (compartido), 1GB RAM | Elegible nivel gratuito | Puede tener OOM bajo carga |
+| Tipo     | Especificaciones             | Costo                   | Notas                |
+| -------- | ---------------------------- | ----------------------- | -------------------- |
+| e2-small | 2 vCPU, 2GB RAM              | ~$12/mes                | Recomendado          |
+| e2-micro | 2 vCPU (compartido), 1GB RAM | Elegible nivel gratuito | Puede OOM bajo carga |
 
 **CLI:**
 
@@ -137,12 +137,12 @@ gcloud compute instances create openclaw-gateway \
   --image-project=debian-cloud
 ```
 
-**Console:**
+**Consola:**
 
 1. Vaya a Compute Engine > Instancias de VM > Crear instancia
 2. Nombre: `openclaw-gateway`
-3. Region: `us-central1`, Zona: `us-central1-a`
-4. Tipo de maquina: `e2-small`
+3. Región: `us-central1`, Zona: `us-central1-a`
+4. Tipo de máquina: `e2-small`
 5. Disco de arranque: Debian 12, 20GB
 6. Crear
 
@@ -156,11 +156,11 @@ gcloud compute instances create openclaw-gateway \
 gcloud compute ssh openclaw-gateway --zone=us-central1-a
 ```
 
-**Console:**
+**Consola:**
 
-Haga clic en el boton "SSH" junto a su VM en el panel de Compute Engine.
+Haga clic en el botón “SSH” junto a su VM en el panel de Compute Engine.
 
-Nota: La propagacion de claves SSH puede tardar 1-2 minutos despues de crear la VM. Si la conexion es rechazada, espere y vuelva a intentar.
+Nota: La propagación de claves SSH puede tardar 1–2 minutos después de crear la VM. Si la conexión es rechazada, espere y reintente.
 
 ---
 
@@ -173,13 +173,13 @@ curl -fsSL https://get.docker.com | sudo sh
 sudo usermod -aG docker $USER
 ```
 
-Cierre sesion y vuelva a iniciar para que el cambio de grupo tenga efecto:
+Cierre sesión y vuelva a iniciarla para que el cambio de grupo tenga efecto:
 
 ```bash
 exit
 ```
 
-Luego vuelva a conectarse por SSH:
+Luego conéctese por SSH nuevamente:
 
 ```bash
 gcloud compute ssh openclaw-gateway --zone=us-central1-a
@@ -201,14 +201,14 @@ git clone https://github.com/openclaw/openclaw.git
 cd openclaw
 ```
 
-Esta guia asume que usted construira una imagen personalizada para garantizar la persistencia de los binarios.
+Esta guía asume que usted compilará una imagen personalizada para garantizar la persistencia de los binarios.
 
 ---
 
 ## 7) Crear directorios persistentes en el host
 
-Los contenedores Docker son efimeros.
-Todo el estado de larga duracion debe vivir en el host.
+Los contenedores Docker son efímeros.
+Todo el estado de larga duración debe vivir en el host.
 
 ```bash
 mkdir -p ~/.openclaw
@@ -219,7 +219,7 @@ mkdir -p ~/.openclaw/workspace
 
 ## 8) Configurar variables de entorno
 
-Cree `.env` en la raiz del repositorio.
+Cree `.env` en la raíz del repositorio.
 
 ```bash
 OPENCLAW_IMAGE=openclaw:latest
@@ -244,7 +244,7 @@ openssl rand -hex 32
 
 ---
 
-## 9) Configuracion de Docker Compose
+## 9) Configuración de Docker Compose
 
 Cree o actualice `docker-compose.yml`.
 
@@ -291,29 +291,29 @@ services:
 
 ---
 
-## 10) Integrar los binarios requeridos en la imagen (critico)
+## 10) Integrar los binarios requeridos en la imagen (crítico)
 
-Instalar binarios dentro de un contenedor en ejecucion es una trampa.
-Cualquier cosa instalada en tiempo de ejecucion se perdera al reiniciar.
+Instalar binarios dentro de un contenedor en ejecución es una trampa.
+Cualquier cosa instalada en tiempo de ejecución se perderá al reiniciar.
 
-Todos los binarios externos requeridos por Skills deben instalarse en el momento de construir la imagen.
+Todos los binarios externos requeridos por las skills deben instalarse en el momento de compilar la imagen.
 
-Los ejemplos a continuacion muestran solo tres binarios comunes:
+Los ejemplos a continuación muestran solo tres binarios comunes:
 
 - `gog` para acceso a Gmail
 - `goplaces` para Google Places
 - `wacli` para WhatsApp
 
 Estos son ejemplos, no una lista completa.
-Puede instalar tantos binarios como sea necesario usando el mismo patron.
+Puede instalar tantos binarios como necesite usando el mismo patrón.
 
-Si mas adelante agrega nuevas Skills que dependan de binarios adicionales, debe:
+Si agrega nuevas skills más adelante que dependan de binarios adicionales, debe:
 
 1. Actualizar el Dockerfile
 2. Reconstruir la imagen
 3. Reiniciar los contenedores
 
-**Ejemplo de Dockerfile**
+**Dockerfile de ejemplo**
 
 ```dockerfile
 FROM node:22-bookworm
@@ -354,14 +354,14 @@ CMD ["node","dist/index.js"]
 
 ---
 
-## 11) Construir y lanzar
+## 11) Compilar y lanzar
 
 ```bash
 docker compose build
 docker compose up -d openclaw-gateway
 ```
 
-Verificar binarios:
+Verifique los binarios:
 
 ```bash
 docker compose exec openclaw-gateway which gog
@@ -385,7 +385,7 @@ Salida esperada:
 docker compose logs -f openclaw-gateway
 ```
 
-Exito:
+Éxito:
 
 ```
 [gateway] listening on ws://0.0.0.0:18789
@@ -393,9 +393,9 @@ Exito:
 
 ---
 
-## 13) Acceso desde su laptop
+## 13) Acceder desde su laptop
 
-Cree un tunel SSH para reenviar el puerto del Gateway:
+Cree un túnel SSH para reenviar el puerto del Gateway:
 
 ```bash
 gcloud compute ssh openclaw-gateway --zone=us-central1-a -- -L 18789:127.0.0.1:18789
@@ -405,27 +405,27 @@ Abra en su navegador:
 
 `http://127.0.0.1:18789/`
 
-Pegue su token del Gateway.
+Pegue su token del gateway.
 
 ---
 
-## Que persiste y donde (fuente de verdad)
+## Qué persiste y dónde (fuente de la verdad)
 
-OpenClaw se ejecuta en Docker, pero Docker no es la fuente de verdad.
-Todo el estado de larga duracion debe sobrevivir reinicios, reconstrucciones y reinicios del sistema.
+OpenClaw se ejecuta en Docker, pero Docker no es la fuente de la verdad.
+Todo el estado de larga duración debe sobrevivir a reinicios, reconstrucciones y reinicios del sistema.
 
-| Componente                    | Ubicacion                          | Mecanismo de persistencia     | Notas                               |
-| ----------------------------- | ---------------------------------- | ----------------------------- | ----------------------------------- |
-| Configuracion del Gateway     | `/home/node/.openclaw/`            | Montaje de volumen del host   | Incluye `openclaw.json`, tokens     |
-| Perfiles de auth del modelo   | `/home/node/.openclaw/`            | Montaje de volumen del host   | Tokens OAuth, claves API            |
-| Configuraciones de Skills     | `/home/node/.openclaw/skills/`     | Montaje de volumen del host   | Estado a nivel de Skill             |
-| Espacio de trabajo del agente | `/home/node/.openclaw/workspace/`  | Montaje de volumen del host   | Codigo y artefactos del agente      |
-| Sesion de WhatsApp            | `/home/node/.openclaw/`            | Montaje de volumen del host   | Preserva el inicio de sesion por QR |
-| Llavero de Gmail              | `/home/node/.openclaw/`            | Volumen del host + contraseña | Requiere `GOG_KEYRING_PASSWORD`     |
-| Binarios externos             | `/usr/local/bin/`                  | Imagen Docker                 | Deben integrarse en el build        |
-| Runtime de Node               | Sistema de archivos del contenedor | Imagen Docker                 | Reconstruido en cada build          |
-| Paquetes del SO               | Sistema de archivos del contenedor | Imagen Docker                 | No instalar en runtime              |
-| Contenedor Docker             | Efimero                            | Reiniciable                   | Seguro de destruir                  |
+| Componente                           | Ubicación                          | Mecanismo de persistencia     | Notas                               |
+| ------------------------------------ | ---------------------------------- | ----------------------------- | ----------------------------------- |
+| Configuración del Gateway            | `/home/node/.openclaw/`            | Montaje de volumen del host   | Incluye `openclaw.json`, tokens     |
+| Perfiles de autenticación del modelo | `/home/node/.openclaw/`            | Montaje de volumen del host   | Tokens OAuth, claves de API         |
+| Configuraciones de skills            | `/home/node/.openclaw/skills/`     | Montaje de volumen del host   | Estado a nivel de skill             |
+| Espacio de trabajo del agente        | `/home/node/.openclaw/workspace/`  | Montaje de volumen del host   | Código y artefactos del agente      |
+| Sesión de WhatsApp                   | `/home/node/.openclaw/`            | Montaje de volumen del host   | Conserva el inicio de sesión por QR |
+| Llavero de Gmail                     | `/home/node/.openclaw/`            | Volumen del host + contraseña | Requiere `GOG_KEYRING_PASSWORD`     |
+| Binarios externos                    | `/usr/local/bin/`                  | Imagen Docker                 | Deben integrarse al compilar        |
+| Runtime de Node                      | Sistema de archivos del contenedor | Imagen Docker                 | Se reconstruye en cada compilación  |
+| Paquetes del SO                      | Sistema de archivos del contenedor | Imagen Docker                 | No instalar en tiempo de ejecución  |
+| Contenedor Docker                    | Efímero                            | Reiniciable                   | Seguro de destruir                  |
 
 ---
 
@@ -442,13 +442,13 @@ docker compose up -d
 
 ---
 
-## Solucion de problemas
+## Solución de problemas
 
-**Conexion SSH rechazada**
+**Conexión SSH rechazada**
 
-La propagacion de claves SSH puede tardar 1-2 minutos despues de crear la VM. Espere y vuelva a intentar.
+La propagación de claves SSH puede tardar 1–2 minutos después de crear la VM. Espere y reintente.
 
-**Problemas con OS Login**
+**Problemas de OS Login**
 
 Revise su perfil de OS Login:
 
@@ -456,7 +456,7 @@ Revise su perfil de OS Login:
 gcloud compute os-login describe-profile
 ```
 
-Asegurese de que su cuenta tenga los permisos IAM requeridos (Compute OS Login o Compute OS Admin Login).
+Asegúrese de que su cuenta tenga los permisos de IAM requeridos (Compute OS Login o Compute OS Admin Login).
 
 **Falta de memoria (OOM)**
 
@@ -477,34 +477,35 @@ gcloud compute instances start openclaw-gateway --zone=us-central1-a
 
 ---
 
-## Cuentas de servicio (mejor practica de seguridad)
+## Cuentas de servicio (mejor práctica de seguridad)
 
 Para uso personal, su cuenta de usuario predeterminada funciona bien.
 
-Para automatizacion o pipelines de CI/CD, cree una cuenta de servicio dedicada con permisos minimos:
+Para automatización o pipelines de CI/CD, cree una cuenta de servicio dedicada con permisos mínimos:
 
-1. Crear una cuenta de servicio:
+1. Cree una cuenta de servicio:
 
    ```bash
    gcloud iam service-accounts create openclaw-deploy \
      --display-name="OpenClaw Deployment"
    ```
 
-2. Conceder el rol Compute Instance Admin (o un rol personalizado mas restringido):
+2. Otorgue el rol de Administrador de instancias de Compute (o un rol personalizado más restrictivo):
+
    ```bash
    gcloud projects add-iam-policy-binding my-openclaw-project \
      --member="serviceAccount:openclaw-deploy@my-openclaw-project.iam.gserviceaccount.com" \
      --role="roles/compute.instanceAdmin.v1"
    ```
 
-Evite usar el rol Owner para automatizacion. Use el principio de privilegio minimo.
+Evite usar el rol Owner para automatización. Use el principio de mínimo privilegio.
 
-Vea https://cloud.google.com/iam/docs/understanding-roles para detalles sobre roles de IAM.
+Vea [https://cloud.google.com/iam/docs/understanding-roles](https://cloud.google.com/iam/docs/understanding-roles) para detalles sobre roles de IAM.
 
 ---
 
 ## Siguientes pasos
 
-- Configurar canales de mensajeria: [Channels](/channels)
-- Emparejar dispositivos locales como nodos: [Nodes](/nodes)
-- Configurar el Gateway: [Gateway configuration](/gateway/configuration)
+- Configure canales de mensajería: [Channels](/channels)
+- Empareje dispositivos locales como nodos: [Nodes](/nodes)
+- Configure el Gateway: [Gateway configuration](/gateway/configuration)

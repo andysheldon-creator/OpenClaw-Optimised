@@ -1,30 +1,30 @@
 ---
 summary: „Einrichtung, Konfiguration und Nutzung des LINE Messaging API Plugins“
 read_when:
-  - Sie moechten OpenClaw mit LINE verbinden
-  - Sie benoetigen die Einrichtung von LINE-Webhooks und Zugangsdaten
-  - Sie moechten LINE-spezifische Nachrichtenoptionen nutzen
+  - Sie möchten OpenClaw mit LINE verbinden
+  - Sie benötigen die Einrichtung von LINE-Webhooks und Zugangsdaten
+  - Sie möchten LINE-spezifische Nachrichtenoptionen nutzen
 title: LINE
 x-i18n:
   source_path: channels/line.md
-  source_hash: 8fbac126786f95b9
+  source_hash: 52eb66d06d616173
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:26Z
+  generated_at: 2026-02-08T09:35:14Z
 ---
 
 # LINE (Plugin)
 
-LINE verbindet sich mit OpenClaw ueber die LINE Messaging API. Das Plugin laeuft als
-Webhook-Empfaenger auf dem Gateway und verwendet Ihr Channel-Access-Token und das
-Channel-Secret zur Authentifizierung.
+LINE verbindet sich über die LINE Messaging API mit OpenClaw. Das Plugin läuft als
+Webhook-Empfänger auf dem Gateway und verwendet Ihr Channel Access Token und das
+Channel Secret zur Authentifizierung.
 
-Status: ueber Plugin unterstuetzt. Direktnachrichten, Gruppenchats, Medien, Standorte,
-Flex-Nachrichten, Vorlagen-Nachrichten und Schnellantworten werden unterstuetzt.
-Reaktionen und Threads werden nicht unterstuetzt.
+Status: Über Plugin unterstützt. Direktnachrichten, Gruppenchats, Medien, Standorte,
+Flex-Nachrichten, Vorlagen-Nachrichten und Schnellantworten werden unterstützt.
+Reaktionen und Threads werden nicht unterstützt.
 
-## Plugin erforderlich
+## Erforderliches Plugin
 
 Installieren Sie das LINE-Plugin:
 
@@ -32,7 +32,7 @@ Installieren Sie das LINE-Plugin:
 openclaw plugins install @openclaw/line
 ```
 
-Lokaler Checkout (bei Ausfuehrung aus einem Git-Repository):
+Lokaler Checkout (bei Ausführung aus einem Git-Repository):
 
 ```bash
 openclaw plugins install ./extensions/line
@@ -40,20 +40,22 @@ openclaw plugins install ./extensions/line
 
 ## Einrichtung
 
-1. Erstellen Sie ein LINE Developers-Konto und oeffnen Sie die Konsole:
-   https://developers.line.biz/console/
-2. Erstellen (oder waehlen) Sie einen Anbieter und fuegen Sie einen **Messaging API**-Kanal hinzu.
-3. Kopieren Sie das **Channel access token** und das **Channel secret** aus den Kanaleinstellungen.
-4. Aktivieren Sie **Use webhook** in den Messaging-API-Einstellungen.
-5. Setzen Sie die Webhook-URL auf Ihren Gateway-Endpunkt (HTTPS erforderlich):
+1. Erstellen Sie ein LINE Developers-Konto und öffnen Sie die Console:
+   [https://developers.line.biz/console/](https://developers.line.biz/console/)
+2. Erstellen Sie einen Provider (oder wählen Sie einen bestehenden aus) und fügen Sie
+   einen **Messaging API**-Kanal hinzu.
+3. Kopieren Sie das **Channel access token** und das **Channel secret** aus den
+   Kanaleinstellungen.
+4. Aktivieren Sie **Use webhook** in den Messaging API-Einstellungen.
+5. Setzen Sie die Webhook-URL auf den Gateway-Endpunkt (HTTPS erforderlich):
 
 ```
 https://gateway-host/line/webhook
 ```
 
 Das Gateway antwortet auf die Webhook-Verifizierung von LINE (GET) und eingehende
-Ereignisse (POST). Wenn Sie einen benutzerdefinierten Pfad benoetigen, setzen Sie
-`channels.line.webhookPath` oder `channels.line.accounts.<id>.webhookPath` und aktualisieren Sie die URL entsprechend.
+Ereignisse (POST). Wenn Sie einen benutzerdefinierten Pfad benötigen, setzen Sie
+`channels.line.webhookPath` oder `channels.line.accounts.<id>.webhookPath` und passen Sie die URL entsprechend an.
 
 ## Konfiguration
 
@@ -110,9 +112,8 @@ Mehrere Konten:
 
 ## Zugriffskontrolle
 
-Direktnachrichten verwenden standardmaessig eine Kopplung. Unbekannte Absender
-erhalten einen Kopplungscode und ihre Nachrichten werden ignoriert, bis sie genehmigt
-wurden.
+Direktnachrichten verwenden standardmäßig Pairing. Unbekannte Absender erhalten
+einen Pairing-Code, und ihre Nachrichten werden ignoriert, bis sie genehmigt sind.
 
 ```bash
 openclaw pairing list line
@@ -122,12 +123,12 @@ openclaw pairing approve line <CODE>
 Allowlists und Richtlinien:
 
 - `channels.line.dmPolicy`: `pairing | allowlist | open | disabled`
-- `channels.line.allowFrom`: erlaubte LINE-Benutzer-IDs fuer Direktnachrichten
+- `channels.line.allowFrom`: allowlistete LINE-Benutzer-IDs für Direktnachrichten
 - `channels.line.groupPolicy`: `allowlist | open | disabled`
-- `channels.line.groupAllowFrom`: erlaubte LINE-Benutzer-IDs fuer Gruppen
-- Pro-Gruppen-Ueberschreibungen: `channels.line.groups.<groupId>.allowFrom`
+- `channels.line.groupAllowFrom`: allowlistete LINE-Benutzer-IDs für Gruppen
+- Pro-Gruppen-Overrides: `channels.line.groups.<groupId>.allowFrom`
 
-LINE-IDs sind gross-/kleinschreibungssensitiv. Gueltige IDs sehen wie folgt aus:
+LINE-IDs sind case-sensitiv. Gültige IDs sehen wie folgt aus:
 
 - Benutzer: `U` + 32 Hex-Zeichen
 - Gruppe: `C` + 32 Hex-Zeichen
@@ -135,12 +136,12 @@ LINE-IDs sind gross-/kleinschreibungssensitiv. Gueltige IDs sehen wie folgt aus:
 
 ## Nachrichtenverhalten
 
-- Text wird bei 5000 Zeichen segmentiert.
-- Markdown-Formatierung wird entfernt; Codebloecke und Tabellen werden nach Moeglichkeit
+- Text wird bei 5000 Zeichen aufgeteilt.
+- Markdown-Formatierung wird entfernt; Codeblöcke und Tabellen werden, wenn möglich,
   in Flex-Karten umgewandelt.
-- Streaming-Antworten werden gepuffert; LINE erhaelt vollstaendige Segmente mit einer
-  Ladeanimation, waehrend der Agent arbeitet.
-- Medien-Downloads sind durch `channels.line.mediaMaxMb` begrenzt (Standard: 10).
+- Streaming-Antworten werden gepuffert; LINE erhält vollständige Chunks mit einer
+  Ladeanimation, während der Agent arbeitet.
+- Medien-Downloads werden durch `channels.line.mediaMaxMb` begrenzt (Standard: 10).
 
 ## Kanaldaten (Rich Messages)
 
@@ -178,8 +179,8 @@ Vorlagen-Nachrichten zu senden.
 }
 ```
 
-Das LINE-Plugin enthaelt ausserdem einen `/card`-Befehl fuer Flex-
-Nachrichten-Presets:
+Das LINE-Plugin enthält außerdem einen `/card`-Befehl für Flex-Nachrichten-
+Presets:
 
 ```
 /card info "Welcome" "Thanks for joining!"
@@ -187,9 +188,9 @@ Nachrichten-Presets:
 
 ## Fehlerbehebung
 
-- **Webhook-Verifizierung schlaegt fehl:** Stellen Sie sicher, dass die Webhook-URL HTTPS
-  verwendet und `channelSecret` mit der LINE-Konsole uebereinstimmt.
-- **Keine eingehenden Ereignisse:** Bestaetigen Sie, dass der Webhook-Pfad mit
-  `channels.line.webhookPath` uebereinstimmt und dass das Gateway von LINE erreichbar ist.
-- **Fehler beim Medien-Download:** Erhoehen Sie `channels.line.mediaMaxMb`, wenn Medien das
-  Standardlimit ueberschreiten.
+- **Webhook-Verifizierung schlägt fehl:** Stellen Sie sicher, dass die Webhook-URL
+  HTTPS verwendet und dass `channelSecret` mit der LINE-Console übereinstimmt.
+- **Keine eingehenden Ereignisse:** Prüfen Sie, ob der Webhook-Pfad mit
+  `channels.line.webhookPath` übereinstimmt und dass das Gateway von LINE erreichbar ist.
+- **Fehler beim Medien-Download:** Erhöhen Sie `channels.line.mediaMaxMb`, wenn Medien die
+  Standardbegrenzung überschreiten.

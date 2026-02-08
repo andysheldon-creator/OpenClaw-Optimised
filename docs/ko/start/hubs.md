@@ -1,24 +1,24 @@
 ---
 summary: "모든 OpenClaw 문서로 연결되는 허브"
 read_when:
-  - "문서 전체 지도가 필요할 때"
+  - 문서 전체의 완전한 지도가 필요할 때
 title: "문서 허브"
 x-i18n:
   source_path: start/hubs.md
-  source_hash: a2e3aa07d6c8c2dc
+  source_hash: 027cb7937ba63866
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:37:42Z
+  generated_at: 2026-02-08T09:26:23Z
 ---
 
 # 문서 허브
 
 <Note>
-OpenClaw 가 처음이라면 [시작하기](/start/getting-started)부터 시작하세요.
+OpenClaw 가 처음이라면 [시작하기](/start/getting-started)부터 시작하십시오.
 </Note>
 
-이 허브를 사용하면 왼쪽 내비게이션에 표시되지 않는 심층 가이드와 레퍼런스 문서를 포함하여 모든 페이지를 찾을 수 있습니다.
+이 허브를 사용하면 왼쪽 내비게이션에 표시되지 않는 심층 설명과 레퍼런스 문서를 포함하여 모든 페이지를 찾을 수 있습니다.
 
 ## 여기서 시작
 
@@ -28,7 +28,7 @@ OpenClaw 가 처음이라면 [시작하기](/start/getting-started)부터 시작
 - [온보딩](/start/onboarding)
 - [마법사](/start/wizard)
 - [설정](/start/setup)
-- [대시보드 (로컬 Gateway)](http://127.0.0.1:18789/)
+- [대시보드 (local Gateway(게이트웨이))](http://127.0.0.1:18789/)
 - [도움말](/help)
 - [문서 디렉토리](/start/docs-directory)
 - [구성](/gateway/configuration)
@@ -68,9 +68,9 @@ OpenClaw 가 처음이라면 [시작하기](/start/getting-started)부터 시작
 - [프레즌스](/concepts/presence)
 - [디바이스 검색 + 전송](/gateway/discovery)
 - [Bonjour](/gateway/bonjour)
-- [채널 라우팅](/concepts/channel-routing)
-- [그룹](/concepts/groups)
-- [그룹 메시지](/concepts/group-messages)
+- [채널 라우팅](/channels/channel-routing)
+- [그룹](/channels/groups)
+- [그룹 메시지](/channels/group-messages)
 - [모델 페일오버](/concepts/model-failover)
 - [OAuth](/concepts/oauth)
 
@@ -92,22 +92,22 @@ OpenClaw 가 처음이라면 [시작하기](/start/getting-started)부터 시작
 - [웹훅](/automation/webhook)
 - [Gmail Pub/Sub](/automation/gmail-pubsub)
 
-## Gateway + 운영
+## Gateway(게이트웨이) + 운영
 
-- [Gateway 런북](/gateway)
+- [Gateway(게이트웨이) 런북](/gateway)
 - [네트워크 모델](/gateway/network-model)
-- [Gateway 페어링](/gateway/pairing)
-- [Gateway 잠금](/gateway/gateway-lock)
+- [Gateway(게이트웨이) 페어링](/gateway/pairing)
+- [Gateway(게이트웨이) 잠금](/gateway/gateway-lock)
 - [백그라운드 프로세스](/gateway/background-process)
 - [상태](/gateway/health)
 - [하트비트](/gateway/heartbeat)
 - [닥터](/gateway/doctor)
 - [로깅](/gateway/logging)
-- [샌드박스 처리](/gateway/sandboxing)
+- [샌드박스화](/gateway/sandboxing)
 - [대시보드](/web/dashboard)
 - [컨트롤 UI](/web/control-ui)
 - [원격 액세스](/gateway/remote)
-- [원격 Gateway README](/gateway/remote-gateway-readme)
+- [원격 Gateway(게이트웨이) README](/gateway/remote-gateway-readme)
 - [Tailscale](/gateway/tailscale)
 - [보안](/gateway/security)
 - [문제 해결](/gateway/troubleshooting)
@@ -118,14 +118,14 @@ OpenClaw 가 처음이라면 [시작하기](/start/getting-started)부터 시작
 - [OpenProse](/prose)
 - [CLI 레퍼런스](/cli)
 - [Exec 도구](/tools/exec)
-- [권한 상승 모드](/tools/elevated)
-- [크론 작업](/automation/cron-jobs)
-- [Cron vs Heartbeat](/automation/cron-vs-heartbeat)
-- [사고 + 상세 출력](/tools/thinking)
+- [상승 모드](/tools/elevated)
+- [Cron 작업](/automation/cron-jobs)
+- [Cron vs 하트비트](/automation/cron-vs-heartbeat)
+- [Thinking + 상세 출력](/tools/thinking)
 - [모델](/concepts/models)
 - [서브 에이전트](/tools/subagents)
 - [에이전트 전송 CLI](/tools/agent-send)
-- [터미널 UI](/tui)
+- [터미널 UI](/web/tui)
 - [브라우저 제어](/tools/browser)
 - [브라우저 (Linux 문제 해결)](/tools/browser-linux-troubleshooting)
 - [폴](/automation/poll)
@@ -157,7 +157,7 @@ OpenClaw 가 처음이라면 [시작하기](/start/getting-started)부터 시작
 - [macOS 음성 웨이크](/platforms/mac/voicewake)
 - [macOS 음성 오버레이](/platforms/mac/voice-overlay)
 - [macOS WebChat](/platforms/mac/webchat)
-- [macOS 캔버스](/platforms/mac/canvas)
+- [macOS Canvas](/platforms/mac/canvas)
 - [macOS 자식 프로세스](/platforms/mac/child-process)
 - [macOS 상태](/platforms/mac/health)
 - [macOS 아이콘](/platforms/mac/icon)
@@ -166,7 +166,7 @@ OpenClaw 가 처음이라면 [시작하기](/start/getting-started)부터 시작
 - [macOS 원격](/platforms/mac/remote)
 - [macOS 서명](/platforms/mac/signing)
 - [macOS 릴리스](/platforms/mac/release)
-- [macOS Gateway (launchd)](/platforms/mac/bundled-gateway)
+- [macOS Gateway(게이트웨이) (launchd)](/platforms/mac/bundled-gateway)
 - [macOS XPC](/platforms/mac/xpc)
 - [macOS Skills](/platforms/mac/skills)
 - [macOS Peekaboo](/platforms/mac/peekaboo)
@@ -187,11 +187,11 @@ OpenClaw 가 처음이라면 [시작하기](/start/getting-started)부터 시작
 
 ## 실험 (탐색적)
 
-- [온보딩 구성 프로토콜](/experiments/onboarding-config-protocol)
-- [Cron 강화 노트](/experiments/plans/cron-add-hardening)
-- [그룹 정책 강화 노트](/experiments/plans/group-policy-hardening)
+- [온보딩 설정 프로토콜](/experiments/onboarding-config-protocol)
+- [Cron 하드닝 노트](/experiments/plans/cron-add-hardening)
+- [그룹 정책 하드닝 노트](/experiments/plans/group-policy-hardening)
 - [연구: 메모리](/experiments/research/memory)
-- [모델 구성 탐색](/experiments/proposals/model-config)
+- [모델 설정 탐색](/experiments/proposals/model-config)
 
 ## 프로젝트
 

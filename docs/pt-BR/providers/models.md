@@ -1,36 +1,36 @@
 ---
 summary: "Provedores de modelo (LLMs) compatíveis com o OpenClaw"
 read_when:
-  - Voce quer escolher um provedor de modelo
-  - Voce quer exemplos rapidos de configuracao para autenticacao de LLM + selecao de modelo
-title: "Inicio Rapido de Provedores de Modelo"
+  - Você quer escolher um provedor de modelo
+  - Você quer exemplos de configuração rápida para autenticação de LLM + seleção de modelo
+title: "Início rápido de provedores de modelo"
 x-i18n:
   source_path: providers/models.md
-  source_hash: c897ca87805f1ec5
+  source_hash: 691d2c97ef6b01cc
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:57:02Z
+  generated_at: 2026-02-08T09:31:39Z
 ---
 
-# Provedores de Modelo
+# Provedores de modelo
 
-O OpenClaw pode usar muitos provedores de LLM. Escolha um, autentique e depois defina o
-modelo padrao como `provider/model`.
+O OpenClaw pode usar muitos provedores de LLM. Escolha um, autentique e, em seguida, defina o
+modelo padrão como `provider/model`.
 
 ## Destaque: Venice (Venice AI)
 
-Venice e nossa configuracao recomendada do Venice AI para inferencia com foco em privacidade, com a opcao de usar Opus para as tarefas mais dificeis.
+Venice é nossa configuração recomendada do Venice AI para inferência com foco em privacidade, com a opção de usar Opus para as tarefas mais difíceis.
 
-- Padrao: `venice/llama-3.3-70b`
+- Padrão: `venice/llama-3.3-70b`
 - Melhor no geral: `venice/claude-opus-45` (Opus continua sendo o mais forte)
 
 Veja [Venice AI](/providers/venice).
 
-## Inicio rapido (dois passos)
+## Início rápido (dois passos)
 
 1. Autentique-se com o provedor (geralmente via `openclaw onboard`).
-2. Defina o modelo padrao:
+2. Defina o modelo padrão:
 
 ```json5
 {
@@ -38,7 +38,7 @@ Veja [Venice AI](/providers/venice).
 }
 ```
 
-## Provedores suportados (conjunto inicial)
+## Provedores compatíveis (conjunto inicial)
 
 - [OpenAI (API + Codex)](/providers/openai)
 - [Anthropic (API + Claude Code CLI)](/providers/anthropic)
@@ -52,7 +52,8 @@ Veja [Venice AI](/providers/venice).
 - [Modelos GLM](/providers/glm)
 - [MiniMax](/providers/minimax)
 - [Venice (Venice AI)](/providers/venice)
-- [Amazon Bedrock](/bedrock)
+- [Amazon Bedrock](/providers/bedrock)
+- [Qianfan](/providers/qianfan)
 
-Para o catalogo completo de provedores (xAI, Groq, Mistral, etc.) e configuracao avancada,
+Para o catálogo completo de provedores (xAI, Groq, Mistral etc.) e configuração avançada,
 veja [Provedores de modelo](/concepts/model-providers).

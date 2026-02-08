@@ -1,33 +1,33 @@
 ---
-summary: "Visão geral dos provedores de modelo com exemplos de configuração + fluxos de CLI"
+summary: "Visão geral de provedores de modelo com exemplos de configuração + fluxos de CLI"
 read_when:
   - Você precisa de uma referência de configuração de modelos por provedor
-  - Você quer exemplos de configurações ou comandos de onboarding via CLI para provedores de modelo
+  - Você quer exemplos de configuração ou comandos de integração inicial via CLI para provedores de modelo
 title: "Provedores de Modelo"
 x-i18n:
   source_path: concepts/model-providers.md
-  source_hash: 003efe22aaa37e8e
+  source_hash: b086e62236225de6
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:59Z
+  generated_at: 2026-02-08T09:30:42Z
 ---
 
 # Provedores de modelo
 
-Esta página cobre **provedores de LLM/modelos** (não canais de chat como WhatsApp/Telegram).
+Esta página aborda **provedores de LLM/modelo** (não canais de chat como WhatsApp/Telegram).
 Para regras de seleção de modelos, veja [/concepts/models](/concepts/models).
 
 ## Regras rápidas
 
 - Referências de modelo usam `provider/model` (exemplo: `opencode/claude-opus-4-6`).
-- Se você definir `agents.defaults.models`, ele se torna a allowlist.
-- Ajudantes de CLI: `openclaw onboard`, `openclaw models list`, `openclaw models set <provider/model>`.
+- Se você definir `agents.defaults.models`, ele se torna a lista de permissões.
+- Auxiliares de CLI: `openclaw onboard`, `openclaw models list`, `openclaw models set <provider/model>`.
 
 ## Provedores integrados (catálogo pi-ai)
 
-O OpenClaw vem com o catálogo pi‑ai. Esses provedores **não**
-exigem configuração de `models.providers`; basta definir a autenticação + escolher um modelo.
+O OpenClaw vem com o catálogo pi‑ai. Esses provedores **não** exigem
+configuração de `models.providers`; basta definir a autenticação e escolher um modelo.
 
 ### OpenAI
 
@@ -47,7 +47,7 @@ exigem configuração de `models.providers`; basta definir a autenticação + es
 - Provedor: `anthropic`
 - Autenticação: `ANTHROPIC_API_KEY` ou `claude setup-token`
 - Modelo de exemplo: `anthropic/claude-opus-4-6`
-- CLI: `openclaw onboard --auth-choice token` (colar setup-token) ou `openclaw models auth paste-token --provider anthropic`
+- CLI: `openclaw onboard --auth-choice token` (cole o setup-token) ou `openclaw models auth paste-token --provider anthropic`
 
 ```json5
 {
@@ -92,13 +92,13 @@ exigem configuração de `models.providers`; basta definir a autenticação + es
 
 - Provedores: `google-vertex`, `google-antigravity`, `google-gemini-cli`
 - Autenticação: Vertex usa gcloud ADC; Antigravity/Gemini CLI usam seus respectivos fluxos de autenticação
-- O OAuth do Antigravity é distribuído como um plugin integrado (`google-antigravity-auth`, desativado por padrão).
-  - Habilitar: `openclaw plugins enable google-antigravity-auth`
+- O OAuth do Antigravity é fornecido como um plugin empacotado (`google-antigravity-auth`, desativado por padrão).
+  - Ativar: `openclaw plugins enable google-antigravity-auth`
   - Login: `openclaw models auth login --provider google-antigravity --set-default`
-- O OAuth do Gemini CLI é distribuído como um plugin integrado (`google-gemini-cli-auth`, desativado por padrão).
-  - Habilitar: `openclaw plugins enable google-gemini-cli-auth`
+- O OAuth do Gemini CLI é fornecido como um plugin empacotado (`google-gemini-cli-auth`, desativado por padrão).
+  - Ativar: `openclaw plugins enable google-gemini-cli-auth`
   - Login: `openclaw models auth login --provider google-gemini-cli --set-default`
-  - Observação: você **não** cola um client id ou secret em `openclaw.json`. O fluxo de login da CLI armazena
+  - Nota: você **não** cola um client id ou secret em `openclaw.json`. O fluxo de login da CLI armazena
     tokens em perfis de autenticação no host do Gateway.
 
 ### Z.AI (GLM)
@@ -107,7 +107,7 @@ exigem configuração de `models.providers`; basta definir a autenticação + es
 - Autenticação: `ZAI_API_KEY`
 - Modelo de exemplo: `zai/glm-4.7`
 - CLI: `openclaw onboard --auth-choice zai-api-key`
-  - Aliases: `z.ai/*` e `z-ai/*` normalizam para `zai/*`
+  - Aliases: `z.ai/*` e `z-ai/*` são normalizados para `zai/*`
 
 ### Vercel AI Gateway
 
@@ -123,7 +123,7 @@ exigem configuração de `models.providers`; basta definir a autenticação + es
 - xAI: `xai` (`XAI_API_KEY`)
 - Groq: `groq` (`GROQ_API_KEY`)
 - Cerebras: `cerebras` (`CEREBRAS_API_KEY`)
-  - Modelos GLM no Cerebras usam os ids `zai-glm-4.7` e `zai-glm-4.6`.
+  - Modelos GLM na Cerebras usam os IDs `zai-glm-4.7` e `zai-glm-4.6`.
   - URL base compatível com OpenAI: `https://api.cerebras.ai/v1`.
 - Mistral: `mistral` (`MISTRAL_API_KEY`)
 - GitHub Copilot: `github-copilot` (`COPILOT_GITHUB_TOKEN` / `GH_TOKEN` / `GITHUB_TOKEN`)
@@ -135,7 +135,7 @@ proxies compatíveis com OpenAI/Anthropic.
 
 ### Moonshot AI (Kimi)
 
-Moonshot usa endpoints compatíveis com OpenAI, então configure-o como um provedor personalizado:
+A Moonshot usa endpoints compatíveis com OpenAI, então configure-a como um provedor personalizado:
 
 - Provedor: `moonshot`
 - Autenticação: `MOONSHOT_API_KEY`
@@ -143,14 +143,14 @@ Moonshot usa endpoints compatíveis com OpenAI, então configure-o como um prove
 
 IDs de modelo Kimi K2:
 
-{/_ moonshot-kimi-k2-model-refs:start _/ && null}
+{/_moonshot-kimi-k2-model-refs:start_/ && null}
 
 - `moonshot/kimi-k2.5`
 - `moonshot/kimi-k2-0905-preview`
 - `moonshot/kimi-k2-turbo-preview`
 - `moonshot/kimi-k2-thinking`
 - `moonshot/kimi-k2-thinking-turbo`
-  {/_ moonshot-kimi-k2-model-refs:end _/ && null}
+  {/_moonshot-kimi-k2-model-refs:end_/ && null}
 
 ```json5
 {
@@ -173,7 +173,7 @@ IDs de modelo Kimi K2:
 
 ### Kimi Coding
 
-Kimi Coding usa o endpoint compatível com Anthropic da Moonshot AI:
+O Kimi Coding usa o endpoint compatível com Anthropic da Moonshot AI:
 
 - Provedor: `kimi-coding`
 - Autenticação: `KIMI_API_KEY`
@@ -188,10 +188,10 @@ Kimi Coding usa o endpoint compatível com Anthropic da Moonshot AI:
 }
 ```
 
-### Qwen OAuth (nível gratuito)
+### Qwen OAuth (camada gratuita)
 
-O Qwen fornece acesso OAuth ao Qwen Coder + Vision via um fluxo de device-code.
-Habilite o plugin integrado e depois faça login:
+A Qwen fornece acesso OAuth ao Qwen Coder + Vision por meio de um fluxo de device-code.
+Ative o plugin empacotado e, em seguida, faça login:
 
 ```bash
 openclaw plugins enable qwen-portal-auth
@@ -203,11 +203,11 @@ Referências de modelo:
 - `qwen-portal/coder-model`
 - `qwen-portal/vision-model`
 
-Veja [/providers/qwen](/providers/qwen) para detalhes de configuração e observações.
+Veja [/providers/qwen](/providers/qwen) para detalhes de configuração e notas.
 
 ### Synthetic
 
-O Synthetic fornece modelos compatíveis com Anthropic por trás do provedor `synthetic`:
+A Synthetic fornece modelos compatíveis com Anthropic por trás do provedor `synthetic`:
 
 - Provedor: `synthetic`
 - Autenticação: `SYNTHETIC_API_KEY`
@@ -244,12 +244,12 @@ Veja [/providers/minimax](/providers/minimax) para detalhes de configuração, o
 
 ### Ollama
 
-O Ollama é um runtime de LLM local que fornece uma API compatível com OpenAI:
+O Ollama é um runtime local de LLM que fornece uma API compatível com OpenAI:
 
 - Provedor: `ollama`
-- Autenticação: Nenhuma necessária (servidor local)
+- Autenticação: não é necessária (servidor local)
 - Modelo de exemplo: `ollama/llama3.3`
-- Instalação: https://ollama.ai
+- Instalação: [https://ollama.ai](https://ollama.ai)
 
 ```bash
 # Install Ollama, then pull a model:
@@ -264,7 +264,7 @@ ollama pull llama3.3
 }
 ```
 
-O Ollama é detectado automaticamente ao rodar localmente em `http://127.0.0.1:11434/v1`. Veja [/providers/ollama](/providers/ollama) para recomendações de modelos e configuração personalizada.
+O Ollama é detectado automaticamente ao executar localmente em `http://127.0.0.1:11434/v1`. Veja [/providers/ollama](/providers/ollama) para recomendações de modelos e configuração personalizada.
 
 ### Proxies locais (LM Studio, vLLM, LiteLLM, etc.)
 
@@ -301,10 +301,10 @@ Exemplo (compatível com OpenAI):
 }
 ```
 
-Observações:
+Notas:
 
 - Para provedores personalizados, `reasoning`, `input`, `cost`, `contextWindow` e `maxTokens` são opcionais.
-  Quando omitidos, o OpenClaw assume como padrão:
+  Quando omitidos, o OpenClaw usa os padrões:
   - `reasoning: false`
   - `input: ["text"]`
   - `cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }`

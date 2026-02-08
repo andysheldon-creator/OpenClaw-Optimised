@@ -2,15 +2,15 @@
 summary: "Configuración de la API de Brave Search para web_search"
 read_when:
   - Quiere usar Brave Search para web_search
-  - Necesita un BRAVE_API_KEY o detalles del plan
+  - Necesita una BRAVE_API_KEY o detalles del plan
 title: "Brave Search"
 x-i18n:
   source_path: brave-search.md
-  source_hash: cdcb037b092b8a10
+  source_hash: 81cd0a13239c13f4
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:57:50Z
+  generated_at: 2026-02-08T09:32:23Z
 ---
 
 # API de Brave Search
@@ -19,7 +19,7 @@ OpenClaw usa Brave Search como el proveedor predeterminado para `web_search`.
 
 ## Obtener una clave de API
 
-1. Cree una cuenta de la API de Brave Search en https://brave.com/search/api/
+1. Cree una cuenta de la API de Brave Search en [https://brave.com/search/api/](https://brave.com/search/api/)
 2. En el panel, elija el plan **Data for Search** y genere una clave de API.
 3. Guarde la clave en la configuración (recomendado) o establezca `BRAVE_API_KEY` en el entorno del Gateway.
 
@@ -45,4 +45,4 @@ OpenClaw usa Brave Search como el proveedor predeterminado para `web_search`.
 - El plan Data for AI **no** es compatible con `web_search`.
 - Brave ofrece un nivel gratuito además de planes de pago; consulte el portal de la API de Brave para conocer los límites actuales.
 
-Consulte [Herramientas web](/tools/web) para la configuración completa de web_search.
+Consulte [Web tools](/tools/web) para la configuración completa de web_search.

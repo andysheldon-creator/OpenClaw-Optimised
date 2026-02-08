@@ -1,8 +1,8 @@
 ---
 summary: "Solucione problemas de emparejamiento de nodos, requisitos de primer plano, permisos y fallos de herramientas"
 read_when:
-  - El nodo está conectado pero fallan las herramientas de cámara/lienzo/pantalla/exec
-  - Necesita el modelo mental de emparejamiento de nodos frente a aprobaciones
+  - El nodo está conectado, pero fallan las herramientas de cámara/lienzo/pantalla/exec
+  - Necesita el modelo mental de emparejamiento del nodo frente a aprobaciones
 title: "Solución de problemas de nodos"
 x-i18n:
   source_path: nodes/troubleshooting.md
@@ -10,12 +10,12 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:15:30Z
+  generated_at: 2026-02-08T09:34:02Z
 ---
 
 # Solución de problemas de nodos
 
-Use esta página cuando un nodo sea visible en el estado pero las herramientas del nodo fallen.
+Use esta página cuando un nodo esté visible en el estado, pero las herramientas del nodo fallen.
 
 ## Escalera de comandos
 
@@ -35,17 +35,17 @@ openclaw nodes describe --node <idOrNameOrIp>
 openclaw approvals get --node <idOrNameOrIp>
 ```
 
-Señales saludables:
+Señales de buen estado:
 
 - El nodo está conectado y emparejado para el rol `node`.
-- `nodes describe` incluye la capacidad que está llamando.
+- `nodes describe` incluye la capacidad que usted está invocando.
 - Las aprobaciones de exec muestran el modo/lista de permitidos esperados.
 
 ## Requisitos de primer plano
 
 `canvas.*`, `camera.*` y `screen.*` son solo de primer plano en nodos iOS/Android.
 
-Comprobación y corrección rápidas:
+Comprobación y solución rápidas:
 
 ```bash
 openclaw nodes describe --node <idOrNameOrIp>
@@ -53,11 +53,11 @@ openclaw nodes canvas snapshot --node <idOrNameOrIp>
 openclaw logs --follow
 ```
 
-Si ve `NODE_BACKGROUND_UNAVAILABLE`, lleve la app del nodo al primer plano y reintente.
+Si ve `NODE_BACKGROUND_UNAVAILABLE`, lleve la app del nodo al primer plano y vuelva a intentarlo.
 
 ## Matriz de permisos
 
-| Capacidad                    | iOS                                          | Android                                               | App de nodo macOS                        | Código de fallo típico         |
+| Capacidad                    | iOS                                          | Android                                               | app de nodo macOS                        | Código de fallo típico         |
 | ---------------------------- | -------------------------------------------- | ----------------------------------------------------- | ---------------------------------------- | ------------------------------ |
 | `camera.snap`, `camera.clip` | Cámara (+ micrófono para audio del clip)     | Cámara (+ micrófono para audio del clip)              | Cámara (+ micrófono para audio del clip) | `*_PERMISSION_REQUIRED`        |
 | `screen.record`              | Grabación de pantalla (+ micrófono opcional) | Aviso de captura de pantalla (+ micrófono opcional)   | Grabación de pantalla                    | `*_PERMISSION_REQUIRED`        |
@@ -66,7 +66,7 @@ Si ve `NODE_BACKGROUND_UNAVAILABLE`, lleve la app del nodo al primer plano y rei
 
 ## Emparejamiento versus aprobaciones
 
-Estos son controles diferentes:
+Estas son puertas diferentes:
 
 1. **Emparejamiento del dispositivo**: ¿puede este nodo conectarse al Gateway?
 2. **Aprobaciones de exec**: ¿puede este nodo ejecutar un comando de shell específico?
@@ -81,18 +81,18 @@ openclaw approvals allowlist add --node <idOrNameOrIp> "/usr/bin/uname"
 ```
 
 Si falta el emparejamiento, apruebe primero el dispositivo del nodo.
-Si el emparejamiento está bien pero `system.run` falla, corrija las aprobaciones/lista de permitidos de exec.
+Si el emparejamiento está bien pero falla `system.run`, corrija las aprobaciones/lista de permitidos de exec.
 
 ## Códigos de error comunes del nodo
 
 - `NODE_BACKGROUND_UNAVAILABLE` → la app está en segundo plano; llévela al primer plano.
-- `CAMERA_DISABLED` → alternador de cámara deshabilitado en la configuración del nodo.
-- `*_PERMISSION_REQUIRED` → permiso del SO faltante/denegado.
+- `CAMERA_DISABLED` → el interruptor de cámara está deshabilitado en la configuración del nodo.
+- `*_PERMISSION_REQUIRED` → permiso del SO ausente/denegado.
 - `LOCATION_DISABLED` → el modo de ubicación está desactivado.
 - `LOCATION_PERMISSION_REQUIRED` → el modo de ubicación solicitado no está concedido.
-- `LOCATION_BACKGROUND_UNAVAILABLE` → la app está en segundo plano pero solo existe el permiso Mientras se usa.
+- `LOCATION_BACKGROUND_UNAVAILABLE` → la app está en segundo plano, pero solo existe el permiso Mientras se usa.
 - `SYSTEM_RUN_DENIED: approval required` → la solicitud de exec necesita aprobación explícita.
-- `SYSTEM_RUN_DENIED: allowlist miss` → comando bloqueado por el modo de lista de permitidos.
+- `SYSTEM_RUN_DENIED: allowlist miss` → el comando está bloqueado por el modo de lista de permitidos.
 
 ## Bucle de recuperación rápida
 
@@ -105,10 +105,10 @@ openclaw logs --follow
 
 Si aún está atascado:
 
-- Reaprobar el emparejamiento del dispositivo.
-- Reabrir la app del nodo (primer plano).
-- Volver a conceder permisos del SO.
-- Recrear/ajustar la política de aprobación de exec.
+- Vuelva a aprobar el emparejamiento del dispositivo.
+- Reabra la app del nodo (primer plano).
+- Vuelva a conceder los permisos del SO.
+- Recree/ajuste la política de aprobaciones de exec.
 
 Relacionado:
 

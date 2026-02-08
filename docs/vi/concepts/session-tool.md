@@ -1,125 +1,125 @@
 ---
-summary: "Cong cu phien tac tu de liet ke phien, lay lich su va gui tin nhan giua cac phien"
+summary: "Công cụ phiên tác tử để liệt kê phiên, lấy lịch sử và gửi tin nhắn giữa các phiên"
 read_when:
-  - Them hoac chinh sua cong cu phien
-title: "Cong Cu Phien"
+  - Thêm hoặc chỉnh sửa công cụ phiên
+title: "Công cụ Phiên"
 x-i18n:
   source_path: concepts/session-tool.md
   source_hash: cb6e0982ebf507bc
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:14Z
+  generated_at: 2026-02-08T09:38:52Z
 ---
 
-# Cong Cu Phien
+# Công cụ Phiên
 
-Muc tieu: bo cong cu nho, kho su dung sai de tac tu co the liet ke phien, lay lich su va gui sang phien khac.
+Mục tiêu: bộ công cụ nhỏ, khó dùng sai để tác tử có thể liệt kê phiên, lấy lịch sử và gửi sang một phiên khác.
 
-## Ten Cong Cu
+## Tên Công Cụ
 
 - `sessions_list`
 - `sessions_history`
 - `sessions_send`
 - `sessions_spawn`
 
-## Mo Hinh Khoa
+## Mô Hình Khóa
 
-- Ngan chat truc tiep chinh luon la khoa literal `"main"` (duoc giai quyet thanh khoa chinh cua tac tu hien tai).
-- Chat nhom su dung `agent:<agentId>:<channel>:group:<id>` hoac `agent:<agentId>:<channel>:channel:<id>` (truyen day du khoa).
-- Cron job su dung `cron:<job.id>`.
-- Hook su dung `hook:<uuid>` tru khi duoc dat ro rang.
-- Phien node su dung `node-<nodeId>` tru khi duoc dat ro rang.
+- Bucket chat trực tiếp chính luôn là khóa literal `"main"` (được phân giải thành khóa chính của tác tử hiện tại).
+- Chat nhóm dùng `agent:<agentId>:<channel>:group:<id>` hoặc `agent:<agentId>:<channel>:channel:<id>` (truyền đầy đủ khóa).
+- Cron jobs dùng `cron:<job.id>`.
+- Hooks dùng `hook:<uuid>` trừ khi được đặt rõ ràng.
+- Phiên node dùng `node-<nodeId>` trừ khi được đặt rõ ràng.
 
-`global` va `unknown` la cac gia tri duoc danh rieng va khong bao gio duoc liet ke. Neu `session.scope = "global"`, chung toi alias no thanh `main` cho tat ca cac cong cu de nguoi goi khong bao gio thay `global`.
+`global` và `unknown` là các giá trị được dành riêng và không bao giờ được liệt kê. Nếu `session.scope = "global"`, chúng tôi alias nó thành `main` cho tất cả các công cụ để người gọi không bao giờ thấy `global`.
 
 ## sessions_list
 
-Liet ke cac phien duoi dang mang cac dong.
+Liệt kê các phiên dưới dạng mảng các hàng.
 
-Tham so:
+Tham số:
 
-- Bo loc `kinds?: string[]`: bat ky gia tri nao trong `"main" | "group" | "cron" | "hook" | "node" | "other"`
-- `limit?: number` so dong toi da (mac dinh: mac dinh phia server, gioi han vi du 200)
-- `activeMinutes?: number` chi cac phien duoc cap nhat trong N phut
-- `messageLimit?: number` 0 = khong co tin nhan (mac dinh 0); >0 = bao gom N tin nhan gan nhat
+- `kinds?: string[]` bộ lọc: một trong các `"main" | "group" | "cron" | "hook" | "node" | "other"`
+- `limit?: number` số hàng tối đa (mặc định: theo mặc định của server, kẹp ví dụ 200)
+- `activeMinutes?: number` chỉ các phiên được cập nhật trong vòng N phút
+- `messageLimit?: number` 0 = không có tin nhắn (mặc định 0); >0 = bao gồm N tin nhắn cuối
 
-Hanh vi:
+Hành vi:
 
-- `messageLimit > 0` lay `chat.history` cho moi phien va bao gom N tin nhan gan nhat.
-- Ket qua cong cu duoc loc ra khoi dau ra danh sach; dung `sessions_history` cho tin nhan cong cu.
-- Khi chay trong phien tac tu **trong sandbox**, cong cu phien mac dinh o che do **chi hien thi cac phien duoc spawn** (xem ben duoi).
+- `messageLimit > 0` lấy `chat.history` cho mỗi phiên và bao gồm N tin nhắn cuối.
+- Kết quả công cụ được lọc khỏi đầu ra danh sách; dùng `sessions_history` cho tin nhắn công cụ.
+- Khi chạy trong một phiên tác tử **sandboxed**, các công cụ phiên mặc định chỉ có **khả năng hiển thị các phiên được spawn** (xem bên dưới).
 
-Hinh dang dong (JSON):
+Dạng hàng (JSON):
 
-- `key`: khoa phien (string)
+- `key`: khóa phiên (string)
 - `kind`: `main | group | cron | hook | node | other`
 - `channel`: `whatsapp | telegram | discord | signal | imessage | webchat | internal | unknown`
-- `displayName` (nhan hien thi nhom neu co)
+- `displayName` (nhãn hiển thị nhóm nếu có)
 - `updatedAt` (ms)
 - `sessionId`
 - `model`, `contextTokens`, `totalTokens`
 - `thinkingLevel`, `verboseLevel`, `systemSent`, `abortedLastRun`
-- `sendPolicy` (ghi de phien neu duoc dat)
+- `sendPolicy` (ghi đè phiên nếu được đặt)
 - `lastChannel`, `lastTo`
-- `deliveryContext` (`{ channel, to, accountId }` da chuan hoa khi co)
-- `transcriptPath` (duong dan co gang tot nhat duoc suy ra tu thu muc luu tru + sessionId)
-- `messages?` (chi khi `messageLimit > 0`)
+- `deliveryContext` (`{ channel, to, accountId }` đã được chuẩn hóa khi có)
+- `transcriptPath` (đường dẫn best-effort suy ra từ thư mục lưu trữ + sessionId)
+- `messages?` (chỉ khi `messageLimit > 0`)
 
 ## sessions_history
 
-Lay transcript cho mot phien.
+Lấy bản ghi hội thoại cho một phiên.
 
-Tham so:
+Tham số:
 
-- `sessionKey` (bat buoc; chap nhan khoa phien hoac `sessionId` tu `sessions_list`)
-- `limit?: number` so tin nhan toi da (server se gioi han)
-- `includeTools?: boolean` (mac dinh false)
+- `sessionKey` (bắt buộc; chấp nhận khóa phiên hoặc `sessionId` từ `sessions_list`)
+- `limit?: number` số tin nhắn tối đa (server sẽ kẹp)
+- `includeTools?: boolean` (mặc định false)
 
-Hanh vi:
+Hành vi:
 
-- `includeTools=false` loc cac tin nhan `role: "toolResult"`.
-- Tra ve mang tin nhan theo dinh dang transcript thuan.
-- Khi cung cap `sessionId`, OpenClaw giai quyet no thanh khoa phien tuong ung (bao loi neu thieu id).
+- `includeTools=false` lọc các tin nhắn `role: "toolResult"`.
+- Trả về mảng tin nhắn theo định dạng transcript thô.
+- Khi cung cấp `sessionId`, OpenClaw sẽ phân giải nó thành khóa phiên tương ứng (lỗi nếu thiếu id).
 
 ## sessions_send
 
-Gui mot tin nhan vao phien khac.
+Gửi một tin nhắn vào một phiên khác.
 
-Tham so:
+Tham số:
 
-- `sessionKey` (bat buoc; chap nhan khoa phien hoac `sessionId` tu `sessions_list`)
-- `message` (bat buoc)
-- `timeoutSeconds?: number` (mac dinh >0; 0 = gui va khong cho)
+- `sessionKey` (bắt buộc; chấp nhận khóa phiên hoặc `sessionId` từ `sessions_list`)
+- `message` (bắt buộc)
+- `timeoutSeconds?: number` (mặc định >0; 0 = fire-and-forget)
 
-Hanh vi:
+Hành vi:
 
-- `timeoutSeconds = 0`: xep hang va tra ve `{ runId, status: "accepted" }`.
-- `timeoutSeconds > 0`: cho toi da N giay de hoan tat, sau do tra ve `{ runId, status: "ok", reply }`.
-- Neu cho bi het thoi gian: `{ runId, status: "timeout", error }`. Tien trinh van tiep tuc; goi `sessions_history` sau.
-- Neu tien trinh that bai: `{ runId, status: "error", error }`.
-- Thong bao giao hang chay sau khi tien trinh chinh hoan tat va theo best-effort; `status: "ok"` khong dam bao thong bao da duoc gui.
-- Cho thong qua Gateway `agent.wait` (phia server) de viec ket noi lai khong lam mat cho.
-- Ngu canh tin nhan giua tac tu duoc chen vao cho tien trinh chinh.
-- Sau khi tien trinh chinh hoan tat, OpenClaw chay **vong lap tra loi lai**:
-  - Vong 2+ luan phien giua tac tu yeu cau va tac tu dich.
-  - Tra loi chinh xac `REPLY_SKIP` de dung ping‑pong.
-  - So luot toi da la `session.agentToAgent.maxPingPongTurns` (0–5, mac dinh 5).
-- Khi vong lap ket thuc, OpenClaw chay **buoc thong bao giua tac tu** (chi tac tu dich):
-  - Tra loi chinh xac `ANNOUNCE_SKIP` de giu im lang.
-  - Bat ky tra loi nao khac se duoc gui toi kenh dich.
-  - Buoc thong bao bao gom yeu cau goc + tra loi vong 1 + tra loi ping‑pong moi nhat.
+- `timeoutSeconds = 0`: xếp hàng và trả về `{ runId, status: "accepted" }`.
+- `timeoutSeconds > 0`: chờ tối đa N giây để hoàn tất, sau đó trả về `{ runId, status: "ok", reply }`.
+- Nếu chờ bị timeout: `{ runId, status: "timeout", error }`. Tiến trình vẫn tiếp tục; gọi `sessions_history` sau.
+- Nếu tiến trình thất bại: `{ runId, status: "error", error }`.
+- Các lần chạy thông báo (announce) sau khi lần chạy chính hoàn tất và là best-effort; `status: "ok"` không đảm bảo thông báo đã được gửi.
+- Chờ thông qua `agent.wait` của gateway (phía server) để việc reconnect không làm rơi quá trình chờ.
+- Ngữ cảnh tin nhắn tác tử‑tác tử được chèn cho lần chạy chính.
+- Sau khi lần chạy chính hoàn tất, OpenClaw chạy **vòng lặp reply-back**:
+  - Vòng 2+ luân phiên giữa tác tử yêu cầu và tác tử đích.
+  - Trả lời chính xác `REPLY_SKIP` để dừng ping‑pong.
+  - Số lượt tối đa là `session.agentToAgent.maxPingPongTurns` (0–5, mặc định 5).
+- Khi vòng lặp kết thúc, OpenClaw chạy **bước announce tác tử‑tác tử** (chỉ tác tử đích):
+  - Trả lời chính xác `ANNOUNCE_SKIP` để giữ im lặng.
+  - Bất kỳ phản hồi nào khác sẽ được gửi tới kênh đích.
+  - Bước announce bao gồm yêu cầu ban đầu + phản hồi vòng 1 + phản hồi ping‑pong mới nhất.
 
-## Truong Kenh
+## Trường Channel
 
-- Doi voi nhom, `channel` la kenh duoc ghi tren muc phien.
-- Doi voi chat truc tiep, `channel` anh xa tu `lastChannel`.
-- Doi voi cron/hook/node, `channel` la `internal`.
-- Neu thieu, `channel` la `unknown`.
+- Với nhóm, `channel` là kênh được ghi trên mục phiên.
+- Với chat trực tiếp, `channel` ánh xạ từ `lastChannel`.
+- Với cron/hook/node, `channel` là `internal`.
+- Nếu thiếu, `channel` là `unknown`.
 
-## Bao Mat / Chinh Sach Gui
+## Bảo Mật / Chính Sách Gửi
 
-Chan dua tren chinh sach theo loai kenh/chat (khong theo session id).
+Chặn theo chính sách dựa trên kênh/loại chat (không theo session id).
 
 ```json
 {
@@ -137,54 +137,54 @@ Chan dua tren chinh sach theo loai kenh/chat (khong theo session id).
 }
 ```
 
-Ghi de thoi gian chay (theo muc phien):
+Ghi đè runtime (theo từng mục phiên):
 
-- `sendPolicy: "allow" | "deny"` (khong dat = ke thua cau hinh)
-- Co the dat thong qua `sessions.patch` hoac `/send on|off|inherit` chi chu so huu (tin nhan doc lap).
+- `sendPolicy: "allow" | "deny"` (không đặt = kế thừa cấu hình)
+- Có thể đặt qua `sessions.patch` hoặc `/send on|off|inherit` chỉ cho owner (tin nhắn độc lập).
 
-Diem thuc thi:
+Điểm thực thi:
 
-- `chat.send` / `agent` (Gateway)
-- logic giao hang tra loi tu dong
+- `chat.send` / `agent` (gateway)
+- logic phân phối auto-reply
 
 ## sessions_spawn
 
-Spawn mot lan chay tac tu phu trong mot phien co lap va thong bao ket qua ve kenh chat cua ben yeu cau.
+Spawn một lần chạy sub-agent trong một phiên cô lập và thông báo kết quả trở lại kênh chat của người yêu cầu.
 
-Tham so:
+Tham số:
 
-- `task` (bat buoc)
-- `label?` (tuy chon; dung cho log/UI)
-- `agentId?` (tuy chon; spawn duoi mot agent id khac neu duoc phep)
-- `model?` (tuy chon; ghi de mo hinh tac tu phu; gia tri khong hop le se bao loi)
-- `runTimeoutSeconds?` (mac dinh 0; khi dat, huy lan chay tac tu phu sau N giay)
-- `cleanup?` (`delete|keep`, mac dinh `keep`)
+- `task` (bắt buộc)
+- `label?` (tùy chọn; dùng cho logs/UI)
+- `agentId?` (tùy chọn; spawn dưới một agent id khác nếu được phép)
+- `model?` (tùy chọn; ghi đè mô hình sub-agent; giá trị không hợp lệ sẽ lỗi)
+- `runTimeoutSeconds?` (mặc định 0; khi đặt, hủy lần chạy sub-agent sau N giây)
+- `cleanup?` (`delete|keep`, mặc định `keep`)
 
-Danh sach cho phep:
+Danh sách cho phép:
 
-- `agents.list[].subagents.allowAgents`: danh sach agent id duoc phep thong qua `agentId` (`["*"]` de cho phep bat ky). Mac dinh: chi tac tu yeu cau.
+- `agents.list[].subagents.allowAgents`: danh sách agent id được phép thông qua `agentId` (`["*"]` để cho phép bất kỳ). Mặc định: chỉ tác tử yêu cầu.
 
-Kham pha:
+Khám phá:
 
-- Dung `agents_list` de kham pha nhung agent id nao duoc phep cho `sessions_spawn`.
+- Dùng `agents_list` để khám phá các agent id nào được phép cho `sessions_spawn`.
 
-Hanh vi:
+Hành vi:
 
-- Bat dau mot phien `agent:<agentId>:subagent:<uuid>` moi voi `deliver: false`.
-- Tac tu phu mac dinh co day du bo cong cu **tru cong cu phien** (co the cau hinh thong qua `tools.subagents.tools`).
-- Tac tu phu khong duoc phep goi `sessions_spawn` (khong co spawn tac tu phu → tac tu phu).
-- Luon khong chan: tra ve `{ status: "accepted", runId, childSessionKey }` ngay lap tuc.
-- Sau khi hoan tat, OpenClaw chay **buoc thong bao** cua tac tu phu va dang ket qua len kenh chat cua ben yeu cau.
-- Tra loi chinh xac `ANNOUNCE_SKIP` trong buoc thong bao de giu im lang.
-- Tra loi thong bao duoc chuan hoa thanh `Status`/`Result`/`Notes`; `Status` den tu ket qua thoi gian chay (khong phai van ban mo hinh).
-- Phien tac tu phu tu dong duoc luu tru sau `agents.defaults.subagents.archiveAfterMinutes` (mac dinh: 60).
-- Tra loi thong bao bao gom mot dong thong ke (thoi gian chay, token, sessionKey/sessionId, duong dan transcript, va chi phi tuy chon).
+- Bắt đầu một phiên `agent:<agentId>:subagent:<uuid>` mới với `deliver: false`.
+- Sub-agent mặc định có đầy đủ bộ công cụ **trừ các công cụ phiên** (có thể cấu hình qua `tools.subagents.tools`).
+- Sub-agent không được phép gọi `sessions_spawn` (không spawn sub-agent → sub-agent).
+- Luôn không chặn: trả về `{ status: "accepted", runId, childSessionKey }` ngay lập tức.
+- Sau khi hoàn tất, OpenClaw chạy **bước announce sub-agent** và đăng kết quả lên kênh chat của người yêu cầu.
+- Trả lời chính xác `ANNOUNCE_SKIP` trong bước announce để giữ im lặng.
+- Phản hồi announce được chuẩn hóa thành `Status`/`Result`/`Notes`; `Status` đến từ kết quả runtime (không phải văn bản của mô hình).
+- Các phiên sub-agent được tự động lưu trữ sau `agents.defaults.subagents.archiveAfterMinutes` (mặc định: 60).
+- Phản hồi announce bao gồm một dòng thống kê (thời gian chạy, tokens, sessionKey/sessionId, đường dẫn transcript và chi phí tùy chọn).
 
-## Hien Thi Phien Sandbox
+## Khả Năng Hiển Thị Phiên Sandbox
 
-Cac phien trong sandbox co the su dung cong cu phien, nhung mac dinh chi thay cac phien ma chung spawn thong qua `sessions_spawn`.
+Các phiên sandboxed có thể dùng công cụ phiên, nhưng mặc định chỉ thấy các phiên mà chúng spawn thông qua `sessions_spawn`.
 
-Cau hinh:
+Cấu hình:
 
 ```json5
 {

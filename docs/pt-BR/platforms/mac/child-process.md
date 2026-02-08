@@ -9,29 +9,29 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:56:55Z
+  generated_at: 2026-02-08T09:31:32Z
 ---
 
 # Ciclo de vida do Gateway no macOS
 
-O app do macOS **gerencia o Gateway via launchd** por padrao e nao inicia
-o Gateway como um processo filho. Primeiro, ele tenta se conectar a um
-Gateway ja em execucao na porta configurada; se nenhum estiver acessivel,
-ele habilita o servico launchd por meio da CLI externa `openclaw`
-(sem runtime incorporado). Isso oferece inicializacao automatica confiavel
-no login e reinicio em caso de falhas.
+O app do macOS **gerencia o Gateway via launchd** por padrão e não inicia
+o Gateway como um processo filho. Ele primeiro tenta se anexar a um
+Gateway já em execução na porta configurada; se nenhum estiver acessível,
+ele habilita o serviço do launchd por meio da CLI externa `openclaw`
+(sem runtime embutido). Isso oferece inicialização automática confiável
+no login e reinício em caso de falhas.
 
-O modo de processo filho (Gateway iniciado diretamente pelo app) **nao esta em uso**
-atualmente. Se voce precisar de um acoplamento mais estreito com a UI,
-execute o Gateway manualmente em um terminal.
+O modo de processo filho (Gateway iniciado diretamente pelo app) **não é usado**
+hoje. Se você precisar de um acoplamento mais estreito com a UI, execute
+o Gateway manualmente em um terminal.
 
-## Comportamento padrao (launchd)
+## Comportamento padrão (launchd)
 
-- O app instala um LaunchAgent por usuario rotulado como `bot.molt.gateway`
-  (ou `bot.molt.<profile>` ao usar `--profile`/`OPENCLAW_PROFILE`; o legado `com.openclaw.*` e suportado).
-- Quando o modo Local esta habilitado, o app garante que o LaunchAgent esteja carregado e
-  inicia o Gateway se necessario.
-- Os logs sao gravados no caminho de log do gateway do launchd (visivel em Configuracoes de Depuracao).
+- O app instala um LaunchAgent por usuário rotulado como `bot.molt.gateway`
+  (ou `bot.molt.<profile>` ao usar `--profile`/`OPENCLAW_PROFILE`; o legado `com.openclaw.*` é compatível).
+- Quando o modo Local está habilitado, o app garante que o LaunchAgent esteja carregado e
+  inicia o Gateway se necessário.
+- Os logs são gravados no caminho de logs do gateway do launchd (visível em Configurações de depuração).
 
 Comandos comuns:
 
@@ -40,39 +40,39 @@ launchctl kickstart -k gui/$UID/bot.molt.gateway
 launchctl bootout gui/$UID/bot.molt.gateway
 ```
 
-Substitua o rotulo por `bot.molt.<profile>` ao executar um perfil nomeado.
+Substitua o rótulo por `bot.molt.<profile>` ao executar um perfil nomeado.
 
-## Builds de desenvolvimento nao assinadas
+## Builds de desenvolvimento não assinadas
 
-`scripts/restart-mac.sh --no-sign` e para builds locais rapidas quando voce nao tem
-chaves de assinatura. Para evitar que o launchd aponte para um binario de relay nao assinado, ele:
+`scripts/restart-mac.sh --no-sign` é para builds locais rápidos quando você não tem
+chaves de assinatura. Para impedir que o launchd aponte para um binário de relay não assinado, ele:
 
 - Grava `~/.openclaw/disable-launchagent`.
 
-Execucoes assinadas de `scripts/restart-mac.sh` removem essa substituicao se o marcador
+Execuções assinadas de `scripts/restart-mac.sh` limpam essa substituição se o marcador
 estiver presente. Para redefinir manualmente:
 
 ```bash
 rm ~/.openclaw/disable-launchagent
 ```
 
-## Modo somente de anexo
+## Modo somente de anexação
 
-Para forcar o app do macOS a **nunca instalar ou gerenciar o launchd**, inicie-o com
+Para forçar o app do macOS a **nunca instalar ou gerenciar o launchd**, inicie-o com
 `--attach-only` (ou `--no-launchd`). Isso define `~/.openclaw/disable-launchagent`,
-de modo que o app apenas se anexa a um Gateway ja em execucao. Voce pode alternar o mesmo
-comportamento em Configuracoes de Depuracao.
+então o app apenas se anexa a um Gateway já em execução. Você pode alternar o mesmo
+comportamento em Configurações de depuração.
 
 ## Modo remoto
 
-O modo remoto nunca inicia um Gateway local. O app usa um tunel SSH para o
-host remoto e se conecta por meio desse tunel.
+O modo remoto nunca inicia um Gateway local. O app usa um túnel SSH para o
+host remoto e se conecta por esse túnel.
 
 ## Por que preferimos o launchd
 
-- Inicializacao automatica no login.
-- Semantica integrada de reinicio/KeepAlive.
-- Logs e supervisao previsiveis.
+- Inicialização automática no login.
+- Semântica integrada de reinício/KeepAlive.
+- Logs e supervisão previsíveis.
 
-Se um verdadeiro modo de processo filho voltar a ser necessario algum dia, ele
-devera ser documentado como um modo separado e explicito apenas para desenvolvimento.
+Se um modo verdadeiro de processo filho voltar a ser necessário, ele deve ser
+documentado como um modo separado e explícito, apenas para desenvolvimento.

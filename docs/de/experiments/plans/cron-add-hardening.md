@@ -1,5 +1,5 @@
 ---
-summary: "Härtung der Eingabeverarbeitung für cron.add, Abgleich der Schemas und Verbesserung der Cron-UI-/Agent-Tools"
+summary: "Eingabehärtung für cron.add, Schemaabgleich und Verbesserung der Cron-UI/Agent-Tooling"
 owner: "openclaw"
 status: "complete"
 last_updated: "2026-01-05"
@@ -10,61 +10,61 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:04:17Z
+  generated_at: 2026-02-08T09:36:09Z
 ---
 
-# Härtung von Cron Add & Schema-Abgleich
+# Härtung von Cron Add & Schemaabgleich
 
 ## Kontext
 
-Aktuelle Gateway-Logs zeigen wiederholte `cron.add`-Fehler mit ungültigen Parametern (fehlende `sessionTarget`, `wakeMode`, `payload` sowie fehlerhaftes `schedule`). Dies deutet darauf hin, dass mindestens ein Client (wahrscheinlich der Agent-Tool-Aufrufpfad) umschlossene oder nur teilweise spezifizierte Job-Payloads sendet. Separat gibt es Abweichungen zwischen Cron-Provider-Enums in TypeScript, dem Gateway-Schema, CLI-Flags und UI-Formulartypen sowie eine UI-Abweichung für `cron.status` (erwartet `jobCount`, während das Gateway `jobs` zurückgibt).
+Aktuelle Gateway-Logs zeigen wiederholte `cron.add`-Fehler mit ungültigen Parametern (fehlende `sessionTarget`, `wakeMode`, `payload` sowie fehlerhafte `schedule`). Dies deutet darauf hin, dass mindestens ein Client (wahrscheinlich der Agent-Tool-Call-Pfad) umschlossene oder nur teilweise spezifizierte Job-Payloads sendet. Separat gibt es Abweichungen zwischen Cron-Anbieter-Enums in TypeScript, Gateway-Schema, CLI-Flags und UI-Formulartypen sowie eine UI-Inkonsistenz für `cron.status` (erwartet `jobCount`, während das Gateway `jobs` zurückgibt).
 
 ## Ziele
 
-- `cron.add`-INVALID_REQUEST-Spam stoppen, indem gängige Wrapper-Payloads normalisiert und fehlende `kind`-Felder abgeleitet werden.
-- Cron-Provider-Listen über Gateway-Schema, Cron-Typen, CLI-Dokumentation und UI-Formulare hinweg abgleichen.
-- Das Schema des Agent-Cron-Tools explizit machen, damit das LLM korrekte Job-Payloads erzeugt.
-- Die Anzeige der Jobanzahl im Cron-Status der Control UI korrigieren.
-- Tests hinzufügen, die Normalisierung und Tool-Verhalten abdecken.
+- `cron.add` INVALID_REQUEST-Spam stoppen, indem gängige Wrapper-Payloads normalisiert und fehlende `kind`-Felder abgeleitet werden.
+- Cron-Anbieterlisten über Gateway-Schema, Cron-Typen, CLI-Dokumentation und UI-Formulare hinweg ausrichten.
+- Das Agent-Cron-Tool-Schema explizit machen, damit das LLM korrekte Job-Payloads erzeugt.
+- Die Anzeige der Jobanzahl im Control-UI-Cron-Status korrigieren.
+- Tests hinzufügen, um Normalisierung und Tool-Verhalten abzudecken.
 
 ## Nicht-Ziele
 
 - Änderung der Cron-Planungssemantik oder des Job-Ausführungsverhaltens.
-- Hinzufügen neuer Planungsarten oder Cron-Ausdrucks-Parsing.
-- Überarbeitung der UI/UX für Cron über die notwendigen Feldkorrekturen hinaus.
+- Hinzufügen neuer Zeitplantypen oder Cron-Ausdrucks-Parsing.
+- Umfassende Überarbeitung der Cron-UI/UX über die notwendigen Feldkorrekturen hinaus.
 
 ## Erkenntnisse (aktuelle Lücken)
 
 - `CronPayloadSchema` im Gateway schließt `signal` + `imessage` aus, während TS-Typen diese enthalten.
-- Control UI CronStatus erwartet `jobCount`, das Gateway gibt jedoch `jobs` zurück.
-- Das Schema des Agent-Cron-Tools erlaubt beliebige `job`-Objekte und ermöglicht dadurch fehlerhafte Eingaben.
+- Control-UI CronStatus erwartet `jobCount`, das Gateway gibt jedoch `jobs` zurück.
+- Das Agent-Cron-Tool-Schema erlaubt beliebige `job`-Objekte und ermöglicht dadurch fehlerhafte Eingaben.
 - Das Gateway validiert `cron.add` strikt ohne Normalisierung, sodass umschlossene Payloads fehlschlagen.
 
 ## Was sich geändert hat
 
 - `cron.add` und `cron.update` normalisieren nun gängige Wrapper-Formen und leiten fehlende `kind`-Felder ab.
-- Das Schema des Agent-Cron-Tools entspricht dem Gateway-Schema, wodurch ungültige Payloads reduziert werden.
-- Provider-Enums sind über Gateway, CLI, UI und macOS-Picker hinweg abgestimmt.
-- Die Control UI verwendet für den Status die vom Gateway gelieferte Zählvariable `jobs`.
+- Das Agent-Cron-Tool-Schema entspricht dem Gateway-Schema, wodurch ungültige Payloads reduziert werden.
+- Anbieter-Enums sind über Gateway, CLI, UI und macOS-Picker hinweg ausgerichtet.
+- Die Control-UI verwendet das `jobs`-Zählfeld des Gateways für den Status.
 
 ## Aktuelles Verhalten
 
 - **Normalisierung:** umschlossene `data`/`job`-Payloads werden entpackt; `schedule.kind` und `payload.kind` werden bei Sicherheit abgeleitet.
-- **Standardwerte:** sichere Standardwerte werden für `wakeMode` und `sessionTarget` angewendet, wenn sie fehlen.
-- **Provider:** Discord/Slack/Signal/iMessage werden nun konsistent über CLI/UI hinweg angezeigt.
+- **Standards:** sichere Standardwerte werden für `wakeMode` und `sessionTarget` angewendet, wenn sie fehlen.
+- **Anbieter:** Discord/Slack/Signal/iMessage werden nun konsistent über CLI/UI hinweg angezeigt.
 
-Siehe [Cron jobs](/automation/cron-jobs) für die normalisierte Form und Beispiele.
+Siehe [Cron jobs](/automation/cron-jobs) für die normalisierte Struktur und Beispiele.
 
-## Verifikation
+## Verifizierung
 
-- Gateway-Logs auf reduzierte `cron.add`-INVALID_REQUEST-Fehler beobachten.
-- Bestätigen, dass die Control UI nach dem Aktualisieren die Jobanzahl im Cron-Status anzeigt.
+- Beobachten Sie die Gateway-Logs auf reduzierte `cron.add` INVALID_REQUEST-Fehler.
+- Bestätigen Sie, dass der Control-UI-Cron-Status nach dem Aktualisieren die Jobanzahl anzeigt.
 
 ## Optionale Nacharbeiten
 
-- Manueller Control-UI-Smoke-Test: einen Cron-Job pro Provider hinzufügen und die Status-Jobanzahl verifizieren.
+- Manueller Control-UI-Smoke-Test: pro Anbieter einen Cron-Job hinzufügen und die Jobanzahl im Status verifizieren.
 
 ## Offene Fragen
 
-- Sollte `cron.add` explizites `state` von Clients akzeptieren (derzeit durch das Schema nicht erlaubt)?
-- Sollten wir `webchat` als expliziten Delivery-Provider zulassen (derzeit in der Delivery-Auflösung gefiltert)?
+- Sollte `cron.add` explizite `state` von Clients akzeptieren (derzeit durch das Schema untersagt)?
+- Sollten wir `webchat` als expliziten Zustellanbieter zulassen (derzeit in der Zustellauflösung gefiltert)?

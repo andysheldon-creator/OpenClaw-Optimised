@@ -6,26 +6,29 @@ read_when:
 title: "cron"
 x-i18n:
   source_path: cli/cron.md
-  source_hash: cef64f2ac4a648d4
+  source_hash: 09982d6dd1036a56
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:58:15Z
+  generated_at: 2026-02-08T09:32:50Z
 ---
 
 # `openclaw cron`
 
-Administre trabajos cron para el programador del Gateway.
+Gestione trabajos cron para el programador del Gateway.
 
 Relacionado:
 
 - Trabajos cron: [Trabajos cron](/automation/cron-jobs)
 
-Consejo: ejecute `openclaw cron --help` para ver el conjunto completo de comandos.
+Consejo: ejecute `openclaw cron --help` para ver la superficie completa de comandos.
 
-Nota: los trabajos aislados `cron add` usan por defecto la entrega `--announce`. Use `--no-deliver` para mantener la salida interna. `--deliver` permanece como un alias obsoleto de `--announce`.
+Nota: los trabajos `cron add` aislados se envían por defecto mediante `--announce`. Use `--no-deliver` para mantener
+la salida interna. `--deliver` permanece como un alias obsoleto de `--announce`.
 
-Nota: los trabajos de una sola ejecución (`--at`) se eliminan después del éxito de forma predeterminada. Use `--keep-after-run` para conservarlos.
+Nota: los trabajos de una sola ejecución (`--at`) se eliminan tras completarse con éxito de forma predeterminada. Use `--keep-after-run` para conservarlos.
+
+Nota: los trabajos recurrentes ahora usan un retroceso exponencial de reintentos tras errores consecutivos (30 s → 1 m → 5 m → 15 m → 60 m), y luego vuelven al programa normal después de la siguiente ejecución exitosa.
 
 ## Ediciones comunes
 
@@ -35,7 +38,7 @@ Actualice la configuración de entrega sin cambiar el mensaje:
 openclaw cron edit <job-id> --announce --channel telegram --to "123456789"
 ```
 
-Deshabilite la entrega para un trabajo aislado:
+Desactive la entrega para un trabajo aislado:
 
 ```bash
 openclaw cron edit <job-id> --no-deliver

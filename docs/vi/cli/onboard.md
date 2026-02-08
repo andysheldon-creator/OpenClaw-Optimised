@@ -1,7 +1,7 @@
 ---
-summary: "Tham chiếu CLI cho `openclaw onboard` (trình hướng dẫn huong dan ban dau tương tác)"
+summary: "Tài liệu tham chiếu CLI cho `openclaw onboard` (trình hướng dẫn onboarding tương tác)"
 read_when:
-  - Bạn muốn thiết lập có hướng dẫn cho Gateway, workspace, xác thực, kênh và Skills
+  - Bạn muốn thiết lập có hướng dẫn cho gateway, workspace, xác thực, kênh và skills
 title: "onboard"
 x-i18n:
   source_path: cli/onboard.md
@@ -9,21 +9,21 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:33Z
+  generated_at: 2026-02-08T09:38:27Z
 ---
 
 # `openclaw onboard`
 
-Trình hướng dẫn huong dan ban dau tương tác (thiết lập Gateway cục bộ hoặc từ xa).
+Trình hướng dẫn onboarding tương tác (thiết lập Gateway cục bộ hoặc từ xa).
 
-## Related guides
+## Hướng dẫn liên quan
 
-- Trung tâm huong dan ban dau CLI: [Onboarding Wizard (CLI)](/start/wizard)
-- Tham chiếu huong dan ban dau CLI: [CLI Onboarding Reference](/start/wizard-cli-reference)
+- Trung tâm onboarding CLI: [Onboarding Wizard (CLI)](/start/wizard)
+- Tham chiếu onboarding CLI: [CLI Onboarding Reference](/start/wizard-cli-reference)
 - Tự động hóa CLI: [CLI Automation](/start/wizard-cli-automation)
-- Huong dan ban dau macOS: [Onboarding (macOS App)](/start/onboarding)
+- Onboarding trên macOS: [Onboarding (macOS App)](/start/onboarding)
 
-## Examples
+## Ví dụ
 
 ```bash
 openclaw onboard
@@ -32,13 +32,13 @@ openclaw onboard --flow manual
 openclaw onboard --mode remote --remote-url ws://gateway-host:18789
 ```
 
-Flow notes:
+Ghi chú luồng:
 
-- `quickstart`: nhắc tối thiểu, tự động tạo token gateway.
-- `manual`: nhắc đầy đủ cho cổng/bind/xác thực (bí danh của `advanced`).
-- Cuộc trò chuyện đầu tiên nhanh nhất: `openclaw dashboard` (UI điều khiển, không cần thiết lập kênh).
+- `quickstart`: lời nhắc tối thiểu, tự động tạo token gateway.
+- `manual`: đầy đủ lời nhắc cho cổng/bind/xác thực (bí danh của `advanced`).
+- Bắt đầu chat nhanh nhất: `openclaw dashboard` (UI điều khiển, không cần thiết lập kênh).
 
-## Common follow-up commands
+## Các lệnh tiếp theo phổ biến
 
 ```bash
 openclaw configure
@@ -46,5 +46,5 @@ openclaw agents add <name>
 ```
 
 <Note>
-`--json` không hàm ý chế độ không tương tác. Dùng `--non-interactive` cho script.
+`--json` không có nghĩa là chế độ không tương tác. Dùng `--non-interactive` cho script.
 </Note>

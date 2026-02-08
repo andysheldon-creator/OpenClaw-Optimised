@@ -1,42 +1,42 @@
 ---
-summary: "Referencia da CLI para `openclaw hooks` (hooks de agente)"
+summary: "Referência da CLI para `openclaw hooks` (hooks de agente)"
 read_when:
-  - Voce quer gerenciar hooks de agente
-  - Voce quer instalar ou atualizar hooks
+  - Você quer gerenciar hooks de agente
+  - Você quer instalar ou atualizar hooks
 title: "hooks"
 x-i18n:
   source_path: cli/hooks.md
-  source_hash: e2032e61ff4b9135
+  source_hash: b3cb5c4ce63c5ad3
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:44Z
+  generated_at: 2026-02-08T09:30:27Z
 ---
 
 # `openclaw hooks`
 
-Gerencie hooks de agente (automacoes orientadas a eventos para comandos como `/new`, `/reset` e a inicializacao do gateway).
+Gerencie hooks de agente (automações orientadas a eventos para comandos como `/new`, `/reset` e a inicialização do gateway).
 
-Relacionado:
+Relacionados:
 
-- Hooks: [Hooks](/hooks)
-- Hooks de plugin: [Plugins](/plugin#plugin-hooks)
+- Hooks: [Hooks](/automation/hooks)
+- Hooks de plugin: [Plugins](/tools/plugin#plugin-hooks)
 
-## Listar Todos os Hooks
+## Listar todos os hooks
 
 ```bash
 openclaw hooks list
 ```
 
-Lista todos os hooks descobertos nos diretorios de workspace, gerenciados e empacotados.
+Liste todos os hooks descobertos nos diretórios de workspace, gerenciados e empacotados.
 
-**Opcoes:**
+**Opções:**
 
-- `--eligible`: Mostrar apenas hooks elegiveis (requisitos atendidos)
-- `--json`: Saida em JSON
-- `-v, --verbose`: Mostrar informacoes detalhadas, incluindo requisitos ausentes
+- `--eligible`: Mostrar apenas hooks elegíveis (requisitos atendidos)
+- `--json`: Saída em JSON
+- `-v, --verbose`: Mostrar informações detalhadas, incluindo requisitos ausentes
 
-**Exemplo de saida:**
+**Exemplo de saída:**
 
 ```
 Hooks (4/4 ready)
@@ -54,7 +54,7 @@ Ready:
 openclaw hooks list --verbose
 ```
 
-Mostra requisitos ausentes para hooks nao elegiveis.
+Mostra requisitos ausentes para hooks não elegíveis.
 
 **Exemplo (JSON):**
 
@@ -62,23 +62,23 @@ Mostra requisitos ausentes para hooks nao elegiveis.
 openclaw hooks list --json
 ```
 
-Retorna JSON estruturado para uso programatico.
+Retorna JSON estruturado para uso programático.
 
-## Obter Informacoes do Hook
+## Obter informações do hook
 
 ```bash
 openclaw hooks info <name>
 ```
 
-Mostra informacoes detalhadas sobre um hook especifico.
+Mostra informações detalhadas sobre um hook específico.
 
 **Argumentos:**
 
 - `<name>`: Nome do hook (por exemplo, `session-memory`)
 
-**Opcoes:**
+**Opções:**
 
-- `--json`: Saida em JSON
+- `--json`: Saída em JSON
 
 **Exemplo:**
 
@@ -86,7 +86,7 @@ Mostra informacoes detalhadas sobre um hook especifico.
 openclaw hooks info session-memory
 ```
 
-**Saida:**
+**Saída:**
 
 ```
 💾 session-memory ✓ Ready
@@ -104,19 +104,19 @@ Requirements:
   Config: ✓ workspace.dir
 ```
 
-## Verificar Elegibilidade dos Hooks
+## Verificar elegibilidade dos hooks
 
 ```bash
 openclaw hooks check
 ```
 
-Mostra um resumo do status de elegibilidade dos hooks (quantos estao prontos vs. nao prontos).
+Mostra um resumo do status de elegibilidade dos hooks (quantos estão prontos vs. não prontos).
 
-**Opcoes:**
+**Opções:**
 
-- `--json`: Saida em JSON
+- `--json`: Saída em JSON
 
-**Exemplo de saida:**
+**Exemplo de saída:**
 
 ```
 Hooks Status
@@ -126,16 +126,16 @@ Ready: 4
 Not ready: 0
 ```
 
-## Habilitar um Hook
+## Habilitar um hook
 
 ```bash
 openclaw hooks enable <name>
 ```
 
-Habilita um hook especifico adicionando-o a sua configuracao (`~/.openclaw/config.json`).
+Habilite um hook específico adicionando-o à sua configuração (`~/.openclaw/config.json`).
 
 **Nota:** Hooks gerenciados por plugins mostram `plugin:<id>` em `openclaw hooks list` e
-nao podem ser habilitados/desabilitados aqui. Em vez disso, habilite/desabilite o plugin.
+não podem ser habilitados/desabilitados aqui. Em vez disso, habilite/desabilite o plugin.
 
 **Argumentos:**
 
@@ -147,29 +147,29 @@ nao podem ser habilitados/desabilitados aqui. Em vez disso, habilite/desabilite 
 openclaw hooks enable session-memory
 ```
 
-**Saida:**
+**Saída:**
 
 ```
 ✓ Enabled hook: 💾 session-memory
 ```
 
-**O que faz:**
+**O que ele faz:**
 
-- Verifica se o hook existe e e elegivel
-- Atualiza `hooks.internal.entries.<name>.enabled = true` na sua configuracao
-- Salva a configuracao em disco
+- Verifica se o hook existe e é elegível
+- Atualiza `hooks.internal.entries.<name>.enabled = true` na sua configuração
+- Salva a configuração em disco
 
-**Apos habilitar:**
+**Após habilitar:**
 
-- Reinicie o gateway para que os hooks sejam recarregados (reinicio do app da barra de menu no macOS ou reinicie o processo do gateway em dev).
+- Reinicie o gateway para que os hooks sejam recarregados (reinício do app da barra de menu no macOS ou reinicie o processo do gateway em dev).
 
-## Desabilitar um Hook
+## Desabilitar um hook
 
 ```bash
 openclaw hooks disable <name>
 ```
 
-Desabilita um hook especifico atualizando sua configuracao.
+Desabilite um hook específico atualizando sua configuração.
 
 **Argumentos:**
 
@@ -181,33 +181,33 @@ Desabilita um hook especifico atualizando sua configuracao.
 openclaw hooks disable command-logger
 ```
 
-**Saida:**
+**Saída:**
 
 ```
 ⏸ Disabled hook: 📝 command-logger
 ```
 
-**Apos desabilitar:**
+**Após desabilitar:**
 
 - Reinicie o gateway para que os hooks sejam recarregados
 
-## Instalar Hooks
+## Instalar hooks
 
 ```bash
 openclaw hooks install <path-or-spec>
 ```
 
-Instala um pacote de hooks a partir de uma pasta/arquivo local ou npm.
+Instale um pacote de hooks a partir de uma pasta/arquivo local ou do npm.
 
-**O que faz:**
+**O que ele faz:**
 
 - Copia o pacote de hooks para `~/.openclaw/hooks/<id>`
 - Habilita os hooks instalados em `hooks.internal.entries.*`
-- Registra a instalacao em `hooks.internal.installs`
+- Registra a instalação em `hooks.internal.installs`
 
-**Opcoes:**
+**Opções:**
 
-- `-l, --link`: Vincular um diretorio local em vez de copiar (adiciona-o a `hooks.internal.load.extraDirs`)
+- `-l, --link`: Vincular um diretório local em vez de copiar (adiciona-o a `hooks.internal.load.extraDirs`)
 
 **Arquivos suportados:** `.zip`, `.tgz`, `.tar.gz`, `.tar`
 
@@ -227,25 +227,25 @@ openclaw hooks install @openclaw/my-hook-pack
 openclaw hooks install -l ./my-hook-pack
 ```
 
-## Atualizar Hooks
+## Atualizar hooks
 
 ```bash
 openclaw hooks update <id>
 openclaw hooks update --all
 ```
 
-Atualiza pacotes de hooks instalados (apenas instalacoes via npm).
+Atualize pacotes de hooks instalados (apenas instalações via npm).
 
-**Opcoes:**
+**Opções:**
 
 - `--all`: Atualizar todos os pacotes de hooks rastreados
 - `--dry-run`: Mostrar o que mudaria sem gravar
 
-## Hooks Empacotados
+## Hooks empacotados
 
 ### session-memory
 
-Salva o contexto da sessao na memoria quando voce emite `/new`.
+Salva o contexto da sessão na memória quando você executa `/new`.
 
 **Habilitar:**
 
@@ -253,9 +253,9 @@ Salva o contexto da sessao na memoria quando voce emite `/new`.
 openclaw hooks enable session-memory
 ```
 
-**Saida:** `~/.openclaw/workspace/memory/YYYY-MM-DD-slug.md`
+**Saída:** `~/.openclaw/workspace/memory/YYYY-MM-DD-slug.md`
 
-**Veja:** [documentacao do session-memory](/hooks#session-memory)
+**Veja:** [documentação do session-memory](/automation/hooks#session-memory)
 
 ### command-logger
 
@@ -267,7 +267,7 @@ Registra todos os eventos de comando em um arquivo de auditoria centralizado.
 openclaw hooks enable command-logger
 ```
 
-**Saida:** `~/.openclaw/logs/commands.log`
+**Saída:** `~/.openclaw/logs/commands.log`
 
 **Ver logs:**
 
@@ -282,11 +282,11 @@ cat ~/.openclaw/logs/commands.log | jq .
 grep '"action":"new"' ~/.openclaw/logs/commands.log | jq .
 ```
 
-**Veja:** [documentacao do command-logger](/hooks#command-logger)
+**Veja:** [documentação do command-logger](/automation/hooks#command-logger)
 
 ### soul-evil
 
-Troca conteudo `SOUL.md` injetado por `SOUL_EVIL.md` durante uma janela de limpeza ou por chance aleatoria.
+Troca conteúdo `SOUL.md` injetado por `SOUL_EVIL.md` durante uma janela de purge ou por chance aleatória.
 
 **Habilitar:**
 
@@ -294,11 +294,11 @@ Troca conteudo `SOUL.md` injetado por `SOUL_EVIL.md` durante uma janela de limpe
 openclaw hooks enable soul-evil
 ```
 
-**Veja:** [SOUL Evil Hook](/hooks/soul-evil)
+**Veja:** [Hook SOUL Evil](/hooks/soul-evil)
 
 ### boot-md
 
-Executa `BOOT.md` quando o gateway inicia (apos os canais iniciarem).
+Executa `BOOT.md` quando o gateway inicia (após os canais iniciarem).
 
 **Eventos**: `gateway:startup`
 
@@ -308,4 +308,4 @@ Executa `BOOT.md` quando o gateway inicia (apos os canais iniciarem).
 openclaw hooks enable boot-md
 ```
 
-**Veja:** [documentacao do boot-md](/hooks#boot-md)
+**Veja:** [documentação do boot-md](/automation/hooks#boot-md)

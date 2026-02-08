@@ -1,40 +1,41 @@
 ---
-summary: "Xac thuc mo hinh: OAuth, khoa API va setup-token"
+summary: "Xác thực mô hình: OAuth, khóa API và setup-token"
 read_when:
-  - Xu ly su co xac thuc mo hinh hoac het han OAuth
-  - Tai lieu hoa xac thuc hoac luu tru thong tin dang nhap
-title: "Xac thuc"
+  - Gỡ lỗi xác thực mô hình hoặc hết hạn OAuth
+  - Tài liệu hóa xác thực hoặc lưu trữ thông tin xác thực
+title: "Xác thực"
 x-i18n:
   source_path: gateway/authentication.md
   source_hash: 66fa2c64ff374c9c
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:12Z
+  generated_at: 2026-02-08T09:38:53Z
 ---
 
-# Xac thuc
+# Xác thực
 
-OpenClaw ho tro OAuth va khoa API cho cac nha cung cap mo hinh. Doi voi tai khoan
-Anthropic, chung toi khuyen nghi su dung **khoa API**. Doi voi quyen truy cap goi
-Claude subscription, hay su dung token ton tai lau dai duoc tao boi `claude setup-token`.
+OpenClaw hỗ trợ OAuth và khóa API cho các nhà cung cấp mô hình. Với tài khoản
+Anthropic, chúng tôi khuyến nghị dùng **khóa API**. Với quyền truy cập gói thuê
+bao Claude, hãy dùng token dài hạn được tạo bởi `claude setup-token`.
 
-Xem [/concepts/oauth](/concepts/oauth) de biet toan bo luong OAuth va bo cuc luu tru.
+Xem [/concepts/oauth](/concepts/oauth) để biết đầy đủ luồng OAuth và cách bố trí
+lưu trữ.
 
-## Thiet lap Anthropic duoc khuyen nghi (khoa API)
+## Thiết lập Anthropic được khuyến nghị (khóa API)
 
-Neu ban su dung Anthropic truc tiep, hay dung khoa API.
+Nếu bạn dùng Anthropic trực tiếp, hãy dùng khóa API.
 
-1. Tao mot khoa API trong Anthropic Console.
-2. Dat no tren **gateway host** (may dang chay `openclaw gateway`).
+1. Tạo khóa API trong Anthropic Console.
+2. Đặt khóa trên **máy chủ gateway** (máy đang chạy `openclaw gateway`).
 
 ```bash
 export ANTHROPIC_API_KEY="..."
 openclaw models status
 ```
 
-3. Neu Gateway chay duoi systemd/launchd, hay uu tien dat khoa trong
-   `~/.openclaw/.env` de daemon co the doc:
+3. Nếu Gateway chạy dưới systemd/launchd, nên đặt khóa trong
+   `~/.openclaw/.env` để daemon có thể đọc:
 
 ```bash
 cat >> ~/.openclaw/.env <<'EOF'
@@ -42,87 +43,90 @@ ANTHROPIC_API_KEY=...
 EOF
 ```
 
-Sau do khoi dong lai daemon (hoac khoi dong lai tien trinh Gateway) va kiem tra lai:
+Sau đó khởi động lại daemon (hoặc khởi động lại tiến trình Gateway) và kiểm tra
+lại:
 
 ```bash
 openclaw models status
 openclaw doctor
 ```
 
-Neu ban khong muon tu quan ly bien moi truong, trinh huong dan onboarding co the luu
-khoa API de daemon su dung: `openclaw onboard`.
+Nếu bạn không muốn tự quản lý biến môi trường, trình hướng dẫn ban đầu có thể
+lưu khóa API để daemon sử dụng: `openclaw onboard`.
 
-Xem [Help](/help) de biet chi tiet ve ke thua env (`env.shellEnv`,
+Xem [Help](/help) để biết chi tiết về kế thừa env (`env.shellEnv`,
 `~/.openclaw/.env`, systemd/launchd).
 
-## Anthropic: setup-token (xac thuc subscription)
+## Anthropic: setup-token (xác thực thuê bao)
 
-Doi voi Anthropic, con duong duoc khuyen nghi la **khoa API**. Neu ban dang su dung
-Claude subscription, luong setup-token cung duoc ho tro. Hay chay tren **gateway host**:
+Với Anthropic, lộ trình được khuyến nghị là **khóa API**. Nếu bạn dùng gói thuê
+bao Claude, luồng setup-token cũng được hỗ trợ. Chạy nó trên **máy chủ gateway**:
 
 ```bash
 claude setup-token
 ```
 
-Sau do dan vao OpenClaw:
+Sau đó dán vào OpenClaw:
 
 ```bash
 openclaw models auth setup-token --provider anthropic
 ```
 
-Neu token duoc tao tren mot may khac, hay dan thu cong:
+Nếu token được tạo trên máy khác, hãy dán thủ công:
 
 ```bash
 openclaw models auth paste-token --provider anthropic
 ```
 
-Neu ban thay loi Anthropic nhu:
+Nếu bạn thấy lỗi Anthropic như:
 
 ```
 This credential is only authorized for use with Claude Code and cannot be used for other API requests.
 ```
 
-…hay su dung khoa API Anthropic thay the.
+…hãy dùng khóa API của Anthropic thay thế.
 
-Nhap token thu cong (bat ky nha cung cap; ghi `auth-profiles.json` + cap nhat cau hinh):
+Nhập token thủ công (mọi nhà cung cấp; ghi `auth-profiles.json` + cập nhật cấu hình):
 
 ```bash
 openclaw models auth paste-token --provider anthropic
 openclaw models auth paste-token --provider openrouter
 ```
 
-Kiem tra than thien voi tu dong hoa (thoat `1` khi het han/thieu, `2` khi sap het han):
+Kiểm tra thân thiện cho tự động hóa (thoát `1` khi hết hạn/thiếu,
+`2` khi sắp hết hạn):
 
 ```bash
 openclaw models status --check
 ```
 
-Cac script van hanh tuy chon (systemd/Termux) duoc tai lieu hoa tai day:
+Các script vận hành tùy chọn (systemd/Termux) được tài liệu hóa tại đây:
 [/automation/auth-monitoring](/automation/auth-monitoring)
 
-> `claude setup-token` yeu cau TTY tuong tac.
+> `claude setup-token` yêu cầu TTY tương tác.
 
-## Kiem tra trang thai xac thuc mo hinh
+## Kiểm tra trạng thái xác thực mô hình
 
 ```bash
 openclaw models status
 openclaw doctor
 ```
 
-## Dieu khien thong tin dang nhap duoc su dung
+## Kiểm soát thông tin xác thực được sử dụng
 
-### Theo phien (lenh chat)
+### Theo phiên (lệnh chat)
 
-Su dung `/model <alias-or-id>@<profileId>` de co dinh mot thong tin dang nhap cua nha cung cap cu the
-cho phien hien tai (vi du id ho so: `anthropic:default`, `anthropic:work`).
+Dùng `/model <alias-or-id>@<profileId>` để ghim một thông tin xác thực của nhà cung cấp cho phiên
+hiện tại (ví dụ id hồ sơ: `anthropic:default`, `anthropic:work`).
 
-Su dung `/model` (hoac `/model list`) cho bo chon gon nhe; su dung
-`/model status` cho che do xem day du (cac ung vien + ho so xac thuc tiep theo,
-kem chi tiet endpoint cua nha cung cap khi da cau hinh).
+Dùng `/model` (hoặc `/model list`) cho bộ chọn gọn nhẹ; dùng
+`/model status` cho chế độ xem đầy đủ (các ứng viên + hồ sơ xác thực kế tiếp,
+kèm chi tiết endpoint của nhà cung cấp khi đã cấu hình).
 
-### Theo tac tu (ghi de CLI)
+### Theo từng tác tử (ghi đè CLI)
 
-Dat ghi de thu tu ho so xac thuc ro rang cho mot tac tu (duoc luu trong `auth-profiles.json` cua tac tu do):
+Đặt ghi đè thứ tự hồ sơ xác thực cho một tác tử (lưu trong `auth-profiles.json` của
+tác tử đó):
 
 ```bash
 openclaw models auth order get --provider anthropic
@@ -130,25 +134,26 @@ openclaw models auth order set --provider anthropic anthropic:default
 openclaw models auth order clear --provider anthropic
 ```
 
-Su dung `--agent <id>` de nham den mot tac tu cu the; bo qua no de su dung tac tu mac dinh da cau hinh.
+Dùng `--agent <id>` để nhắm tới một tác tử cụ thể; bỏ qua để dùng tác tử mặc
+định đã cấu hình.
 
-## Xu ly su co
+## Xử lý sự cố
 
-### “Khong tim thay thong tin dang nhap”
+### “Không tìm thấy thông tin xác thực”
 
-Neu ho so token Anthropic bi thieu, hay chay `claude setup-token` tren
-**gateway host**, sau do kiem tra lai:
+Nếu thiếu hồ sơ token Anthropic, hãy chạy `claude setup-token` trên **máy chủ
+gateway**, rồi kiểm tra lại:
 
 ```bash
 openclaw models status
 ```
 
-### Token sap het han/da het han
+### Token sắp hết hạn/đã hết hạn
 
-Chay `openclaw models status` de xac nhan ho so nao dang sap het han. Neu ho so
-bi thieu, hay chay lai `claude setup-token` va dan token lan nua.
+Chạy `openclaw models status` để xác nhận hồ sơ nào đang hết hạn. Nếu hồ sơ bị thiếu, hãy
+chạy lại `claude setup-token` và dán token lần nữa.
 
-## Yeu cau
+## Yêu cầu
 
-- Claude Max hoac Pro subscription (cho `claude setup-token`)
-- Claude Code CLI da duoc cai dat (co san lenh `claude`)
+- Gói thuê bao Claude Max hoặc Pro (cho `claude setup-token`)
+- Đã cài Claude Code CLI (có sẵn lệnh `claude`)

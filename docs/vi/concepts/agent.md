@@ -1,129 +1,128 @@
 ---
-summary: "Runtime tac tu (pi-mono nhung), hop dong workspace, va khoi tao phien"
+summary: "Runtime tác tử (pi-mono nhúng), hợp đồng workspace và khởi tạo phiên"
 read_when:
-  - Thay doi runtime tac tu, khoi tao workspace, hoac hanh vi phien
-title: "Agent Runtime"
+  - Khi thay đổi runtime tác tử, khởi tạo workspace hoặc hành vi phiên
+title: "Runtime tác tử"
 x-i18n:
   source_path: concepts/agent.md
-  source_hash: 04b4e0bc6345d2af
+  source_hash: 121103fda29a5481
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:57Z
+  generated_at: 2026-02-08T09:38:41Z
 ---
 
-# Agent Runtime 🤖
+# Runtime tác tử 🤖
 
-OpenClaw chay mot runtime tac tu nhung duy nhat duoc dan xuat tu **pi-mono**.
+OpenClaw chạy một runtime tác tử nhúng duy nhất, bắt nguồn từ **pi-mono**.
 
-## Workspace (bat buoc)
+## Workspace (bắt buộc)
 
-OpenClaw su dung mot thu muc workspace tac tu duy nhat (`agents.defaults.workspace`) lam thu muc lam viec **duy nhat** (`cwd`) cua tac tu cho cong cu va ngu canh.
+OpenClaw sử dụng một thư mục workspace tác tử duy nhất (`agents.defaults.workspace`) làm thư mục làm việc **duy nhất** (`cwd`) của tác tử cho công cụ và ngữ cảnh.
 
-Khuyen nghi: su dung `openclaw setup` de tao `~/.openclaw/openclaw.json` neu chua ton tai va khoi tao cac tep workspace.
+Khuyến nghị: dùng `openclaw setup` để tạo `~/.openclaw/openclaw.json` nếu thiếu và khởi tạo các tệp workspace.
 
-Bo cuc workspace day du + huong dan sao luu: [Agent workspace](/concepts/agent-workspace)
+Bố cục workspace đầy đủ + hướng dẫn sao lưu: [Agent workspace](/concepts/agent-workspace)
 
-Neu `agents.defaults.sandbox` duoc bat, cac phien khong phai chinh co the ghi de dieu nay bang
-workspace theo tung phien duoi `agents.defaults.sandbox.workspaceRoot` (xem
-[Cau hinh Gateway](/gateway/configuration)).
+Nếu `agents.defaults.sandbox` được bật, các phiên không phải chính có thể ghi đè bằng
+workspace theo từng phiên dưới `agents.defaults.sandbox.workspaceRoot` (xem
+[Cấu hình Gateway](/gateway/configuration)).
 
-## Tep bootstrap (duoc tiem)
+## Tệp bootstrap (được chèn)
 
-Ben trong `agents.defaults.workspace`, OpenClaw mong doi cac tep co the chinh sua boi nguoi dung sau:
+Bên trong `agents.defaults.workspace`, OpenClaw mong đợi các tệp có thể chỉnh sửa bởi người dùng sau:
 
-- `AGENTS.md` — huong dan van hanh + “bo nho”
-- `SOUL.md` — nhan vat, gioi han, giong dieu
-- `TOOLS.md` — ghi chu cong cu do nguoi dung duy tri (vi du: `imsg`, `sag`, quy uoc)
-- `BOOTSTRAP.md` — nghiep thuc chay lan dau mot lan (bi xoa sau khi hoan tat)
-- `IDENTITY.md` — ten/phong cach/emoji cua tac tu
-- `USER.md` — ho so nguoi dung + cach xung ho ua thich
+- `AGENTS.md` — hướng dẫn vận hành + “bộ nhớ”
+- `SOUL.md` — persona, ranh giới, giọng điệu
+- `TOOLS.md` — ghi chú công cụ do người dùng duy trì (ví dụ `imsg`, `sag`, quy ước)
+- `BOOTSTRAP.md` — nghi thức chạy lần đầu một lần (bị xóa sau khi hoàn tất)
+- `IDENTITY.md` — tên/vibe/emoji của tác tử
+- `USER.md` — hồ sơ người dùng + cách xưng hô ưa thích
 
-O luot dau tien cua mot phien moi, OpenClaw tiem truc tiep noi dung cac tep nay vao ngu canh tac tu.
+Ở lượt đầu của một phiên mới, OpenClaw chèn trực tiếp nội dung của các tệp này vào ngữ cảnh tác tử.
 
-Cac tep trong se bi bo qua. Cac tep lon se duoc cat gon va cat bo voi mot dau danh dau de prompt gon nhe (doc tep de xem day du noi dung).
+Các tệp trống sẽ bị bỏ qua. Tệp lớn được cắt bớt và rút gọn kèm một dấu đánh dấu để prompt gọn nhẹ (đọc tệp để xem đầy đủ nội dung).
 
-Neu mot tep bi thieu, OpenClaw tiem mot dong danh dau “missing file” duy nhat (va `openclaw setup` se tao mot mau mac dinh an toan).
+Nếu một tệp bị thiếu, OpenClaw chèn một dòng đánh dấu “missing file” duy nhất (và `openclaw setup` sẽ tạo một mẫu mặc định an toàn).
 
-`BOOTSTRAP.md` chi duoc tao cho **workspace moi hoan toan** (khong co tep bootstrap nao khac ton tai). Neu ban xoa no sau khi hoan tat nghiep thuc, no se khong duoc tao lai o cac lan khoi dong sau.
+`BOOTSTRAP.md` chỉ được tạo cho **workspace hoàn toàn mới** (không có tệp bootstrap nào khác). Nếu bạn xóa nó sau khi hoàn tất nghi thức, nó sẽ không được tạo lại ở các lần khởi động sau.
 
-De tat hoan toan viec tao tep bootstrap (doi voi workspace da duoc seed san), dat:
+Để tắt hoàn toàn việc tạo tệp bootstrap (cho workspace đã được seed sẵn), đặt:
 
 ```json5
 { agent: { skipBootstrap: true } }
 ```
 
-## Cong cu tich hop
+## Công cụ tích hợp sẵn
 
-Cac cong cu cot loi (doc/thuc thi/chinh sua/ghi va cac cong cu he thong lien quan) luon san sang,
-tuy thuoc chinh sach cong cu. `apply_patch` la tuy chon va bi gioi han boi
-`tools.exec.applyPatch`. `TOOLS.md` **khong** dieu khien cong cu nao ton tai; no la
-huong dan cho cach _ban_ muon chung duoc su dung.
+Các công cụ lõi (read/exec/edit/write và các công cụ hệ thống liên quan) luôn khả dụng,
+tùy theo chính sách công cụ. `apply_patch` là tùy chọn và bị kiểm soát bởi
+`tools.exec.applyPatch`. `TOOLS.md` **không** kiểm soát công cụ nào tồn tại; nó là
+hướng dẫn cho cách _bạn_ muốn chúng được sử dụng.
 
 ## Skills
 
-OpenClaw tai Skills tu ba vi tri (workspace thang khi trung ten):
+OpenClaw tải Skills từ ba vị trí (workspace thắng khi trùng tên):
 
-- Dong goi (di kem ban cai dat)
-- Quan ly/cuc bo: `~/.openclaw/skills`
+- Bundled (đi kèm bản cài đặt)
+- Managed/local: `~/.openclaw/skills`
 - Workspace: `<workspace>/skills`
 
-Skills co the bi gioi han boi cau hinh/bien moi truong (xem `skills` trong [Cau hinh Gateway](/gateway/configuration)).
+Skills có thể bị kiểm soát bởi config/env (xem `skills` trong [Cấu hình Gateway](/gateway/configuration)).
 
-## Tich hop pi-mono
+## Tích hợp pi-mono
 
-OpenClaw tai su dung cac phan cua codebase pi-mono (mo hinh/cong cu), nhung **quan ly phien, kham pha, va ket noi cong cu thuoc ve OpenClaw**.
+OpenClaw tái sử dụng một số phần của codebase pi-mono (mô hình/công cụ), nhưng **quản lý phiên, khám phá và wiring công cụ thuộc OpenClaw**.
 
-- Khong co runtime tac tu pi-coding.
-- Khong tham khao bat ky thiet lap `~/.pi/agent` hay `<workspace>/.pi` nao.
+- Không có runtime tác tử pi-coding.
+- Không tham chiếu các thiết lập `~/.pi/agent` hoặc `<workspace>/.pi`.
 
-## Phien
+## Phiên
 
-Ban ghi phien duoc luu duoi dang JSONL tai:
+Bản ghi phiên được lưu dưới dạng JSONL tại:
 
 - `~/.openclaw/agents/<agentId>/sessions/<SessionId>.jsonl`
 
-ID phien on dinh va do OpenClaw chon.
-Cac thu muc phien Pi/Tau cu **khong** duoc doc.
+ID phiên là ổn định và do OpenClaw chọn.
+Các thư mục phiên Pi/Tau cũ **không** được đọc.
 
-## Dieu huong khi streaming
+## Điều hướng khi streaming
 
-Khi che do hang doi la `steer`, cac tin nhan den duoc tiem vao lan chay hien tai.
-Hang doi duoc kiem tra **sau moi lan goi cong cu**; neu co tin nhan trong hang doi,
-cac lan goi cong cu con lai tu thong diep tro ly hien tai se bi bo qua (ket qua cong cu loi voi "Skipped due to queued user message."), sau do tin nhan nguoi dung trong hang doi
-duoc tiem truoc phan hoi tro ly tiep theo.
+Khi chế độ hàng đợi là `steer`, các tin nhắn đến được chèn vào lượt chạy hiện tại.
+Hàng đợi được kiểm tra **sau mỗi lần gọi công cụ**; nếu có tin nhắn đang chờ,
+các lần gọi công cụ còn lại từ thông điệp trợ lý hiện tại sẽ bị bỏ qua (kết quả công cụ lỗi với "Skipped due to queued user message."), sau đó tin nhắn người dùng đang chờ
+được chèn trước phản hồi trợ lý tiếp theo.
 
-Khi che do hang doi la `followup` hoac `collect`, cac tin nhan den duoc giu lai den khi
-luot hien tai ket thuc, sau do mot luot tac tu moi bat dau voi cac payload trong hang doi. Xem
-[Queue](/concepts/queue) de biet che do + hanh vi debounce/cap.
+Khi chế độ hàng đợi là `followup` hoặc `collect`, các tin nhắn đến được giữ lại cho đến khi
+lượt hiện tại kết thúc, rồi bắt đầu một lượt tác tử mới với các payload đang chờ. Xem
+[Queue](/concepts/queue) để biết chế độ + hành vi debounce/cap.
 
-Block streaming gui cac khoi tro ly da hoan tat ngay khi xong; mac dinh la
-**tat** (`agents.defaults.blockStreamingDefault: "off"`).
-Dieu chinh ranh gioi bang `agents.defaults.blockStreamingBreak` (`text_end` vs `message_end`; mac dinh la text_end).
-Dieu khien viec chia khoi mem bang `agents.defaults.blockStreamingChunk` (mac dinh
-800–1200 ky tu; uu tien ngat doan van, sau do xuong dong; cau la cuoi).
-Hop nhat cac khoi streaming bang `agents.defaults.blockStreamingCoalesce` de giam
-spam mot dong (ghep dua tren thoi gian nhan roi truoc khi gui). Cac kenh khong phai Telegram yeu cau
-`*.blockStreaming: true` ro rang de bat tra loi theo khoi.
-Tom tat cong cu chi tiet duoc phat tai thoi diem bat dau cong cu (khong debounce); UI dieu khien
-stream dau ra cong cu qua cac su kien tac tu khi co san.
-Chi tiet hon: [Streaming + chunking](/concepts/streaming).
+Block streaming gửi các khối trợ lý đã hoàn tất ngay khi xong; nó **tắt theo mặc định** (`agents.defaults.blockStreamingDefault: "off"`).
+Tinh chỉnh ranh giới qua `agents.defaults.blockStreamingBreak` (`text_end` so với `message_end`; mặc định là text_end).
+Kiểm soát việc chia khối mềm bằng `agents.defaults.blockStreamingChunk` (mặc định
+800–1200 ký tự; ưu tiên ngắt đoạn, sau đó là xuống dòng; câu là lựa chọn cuối).
+Gộp các mảnh stream bằng `agents.defaults.blockStreamingCoalesce` để giảm
+spam một dòng (gộp theo thời gian rảnh trước khi gửi). Các kênh không phải Telegram yêu cầu
+`*.blockStreaming: true` rõ ràng để bật trả lời theo khối.
+Tóm tắt công cụ chi tiết được phát tại lúc bắt đầu công cụ (không debounce); UI điều khiển
+stream đầu ra công cụ qua các sự kiện tác tử khi có.
+Chi tiết thêm: [Streaming + chunking](/concepts/streaming).
 
-## Tham chieu mo hinh
+## Tham chiếu mô hình
 
-Cac tham chieu mo hinh trong cau hinh (vi du `agents.defaults.model` va `agents.defaults.models`) duoc phan tich bang cach tach theo `/` **dau tien**.
+Các tham chiếu mô hình trong config (ví dụ `agents.defaults.model` và `agents.defaults.models`) được phân tích bằng cách tách theo `/` **đầu tiên**.
 
-- Su dung `provider/model` khi cau hinh mo hinh.
-- Neu ID mo hinh tu than chua `/` (kieu OpenRouter), hay bao gom tien to nha cung cap (vi du: `openrouter/moonshotai/kimi-k2`).
-- Neu ban bo qua nha cung cap, OpenClaw coi dau vao la alias hoac mo hinh cua **nha cung cap mac dinh** (chi hoat dong khi khong co `/` trong ID mo hinh).
+- Dùng `provider/model` khi cấu hình mô hình.
+- Nếu ID mô hình tự nó chứa `/` (kiểu OpenRouter), hãy bao gồm tiền tố nhà cung cấp (ví dụ: `openrouter/moonshotai/kimi-k2`).
+- Nếu bạn bỏ qua nhà cung cấp, OpenClaw coi đầu vào là một alias hoặc một mô hình cho **nhà cung cấp mặc định** (chỉ hoạt động khi không có `/` trong ID mô hình).
 
-## Cau hinh (toi thieu)
+## Cấu hình (tối thiểu)
 
-Toi thieu, hay dat:
+Ít nhất, hãy đặt:
 
 - `agents.defaults.workspace`
-- `channels.whatsapp.allowFrom` (rat khuyen nghi)
+- `channels.whatsapp.allowFrom` (khuyến nghị mạnh)
 
 ---
 
-_Tiep theo: [Group Chats](/concepts/group-messages)_ 🦞
+_Tiếp theo: [Group Chats](/channels/group-messages)_ 🦞

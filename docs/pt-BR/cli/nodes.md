@@ -1,8 +1,8 @@
 ---
-summary: "Referencia de CLI para `openclaw nodes` (listar/status/aprovar/invocar, camera/canvas/tela)"
+summary: "Referência da CLI para `openclaw nodes` (listar/status/aprovar/invocar, câmera/canvas/tela)"
 read_when:
-  - Você está gerenciando nós pareados (câmeras, tela, canvas)
-  - Você precisa aprovar solicitações ou invocar comandos de nós
+  - Você está gerenciando nodes pareados (câmeras, tela, canvas)
+  - Você precisa aprovar solicitações ou invocar comandos de nodes
 title: "nodes"
 x-i18n:
   source_path: cli/nodes.md
@@ -10,16 +10,16 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:40Z
+  generated_at: 2026-02-08T09:30:24Z
 ---
 
 # `openclaw nodes`
 
-Gerencie nós pareados (dispositivos) e invoque capacidades dos nós.
+Gerencie nodes (dispositivos) pareados e invoque capacidades de nodes.
 
 Relacionados:
 
-- Visão geral de nós: [Nodes](/nodes)
+- Visão geral de Nodes: [Nodes](/nodes)
 - Câmera: [Camera nodes](/nodes/camera)
 - Imagens: [Image nodes](/nodes/images)
 
@@ -41,8 +41,8 @@ openclaw nodes status --last-connected 24h
 ```
 
 `nodes list` imprime tabelas de pendentes/pareados. As linhas pareadas incluem a idade da conexão mais recente (Last Connect).
-Use `--connected` para mostrar apenas nós atualmente conectados. Use `--last-connected <duration>` para
-filtrar para nós que se conectaram dentro de uma duração (por exemplo, `24h`, `7d`).
+Use `--connected` para mostrar apenas nodes atualmente conectados. Use `--last-connected <duration>` para
+filtrar para nodes que se conectaram dentro de uma duração (por exemplo, `24h`, `7d`).
 
 ## Invocar / executar
 
@@ -56,7 +56,7 @@ openclaw nodes run --agent main --node <id|name|ip> --raw "git status"
 Flags de invocação:
 
 - `--params <json>`: string de objeto JSON (padrão `{}`).
-- `--invoke-timeout <ms>`: timeout de invocação do nó (padrão `15000`).
+- `--invoke-timeout <ms>`: tempo limite de invocação do node (padrão `15000`).
 - `--idempotency-key <key>`: chave de idempotência opcional.
 
 ### Padrões no estilo exec
@@ -66,15 +66,15 @@ Flags de invocação:
 - Lê `tools.exec.*` (mais substituições de `agents.list[].tools.exec.*`).
 - Usa aprovações de exec (`exec.approval.request`) antes de invocar `system.run`.
 - `--node` pode ser omitido quando `tools.exec.node` está definido.
-- Requer um nó que anuncie `system.run` (aplicativo complementar no macOS ou host de nó headless).
+- Requer um node que anuncie `system.run` (aplicativo complementar macOS ou host de node headless).
 
 Flags:
 
 - `--cwd <path>`: diretório de trabalho.
 - `--env <key=val>`: substituição de env (repetível).
-- `--command-timeout <ms>`: timeout do comando.
-- `--invoke-timeout <ms>`: timeout de invocação do nó (padrão `30000`).
+- `--command-timeout <ms>`: tempo limite do comando.
+- `--invoke-timeout <ms>`: tempo limite de invocação do node (padrão `30000`).
 - `--needs-screen-recording`: exigir permissão de gravação de tela.
 - `--raw <command>`: executar uma string de shell (`/bin/sh -lc` ou `cmd.exe /c`).
-- `--agent <id>`: aprovações/listas de permissão com escopo de agente (padrão para o agente configurado).
+- `--agent <id>`: aprovações/listas de permissões com escopo de agente (padrão para o agente configurado).
 - `--ask <off|on-miss|always>`, `--security <deny|allowlist|full>`: substituições.

@@ -1,8 +1,8 @@
 ---
 summary: "在 OpenClaw 中使用 Synthetic 的 Anthropic 相容 API"
 read_when:
-  - 你想要使用 Synthetic 作為模型提供者
-  - 你需要設定 Synthetic API 金鑰或基底 URL
+  - 您想要使用 Synthetic 作為模型提供者
+  - 您需要設定 Synthetic 的 API 金鑰或基底 URL
 title: "Synthetic"
 x-i18n:
   source_path: providers/synthetic.md
@@ -10,12 +10,12 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:54:23Z
+  generated_at: 2026-02-08T09:29:01Z
 ---
 
 # Synthetic
 
-Synthetic 提供 Anthropic 相容的端點。OpenClaw 會將其註冊為
+Synthetic 提供與 Anthropic 相容的端點。OpenClaw 將其註冊為
 `synthetic` 提供者，並使用 Anthropic Messages API。
 
 ## 快速開始
@@ -68,13 +68,12 @@ synthetic/hf:MiniMaxAI/MiniMax-M2.1
 }
 ```
 
-注意：OpenClaw 的 Anthropic 用戶端會將 `/v1` 附加到基底 URL，因此請使用
-`https://api.synthetic.new/anthropic`（而非 `/anthropic/v1`）。如果 Synthetic 變更
-其基底 URL，請覆寫 `models.providers.synthetic.baseUrl`。
+注意：OpenClaw 的 Anthropic 用戶端會將 `/v1` 附加至基底 URL，因此請使用
+`https://api.synthetic.new/anthropic`（而非 `/anthropic/v1`）。若 Synthetic 變更其基底 URL，請覆寫 `models.providers.synthetic.baseUrl`。
 
 ## 模型目錄
 
-以下所有模型的成本皆為 `0`（輸入／輸出／快取）。
+以下所有模型的成本皆使用 `0`（輸入／輸出／快取）。
 
 | Model ID                                               | Context window | Max tokens | Reasoning | Input        |
 | ------------------------------------------------------ | -------------- | ---------- | --------- | ------------ |
@@ -101,6 +100,5 @@ synthetic/hf:MiniMaxAI/MiniMax-M2.1
 ## 注意事項
 
 - 模型參照使用 `synthetic/<modelId>`。
-- 如果你啟用模型允許清單（`agents.defaults.models`），請加入你
-  計畫使用的所有模型。
-- 提供者規則請參閱［Model providers］(/concepts/model-providers)。
+- 若您啟用模型允許清單（`agents.defaults.models`），請新增您計畫使用的每一個模型。
+- 請參閱［Model providers］(/concepts/model-providers) 以了解提供者規則。

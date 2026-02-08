@@ -2,7 +2,7 @@
 summary: "CLI-Referenz für `openclaw browser` (Profile, Tabs, Aktionen, Extension-Relay)"
 read_when:
   - Sie verwenden `openclaw browser` und möchten Beispiele für häufige Aufgaben
-  - Sie möchten einen auf einer anderen Maschine laufenden Browser über einen Node-Host steuern
+  - Sie möchten einen Browser steuern, der auf einer anderen Maschine über einen Node-Host läuft
   - Sie möchten das Chrome-Extension-Relay verwenden (Anhängen/Trennen über die Toolbar-Schaltfläche)
 title: "browser"
 x-i18n:
@@ -11,24 +11,24 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:33Z
+  generated_at: 2026-02-08T09:35:28Z
 ---
 
 # `openclaw browser`
 
-Verwalten Sie den Browser-Steuerungsserver von OpenClaw und führen Sie Browser-Aktionen aus (Tabs, Snapshots, Screenshots, Navigation, Klicks, Tippen).
+Verwalten Sie OpenClaws Browser-Control-Server und führen Sie Browseraktionen aus (Tabs, Snapshots, Screenshots, Navigation, Klicks, Tippen).
 
-Zugehörig:
+Verwandt:
 
 - Browser-Werkzeug + API: [Browser tool](/tools/browser)
 - Chrome-Extension-Relay: [Chrome extension](/tools/chrome-extension)
 
-## Häufige Flags
+## Common flags
 
 - `--url <gatewayWsUrl>`: Gateway-WebSocket-URL (Standard aus der Konfiguration).
 - `--token <token>`: Gateway-Token (falls erforderlich).
 - `--timeout <ms>`: Request-Timeout (ms).
-- `--browser-profile <name>`: Browser-Profil auswählen (Standard aus der Konfiguration).
+- `--browser-profile <name>`: Browserprofil auswählen (Standard aus der Konfiguration).
 - `--json`: maschinenlesbare Ausgabe (wo unterstützt).
 
 ## Schnellstart (lokal)
@@ -44,7 +44,7 @@ openclaw browser --browser-profile openclaw snapshot
 
 Profile sind benannte Browser-Routing-Konfigurationen. In der Praxis:
 
-- `openclaw`: startet/verbinden sich mit einer dedizierten, von OpenClaw verwalteten Chrome-Instanz (isoliertes User-Data-Verzeichnis).
+- `openclaw`: startet/verbinden sich mit einer dedizierten, von OpenClaw verwalteten Chrome-Instanz (isoliertes Benutzer-Datenverzeichnis).
 - `chrome`: steuert Ihre bestehenden Chrome-Tabs über das Chrome-Extension-Relay.
 
 ```bash
@@ -82,7 +82,7 @@ Screenshot:
 openclaw browser screenshot
 ```
 
-Navigieren/Klicken/Tippen (ref-basierte UI-Automatisierung):
+Navigieren/Klicken/Tippen (referenzbasierte UI-Automatisierung):
 
 ```bash
 openclaw browser navigate https://example.com
@@ -90,9 +90,9 @@ openclaw browser click <ref>
 openclaw browser type <ref> "hello"
 ```
 
-## Chrome-Extension-Relay (Anhängen über Toolbar-Schaltfläche)
+## Chrome-Extension-Relay (Anhängen über die Toolbar-Schaltfläche)
 
-Dieser Modus ermöglicht es dem Agenten, einen bestehenden Chrome-Tab zu steuern, den Sie manuell anhängen (kein automatisches Anhängen).
+Dieser Modus ermöglicht es dem Agenten, einen bestehenden Chrome-Tab zu steuern, den Sie manuell anhängen (keine automatische Anbindung).
 
 Installieren Sie die entpackte Extension in einen stabilen Pfad:
 
@@ -105,10 +105,10 @@ Dann Chrome → `chrome://extensions` → „Developer mode“ aktivieren → �
 
 Vollständige Anleitung: [Chrome extension](/tools/chrome-extension)
 
-## Remote-Browser-Steuerung (Node-Host-Proxy)
+## Remote-Browsersteuerung (Node-Host-Proxy)
 
-Wenn das Gateway auf einer anderen Maschine als der Browser läuft, starten Sie einen **Node-Host** auf der Maschine mit Chrome/Brave/Edge/Chromium. Das Gateway leitet Browser-Aktionen an diesen Node weiter (kein separater Browser-Steuerungsserver erforderlich).
+Wenn der Gateway auf einer anderen Maschine als der Browser läuft, starten Sie einen **Node-Host** auf der Maschine mit Chrome/Brave/Edge/Chromium. Der Gateway leitet Browseraktionen an diesen Node weiter (kein separater Browser-Control-Server erforderlich).
 
-Verwenden Sie `gateway.nodes.browser.mode`, um das Auto-Routing zu steuern, und `gateway.nodes.browser.node`, um einen bestimmten Node festzulegen, wenn mehrere verbunden sind.
+Verwenden Sie `gateway.nodes.browser.mode`, um das automatische Routing zu steuern, und `gateway.nodes.browser.node`, um einen bestimmten Node festzulegen, wenn mehrere verbunden sind.
 
 Sicherheit + Remote-Einrichtung: [Browser tool](/tools/browser), [Remote access](/gateway/remote), [Tailscale](/gateway/tailscale), [Security](/gateway/security)

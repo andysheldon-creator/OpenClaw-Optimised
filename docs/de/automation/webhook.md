@@ -1,21 +1,21 @@
 ---
-summary: „Webhook-Eingang fuer Wake- und isolierte Agent-Laeufe“
+summary: "Webhook-Eingang für Wake- und isolierte Agent-Läufe"
 read_when:
-  - Hinzufuegen oder Aendern von Webhook-Endpunkten
+  - Hinzufügen oder Ändern von Webhook-Endpunkten
   - Anbinden externer Systeme an OpenClaw
-title: „Webhooks“
+title: "Webhooks"
 x-i18n:
   source_path: automation/webhook.md
   source_hash: f26b88864567be82
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:21Z
+  generated_at: 2026-02-08T09:35:11Z
 ---
 
 # Webhooks
 
-Das Gateway kann einen kleinen HTTP-Webhook-Endpunkt fuer externe Trigger bereitstellen.
+Das Gateway kann einen kleinen HTTP-Webhook-Endpunkt für externe Trigger bereitstellen.
 
 ## Aktivieren
 
@@ -32,7 +32,7 @@ Das Gateway kann einen kleinen HTTP-Webhook-Endpunkt fuer externe Trigger bereit
 Hinweise:
 
 - `hooks.token` ist erforderlich, wenn `hooks.enabled=true`.
-- `hooks.path` ist standardmaessig `/hooks`.
+- `hooks.path` ist standardmäßig `/hooks`.
 
 ## Authentifizierung
 
@@ -40,7 +40,7 @@ Jede Anfrage muss das Hook-Token enthalten. Bevorzugen Sie Header:
 
 - `Authorization: Bearer <token>` (empfohlen)
 - `x-openclaw-token: <token>`
-- `?token=<token>` (veraltet; protokolliert eine Warnung und wird in einer kuenftigen Major-Version entfernt)
+- `?token=<token>` (veraltet; protokolliert eine Warnung und wird in einer zukünftigen Hauptversion entfernt)
 
 ## Endpunkte
 
@@ -52,13 +52,13 @@ Payload:
 { "text": "System line", "mode": "now" }
 ```
 
-- `text` **erforderlich** (string): Die Beschreibung des Ereignisses (z. B. „Neue E-Mail empfangen“).
-- `mode` optional (`now` | `next-heartbeat`): Ob ein sofortiger Heartbeat ausgeloest werden soll (Standard `now`) oder bis zur naechsten periodischen Pruefung gewartet wird.
+- `text` **erforderlich** (string): Die Beschreibung des Ereignisses (z. B. „Neue E-Mail empfangen“).
+- `mode` optional (`now` | `next-heartbeat`): Ob ein sofortiger Heartbeat ausgelöst werden soll (Standard `now`) oder bis zur nächsten periodischen Prüfung gewartet wird.
 
 Wirkung:
 
-- Stellt ein Systemereignis fuer die **Haupt**-Sitzung in die Warteschlange
-- Wenn `mode=now`, wird ein sofortiger Heartbeat ausgeloest
+- Stellt ein Systemereignis für die **Haupt**-Sitzung in die Warteschlange
+- Wenn `mode=now`, wird ein sofortiger Heartbeat ausgelöst
 
 ### `POST /hooks/agent`
 
@@ -80,49 +80,49 @@ Payload:
 ```
 
 - `message` **erforderlich** (string): Der Prompt oder die Nachricht, die der Agent verarbeiten soll.
-- `name` optional (string): Menschenlesbarer Name fuer den Hook (z. B. „GitHub“), der als Praefix in Sitzungszusammenfassungen verwendet wird.
-- `sessionKey` optional (string): Der Schluessel zur Identifizierung der Agent-Sitzung. Standardmaessig ein zufaelliger `hook:<uuid>`. Die Verwendung eines konsistenten Schluessels ermoeglicht eine mehrzuegige Konversation im Hook-Kontext.
-- `wakeMode` optional (`now` | `next-heartbeat`): Ob ein sofortiger Heartbeat ausgeloest werden soll (Standard `now`) oder bis zur naechsten periodischen Pruefung gewartet wird.
-- `deliver` optional (boolean): Wenn `true`, wird die Antwort des Agenten an den Messaging-Kanal gesendet. Standard ist `true`. Antworten, die nur Heartbeat-Bestaetigungen sind, werden automatisch uebersprungen.
-- `channel` optional (string): Der Messaging-Kanal fuer die Zustellung. Einer von: `last`, `whatsapp`, `telegram`, `discord`, `slack`, `mattermost` (Plugin), `signal`, `imessage`, `msteams`. Standard ist `last`.
-- `to` optional (string): Die Empfaengerkennung fuer den Kanal (z. B. Telefonnummer fuer WhatsApp/Signal, Chat-ID fuer Telegram, Kanal-ID fuer Discord/Slack/Mattermost (Plugin), Konversations-ID fuer MS Teams). Standard ist der letzte Empfaenger in der Hauptsitzung.
-- `model` optional (string): Modell-Ueberschreibung (z. B. `anthropic/claude-3-5-sonnet` oder ein Alias). Muss in der erlaubten Modellliste enthalten sein, falls eingeschraenkt.
-- `thinking` optional (string): Ueberschreibung der Denkstufe (z. B. `low`, `medium`, `high`).
-- `timeoutSeconds` optional (number): Maximale Dauer fuer den Agent-Lauf in Sekunden.
+- `name` optional (string): Für Menschen lesbarer Name für den Hook (z. B. „GitHub“), wird als Präfix in Sitzungszusammenfassungen verwendet.
+- `sessionKey` optional (string): Der Schlüssel zur Identifizierung der Sitzung des Agenten. Standardmäßig ein zufälliger `hook:<uuid>`. Die Verwendung eines konsistenten Schlüssels ermöglicht eine mehrteilige Konversation im Hook-Kontext.
+- `wakeMode` optional (`now` | `next-heartbeat`): Ob ein sofortiger Heartbeat ausgelöst werden soll (Standard `now`) oder bis zur nächsten periodischen Prüfung gewartet wird.
+- `deliver` optional (boolean): Wenn `true`, wird die Antwort des Agenten an den Messaging-Kanal gesendet. Standardmäßig `true`. Antworten, die nur Heartbeat-Bestätigungen sind, werden automatisch übersprungen.
+- `channel` optional (string): Der Messaging-Kanal für die Zustellung. Einer von: `last`, `whatsapp`, `telegram`, `discord`, `slack`, `mattermost` (Plugin), `signal`, `imessage`, `msteams`. Standardmäßig `last`.
+- `to` optional (string): Die Empfängerkennung für den Kanal (z. B. Telefonnummer für WhatsApp/Signal, Chat-ID für Telegram, Kanal-ID für Discord/Slack/Mattermost (Plugin), Konversations-ID für MS Teams). Standardmäßig der letzte Empfänger in der Hauptsitzung.
+- `model` optional (string): Modell-Override (z. B. `anthropic/claude-3-5-sonnet` oder ein Alias). Muss in der erlaubten Modellliste enthalten sein, falls eingeschränkt.
+- `thinking` optional (string): Thinking-Level-Override (z. B. `low`, `medium`, `high`).
+- `timeoutSeconds` optional (number): Maximale Dauer für den Agent-Lauf in Sekunden.
 
 Wirkung:
 
-- Fuehrt einen **isolierten** Agent-Turn aus (eigener Sitzungsschluessel)
+- Führt einen **isolierten** Agent-Turn aus (eigener Sitzungsschlüssel)
 - Postet immer eine Zusammenfassung in die **Haupt**-Sitzung
-- Wenn `wakeMode=now`, wird ein sofortiger Heartbeat ausgeloest
+- Wenn `wakeMode=now`, wird ein sofortiger Heartbeat ausgelöst
 
 ### `POST /hooks/<name>` (zugeordnet)
 
-Benutzerdefinierte Hook-Namen werden ueber `hooks.mappings` aufgeloest (siehe Konfiguration). Eine Zuordnung kann
+Benutzerdefinierte Hook-Namen werden über `hooks.mappings` aufgelöst (siehe Konfiguration). Eine Zuordnung kann
 beliebige Payloads in `wake`- oder `agent`-Aktionen umwandeln, mit optionalen Templates oder
 Code-Transformationen.
 
-Zuordnungsoptionen (Uebersicht):
+Zuordnungsoptionen (Übersicht):
 
 - `hooks.presets: ["gmail"]` aktiviert die integrierte Gmail-Zuordnung.
-- `hooks.mappings` ermoeglicht es Ihnen, `match`, `action` und Templates in der Konfiguration zu definieren.
-- `hooks.transformsDir` + `transform.module` laden ein JS/TS-Modul fuer benutzerdefinierte Logik.
+- `hooks.mappings` ermöglicht das Definieren von `match`, `action` und Templates in der Konfiguration.
+- `hooks.transformsDir` + `transform.module` lädt ein JS/TS-Modul für benutzerdefinierte Logik.
 - Verwenden Sie `match.source`, um einen generischen Ingest-Endpunkt beizubehalten (payload-gesteuertes Routing).
-- TS-Transformationen erfordern einen TS-Loader (z. B. `bun` oder `tsx`) oder zur Laufzeit vorkompiliertes `.js`.
-- Setzen Sie `deliver: true` + `channel`/`to` in Zuordnungen, um Antworten auf eine Chat-Oberflaeche zu routen
-  (`channel` ist standardmaessig `last` und faellt auf WhatsApp zurueck).
-- `allowUnsafeExternalContent: true` deaktiviert den externen Content-Safety-Wrapper fuer diesen Hook
-  (gefaehrlich; nur fuer vertrauenswuerdige interne Quellen).
-- `openclaw webhooks gmail setup` schreibt `hooks.gmail`-Konfiguration fuer `openclaw webhooks gmail run`.
-  Siehe [Gmail Pub/Sub](/automation/gmail-pubsub) fuer den vollstaendigen Gmail-Watch-Flow.
+- TS-Transformationen erfordern einen TS-Loader (z. B. `bun` oder `tsx`) oder zur Laufzeit vorab kompiliertes `.js`.
+- Setzen Sie `deliver: true` + `channel`/`to` bei Zuordnungen, um Antworten an eine Chat-Oberfläche zu routen
+  (`channel` ist standardmäßig `last` und fällt auf WhatsApp zurück).
+- `allowUnsafeExternalContent: true` deaktiviert den externen Content-Safety-Wrapper für diesen Hook
+  (gefährlich; nur für vertrauenswürdige interne Quellen).
+- `openclaw webhooks gmail setup` schreibt `hooks.gmail`-Konfiguration für `openclaw webhooks gmail run`.
+  Siehe [Gmail Pub/Sub](/automation/gmail-pubsub) für den vollständigen Gmail-Watch-Flow.
 
 ## Antworten
 
-- `200` fuer `/hooks/wake`
-- `202` fuer `/hooks/agent` (asynchroner Lauf gestartet)
+- `200` für `/hooks/wake`
+- `202` für `/hooks/agent` (asynchroner Lauf gestartet)
 - `401` bei Authentifizierungsfehler
-- `400` bei ungueltigem Payload
-- `413` bei zu grossen Payloads
+- `400` bei ungültigem Payload
+- `413` bei zu großen Payloads
 
 ## Beispiele
 
@@ -142,7 +142,7 @@ curl -X POST http://127.0.0.1:18789/hooks/agent \
 
 ### Ein anderes Modell verwenden
 
-Fuegen Sie `model` zum Agent-Payload (oder zur Zuordnung) hinzu, um das Modell fuer diesen Lauf zu ueberschreiben:
+Fügen Sie `model` zum Agent-Payload (oder zur Zuordnung) hinzu, um das Modell für diesen Lauf zu überschreiben:
 
 ```bash
 curl -X POST http://127.0.0.1:18789/hooks/agent \
@@ -151,7 +151,7 @@ curl -X POST http://127.0.0.1:18789/hooks/agent \
   -d '{"message":"Summarize inbox","name":"Email","model":"openai/gpt-5.2-mini"}'
 ```
 
-Wenn Sie `agents.defaults.models` erzwingen, stellen Sie sicher, dass das Ueberschreibungsmodell dort enthalten ist.
+Wenn Sie `agents.defaults.models` erzwingen, stellen Sie sicher, dass das Override-Modell dort enthalten ist.
 
 ```bash
 curl -X POST http://127.0.0.1:18789/hooks/gmail \
@@ -162,9 +162,9 @@ curl -X POST http://127.0.0.1:18789/hooks/gmail \
 
 ## Sicherheit
 
-- Halten Sie Hook-Endpunkte hinter Loopback, Tailnet oder einem vertrauenswuerdigen Reverse-Proxy.
-- Verwenden Sie ein dediziertes Hook-Token; verwenden Sie keine Gateway-Auth-Tokens wieder.
+- Halten Sie Hook-Endpunkte hinter Loopback, Tailnet oder einem vertrauenswürdigen Reverse Proxy.
+- Verwenden Sie ein dediziertes Hook-Token; verwenden Sie Gateway-Authentifizierungs-Token nicht wieder.
 - Vermeiden Sie es, sensible rohe Payloads in Webhook-Logs aufzunehmen.
-- Hook-Payloads werden standardmaessig als nicht vertrauenswuerdig behandelt und mit Sicherheitsgrenzen umhuellt.
-  Wenn Sie dies fuer einen bestimmten Hook deaktivieren muessen, setzen Sie `allowUnsafeExternalContent: true`
-  in der Zuordnung dieses Hooks (gefaehrlich).
+- Hook-Payloads werden standardmäßig als nicht vertrauenswürdig behandelt und mit Sicherheitsgrenzen umschlossen.
+  Wenn Sie dies für einen bestimmten Hook deaktivieren müssen, setzen Sie `allowUnsafeExternalContent: true`
+  in der Zuordnung dieses Hooks (gefährlich).

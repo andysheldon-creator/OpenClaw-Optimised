@@ -1,5 +1,5 @@
 ---
-summary: "일반적인 OpenClaw 설정을 위한 스키마 정확한 구성 예시"
+summary: "일반적인 OpenClaw 설정을 위한 스키마에 정확한 구성 예시"
 read_when:
   - OpenClaw 구성 방법을 학습할 때
   - 구성 예시를 찾을 때
@@ -9,18 +9,18 @@ x-i18n:
   source_path: gateway/configuration-examples.md
   source_hash: 2c9cee53d56a4232
   provider: openai
-  model: gpt-5.2-pro
+  model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-06T05:29:42Z
+  generated_at: 2026-02-08T09:24:58Z
 ---
 
 # 구성 예시
 
-아래 예시는 현재 구성 스키마에 맞춰 정렬되어 있습니다. 전체 레퍼런스와 필드별 참고 사항은 [Configuration](/gateway/configuration)에서 확인하십시오.
+아래 예시는 현재 구성 스키마에 맞춰져 있습니다. 전체 참조와 필드별 참고 사항은 [Configuration](/gateway/configuration)을 확인하십시오.
 
 ## 빠른 시작
 
-### 절대 최소
+### 절대 최소 구성
 
 ```json5
 {
@@ -29,7 +29,7 @@ x-i18n:
 }
 ```
 
-`~/.openclaw/openclaw.json`에 저장하면 해당 번호에서 봇에게 다이렉트 메시지를 보낼 수 있습니다.
+`~/.openclaw/openclaw.json`에 저장하면 해당 번호에서 봇에 다이렉트 메시지(DM)를 보낼 수 있습니다.
 
 ### 권장 시작 구성
 
@@ -53,9 +53,9 @@ x-i18n:
 }
 ```
 
-## 확장 예시 (주요 옵션)
+## 확장 예시(주요 옵션)
 
-> JSON5 를 사용하면 주석과 후행 쉼표를 사용할 수 있습니다. 일반 JSON 도 작동합니다.
+> JSON5 는 주석과 후행 쉼표를 사용할 수 있습니다. 일반 JSON 도 동작합니다.
 
 ```json5
 {
@@ -430,7 +430,7 @@ x-i18n:
 }
 ```
 
-## 일반 패턴
+## 일반적인 패턴
 
 ### 멀티 플랫폼 설정
 
@@ -453,9 +453,9 @@ x-i18n:
 }
 ```
 
-### 보안 다이렉트 메시지 모드 (공유 받은편지함 / 다중 사용자 다이렉트 메시지)
+### 보안 DM 모드(공유 받은 편지함 / 다중 사용자 DM)
 
-두 명 이상이 봇에 다이렉트 메시지를 보낼 수 있는 경우(`allowFrom`에 여러 항목이 있거나, 여러 사람에 대한 페어링 승인, 또는 `dmPolicy: "open"`), 서로 다른 발신자의 다이렉트 메시지가 기본적으로 하나의 컨텍스트를 공유하지 않도록 **보안 다이렉트 메시지 모드**를 활성화하십시오:
+둘 이상의 사람이 봇에 DM 을 보낼 수 있는 경우(`allowFrom`에 여러 항목이 있거나, 여러 사람에 대한 페어링 승인, 또는 `dmPolicy: "open"`), 서로 다른 발신자의 DM 이 기본적으로 하나의 컨텍스트를 공유하지 않도록 **보안 DM 모드**를 활성화하십시오:
 
 ```json5
 {
@@ -479,7 +479,7 @@ x-i18n:
 }
 ```
 
-### API 키 장애 조치를 포함한 OAuth
+### OAuth 와 API 키 페일오버
 
 ```json5
 {
@@ -548,7 +548,7 @@ x-i18n:
 }
 ```
 
-### 업무용 봇 (접근 제한)
+### 업무용 봇(접근 제한)
 
 ```json5
 {
@@ -573,7 +573,7 @@ x-i18n:
 }
 ```
 
-### 로컬 모델만
+### 로컬 모델만 사용
 
 ```json5
 {
@@ -607,7 +607,7 @@ x-i18n:
 
 ## 팁
 
-- `dmPolicy: "open"`를 설정하는 경우, 일치하는 `allowFrom` 목록에는 `"*"`가 포함되어야 합니다.
-- 프로바이더 ID 는 서로 다릅니다(전화번호, 사용자 ID, 채널 ID). 형식을 확인하려면 프로바이더 문서를 사용하십시오.
+- `dmPolicy: "open"`를 설정한 경우, 해당하는 `allowFrom` 목록에는 `"*"`가 포함되어야 합니다.
+- 프로바이더 ID 는 서로 다릅니다(전화번호, 사용자 ID, 채널 ID). 형식은 프로바이더 문서를 사용해 확인하십시오.
 - 나중에 추가할 수 있는 선택 섹션: `web`, `browser`, `ui`, `discovery`, `canvasHost`, `talk`, `signal`, `imessage`.
-- 더 심화된 설정 참고 사항은 [Providers](/channels/whatsapp) 및 [Troubleshooting](/gateway/troubleshooting)을 참조하십시오.
+- 더 자세한 설정 노트는 [Providers](/channels/whatsapp) 및 [Troubleshooting](/gateway/troubleshooting)을 참고하십시오.

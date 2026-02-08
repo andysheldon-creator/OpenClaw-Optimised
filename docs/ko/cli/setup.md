@@ -1,8 +1,8 @@
 ---
-summary: "`openclaw setup`에 대한 CLI 참조 (설정 초기화 + 워크스페이스)"
+summary: "`openclaw setup`에 대한 CLI 참조 (설정 + 워크스페이스 초기화)"
 read_when:
-  - 전체 온보딩 마법사 없이 최초 실행 설정을 진행할 때
-  - 기본 워크스페이스 경로를 설정하려는 경우
+  - 전체 온보딩 마법사를 사용하지 않고 첫 실행 설정을 진행할 때
+  - 기본 워크스페이스 경로를 설정하려고 할 때
 title: "설정"
 x-i18n:
   source_path: cli/setup.md
@@ -10,7 +10,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:35:34Z
+  generated_at: 2026-02-08T09:24:23Z
 ---
 
 # `openclaw setup`
@@ -19,8 +19,8 @@ x-i18n:
 
 관련 항목:
 
-- 시작하기: [Getting started](/start/getting-started)
-- 마법사: [Onboarding](/start/onboarding)
+- 시작하기: [시작하기](/start/getting-started)
+- 마법사: [온보딩](/start/onboarding)
 
 ## 예제
 

@@ -1,5 +1,5 @@
 ---
-summary: "Phát một tin nhắn WhatsApp tới nhiều tác tử"
+summary: "Phát sóng một tin nhắn WhatsApp tới nhiều tác tử"
 read_when:
   - Cấu hình broadcast groups
   - Gỡ lỗi phản hồi đa tác tử trong WhatsApp
@@ -11,25 +11,25 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:16:09Z
+  generated_at: 2026-02-08T09:38:04Z
 ---
 
 # Broadcast Groups
 
-**Trạng thái:** Experimental  
-**Phiên bản:** Thêm trong 2026.1.9
+**Trạng thái:** Thử nghiệm  
+**Phiên bản:** Được thêm trong 2026.1.9
 
 ## Tổng quan
 
-Broadcast Groups cho phép nhiều tác tử xử lý và phản hồi cùng một tin nhắn đồng thời. Điều này cho phép bạn tạo các đội tác tử chuyên biệt cùng làm việc trong một nhóm WhatsApp hoặc Tin nhắn trực tiếp — tất cả chỉ dùng một số điện thoại.
+Broadcast Groups cho phép nhiều tác tử xử lý và phản hồi cùng một tin nhắn đồng thời. Điều này cho phép bạn tạo các nhóm tác tử chuyên biệt cùng làm việc trong một nhóm WhatsApp hoặc DM — tất cả chỉ dùng một số điện thoại.
 
 Phạm vi hiện tại: **Chỉ WhatsApp** (kênh web).
 
-Broadcast groups được đánh giá sau danh sách cho phép của kênh và các quy tắc kích hoạt nhóm. Trong các nhóm WhatsApp, điều này có nghĩa là broadcast sẽ xảy ra khi OpenClaw bình thường sẽ trả lời (ví dụ: khi được mention, tùy vào cài đặt nhóm của bạn).
+Broadcast groups được đánh giá sau danh sách cho phép của kênh và các quy tắc kích hoạt nhóm. Trong các nhóm WhatsApp, điều này có nghĩa là việc phát sóng xảy ra khi OpenClaw bình thường sẽ phản hồi (ví dụ: khi được nhắc tên, tùy theo cài đặt nhóm của bạn).
 
 ## Trường hợp sử dụng
 
-### 1. Đội tác tử chuyên biệt
+### 1. Nhóm tác tử chuyên biệt
 
 Triển khai nhiều tác tử với trách nhiệm nguyên tử, tập trung:
 
@@ -42,7 +42,7 @@ Agents:
   - TestGenerator (suggests test cases)
 ```
 
-Mỗi tác tử xử lý cùng một tin nhắn và cung cấp góc nhìn chuyên biệt của mình.
+Mỗi tác tử xử lý cùng một tin nhắn và cung cấp góc nhìn chuyên môn riêng của mình.
 
 ### 2. Hỗ trợ đa ngôn ngữ
 
@@ -77,10 +77,10 @@ Agents:
 
 ### Thiết lập cơ bản
 
-Thêm một section cấp cao nhất `broadcast` (bên cạnh `bindings`). Các khóa là WhatsApp peer id:
+Thêm một mục cấp cao nhất `broadcast` (bên cạnh `bindings`). Các khóa là peer id của WhatsApp:
 
-- chat nhóm: group JID (ví dụ: `120363403215116621@g.us`)
-- Tin nhắn trực tiếp: số điện thoại E.164 (ví dụ: `+15551234567`)
+- chat nhóm: JID của nhóm (ví dụ: `120363403215116621@g.us`)
+- DM: số điện thoại chuẩn E.164 (ví dụ: `+15551234567`)
 
 ```json
 {
@@ -90,7 +90,7 @@ Thêm một section cấp cao nhất `broadcast` (bên cạnh `bindings`). Các 
 }
 ```
 
-**Kết quả:** Khi OpenClaw sẽ trả lời trong cuộc trò chuyện này, nó sẽ chạy cả ba tác tử.
+**Kết quả:** Khi OpenClaw sẽ phản hồi trong cuộc trò chuyện này, nó sẽ chạy cả ba tác tử.
 
 ### Chiến lược xử lý
 
@@ -164,24 +164,24 @@ Các tác tử xử lý theo thứ tự (tác tử sau chờ tác tử trước 
 1. **Tin nhắn đến** xuất hiện trong một nhóm WhatsApp
 2. **Kiểm tra broadcast**: Hệ thống kiểm tra xem peer ID có nằm trong `broadcast` hay không
 3. **Nếu nằm trong danh sách broadcast**:
-   - Tất cả các tác tử được liệt kê xử lý tin nhắn
-   - Mỗi tác tử có khóa phiên riêng và ngữ cảnh cô lập
+   - Tất cả các tác tử được liệt kê đều xử lý tin nhắn
+   - Mỗi tác tử có khóa phiên riêng và ngữ cảnh tách biệt
    - Các tác tử xử lý song song (mặc định) hoặc tuần tự
 4. **Nếu không nằm trong danh sách broadcast**:
    - Áp dụng định tuyến thông thường (binding khớp đầu tiên)
 
-Lưu ý: broadcast groups không bỏ qua danh sách cho phép của kênh hoặc các quy tắc kích hoạt nhóm (mention/lệnh/etc). Chúng chỉ thay đổi _tác tử nào được chạy_ khi một tin nhắn đủ điều kiện để xử lý.
+Lưu ý: broadcast groups không bỏ qua danh sách cho phép của kênh hoặc các quy tắc kích hoạt nhóm (nhắc tên/lệnh/etc). Chúng chỉ thay đổi _những tác tử nào được chạy_ khi một tin nhắn đủ điều kiện để xử lý.
 
-### Cô lập phiên
+### Cách ly phiên
 
 Mỗi tác tử trong một broadcast group duy trì hoàn toàn tách biệt:
 
 - **Khóa phiên** (`agent:alfred:whatsapp:group:120363...` so với `agent:baerbel:whatsapp:group:120363...`)
 - **Lịch sử hội thoại** (tác tử không thấy tin nhắn của tác tử khác)
-- **Workspace** (các sandbox riêng nếu được cấu hình)
+- **Không gian làm việc** (sandbox riêng nếu được cấu hình)
 - **Quyền truy cập công cụ** (danh sách cho phép/từ chối khác nhau)
-- **Bộ nhớ/ngữ cảnh** (IDENTITY.md, SOUL.md riêng, v.v.)
-- **Bộ đệm ngữ cảnh nhóm** (các tin nhắn nhóm gần đây dùng làm ngữ cảnh) được chia sẻ theo peer, nên tất cả các tác tử broadcast đều thấy cùng một ngữ cảnh khi được kích hoạt
+- **Bộ nhớ/ngữ cảnh** (IDENTITY.md, SOUL.md riêng biệt, v.v.)
+- **Bộ đệm ngữ cảnh nhóm** (các tin nhắn nhóm gần đây dùng cho ngữ cảnh) được chia sẻ theo từng peer, vì vậy tất cả các tác tử broadcast đều thấy cùng một ngữ cảnh khi được kích hoạt
 
 Điều này cho phép mỗi tác tử có:
 
@@ -190,7 +190,7 @@ Mỗi tác tử trong một broadcast group duy trì hoàn toàn tách biệt:
 - Mô hình khác nhau (ví dụ: opus so với sonnet)
 - Các Skills khác nhau được cài đặt
 
-### Ví dụ: Phiên cô lập
+### Ví dụ: Các phiên được cách ly
 
 Trong nhóm `120363403215116621@g.us` với các tác tử `["alfred", "baerbel"]`:
 
@@ -216,7 +216,7 @@ Tools: read only
 
 ### 1. Giữ tác tử tập trung
 
-Thiết kế mỗi tác tử với một trách nhiệm duy nhất, rõ ràng:
+Thiết kế mỗi tác tử với một trách nhiệm rõ ràng, duy nhất:
 
 ```json
 {
@@ -227,9 +227,9 @@ Thiết kế mỗi tác tử với một trách nhiệm duy nhất, rõ ràng:
 ```
 
 ✅ **Tốt:** Mỗi tác tử có một nhiệm vụ  
-❌ **Không tốt:** Một tác tử “dev-helper” chung chung
+❌ **Không tốt:** Một tác tử "dev-helper" chung chung
 
-### 2. Dùng tên mô tả
+### 2. Dùng tên mô tả rõ ràng
 
 Làm rõ mỗi tác tử làm gì:
 
@@ -264,20 +264,20 @@ Chỉ cấp cho tác tử những công cụ chúng cần:
 
 Với nhiều tác tử, hãy cân nhắc:
 
-- Sử dụng `"strategy": "parallel"` (mặc định) để đạt tốc độ
-- Giới hạn broadcast groups ở 5–10 tác tử
-- Dùng các mô hình nhanh hơn cho các tác tử đơn giản
+- Sử dụng `"strategy": "parallel"` (mặc định) để có tốc độ
+- Giới hạn broadcast groups ở mức 5–10 tác tử
+- Dùng mô hình nhanh hơn cho các tác tử đơn giản
 
-### 5. Xử lý lỗi một cách uyển chuyển
+### 5. Xử lý lỗi một cách linh hoạt
 
-Các tác tử thất bại độc lập. Lỗi của một tác tử không chặn các tác tử khác:
+Các tác tử lỗi độc lập. Lỗi của một tác tử không chặn các tác tử khác:
 
 ```
 Message → [Agent A ✓, Agent B ✗ error, Agent C ✓]
 Result: Agent A and C respond, Agent B logs error
 ```
 
-## Tương thích
+## Khả năng tương thích
 
 ### Nhà cung cấp
 
@@ -307,9 +307,9 @@ Broadcast groups hoạt động song song với định tuyến hiện có:
 ```
 
 - `GROUP_A`: Chỉ alfred phản hồi (định tuyến thông thường)
-- `GROUP_B`: agent1 VÀ agent2 phản hồi (broadcast)
+- `GROUP_B`: agent1 VÀ agent2 cùng phản hồi (broadcast)
 
-**Thứ tự ưu tiên:** `broadcast` được ưu tiên hơn `bindings`.
+**Thứ tự ưu tiên:** `broadcast` có ưu tiên cao hơn `bindings`.
 
 ## Xử lý sự cố
 
@@ -318,8 +318,8 @@ Broadcast groups hoạt động song song với định tuyến hiện có:
 **Kiểm tra:**
 
 1. ID tác tử tồn tại trong `agents.list`
-2. Định dạng peer ID đúng (ví dụ: `120363403215116621@g.us`)
-3. Các tác tử không nằm trong danh sách từ chối
+2. Định dạng peer ID chính xác (ví dụ: `120363403215116621@g.us`)
+3. Tác tử không nằm trong danh sách từ chối
 
 **Gỡ lỗi:**
 
@@ -331,19 +331,19 @@ tail -f ~/.openclaw/logs/gateway.log | grep broadcast
 
 **Nguyên nhân:** Peer ID có thể nằm trong `bindings` nhưng không nằm trong `broadcast`.
 
-**Cách khắc phục:** Thêm vào cấu hình broadcast hoặc loại khỏi bindings.
+**Cách khắc phục:** Thêm vào cấu hình broadcast hoặc loại bỏ khỏi bindings.
 
 ### Vấn đề hiệu năng
 
-**Nếu chậm với nhiều tác tử:**
+**Nếu chậm khi có nhiều tác tử:**
 
-- Giảm số tác tử mỗi nhóm
+- Giảm số lượng tác tử mỗi nhóm
 - Dùng mô hình nhẹ hơn (sonnet thay vì opus)
 - Kiểm tra thời gian khởi động sandbox
 
 ## Ví dụ
 
-### Ví dụ 1: Đội review mã
+### Ví dụ 1: Nhóm review mã nguồn
 
 ```json
 {
@@ -423,8 +423,8 @@ interface OpenClawConfig {
 - `strategy` (tùy chọn): Cách xử lý các tác tử
   - `"parallel"` (mặc định): Tất cả tác tử xử lý đồng thời
   - `"sequential"`: Các tác tử xử lý theo thứ tự trong mảng
-- `[peerId]`: WhatsApp group JID, số E.164, hoặc peer ID khác
-  - Giá trị: Mảng các ID tác tử cần xử lý tin nhắn
+- `[peerId]`: JID nhóm WhatsApp, số E.164, hoặc peer ID khác
+  - Giá trị: Mảng ID tác tử nên xử lý tin nhắn
 
 ## Giới hạn
 

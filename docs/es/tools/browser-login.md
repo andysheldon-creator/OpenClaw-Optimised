@@ -1,23 +1,23 @@
 ---
 summary: "Inicios de sesión manuales para automatización del navegador + publicación en X/Twitter"
 read_when:
-  - Necesita iniciar sesión en sitios para la automatización del navegador
+  - Necesita iniciar sesión en sitios para automatización del navegador
   - Quiere publicar actualizaciones en X/Twitter
 title: "Inicio de sesión del navegador"
 x-i18n:
   source_path: tools/browser-login.md
-  source_hash: 8ceea2d5258836e3
+  source_hash: c30faa9da6c6ef70
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:00:06Z
+  generated_at: 2026-02-08T09:34:41Z
 ---
 
 # Inicio de sesión del navegador + publicación en X/Twitter
 
 ## Inicio de sesión manual (recomendado)
 
-Cuando un sitio requiere inicio de sesión, **inicie sesión manualmente** en el perfil del navegador **host** (el navegador de OpenClaw).
+Cuando un sitio requiere inicio de sesión, **inicie sesión manualmente** en el perfil del navegador del **host** (el navegador de OpenClaw).
 
 **No** le dé sus credenciales al modelo. Los inicios de sesión automatizados suelen activar defensas anti‑bot y pueden bloquear la cuenta.
 
@@ -25,7 +25,7 @@ Volver a la documentación principal del navegador: [Browser](/tools/browser).
 
 ## ¿Qué perfil de Chrome se utiliza?
 
-OpenClaw controla un **perfil dedicado de Chrome** (llamado `openclaw`, interfaz con tinte naranja). Esto es independiente de su perfil de navegador diario.
+OpenClaw controla un **perfil dedicado de Chrome** (llamado `openclaw`, interfaz con tinte naranja). Este es independiente de su perfil de navegador diario.
 
 Dos formas sencillas de acceder:
 
@@ -37,17 +37,16 @@ openclaw browser start
 openclaw browser open https://x.com
 ```
 
-Si tiene múltiples perfiles, pase `--browser-profile <name>` (el valor predeterminado es `openclaw`).
+Si tiene varios perfiles, pase `--browser-profile <name>` (el valor predeterminado es `openclaw`).
 
 ## X/Twitter: flujo recomendado
 
-- **Leer/buscar/hilos:** use la Skill de CLI **bird** (sin navegador, estable).
-  - Repo: https://github.com/steipete/bird
-- **Publicar actualizaciones:** use el navegador **host** (inicio de sesión manual).
+- **Lectura/búsqueda/hilos:** use el navegador del **host** (inicio de sesión manual).
+- **Publicar actualizaciones:** use el navegador del **host** (inicio de sesión manual).
 
-## Sandboxing + acceso al navegador host
+## Sandboxing + acceso al navegador del host
 
-Las sesiones de navegador **Sandboxed** son **más propensas** a activar la detección de bots. Para X/Twitter (y otros sitios estrictos), prefiera el navegador **host**.
+Las sesiones de navegador en sandbox tienen **más probabilidades** de activar la detección de bots. Para X/Twitter (y otros sitios estrictos), prefiera el navegador del **host**.
 
 Si el agente está en sandbox, la herramienta del navegador usa el sandbox de forma predeterminada. Para permitir el control del host:
 
@@ -66,10 +65,10 @@ Si el agente está en sandbox, la herramienta del navegador usa el sandbox de fo
 }
 ```
 
-Luego apunte al navegador host:
+Luego apunte al navegador del host:
 
 ```bash
 openclaw browser open https://x.com --browser-profile openclaw --target host
 ```
 
-O deshabilite el sandboxing para el agente que publica actualizaciones.
+O desactive el sandboxing para el agente que publica actualizaciones.

@@ -1,8 +1,8 @@
 ---
-summary: "CLI-Referenz fuer `openclaw nodes` (list/status/approve/invoke, camera/canvas/screen)"
+summary: "CLI-Referenz für `openclaw nodes` (list/status/approve/invoke, camera/canvas/screen)"
 read_when:
   - Sie verwalten gekoppelte Nodes (Kameras, Bildschirm, Canvas)
-  - Sie muessen Anfragen genehmigen oder Node-Befehle ausfuehren
+  - Sie müssen Anfragen genehmigen oder Node-Befehle ausführen
 title: "Nodes"
 x-i18n:
   source_path: cli/nodes.md
@@ -10,24 +10,24 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:47Z
+  generated_at: 2026-02-08T09:35:41Z
 ---
 
 # `openclaw nodes`
 
-Verwalten Sie gekoppelte Nodes (Geraete) und rufen Sie Node-Faehigkeiten auf.
+Verwalten Sie gekoppelte Nodes (Geräte) und führen Sie Node-Funktionen aus.
 
 Verwandt:
 
-- Nodes-Ueberblick: [Nodes](/nodes)
+- Nodes-Überblick: [Nodes](/nodes)
 - Kamera: [Camera nodes](/nodes/camera)
 - Bilder: [Image nodes](/nodes/images)
 
-Gemeinsame Optionen:
+Häufige Optionen:
 
 - `--url`, `--token`, `--timeout`, `--json`
 
-## Gemeinsame Befehle
+## Häufige Befehle
 
 ```bash
 openclaw nodes list
@@ -40,11 +40,11 @@ openclaw nodes status --connected
 openclaw nodes status --last-connected 24h
 ```
 
-`nodes list` gibt Tabellen fuer ausstehende/gekoppelte Nodes aus. Gekoppelte Zeilen enthalten das Alter der letzten Verbindung (Last Connect).
+`nodes list` gibt Tabellen für ausstehende/gekoppelte Nodes aus. Gekoppelte Zeilen enthalten das Alter der letzten Verbindung (Last Connect).
 Verwenden Sie `--connected`, um nur aktuell verbundene Nodes anzuzeigen. Verwenden Sie `--last-connected <duration>`, um
-auf Nodes zu filtern, die sich innerhalb einer Dauer verbunden haben (z. B. `24h`, `7d`).
+auf Nodes zu filtern, die sich innerhalb einer Dauer verbunden haben (z. B. `24h`, `7d`).
 
-## Invoke / ausfuehren
+## Invoke / run
 
 ```bash
 openclaw nodes invoke --node <id|name|ip> --command <command> --params <json>
@@ -55,26 +55,26 @@ openclaw nodes run --agent main --node <id|name|ip> --raw "git status"
 
 Invoke-Flags:
 
-- `--params <json>`: JSON-Objektzeichenfolge (Standard `{}`).
-- `--invoke-timeout <ms>`: Timeout fuer Node-Invoke (Standard `15000`).
-- `--idempotency-key <key>`: optionaler Idempotenzschluessel.
+- `--params <json>`: JSON-Objekt-String (Standard `{}`).
+- `--invoke-timeout <ms>`: Node-Invoke-Timeout (Standard `15000`).
+- `--idempotency-key <key>`: optionaler Idempotenzschlüssel.
 
-### Exec-Style-Standards
+### Exec-ähnliche Standardwerte
 
 `nodes run` spiegelt das Exec-Verhalten des Modells wider (Standards + Genehmigungen):
 
-- Liest `tools.exec.*` (plus `agents.list[].tools.exec.*`-Ueberschreibungen).
-- Verwendet Exec-Genehmigungen (`exec.approval.request`), bevor `system.run` aufgerufen wird.
-- `--node` kann entfallen, wenn `tools.exec.node` gesetzt ist.
-- Erfordert einen Node, der `system.run` anbietet (macOS-Begleit-App oder headless Node-Host).
+- Liest `tools.exec.*` (plus `agents.list[].tools.exec.*`-Überschreibungen).
+- Verwendet Exec-Genehmigungen (`exec.approval.request`) vor dem Aufruf von `system.run`.
+- `--node` kann weggelassen werden, wenn `tools.exec.node` gesetzt ist.
+- Erfordert einen Node, der `system.run` bewirbt (macOS-Companion-App oder headless Node-Host).
 
 Flags:
 
 - `--cwd <path>`: Arbeitsverzeichnis.
-- `--env <key=val>`: Env-Ueberschreibung (wiederholbar).
+- `--env <key=val>`: Env-Override (wiederholbar).
 - `--command-timeout <ms>`: Befehls-Timeout.
-- `--invoke-timeout <ms>`: Timeout fuer Node-Invoke (Standard `30000`).
-- `--needs-screen-recording`: Bildschirmaufzeichnungsberechtigung erforderlich.
-- `--raw <command>`: Eine Shell-Zeichenfolge ausfuehren (`/bin/sh -lc` oder `cmd.exe /c`).
-- `--agent <id>`: Agent-gebundene Genehmigungen/Allowlists (Standard: konfigurierter Agent).
-- `--ask <off|on-miss|always>`, `--security <deny|allowlist|full>`: Ueberschreibungen.
+- `--invoke-timeout <ms>`: Node-Invoke-Timeout (Standard `30000`).
+- `--needs-screen-recording`: Bildschirmaufnahmeberechtigung erforderlich.
+- `--raw <command>`: eine Shell-Zeichenkette ausführen (`/bin/sh -lc` oder `cmd.exe /c`).
+- `--agent <id>`: agentenbezogene Genehmigungen/Allowlists (Standard: konfigurierter Agent).
+- `--ask <off|on-miss|always>`, `--security <deny|allowlist|full>`: Überschreibungen.

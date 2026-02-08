@@ -1,83 +1,83 @@
 ---
-summary: "Ho tro Linux + trang thai ung dung dong hanh"
+summary: "Hỗ trợ Linux + trạng thái ứng dụng đồng hành"
 read_when:
-  - Tim hieu trang thai ung dung dong hanh tren Linux
-  - Lap ke hoach pham vi nen tang hoac dong gop
-title: "Ung dung Linux"
+  - Tìm trạng thái ứng dụng đồng hành trên Linux
+  - Lập kế hoạch phạm vi nền tảng hoặc đóng góp
+title: "Ứng dụng Linux"
 x-i18n:
   source_path: platforms/linux.md
   source_hash: 93b8250cd1267004
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:49Z
+  generated_at: 2026-02-08T09:39:34Z
 ---
 
-# Ung dung Linux
+# Ứng dụng Linux
 
-Gateway duoc ho tro day du tren Linux. **Node la runtime duoc khuyen dung**.
-Bun khong duoc khuyen dung cho Gateway (loi WhatsApp/Telegram).
+Gateway được hỗ trợ đầy đủ trên Linux. **Node là runtime được khuyến nghị**.
+Không khuyến nghị dùng Bun cho Gateway (lỗi WhatsApp/Telegram).
 
-Cac ung dung dong hanh Linux native dang duoc len ke hoach. Chung toi hoan nghenh dong gop neu ban muon tham gia xay dung.
+Các ứng dụng đồng hành Linux gốc đang được lên kế hoạch. Hoan nghênh đóng góp nếu bạn muốn giúp xây dựng.
 
-## Lo trinh nhanh cho nguoi moi (VPS)
+## Lộ trình nhanh cho người mới (VPS)
 
-1. Cai dat Node 22+
+1. Cài đặt Node 22+
 2. `npm i -g openclaw@latest`
 3. `openclaw onboard --install-daemon`
-4. Tu laptop cua ban: `ssh -N -L 18789:127.0.0.1:18789 <user>@<host>`
-5. Mo `http://127.0.0.1:18789/` va dan token cua ban
+4. Từ laptop của bạn: `ssh -N -L 18789:127.0.0.1:18789 <user>@<host>`
+5. Mở `http://127.0.0.1:18789/` và dán token của bạn
 
-Huong dan VPS tung buoc: [exe.dev](/install/exe-dev)
+Hướng dẫn VPS từng bước: [exe.dev](/install/exe-dev)
 
-## Cai dat
+## Cài đặt
 
-- [Bat Dau](/start/getting-started)
-- [Cai dat & cap nhat](/install/updating)
-- Luong tuy chon: [Bun (thu nghiem)](/install/bun), [Nix](/install/nix), [Docker](/install/docker)
+- [Bắt đầu](/start/getting-started)
+- [Cài đặt & cập nhật](/install/updating)
+- Luồng tùy chọn: [Bun (thử nghiệm)](/install/bun), [Nix](/install/nix), [Docker](/install/docker)
 
 ## Gateway
 
-- [Gateway runbook](/gateway)
-- [Cau hinh](/gateway/configuration)
+- [Runbook Gateway](/gateway)
+- [Cấu hình](/gateway/configuration)
 
-## Cai dat dich vu Gateway (CLI)
+## Cài đặt dịch vụ Gateway (CLI)
 
-Su dung mot trong nhung lua chon sau:
+Dùng một trong các cách sau:
 
 ```
 openclaw onboard --install-daemon
 ```
 
-Hoac:
+Hoặc:
 
 ```
 openclaw gateway install
 ```
 
-Hoac:
+Hoặc:
 
 ```
 openclaw configure
 ```
 
-Chon **Gateway service** khi duoc hoi.
+Khi được nhắc, chọn **Gateway service**.
 
-Sua chua/di chuyen:
+Sửa chữa/di chuyển:
 
 ```
 openclaw doctor
 ```
 
-## Dieu khien he thong (systemd user unit)
+## Điều khiển hệ thống (systemd user unit)
 
-OpenClaw mac dinh cai dat mot dich vu systemd **user**. Hay su dung dich vu **system**
-cho cac may chu dung chung hoac luon hoat dong. Vi du unit day du va huong dan
-nam trong [Gateway runbook](/gateway).
+OpenClaw mặc định cài đặt một dịch vụ systemd **user**. Dùng dịch vụ **system**
+cho máy chủ dùng chung hoặc luôn bật. Ví dụ unit đầy đủ và hướng dẫn
+có trong [runbook Gateway](/gateway).
 
-Thiet lap toi thieu:
+Thiết lập tối thiểu:
 
-Tao `~/.config/systemd/user/openclaw-gateway[-<profile>].service`:
+Tạo `~/.config/systemd/user/openclaw-gateway[-<profile>].service`:
 
 ```
 [Unit]
@@ -94,7 +94,7 @@ RestartSec=5
 WantedBy=default.target
 ```
 
-Kich hoat no:
+Kích hoạt:
 
 ```
 systemctl --user enable --now openclaw-gateway[-<profile>].service

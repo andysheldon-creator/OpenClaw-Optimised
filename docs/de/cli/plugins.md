@@ -1,26 +1,26 @@
 ---
-summary: "CLI-Referenz für `openclaw plugins` (list, install, enable/disable, doctor)"
+summary: "CLI-Referenz für `openclaw plugins` (Auflisten, Installieren, Aktivieren/Deaktivieren, Diagnose)"
 read_when:
   - Sie möchten In-Process-Gateway-Plugins installieren oder verwalten
   - Sie möchten Fehler beim Laden von Plugins debuggen
 title: "Plugins"
 x-i18n:
   source_path: cli/plugins.md
-  source_hash: c6bf76b1e766b912
+  source_hash: 60476e0a9b7247bd
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:45Z
+  generated_at: 2026-02-08T09:35:40Z
 ---
 
 # `openclaw plugins`
 
-Gateway-Plugins/-Erweiterungen verwalten (in-process geladen).
+Verwalten Sie Gateway-Plugins/-Erweiterungen (im Prozess geladen).
 
 Verwandt:
 
-- Plugin-System: [Plugins](/plugin)
-- Plugin-Manifest + Schema: [Plugin manifest](/plugins/manifest)
+- Plugin-System: [Plugins](/tools/plugin)
+- Plugin-Manifest + Schema: [Plugin-Manifest](/plugins/manifest)
 - Sicherheits-Härtung: [Security](/gateway/security)
 
 ## Befehle
@@ -35,9 +35,9 @@ openclaw plugins update <id>
 openclaw plugins update --all
 ```
 
-Mitgelieferte Plugins werden mit OpenClaw ausgeliefert, starten jedoch deaktiviert. Verwenden Sie `plugins enable`, um sie zu aktivieren.
+Gebündelte Plugins werden mit OpenClaw ausgeliefert, starten jedoch deaktiviert. Verwenden Sie `plugins enable`, um sie zu aktivieren.
 
-Alle Plugins müssen eine `openclaw.plugin.json`-Datei mit einem Inline-JSON-Schema (`configSchema`, auch wenn leer) mitliefern. Fehlende/ungültige Manifeste oder Schemata verhindern das Laden des Plugins und lassen die Konfigurationsvalidierung fehlschlagen.
+Alle Plugins müssen eine Datei `openclaw.plugin.json` mit einem eingebetteten JSON-Schema (`configSchema`, auch wenn leer) enthalten. Fehlende/ungültige Manifeste oder Schemata verhindern das Laden des Plugins und lassen die Konfigurationsvalidierung fehlschlagen.
 
 ### Installieren
 
@@ -45,11 +45,11 @@ Alle Plugins müssen eine `openclaw.plugin.json`-Datei mit einem Inline-JSON-Sch
 openclaw plugins install <path-or-spec>
 ```
 
-Sicherheitshinweis: Behandeln Sie Plugin-Installationen wie das Ausführen von Code. Bevorzugen Sie angeheftete Versionen.
+Sicherheitshinweis: Behandeln Sie Plugin-Installationen wie das Ausführen von Code. Bevorzugen Sie gepinnte Versionen.
 
 Unterstützte Archive: `.zip`, `.tgz`, `.tar.gz`, `.tar`.
 
-Verwenden Sie `--link`, um das Kopieren eines lokalen Verzeichnisses zu vermeiden (fügt es zu `plugins.load.paths` hinzu):
+Verwenden Sie `--link`, um das Kopieren eines lokalen Verzeichnisses zu vermeiden (fügt zu `plugins.load.paths` hinzu):
 
 ```bash
 openclaw plugins install -l ./my-plugin
@@ -63,4 +63,4 @@ openclaw plugins update --all
 openclaw plugins update <id> --dry-run
 ```
 
-Aktualisierungen gelten nur für Plugins, die aus npm installiert wurden (verfolgt in `plugins.installs`).
+Aktualisierungen gelten nur für Plugins, die von npm installiert wurden (nachverfolgt in `plugins.installs`).

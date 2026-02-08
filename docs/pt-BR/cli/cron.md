@@ -1,35 +1,38 @@
 ---
-summary: "Referencia da CLI para `openclaw cron` (agendar e executar jobs em segundo plano)"
+summary: "Referência da CLI para `openclaw cron` (agendar e executar jobs em segundo plano)"
 read_when:
-  - Voce quer jobs agendados e despertadores
-  - Voce esta depurando a execucao do cron e os logs
+  - Você quer jobs e ativações agendadas
+  - Você está depurando a execução e os logs do cron
 title: "cron"
 x-i18n:
   source_path: cli/cron.md
-  source_hash: cef64f2ac4a648d4
+  source_hash: 09982d6dd1036a56
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:35Z
+  generated_at: 2026-02-08T09:30:12Z
 ---
 
 # `openclaw cron`
 
-Gerencie jobs cron para o agendador do Gateway.
+Gerencie jobs de cron para o agendador do Gateway.
 
 Relacionado:
 
-- Jobs cron: [Cron jobs](/automation/cron-jobs)
+- Jobs de cron: [Jobs de cron](/automation/cron-jobs)
 
-Dica: execute `openclaw cron --help` para ver toda a superficie de comandos.
+Dica: execute `openclaw cron --help` para ver toda a superfície de comandos.
 
-Nota: jobs `cron add` isolados usam como padrao a entrega `--announce`. Use `--no-deliver` para manter a saida interna. `--deliver` permanece como um alias obsoleto para `--announce`.
+Nota: jobs isolados `cron add` usam por padrão a entrega `--announce`. Use `--no-deliver` para manter a
+saída interna. `--deliver` permanece como um alias obsoleto para `--announce`.
 
-Nota: jobs one-shot (`--at`) sao excluidos apos o sucesso por padrao. Use `--keep-after-run` para mante-los.
+Nota: jobs de execução única (`--at`) são excluídos após o sucesso por padrão. Use `--keep-after-run` para mantê-los.
 
-## Edicoes comuns
+Nota: jobs recorrentes agora usam backoff exponencial de tentativas após erros consecutivos (30s → 1m → 5m → 15m → 60m) e, em seguida, retornam ao agendamento normal após a próxima execução bem-sucedida.
 
-Atualize as configuracoes de entrega sem alterar a mensagem:
+## Edições comuns
+
+Atualize as configurações de entrega sem alterar a mensagem:
 
 ```bash
 openclaw cron edit <job-id> --announce --channel telegram --to "123456789"
@@ -41,7 +44,7 @@ Desative a entrega para um job isolado:
 openclaw cron edit <job-id> --no-deliver
 ```
 
-Anuncie em um canal especifico:
+Anuncie em um canal específico:
 
 ```bash
 openclaw cron edit <job-id> --announce --channel slack --to "channel:C1234567890"

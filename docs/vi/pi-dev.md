@@ -1,40 +1,40 @@
 ---
-title: "Quy trinh phat trien Pi"
+title: "Quy trình phát triển Pi"
 x-i18n:
   source_path: pi-dev.md
-  source_hash: 65bd0580dd03df05
+  source_hash: b6c44672306d8867
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:47Z
+  generated_at: 2026-02-08T09:39:31Z
 ---
 
-# Quy trinh phat trien Pi
+# Quy trình phát triển Pi
 
-Huong dan nay tom tat mot quy trinh hop ly de lam viec voi tich hop Pi trong OpenClaw.
+Hướng dẫn này tóm tắt một quy trình hợp lý để làm việc với tích hợp Pi trong OpenClaw.
 
-## Kiem tra kieu va Linting
+## Kiểm tra kiểu và linting
 
-- Kiem tra kieu va build: `pnpm build`
+- Kiểm tra kiểu và build: `pnpm build`
 - Lint: `pnpm lint`
-- Kiem tra dinh dang: `pnpm format`
-- Full gate truoc khi day len: `pnpm lint && pnpm build && pnpm test`
+- Kiểm tra định dạng: `pnpm format`
+- Cổng kiểm tra đầy đủ trước khi đẩy mã: `pnpm lint && pnpm build && pnpm test`
 
-## Chay Pi Tests
+## Chạy các bài kiểm tra Pi
 
-Su dung script chuyen biet cho bo test tich hop Pi:
+Sử dụng script chuyên dụng cho bộ kiểm tra tích hợp Pi:
 
 ```bash
 scripts/pi/run-tests.sh
 ```
 
-De bao gom bai test live kiem tra hanh vi nha cung cap thuc:
+Để bao gồm bài kiểm tra live mô phỏng hành vi thực của nhà cung cấp:
 
 ```bash
 scripts/pi/run-tests.sh --live
 ```
 
-Script se chay tat ca cac unit test lien quan den Pi thong qua cac glob sau:
+Script sẽ chạy tất cả các bài kiểm tra đơn vị liên quan đến Pi thông qua các glob sau:
 
 - `src/agents/pi-*.test.ts`
 - `src/agents/pi-embedded-*.test.ts`
@@ -43,35 +43,35 @@ Script se chay tat ca cac unit test lien quan den Pi thong qua cac glob sau:
 - `src/agents/pi-tool-definition-adapter.test.ts`
 - `src/agents/pi-extensions/*.test.ts`
 
-## Kiem thu thu cong
+## Kiểm thử thủ công
 
-Quy trinh de xuat:
+Quy trình khuyến nghị:
 
-- Chay Gateway o che do dev:
+- Chạy gateway ở chế độ dev:
   - `pnpm gateway:dev`
-- Kich hoat tac tu truc tiep:
+- Kích hoạt tác tử trực tiếp:
   - `pnpm openclaw agent --message "Hello" --thinking low`
-- Su dung TUI de debug tuong tac:
+- Sử dụng TUI để gỡ lỗi tương tác:
   - `pnpm tui`
 
-Doi voi hanh vi goi cong cu, hay nhap lenh cho mot hanh dong `read` hoac `exec` de co the quan sat viec streaming cong cu va xu ly payload.
+Đối với hành vi gọi công cụ, hãy prompt cho một hành động `read` hoặc `exec` để bạn có thể quan sát việc stream công cụ và xử lý payload.
 
-## Dat lai trang thai sach
+## Đặt lại trạng thái sạch
 
-Trang thai duoc luu duoi thu muc trang thai cua OpenClaw. Mac dinh la `~/.openclaw`. Neu `OPENCLAW_STATE_DIR` duoc thiet lap, hay su dung thu muc do thay the.
+Trạng thái được lưu dưới thư mục trạng thái của OpenClaw. Mặc định là `~/.openclaw`. Nếu `OPENCLAW_STATE_DIR` được đặt, hãy sử dụng thư mục đó thay thế.
 
-De dat lai tat ca:
+Để đặt lại mọi thứ:
 
-- `openclaw.json` cho cau hinh
-- `credentials/` cho ho so xac thuc va token
-- `agents/<agentId>/sessions/` cho lich su phien tac tu
-- `agents/<agentId>/sessions.json` cho chi muc phien
-- `sessions/` neu ton tai duong dan legacy
-- `workspace/` neu ban muon mot workspace trong
+- `openclaw.json` cho cấu hình
+- `credentials/` cho hồ sơ xác thực và token
+- `agents/<agentId>/sessions/` cho lịch sử phiên của tác tử
+- `agents/<agentId>/sessions.json` cho chỉ mục phiên
+- `sessions/` nếu tồn tại các đường dẫn legacy
+- `workspace/` nếu bạn muốn một workspace trống
 
-Neu chi muon dat lai cac phien, hay xoa `agents/<agentId>/sessions/` va `agents/<agentId>/sessions.json` cho tac tu do. Giu `credentials/` neu ban khong muon xac thuc lai.
+Nếu bạn chỉ muốn đặt lại các phiên, hãy xóa `agents/<agentId>/sessions/` và `agents/<agentId>/sessions.json` cho tác tử đó. Giữ `credentials/` nếu bạn không muốn xác thực lại.
 
-## Tham khao
+## Tài liệu tham khảo
 
-- https://docs.openclaw.ai/testing
-- https://docs.openclaw.ai/start/getting-started
+- [https://docs.openclaw.ai/testing](https://docs.openclaw.ai/testing)
+- [https://docs.openclaw.ai/start/getting-started](https://docs.openclaw.ai/start/getting-started)

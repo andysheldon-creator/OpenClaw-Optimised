@@ -1,7 +1,7 @@
 ---
-summary: "Các script trong kho: mục đích, phạm vi và lưu ý an toàn"
+summary: "Các script trong kho lưu trữ: mục đích, phạm vi và lưu ý an toàn"
 read_when:
-  - Chạy các script từ kho
+  - Chạy các script từ kho lưu trữ
   - Thêm hoặc thay đổi script trong ./scripts
 title: "Scripts"
 x-i18n:
@@ -10,19 +10,19 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:16:03Z
+  generated_at: 2026-02-08T09:39:06Z
 ---
 
 # Scripts
 
-Thư mục `scripts/` chứa các script trợ giúp cho quy trình làm việc cục bộ và các tác vụ vận hành.
-Hãy dùng chúng khi một tác vụ gắn rõ ràng với một script; nếu không thì ưu tiên CLI.
+Thư mục `scripts/` chứa các script hỗ trợ cho quy trình làm việc cục bộ và các tác vụ vận hành.
+Hãy dùng chúng khi một tác vụ gắn trực tiếp với một script; nếu không, hãy ưu tiên CLI.
 
 ## Quy ước
 
-- Các script là **không bắt buộc** trừ khi được tham chiếu trong tài liệu hoặc checklist phát hành.
-- Ưu tiên các bề mặt CLI khi có sẵn (ví dụ: giám sát xác thực dùng `openclaw models status --check`).
-- Giả định script phụ thuộc vào máy chủ; hãy đọc trước khi chạy trên một máy mới.
+- Script là **không bắt buộc** trừ khi được tham chiếu trong tài liệu hoặc danh sách kiểm tra phát hành.
+- Ưu tiên các bề mặt CLI khi đã có (ví dụ: giám sát xác thực dùng `openclaw models status --check`).
+- Giả định script phụ thuộc vào máy chủ; hãy đọc kỹ trước khi chạy trên máy mới.
 
 ## Script giám sát xác thực
 

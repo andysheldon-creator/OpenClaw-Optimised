@@ -1,8 +1,8 @@
 ---
-summary: "Giao diện cai dat Skills macOS va trang thai duoc ho tro boi gateway"
+summary: "Giao diện cài đặt Skills trên macOS và trạng thái được hậu thuẫn bởi gateway"
 read_when:
-  - Cap nhat giao dien cai dat Skills macOS
-  - Thay doi han che Skills hoac hanh vi cai dat
+  - Cập nhật giao diện cài đặt Skills trên macOS
+  - Thay đổi cơ chế kiểm soát hoặc hành vi cài đặt Skills
 title: "Skills"
 x-i18n:
   source_path: platforms/mac/skills.md
@@ -10,31 +10,31 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:54Z
+  generated_at: 2026-02-08T09:39:41Z
 ---
 
 # Skills (macOS)
 
-Ung dung macOS hien thi Skills cua OpenClaw thong qua gateway; no khong phan tich Skills tai may cuc bo.
+Ứng dụng macOS hiển thị Skills của OpenClaw thông qua gateway; ứng dụng không phân tích Skills cục bộ.
 
-## Nguon du lieu
+## Nguồn dữ liệu
 
-- `skills.status` (gateway) tra ve tat ca Skills cung voi dieu kien du dieu kien va cac yeu cau con thieu
-  (bao gom cac chan allowlist cho Skills dong goi).
-- Cac yeu cau duoc suy ra tu `metadata.openclaw.requires` trong moi `SKILL.md`.
+- `skills.status` (gateway) trả về tất cả Skills cùng với điều kiện đủ và các yêu cầu còn thiếu
+  (bao gồm các khối allowlist cho Skills được đóng gói).
+- Các yêu cầu được suy ra từ `metadata.openclaw.requires` trong mỗi `SKILL.md`.
 
-## Hanh dong cai dat
+## Hành động cài đặt
 
-- `metadata.openclaw.install` xac dinh cac tuy chon cai dat (brew/node/go/uv).
-- Ung dung goi `skills.install` de chay trinh cai dat tren may chu gateway.
-- Gateway chi hien thi mot trinh cai dat uu tien khi co nhieu lua chon
-  (brew neu co san, neu khong thi dung node manager tu `skills.install`, mac dinh npm).
+- `metadata.openclaw.install` xác định các tùy chọn cài đặt (brew/node/go/uv).
+- Ứng dụng gọi `skills.install` để chạy trình cài đặt trên máy chủ gateway.
+- Gateway chỉ hiển thị một trình cài đặt ưu tiên khi có nhiều lựa chọn
+  (brew khi có sẵn, nếu không thì trình quản lý node từ `skills.install`, mặc định là npm).
 
-## Khoa Env/API
+## Khóa Env/API
 
-- Ung dung luu khoa trong `~/.openclaw/openclaw.json` duoi `skills.entries.<skillKey>`.
-- `skills.update` cap nhat `enabled`, `apiKey`, va `env`.
+- Ứng dụng lưu trữ khóa trong `~/.openclaw/openclaw.json` dưới `skills.entries.<skillKey>`.
+- `skills.update` vá `enabled`, `apiKey`, và `env`.
 
-## Che do tu xa
+## Chế độ từ xa
 
-- Cai dat + cap nhat cau hinh dien ra tren may chu gateway (khong phai Mac cuc bo).
+- Việc cài đặt + cập nhật cấu hình diễn ra trên máy chủ gateway (không phải máy Mac cục bộ).

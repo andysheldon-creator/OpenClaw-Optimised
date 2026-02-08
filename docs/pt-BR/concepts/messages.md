@@ -1,25 +1,25 @@
 ---
-summary: "Fluxo de mensagens, sessoes, enfileiramento e visibilidade do raciocinio"
+summary: "Fluxo de mensagens, sessões, enfileiramento e visibilidade do raciocínio"
 read_when:
   - Explicar como mensagens de entrada se tornam respostas
-  - Esclarecer sessoes, modos de enfileiramento ou comportamento de streaming
-  - Documentar visibilidade do raciocinio e implicacoes de uso
+  - Esclarecer sessões, modos de enfileiramento ou comportamento de streaming
+  - Documentar visibilidade do raciocínio e implicações de uso
 title: "Mensagens"
 x-i18n:
   source_path: concepts/messages.md
-  source_hash: 32a1b0c50616c550
+  source_hash: 773301d5c0c1e3b8
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:56:01Z
+  generated_at: 2026-02-08T09:30:39Z
 ---
 
 # Mensagens
 
-Esta pagina conecta como o OpenClaw lida com mensagens de entrada, sessoes, enfileiramento,
-streaming e visibilidade do raciocinio.
+Esta página reúne como o OpenClaw lida com mensagens de entrada, sessões, enfileiramento,
+streaming e visibilidade do raciocínio.
 
-## Fluxo de mensagens (alto nivel)
+## Fluxo de mensagens (visão geral)
 
 ```
 Inbound message
@@ -29,27 +29,27 @@ Inbound message
   -> outbound replies (channel limits + chunking)
 ```
 
-Os principais ajustes ficam na configuracao:
+Principais ajustes ficam na configuração:
 
 - `messages.*` para prefixos, enfileiramento e comportamento em grupos.
-- `agents.defaults.*` para streaming por blocos e padroes de chunking.
-- Substituicoes por canal (`channels.whatsapp.*`, `channels.telegram.*`, etc.) para limites e alternancias de streaming.
+- `agents.defaults.*` para streaming em blocos e padrões de fragmentação.
+- Substituições por canal (`channels.whatsapp.*`, `channels.telegram.*`, etc.) para limites e alternâncias de streaming.
 
-Veja [Configuracao](/gateway/configuration) para o esquema completo.
+Veja [Configuração](/gateway/configuration) para o esquema completo.
 
-## Deduplicacao de entrada
+## Deduplicação de entrada
 
-Canais podem reenviar a mesma mensagem apos reconexoes. O OpenClaw mantem um cache de curta duracao
-chaveado por canal/conta/par/sessao/id da mensagem para que entregas duplicadas
-nao disparem outra execucao do agente.
+Canais podem reenviar a mesma mensagem após reconexões. O OpenClaw mantém um
+cache de curta duração com chave por canal/conta/par/sessão/id da mensagem para que
+entregas duplicadas não acionem outra execução do agente.
 
 ## Debouncing de entrada
 
-Mensagens consecutivas rapidas do **mesmo remetente** podem ser agrupadas em um unico
-turno do agente via `messages.inbound`. O debouncing e delimitado por canal + conversa
+Mensagens rápidas e consecutivas do **mesmo remetente** podem ser agrupadas em um
+único turno do agente via `messages.inbound`. O debouncing é delimitado por canal + conversa
 e usa a mensagem mais recente para encadeamento/IDs de resposta.
 
-Configuracao (padrao global + substituicoes por canal):
+Configuração (padrão global + substituições por canal):
 
 ```json5
 {
@@ -66,96 +66,95 @@ Configuracao (padrao global + substituicoes por canal):
 }
 ```
 
-Observacoes:
+Notas:
 
-- O debounce se aplica a mensagens **apenas de texto**; midia/anexos liberam imediatamente.
-- Comandos de controle ignoram o debouncing para permanecerem independentes.
+- O debounce se aplica a mensagens **somente de texto**; mídia/anexos são enviados imediatamente.
+- Comandos de controle ignoram o debounce para permanecerem independentes.
 
-## Sessoes e dispositivos
+## Sessões e dispositivos
 
-As sessoes pertencem ao gateway, nao aos clientes.
+As sessões pertencem ao gateway, não aos clientes.
 
-- Conversas diretas colapsam na chave principal de sessao do agente.
-- Grupos/canais recebem suas proprias chaves de sessao.
-- O armazenamento de sessoes e os transcripts vivem no host do gateway.
+- Conversas diretas colapsam na chave principal de sessão do agente.
+- Grupos/canais recebem suas próprias chaves de sessão.
+- O armazenamento de sessões e as transcrições ficam no host do Gateway.
 
-Multiplos dispositivos/canais podem mapear para a mesma sessao, mas o historico nao e
-totalmente sincronizado de volta para todos os clientes. Recomendacao: use um dispositivo
+Vários dispositivos/canais podem mapear para a mesma sessão, mas o histórico não é
+totalmente sincronizado de volta para todos os clientes. Recomendação: use um dispositivo
 principal para conversas longas para evitar contexto divergente. A UI de Controle e a TUI
-sempre exibem o transcript da sessao mantida pelo gateway, portanto sao a fonte da verdade.
+sempre exibem a transcrição da sessão mantida pelo gateway, portanto são a fonte de verdade.
 
-Detalhes: [Gerenciamento de sessao](/concepts/session).
+Detalhes: [Gerenciamento de sessões](/concepts/session).
 
-## Corpos de entrada e contexto de historico
+## Corpos de entrada e contexto de histórico
 
 O OpenClaw separa o **corpo do prompt** do **corpo do comando**:
 
 - `Body`: texto do prompt enviado ao agente. Pode incluir envelopes do canal e
-  wrappers de historico opcionais.
-- `CommandBody`: texto bruto do usuario para analise de diretivas/comandos.
+  wrappers opcionais de histórico.
+- `CommandBody`: texto bruto do usuário para análise de diretivas/comandos.
 - `RawBody`: alias legado para `CommandBody` (mantido por compatibilidade).
 
-Quando um canal fornece historico, ele usa um wrapper compartilhado:
+Quando um canal fornece histórico, ele usa um wrapper compartilhado:
 
 - `[Chat messages since your last reply - for context]`
 - `[Current message - respond to this]`
 
-Para **conversas nao diretas** (grupos/canais/salas), o **corpo da mensagem atual** recebe um prefixo com o
-rotulo do remetente (mesmo estilo usado para entradas de historico). Isso mantem mensagens
-em tempo real e mensagens enfileiradas/de historico consistentes no prompt do agente.
+Para **chats não diretos** (grupos/canais/salas), o **corpo da mensagem atual** recebe um prefixo com o
+rótulo do remetente (mesmo estilo usado para entradas de histórico). Isso mantém consistentes as
+mensagens em tempo real e as enfileiradas/de histórico no prompt do agente.
 
-Os buffers de historico sao **apenas pendentes**: incluem mensagens de grupo que **nao**
-dispararam uma execucao (por exemplo, mensagens com gate por mencao) e **excluem** mensagens
-ja presentes no transcript da sessao.
+Os buffers de histórico são **somente pendentes**: incluem mensagens de grupo que **não**
+acionaram uma execução (por exemplo, mensagens com gatilho por menção) e **excluem** mensagens
+já presentes na transcrição da sessão.
 
-A remocao de diretivas se aplica apenas a secao da **mensagem atual**, para que o historico
-permaneça intacto. Canais que encapsulam historico devem definir `CommandBody` (ou
+A remoção de diretivas se aplica apenas à seção da **mensagem atual**, para que o histórico
+permaneça intacto. Canais que encapsulam histórico devem definir `CommandBody` (ou
 `RawBody`) com o texto original da mensagem e manter `Body` como o prompt combinado.
-Buffers de historico sao configuraveis via `messages.groupChat.historyLimit` (padrao
-global) e substituicoes por canal como `channels.slack.historyLimit` ou
-`channels.telegram.accounts.<id>.historyLimit` (defina `0` para desativar).
+Os buffers de histórico são configuráveis via `messages.groupChat.historyLimit` (padrão global) e substituições
+por canal como `channels.slack.historyLimit` ou `channels.telegram.accounts.<id>.historyLimit` (defina `0` para desativar).
 
-## Enfileiramento e followups
+## Enfileiramento e acompanhamentos
 
-Se uma execucao ja estiver ativa, mensagens de entrada podem ser enfileiradas, direcionadas
-para a execucao atual ou coletadas para um turno de followup.
+Se uma execução já estiver ativa, mensagens de entrada podem ser enfileiradas, direcionadas para a
+execução atual ou coletadas para um turno de acompanhamento.
 
 - Configure via `messages.queue` (e `messages.queue.byChannel`).
-- Modos: `interrupt`, `steer`, `followup`, `collect`, alem de variantes de backlog.
+- Modos: `interrupt`, `steer`, `followup`, `collect`, além de variantes com backlog.
 
 Detalhes: [Enfileiramento](/concepts/queue).
 
-## Streaming, chunking e batching
+## Streaming, fragmentação e agrupamento
 
-O streaming por blocos envia respostas parciais conforme o modelo produz blocos de texto.
-O chunking respeita limites de texto do canal e evita dividir codigo cercado.
+O streaming em blocos envia respostas parciais conforme o modelo produz blocos de texto.
+A fragmentação respeita os limites de texto do canal e evita dividir código delimitado.
 
-Configuracoes principais:
+Principais configurações:
 
-- `agents.defaults.blockStreamingDefault` (`on|off`, padrao desligado)
+- `agents.defaults.blockStreamingDefault` (`on|off`, desativado por padrão)
 - `agents.defaults.blockStreamingBreak` (`text_end|message_end`)
 - `agents.defaults.blockStreamingChunk` (`minChars|maxChars|breakPreference`)
-- `agents.defaults.blockStreamingCoalesce` (batching baseado em ociosidade)
-- `agents.defaults.humanDelay` (pausa com aspecto humano entre respostas por bloco)
-- Substituicoes por canal: `*.blockStreaming` e `*.blockStreamingCoalesce` (canais nao Telegram exigem `*.blockStreaming: true` explicito)
+- `agents.defaults.blockStreamingCoalesce` (agrupamento baseado em inatividade)
+- `agents.defaults.humanDelay` (pausa semelhante à humana entre respostas em blocos)
+- Substituições por canal: `*.blockStreaming` e `*.blockStreamingCoalesce` (canais não Telegram exigem `*.blockStreaming: true` explícito)
 
-Detalhes: [Streaming + chunking](/concepts/streaming).
+Detalhes: [Streaming + fragmentação](/concepts/streaming).
 
-## Visibilidade do raciocinio e tokens
+## Visibilidade do raciocínio e tokens
 
-O OpenClaw pode expor ou ocultar o raciocinio do modelo:
+O OpenClaw pode expor ou ocultar o raciocínio do modelo:
 
 - `/reasoning on|off|stream` controla a visibilidade.
-- Conteudo de raciocinio ainda conta para o uso de tokens quando produzido pelo modelo.
-- O Telegram suporta streaming de raciocinio no balao de rascunho.
+- O conteúdo de raciocínio ainda conta para o uso de tokens quando produzido pelo modelo.
+- O Telegram oferece suporte ao streaming do raciocínio para o balão de rascunho.
 
-Detalhes: [Diretivas de pensamento + raciocinio](/tools/thinking) e [Uso de tokens](/token-use).
+Detalhes: [Diretivas de pensamento + raciocínio](/tools/thinking) e [Uso de tokens](/reference/token-use).
 
 ## Prefixos, encadeamento e respostas
 
-A formatacao de mensagens de saida e centralizada em `messages`:
+A formatação de mensagens de saída é centralizada em `messages`:
 
-- `messages.responsePrefix`, `channels.<channel>.responsePrefix` e `channels.<channel>.accounts.<id>.responsePrefix` (cascata de prefixos de saida), alem de `channels.whatsapp.messagePrefix` (prefixo de entrada do WhatsApp)
-- Encadeamento de respostas via `replyToMode` e padroes por canal
+- `messages.responsePrefix`, `channels.<channel>.responsePrefix` e `channels.<channel>.accounts.<id>.responsePrefix` (cascata de prefixos de saída), além de `channels.whatsapp.messagePrefix` (prefixo de entrada do WhatsApp)
+- Encadeamento de respostas via `replyToMode` e padrões por canal
 
-Detalhes: [Configuracao](/gateway/configuration#messages) e documentacao dos canais.
+Detalhes: [Configuração](/gateway/configuration#messages) e documentação dos canais.

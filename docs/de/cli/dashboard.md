@@ -1,8 +1,8 @@
 ---
-summary: "CLI-Referenz fuer `openclaw dashboard` (die Control UI oeffnen)"
+summary: "CLI-Referenz für `openclaw dashboard` (Öffnen der Control UI)"
 read_when:
-  - Sie moechten die Control UI mit Ihrem aktuellen Token oeffnen
-  - Sie moechten die URL ausgeben, ohne einen Browser zu starten
+  - Sie möchten die Control UI mit Ihrem aktuellen Token öffnen
+  - Sie möchten die URL ausgeben, ohne einen Browser zu starten
 title: "Dashboard"
 x-i18n:
   source_path: cli/dashboard.md
@@ -10,12 +10,12 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:35Z
+  generated_at: 2026-02-08T09:35:31Z
 ---
 
 # `openclaw dashboard`
 
-Oeffnen Sie die Control UI mit Ihrer aktuellen Authentifizierung.
+Öffnen Sie die Control UI mit Ihrer aktuellen Authentifizierung.
 
 ```bash
 openclaw dashboard

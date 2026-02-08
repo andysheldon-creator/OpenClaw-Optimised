@@ -1,52 +1,53 @@
 ---
-summary: "Tham chiếu: các quy tắc làm sạch và sửa transcript theo từng nhà cung cấp"
+summary: "Tham chiếu: các quy tắc làm sạch và sửa chữa bản ghi theo từng nhà cung cấp"
 read_when:
-  - Bạn đang gỡ lỗi việc nhà cung cấp từ chối yêu cầu do hình dạng transcript
-  - Bạn đang thay đổi logic làm sạch transcript hoặc sửa tool-call
-  - Bạn đang điều tra việc không khớp id tool-call giữa các nhà cung cấp
-title: "Vệ sinh Transcript"
+  - Bạn đang gỡ lỗi các trường hợp nhà cung cấp từ chối request liên quan đến hình dạng bản ghi
+  - Bạn đang thay đổi logic làm sạch bản ghi hoặc sửa chữa tool-call
+  - Bạn đang điều tra sự không khớp id tool-call giữa các nhà cung cấp
+title: "Vệ sinh bản ghi"
 x-i18n:
   source_path: reference/transcript-hygiene.md
   source_hash: 43ed460827d514a8
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:08:29Z
+  generated_at: 2026-02-08T09:40:16Z
 ---
 
-# Vệ sinh Transcript (Sửa lỗi theo Nhà cung cấp)
+# Vệ sinh bản ghi (Sửa lỗi theo nhà cung cấp)
 
-Tài liệu này mô tả **các bản sửa theo từng nhà cung cấp** được áp dụng cho transcript trước khi chạy
-(xây dựng ngữ cảnh cho mô hình). Đây là các điều chỉnh **trong bộ nhớ** dùng để đáp ứng các yêu cầu nghiêm ngặt
-của nhà cung cấp. Các bước vệ sinh này **không** ghi đè transcript JSONL đã lưu trên đĩa; tuy nhiên,
-một lượt sửa file phiên riêng biệt có thể ghi lại các file JSONL bị lỗi bằng cách loại bỏ các dòng
-không hợp lệ trước khi phiên được tải. Khi có sửa chữa, file gốc sẽ được sao lưu cùng với file phiên.
+Tài liệu này mô tả các **bản sửa lỗi theo từng nhà cung cấp** được áp dụng cho bản ghi trước khi chạy
+(xây dựng ngữ cảnh cho mô hình). Đây là các điều chỉnh **trong bộ nhớ** nhằm đáp ứng những yêu cầu nghiêm ngặt
+của nhà cung cấp. Các bước vệ sinh này **không** ghi đè bản ghi JSONL đã lưu trên đĩa; tuy nhiên,
+một bước sửa chữa tệp phiên riêng biệt có thể ghi lại các tệp JSONL bị lỗi bằng cách loại bỏ
+những dòng không hợp lệ trước khi phiên được tải. Khi có sửa chữa, tệp gốc sẽ được sao lưu
+cùng với tệp phiên.
 
 Phạm vi bao gồm:
 
 - Làm sạch id tool-call
 - Xác thực đầu vào tool-call
-- Sửa ghép cặp kết quả tool
+- Sửa chữa ghép cặp kết quả tool
 - Xác thực / sắp xếp lượt
 - Dọn dẹp chữ ký suy nghĩ
 - Làm sạch payload hình ảnh
 
-Nếu bạn cần chi tiết về lưu trữ transcript, xem:
+Nếu bạn cần chi tiết về lưu trữ bản ghi, xem:
 
 - [/reference/session-management-compaction](/reference/session-management-compaction)
 
 ---
 
-## Chạy ở đâu
+## Nơi quy trình này chạy
 
-Toàn bộ vệ sinh transcript được tập trung trong embedded runner:
+Toàn bộ vệ sinh bản ghi được tập trung trong embedded runner:
 
 - Chọn chính sách: `src/agents/transcript-policy.ts`
 - Áp dụng làm sạch/sửa chữa: `sanitizeSessionHistory` trong `src/agents/pi-embedded-runner/google.ts`
 
 Chính sách sử dụng `provider`, `modelApi` và `modelId` để quyết định áp dụng những gì.
 
-Tách biệt với vệ sinh transcript, các file phiên được sửa (nếu cần) trước khi tải:
+Tách biệt với vệ sinh bản ghi, các tệp phiên sẽ được sửa chữa (nếu cần) trước khi tải:
 
 - `repairSessionFileIfNeeded` trong `src/agents/session-file-repair.ts`
 - Được gọi từ `run/attempt.ts` và `compact.ts` (embedded runner)
@@ -55,8 +56,8 @@ Tách biệt với vệ sinh transcript, các file phiên được sửa (nếu 
 
 ## Quy tắc toàn cục: làm sạch hình ảnh
 
-Payload hình ảnh luôn được làm sạch để ngăn việc nhà cung cấp từ chối do giới hạn
-kích thước (giảm kích thước/nén lại các ảnh base64 quá lớn).
+Payload hình ảnh luôn được làm sạch để ngăn việc nhà cung cấp từ chối do giới hạn kích thước
+(giảm kích thước/nén lại các ảnh base64 quá lớn).
 
 Triển khai:
 
@@ -65,11 +66,11 @@ Triển khai:
 
 ---
 
-## Quy tắc toàn cục: tool-call bị lỗi
+## Quy tắc toàn cục: tool call bị lỗi
 
-Các khối tool-call của assistant thiếu cả `input` và `arguments` sẽ bị loại bỏ
-trước khi xây dựng ngữ cảnh mô hình. Điều này ngăn việc nhà cung cấp từ chối do các tool-call
-được lưu dở dang (ví dụ, sau khi lỗi rate limit).
+Các khối tool-call của assistant bị thiếu cả `input` và `arguments` sẽ bị loại bỏ
+trước khi xây dựng ngữ cảnh cho mô hình. Điều này ngăn việc nhà cung cấp từ chối do các tool call
+được lưu dở dang (ví dụ, sau một lỗi giới hạn tốc độ).
 
 Triển khai:
 
@@ -78,30 +79,30 @@ Triển khai:
 
 ---
 
-## Ma trận nhà cung cấp (hành vi hiện tại)
+## Ma trận theo nhà cung cấp (hành vi hiện tại)
 
 **OpenAI / OpenAI Codex**
 
 - Chỉ làm sạch hình ảnh.
 - Khi chuyển mô hình sang OpenAI Responses/Codex, loại bỏ các chữ ký suy luận mồ côi (các mục suy luận độc lập không có khối nội dung theo sau).
 - Không làm sạch id tool-call.
-- Không sửa ghép cặp kết quả tool.
+- Không sửa chữa ghép cặp kết quả tool.
 - Không xác thực hay sắp xếp lại lượt.
 - Không tạo kết quả tool tổng hợp.
 - Không loại bỏ chữ ký suy nghĩ.
 
 **Google (Generative AI / Gemini CLI / Antigravity)**
 
-- Làm sạch id tool-call: chữ và số nghiêm ngặt.
-- Sửa ghép cặp kết quả tool và tạo kết quả tool tổng hợp.
-- Xác thực lượt (luân phiên lượt kiểu Gemini).
-- Sửa thứ tự lượt của Google (chèn một bootstrap người dùng rất nhỏ nếu lịch sử bắt đầu bằng assistant).
+- Làm sạch id tool-call: chỉ cho phép chữ và số nghiêm ngặt.
+- Sửa chữa ghép cặp kết quả tool và tạo kết quả tool tổng hợp.
+- Xác thực lượt (luân phiên lượt theo kiểu Gemini).
+- Sửa thứ tự lượt của Google (chèn một bootstrap user rất nhỏ nếu lịch sử bắt đầu bằng assistant).
 - Antigravity Claude: chuẩn hóa chữ ký suy nghĩ; loại bỏ các khối suy nghĩ không có chữ ký.
 
 **Anthropic / Minimax (tương thích Anthropic)**
 
-- Sửa ghép cặp kết quả tool và tạo kết quả tool tổng hợp.
-- Xác thực lượt (gộp các lượt người dùng liên tiếp để đáp ứng luân phiên nghiêm ngặt).
+- Sửa chữa ghép cặp kết quả tool và tạo kết quả tool tổng hợp.
+- Xác thực lượt (gộp các lượt user liên tiếp để đáp ứng luân phiên nghiêm ngặt).
 
 **Mistral (bao gồm phát hiện dựa trên model-id)**
 
@@ -109,9 +110,9 @@ Triển khai:
 
 **OpenRouter Gemini**
 
-- Dọn dẹp chữ ký suy nghĩ: loại bỏ các giá trị `thought_signature` không phải base64 (giữ base64).
+- Dọn dẹp chữ ký suy nghĩ: loại bỏ các giá trị `thought_signature` không phải base64 (giữ lại base64).
 
-**Các trường hợp khác**
+**Các trường hợp còn lại**
 
 - Chỉ làm sạch hình ảnh.
 
@@ -119,17 +120,17 @@ Triển khai:
 
 ## Hành vi lịch sử (trước 2026.1.22)
 
-Trước bản phát hành 2026.1.22, OpenClaw áp dụng nhiều lớp vệ sinh transcript:
+Trước bản phát hành 2026.1.22, OpenClaw áp dụng nhiều lớp vệ sinh bản ghi:
 
-- Một **transcript-sanitize extension** chạy trên mỗi lần xây dựng ngữ cảnh và có thể:
-  - Sửa ghép cặp sử dụng/kết quả tool.
-  - Làm sạch id tool-call (bao gồm chế độ không nghiêm ngặt giữ lại `_`/`-`).
-- Runner cũng thực hiện làm sạch theo từng nhà cung cấp, gây trùng lặp công việc.
-- Các biến đổi bổ sung xảy ra ngoài chính sách nhà cung cấp, bao gồm:
+- Một **transcript-sanitize extension** chạy ở mỗi lần xây dựng ngữ cảnh và có thể:
+  - Sửa chữa ghép cặp sử dụng/kết quả tool.
+  - Làm sạch id tool-call (bao gồm chế độ không nghiêm ngặt, giữ lại `_`/`-`).
+- Runner cũng thực hiện làm sạch theo nhà cung cấp, gây trùng lặp công việc.
+- Các đột biến bổ sung xảy ra ngoài chính sách nhà cung cấp, bao gồm:
   - Loại bỏ các thẻ `<final>` khỏi văn bản assistant trước khi lưu.
-  - Loại bỏ các lượt lỗi assistant rỗng.
-  - Cắt bớt nội dung assistant sau các tool-call.
+  - Loại bỏ các lượt lỗi trống của assistant.
+  - Cắt bớt nội dung assistant sau các tool call.
 
-Độ phức tạp này gây ra các hồi quy chéo nhà cung cấp (đáng chú ý là ghép cặp
-`openai-responses` `call_id|fc_id`). Đợt dọn dẹp 2026.1.22 đã loại bỏ extension,
-tập trung logic vào runner, và khiến OpenAI **không can thiệp** ngoài việc làm sạch hình ảnh.
+Sự phức tạp này gây ra hồi quy giữa các nhà cung cấp (đáng chú ý là việc ghép cặp `openai-responses`
+`call_id|fc_id`). Việc dọn dẹp vào 2026.1.22 đã loại bỏ extension, tập trung logic vào runner,
+và biến OpenAI thành **không can thiệp** ngoài việc làm sạch hình ảnh.

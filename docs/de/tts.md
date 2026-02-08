@@ -1,17 +1,17 @@
 ---
-summary: „Text-zu-Sprache (TTS) für ausgehende Antworten“
+summary: "Text-zu-Sprache (TTS) für ausgehende Antworten"
 read_when:
   - Aktivieren von Text-zu-Sprache für Antworten
-  - Konfigurieren von TTS-Anbietern oder Limits
-  - Verwendung von /tts-Befehlen
-title: „Text-zu-Sprache“
+  - Konfigurieren von TTS-Anbietern oder -Limits
+  - Verwenden von /tts-Befehlen
+title: "Text-zu-Sprache"
 x-i18n:
   source_path: tts.md
   source_hash: 070ff0cc8592f64c
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:11Z
+  generated_at: 2026-02-08T09:38:01Z
 ---
 
 # Text-zu-Sprache (TTS)
@@ -23,15 +23,20 @@ Es funktioniert überall dort, wo OpenClaw Audio senden kann; Telegram erhält e
 
 - **ElevenLabs** (primärer oder Fallback-Anbieter)
 - **OpenAI** (primärer oder Fallback-Anbieter; wird auch für Zusammenfassungen verwendet)
-- **Edge TTS** (primärer oder Fallback-Anbieter; verwendet `node-edge-tts`, Standard, wenn keine API-Keys vorhanden sind)
+- **Edge TTS** (primärer oder Fallback-Anbieter; verwendet `node-edge-tts`, Standard, wenn keine API-Schlüssel vorhanden sind)
 
 ### Hinweise zu Edge TTS
 
-Edge TTS verwendet den Online-Neural-TTS-Dienst von Microsoft Edge über die Bibliothek
-`node-edge-tts`. Es handelt sich um einen gehosteten Dienst (nicht lokal), nutzt die Endpunkte von Microsoft und erfordert keinen API-Key. `node-edge-tts` stellt Optionen zur Sprachkonfiguration und zu Ausgabeformaten bereit, jedoch werden nicht alle Optionen vom Edge-Dienst unterstützt. citeturn2search0
+Edge TTS nutzt den Online-Neural-TTS-Dienst von Microsoft Edge über die Bibliothek
+`node-edge-tts`. Es handelt sich um einen gehosteten Dienst (nicht lokal), der Microsoft-Endpunkte
+verwendet und keinen API-Schlüssel erfordert. `node-edge-tts` stellt Sprachkonfigurationsoptionen
+und Ausgabeformate bereit, jedoch werden nicht alle Optionen vom Edge-Dienst unterstützt. citeturn2search0
 
-Da Edge TTS ein öffentlicher Webdienst ohne veröffentlichte SLA oder Kontingente ist, sollte er als Best-Effort betrachtet werden. Wenn Sie garantierte Limits und Support benötigen, verwenden Sie OpenAI oder ElevenLabs.
-Die Speech-REST-API von Microsoft dokumentiert ein 10‑Minuten-Audiolimit pro Anfrage; Edge TTS veröffentlicht keine Limits, daher sollten ähnliche oder niedrigere Grenzen angenommen werden. citeturn0search3
+Da Edge TTS ein öffentlicher Webdienst ohne veröffentlichte SLA oder Kontingente ist, sollten Sie ihn
+als Best-Effort betrachten. Wenn Sie garantierte Limits und Support benötigen, verwenden Sie OpenAI
+oder ElevenLabs. Die Speech-REST-API von Microsoft dokumentiert ein Audio-Limit von 10 Minuten pro
+Anfrage; Edge TTS veröffentlicht keine Limits, daher sollten Sie ähnliche oder niedrigere Limits
+annehmen. citeturn0search3
 
 ## Optionale Schlüssel
 
@@ -40,35 +45,37 @@ Wenn Sie OpenAI oder ElevenLabs verwenden möchten:
 - `ELEVENLABS_API_KEY` (oder `XI_API_KEY`)
 - `OPENAI_API_KEY`
 
-Edge TTS erfordert **keinen** API-Key. Wenn keine API-Keys gefunden werden, verwendet OpenClaw standardmäßig Edge TTS (sofern nicht über `messages.tts.edge.enabled=false` deaktiviert).
+Edge TTS erfordert **keinen** API-Schlüssel. Wenn keine API-Schlüssel gefunden werden, verwendet
+OpenClaw standardmäßig Edge TTS (sofern nicht über `messages.tts.edge.enabled=false` deaktiviert).
 
-Wenn mehrere Anbieter konfiguriert sind, wird der ausgewählte Anbieter zuerst verwendet, die anderen dienen als Fallback.
-Die automatische Zusammenfassung verwendet das konfigurierte `summaryModel` (oder `agents.defaults.model.primary`),
-daher muss dieser Anbieter ebenfalls authentifiziert sein, wenn Sie Zusammenfassungen aktivieren.
+Wenn mehrere Anbieter konfiguriert sind, wird der ausgewählte Anbieter zuerst verwendet, die anderen
+dienen als Fallback-Optionen. Die Auto-Zusammenfassung verwendet den konfigurierten
+`summaryModel` (oder `agents.defaults.model.primary`), daher muss dieser Anbieter ebenfalls authentifiziert sein,
+wenn Sie Zusammenfassungen aktivieren.
 
 ## Service-Links
 
-- [OpenAI Text-to-Speech-Leitfaden](https://platform.openai.com/docs/guides/text-to-speech)
-- [OpenAI Audio API-Referenz](https://platform.openai.com/docs/api-reference/audio)
+- [OpenAI Text-to-Speech guide](https://platform.openai.com/docs/guides/text-to-speech)
+- [OpenAI Audio API reference](https://platform.openai.com/docs/api-reference/audio)
 - [ElevenLabs Text to Speech](https://elevenlabs.io/docs/api-reference/text-to-speech)
-- [ElevenLabs Authentifizierung](https://elevenlabs.io/docs/api-reference/authentication)
+- [ElevenLabs Authentication](https://elevenlabs.io/docs/api-reference/authentication)
 - [node-edge-tts](https://github.com/SchneeHertz/node-edge-tts)
-- [Microsoft Speech Ausgabeformate](https://learn.microsoft.com/azure/ai-services/speech-service/rest-text-to-speech#audio-outputs)
+- [Microsoft Speech output formats](https://learn.microsoft.com/azure/ai-services/speech-service/rest-text-to-speech#audio-outputs)
 
 ## Ist es standardmäßig aktiviert?
 
 Nein. Auto‑TTS ist standardmäßig **aus**. Aktivieren Sie es in der Konfiguration mit
 `messages.tts.auto` oder pro Sitzung mit `/tts always` (Alias: `/tts on`).
 
-Edge TTS ist standardmäßig **aktiviert**, sobald TTS eingeschaltet ist, und wird automatisch verwendet,
-wenn keine OpenAI- oder ElevenLabs-API-Keys verfügbar sind.
+Edge TTS **ist** standardmäßig aktiviert, sobald TTS eingeschaltet ist, und wird automatisch
+verwendet, wenn keine OpenAI- oder ElevenLabs-API-Schlüssel verfügbar sind.
 
 ## Konfiguration
 
 Die TTS-Konfiguration befindet sich unter `messages.tts` in `openclaw.json`.
 Das vollständige Schema finden Sie unter [Gateway-Konfiguration](/gateway/configuration).
 
-### Minimale Konfiguration (Aktivierung + Anbieter)
+### Minimale Konfiguration (Aktivieren + Anbieter)
 
 ```json5
 {
@@ -119,7 +126,7 @@ Das vollständige Schema finden Sie unter [Gateway-Konfiguration](/gateway/confi
 }
 ```
 
-### Edge TTS primär (kein API-Key)
+### Edge TTS primär (kein API-Schlüssel)
 
 ```json5
 {
@@ -169,7 +176,7 @@ Das vollständige Schema finden Sie unter [Gateway-Konfiguration](/gateway/confi
 }
 ```
 
-### Nur mit Audio antworten nach einer eingehenden Sprachnachricht
+### Nur mit Audio antworten, nachdem eine eingehende Sprachnachricht empfangen wurde
 
 ```json5
 {
@@ -193,7 +200,7 @@ Das vollständige Schema finden Sie unter [Gateway-Konfiguration](/gateway/confi
 }
 ```
 
-Dann ausführen:
+Führen Sie dann aus:
 
 ```
 /tts summary off
@@ -203,19 +210,19 @@ Dann ausführen:
 
 - `auto`: Auto‑TTS-Modus (`off`, `always`, `inbound`, `tagged`).
   - `inbound` sendet Audio nur nach einer eingehenden Sprachnachricht.
-  - `tagged` sendet Audio nur, wenn die Antwort `[[tts]]`‑Tags enthält.
-- `enabled`: Legacy-Schalter (Doctor migriert dies zu `auto`).
-- `mode`: `"final"` (Standard) oder `"all"` (inklusive Werkzeug-/Block-Antworten).
+  - `tagged` sendet Audio nur, wenn die Antwort `[[tts]]`-Tags enthält.
+- `enabled`: Legacy-Schalter (doctor migriert dies zu `auto`).
+- `mode`: `"final"` (Standard) oder `"all"` (einschließlich Tool-/Block-Antworten).
 - `provider`: `"elevenlabs"`, `"openai"` oder `"edge"` (Fallback erfolgt automatisch).
-- Wenn `provider` **nicht gesetzt** ist, bevorzugt OpenClaw `openai` (falls Key), dann `elevenlabs` (falls Key),
-  andernfalls `edge`.
+- Wenn `provider` **nicht gesetzt** ist, bevorzugt OpenClaw `openai` (falls Schlüssel),
+  dann `elevenlabs` (falls Schlüssel), andernfalls `edge`.
 - `summaryModel`: optionales günstiges Modell für Auto-Zusammenfassungen; Standard ist `agents.defaults.model.primary`.
   - Akzeptiert `provider/model` oder einen konfigurierten Modell-Alias.
 - `modelOverrides`: erlaubt dem Modell, TTS-Direktiven auszugeben (standardmäßig aktiviert).
 - `maxTextLength`: harte Obergrenze für TTS-Eingaben (Zeichen). `/tts audio` schlägt fehl, wenn überschritten.
 - `timeoutMs`: Anfrage-Timeout (ms).
 - `prefsPath`: überschreibt den lokalen Prefs-JSON-Pfad (Anbieter/Limit/Zusammenfassung).
-- `apiKey`‑Werte greifen auf Umgebungsvariablen zurück (`ELEVENLABS_API_KEY`/`XI_API_KEY`, `OPENAI_API_KEY`).
+- `apiKey`-Werte greifen auf Umgebungsvariablen zurück (`ELEVENLABS_API_KEY`/`XI_API_KEY`, `OPENAI_API_KEY`).
 - `elevenlabs.baseUrl`: überschreibt die ElevenLabs-API-Basis-URL.
 - `elevenlabs.voiceSettings`:
   - `stability`, `similarityBoost`, `style`: `0..1`
@@ -223,8 +230,8 @@ Dann ausführen:
   - `speed`: `0.5..2.0` (1.0 = normal)
 - `elevenlabs.applyTextNormalization`: `auto|on|off`
 - `elevenlabs.languageCode`: zweistelliger ISO-639-1-Code (z. B. `en`, `de`)
-- `elevenlabs.seed`: ganzzahliger `0..4294967295` (Best-Effort-Determinismus)
-- `edge.enabled`: erlaubt die Nutzung von Edge TTS (Standard `true`; kein API-Key).
+- `elevenlabs.seed`: Ganzzahl `0..4294967295` (Best-Effort-Determinismus)
+- `edge.enabled`: erlaubt die Nutzung von Edge TTS (Standard `true`; kein API-Schlüssel).
 - `edge.voice`: Name der Edge-Neural-Stimme (z. B. `en-US-MichelleNeural`).
 - `edge.lang`: Sprachcode (z. B. `en-US`).
 - `edge.outputFormat`: Edge-Ausgabeformat (z. B. `audio-24khz-48kbitrate-mono-mp3`).
@@ -239,8 +246,8 @@ Dann ausführen:
 Standardmäßig **kann** das Modell TTS-Direktiven für eine einzelne Antwort ausgeben.
 Wenn `messages.tts.auto` auf `tagged` gesetzt ist, sind diese Direktiven erforderlich, um Audio auszulösen.
 
-Wenn aktiviert, kann das Modell `[[tts:...]]`‑Direktiven ausgeben, um die Stimme
-für eine einzelne Antwort zu überschreiben, sowie einen optionalen `[[tts:text]]...[[/tts:text]]`‑Block,
+Wenn aktiviert, kann das Modell `[[tts:...]]`-Direktiven ausgeben, um die Stimme
+für eine einzelne Antwort zu überschreiben, sowie einen optionalen `[[tts:text]]...[[/tts:text]]`-Block,
 um expressive Tags (Lachen, Gesangshinweise usw.) bereitzustellen, die nur im Audio erscheinen sollen.
 
 Beispiel-Antwort-Payload:
@@ -276,7 +283,7 @@ Alle Modell-Überschreibungen deaktivieren:
 }
 ```
 
-Optionale Allowlist (spezifische Überschreibungen deaktivieren, Tags jedoch aktiviert lassen):
+Optionale Allowlist (deaktiviert bestimmte Überschreibungen, während Tags aktiviert bleiben):
 
 ```json5
 {
@@ -295,45 +302,45 @@ Optionale Allowlist (spezifische Überschreibungen deaktivieren, Tags jedoch akt
 ## Benutzerbezogene Einstellungen
 
 Slash-Befehle schreiben lokale Überschreibungen nach `prefsPath` (Standard:
-`~/.openclaw/settings/tts.json`, Überschreibung mit `OPENCLAW_TTS_PREFS` oder
+`~/.openclaw/settings/tts.json`, überschreiben mit `OPENCLAW_TTS_PREFS` oder
 `messages.tts.prefsPath`).
 
 Gespeicherte Felder:
 
 - `enabled`
 - `provider`
-- `maxLength` (Schwellenwert für Zusammenfassungen; Standard 1500 Zeichen)
+- `maxLength` (Zusammenfassungs-Schwellenwert; Standard 1500 Zeichen)
 - `summarize` (Standard `true`)
 
 Diese überschreiben `messages.tts.*` für diesen Host.
 
 ## Ausgabeformate (fest)
 
-- **Telegram**: Opus-Sprachnachricht (`opus_48000_64` von ElevenLabs, `opus` von OpenAI).
-  - 48 kHz / 64 kbps ist ein guter Kompromiss für Sprachnachrichten und für die runde Blase erforderlich.
+- **Telegram**: Opus-Sprachnotiz (`opus_48000_64` von ElevenLabs, `opus` von OpenAI).
+  - 48 kHz / 64 kbps ist ein guter Kompromiss für Sprachnotizen und für die runde Blase erforderlich.
 - **Andere Kanäle**: MP3 (`mp3_44100_128` von ElevenLabs, `mp3` von OpenAI).
-  - 44,1 kHz / 128 kbps ist der Standardausgleich für Sprachverständlichkeit.
+  - 44,1 kHz / 128 kbps ist die Standardbalance für Sprachverständlichkeit.
 - **Edge TTS**: verwendet `edge.outputFormat` (Standard `audio-24khz-48kbitrate-mono-mp3`).
-  - `node-edge-tts` akzeptiert ein `outputFormat`, jedoch sind nicht alle Formate
+  - `node-edge-tts` akzeptiert ein `outputFormat`, aber nicht alle Formate sind
     vom Edge-Dienst verfügbar. citeturn2search0
-  - Ausgabeformatwerte folgen den Microsoft Speech output formats (einschließlich Ogg/WebM Opus). citeturn1search0
+  - Werte für Ausgabeformate folgen den Microsoft Speech output formats (einschließlich Ogg/WebM Opus). citeturn1search0
   - Telegram `sendVoice` akzeptiert OGG/MP3/M4A; verwenden Sie OpenAI/ElevenLabs, wenn Sie
-    garantierte Opus-Sprachnachrichten benötigen. citeturn1search1
+    garantierte Opus-Sprachnotizen benötigen. citeturn1search1
   - Wenn das konfigurierte Edge-Ausgabeformat fehlschlägt, versucht OpenClaw es erneut mit MP3.
 
-OpenAI-/ElevenLabs-Formate sind festgelegt; Telegram erwartet Opus für die Sprachnachrichten-UX.
+OpenAI-/ElevenLabs-Formate sind fest; Telegram erwartet Opus für das Sprachnotiz-UX.
 
 ## Auto-TTS-Verhalten
 
 Wenn aktiviert, führt OpenClaw Folgendes aus:
 
-- überspringt TTS, wenn die Antwort bereits Medien oder eine `MEDIA:`‑Direktive enthält.
+- überspringt TTS, wenn die Antwort bereits Medien oder eine `MEDIA:`-Direktive enthält.
 - überspringt sehr kurze Antworten (< 10 Zeichen).
-- fasst lange Antworten zusammen, wenn aktiviert, unter Verwendung von `agents.defaults.model.primary` (oder `summaryModel`).
-- hängt das erzeugte Audio an die Antwort an.
+- fasst lange Antworten bei Aktivierung mit `agents.defaults.model.primary` (oder `summaryModel`) zusammen.
+- hängt das generierte Audio an die Antwort an.
 
-Wenn die Antwort `maxLength` überschreitet und die Zusammenfassung deaktiviert ist (oder kein API-Key für das
-Zusammenfassungsmodell vorhanden ist), wird Audio
+Wenn die Antwort `maxLength` überschreitet und die Zusammenfassung deaktiviert ist
+(oder kein API-Schlüssel für das Zusammenfassungsmodell vorhanden ist), wird Audio
 übersprungen und die normale Textantwort gesendet.
 
 ## Ablaufdiagramm
@@ -354,10 +361,10 @@ Reply -> TTS enabled?
 ## Verwendung von Slash-Befehlen
 
 Es gibt einen einzigen Befehl: `/tts`.
-Siehe [Slash-Befehle](/tools/slash-commands) für Details zur Aktivierung.
+Details zur Aktivierung finden Sie unter [Slash-Befehle](/tools/slash-commands).
 
-Hinweis zu Discord: `/tts` ist ein integrierter Discord-Befehl, daher registriert OpenClaw dort
-`/voice` als nativen Befehl. Der Text `/tts ...` funktioniert weiterhin.
+Discord-Hinweis: `/tts` ist ein integrierter Discord-Befehl, daher registriert OpenClaw
+dort `/voice` als nativen Befehl. Der Text `/tts ...` funktioniert weiterhin.
 
 ```
 /tts off
@@ -377,15 +384,15 @@ Hinweise:
 - `commands.text` oder die Registrierung nativer Befehle muss aktiviert sein.
 - `off|always|inbound|tagged` sind sitzungsbezogene Umschalter (`/tts on` ist ein Alias für `/tts always`).
 - `limit` und `summary` werden in lokalen Prefs gespeichert, nicht in der Hauptkonfiguration.
-- `/tts audio` erzeugt eine einmalige Audioantwort (schaltet TTS nicht dauerhaft ein).
+- `/tts audio` erzeugt eine einmalige Audioantwort (schaltet TTS nicht ein).
 
 ## Agent-Werkzeug
 
-Das Werkzeug `tts` wandelt Text in Sprache um und gibt einen `MEDIA:`‑Pfad zurück. Wenn das
-Ergebnis Telegram-kompatibel ist, enthält das Werkzeug `[[audio_as_voice]]`, sodass
-Telegram eine Sprachblase sendet.
+Das Werkzeug `tts` wandelt Text in Sprache um und gibt einen `MEDIA:`-Pfad zurück.
+Wenn das Ergebnis Telegram-kompatibel ist, enthält das Werkzeug `[[audio_as_voice]]`, sodass
+Telegram eine Sprachnachrichten-Blase sendet.
 
-## Gateway RPC
+## Gateway-RPC
 
 Gateway-Methoden:
 

@@ -1,26 +1,26 @@
 ---
-summary: "Exemplos de configuracao precisos ao schema para configuracoes comuns do OpenClaw"
+summary: "Exemplos de configuração alinhados ao esquema para configurações comuns do OpenClaw"
 read_when:
   - Aprendendo a configurar o OpenClaw
-  - Procurando exemplos de configuracao
+  - Procurando exemplos de configuração
   - Configurando o OpenClaw pela primeira vez
-title: "Exemplos de Configuracao"
+title: "Exemplos de Configuração"
 x-i18n:
   source_path: gateway/configuration-examples.md
   source_hash: 2c9cee53d56a4232
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:56:12Z
+  generated_at: 2026-02-08T09:30:50Z
 ---
 
-# Exemplos de Configuracao
+# Exemplos de Configuração
 
-Os exemplos abaixo estao alinhados com o schema de configuracao atual. Para a referencia completa e observacoes por campo, consulte [Configuracao](/gateway/configuration).
+Os exemplos abaixo estão alinhados com o esquema de configuração atual. Para a referência completa e notas por campo, veja [Configuração](/gateway/configuration).
 
-## Inicio rapido
+## Início Rápido
 
-### Minimo absoluto
+### Mínimo absoluto
 
 ```json5
 {
@@ -29,9 +29,9 @@ Os exemplos abaixo estao alinhados com o schema de configuracao atual. Para a re
 }
 ```
 
-Salve em `~/.openclaw/openclaw.json` e voce podera enviar uma Mensagem direta para o bot a partir desse numero.
+Salve em `~/.openclaw/openclaw.json` e voce poderá enviar DM ao bot a partir desse número.
 
-### Starter recomendado
+### Inicial recomendado
 
 ```json5
 {
@@ -53,9 +53,9 @@ Salve em `~/.openclaw/openclaw.json` e voce podera enviar uma Mensagem direta pa
 }
 ```
 
-## Exemplo expandido (principais opcoes)
+## Exemplo expandido (opções principais)
 
-> JSON5 permite usar comentarios e virgulas finais. JSON regular tambem funciona.
+> JSON5 permite usar comentários e vírgulas finais. JSON regular também funciona.
 
 ```json5
 {
@@ -430,9 +430,9 @@ Salve em `~/.openclaw/openclaw.json` e voce podera enviar uma Mensagem direta pa
 }
 ```
 
-## Padroes comuns
+## Padrões comuns
 
-### Configuracao multi-plataforma
+### Configuração multiplataforma
 
 ```json5
 {
@@ -453,9 +453,9 @@ Salve em `~/.openclaw/openclaw.json` e voce podera enviar uma Mensagem direta pa
 }
 ```
 
-### Modo de Mensagem direta segura (caixa de entrada compartilhada / DMs multi-usuario)
+### Modo de DM seguro (caixa de entrada compartilhada / DMs multiusuário)
 
-Se mais de uma pessoa puder enviar Mensagem direta para o seu bot (varias entradas em `allowFrom`, aprovacoes de pareamento para varias pessoas, ou `dmPolicy: "open"`), ative o **modo de Mensagem direta segura** para que DMs de remetentes diferentes nao compartilhem um unico contexto por padrao:
+Se mais de uma pessoa puder enviar DM ao seu bot (várias entradas em `allowFrom`, aprovações de pareamento para várias pessoas ou `dmPolicy: "open"`), ative o **modo de DM seguro** para que DMs de remetentes diferentes não compartilhem um único contexto por padrão:
 
 ```json5
 {
@@ -607,7 +607,7 @@ Se mais de uma pessoa puder enviar Mensagem direta para o seu bot (varias entrad
 
 ## Dicas
 
-- Se voce definir `dmPolicy: "open"`, a lista correspondente `allowFrom` deve incluir `"*"`.
-- Os IDs de provedores diferem (numeros de telefone, IDs de usuario, IDs de canal). Use a documentacao do provedor para confirmar o formato.
-- Secoes opcionais para adicionar depois: `web`, `browser`, `ui`, `discovery`, `canvasHost`, `talk`, `signal`, `imessage`.
-- Consulte [Provedores](/channels/whatsapp) e [Solucao de problemas](/gateway/troubleshooting) para observacoes de configuracao mais detalhadas.
+- Se voce definir `dmPolicy: "open"`, a lista correspondente de `allowFrom` deve incluir `"*"`.
+- Os IDs de provedor diferem (números de telefone, IDs de usuário, IDs de canal). Use a documentação do provedor para confirmar o formato.
+- Seções opcionais para adicionar depois: `web`, `browser`, `ui`, `discovery`, `canvasHost`, `talk`, `signal`, `imessage`.
+- Veja [Provedores](/channels/whatsapp) e [Solução de problemas](/gateway/troubleshooting) para notas de configuração mais detalhadas.

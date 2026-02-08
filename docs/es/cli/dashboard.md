@@ -1,5 +1,5 @@
 ---
-summary: "Referencia de CLI para `openclaw dashboard` (abrir la UI de Control)"
+summary: "Referencia de la CLI para `openclaw dashboard` (abrir la UI de Control)"
 read_when:
   - Desea abrir la UI de Control con su token actual
   - Desea imprimir la URL sin abrir un navegador
@@ -10,7 +10,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:58:14Z
+  generated_at: 2026-02-08T09:32:48Z
 ---
 
 # `openclaw dashboard`

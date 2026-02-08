@@ -1,35 +1,35 @@
 ---
 summary: "Logins manuais para automação de navegador + postagem no X/Twitter"
 read_when:
-  - Voce precisa fazer login em sites para automacao de navegador
-  - Voce quer postar atualizacoes no X/Twitter
-title: "Login do navegador"
+  - Você precisa fazer login em sites para automação de navegador
+  - Você quer publicar atualizações no X/Twitter
+title: "Login no navegador"
 x-i18n:
   source_path: tools/browser-login.md
-  source_hash: 8ceea2d5258836e3
+  source_hash: c30faa9da6c6ef70
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:57:32Z
+  generated_at: 2026-02-08T09:32:02Z
 ---
 
-# Login do navegador + postagem no X/Twitter
+# Login no navegador + postagem no X/Twitter
 
 ## Login manual (recomendado)
 
-Quando um site exige login, **entre manualmente** no perfil do navegador **host** (o navegador do OpenClaw).
+Quando um site exigir login, **entre manualmente** no perfil do navegador do **host** (o navegador do OpenClaw).
 
-**Nao** forneca suas credenciais ao modelo. Logins automatizados geralmente acionam defesas anti‑bot e podem bloquear a conta.
+**Não** forneça suas credenciais ao modelo. Logins automatizados costumam acionar defesas anti‑bot e podem bloquear a conta.
 
-Voltar para a documentacao principal do navegador: [Browser](/tools/browser).
+Voltar para a documentação principal do navegador: [Browser](/tools/browser).
 
-## Qual perfil do Chrome e usado?
+## Qual perfil do Chrome é usado?
 
-O OpenClaw controla um **perfil dedicado do Chrome** (chamado `openclaw`, interface com tom alaranjado). Ele e separado do seu perfil de uso diario.
+O OpenClaw controla um **perfil dedicado do Chrome** (chamado `openclaw`, UI com tonalidade laranja). Ele é separado do seu perfil de navegador do dia a dia.
 
-Duas formas simples de acessa-lo:
+Duas maneiras fáceis de acessá‑lo:
 
-1. **Peca ao agente para abrir o navegador** e depois faca o login voce mesmo.
+1. **Peça ao agente para abrir o navegador** e depois faça login você mesmo.
 2. **Abra via CLI**:
 
 ```bash
@@ -37,19 +37,18 @@ openclaw browser start
 openclaw browser open https://x.com
 ```
 
-Se voce tiver varios perfis, passe `--browser-profile <name>` (o padrao e `openclaw`).
+Se você tiver vários perfis, passe `--browser-profile <name>` (o padrão é `openclaw`).
 
 ## X/Twitter: fluxo recomendado
 
-- **Leitura/pesquisa/threads:** use a Skill de CLI **bird** (sem navegador, estavel).
-  - Repo: https://github.com/steipete/bird
-- **Postar atualizacoes:** use o navegador **host** (login manual).
+- **Leitura/pesquisa/threads:** use o navegador do **host** (login manual).
+- **Publicar atualizações:** use o navegador do **host** (login manual).
 
-## Sandboxing + acesso ao navegador host
+## Sandboxing + acesso ao navegador do host
 
-Sessoes de navegador em sandbox sao **mais propensas** a acionar deteccao de bots. Para X/Twitter (e outros sites rigorosos), prefira o navegador **host**.
+Sessões de navegador em sandbox têm **maior probabilidade** de acionar detecção de bots. Para X/Twitter (e outros sites rigorosos), prefira o navegador do **host**.
 
-Se o agente estiver em sandbox, a ferramenta de navegador usa o sandbox por padrao. Para permitir controle do host:
+Se o agente estiver em sandbox, a ferramenta de navegador usa o sandbox por padrão. Para permitir controle do host:
 
 ```json5
 {
@@ -66,10 +65,10 @@ Se o agente estiver em sandbox, a ferramenta de navegador usa o sandbox por padr
 }
 ```
 
-Depois direcione para o navegador host:
+Depois, aponte para o navegador do host:
 
 ```bash
 openclaw browser open https://x.com --browser-profile openclaw --target host
 ```
 
-Ou desative o sandboxing para o agente que publica atualizacoes.
+Ou desative o sandboxing para o agente que publica atualizações.

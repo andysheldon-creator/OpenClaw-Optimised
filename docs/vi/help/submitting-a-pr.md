@@ -7,27 +7,27 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:16:02Z
+  generated_at: 2026-02-08T09:39:11Z
 ---
 
-PR tốt thì dễ review: người review nhanh chóng hiểu được mục đích, xác minh hành vi và merge thay đổi một cách an toàn. Hướng dẫn này bao quát cách gửi PR ngắn gọn, tín hiệu cao cho cả con người và LLM review.
+PR tốt thì dễ review: người review có thể nhanh chóng hiểu mục đích, xác minh hành vi và triển khai thay đổi một cách an toàn. Hướng dẫn này tập trung vào cách gửi PR ngắn gọn, giàu tín hiệu cho cả con người và LLM review.
 
 ## Điều gì tạo nên một PR tốt
 
-- [ ] Giải thích vấn đề, vì sao nó quan trọng và thay đổi được thực hiện.
-- [ ] Giữ phạm vi thay đổi tập trung. Tránh refactor quá rộng.
-- [ ] Tóm tắt các thay đổi hiển thị với người dùng/cấu hình/giá trị mặc định.
+- [ ] Giải thích vấn đề, vì sao nó quan trọng và thay đổi được đề xuất.
+- [ ] Giữ phạm vi thay đổi tập trung. Tránh refactor diện rộng.
+- [ ] Tóm tắt các thay đổi có thể thấy với người dùng/cấu hình/giá trị mặc định.
 - [ ] Liệt kê phạm vi test, các test bị bỏ qua và lý do.
 - [ ] Thêm bằng chứng: log, ảnh chụp màn hình hoặc bản ghi (UI/UX).
-- [ ] Mật mã: đặt “lobster-biscuit” trong mô tả PR nếu bạn đã đọc hướng dẫn này.
+- [ ] Code word: đặt “lobster-biscuit” trong mô tả PR nếu bạn đã đọc hướng dẫn này.
 - [ ] Chạy/sửa các lệnh `pnpm` liên quan trước khi tạo PR.
 - [ ] Tìm kiếm trong codebase và GitHub các chức năng/vấn đề/bản sửa liên quan.
-- [ ] Các khẳng định phải dựa trên bằng chứng hoặc quan sát.
+- [ ] Dựa trên bằng chứng hoặc quan sát để đưa ra nhận định.
 - [ ] Tiêu đề tốt: động từ + phạm vi + kết quả (ví dụ: `Docs: add PR and issue templates`).
 
-Hãy ngắn gọn; review súc tích > ngữ pháp. Bỏ qua các mục không áp dụng.
+Hãy ngắn gọn; review súc tích > ngữ pháp. Bỏ qua mọi mục không áp dụng.
 
-### Các lệnh xác thực cơ bản (chạy/sửa lỗi cho thay đổi của bạn)
+### Lệnh xác thực cơ bản (chạy/sửa lỗi cho thay đổi của bạn)
 
 - `pnpm lint`
 - `pnpm check`
@@ -35,25 +35,25 @@ Hãy ngắn gọn; review súc tích > ngữ pháp. Bỏ qua các mục không �
 - `pnpm test`
 - Thay đổi giao thức: `pnpm protocol:check`
 
-## Trình bày theo mức độ
+## Tiết lộ theo từng bước
 
 - Trên cùng: tóm tắt/mục đích
 - Tiếp theo: thay đổi/rủi ro
 - Tiếp theo: test/xác minh
 - Cuối cùng: triển khai/bằng chứng
 
-## Các loại PR phổ biến: chi tiết
+## Các loại PR phổ biến: lưu ý cụ thể
 
 - [ ] Fix: Thêm cách tái hiện, nguyên nhân gốc rễ, cách xác minh.
-- [ ] Feature: Thêm use case, hành vi/demo/ảnh chụp (UI).
+- [ ] Feature: Thêm các trường hợp sử dụng, hành vi/demo/ảnh chụp màn hình (UI).
 - [ ] Refactor: Nêu rõ "không thay đổi hành vi", liệt kê những gì được di chuyển/đơn giản hóa.
 - [ ] Chore: Nêu lý do (ví dụ: thời gian build, CI, phụ thuộc).
 - [ ] Docs: Ngữ cảnh trước/sau, liên kết trang đã cập nhật, chạy `pnpm format`.
-- [ ] Test: Khoảng trống nào được bao phủ; cách ngăn hồi quy.
+- [ ] Test: Khoảng trống nào được bao phủ; cách ngăn ngừa hồi quy.
 - [ ] Perf: Thêm số liệu trước/sau và cách đo.
-- [ ] UX/UI: Ảnh chụp/video, lưu ý tác động đến khả năng truy cập.
+- [ ] UX/UI: Ảnh chụp màn hình/video, ghi chú tác động tới khả năng tiếp cận.
 - [ ] Infra/Build: Môi trường/xác thực.
-- [ ] Security: Tóm tắt rủi ro, cách tái hiện, xác minh, không có dữ liệu nhạy cảm. Chỉ các khẳng định có cơ sở.
+- [ ] Security: Tóm tắt rủi ro, cách tái hiện, xác minh, không dữ liệu nhạy cảm. Chỉ nêu nhận định có căn cứ.
 
 ## Checklist
 

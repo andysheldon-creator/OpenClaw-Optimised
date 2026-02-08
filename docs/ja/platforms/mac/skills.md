@@ -1,5 +1,5 @@
 ---
-summary: "macOS の Skills 設定 UI と Gateway（ゲートウェイ）連携のステータス"
+summary: "macOS の Skills 設定 UI と ゲートウェイ によるステータス"
 read_when:
   - macOS の Skills 設定 UI を更新する場合
   - Skills のゲーティングやインストール動作を変更する場合
@@ -10,31 +10,31 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:34:26Z
+  generated_at: 2026-02-08T09:22:39Z
 ---
 
-# Skills（macOS）
+# Skills (macOS)
 
-macOS アプリは Gateway（ゲートウェイ）を介して OpenClaw の Skills を表示します。ローカルで Skills を解析することはありません。
+macOS アプリは、ゲートウェイ 経由で OpenClaw の Skills を表示します。Skills をローカルで解析することはありません。
 
 ## データソース
 
-- `skills.status`（Gateway（ゲートウェイ））は、すべての Skills に加えて、適格性および不足している要件
-  （バンドルされた Skills に対する allowlist ブロックを含む）を返します。
+- `skills.status`（ゲートウェイ）は、すべての Skills に加えて、適格性および不足している要件を返します
+  （バンドルされた Skills に対する 許可リスト のブロックを含みます）。
 - 要件は、各 `SKILL.md` 内の `metadata.openclaw.requires` から導出されます。
 
 ## インストール操作
 
-- `metadata.openclaw.install` はインストールオプション（brew / node / go / uv）を定義します。
-- アプリは `skills.install` を呼び出して、Gateway（ゲートウェイ）ホスト上でインストーラーを実行します。
-- 複数のインストーラーが提供されている場合、Gateway（ゲートウェイ）は 1 つの推奨インストーラーのみを提示します
-  （利用可能な場合は brew、そうでない場合は `skills.install` の node マネージャー、デフォルトは npm）。
+- `metadata.openclaw.install` は、インストール オプション（brew/node/go/uv）を定義します。
+- アプリは `skills.install` を呼び出し、ゲートウェイ ホスト 上でインストーラーを実行します。
+- ゲートウェイ は、複数が提供されている場合でも、優先されるインストーラーを 1 つだけ公開します
+  （利用可能な場合は brew、そうでない場合は `skills.install` の node マネージャー、既定は npm）。
 
 ## 環境変数 / API キー
 
-- アプリはキーを `~/.openclaw/openclaw.json` の `skills.entries.<skillKey>` 配下に保存します。
-- `skills.update` は `enabled`、`apiKey`、および `env` をパッチします。
+- アプリは、`skills.entries.<skillKey>` 配下の `~/.openclaw/openclaw.json` にキーを保存します。
+- `skills.update` は、`enabled`、`apiKey`、および `env` をパッチします。
 
 ## リモートモード
 
-- インストールおよび設定の更新は、ローカルの Mac ではなく Gateway（ゲートウェイ）ホスト上で行われます。
+- インストールおよび設定の更新は、ローカルの Mac ではなく ゲートウェイ ホスト 上で行われます。

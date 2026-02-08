@@ -1,8 +1,8 @@
 ---
-title: "Cloudflare AI Gateway"
+title: "Gateway de IA de Cloudflare"
 summary: "Configuración de Cloudflare AI Gateway (autenticación + selección de modelo)"
 read_when:
-  - Desea usar Cloudflare AI Gateway con OpenClaw
+  - Quiere usar Cloudflare AI Gateway con OpenClaw
   - Necesita el ID de la cuenta, el ID del Gateway o la variable de entorno de la clave de API
 x-i18n:
   source_path: providers/cloudflare-ai-gateway.md
@@ -10,12 +10,12 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:59:37Z
+  generated_at: 2026-02-08T09:34:16Z
 ---
 
-# Cloudflare AI Gateway
+# Gateway de IA de Cloudflare
 
-Cloudflare AI Gateway se sitúa delante de las API de los proveedores y le permite añadir analíticas, caché y controles. Para Anthropic, OpenClaw usa la API de Mensajes de Anthropic a través del endpoint de su Gateway.
+Cloudflare AI Gateway se sitúa delante de las API de los proveedores y le permite añadir analítica, caché y controles. Para Anthropic, OpenClaw utiliza la API de Anthropic Messages a través del endpoint de su Gateway.
 
 - Proveedor: `cloudflare-ai-gateway`
 - URL base: `https://gateway.ai.cloudflare.com/v1/<account_id>/<gateway_id>/anthropic`
@@ -24,7 +24,7 @@ Cloudflare AI Gateway se sitúa delante de las API de los proveedores y le permi
 
 Para los modelos de Anthropic, use su clave de API de Anthropic.
 
-## Inicio rapido
+## Inicio rápido
 
 1. Configure la clave de API del proveedor y los detalles del Gateway:
 
@@ -57,7 +57,7 @@ openclaw onboard --non-interactive \
 
 ## Gateways autenticados
 
-Si habilitó la autenticación del Gateway en Cloudflare, agregue el encabezado `cf-aig-authorization` (esto es adicional a la clave de API de su proveedor).
+Si habilitó la autenticación del Gateway en Cloudflare, agregue el encabezado `cf-aig-authorization` (esto es adicional a su clave de API del proveedor).
 
 ```json5
 {

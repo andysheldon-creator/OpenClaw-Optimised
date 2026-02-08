@@ -10,19 +10,19 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:16:20Z
+  generated_at: 2026-02-08T09:38:11Z
 ---
 
 # Hooks
 
-Hooks cung cấp một hệ thống theo sự kiện có thể mở rộng để tự động hóa các hành động phản hồi lại lệnh và sự kiện của tác tử. Hooks được tự động phát hiện từ các thư mục và có thể được quản lý qua các lệnh CLI, tương tự như cách Skills hoạt động trong OpenClaw.
+Hooks cung cấp một hệ thống mở rộng, dựa trên sự kiện để tự động hóa các hành động phản hồi lại lệnh và sự kiện của tác tử. Hooks được tự động phát hiện từ các thư mục và có thể được quản lý qua CLI, tương tự như cách Skills hoạt động trong OpenClaw.
 
 ## Làm quen
 
-Hooks là các script nhỏ chạy khi có điều gì đó xảy ra. Có hai loại:
+Hooks là các script nhỏ chạy khi có một sự kiện xảy ra. Có hai loại:
 
-- **Hooks** (trang này): chạy bên trong Gateway khi các sự kiện của tác tử được kích hoạt, như `/new`, `/reset`, `/stop` hoặc các sự kiện vòng đời.
-- **Webhooks**: các HTTP webhook bên ngoài cho phép hệ thống khác kích hoạt công việc trong OpenClaw. Xem [Webhook Hooks](/automation/webhook) hoặc dùng `openclaw webhooks` cho các lệnh trợ giúp Gmail.
+- **Hooks** (trang này): chạy bên trong Gateway khi các sự kiện của tác tử được kích hoạt, như `/new`, `/reset`, `/stop`, hoặc các sự kiện vòng đời.
+- **Webhooks**: webhook HTTP bên ngoài cho phép các hệ thống khác kích hoạt công việc trong OpenClaw. Xem [Webhook Hooks](/automation/webhook) hoặc dùng `openclaw webhooks` cho các lệnh trợ giúp Gmail.
 
 Hooks cũng có thể được đóng gói bên trong plugin; xem [Plugins](/tools/plugin#plugin-hooks).
 
@@ -33,27 +33,27 @@ Các trường hợp sử dụng phổ biến:
 - Kích hoạt tự động hóa tiếp theo khi một phiên bắt đầu hoặc kết thúc
 - Ghi file vào workspace của tác tử hoặc gọi API bên ngoài khi sự kiện xảy ra
 
-Nếu bạn có thể viết một hàm TypeScript nhỏ, bạn có thể viết một hook. Hooks được phát hiện tự động, và bạn bật hoặc tắt chúng qua CLI.
+Nếu bạn có thể viết một hàm TypeScript nhỏ, bạn có thể viết một hook. Hooks được tự động phát hiện, và bạn bật hoặc tắt chúng qua CLI.
 
 ## Tổng quan
 
 Hệ thống hooks cho phép bạn:
 
 - Lưu ngữ cảnh phiên vào bộ nhớ khi `/new` được phát hành
-- Ghi log tất cả các lệnh cho mục đích kiểm toán
-- Kích hoạt các tự động hóa tùy chỉnh theo các sự kiện vòng đời của tác tử
-- Mở rộng hành vi của OpenClaw mà không cần chỉnh sửa mã lõi
+- Ghi log tất cả lệnh cho mục đích kiểm toán
+- Kích hoạt tự động hóa tùy chỉnh dựa trên các sự kiện vòng đời của tác tử
+- Mở rộng hành vi của OpenClaw mà không cần sửa đổi mã lõi
 
-## Bắt Đầu
+## Bắt đầu
 
 ### Hooks đi kèm
 
-OpenClaw đi kèm bốn hook mặc định được tự động phát hiện:
+OpenClaw đi kèm bốn hook có sẵn và được tự động phát hiện:
 
 - **💾 session-memory**: Lưu ngữ cảnh phiên vào workspace của tác tử (mặc định `~/.openclaw/workspace/memory/`) khi bạn phát hành `/new`
-- **📝 command-logger**: Ghi log tất cả các sự kiện lệnh vào `~/.openclaw/logs/commands.log`
+- **📝 command-logger**: Ghi log tất cả sự kiện lệnh vào `~/.openclaw/logs/commands.log`
 - **🚀 boot-md**: Chạy `BOOT.md` khi gateway khởi động (yêu cầu bật internal hooks)
-- **😈 soul-evil**: Hoán đổi nội dung `SOUL.md` được chèn với `SOUL_EVIL.md` trong một khoảng purge hoặc ngẫu nhiên
+- **😈 soul-evil**: Hoán đổi nội dung `SOUL.md` được inject bằng `SOUL_EVIL.md` trong một cửa sổ purge hoặc ngẫu nhiên
 
 Liệt kê các hook khả dụng:
 
@@ -73,15 +73,15 @@ Kiểm tra trạng thái hook:
 openclaw hooks check
 ```
 
-Lấy thông tin chi tiết:
+Xem thông tin chi tiết:
 
 ```bash
 openclaw hooks info session-memory
 ```
 
-### Hướng Dẫn Ban Đầu
+### Hướng dẫn ban đầu
 
-Trong quá trình hướng dẫn ban đầu (`openclaw onboard`), bạn sẽ được nhắc bật các hook được khuyến nghị. Trình hướng dẫn sẽ tự động phát hiện các hook đủ điều kiện và trình bày để bạn lựa chọn.
+Trong quá trình onboarding (`openclaw onboard`), bạn sẽ được nhắc bật các hook được khuyến nghị. Trình hướng dẫn sẽ tự động phát hiện các hook đủ điều kiện và hiển thị để bạn lựa chọn.
 
 ## Phát hiện Hook
 
@@ -89,9 +89,9 @@ Hooks được tự động phát hiện từ ba thư mục (theo thứ tự ưu
 
 1. **Workspace hooks**: `<workspace>/hooks/` (theo từng tác tử, ưu tiên cao nhất)
 2. **Managed hooks**: `~/.openclaw/hooks/` (do người dùng cài đặt, dùng chung giữa các workspace)
-3. **Bundled hooks**: `<openclaw>/dist/hooks/bundled/` (đi kèm OpenClaw)
+3. **Bundled hooks**: `<openclaw>/dist/hooks/bundled/` (được phân phối cùng OpenClaw)
 
-Thư mục managed hook có thể là **một hook đơn** hoặc **một hook pack** (thư mục gói).
+Thư mục managed hook có thể là **một hook đơn lẻ** hoặc một **hook pack** (thư mục gói).
 
 Mỗi hook là một thư mục chứa:
 
@@ -123,13 +123,13 @@ Ví dụ `package.json`:
 ```
 
 Mỗi mục trỏ tới một thư mục hook chứa `HOOK.md` và `handler.ts` (hoặc `index.ts`).
-Hook pack có thể kèm theo dependency; chúng sẽ được cài dưới `~/.openclaw/hooks/<id>`.
+Hook pack có thể kèm theo các dependency; chúng sẽ được cài đặt dưới `~/.openclaw/hooks/<id>`.
 
 ## Cấu trúc Hook
 
 ### Định dạng HOOK.md
 
-File `HOOK.md` chứa metadata ở YAML frontmatter cùng với tài liệu Markdown:
+File `HOOK.md` chứa metadata ở dạng YAML frontmatter cùng với tài liệu Markdown:
 
 ```markdown
 ---
@@ -159,26 +159,26 @@ Detailed documentation goes here...
 No configuration needed.
 ```
 
-### Các trường Metadata
+### Trường Metadata
 
 Đối tượng `metadata.openclaw` hỗ trợ:
 
 - **`emoji`**: Emoji hiển thị cho CLI (ví dụ: `"💾"`)
-- **`events`**: Mảng các sự kiện để lắng nghe (ví dụ: `["command:new", "command:reset"]`)
-- **`export`**: Named export được sử dụng (mặc định là `"default"`)
+- **`events`**: Mảng các sự kiện cần lắng nghe (ví dụ: `["command:new", "command:reset"]`)
+- **`export`**: Named export sẽ sử dụng (mặc định là `"default"`)
 - **`homepage`**: URL tài liệu
 - **`requires`**: Các yêu cầu tùy chọn
-  - **`bins`**: Binary bắt buộc trên PATH (ví dụ: `["git", "node"]`)
-  - **`anyBins`**: Ít nhất một trong các binary này phải có
-  - **`env`**: Biến môi trường bắt buộc
-  - **`config`**: Đường dẫn cấu hình bắt buộc (ví dụ: `["workspace.dir"]`)
-  - **`os`**: Nền tảng bắt buộc (ví dụ: `["darwin", "linux"]`)
-- **`always`**: Bỏ qua kiểm tra điều kiện đủ (boolean)
-- **`install`**: Phương thức cài đặt (đối với bundled hooks: `[{"id":"bundled","kind":"bundled"}]`)
+  - **`bins`**: Các binary bắt buộc trong PATH (ví dụ: `["git", "node"]`)
+  - **`anyBins`**: Ít nhất một trong các binary này phải tồn tại
+  - **`env`**: Các biến môi trường bắt buộc
+  - **`config`**: Các đường dẫn cấu hình bắt buộc (ví dụ: `["workspace.dir"]`)
+  - **`os`**: Các nền tảng được yêu cầu (ví dụ: `["darwin", "linux"]`)
+- **`always`**: Bỏ qua kiểm tra đủ điều kiện (boolean)
+- **`install`**: Phương thức cài đặt (đối với hook đi kèm: `[{"id":"bundled","kind":"bundled"}]`)
 
 ### Triển khai Handler
 
-File `handler.ts` export một hàm `HookHandler`:
+File `handler.ts` xuất một hàm `HookHandler`:
 
 ```typescript
 import type { HookHandler } from "../../src/hooks/hooks.js";
@@ -202,7 +202,7 @@ const myHandler: HookHandler = async (event) => {
 export default myHandler;
 ```
 
-#### Ngữ cảnh Sự kiện
+#### Ngữ cảnh sự kiện
 
 Mỗi sự kiện bao gồm:
 
@@ -232,14 +232,14 @@ Mỗi sự kiện bao gồm:
 
 Được kích hoạt khi các lệnh của tác tử được phát hành:
 
-- **`command`**: Tất cả các sự kiện lệnh (listener chung)
+- **`command`**: Tất cả các sự kiện lệnh (listener tổng quát)
 - **`command:new`**: Khi lệnh `/new` được phát hành
 - **`command:reset`**: Khi lệnh `/reset` được phát hành
 - **`command:stop`**: Khi lệnh `/stop` được phát hành
 
 ### Sự kiện Tác tử
 
-- **`agent:bootstrap`**: Trước khi các file bootstrap workspace được chèn (hooks có thể thay đổi `context.bootstrapFiles`)
+- **`agent:bootstrap`**: Trước khi các file bootstrap workspace được inject (hooks có thể thay đổi `context.bootstrapFiles`)
 
 ### Sự kiện Gateway
 
@@ -249,9 +249,9 @@ Mỗi sự kiện bao gồm:
 
 ### Tool Result Hooks (Plugin API)
 
-Các hook này không phải listener luồng sự kiện; chúng cho phép plugin điều chỉnh đồng bộ kết quả tool trước khi OpenClaw lưu chúng.
+Các hook này không phải listener của event-stream; chúng cho phép plugin đồng bộ điều chỉnh kết quả tool trước khi OpenClaw lưu chúng.
 
-- **`tool_result_persist`**: chuyển đổi kết quả tool trước khi được ghi vào transcript của phiên. Phải đồng bộ; trả về payload kết quả tool đã cập nhật hoặc `undefined` để giữ nguyên. Xem [Agent Loop](/concepts/agent-loop).
+- **`tool_result_persist`**: Biến đổi kết quả tool trước khi được ghi vào transcript của phiên. Phải là đồng bộ; trả về payload kết quả tool đã cập nhật hoặc `undefined` để giữ nguyên. Xem [Agent Loop](/concepts/agent-loop).
 
 ### Sự kiện Tương lai
 
@@ -325,7 +325,7 @@ openclaw hooks enable my-hook
 
 ## Cấu hình
 
-### Định dạng Cấu hình Mới (Khuyến nghị)
+### Định dạng Config Mới (Khuyến nghị)
 
 ```json
 {
@@ -380,9 +380,9 @@ Tải hooks từ các thư mục bổ sung:
 }
 ```
 
-### Định dạng Cấu hình Cũ (Vẫn Hỗ trợ)
+### Định dạng Config Cũ (Vẫn được hỗ trợ)
 
-Định dạng cấu hình cũ vẫn hoạt động để tương thích ngược:
+Định dạng config cũ vẫn hoạt động để tương thích ngược:
 
 ```json
 {
@@ -401,7 +401,7 @@ Tải hooks từ các thư mục bổ sung:
 }
 ```
 
-**Di chuyển**: Sử dụng hệ thống phát hiện mới dựa trên thư mục cho các hook mới. Các handler legacy được tải sau các hook dựa trên thư mục.
+**Di chuyển**: Sử dụng hệ thống dựa trên discovery mới cho các hook mới. Legacy handler được tải sau các hook dựa trên thư mục.
 
 ## Lệnh CLI
 
@@ -431,7 +431,7 @@ openclaw hooks info session-memory
 openclaw hooks info session-memory --json
 ```
 
-### Kiểm tra Điều kiện đủ
+### Kiểm tra Điều kiện
 
 ```bash
 # Show eligibility summary
@@ -451,7 +451,7 @@ openclaw hooks enable session-memory
 openclaw hooks disable command-logger
 ```
 
-## Tham chiếu Hooks đi kèm
+## Tham khảo hook đi kèm
 
 ### session-memory
 
@@ -463,12 +463,12 @@ Lưu ngữ cảnh phiên vào bộ nhớ khi bạn phát hành `/new`.
 
 **Đầu ra**: `<workspace>/memory/YYYY-MM-DD-slug.md` (mặc định `~/.openclaw/workspace`)
 
-**Nó làm gì**:
+**Cách hoạt động**:
 
 1. Sử dụng entry phiên trước khi reset để xác định transcript chính xác
 2. Trích xuất 15 dòng hội thoại cuối cùng
-3. Sử dụng LLM để tạo slug tên file mô tả
-4. Lưu metadata phiên vào một file bộ nhớ theo ngày
+3. Dùng LLM để tạo slug tên file mang tính mô tả
+4. Lưu metadata phiên vào file bộ nhớ theo ngày
 
 **Ví dụ đầu ra**:
 
@@ -494,7 +494,7 @@ openclaw hooks enable session-memory
 
 ### command-logger
 
-Ghi log tất cả các sự kiện lệnh vào một file kiểm toán tập trung.
+Ghi log tất cả sự kiện lệnh vào một file kiểm toán tập trung.
 
 **Sự kiện**: `command`
 
@@ -502,11 +502,11 @@ Ghi log tất cả các sự kiện lệnh vào một file kiểm toán tập tr
 
 **Đầu ra**: `~/.openclaw/logs/commands.log`
 
-**Nó làm gì**:
+**Cách hoạt động**:
 
 1. Thu thập chi tiết sự kiện (hành động lệnh, timestamp, khóa phiên, ID người gửi, nguồn)
 2. Ghi thêm vào file log theo định dạng JSONL
-3. Chạy âm thầm ở nền
+3. Chạy âm thầm trong nền
 
 **Ví dụ bản ghi log**:
 
@@ -536,7 +536,7 @@ openclaw hooks enable command-logger
 
 ### soul-evil
 
-Hoán đổi nội dung `SOUL.md` được chèn với `SOUL_EVIL.md` trong một khoảng purge hoặc ngẫu nhiên.
+Hoán đổi nội dung `SOUL.md` được inject bằng `SOUL_EVIL.md` trong một cửa sổ purge hoặc theo xác suất ngẫu nhiên.
 
 **Sự kiện**: `agent:bootstrap`
 
@@ -572,17 +572,17 @@ openclaw hooks enable soul-evil
 
 ### boot-md
 
-Chạy `BOOT.md` khi gateway khởi động (sau khi các kênh bắt đầu).
+Chạy `BOOT.md` khi gateway khởi động (sau khi các kênh khởi động).
 Cần bật internal hooks để hook này chạy.
 
 **Sự kiện**: `gateway:startup`
 
 **Yêu cầu**: `workspace.dir` phải được cấu hình
 
-**Nó làm gì**:
+**Cách hoạt động**:
 
 1. Đọc `BOOT.md` từ workspace của bạn
-2. Chạy các chỉ dẫn thông qua agent runner
+2. Chạy các hướng dẫn thông qua agent runner
 3. Gửi mọi tin nhắn outbound được yêu cầu qua message tool
 
 **Bật**:
@@ -595,7 +595,7 @@ openclaw hooks enable boot-md
 
 ### Giữ Handler Nhanh
 
-Hooks chạy trong quá trình xử lý lệnh. Hãy giữ chúng nhẹ:
+Hooks chạy trong quá trình xử lý lệnh. Hãy giữ chúng gọn nhẹ:
 
 ```typescript
 // ✓ Good - async work, returns immediately
@@ -610,9 +610,9 @@ const handler: HookHandler = async (event) => {
 };
 ```
 
-### Xử lý Lỗi Nhẹ nhàng
+### Xử lý Lỗi Một cách An toàn
 
-Luôn bọc các thao tác rủi ro:
+Luôn bao bọc các thao tác rủi ro:
 
 ```typescript
 const handler: HookHandler = async (event) => {
@@ -640,7 +640,7 @@ const handler: HookHandler = async (event) => {
 };
 ```
 
-### Sử dụng Khóa Sự kiện Cụ thể
+### Dùng Khóa Sự kiện Cụ thể
 
 Chỉ định chính xác các sự kiện trong metadata khi có thể:
 
@@ -666,9 +666,9 @@ Registered hook: command-logger -> command
 Registered hook: boot-md -> gateway:startup
 ```
 
-### Kiểm tra Phát hiện
+### Kiểm tra Discovery
 
-Liệt kê tất cả các hook đã được phát hiện:
+Liệt kê tất cả hook được phát hiện:
 
 ```bash
 openclaw hooks list --verbose
@@ -685,15 +685,15 @@ const handler: HookHandler = async (event) => {
 };
 ```
 
-### Xác minh Điều kiện đủ
+### Xác minh Điều kiện
 
-Kiểm tra lý do một hook không đủ điều kiện:
+Kiểm tra lý do hook không đủ điều kiện:
 
 ```bash
 openclaw hooks info my-hook
 ```
 
-Tìm các yêu cầu bị thiếu trong đầu ra.
+Tìm các yêu cầu còn thiếu trong đầu ra.
 
 ## Kiểm thử
 
@@ -736,14 +736,14 @@ test("my handler works", async () => {
 - **`src/hooks/types.ts`**: Định nghĩa kiểu
 - **`src/hooks/workspace.ts`**: Quét và tải thư mục
 - **`src/hooks/frontmatter.ts`**: Phân tích metadata HOOK.md
-- **`src/hooks/config.ts`**: Kiểm tra điều kiện đủ
+- **`src/hooks/config.ts`**: Kiểm tra điều kiện
 - **`src/hooks/hooks-status.ts`**: Báo cáo trạng thái
-- **`src/hooks/loader.ts`**: Trình tải module động
+- **`src/hooks/loader.ts`**: Bộ tải module động
 - **`src/cli/hooks-cli.ts`**: Lệnh CLI
 - **`src/gateway/server-startup.ts`**: Tải hooks khi gateway khởi động
 - **`src/auto-reply/reply/commands-core.ts`**: Kích hoạt sự kiện lệnh
 
-### Luồng Phát hiện
+### Luồng Discovery
 
 ```
 Gateway startup
@@ -793,7 +793,7 @@ Session reset
    # Should have YAML frontmatter with name and metadata
    ```
 
-3. Liệt kê tất cả các hook đã phát hiện:
+3. Liệt kê tất cả hook được phát hiện:
 
    ```bash
    openclaw hooks list
@@ -807,12 +807,12 @@ Kiểm tra các yêu cầu:
 openclaw hooks info my-hook
 ```
 
-Tìm các mục bị thiếu:
+Tìm các mục còn thiếu:
 
 - Binary (kiểm tra PATH)
 - Biến môi trường
 - Giá trị cấu hình
-- Tương thích hệ điều hành
+- Khả năng tương thích OS
 
 ### Hook Không Thực thi
 
@@ -823,7 +823,7 @@ Tìm các mục bị thiếu:
    # Should show ✓ next to enabled hooks
    ```
 
-2. Khởi động lại tiến trình gateway để hooks được tải lại.
+2. Khởi động lại tiến trình gateway để hook được tải lại.
 
 3. Kiểm tra log gateway để tìm lỗi:
 
@@ -842,7 +842,7 @@ node -e "import('./path/to/handler.ts').then(console.log)"
 
 ## Hướng dẫn Di chuyển
 
-### Từ Cấu hình Cũ sang Phát hiện
+### Từ Config Cũ sang Discovery
 
 **Trước**:
 
@@ -885,7 +885,7 @@ node -e "import('./path/to/handler.ts').then(console.log)"
    Does something useful.
    ```
 
-3. Cập nhật cấu hình:
+3. Cập nhật config:
 
    ```json
    {
@@ -900,7 +900,7 @@ node -e "import('./path/to/handler.ts').then(console.log)"
    }
    ```
 
-4. Xác minh và khởi động lại tiến trình gateway:
+4. Xác minh và khởi động lại tiến trình gateway của bạn:
 
    ```bash
    openclaw hooks list
@@ -909,9 +909,9 @@ node -e "import('./path/to/handler.ts').then(console.log)"
 
 **Lợi ích của việc di chuyển**:
 
-- Phát hiện tự động
+- Tự động discovery
 - Quản lý qua CLI
-- Kiểm tra điều kiện đủ
+- Kiểm tra điều kiện
 - Tài liệu tốt hơn
 - Cấu trúc nhất quán
 

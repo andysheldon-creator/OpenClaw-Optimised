@@ -1,16 +1,16 @@
 ---
-summary: "Gateway（ゲートウェイ）+ CLI による投票の送信"
+summary: "Gateway（ゲートウェイ） + CLI による投票の送信"
 read_when:
   - 投票サポートの追加または変更時
-  - CLI または Gateway（ゲートウェイ）からの投票送信のデバッグ時
+  - CLI または ゲートウェイ からの投票送信をデバッグする際
 title: "投票"
 x-i18n:
   source_path: automation/poll.md
   source_hash: 760339865d27ec40
   provider: openai
-  model: gpt-5.2-pro
+  model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-06T04:41:42Z
+  generated_at: 2026-02-08T09:20:44Z
 ---
 
 # 投票
@@ -45,7 +45,7 @@ openclaw message poll --channel msteams --target conversation:19:abc@thread.tacv
 
 - `--channel`: `whatsapp`（デフォルト）、`discord`、または `msteams`
 - `--poll-multi`: 複数オプションの選択を許可します
-- `--poll-duration-hours`: Discord 専用（省略時は 24 がデフォルトです）
+- `--poll-duration-hours`: Discord 専用（省略時は 24）
 
 ## Gateway RPC
 
@@ -63,13 +63,13 @@ openclaw message poll --channel msteams --target conversation:19:abc@thread.tacv
 
 ## チャンネルの違い
 
-- WhatsApp: 2～12 個のオプション、`maxSelections` はオプション数の範囲内である必要があります。`durationHours` は無視されます。
-- Discord: 2～10 個のオプション、`durationHours` は 1～768 時間にクランプされます（デフォルト 24）。`maxSelections > 1` は複数選択を有効化します。Discord は厳密な選択数をサポートしていません。
-- MS Teams: Adaptive Card の投票（OpenClaw 管理）。ネイティブの投票 API はありません。`durationHours` は無視されます。
+- WhatsApp: 2～12 個のオプション。`maxSelections` はオプション数の範囲内である必要があります。`durationHours` は無視されます。
+- Discord: 2～10 個のオプション。`durationHours` は 1～768 時間にクランプされます（デフォルト 24）。`maxSelections > 1` により複数選択が有効になります。Discord は厳密な選択数の指定をサポートしていません。
+- MS Teams: Adaptive Card による投票（OpenClaw 管理）。ネイティブの投票 API はありません。`durationHours` は無視されます。
 
 ## エージェントツール（Message）
 
 `message` ツールを `poll` アクション（`to`、`pollQuestion`、`pollOption`、任意の `pollMulti`、`pollDurationHours`、`channel`）とともに使用します。
 
-注意: Discord には「厳密に N 個を選択」モードがありません。`pollMulti` は複数選択にマッピングされます。
-Teams の投票は Adaptive Cards としてレンダリングされ、`~/.openclaw/msteams-polls.json` で投票を記録するために Gateway（ゲートウェイ）がオンラインのままである必要があります。
+注記: Discord には「正確に N 個選択」のモードはありません。`pollMulti` は複数選択にマッピングされます。
+Teams の投票は Adaptive Card としてレンダリングされ、`~/.openclaw/msteams-polls.json` で投票を記録するために ゲートウェイ がオンラインのままである必要があります。

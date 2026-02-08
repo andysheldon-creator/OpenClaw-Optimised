@@ -1,22 +1,22 @@
 ---
-summary: „Schema-genaue Konfigurationsbeispiele für gängige OpenClaw-Setups“
+summary: "Schema-genaue Konfigurationsbeispiele für gängige OpenClaw-Setups"
 read_when:
   - Beim Erlernen der Konfiguration von OpenClaw
-  - Bei der Suche nach Konfigurationsbeispielen
+  - Beim Suchen nach Konfigurationsbeispielen
   - Beim erstmaligen Einrichten von OpenClaw
-title: „Konfigurationsbeispiele“
+title: "Konfigurationsbeispiele"
 x-i18n:
   source_path: gateway/configuration-examples.md
   source_hash: 2c9cee53d56a4232
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:04:17Z
+  generated_at: 2026-02-08T09:36:09Z
 ---
 
 # Konfigurationsbeispiele
 
-Die folgenden Beispiele sind auf das aktuelle Konfigurationsschema abgestimmt. Die vollständige Referenz und Hinweise zu einzelnen Feldern finden Sie unter [Configuration](/gateway/configuration).
+Die folgenden Beispiele sind auf das aktuelle Konfigurationsschema abgestimmt. Eine vollständige Referenz und feldspezifische Hinweise finden Sie unter [Konfiguration](/gateway/configuration).
 
 ## Schnellstart
 
@@ -55,7 +55,7 @@ Speichern Sie dies unter `~/.openclaw/openclaw.json`, und Sie können dem Bot vo
 
 ## Erweitertes Beispiel (wichtige Optionen)
 
-> JSON5 erlaubt Kommentare und nachgestellte Kommas. Normales JSON funktioniert ebenfalls.
+> JSON5 ermöglicht Kommentare und nachgestellte Kommas. Reguläres JSON funktioniert ebenfalls.
 
 ```json5
 {
@@ -453,9 +453,9 @@ Speichern Sie dies unter `~/.openclaw/openclaw.json`, und Sie können dem Bot vo
 }
 ```
 
-### Sicherer DM-Modus (gemeinsamer Posteingang / Mehrbenutzer-DMs)
+### Sicherer DM-Modus (gemeinsamer Posteingang / Multi-User-DMs)
 
-Wenn mehr als eine Person Ihrem Bot eine Direktnachricht senden kann (mehrere Einträge in `allowFrom`, Pairing-Freigaben für mehrere Personen oder `dmPolicy: "open"`), aktivieren Sie den **sicheren DM-Modus**, damit DMs von unterschiedlichen Absendern standardmäßig keinen gemeinsamen Kontext teilen:
+Wenn mehr als eine Person Ihrem Bot eine Direktnachricht senden kann (mehrere Einträge in `allowFrom`, Pairing-Freigaben für mehrere Personen oder `dmPolicy: "open"`), aktivieren Sie den **sicheren DM-Modus**, damit DMs von unterschiedlichen Absendern standardmäßig nicht denselben Kontext teilen:
 
 ```json5
 {
@@ -479,7 +479,7 @@ Wenn mehr als eine Person Ihrem Bot eine Direktnachricht senden kann (mehrere Ei
 }
 ```
 
-### OAuth mit API-Key-Failover
+### OAuth mit API-Schlüssel-Failover
 
 ```json5
 {
@@ -509,7 +509,7 @@ Wenn mehr als eine Person Ihrem Bot eine Direktnachricht senden kann (mehrere Ei
 }
 ```
 
-### Anthropic-Abonnement + API-Key, MiniMax als Fallback
+### Anthropic-Abonnement + API-Schlüssel, MiniMax-Fallback
 
 ```json5
 {
@@ -608,6 +608,6 @@ Wenn mehr als eine Person Ihrem Bot eine Direktnachricht senden kann (mehrere Ei
 ## Tipps
 
 - Wenn Sie `dmPolicy: "open"` festlegen, muss die entsprechende Liste `allowFrom` `"*"` enthalten.
-- Anbieter-IDs unterscheiden sich (Telefonnummern, Benutzer-IDs, Kanal-IDs). Nutzen Sie die Anbieter-Dokumentation, um das Format zu bestätigen.
+- Anbieter-IDs unterscheiden sich (Telefonnummern, Benutzer-IDs, Kanal-IDs). Prüfen Sie das Format in der Anbieter-Dokumentation.
 - Optionale Abschnitte zum späteren Hinzufügen: `web`, `browser`, `ui`, `discovery`, `canvasHost`, `talk`, `signal`, `imessage`.
-- Weitere Einrichtungshinweise finden Sie unter [Providers](/channels/whatsapp) und [Troubleshooting](/gateway/troubleshooting).
+- Siehe [Providers](/channels/whatsapp) und [Fehlerbehebung](/gateway/troubleshooting) für weiterführende Einrichtungshinweise.

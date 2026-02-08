@@ -1,44 +1,44 @@
 ---
-summary: "Context: mô hình nhìn thấy gì, cách nó được xây dựng và cách kiểm tra"
+summary: "Ngữ cảnh: những gì mô hình nhìn thấy, cách nó được xây dựng và cách kiểm tra"
 read_when:
   - Bạn muốn hiểu “context” nghĩa là gì trong OpenClaw
-  - Bạn đang gỡ lỗi vì sao mô hình “biết” một điều gì đó (hoặc đã quên)
-  - Bạn muốn giảm chi phí context (/context, /status, /compact)
-title: "Context"
+  - Bạn đang gỡ lỗi vì sao mô hình “biết” điều gì đó (hoặc quên nó)
+  - Bạn muốn giảm chi phí ngữ cảnh (/context, /status, /compact)
+title: "Ngữ cảnh"
 x-i18n:
   source_path: concepts/context.md
-  source_hash: b32867b9b93254fd
+  source_hash: e6f42f515380ce12
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:51Z
+  generated_at: 2026-02-08T09:38:42Z
 ---
 
-# Context
+# Ngữ cảnh
 
-“Context” là **mọi thứ OpenClaw gửi tới mô hình cho một lần chạy**. Nó bị giới hạn bởi **cửa sổ context** của mô hình (giới hạn token).
+“Context” là **mọi thứ OpenClaw gửi cho mô hình trong một lần chạy**. Nó bị giới hạn bởi **cửa sổ ngữ cảnh** (giới hạn token) của mô hình.
 
 Mô hình tư duy cho người mới bắt đầu:
 
-- **System prompt** (do OpenClaw xây dựng): quy tắc, công cụ, danh sách Skills, thời gian/runtime và các tệp workspace được chèn.
-- **Lịch sử hội thoại**: tin nhắn của bạn + tin nhắn của trợ lý trong phiên này.
+- **System prompt** (do OpenClaw xây dựng): quy tắc, công cụ, danh sách Skills, thời gian/thời gian chạy và các tệp workspace được chèn.
+- **Lịch sử hội thoại**: các tin nhắn của bạn + tin nhắn của trợ lý trong phiên này.
 - **Lời gọi/kết quả công cụ + tệp đính kèm**: đầu ra lệnh, đọc tệp, hình ảnh/âm thanh, v.v.
 
-Context _không giống_ “memory”: memory có thể được lưu trên đĩa và nạp lại sau; context là những gì nằm trong cửa sổ hiện tại của mô hình.
+Ngữ cảnh _không giống_ “bộ nhớ”: bộ nhớ có thể được lưu trên đĩa và tải lại sau; ngữ cảnh là những gì nằm trong cửa sổ hiện tại của mô hình.
 
-## Khoi dong nhanh (kiểm tra context)
+## Khởi động nhanh (kiểm tra ngữ cảnh)
 
-- `/status` → xem nhanh “cửa sổ của tôi đang đầy tới mức nào?” + cài đặt phiên.
-- `/context list` → những gì được chèn + kích thước ước lượng (theo từng tệp + tổng).
-- `/context detail` → phân rã sâu hơn: theo từng tệp, kích thước schema theo từng công cụ, kích thước mục theo từng skill và kích thước system prompt.
-- `/usage tokens` → thêm chân trang sử dụng theo từng phản hồi vào các trả lời bình thường.
+- `/status` → xem nhanh “cửa sổ của tôi đầy đến mức nào?” + cài đặt phiên.
+- `/context list` → những gì được chèn + kích thước ước tính (theo từng tệp + tổng).
+- `/context detail` → phân tích sâu hơn: kích thước theo từng tệp, theo từng schema công cụ, theo từng mục skill, và kích thước system prompt.
+- `/usage tokens` → thêm chân trang mức sử dụng theo từng phản hồi vào các câu trả lời bình thường.
 - `/compact` → tóm tắt lịch sử cũ thành một mục gọn để giải phóng không gian cửa sổ.
 
-Xem thêm: [Slash commands](/tools/slash-commands), [Token use & costs](/token-use), [Compaction](/concepts/compaction).
+Xem thêm: [Slash commands](/tools/slash-commands), [Mức dùng & chi phí token](/reference/token-use), [Nén](/concepts/compaction).
 
 ## Ví dụ đầu ra
 
-Giá trị thay đổi theo mô hình, nha cung cap, chính sách công cụ và những gì có trong workspace của bạn.
+Giá trị thay đổi theo mô hình, nhà cung cấp, chính sách công cụ và những gì có trong workspace của bạn.
 
 ### `/context list`
 
@@ -83,29 +83,29 @@ Top tools (schema size):
 … (+N more tools)
 ```
 
-## Những gì được tính vào cửa sổ context
+## Những gì được tính vào cửa sổ ngữ cảnh
 
-Mọi thứ mô hình nhận được đều được tính, bao gồm:
+Mọi thứ mà mô hình nhận được đều được tính, bao gồm:
 
 - System prompt (tất cả các phần).
 - Lịch sử hội thoại.
 - Lời gọi công cụ + kết quả công cụ.
-- Tệp đính kèm/bản ghi (hình ảnh/âm thanh/tệp).
-- Tóm tắt compaction và các tạo tác cắt tỉa.
-- “Wrapper” của nha cung cap hoặc tiêu đề ẩn (không nhìn thấy nhưng vẫn được tính).
+- Tệp đính kèm/bản chép (hình ảnh/âm thanh/tệp).
+- Tóm tắt nén và các tạo phẩm cắt tỉa.
+- “Wrapper” của nhà cung cấp hoặc header ẩn (không hiển thị, nhưng vẫn được tính).
 
 ## Cách OpenClaw xây dựng system prompt
 
-System prompt **do OpenClaw quản lý** và được xây dựng lại mỗi lần chạy. Nó bao gồm:
+System prompt **thuộc sở hữu của OpenClaw** và được xây dựng lại mỗi lần chạy. Nó bao gồm:
 
 - Danh sách công cụ + mô tả ngắn.
 - Danh sách Skills (chỉ metadata; xem bên dưới).
 - Vị trí workspace.
 - Thời gian (UTC + thời gian người dùng đã chuyển đổi nếu được cấu hình).
-- Metadata runtime (host/OS/model/thinking).
-- Các tệp bootstrap của workspace được chèn dưới **Project Context**.
+- Metadata thời gian chạy (host/OS/mô hình/suy nghĩ).
+- Các tệp bootstrap workspace được chèn dưới **Project Context**.
 
-Phân rã đầy đủ: [System Prompt](/concepts/system-prompt).
+Phân tích đầy đủ: [System Prompt](/concepts/system-prompt).
 
 ## Các tệp workspace được chèn (Project Context)
 
@@ -119,50 +119,50 @@ Theo mặc định, OpenClaw chèn một tập tệp workspace cố định (n�
 - `HEARTBEAT.md`
 - `BOOTSTRAP.md` (chỉ lần chạy đầu tiên)
 
-Các tệp lớn được cắt ngắn theo từng tệp bằng `agents.defaults.bootstrapMaxChars` (mặc định `20000` ký tự). `/context` hiển thị kích thước **thô so với đã chèn** và việc cắt ngắn có xảy ra hay không.
+Các tệp lớn được cắt bớt theo từng tệp bằng `agents.defaults.bootstrapMaxChars` (mặc định `20000` ký tự). `/context` hiển thị kích thước **thô so với được chèn** và liệu có xảy ra cắt bớt hay không.
 
-## Skills: những gì được chèn so với tải theo nhu cầu
+## Skills: những gì được chèn vs tải theo nhu cầu
 
 System prompt bao gồm một **danh sách skills** gọn (tên + mô tả + vị trí). Danh sách này có chi phí thực sự.
 
-Hướng dẫn của skill _không_ được đưa vào theo mặc định. Mô hình được kỳ vọng sẽ `read` `SKILL.md` của skill **chỉ khi cần**.
+Hướng dẫn của skill _không_ được bao gồm theo mặc định. Mô hình được kỳ vọng sẽ `read` `SKILL.md` của skill **chỉ khi cần**.
 
-## Tools: có hai loại chi phí
+## Công cụ: có hai loại chi phí
 
-Tools ảnh hưởng tới context theo hai cách:
+Công cụ ảnh hưởng đến ngữ cảnh theo hai cách:
 
 1. **Văn bản danh sách công cụ** trong system prompt (những gì bạn thấy là “Tooling”).
-2. **Schema công cụ** (JSON). Chúng được gửi tới mô hình để có thể gọi công cụ. Chúng vẫn được tính vào context dù bạn không thấy dưới dạng văn bản thuần.
+2. **Schema công cụ** (JSON). Chúng được gửi cho mô hình để có thể gọi công cụ. Chúng được tính vào ngữ cảnh ngay cả khi bạn không thấy chúng dưới dạng văn bản thuần.
 
-`/context detail` phân rã các schema công cụ lớn nhất để bạn thấy phần nào chiếm ưu thế.
+`/context detail` phân tích các schema công cụ lớn nhất để bạn thấy yếu tố nào chiếm ưu thế.
 
 ## Lệnh, chỉ thị và “phím tắt nội tuyến”
 
-Slash commands được Gateway xử lý. Có một vài hành vi khác nhau:
+Slash commands được xử lý bởi Gateway. Có một vài hành vi khác nhau:
 
-- **Lệnh độc lập**: một tin nhắn chỉ gồm `/...` sẽ chạy như một lệnh.
-- **Chỉ thị**: `/think`, `/verbose`, `/reasoning`, `/elevated`, `/model`, `/queue` sẽ bị loại bỏ trước khi mô hình nhìn thấy tin nhắn.
+- **Lệnh độc lập**: một tin nhắn chỉ chứa `/...` sẽ chạy như một lệnh.
+- **Chỉ thị**: `/think`, `/verbose`, `/reasoning`, `/elevated`, `/model`, `/queue` được loại bỏ trước khi mô hình nhìn thấy tin nhắn.
   - Tin nhắn chỉ có chỉ thị sẽ lưu cài đặt phiên.
-  - Chỉ thị nội tuyến trong tin nhắn bình thường hoạt động như gợi ý theo từng tin nhắn.
-- **Phím tắt nội tuyến** (chỉ người gửi trong allowlist): một số token `/...` trong tin nhắn bình thường có thể chạy ngay (ví dụ: “hey /status”), và sẽ bị loại bỏ trước khi mô hình thấy phần văn bản còn lại.
+  - Chỉ thị nội tuyến trong một tin nhắn bình thường hoạt động như gợi ý theo từng tin nhắn.
+- **Phím tắt nội tuyến** (chỉ người gửi trong danh sách cho phép): một số token `/...` nhất định bên trong tin nhắn bình thường có thể chạy ngay (ví dụ: “hey /status”), và được loại bỏ trước khi mô hình nhìn thấy phần văn bản còn lại.
 
 Chi tiết: [Slash commands](/tools/slash-commands).
 
-## Phiên, compaction và cắt tỉa (những gì được giữ lại)
+## Phiên, nén và cắt tỉa (những gì được lưu)
 
-Những gì được giữ lại qua các tin nhắn phụ thuộc vào cơ chế:
+Những gì được lưu giữa các tin nhắn phụ thuộc vào cơ chế:
 
-- **Lịch sử bình thường** được giữ trong bản ghi phiên cho đến khi bị compact/cắt tỉa theo chính sách.
-- **Compaction** lưu một bản tóm tắt vào bản ghi và giữ nguyên các tin nhắn gần đây.
-- **Cắt tỉa** loại bỏ các kết quả công cụ cũ khỏi prompt _trong bộ nhớ_ cho một lần chạy, nhưng không ghi lại bản ghi phiên.
+- **Lịch sử bình thường** được lưu trong bản chép phiên cho đến khi bị nén/cắt tỉa theo chính sách.
+- **Nén** lưu một bản tóm tắt vào bản chép và giữ nguyên các tin nhắn gần đây.
+- **Cắt tỉa** loại bỏ kết quả công cụ cũ khỏi prompt _trong bộ nhớ_ cho một lần chạy, nhưng không ghi lại bản chép.
 
 Tài liệu: [Session](/concepts/session), [Compaction](/concepts/compaction), [Session pruning](/concepts/session-pruning).
 
 ## `/context` thực sự báo cáo gì
 
-`/context` ưu tiên báo cáo system prompt **được xây dựng theo lần chạy** mới nhất khi có:
+`/context` ưu tiên báo cáo system prompt **được xây dựng cho lần chạy** mới nhất khi có sẵn:
 
-- `System prompt (run)` = được ghi lại từ lần chạy nhúng gần nhất (có khả năng gọi công cụ) và được lưu trong kho phiên.
+- `System prompt (run)` = được chụp từ lần chạy nhúng (có khả năng dùng công cụ) gần nhất và được lưu trong kho phiên.
 - `System prompt (estimate)` = được tính động khi không có báo cáo lần chạy (hoặc khi chạy qua backend CLI không tạo báo cáo).
 
-Dù theo cách nào, nó báo cáo kích thước và các thành phần đóng góp lớn nhất; **không** xuất toàn bộ system prompt hay schema công cụ.
+Dù theo cách nào, nó báo cáo kích thước và các yếu tố đóng góp lớn nhất; nó **không** đổ toàn bộ system prompt hay các schema công cụ.

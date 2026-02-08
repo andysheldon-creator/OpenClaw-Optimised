@@ -1,28 +1,28 @@
 ---
-summary: "Agent-Tool-Oberflaeche fuer OpenClaw (Browser, Canvas, Nodes, Message, Cron), die die Legacy-`openclaw-*`-Skills ersetzt"
+summary: „Agenten-Werkzeugoberfläche für OpenClaw (Browser, Canvas, Nodes, Nachrichten, Cron), die veraltete `openclaw-*` Skills ersetzt“
 read_when:
-  - Beim Hinzufuegen oder Aendern von Agent-Tools
-  - Beim Ausmustern oder Aendern von `openclaw-*`-Skills
-title: "Tools"
+  - Beim Hinzufügen oder Ändern von Agenten-Werkzeugen
+  - Beim Außerbetriebnehmen oder Ändern von `openclaw-*` Skills
+title: „Werkzeuge“
 x-i18n:
   source_path: tools/index.md
-  source_hash: 332c319afb6e65ad
+  source_hash: 84d3788b0f5df3d5
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:30Z
+  generated_at: 2026-02-08T09:38:16Z
 ---
 
-# Tools (OpenClaw)
+# Werkzeuge (OpenClaw)
 
-OpenClaw stellt **erstklassige Agent-Tools** fuer Browser, Canvas, Nodes und Cron bereit.
-Diese ersetzen die alten `openclaw-*`-Skills: Die Tools sind typisiert, es wird nicht in die Shell gewechselt,
+OpenClaw stellt **erstklassige Agenten-Werkzeuge** für Browser, Canvas, Nodes und Cron bereit.
+Diese ersetzen die alten `openclaw-*` Skills: Die Werkzeuge sind typisiert, ohne Shell-Aufrufe,
 und der Agent sollte sich direkt auf sie verlassen.
 
-## Tools deaktivieren
+## Werkzeuge deaktivieren
 
-Sie koennen Tools global ueber `tools.allow` / `tools.deny` in `openclaw.json`
-zulassen bzw. verbieten (Verbote haben Vorrang). Dadurch wird verhindert, dass nicht erlaubte Tools an Modellanbieter gesendet werden.
+Sie können Werkzeuge global über `tools.allow` / `tools.deny` in `openclaw.json` erlauben/verbieten
+(„deny“ gewinnt). Dadurch wird verhindert, dass nicht erlaubte Werkzeuge an Modellanbieter gesendet werden.
 
 ```json5
 {
@@ -32,13 +32,13 @@ zulassen bzw. verbieten (Verbote haben Vorrang). Dadurch wird verhindert, dass n
 
 Hinweise:
 
-- Abgleich ist nicht gross-/kleinschreibungssensitiv.
-- `*`-Wildcards werden unterstuetzt (`"*"` bedeutet alle Tools).
-- Wenn `tools.allow` nur auf unbekannte oder nicht geladene Plugin-Toolnamen verweist, protokolliert OpenClaw eine Warnung und ignoriert die Allowlist, damit Kern-Tools verfuegbar bleiben.
+- Der Abgleich ist nicht case-sensitiv.
+- `*`-Wildcards werden unterstützt (`"*"` bedeutet alle Werkzeuge).
+- Wenn `tools.allow` nur auf unbekannte oder nicht geladene Plugin-Werkzeugnamen verweist, protokolliert OpenClaw eine Warnung und ignoriert die Allowlist, sodass Kernwerkzeuge verfügbar bleiben.
 
-## Tool-Profile (Basis-Allowlist)
+## Werkzeugprofile (Basis-Allowlist)
 
-`tools.profile` setzt eine **Basis-Tool-Allowlist** vor `tools.allow`/`tools.deny`.
+`tools.profile` setzt eine **Basis-Allowlist für Werkzeuge** vor `tools.allow`/`tools.deny`.
 Pro-Agent-Override: `agents.list[].tools.profile`.
 
 Profile:
@@ -46,9 +46,9 @@ Profile:
 - `minimal`: nur `session_status`
 - `coding`: `group:fs`, `group:runtime`, `group:sessions`, `group:memory`, `image`
 - `messaging`: `group:messaging`, `sessions_list`, `sessions_history`, `sessions_send`, `session_status`
-- `full`: keine Einschraenkung (gleich wie nicht gesetzt)
+- `full`: keine Einschränkung (wie nicht gesetzt)
 
-Beispiel (standardmaessig nur Messaging, zusaetzlich Slack- + Discord-Tools erlauben):
+Beispiel (standardmäßig nur Messaging, zusätzlich Slack- und Discord-Werkzeuge erlauben):
 
 ```json5
 {
@@ -59,7 +59,7 @@ Beispiel (standardmaessig nur Messaging, zusaetzlich Slack- + Discord-Tools erla
 }
 ```
 
-Beispiel (Coding-Profil, aber exec/process ueberall verbieten):
+Beispiel (Coding-Profil, aber exec/process überall verbieten):
 
 ```json5
 {
@@ -86,18 +86,18 @@ Beispiel (globales Coding-Profil, Support-Agent nur Messaging):
 }
 ```
 
-## Anbieter-spezifische Tool-Policy
+## Anbieter­spezifische Werkzeugrichtlinie
 
-Verwenden Sie `tools.byProvider`, um Tools fuer bestimmte Anbieter
-(oder ein einzelnes `provider/model`) **weiter einzuschraenken**, ohne Ihre globalen Defaults zu aendern.
+Verwenden Sie `tools.byProvider`, um Werkzeuge für bestimmte Anbieter
+(oder ein einzelnes `provider/model`) **weiter einzuschränken**, ohne Ihre globalen Standardwerte zu ändern.
 Pro-Agent-Override: `agents.list[].tools.byProvider`.
 
-Dies wird **nach** dem Basis-Tool-Profil und **vor** den Allow/Deny-Listen angewendet,
-sodass der Tool-Satz nur eingeengt werden kann.
-Anbieter-Schluessel akzeptieren entweder `provider` (z. B. `google-antigravity`) oder
+Dies wird **nach** dem Basis-Werkzeugprofil und **vor** Allow/Deny-Listen angewendet,
+sodass der Werkzeugsatz nur eingeschränkt werden kann.
+Anbieter-Schlüssel akzeptieren entweder `provider` (z. B. `google-antigravity`) oder
 `provider/model` (z. B. `openai/gpt-5.2`).
 
-Beispiel (globales Coding-Profil beibehalten, aber minimale Tools fuer Google Antigravity):
+Beispiel (globales Coding-Profil beibehalten, aber minimale Werkzeuge für Google Antigravity):
 
 ```json5
 {
@@ -110,7 +110,7 @@ Beispiel (globales Coding-Profil beibehalten, aber minimale Tools fuer Google An
 }
 ```
 
-Beispiel (anbieter-/modell-spezifische Allowlist fuer einen instabilen Endpunkt):
+Beispiel (anbieter-/modellspezifische Allowlist für einen instabilen Endpunkt):
 
 ```json5
 {
@@ -123,7 +123,7 @@ Beispiel (anbieter-/modell-spezifische Allowlist fuer einen instabilen Endpunkt)
 }
 ```
 
-Beispiel (Agent-spezifisches Override fuer einen einzelnen Anbieter):
+Beispiel (agentenspezifischer Override für einen einzelnen Anbieter):
 
 ```json5
 {
@@ -142,12 +142,12 @@ Beispiel (Agent-spezifisches Override fuer einen einzelnen Anbieter):
 }
 ```
 
-## Tool-Gruppen (Kurzformen)
+## Werkzeuggruppen (Kurzschreibweisen)
 
-Tool-Policies (global, Agent, Sandbox) unterstuetzen `group:*`-Eintraege, die zu mehreren Tools expandieren.
+Werkzeugrichtlinien (global, Agent, sandbox) unterstützen `group:*`-Einträge, die zu mehreren Werkzeugen expandieren.
 Verwenden Sie diese in `tools.allow` / `tools.deny`.
 
-Verfuegbare Gruppen:
+Verfügbare Gruppen:
 
 - `group:runtime`: `exec`, `bash`, `process`
 - `group:fs`: `read`, `write`, `edit`, `apply_patch`
@@ -158,9 +158,9 @@ Verfuegbare Gruppen:
 - `group:automation`: `cron`, `gateway`
 - `group:messaging`: `message`
 - `group:nodes`: `nodes`
-- `group:openclaw`: alle integrierten OpenClaw-Tools (ohne Anbieter-Plugins)
+- `group:openclaw`: alle integrierten OpenClaw-Werkzeuge (schließt Anbieter-Plugins aus)
 
-Beispiel (nur Datei-Tools + Browser erlauben):
+Beispiel (nur Datei-Werkzeuge + Browser erlauben):
 
 ```json5
 {
@@ -170,50 +170,50 @@ Beispiel (nur Datei-Tools + Browser erlauben):
 }
 ```
 
-## Plugins + Tools
+## Plugins + Werkzeuge
 
-Plugins koennen **zusaetzliche Tools** (und CLI-Befehle) ueber den Kernumfang hinaus registrieren.
-Siehe [Plugins](/plugin) fuer Installation + Konfiguration und [Skills](/tools/skills) dafuer, wie
-Anleitungen zur Tool-Nutzung in Prompts eingebracht werden. Einige Plugins liefern eigene Skills
-neben Tools aus (z. B. das Voice-Call-Plugin).
+Plugins können **zusätzliche Werkzeuge** (und CLI-Befehle) über den Kernumfang hinaus registrieren.
+Siehe [Plugins](/tools/plugin) für Installation + Konfiguration und [Skills](/tools/skills) dazu,
+wie Anleitungen zur Werkzeugnutzung in Prompts eingebettet werden. Einige Plugins liefern eigene Skills
+zusammen mit Werkzeugen aus (z. B. das Voice-Call-Plugin).
 
-Optionale Plugin-Tools:
+Optionale Plugin-Werkzeuge:
 
-- [Lobster](/tools/lobster): typisierte Workflow-Laufzeit mit fortsetzbaren Freigaben (erfordert die Lobster-CLI auf dem Gateway-Host).
-- [LLM Task](/tools/llm-task): reiner JSON-LLM-Schritt fuer strukturierte Workflow-Ausgaben (optionale Schema-Validierung).
+- [Lobster](/tools/lobster): typisierte Workflow-Laufzeit mit fortsetzbaren Freigaben (erfordert die Lobster CLI auf dem Gateway-Host).
+- [LLM Task](/tools/llm-task): reiner JSON-LLM-Schritt für strukturierte Workflow-Ausgaben (optionale Schema-Validierung).
 
-## Tool-Inventar
+## Werkzeuginventar
 
 ### `apply_patch`
 
-Strukturierte Patches ueber eine oder mehrere Dateien anwenden. Verwenden Sie dies fuer Multi-Hunk-Edits.
-Experimentell: aktivieren ueber `tools.exec.applyPatch.enabled` (nur OpenAI-Modelle).
+Wenden Sie strukturierte Patches auf eine oder mehrere Dateien an. Für Multi-Hunk-Edits verwenden.
+Experimentell: aktivieren über `tools.exec.applyPatch.enabled` (nur OpenAI-Modelle).
 
 ### `exec`
 
-Shell-Befehle im Workspace ausfuehren.
+Shell-Befehle im Workspace ausführen.
 
 Kernparameter:
 
 - `command` (erforderlich)
-- `yieldMs` (Auto-Hintergrund nach Timeout, Standard 10000)
-- `background` (sofort in den Hintergrund)
-- `timeout` (Sekunden; beendet den Prozess bei Ueberschreitung, Standard 1800)
-- `elevated` (Bool; auf dem Host ausfuehren, wenn erhöhter Modus aktiviert/erlaubt ist; aendert das Verhalten nur, wenn der Agent in einer Sandbox ist)
+- `yieldMs` (automatischer Hintergrund nach Timeout, Standard 10000)
+- `background` (sofortiger Hintergrund)
+- `timeout` (Sekunden; beendet den Prozess bei Überschreitung, Standard 1800)
+- `elevated` (Bool; auf dem Host ausführen, wenn erhöhter Modus aktiviert/erlaubt ist; ändert das Verhalten nur, wenn der Agent sandboxed ist)
 - `host` (`sandbox | gateway | node`)
 - `security` (`deny | allowlist | full`)
 - `ask` (`off | on-miss | always`)
-- `node` (Node-ID/-Name fuer `host=node`)
-- Brauchen Sie ein echtes TTY? Setzen Sie `pty: true`.
+- `node` (Node-ID/-Name für `host=node`)
+- Benötigen Sie ein echtes TTY? Setzen Sie `pty: true`.
 
 Hinweise:
 
-- Gibt `status: "running"` mit einer `sessionId` zurueck, wenn in den Hintergrund gelegt.
+- Gibt `status: "running"` mit einer `sessionId` zurück, wenn im Hintergrund.
 - Verwenden Sie `process`, um Hintergrund-Sitzungen abzufragen/protokollieren/schreiben/beenden/leeren.
-- Wenn `process` nicht erlaubt ist, laeuft `exec` synchron und ignoriert `yieldMs`/`background`.
-- `elevated` ist durch `tools.elevated` plus ein moegliches `agents.list[].tools.elevated`-Override gesteuert (beide muessen erlauben) und ist ein Alias fuer `host=gateway` + `security=full`.
-- `elevated` aendert das Verhalten nur, wenn der Agent in einer Sandbox ist (ansonsten No-Op).
-- `host=node` kann eine macOS-Begleit-App oder einen headless Node-Host ansprechen (`openclaw node run`).
+- Wenn `process` nicht erlaubt ist, läuft `exec` synchron und ignoriert `yieldMs`/`background`.
+- `elevated` ist durch `tools.elevated` plus einen `agents.list[].tools.elevated`-Override geschützt (beide müssen erlauben) und ist ein Alias für `host=gateway` + `security=full`.
+- `elevated` ändert das Verhalten nur, wenn der Agent sandboxed ist (sonst No-op).
+- `host=node` kann eine macOS-Companion-App oder einen headless Node-Host adressieren (`openclaw node run`).
 - Gateway-/Node-Freigaben und Allowlists: [Exec approvals](/tools/exec-approvals).
 
 ### `process`
@@ -226,13 +226,13 @@ Kernaktionen:
 
 Hinweise:
 
-- `poll` gibt neue Ausgaben und den Exit-Status zurueck, wenn abgeschlossen.
-- `log` unterstuetzt zeilenbasierte `offset`/`limit` (lassen Sie `offset` weg, um die letzten N Zeilen zu holen).
+- `poll` gibt neue Ausgabe und Exit-Status zurück, wenn abgeschlossen.
+- `log` unterstützt zeilenbasierte `offset`/`limit` (lassen Sie `offset` weg, um die letzten N Zeilen zu erhalten).
 - `process` ist pro Agent begrenzt; Sitzungen anderer Agenten sind nicht sichtbar.
 
 ### `web_search`
 
-Websuche mit der Brave-Search-API.
+Websuche mit der Brave Search API.
 
 Kernparameter:
 
@@ -241,29 +241,29 @@ Kernparameter:
 
 Hinweise:
 
-- Erfordert einen Brave-API-Schluessel (empfohlen: `openclaw configure --section web` oder setzen Sie `BRAVE_API_KEY`).
-- Aktivieren ueber `tools.web.search.enabled`.
-- Antworten werden zwischengespeichert (Standard 15 Min.).
-- Siehe [Web tools](/tools/web) fuer die Einrichtung.
+- Erfordert einen Brave-API-Schlüssel (empfohlen: `openclaw configure --section web`, oder setzen Sie `BRAVE_API_KEY`).
+- Aktivieren über `tools.web.search.enabled`.
+- Antworten werden gecacht (Standard 15 Min.).
+- Siehe [Web tools](/tools/web) für die Einrichtung.
 
 ### `web_fetch`
 
-Lesbaren Inhalt aus einer URL abrufen und extrahieren (HTML → Markdown/Text).
+Inhalte von einer URL abrufen und lesbar extrahieren (HTML → Markdown/Text).
 
 Kernparameter:
 
 - `url` (erforderlich)
 - `extractMode` (`markdown` | `text`)
-- `maxChars` (lange Seiten kuerzen)
+- `maxChars` (lange Seiten kürzen)
 
 Hinweise:
 
-- Aktivieren ueber `tools.web.fetch.enabled`.
+- Aktivieren über `tools.web.fetch.enabled`.
 - `maxChars` wird durch `tools.web.fetch.maxCharsCap` begrenzt (Standard 50000).
-- Antworten werden zwischengespeichert (Standard 15 Min.).
-- Fuer JS-lastige Seiten bevorzugen Sie das Browser-Tool.
-- Siehe [Web tools](/tools/web) fuer die Einrichtung.
-- Siehe [Firecrawl](/tools/firecrawl) fuer den optionalen Anti-Bot-Fallback.
+- Antworten werden gecacht (Standard 15 Min.).
+- Für JS-lastige Seiten bevorzugen Sie das Browser-Werkzeug.
+- Siehe [Web tools](/tools/web) für die Einrichtung.
+- Siehe [Firecrawl](/tools/firecrawl) für das optionale Anti-Bot-Fallback.
 
 ### `browser`
 
@@ -273,7 +273,7 @@ Kernaktionen:
 
 - `status`, `start`, `stop`, `tabs`, `open`, `focus`, `close`
 - `snapshot` (aria/ai)
-- `screenshot` (gibt Image-Block + `MEDIA:<path>` zurueck)
+- `screenshot` (liefert Image-Block + `MEDIA:<path>`)
 - `act` (UI-Aktionen: click/type/press/hover/drag/select/fill/resize/wait/evaluate)
 - `navigate`, `console`, `pdf`, `upload`, `dialog`
 
@@ -281,28 +281,28 @@ Profilverwaltung:
 
 - `profiles` — alle Browser-Profile mit Status auflisten
 - `create-profile` — neues Profil mit automatisch zugewiesenem Port erstellen (oder `cdpUrl`)
-- `delete-profile` — Browser stoppen, Benutzerdaten loeschen, aus der Konfiguration entfernen (nur lokal)
+- `delete-profile` — Browser stoppen, Benutzerdaten löschen, aus der Konfiguration entfernen (nur lokal)
 - `reset-profile` — verwaisten Prozess auf dem Port des Profils beenden (nur lokal)
 
-Haeufige Parameter:
+Gemeinsame Parameter:
 
 - `profile` (optional; Standard `browser.defaultProfile`)
 - `target` (`sandbox` | `host` | `node`)
-- `node` (optional; waehlt eine spezifische Node-ID/-Name)
+- `node` (optional; wählt eine spezifische Node-ID/-Name)
   Hinweise:
-- Erfordert `browser.enabled=true` (Standard ist `true`; setzen Sie `false` zum Deaktivieren).
-- Alle Aktionen akzeptieren den optionalen Parameter `profile` fuer Multi-Instanz-Unterstuetzung.
+- Erfordert `browser.enabled=true` (Standard `true`; setzen Sie `false`, um zu deaktivieren).
+- Alle Aktionen akzeptieren den optionalen Parameter `profile` für Multi-Instanz-Unterstützung.
 - Wenn `profile` fehlt, wird `browser.defaultProfile` verwendet (Standard „chrome“).
-- Profilnamen: nur kleingeschriebene alphanumerische Zeichen + Bindestriche (max. 64 Zeichen).
+- Profilnamen: nur Kleinbuchstaben, alphanumerisch + Bindestriche (max. 64 Zeichen).
 - Portbereich: 18800–18899 (~100 Profile max.).
-- Remote-Profile sind nur „attach-only“ (kein Start/Stop/Reset).
-- Wenn eine browserfaehige Node verbunden ist, kann das Tool automatisch dorthin routen (sofern Sie nicht `target` festpinnen).
-- `snapshot` verwendet standardmaessig `ai`, wenn Playwright installiert ist; nutzen Sie `aria` fuer den Accessibility-Tree.
-- `snapshot` unterstuetzt auch Role-Snapshot-Optionen (`interactive`, `compact`, `depth`, `selector`), die Referenzen wie `e12` zurueckgeben.
-- `act` erfordert `ref` aus `snapshot` (numerische `12` aus AI-Snapshots oder `e12` aus Role-Snapshots); verwenden Sie `evaluate` fuer seltene CSS-Selektor-Bedarfe.
-- Vermeiden Sie `act` → `wait` standardmaessig; nutzen Sie es nur in Ausnahmefaellen (kein verlaesslicher UI-Zustand zum Warten).
-- `upload` kann optional eine `ref` uebergeben, um nach dem Scharfschalten automatisch zu klicken.
-- `upload` unterstuetzt auch `inputRef` (aria-Ref) oder `element` (CSS-Selektor), um `<input type="file">` direkt zu setzen.
+- Remote-Profile sind nur „attach-only“ (kein Start/Stopp/Reset).
+- Wenn eine browserfähige Node verbunden ist, kann das Werkzeug automatisch dorthin routen (außer Sie fixieren `target`).
+- `snapshot` verwendet standardmäßig `ai`, wenn Playwright installiert ist; verwenden Sie `aria` für den Accessibility-Tree.
+- `snapshot` unterstützt auch Role-Snapshot-Optionen (`interactive`, `compact`, `depth`, `selector`), die Refs wie `e12` zurückgeben.
+- `act` erfordert `ref` aus `snapshot` (numerische `12` aus AI-Snapshots oder `e12` aus Role-Snapshots); verwenden Sie `evaluate` für seltene CSS-Selektor-Fälle.
+- Vermeiden Sie standardmäßig `act` → `wait`; nur in Ausnahmefällen verwenden (keine verlässliche UI-State, auf die gewartet werden kann).
+- `upload` kann optional eine `ref` übergeben, um nach dem Scharfstellen automatisch zu klicken.
+- `upload` unterstützt auch `inputRef` (aria ref) oder `element` (CSS-Selektor), um `<input type="file">` direkt zu setzen.
 
 ### `canvas`
 
@@ -311,19 +311,19 @@ Das Node-Canvas steuern (present, eval, snapshot, A2UI).
 Kernaktionen:
 
 - `present`, `hide`, `navigate`, `eval`
-- `snapshot` (gibt Image-Block + `MEDIA:<path>` zurueck)
+- `snapshot` (liefert Image-Block + `MEDIA:<path>`)
 - `a2ui_push`, `a2ui_reset`
 
 Hinweise:
 
-- Verwendet unter der Haube das Gateway-`node.invoke`.
-- Wenn kein `node` angegeben ist, waehlt das Tool einen Standard (einzelne verbundene Node oder lokaler Mac-Node).
+- Verwendet unter der Haube Gateway-`node.invoke`.
+- Wenn kein `node` angegeben ist, wählt das Werkzeug einen Standard (einzelne verbundene Node oder lokaler Mac-Node).
 - A2UI ist nur v0.8 (kein `createSurface`); die CLI lehnt v0.9-JSONL mit Zeilenfehlern ab.
 - Schneller Smoke-Test: `openclaw nodes canvas a2ui push --node <id> --text "Hello from A2UI"`.
 
 ### `nodes`
 
-Gepaarte Nodes erkennen und ansprechen; Benachrichtigungen senden; Kamera/Bildschirm erfassen.
+Gekoppelte Nodes entdecken und adressieren; Benachrichtigungen senden; Kamera/Bildschirm erfassen.
 
 Kernaktionen:
 
@@ -337,9 +337,9 @@ Kernaktionen:
 Hinweise:
 
 - Kamera-/Bildschirmbefehle erfordern, dass die Node-App im Vordergrund ist.
-- Bilder geben Image-Blöcke + `MEDIA:<path>` zurueck.
-- Videos geben `FILE:<path>` (mp4) zurueck.
-- Standort gibt ein JSON-Payload zurueck (lat/lon/accuracy/timestamp).
+- Bilder liefern Image-Blöcke + `MEDIA:<path>`.
+- Videos liefern `FILE:<path>` (mp4).
+- Standort liefert ein JSON-Payload (lat/lon/accuracy/timestamp).
 - `run`-Parameter: `command` argv-Array; optional `cwd`, `env` (`KEY=VAL`), `commandTimeoutMs`, `invokeTimeoutMs`, `needsScreenRecording`.
 
 Beispiel (`run`):
@@ -364,22 +364,22 @@ Kernparameter:
 
 - `image` (erforderlicher Pfad oder URL)
 - `prompt` (optional; Standard „Describe the image.“)
-- `model` (optionales Override)
-- `maxBytesMb` (optionale Groessenbegrenzung)
+- `model` (optionaler Override)
+- `maxBytesMb` (optionale Größenbegrenzung)
 
 Hinweise:
 
-- Nur verfuegbar, wenn `agents.defaults.imageModel` konfiguriert ist (primaer oder Fallbacks) oder wenn aus Ihrem Standardmodell + konfigurierter Auth implizit ein Bildmodell abgeleitet werden kann (Best-Effort-Paarung).
-- Verwendet das Bildmodell direkt (unabhaengig vom Haupt-Chatmodell).
+- Nur verfügbar, wenn `agents.defaults.imageModel` konfiguriert ist (primär oder Fallbacks) oder wenn ein implizites Bildmodell aus Ihrem Standardmodell + konfigurierter Auth abgeleitet werden kann (Best-Effort-Paarung).
+- Verwendet das Bildmodell direkt (unabhängig vom Haupt-Chatmodell).
 
 ### `message`
 
-Nachrichten und Kanalaktionen ueber Discord/Google Chat/Slack/Telegram/WhatsApp/Signal/iMessage/MS Teams senden.
+Nachrichten und Kanalaktionen über Discord/Google Chat/Slack/Telegram/WhatsApp/Signal/iMessage/MS Teams senden.
 
 Kernaktionen:
 
-- `send` (Text + optionale Medien; MS Teams unterstuetzt zusaetzlich `card` fuer Adaptive Cards)
-- `poll` (WhatsApp/Discord/MS Teams-Umfragen)
+- `send` (Text + optionale Medien; MS Teams unterstützt zusätzlich `card` für Adaptive Cards)
+- `poll` (WhatsApp/Discord/MS-Teams-Umfragen)
 - `react` / `reactions` / `read` / `edit` / `delete`
 - `pin` / `unpin` / `list-pins`
 - `permissions`
@@ -396,13 +396,13 @@ Kernaktionen:
 
 Hinweise:
 
-- `send` leitet WhatsApp ueber das Gateway; andere Kanaele gehen direkt.
-- `poll` verwendet das Gateway fuer WhatsApp und MS Teams; Discord-Umfragen gehen direkt.
-- Wenn ein Message-Tool-Call an eine aktive Chat-Sitzung gebunden ist, sind Sendungen auf das Ziel dieser Sitzung beschraenkt, um Kontext-Leaks zu vermeiden.
+- `send` routet WhatsApp über das Gateway; andere Kanäle gehen direkt.
+- `poll` verwendet das Gateway für WhatsApp und MS Teams; Discord-Umfragen gehen direkt.
+- Wenn ein Nachrichten-Werkzeugaufruf an eine aktive Chat-Sitzung gebunden ist, sind Sendungen auf das Ziel dieser Sitzung beschränkt, um Kontext-Leaks zu vermeiden.
 
 ### `cron`
 
-Gateway-Cronjobs und Wakeups verwalten.
+Gateway-Cron-Jobs und Wakeups verwalten.
 
 Kernaktionen:
 
@@ -412,83 +412,83 @@ Kernaktionen:
 
 Hinweise:
 
-- `add` erwartet ein vollstaendiges Cronjob-Objekt (gleiches Schema wie die `cron.add`-RPC).
-- `update` verwendet `{ id, patch }`.
+- `add` erwartet ein vollständiges Cron-Job-Objekt (gleiches Schema wie `cron.add` RPC).
+- `update` verwendet `{ jobId, patch }` (`id` wird aus Kompatibilitätsgründen akzeptiert).
 
 ### `gateway`
 
-Den laufenden Gateway-Prozess neu starten oder Updates anwenden (In-Place).
+Den laufenden Gateway-Prozess neu starten oder Updates anwenden (in-place).
 
 Kernaktionen:
 
-- `restart` (autorisiert + sendet `SIGUSR1` fuer In-Process-Restart; `openclaw gateway` Neustart In-Place)
+- `restart` (autorisiert + sendet `SIGUSR1` für In-Process-Restart; `openclaw gateway` Neustart in-place)
 - `config.get` / `config.schema`
 - `config.apply` (validieren + Konfiguration schreiben + Neustart + Wake)
-- `config.patch` (partielles Update mergen + Neustart + Wake)
-- `update.run` (Update ausfuehren + Neustart + Wake)
+- `config.patch` (partielles Update zusammenführen + Neustart + Wake)
+- `update.run` (Update ausführen + Neustart + Wake)
 
 Hinweise:
 
 - Verwenden Sie `delayMs` (Standard 2000), um eine laufende Antwort nicht zu unterbrechen.
-- `restart` ist standardmaessig deaktiviert; aktivieren Sie es mit `commands.restart: true`.
+- `restart` ist standardmäßig deaktiviert; aktivieren Sie es mit `commands.restart: true`.
 
 ### `sessions_list` / `sessions_history` / `sessions_send` / `sessions_spawn` / `session_status`
 
-Sitzungen auflisten, Transkriptverlauf inspizieren oder an eine andere Sitzung senden.
+Sitzungen auflisten, Transkriptverlauf prüfen oder an eine andere Sitzung senden.
 
 Kernparameter:
 
 - `sessions_list`: `kinds?`, `limit?`, `activeMinutes?`, `messageLimit?` (0 = keine)
 - `sessions_history`: `sessionKey` (oder `sessionId`), `limit?`, `includeTools?`
-- `sessions_send`: `sessionKey` (oder `sessionId`), `message`, `timeoutSeconds?` (0 = Fire-and-Forget)
+- `sessions_send`: `sessionKey` (oder `sessionId`), `message`, `timeoutSeconds?` (0 = Fire-and-forget)
 - `sessions_spawn`: `task`, `label?`, `agentId?`, `model?`, `runTimeoutSeconds?`, `cleanup?`
-- `session_status`: `sessionKey?` (Standard aktuell; akzeptiert `sessionId`), `model?` (`default` hebt Override auf)
+- `session_status`: `sessionKey?` (Standard aktuell; akzeptiert `sessionId`), `model?` (`default` löscht den Override)
 
 Hinweise:
 
-- `main` ist der kanonische Direct-Chat-Schluessel; global/unbekannt sind verborgen.
-- `messageLimit > 0` holt die letzten N Nachrichten pro Sitzung (Tool-Nachrichten gefiltert).
-- `sessions_send` wartet auf die finale Fertigstellung, wenn `timeoutSeconds > 0`.
-- Zustellung/Ankuendigung erfolgt nach Abschluss und nach Best-Effort; `status: "ok"` bestaetigt, dass der Agentenlauf beendet ist, nicht dass die Ankuendigung zugestellt wurde.
-- `sessions_spawn` startet einen Sub-Agentenlauf und postet eine Ankuendigungsantwort zurueck in den anfragenden Chat.
-- `sessions_spawn` ist nicht blockierend und gibt `status: "accepted"` sofort zurueck.
-- `sessions_send` fuehrt ein Reply-back-Ping-Pong aus (Antwort `REPLY_SKIP` zum Stoppen; max. Zuege ueber `session.agentToAgent.maxPingPongTurns`, 0–5).
-- Nach dem Ping-Pong fuehrt der Zielagent einen **Announce-Schritt** aus; antworten Sie `ANNOUNCE_SKIP`, um die Ankuendigung zu unterdruecken.
+- `main` ist der kanonische Direkt-Chat-Schlüssel; global/unbekannt sind ausgeblendet.
+- `messageLimit > 0` ruft die letzten N Nachrichten pro Sitzung ab (Werkzeugnachrichten gefiltert).
+- `sessions_send` wartet auf den finalen Abschluss, wenn `timeoutSeconds > 0`.
+- Zustellung/Ankündigung erfolgt nach Abschluss und ist Best-Effort; `status: "ok"` bestätigt, dass der Agentenlauf beendet ist, nicht dass die Ankündigung zugestellt wurde.
+- `sessions_spawn` startet einen Sub-Agent-Lauf und postet eine Ankündigungsantwort zurück in den anfragenden Chat.
+- `sessions_spawn` ist nicht blockierend und gibt sofort `status: "accepted"` zurück.
+- `sessions_send` führt ein Reply-back-Pingpong aus (Antwort `REPLY_SKIP`, um zu stoppen; max. Züge über `session.agentToAgent.maxPingPongTurns`, 0–5).
+- Nach dem Pingpong führt der Ziel-Agent einen **Ankündigungsschritt** aus; antworten Sie mit `ANNOUNCE_SKIP`, um die Ankündigung zu unterdrücken.
 
 ### `agents_list`
 
-Agent-IDs auflisten, die die aktuelle Sitzung mit `sessions_spawn` ansprechen darf.
+Agent-IDs auflisten, die die aktuelle Sitzung mit `sessions_spawn` adressieren darf.
 
 Hinweise:
 
-- Das Ergebnis ist auf Pro-Agent-Allowlists beschraenkt (`agents.list[].subagents.allowAgents`).
-- Wenn `["*"]` konfiguriert ist, enthaelt das Tool alle konfigurierten Agenten und markiert `allowAny: true`.
+- Das Ergebnis ist auf Pro-Agent-Allowlists beschränkt (`agents.list[].subagents.allowAgents`).
+- Wenn `["*"]` konfiguriert ist, enthält das Werkzeug alle konfigurierten Agenten und markiert `allowAny: true`.
 
 ## Parameter (gemeinsam)
 
-Gateway-gestuetzte Tools (`canvas`, `nodes`, `cron`):
+Gateway-gestützte Werkzeuge (`canvas`, `nodes`, `cron`):
 
 - `gatewayUrl` (Standard `ws://127.0.0.1:18789`)
-- `gatewayToken` (wenn Auth aktiviert)
+- `gatewayToken` (falls Auth aktiviert)
 - `timeoutMs`
 
-Hinweis: Wenn `gatewayUrl` gesetzt ist, geben Sie `gatewayToken` explizit an. Tools erben keine Konfiguration
-oder Umgebungs-Credentials fuer Overrides, und fehlende explizite Credentials sind ein Fehler.
+Hinweis: Wenn `gatewayUrl` gesetzt ist, geben Sie `gatewayToken` explizit an. Werkzeuge erben keine Konfiguration
+oder Umgebungs-Credentials für Overrides; fehlende explizite Credentials sind ein Fehler.
 
-Browser-Tool:
+Browser-Werkzeug:
 
 - `profile` (optional; Standard `browser.defaultProfile`)
 - `target` (`sandbox` | `host` | `node`)
-- `node` (optional; spezifische Node-ID/-Name festpinnen)
+- `node` (optional; spezifische Node-ID/-Name fixieren)
 
-## Empfohlene Agentenablaeufe
+## Empfohlene Agentenabläufe
 
 Browser-Automatisierung:
 
 1. `browser` → `status` / `start`
 2. `snapshot` (ai oder aria)
 3. `act` (click/type/press)
-4. `screenshot`, falls Sie eine visuelle Bestaetigung benoetigen
+4. `screenshot` bei Bedarf zur visuellen Bestätigung
 
 Canvas-Rendern:
 
@@ -499,21 +499,21 @@ Canvas-Rendern:
 Node-Targeting:
 
 1. `nodes` → `status`
-2. `describe` auf der gewaehlten Node
+2. `describe` auf der gewählten Node
 3. `notify` / `run` / `camera_snap` / `screen_record`
 
 ## Sicherheit
 
-- Vermeiden Sie direktes `system.run`; verwenden Sie `nodes` → `run` nur mit ausdruecklicher Nutzerzustimmung.
-- Respektieren Sie die Nutzerzustimmung fuer Kamera-/Bildschirmaufnahmen.
+- Vermeiden Sie direktes `system.run`; verwenden Sie `nodes` → `run` nur mit ausdrücklicher Zustimmung des Nutzers.
+- Respektieren Sie die Zustimmung des Nutzers für Kamera-/Bildschirmaufnahmen.
 - Verwenden Sie `status/describe`, um Berechtigungen sicherzustellen, bevor Medienbefehle aufgerufen werden.
 
-## Wie Tools dem Agenten praesentiert werden
+## Wie Werkzeuge dem Agenten präsentiert werden
 
-Tools werden in zwei parallelen Kanaelen bereitgestellt:
+Werkzeuge werden in zwei parallelen Kanälen bereitgestellt:
 
 1. **System-Prompt-Text**: eine menschenlesbare Liste + Anleitung.
-2. **Tool-Schema**: die strukturierten Funktionsdefinitionen, die an die Modell-API gesendet werden.
+2. **Werkzeug-Schema**: die strukturierten Funktionsdefinitionen, die an die Modell-API gesendet werden.
 
-Das bedeutet, der Agent sieht sowohl „welche Tools existieren“ als auch „wie man sie aufruft“. Wenn ein Tool
-nicht im System-Prompt oder im Schema erscheint, kann das Modell es nicht aufrufen.
+Das bedeutet, der Agent sieht sowohl „welche Werkzeuge existieren“ als auch „wie man sie aufruft“. Wenn ein Werkzeug
+weder im System-Prompt noch im Schema erscheint, kann das Modell es nicht aufrufen.

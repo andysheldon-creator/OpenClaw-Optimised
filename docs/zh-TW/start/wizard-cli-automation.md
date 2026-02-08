@@ -1,8 +1,8 @@
 ---
 summary: "適用於 OpenClaw CLI 的腳本化入門引導與代理程式設定"
 read_when:
-  - 您正在以腳本或 CI 自動化入門引導
-  - 您需要針對特定提供者的非互動式範例
+  - 你正在於腳本或 CI 中自動化入門引導
+  - 你需要針對特定提供者的非互動式範例
 title: "CLI 自動化"
 sidebarTitle: "CLI automation"
 x-i18n:
@@ -11,7 +11,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:54:41Z
+  generated_at: 2026-02-08T09:29:20Z
 ---
 
 # CLI 自動化
@@ -22,7 +22,7 @@ x-i18n:
 `--json` 不代表非互動模式。請在腳本中使用 `--non-interactive`（以及 `--workspace`）。
 </Note>
 
-## 基準非互動式範例
+## 基本的非互動式範例
 
 ```bash
 openclaw onboard --non-interactive \
@@ -36,7 +36,7 @@ openclaw onboard --non-interactive \
   --skip-skills
 ```
 
-加入 `--json` 以取得機器可讀的摘要。
+加入 `--json` 以取得可供機器讀取的摘要。
 
 ## 提供者專屬範例
 
@@ -117,7 +117,7 @@ openclaw onboard --non-interactive \
 
 ## 新增另一個代理程式
 
-使用 `openclaw agents add <name>` 建立一個具有獨立工作區、工作階段與驗證設定檔的代理程式。未搭配 `--workspace` 執行時，會啟動精靈。
+使用 `openclaw agents add <name>` 建立具有獨立工作區、工作階段與身分驗證設定檔的代理程式。未使用 `--workspace` 執行時，將啟動精靈。
 
 ```bash
 openclaw agents add work \
@@ -128,7 +128,7 @@ openclaw agents add work \
   --json
 ```
 
-它會設定的項目：
+其設定內容：
 
 - `agents.list[].name`
 - `agents.list[].workspace`
@@ -137,11 +137,11 @@ openclaw agents add work \
 注意事項：
 
 - 預設工作區遵循 `~/.openclaw/workspace-<agentId>`。
-- 加入 `bindings` 以路由傳入訊息（精靈也可以完成此設定）。
+- 加入 `bindings` 以路由傳入訊息（精靈可完成此設定）。
 - 非互動式旗標：`--model`、`--agent-dir`、`--bind`、`--non-interactive`。
 
 ## 相關文件
 
-- 入門引導中樞：[Onboarding Wizard (CLI)](/start/wizard)
+- 入門引導中心：[Onboarding Wizard (CLI)](/start/wizard)
 - 完整參考：[CLI Onboarding Reference](/start/wizard-cli-reference)
 - 指令參考：[`openclaw onboard`](/cli/onboard)

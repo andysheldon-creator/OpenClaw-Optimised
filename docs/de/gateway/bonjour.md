@@ -1,44 +1,43 @@
 ---
-summary: "Bonjour-/mDNS-Erkennung + Fehleranalyse (Gateway-Beacons, Clients und haeufige Fehlermodi)"
+summary: "Bonjour/mDNS-Erkennung + Debugging (Gateway-Beacons, Clients und häufige Fehlermodi)"
 read_when:
-  - Fehlerbehebung bei Bonjour-Erkennungsproblemen unter macOS/iOS
-  - Aendern von mDNS-Servicetypen, TXT-Records oder der Discovery-UX
+  - Debugging von Bonjour-Erkennungsproblemen unter macOS/iOS
+  - Ändern von mDNS-Servicetypen, TXT-Records oder der Discovery-UX
 title: "Bonjour-Erkennung"
 x-i18n:
   source_path: gateway/bonjour.md
-  source_hash: 47569da55f0c0523
+  source_hash: 6f1d676ded5a500c
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:04:25Z
+  generated_at: 2026-02-08T09:36:17Z
 ---
 
-# Bonjour- / mDNS-Erkennung
+# Bonjour / mDNS-Erkennung
 
 OpenClaw verwendet Bonjour (mDNS / DNS‑SD) als **reine LAN‑Komfortfunktion**, um
-ein aktives Gateway (WebSocket-Endpunkt) zu entdecken. Dies ist Best‑Effort und
-ersetzt **nicht** SSH oder Tailnet-basierte Konnektivitaet.
+einen aktiven Gateway (WebSocket-Endpunkt) zu erkennen. Dies ist Best‑Effort und
+ersetzt **nicht** SSH oder Tailnet‑basierte Konnektivität.
 
-## Wide‑Area Bonjour (Unicast DNS‑SD) ueber Tailscale
+## Weitbereichs‑Bonjour (Unicast DNS‑SD) über Tailscale
 
-Befinden sich Node und Gateway in unterschiedlichen Netzwerken, ueberquert
-multicast mDNS diese Grenze nicht. Sie koennen die gleiche Discovery-UX
-beibehalten, indem Sie zu **Unicast DNS‑SD** („Wide‑Area Bonjour“) ueber
-Tailscale wechseln.
+Wenn sich Node und Gateway in unterschiedlichen Netzwerken befinden, überschreitet
+multicast‑mDNS die Netzwerkgrenze nicht. Sie können die gleiche Discovery‑UX beibehalten,
+indem Sie auf **Unicast DNS‑SD** („Wide‑Area Bonjour“) über Tailscale umstellen.
 
-High‑Level‑Schritte:
+Grobablauf:
 
-1. Betreiben Sie einen DNS-Server auf dem Gateway-Host (ueber das Tailnet erreichbar).
-2. Veröffentlichen Sie DNS‑SD‑Records fuer `_openclaw-gw._tcp` unter einer dedizierten Zone
+1. Betreiben Sie einen DNS‑Server auf dem Gateway‑Host (über das Tailnet erreichbar).
+2. Veröffentlichen Sie DNS‑SD‑Records für `_openclaw-gw._tcp` unter einer dedizierten Zone
    (Beispiel: `openclaw.internal.`).
-3. Konfigurieren Sie Tailscale **Split DNS**, sodass Ihre gewaehlte Domain fuer
-   Clients (einschliesslich iOS) ueber diesen DNS-Server aufgeloest wird.
+3. Konfigurieren Sie Tailscale **Split DNS**, sodass Ihre gewählte Domain für Clients
+   (einschließlich iOS) über diesen DNS‑Server aufgelöst wird.
 
-OpenClaw unterstuetzt jede Discovery-Domain; `openclaw.internal.` ist nur ein Beispiel.
-iOS-/Android-Nodes durchsuchen sowohl `local.` als auch Ihre konfigurierte
-Wide‑Area-Domain.
+OpenClaw unterstützt jede Discovery‑Domain; `openclaw.internal.` ist nur ein Beispiel.
+iOS/Android‑Nodes durchsuchen sowohl `local.` als auch Ihre konfigurierte
+Weitbereichs‑Domain.
 
-### Gateway-Konfiguration (empfohlen)
+### Gateway‑Konfiguration (empfohlen)
 
 ```json5
 {
@@ -47,16 +46,16 @@ Wide‑Area-Domain.
 }
 ```
 
-### Einmalige DNS-Server-Einrichtung (Gateway-Host)
+### Einmalige DNS‑Server‑Einrichtung (Gateway‑Host)
 
 ```bash
 openclaw dns setup --apply
 ```
 
-Dies installiert CoreDNS und konfiguriert es so, dass es:
+Dies installiert CoreDNS und konfiguriert es so, dass:
 
-- auf Port 53 ausschliesslich auf den Tailscale-Interfaces des Gateways lauscht
-- Ihre gewaehlte Domain (Beispiel: `openclaw.internal.`) aus `~/.openclaw/dns/<domain>.db` bereitstellt
+- auf Port 53 nur auf den Tailscale‑Interfaces des Gateways gelauscht wird
+- Ihre gewählte Domain (Beispiel: `openclaw.internal.`) aus `~/.openclaw/dns/<domain>.db` bedient wird
 
 Validieren Sie dies von einer mit dem Tailnet verbundenen Maschine:
 
@@ -65,112 +64,116 @@ dns-sd -B _openclaw-gw._tcp openclaw.internal.
 dig @<TAILNET_IPV4> -p 53 _openclaw-gw._tcp.openclaw.internal PTR +short
 ```
 
-### Tailscale-DNS-Einstellungen
+### Tailscale‑DNS‑Einstellungen
 
-In der Tailscale-Admin-Konsole:
+In der Tailscale‑Admin‑Konsole:
 
-- Fuegen Sie einen Nameserver hinzu, der auf die Tailnet-IP des Gateways zeigt (UDP/TCP 53).
-- Fuegen Sie Split DNS hinzu, sodass Ihre Discovery-Domain diesen Nameserver verwendet.
+- Fügen Sie einen Nameserver hinzu, der auf die Tailnet‑IP des Gateways zeigt (UDP/TCP 53).
+- Fügen Sie Split DNS hinzu, sodass Ihre Discovery‑Domain diesen Nameserver verwendet.
 
-Sobald Clients die Tailnet-DNS-Einstellungen akzeptieren, koennen iOS-Nodes
-`_openclaw-gw._tcp` in Ihrer Discovery-Domain ohne Multicast durchsuchen.
+Sobald Clients das Tailnet‑DNS akzeptieren, können iOS‑Nodes
+`_openclaw-gw._tcp` in Ihrer Discovery‑Domain ohne Multicast durchsuchen.
 
-### Sicherheit des Gateway-Listeners (empfohlen)
+### Sicherheit des Gateway‑Listeners (empfohlen)
 
-Der Gateway-WS-Port (Standard `18789`) bindet standardmaessig an Loopback.
-Fuer LAN-/Tailnet-Zugriff binden Sie explizit und lassen die Authentifizierung aktiviert.
+Der Gateway‑WS‑Port (Standard `18789`) bindet standardmäßig an Loopback. Für
+LAN-/Tailnet‑Zugriff binden Sie explizit und lassen die Authentifizierung aktiviert.
 
-Fuer reine Tailnet-Setups:
+Für reine Tailnet‑Setups:
 
 - Setzen Sie `gateway.bind: "tailnet"` in `~/.openclaw/openclaw.json`.
-- Starten Sie das Gateway neu (oder starten Sie die macOS-Menueleisten-App neu).
+- Starten Sie den Gateway neu (oder starten Sie die macOS‑Menüleisten‑App neu).
 
-## Was bewirbt
+## Was annonciert wird
 
-Nur das Gateway bewirbt `_openclaw-gw._tcp`.
+Nur der Gateway annonciert `_openclaw-gw._tcp`.
 
 ## Servicetypen
 
-- `_openclaw-gw._tcp` — Gateway-Transport-Beacon (verwendet von macOS-/iOS-/Android-Nodes).
+- `_openclaw-gw._tcp` — Gateway‑Transport‑Beacon (verwendet von macOS/iOS/Android‑Nodes).
 
-## TXT-Schluessel (nicht geheime Hinweise)
+## TXT‑Schlüssel (nicht‑geheime Hinweise)
 
-Das Gateway bewirbt kleine, nicht geheime Hinweise, um UI-Abläufe komfortabel zu gestalten:
+Der Gateway annonciert kleine, nicht‑geheime Hinweise, um UI‑Abläufe zu vereinfachen:
 
 - `role=gateway`
 - `displayName=<friendly name>`
 - `lanHost=<hostname>.local`
 - `gatewayPort=<port>` (Gateway WS + HTTP)
 - `gatewayTls=1` (nur wenn TLS aktiviert ist)
-- `gatewayTlsSha256=<sha256>` (nur wenn TLS aktiviert ist und ein Fingerabdruck verfuegbar ist)
-- `canvasPort=<port>` (nur wenn der Canvas-Host aktiviert ist; Standard `18793`)
-- `sshPort=<port>` (Standard ist 22, wenn nicht ueberschrieben)
+- `gatewayTlsSha256=<sha256>` (nur wenn TLS aktiviert ist und ein Fingerabdruck verfügbar ist)
+- `canvasPort=<port>` (nur wenn der Canvas‑Host aktiviert ist; Standard `18793`)
+- `sshPort=<port>` (Standard ist 22, wenn nicht überschrieben)
 - `transport=gateway`
-- `cliPath=<path>` (optional; absoluter Pfad zu einem ausfuehrbaren `openclaw`-Entrypoint)
-- `tailnetDns=<magicdns>` (optionaler Hinweis, wenn Tailnet verfuegbar ist)
+- `cliPath=<path>` (optional; absoluter Pfad zu einem ausführbaren `openclaw`‑Entrypoint)
+- `tailnetDns=<magicdns>` (optionaler Hinweis, wenn Tailnet verfügbar ist)
 
-## Fehlerbehebung unter macOS
+## Debugging unter macOS
 
-Nuetzliche integrierte Werkzeuge:
+Nützliche integrierte Werkzeuge:
 
 - Instanzen durchsuchen:
+
   ```bash
   dns-sd -B _openclaw-gw._tcp local.
   ```
-- Eine Instanz aufloesen (ersetzen Sie `<instance>`):
+
+- Eine Instanz auflösen (ersetzen Sie `<instance>`):
+
   ```bash
   dns-sd -L "<instance>" _openclaw-gw._tcp local.
   ```
 
-Wenn das Durchsuchen funktioniert, das Aufloesen jedoch fehlschlaegt, liegt in der
-Regel eine LAN-Richtlinie oder ein mDNS-Resolver-Problem vor.
+Wenn das Durchsuchen funktioniert, das Auflösen jedoch fehlschlägt, liegt in der Regel
+eine LAN‑Richtlinie oder ein mDNS‑Resolver‑Problem vor.
 
-## Fehlerbehebung in Gateway-Logs
+## Debugging in Gateway‑Logs
 
-Das Gateway schreibt eine rollierende Logdatei (beim Start ausgegeben als
-`gateway log file: ...`). Achten Sie auf `bonjour:`-Zeilen, insbesondere:
+Der Gateway schreibt eine rotierende Logdatei (beim Start ausgegeben als
+`gateway log file: ...`). Achten Sie auf `bonjour:`‑Zeilen, insbesondere:
 
 - `bonjour: advertise failed ...`
 - `bonjour: ... name conflict resolved` / `hostname conflict resolved`
 - `bonjour: watchdog detected non-announced service ...`
 
-## Fehlerbehebung auf dem iOS-Node
+## Debugging auf dem iOS‑Node
 
-Der iOS-Node verwendet `NWBrowser`, um `_openclaw-gw._tcp` zu entdecken.
+Der iOS‑Node verwendet `NWBrowser`, um `_openclaw-gw._tcp` zu erkennen.
 
 So erfassen Sie Logs:
 
-- Einstellungen → Gateway → Erweitert → **Discovery-Debug-Logs**
-- Einstellungen → Gateway → Erweitert → **Discovery-Logs** → reproduzieren → **Kopieren**
+- Einstellungen → Gateway → Erweitert → **Discovery‑Debug‑Logs**
+- Einstellungen → Gateway → Erweitert → **Discovery‑Logs** → reproduzieren → **Kopieren**
 
-Das Log enthaelt Zustandsuebergaenge des Browsers und Aenderungen der Ergebnismenge.
+Das Log enthält Zustandsübergänge des Browsers und Änderungen der Ergebnismenge.
 
-## Haeufige Fehlermodi
+## Häufige Fehlermodi
 
-- **Bonjour ueberquert keine Netzwerke**: Verwenden Sie Tailnet oder SSH.
-- **Multicast blockiert**: Einige WLAN-Netzwerke deaktivieren mDNS.
-- **Ruhezustand / Interface-Wechsel**: macOS kann mDNS-Ergebnisse temporaer verlieren; erneut versuchen.
-- **Durchsuchen funktioniert, Aufloesen nicht**: Halten Sie Rechnernamen einfach (vermeiden Sie Emojis oder
-  Satzzeichen) und starten Sie dann das Gateway neu. Der Service-Instanzname leitet
-  sich vom Hostnamen ab; zu komplexe Namen koennen einige Resolver verwirren.
+- **Bonjour überschreitet keine Netzwerke**: Verwenden Sie Tailnet oder SSH.
+- **Multicast blockiert**: Einige WLAN‑Netze deaktivieren mDNS.
+- **Sleep / Interface‑Wechsel**: macOS kann mDNS‑Ergebnisse vorübergehend verwerfen; erneut versuchen.
+- **Durchsuchen funktioniert, Auflösen schlägt fehl**: Halten Sie Rechnernamen einfach
+  (vermeiden Sie Emojis oder Satzzeichen) und starten Sie anschließend den Gateway neu.
+  Der Service‑Instanzname leitet sich vom Hostnamen ab; zu komplexe Namen können einige
+  Resolver verwirren.
 
-## Escapete Instanznamen (`\032`)
+## Escaped Instanznamen (`\032`)
 
-Bonjour/DNS‑SD escaped haeufig Bytes in Service-Instanznamen als dezimale `\DDD`-
-Sequenzen (z. B. werden Leerzeichen zu `\032`).
+Bonjour/DNS‑SD escaped häufig Bytes in Service‑Instanznamen als dezimale
+`\DDD`‑Sequenzen (z. B. werden Leerzeichen zu `\032`).
 
 - Dies ist auf Protokollebene normal.
-- UIs sollten fuer die Anzeige decodieren (iOS verwendet `BonjourEscapes.decode`).
+- UIs sollten zur Anzeige dekodieren (iOS verwendet `BonjourEscapes.decode`).
 
-## Deaktivieren / Konfiguration
+## Deaktivierung / Konfiguration
 
-- `OPENCLAW_DISABLE_BONJOUR=1` deaktiviert die Bewerbung (Legacy: `OPENCLAW_DISABLE_BONJOUR`).
-- `gateway.bind` in `~/.openclaw/openclaw.json` steuert den Bind-Modus des Gateways.
-- `OPENCLAW_SSH_PORT` ueberschreibt den in TXT beworbenen SSH-Port (Legacy: `OPENCLAW_SSH_PORT`).
-- `OPENCLAW_TAILNET_DNS` veroeffentlicht einen MagicDNS-Hinweis in TXT (Legacy: `OPENCLAW_TAILNET_DNS`).
-- `OPENCLAW_CLI_PATH` ueberschreibt den beworbenen CLI-Pfad (Legacy: `OPENCLAW_CLI_PATH`).
+- `OPENCLAW_DISABLE_BONJOUR=1` deaktiviert die Ankündigung (Legacy: `OPENCLAW_DISABLE_BONJOUR`).
+- `gateway.bind` in `~/.openclaw/openclaw.json` steuert den Bind‑Modus des Gateways.
+- `OPENCLAW_SSH_PORT` überschreibt den in TXT annoncierten SSH‑Port (Legacy: `OPENCLAW_SSH_PORT`).
+- `OPENCLAW_TAILNET_DNS` veröffentlicht einen MagicDNS‑Hinweis in TXT (Legacy: `OPENCLAW_TAILNET_DNS`).
+- `OPENCLAW_CLI_PATH` überschreibt den annoncierten CLI‑Pfad (Legacy: `OPENCLAW_CLI_PATH`).
 
-## Zugehoerige Dokumente
+## Verwandte Dokumente
 
-- Discovery-Richtlinie und Transportauswahl: [Discovery](/gateway/discovery)
-- Node-Pairing + Genehmigungen: [Gateway-Pairing](/gateway/pairing)
+- Discovery‑Richtlinie und Transportauswahl: [Discovery](/gateway/discovery)
+- Node‑Pairing + Genehmigungen: [Gateway pairing](/gateway/pairing)

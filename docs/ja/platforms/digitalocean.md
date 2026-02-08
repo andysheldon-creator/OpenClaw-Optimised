@@ -2,7 +2,7 @@
 summary: "DigitalOcean 上の OpenClaw（シンプルな有料 VPS オプション）"
 read_when:
   - DigitalOcean で OpenClaw をセットアップする場合
-  - OpenClaw 向けの安価な VPS ホスティングを探している場合
+  - OpenClaw 用の安価な VPS ホスティングを探している場合
 title: "DigitalOcean"
 x-i18n:
   source_path: platforms/digitalocean.md
@@ -10,60 +10,60 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:34:22Z
+  generated_at: 2026-02-08T09:22:38Z
 ---
 
 # DigitalOcean 上の OpenClaw
 
 ## 目的
 
-DigitalOcean 上で永続的な OpenClaw Gateway（ゲートウェイ）を **月額 $6**（予約価格で月額 $4）で稼働させます。
+DigitalOcean 上で **$6/月**（予約価格で $4/月）の永続的な OpenClaw Gateway を実行します。
 
-月額 $0 のオプションを希望し、ARM + プロバイダー固有のセットアップを気にしない場合は、[Oracle Cloud ガイド](/platforms/oracle) を参照してください。
+$0/月のオプションを希望し、ARM + プロバイダー固有のセットアップを気にしない場合は、[Oracle Cloud ガイド](/platforms/oracle) を参照してください。
 
 ## コスト比較（2026 年）
 
-| プロバイダー | プラン          | スペック              | 月額価格       | 注記                            |
-| ------------ | --------------- | --------------------- | -------------- | ------------------------------- |
-| Oracle Cloud | Always Free ARM | 最大 4 OCPU、24GB RAM | $0             | ARM、容量制限 / 登録時の癖あり  |
-| Hetzner      | CX22            | 2 vCPU、4GB RAM       | €3.79（約 $4） | 最安の有料オプション            |
-| DigitalOcean | Basic           | 1 vCPU、1GB RAM       | $6             | 簡単な UI、充実したドキュメント |
-| Vultr        | Cloud Compute   | 1 vCPU、1GB RAM       | $6             | ロケーションが豊富              |
-| Linode       | Nanode          | 1 vCPU、1GB RAM       | $5             | 現在は Akamai の一部            |
+| プロバイダー | プラン          | スペック              | 価格/月        | 注記                           |
+| ------------ | --------------- | --------------------- | -------------- | ------------------------------ |
+| Oracle Cloud | Always Free ARM | 最大 4 OCPU、24GB RAM | $0             | ARM、容量制限 / 登録時の癖あり |
+| Hetzner      | CX22            | 2 vCPU、4GB RAM       | €3.79（約 $4） | 最安の有料オプション           |
+| DigitalOcean | Basic           | 1 vCPU、1GB RAM       | $6             | 簡単な UI、良質なドキュメント  |
+| Vultr        | Cloud Compute   | 1 vCPU、1GB RAM       | $6             | ロケーションが多数             |
+| Linode       | Nanode          | 1 vCPU、1GB RAM       | $5             | 現在は Akamai の一部           |
 
 **プロバイダーの選び方：**
 
-- DigitalOcean：最もシンプルな UX と予測可能なセットアップ（本ガイド）
-- Hetzner：価格性能比が良好（[Hetzner ガイド](/install/hetzner) を参照）
-- Oracle Cloud：月額 $0 にできるが、やや癖があり ARM 専用（[Oracle ガイド](/platforms/oracle) を参照）
+- DigitalOcean：最もシンプルな UX + 予測可能なセットアップ（本ガイド）
+- Hetzner：価格/性能が良好（[Hetzner ガイド](/install/hetzner) を参照）
+- Oracle Cloud：$0/月も可能ですが、やや癖があり ARM 専用（[Oracle ガイド](/platforms/oracle) を参照）
 
 ---
 
 ## 前提条件
 
-- DigitalOcean アカウント（[登録で $200 の無料クレジット](https://m.do.co/c/signup)）
+- DigitalOcean アカウント（[$200 の無料クレジット付きで登録](https://m.do.co/c/signup)）
 - SSH キーペア（またはパスワード認証を使用する意思）
 - 約 20 分
 
-## 1) Droplet の作成
+## 1) Droplet を作成する
 
-1. [DigitalOcean](https://cloud.digitalocean.com/) にログインします。
-2. **Create → Droplets** をクリックします。
-3. 以下を選択します。
+1. [DigitalOcean](https://cloud.digitalocean.com/) にログインします
+2. **Create → Droplets** をクリックします
+3. 次を選択します：
    - **Region:** 自分（またはユーザー）に最も近いリージョン
    - **Image:** Ubuntu 24.04 LTS
-   - **Size:** Basic → Regular → **$6/mo**（1 vCPU、1GB RAM、25GB SSD）
+   - **Size:** Basic → Regular → **$6/月**（1 vCPU、1GB RAM、25GB SSD）
    - **Authentication:** SSH キー（推奨）またはパスワード
-4. **Create Droplet** をクリックします。
-5. IP アドレスを控えます。
+4. **Create Droplet** をクリックします
+5. IP アドレスを控えます
 
-## 2) SSH で接続
+## 2) SSH で接続する
 
 ```bash
 ssh root@YOUR_DROPLET_IP
 ```
 
-## 3) OpenClaw をインストール
+## 3) OpenClaw をインストールする
 
 ```bash
 # Update system
@@ -80,20 +80,20 @@ curl -fsSL https://openclaw.ai/install.sh | bash
 openclaw --version
 ```
 
-## 4) オンボーディングを実行
+## 4) オンボーディングを実行する
 
 ```bash
 openclaw onboard --install-daemon
 ```
 
-ウィザードでは以下を案内します。
+ウィザードでは次の内容を案内します：
 
 - モデル認証（API キーまたは OAuth）
 - チャンネル設定（Telegram、WhatsApp、Discord など）
 - Gateway トークン（自動生成）
 - デーモンのインストール（systemd）
 
-## 5) Gateway を確認
+## 5) Gateway を確認する
 
 ```bash
 # Check status
@@ -106,11 +106,11 @@ systemctl --user status openclaw-gateway.service
 journalctl --user -u openclaw-gateway.service -f
 ```
 
-## 6) ダッシュボードにアクセス
+## 6) ダッシュボードにアクセスする
 
-Gateway（ゲートウェイ）はデフォルトで loopback にバインドされます。Control UI にアクセスするには次のいずれかを使用します。
+Gateway はデフォルトで loopback にバインドされます。Control UI にアクセスするには：
 
-**オプション A: SSH トンネル（推奨）**
+**オプション A：SSH トンネル（推奨）**
 
 ```bash
 # From your local machine
@@ -119,7 +119,7 @@ ssh -L 18789:localhost:18789 root@YOUR_DROPLET_IP
 # Then open: http://localhost:18789
 ```
 
-**オプション B: Tailscale Serve（HTTPS、loopback のみ）**
+**オプション B：Tailscale Serve（HTTPS、loopback のみ）**
 
 ```bash
 # On the droplet
@@ -135,19 +135,19 @@ openclaw gateway restart
 
 注記：
 
-- Serve は Gateway を loopback のみに保ち、Tailscale のアイデンティティヘッダーで認証します。
-- 代わりにトークン / パスワードを必須にするには、`gateway.auth.allowTailscale: false` を設定するか、`gateway.auth.mode: "password"` を使用してください。
+- Serve は Gateway を loopback のみに保ち、Tailscale の ID ヘッダーで認証します。
+- 代わりにトークン/パスワードを必須にするには、`gateway.auth.allowTailscale: false` を設定するか、`gateway.auth.mode: "password"` を使用してください。
 
-**オプション C: Tailnet バインド（Serve なし）**
+**オプション C：Tailnet バインド（Serve なし）**
 
 ```bash
 openclaw config set gateway.bind tailnet
 openclaw gateway restart
 ```
 
-開く：`http://<tailscale-ip>:18789`（トークン必須）。
+開く：`http://<tailscale-ip>:18789`（トークンが必要）。
 
-## 7) チャンネルを接続
+## 7) チャンネルを接続する
 
 ### Telegram
 
@@ -169,9 +169,9 @@ openclaw channels login whatsapp
 
 ## 1GB RAM 向けの最適化
 
-$6 の Droplet は 1GB RAM のみです。安定して動作させるために以下を検討してください。
+$6 の Droplet は 1GB RAM しかありません。安定して動作させるために：
 
-### スワップの追加（推奨）
+### swap を追加する（推奨）
 
 ```bash
 fallocate -l 2G /swapfile
@@ -181,14 +181,14 @@ swapon /swapfile
 echo '/swapfile none swap sw 0 0' >> /etc/fstab
 ```
 
-### より軽量なモデルを使用
+### 軽量なモデルを使用する
 
-OOM が発生する場合は、以下を検討してください。
+OOM が発生する場合は、次を検討してください：
 
-- ローカルモデルではなく API ベースのモデル（Claude、GPT）を使用する
+- ローカルモデルの代わりに API ベースのモデル（Claude、GPT）を使用する
 - `agents.defaults.model.primary` をより小さなモデルに設定する
 
-### メモリの監視
+### メモリを監視する
 
 ```bash
 free -h
@@ -197,14 +197,14 @@ htop
 
 ---
 
-## 永続性
+## 永続化
 
-すべての状態は以下に保存されます。
+すべての状態は次の場所に保存されます：
 
 - `~/.openclaw/` — 設定、認証情報、セッションデータ
 - `~/.openclaw/workspace/` — ワークスペース（SOUL.md、メモリなど）
 
-これらは再起動後も保持されます。定期的にバックアップしてください。
+これらは再起動後も保持されます。定期的にバックアップしてください：
 
 ```bash
 tar -czvf openclaw-backup.tar.gz ~/.openclaw ~/.openclaw/workspace
@@ -214,9 +214,9 @@ tar -czvf openclaw-backup.tar.gz ~/.openclaw ~/.openclaw/workspace
 
 ## Oracle Cloud の無料代替案
 
-Oracle Cloud は **Always Free** の ARM インスタンスを提供しており、ここに挙げたどの有料オプションよりも大幅に高性能です。月額 $0 で利用できます。
+Oracle Cloud は **Always Free** の ARM インスタンスを提供しており、ここに挙げたどの有料オプションよりも大幅に高性能です — $0/月。
 
-| 内容                 | スペック                 |
+| 提供内容             | スペック                 |
 | -------------------- | ------------------------ |
 | **4 OCPU**           | ARM Ampere A1            |
 | **24GB RAM**         | 十分すぎる容量           |
@@ -266,4 +266,4 @@ free -h
 - [Hetzner ガイド](/install/hetzner) — より安価で高性能
 - [Docker インストール](/install/docker) — コンテナ化されたセットアップ
 - [Tailscale](/gateway/tailscale) — 安全なリモートアクセス
-- [Configuration](/gateway/configuration) — 完全な設定リファレンス
+- [設定](/gateway/configuration) — 完全な設定リファレンス

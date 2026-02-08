@@ -1,36 +1,36 @@
 ---
-summary: "Gateway（ゲートウェイ）の Web サーフェス: コントロール UI、バインドモード、セキュリティ"
+summary: "Gateway（ゲートウェイ）の Web サーフェス：コントロール UI、バインドモード、セキュリティ"
 read_when:
-  - Tailscale 経由で Gateway（ゲートウェイ）にアクセスしたいとき
-  - ブラウザーのコントロール UI と設定編集を使いたいとき
+  - Tailscale 経由で Gateway にアクセスしたい場合
+  - ブラウザーのコントロール UI と設定編集を利用したい場合
 title: "Web"
 x-i18n:
   source_path: web/index.md
   source_hash: 1315450b71a799c8
   provider: openai
-  model: gpt-5.2-pro
+  model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-06T05:13:03Z
+  generated_at: 2026-02-08T09:23:36Z
 ---
 
-# Web（Gateway（ゲートウェイ））
+# Web（Gateway）
 
-Gateway（ゲートウェイ）は、Gateway（ゲートウェイ）の WebSocket と同じポートから、小さな **ブラウザー用コントロール UI**（Vite + Lit）を提供します。
+Gateway は、Gateway WebSocket と同じポートから小規模な **ブラウザー コントロール UI**（Vite + Lit）を提供します。
 
-- デフォルト: `http://<host>:18789/`
-- オプションのプレフィックス: `gateway.controlUi.basePath` を設定します（例: `/openclaw`）
+- デフォルト：`http://<host>:18789/`
+- オプションのプレフィックス：`gateway.controlUi.basePath` を設定（例：`/openclaw`）
 
-機能は [コントロール UI](/web/control-ui) にあります。
-このページでは、バインドモード、セキュリティ、および Web 側のサーフェスに焦点を当てます。
+機能の詳細は [Control UI](/web/control-ui) にあります。
+本ページでは、バインドモード、セキュリティ、および Web 向けのサーフェスに焦点を当てます。
 
 ## Webhooks
 
-`hooks.enabled=true` の場合、Gateway（ゲートウェイ）は同じ HTTP サーバー上で小さな webhook エンドポイントも公開します。
-認証 + ペイロードについては、[Gateway（ゲートウェイ）設定](/gateway/configuration) → `hooks` を参照してください。
+`hooks.enabled=true` の場合、Gateway は同じ HTTP サーバー上で小規模な Webhook エンドポイントも公開します。
+認証およびペイロードについては、[Gateway configuration](/gateway/configuration) → `hooks` を参照してください。
 
-## Config（デフォルトで有効）
+## Config（デフォルト有効）
 
-アセットが存在する場合（`dist/control-ui`）、コントロール UI は **デフォルトで有効** です。
+アセットが存在する場合、コントロール UI は **デフォルトで有効** です（`dist/control-ui`）。
 設定で制御できます。
 
 ```json5
@@ -45,7 +45,7 @@ Gateway（ゲートウェイ）は、Gateway（ゲートウェイ）の WebSocke
 
 ### Integrated Serve（推奨）
 
-Gateway（ゲートウェイ）を loopback に維持し、Tailscale Serve にプロキシさせます。
+Gateway を loopback に維持し、Tailscale Serve にプロキシさせます。
 
 ```json5
 {
@@ -56,17 +56,17 @@ Gateway（ゲートウェイ）を loopback に維持し、Tailscale Serve に�
 }
 ```
 
-その後、gateway を起動します。
+次に Gateway を起動します。
 
 ```bash
 openclaw gateway
 ```
 
-開く:
+開く：
 
 - `https://<magicdns>/`（または設定した `gateway.controlUi.basePath`）
 
-### Tailnet bind + token
+### Tailnet バインド + トークン
 
 ```json5
 {
@@ -78,13 +78,13 @@ openclaw gateway
 }
 ```
 
-その後、gateway を起動します（loopback 以外へのバインドにはトークンが必要です）。
+次に Gateway を起動します（loopback 以外のバインドにはトークンが必要です）。
 
 ```bash
 openclaw gateway
 ```
 
-開く:
+開く：
 
 - `http://<tailscale-ip>:18789/`（または設定した `gateway.controlUi.basePath`）
 
@@ -100,19 +100,19 @@ openclaw gateway
 }
 ```
 
-## セキュリティに関する注意
+## セキュリティ注記
 
-- Gateway（ゲートウェイ）認証はデフォルトで必須です（トークン/パスワード、または Tailscale の ID ヘッダー）。
-- loopback 以外へのバインドでも、共有トークン/パスワードが **必須** です（`gateway.auth` または env）。
-- ウィザードはデフォルトで gateway トークンを生成します（loopback の場合でも）。
+- Gateway の認証はデフォルトで必須です（トークン／パスワード、または Tailscale のアイデンティティヘッダー）。
+- loopback 以外のバインドでは、共有トークン／パスワードが **必須** です（`gateway.auth` または env）。
+- ウィザードは、デフォルトで Gateway トークンを生成します（loopback の場合でも）。
 - UI は `connect.params.auth.token` または `connect.params.auth.password` を送信します。
-- コントロール UI はアンチクリックジャッキングのヘッダーを送信し、`gateway.controlUi.allowedOrigins` が設定されていない限り、同一オリジンのブラウザー websocket 接続のみを受け付けます。
-- Serve を使用すると、`gateway.auth.allowTailscale` が `true` の場合、Tailscale の ID ヘッダーで認証を満たせます（トークン/パスワードは不要）。明示的な資格情報を要求するには `gateway.auth.allowTailscale: false` を設定します。[Tailscale](/gateway/tailscale) と [Security](/gateway/security) を参照してください。
+- コントロール UI はアンチクリックジャッキングのヘッダーを送信し、`gateway.controlUi.allowedOrigins` が設定されていない限り、同一オリジンのブラウザー WebSocket 接続のみを受け付けます。
+- Serve を使用する場合、`gateway.auth.allowTailscale` が `true` のとき、Tailscale のアイデンティティヘッダーで認証を満たせます（トークン／パスワード不要）。明示的な資格情報を必須にするには `gateway.auth.allowTailscale: false` を設定してください。詳細は [Tailscale](/gateway/tailscale) および [Security](/gateway/security) を参照してください。
 - `gateway.tailscale.mode: "funnel"` には `gateway.auth.mode: "password"`（共有パスワード）が必要です。
 
 ## UI のビルド
 
-Gateway（ゲートウェイ）は `dist/control-ui` から静的ファイルを提供します。以下でビルドします。
+Gateway は `dist/control-ui` から静的ファイルを提供します。次のコマンドでビルドしてください。
 
 ```bash
 pnpm ui:build # auto-installs UI deps on first run

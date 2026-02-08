@@ -1,31 +1,31 @@
 ---
-summary: „SOUL Evil Hook (SOUL.md gegen SOUL_EVIL.md austauschen)“
+summary: „SOUL-Evil-Hook (tauscht SOUL.md gegen SOUL_EVIL.md aus)“
 read_when:
-  - Sie möchten den SOUL Evil Hook aktivieren oder feinjustieren
-  - Sie möchten ein Purge-Fenster oder einen zufallsbasierten Persona-Wechsel
-title: „SOUL Evil Hook“
+  - Sie möchten den SOUL-Evil-Hook aktivieren oder abstimmen
+  - Sie möchten ein Bereinigungsfenster oder einen zufallsbasierten Persona-Wechsel
+title: „SOUL-Evil-Hook“
 x-i18n:
   source_path: hooks/soul-evil.md
-  source_hash: cc32c1e207f2b692
+  source_hash: 32aba100712317d1
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:04:36Z
+  generated_at: 2026-02-08T09:36:26Z
 ---
 
-# SOUL Evil Hook
+# SOUL-Evil-Hook
 
-Der SOUL Evil Hook tauscht den **injizierten** `SOUL.md`-Inhalt während
-eines Purge-Fensters oder per Zufall gegen `SOUL_EVIL.md` aus. Er verändert **keine**
-Dateien auf dem Datenträger.
+Der SOUL-Evil-Hook tauscht den **injizierten** `SOUL.md`-Inhalt während
+eines Bereinigungsfensters oder per Zufall durch `SOUL_EVIL.md` aus. Er ändert **keine**
+Dateien auf der Festplatte.
 
 ## Funktionsweise
 
 Wenn `agent:bootstrap` ausgeführt wird, kann der Hook den `SOUL.md`-Inhalt im Speicher ersetzen,
-bevor der System-Prompt zusammengesetzt wird. Fehlt `SOUL_EVIL.md` oder ist er leer,
+bevor der System-Prompt zusammengestellt wird. Wenn `SOUL_EVIL.md` fehlt oder leer ist,
 protokolliert OpenClaw eine Warnung und behält den normalen `SOUL.md` bei.
 
-Ausführungen von Sub-Agenten enthalten `SOUL.md` **nicht** in ihren Bootstrap-Dateien,
+Ausführungen von Sub-Agenten enthalten `SOUL.md` nicht in ihren Bootstrap-Dateien,
 daher hat dieser Hook keine Wirkung auf Sub-Agenten.
 
 ## Aktivieren
@@ -54,24 +54,24 @@ Setzen Sie dann die Konfiguration:
 }
 ```
 
-Erstellen Sie `SOUL_EVIL.md` im Arbeitsbereichs-Stamm des Agenten (neben `SOUL.md`).
+Erstellen Sie `SOUL_EVIL.md` im Stammverzeichnis des Agent-Workspace (neben `SOUL.md`).
 
 ## Optionen
 
-- `file` (String): alternativer SOUL-Dateiname (Standard: `SOUL_EVIL.md`)
-- `chance` (Zahl 0–1): zufällige Wahrscheinlichkeit pro Lauf, `SOUL_EVIL.md` zu verwenden
-- `purge.at` (HH:mm): täglicher Purge-Start (24-Stunden-Format)
-- `purge.duration` (Dauer): Fensterlänge (z. B. `30s`, `10m`, `1h`)
+- `file` (string): alternativer SOUL-Dateiname (Standard: `SOUL_EVIL.md`)
+- `chance` (number 0–1): zufällige Wahrscheinlichkeit pro Lauf, `SOUL_EVIL.md` zu verwenden
+- `purge.at` (HH:mm): täglicher Beginn der Bereinigung (24-Stunden-Format)
+- `purge.duration` (duration): Länge des Fensters (z. B. `30s`, `10m`, `1h`)
 
-**Priorität:** Das Purge-Fenster hat Vorrang vor der Zufallschance.
+**Priorität:** Das Bereinigungsfenster hat Vorrang vor der Zufallschance.
 
 **Zeitzone:** Verwendet `agents.defaults.userTimezone`, wenn gesetzt; andernfalls die Zeitzone des Hosts.
 
 ## Hinweise
 
-- Es werden keine Dateien auf dem Datenträger geschrieben oder verändert.
-- Wenn `SOUL.md` nicht in der Bootstrap-Liste enthalten ist, tut der Hook nichts.
+- Es werden keine Dateien auf der Festplatte geschrieben oder verändert.
+- Wenn `SOUL.md` nicht in der Bootstrap-Liste enthalten ist, bewirkt der Hook nichts.
 
 ## Siehe auch
 
-- [Hooks](/hooks)
+- [Hooks](/automation/hooks)

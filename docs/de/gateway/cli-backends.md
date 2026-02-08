@@ -1,8 +1,8 @@
 ---
-summary: "CLI-Backends: textbasierter Fallback über lokale AI-CLIs"
+summary: "CLI-Backends: textbasierter Fallback über lokale KI-CLIs"
 read_when:
   - Sie möchten einen zuverlässigen Fallback, wenn API-Anbieter ausfallen
-  - Sie betreiben Claude Code CLI oder andere lokale AI-CLIs und möchten sie wiederverwenden
+  - Sie betreiben Claude Code CLI oder andere lokale KI-CLIs und möchten diese wiederverwenden
   - Sie benötigen einen rein textbasierten, werkzeugfreien Pfad, der dennoch Sitzungen und Bilder unterstützt
 title: "CLI-Backends"
 x-i18n:
@@ -11,25 +11,26 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:04:25Z
+  generated_at: 2026-02-08T09:36:17Z
 ---
 
-# CLI-Backends (Fallback-Laufzeit)
+# CLI-Backends (Fallback-Runtime)
 
-OpenClaw kann **lokale AI-CLIs** als **rein textbasierten Fallback** ausführen, wenn API-Anbieter ausfallen,
-ratenbegrenzt sind oder sich vorübergehend fehlerhaft verhalten. Dies ist bewusst konservativ ausgelegt:
+OpenClaw kann **lokale KI-CLIs** als **rein textbasierten Fallback** ausführen, wenn API-Anbieter
+ausfallen, rate-limitiert sind oder sich vorübergehend fehlerhaft verhalten. Dies ist bewusst
+konservativ gehalten:
 
 - **Werkzeuge sind deaktiviert** (keine Tool-Aufrufe).
 - **Text rein → Text raus** (zuverlässig).
-- **Sitzungen werden unterstützt** (damit Folgezüge kohärent bleiben).
+- **Sitzungen werden unterstützt** (damit Folgeeingaben kohärent bleiben).
 - **Bilder können durchgereicht werden**, wenn die CLI Bildpfade akzeptiert.
 
-Dies ist als **Sicherheitsnetz** und nicht als primärer Pfad gedacht. Nutzen Sie es, wenn Sie
-„funktioniert immer“‑Textantworten ohne Abhängigkeit von externen APIs wünschen.
+Dies ist als **Sicherheitsnetz** und nicht als primärer Pfad konzipiert. Verwenden Sie es, wenn Sie
+„funktioniert immer“-Textantworten wünschen, ohne sich auf externe APIs zu verlassen.
 
 ## Einsteigerfreundlicher Schnellstart
 
-Sie können Claude Code CLI **ohne jegliche Konfiguration** verwenden (OpenClaw liefert eine integrierte Voreinstellung mit):
+Sie können Claude Code CLI **ohne jegliche Konfiguration** verwenden (OpenClaw liefert eine integrierte Standardkonfiguration):
 
 ```bash
 openclaw agent --message "hi" --model claude-cli/opus-4.6
@@ -58,11 +59,11 @@ Befehlspfad hinzu:
 }
 ```
 
-Das war’s. Keine Schlüssel, keine zusätzliche Authentifizierung über die CLI selbst hinaus erforderlich.
+Das war’s. Keine Schlüssel, keine zusätzliche Authentifizierungskonfiguration über die CLI selbst hinaus erforderlich.
 
 ## Verwendung als Fallback
 
-Fügen Sie Ihrer Fallback-Liste ein CLI-Backend hinzu, sodass es nur ausgeführt wird, wenn primäre Modelle fehlschlagen:
+Fügen Sie einen CLI-Backend zu Ihrer Fallback-Liste hinzu, sodass er nur ausgeführt wird, wenn primäre Modelle fehlschlagen:
 
 ```json5
 {
@@ -85,8 +86,8 @@ Fügen Sie Ihrer Fallback-Liste ein CLI-Backend hinzu, sodass es nur ausgeführt
 Hinweise:
 
 - Wenn Sie `agents.defaults.models` (Allowlist) verwenden, müssen Sie `claude-cli/...` einschließen.
-- Wenn der primäre Anbieter fehlschlägt (Auth, Ratenlimits, Timeouts), versucht OpenClaw
-  anschließend das CLI-Backend.
+- Wenn der primäre Anbieter fehlschlägt (Auth, Rate-Limits, Timeouts), versucht OpenClaw
+  als Nächstes den CLI-Backend.
 
 ## Konfigurationsübersicht
 
@@ -96,8 +97,8 @@ Alle CLI-Backends befinden sich unter:
 agents.defaults.cliBackends
 ```
 
-Jeder Eintrag ist über eine **Provider-ID** (z. B. `claude-cli`, `my-cli`) gekennzeichnet.
-Die Provider-ID wird zur linken Seite Ihrer Modellreferenz:
+Jeder Eintrag ist durch eine **Provider-ID** gekennzeichnet (z. B. `claude-cli`, `my-cli`).
+Die Provider-ID wird zur linken Seite Ihrer Modell-Referenz:
 
 ```
 <provider>/<model>
@@ -141,22 +142,22 @@ Die Provider-ID wird zur linken Seite Ihrer Modellreferenz:
 
 ## Funktionsweise
 
-1. **Wählt ein Backend aus** anhand des Provider-Präfixes (`claude-cli/...`).
-2. **Erstellt einen System-Prompt** mit demselben OpenClaw-Prompt + Workspace-Kontext.
-3. **Führt die CLI aus** mit einer Sitzungs-ID (falls unterstützt), damit der Verlauf konsistent bleibt.
+1. **Wählt ein Backend aus** basierend auf dem Provider-Präfix (`claude-cli/...`).
+2. **Erstellt einen System-Prompt** unter Verwendung desselben OpenClaw-Prompts + Workspace-Kontext.
+3. **Führt die CLI aus** mit einer Sitzungs-ID (falls unterstützt), sodass der Verlauf konsistent bleibt.
 4. **Parst die Ausgabe** (JSON oder Klartext) und gibt den finalen Text zurück.
-5. **Persistiert Sitzungs-IDs** pro Backend, sodass Folgeanfragen dieselbe CLI-Sitzung wiederverwenden.
+5. **Persistiert Sitzungs-IDs** pro Backend, sodass Folgeeingaben dieselbe CLI-Sitzung wiederverwenden.
 
 ## Sitzungen
 
 - Wenn die CLI Sitzungen unterstützt, setzen Sie `sessionArg` (z. B. `--session-id`) oder
   `sessionArgs` (Platzhalter `{sessionId}`), wenn die ID in mehrere Flags eingefügt werden muss.
-- Wenn die CLI einen **Resume-Subcommand** mit abweichenden Flags verwendet, setzen Sie
+- Wenn die CLI einen **Resume-Subcommand** mit unterschiedlichen Flags verwendet, setzen Sie
   `resumeArgs` (ersetzt `args` beim Fortsetzen) und optional `resumeOutput`
-  (für Nicht‑JSON‑Resumes).
+  (für Nicht-JSON-Resumes).
 - `sessionMode`:
   - `always`: immer eine Sitzungs-ID senden (neue UUID, falls keine gespeichert ist).
-  - `existing`: eine Sitzungs-ID nur senden, wenn zuvor eine gespeichert war.
+  - `existing`: nur eine Sitzungs-ID senden, wenn zuvor eine gespeichert war.
   - `none`: niemals eine Sitzungs-ID senden.
 
 ## Bilder (Durchreichen)
@@ -168,21 +169,21 @@ imageArg: "--image",
 imageMode: "repeat"
 ```
 
-OpenClaw schreibt Base64‑Bilder in temporäre Dateien. Wenn `imageArg` gesetzt ist, werden diese
-Pfade als CLI-Argumente übergeben. Wenn `imageArg` fehlt, hängt OpenClaw die Dateipfade an den
-Prompt an (Pfadinjektion), was für CLIs ausreicht, die lokale Dateien aus reinen Pfaden automatisch
-laden (Verhalten von Claude Code CLI).
+OpenClaw schreibt Base64-Bilder in temporäre Dateien. Wenn `imageArg` gesetzt ist, werden diese
+Pfade als CLI-Argumente übergeben. Wenn `imageArg` fehlt, hängt OpenClaw die
+Dateipfade an den Prompt an (Path-Injection), was für CLIs ausreicht, die lokale Dateien aus
+reinen Pfadangaben automatisch laden (Verhalten von Claude Code CLI).
 
 ## Eingaben / Ausgaben
 
 - `output: "json"` (Standard) versucht, JSON zu parsen und Text + Sitzungs-ID zu extrahieren.
-- `output: "jsonl"` parst JSONL‑Streams (Codex CLI `--json`) und extrahiert die
-  letzte Agent‑Nachricht plus `thread_id`, sofern vorhanden.
+- `output: "jsonl"` parst JSONL-Streams (Codex CLI `--json`) und extrahiert die
+  letzte Agent-Nachricht sowie `thread_id`, sofern vorhanden.
 - `output: "text"` behandelt stdout als finale Antwort.
 
 Eingabemodi:
 
-- `input: "arg"` (Standard) übergibt den Prompt als letztes CLI‑Argument.
+- `input: "arg"` (Standard) übergibt den Prompt als letztes CLI-Argument.
 - `input: "stdin"` sendet den Prompt über stdin.
 - Wenn der Prompt sehr lang ist und `maxPromptArgChars` gesetzt ist, wird stdin verwendet.
 
@@ -210,21 +211,22 @@ OpenClaw liefert außerdem einen Standard für `codex-cli`:
 - `imageArg: "--image"`
 - `sessionMode: "existing"`
 
-Überschreiben Sie dies nur bei Bedarf (häufig: absoluter `command`‑Pfad).
+Überschreiben Sie dies nur bei Bedarf (häufig: absoluter `command`-Pfad).
 
 ## Einschränkungen
 
-- **Keine OpenClaw‑Werkzeuge** (das CLI‑Backend erhält niemals Tool‑Aufrufe). Einige CLIs
-  können dennoch ihre eigenen Agent‑Werkzeuge ausführen.
-- **Kein Streaming** (CLI‑Ausgabe wird gesammelt und anschließend zurückgegeben).
-- **Strukturierte Ausgaben** hängen vom JSON‑Format der CLI ab.
-- **Codex‑CLI‑Sitzungen** werden über Textausgabe fortgesetzt (kein JSONL), was weniger
-  strukturiert ist als der initiale `--json`‑Lauf. OpenClaw‑Sitzungen funktionieren weiterhin normal.
+- **Keine OpenClaw-Werkzeuge** (der CLI-Backend erhält niemals Tool-Aufrufe). Einige CLIs
+  können dennoch ihre eigenen Agent-Werkzeuge ausführen.
+- **Kein Streaming** (CLI-Ausgabe wird gesammelt und dann zurückgegeben).
+- **Strukturierte Ausgaben** hängen vom JSON-Format der CLI ab.
+- **Codex-CLI-Sitzungen** werden über Textausgabe fortgesetzt (kein JSONL), was weniger
+  strukturiert ist als der initiale `--json`-Lauf. OpenClaw-Sitzungen funktionieren
+  weiterhin normal.
 
 ## Fehlerbehebung
 
 - **CLI nicht gefunden**: setzen Sie `command` auf einen vollständigen Pfad.
-- **Falscher Modellname**: verwenden Sie `modelAliases`, um `provider/model` → CLI‑Modell zuzuordnen.
-- **Keine Sitzungs­kontinuität**: stellen Sie sicher, dass `sessionArg` gesetzt ist und `sessionMode` nicht
-  `none` ist (Codex CLI kann derzeit nicht mit JSON‑Ausgabe fortsetzen).
-- **Bilder werden ignoriert**: setzen Sie `imageArg` (und prüfen Sie, ob die CLI Dateipfade unterstützt).
+- **Falscher Modellname**: verwenden Sie `modelAliases`, um `provider/model` → CLI-Modell zuzuordnen.
+- **Keine Sitzungs-Kontinuität**: stellen Sie sicher, dass `sessionArg` gesetzt ist und `sessionMode` nicht
+  `none` ist (Codex CLI kann derzeit nicht mit JSON-Ausgabe fortsetzen).
+- **Bilder werden ignoriert**: setzen Sie `imageArg` (und verifizieren Sie, dass die CLI Dateipfade unterstützt).

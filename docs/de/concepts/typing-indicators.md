@@ -1,15 +1,15 @@
 ---
-summary: "Wann OpenClaw Tippindikatoren anzeigt und wie Sie diese abstimmen"
+summary: „Wann OpenClaw Tippindikatoren anzeigt und wie Sie sie anpassen“
 read_when:
-  - Ändern des Verhaltens oder der Standardwerte für Tippindikatoren
-title: "Tippindikatoren"
+  - „Ändern des Verhaltens oder der Standardwerte von Tippindikatoren“
+title: „Tippindikatoren“
 x-i18n:
   source_path: concepts/typing-indicators.md
   source_hash: 8ee82d02829c4ff5
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:04:09Z
+  generated_at: 2026-02-08T09:36:03Z
 ---
 
 # Tippindikatoren
@@ -22,7 +22,7 @@ um zu steuern, **wie oft** es aktualisiert wird.
 
 Wenn `agents.defaults.typingMode` **nicht gesetzt** ist, behält OpenClaw das Legacy-Verhalten bei:
 
-- **Direktchats**: Tippen beginnt sofort, sobald der Modell-Loop startet.
+- **Direktchats**: Tippen beginnt sofort, sobald die Modellschleife startet.
 - **Gruppenchats mit Erwähnung**: Tippen beginnt sofort.
 - **Gruppenchats ohne Erwähnung**: Tippen beginnt erst, wenn der Nachrichtentext zu streamen beginnt.
 - **Heartbeat-Runs**: Tippen ist deaktiviert.
@@ -31,13 +31,13 @@ Wenn `agents.defaults.typingMode` **nicht gesetzt** ist, behält OpenClaw das Le
 
 Setzen Sie `agents.defaults.typingMode` auf einen der folgenden Werte:
 
-- `never` — kein Tippindikator, niemals.
-- `instant` — Tippen beginnt **sobald der Modell-Loop startet**, selbst wenn der Run
+- `never` — kein Tippindikator, jemals.
+- `instant` — Tippen **beginnt sofort mit Start der Modellschleife**, selbst wenn der Run
   später nur das stille Antwort-Token zurückgibt.
 - `thinking` — Tippen beginnt beim **ersten Reasoning-Delta** (erfordert
   `reasoningLevel: "stream"` für den Run).
 - `message` — Tippen beginnt beim **ersten nicht-stillen Text-Delta** (ignoriert
-  das stille `NO_REPLY`-Token).
+  das stille Token `NO_REPLY`).
 
 Reihenfolge nach „wie früh es auslöst“:
 `never` → `message` → `thinking` → `instant`
@@ -53,7 +53,7 @@ Reihenfolge nach „wie früh es auslöst“:
 }
 ```
 
-Sie können Modus oder Takt pro Sitzung überschreiben:
+Sie können Modus oder Taktung pro Sitzung überschreiben:
 
 ```json5
 {
@@ -66,10 +66,10 @@ Sie können Modus oder Takt pro Sitzung überschreiben:
 
 ## Hinweise
 
-- Der Modus `message` zeigt kein Tippen für ausschließlich stille Antworten (z. B. das `NO_REPLY`-
-  Token, das zur Unterdrückung der Ausgabe verwendet wird).
+- Der Modus `message` zeigt kein Tippen für ausschließlich stille Antworten an (z. B. das Token `NO_REPLY`,
+  das zur Unterdrückung der Ausgabe verwendet wird).
 - `thinking` wird nur ausgelöst, wenn der Run Reasoning streamt (`reasoningLevel: "stream"`).
   Wenn das Modell keine Reasoning-Deltas ausgibt, beginnt das Tippen nicht.
 - Heartbeats zeigen niemals Tippen an, unabhängig vom Modus.
-- `typingIntervalSeconds` steuert die **Aktualisierungsfrequenz**, nicht den Startzeitpunkt.
+- `typingIntervalSeconds` steuert die **Aktualisierungstaktung**, nicht den Startzeitpunkt.
   Der Standardwert beträgt 6 Sekunden.

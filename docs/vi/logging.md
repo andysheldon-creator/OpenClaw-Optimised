@@ -1,7 +1,7 @@
 ---
 summary: "Tổng quan về logging: log tệp, đầu ra console, theo dõi bằng CLI, và Control UI"
 read_when:
-  - Bạn cần một tổng quan logging thân thiện cho người mới
+  - Bạn cần một cái nhìn tổng quan về logging thân thiện cho người mới
   - Bạn muốn cấu hình mức log hoặc định dạng
   - Bạn đang xử lý sự cố và cần tìm log nhanh
 title: "Logging"
@@ -11,26 +11,26 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:53Z
+  generated_at: 2026-02-08T09:39:47Z
 ---
 
 # Logging
 
 OpenClaw ghi log ở hai nơi:
 
-- **Log tệp** (JSON lines) do Gateway ghi.
+- **Log tệp** (dòng JSON) do Gateway ghi.
 - **Đầu ra console** hiển thị trong terminal và Control UI.
 
 Trang này giải thích log nằm ở đâu, cách đọc chúng, và cách cấu hình mức log
 cũng như định dạng.
 
-## Vị trí lưu log
+## Log nằm ở đâu
 
-Theo mặc định, Gateway ghi một tệp log cuộn tại:
+Theo mặc định, Gateway ghi một tệp log xoay vòng tại:
 
 `/tmp/openclaw/openclaw-YYYY-MM-DD.log`
 
-Ngày tháng sử dụng múi giờ địa phương của máy chủ gateway.
+Ngày giờ sử dụng múi giờ cục bộ của máy chủ gateway.
 
 Bạn có thể ghi đè điều này trong `~/.openclaw/openclaw.json`:
 
@@ -52,22 +52,22 @@ Dùng CLI để tail tệp log của gateway qua RPC:
 openclaw logs --follow
 ```
 
-Các chế độ đầu ra:
+Chế độ đầu ra:
 
 - **Phiên TTY**: dòng log có cấu trúc, đẹp, có màu.
-- **Phiên không TTY**: văn bản thuần.
-- `--json`: JSON phân dòng (mỗi dòng là một sự kiện log).
-- `--plain`: ép văn bản thuần trong phiên TTY.
+- **Phiên không phải TTY**: văn bản thuần.
+- `--json`: JSON phân tách theo dòng (mỗi dòng là một sự kiện log).
+- `--plain`: buộc văn bản thuần trong phiên TTY.
 - `--no-color`: tắt màu ANSI.
 
 Ở chế độ JSON, CLI phát ra các đối tượng được gắn thẻ `type`:
 
-- `meta`: siêu dữ liệu luồng (tệp, con trỏ, kích thước)
+- `meta`: metadata của luồng (tệp, con trỏ, kích thước)
 - `log`: mục log đã được phân tích
 - `notice`: gợi ý cắt ngắn / xoay vòng
 - `raw`: dòng log chưa được phân tích
 
-Nếu Gateway không thể truy cập, CLI sẽ in ra một gợi ý ngắn để chạy:
+Nếu Gateway không thể truy cập, CLI sẽ in ra gợi ý ngắn để chạy:
 
 ```bash
 openclaw doctor
@@ -75,10 +75,10 @@ openclaw doctor
 
 ### Control UI (web)
 
-Tab **Logs** của Control UI theo dõi cùng một tệp bằng `logs.tail`.
+Tab **Logs** của Control UI tail cùng một tệp bằng `logs.tail`.
 Xem [/web/control-ui](/web/control-ui) để biết cách mở.
 
-### Log theo kênh
+### Log chỉ theo kênh
 
 Để lọc hoạt động theo kênh (WhatsApp/Telegram/etc), dùng:
 
@@ -122,7 +122,7 @@ Tất cả cấu hình logging nằm dưới `logging` trong `~/.openclaw/opencl
 
 ### Mức log
 
-- `logging.level`: mức cho **log tệp** (JSONL).
+- `logging.level`: mức **log tệp** (JSONL).
 - `logging.consoleLevel`: mức độ chi tiết của **console**.
 
 `--verbose` chỉ ảnh hưởng đến đầu ra console; không thay đổi mức log của tệp.
@@ -131,40 +131,40 @@ Tất cả cấu hình logging nằm dưới `logging` trong `~/.openclaw/opencl
 
 `logging.consoleStyle`:
 
-- `pretty`: thân thiện với con người, có màu, kèm dấu thời gian.
+- `pretty`: thân thiện cho con người, có màu, kèm dấu thời gian.
 - `compact`: đầu ra gọn hơn (tốt cho phiên dài).
-- `json`: mỗi dòng một JSON (cho bộ xử lý log).
+- `json`: JSON theo dòng (cho bộ xử lý log).
 
-### Che thông tin nhạy cảm
+### Che dữ liệu nhạy cảm (Redaction)
 
-Tóm tắt công cụ có thể che token nhạy cảm trước khi hiển thị ra console:
+Tóm tắt công cụ có thể che token nhạy cảm trước khi ra console:
 
 - `logging.redactSensitive`: `off` | `tools` (mặc định: `tools`)
 - `logging.redactPatterns`: danh sách chuỗi regex để ghi đè tập mặc định
 
-Che thông tin chỉ ảnh hưởng đến **đầu ra console** và không thay đổi log tệp.
+Che dữ liệu chỉ ảnh hưởng đến **đầu ra console** và không thay đổi log tệp.
 
 ## Chẩn đoán + OpenTelemetry
 
 Chẩn đoán là các sự kiện có cấu trúc, có thể đọc bằng máy cho các lần chạy mô hình **và**
 telemetry luồng thông điệp (webhook, xếp hàng, trạng thái phiên). Chúng **không**
-thay thế log; chúng tồn tại để cung cấp số liệu, trace và các exporter khác.
+thay thế log; chúng tồn tại để cung cấp metrics, traces và các exporter khác.
 
-Sự kiện chẩn đoán được phát trong tiến trình, nhưng exporter chỉ gắn khi
-chẩn đoán + plugin exporter được bật.
+Sự kiện chẩn đoán được phát trong tiến trình, nhưng exporter chỉ gắn khi bật
+chẩn đoán + plugin exporter.
 
 ### OpenTelemetry vs OTLP
 
-- **OpenTelemetry (OTel)**: mô hình dữ liệu + SDK cho trace, metric và log.
+- **OpenTelemetry (OTel)**: mô hình dữ liệu + SDK cho traces, metrics và logs.
 - **OTLP**: giao thức truyền dùng để xuất dữ liệu OTel tới collector/backend.
 - OpenClaw hiện xuất qua **OTLP/HTTP (protobuf)**.
 
-### Các tín hiệu được xuất
+### Tín hiệu được xuất
 
 - **Metrics**: counter + histogram (mức sử dụng token, luồng thông điệp, xếp hàng).
 - **Traces**: span cho việc dùng mô hình + xử lý webhook/thông điệp.
-- **Logs**: xuất qua OTLP khi `diagnostics.otel.logs` được bật. Lượng log
-  có thể cao; lưu ý `logging.level` và bộ lọc exporter.
+- **Logs**: xuất qua OTLP khi bật `diagnostics.otel.logs`. Khối lượng log
+  có thể cao; hãy cân nhắc `logging.level` và bộ lọc của exporter.
 
 ### Danh mục sự kiện chẩn đoán
 
@@ -174,24 +174,24 @@ Sử dụng mô hình:
 
 Luồng thông điệp:
 
-- `webhook.received`: webhook vào theo kênh.
+- `webhook.received`: webhook vào theo từng kênh.
 - `webhook.processed`: webhook được xử lý + thời lượng.
-- `webhook.error`: lỗi trình xử lý webhook.
-- `message.queued`: thông điệp được xếp hàng để xử lý.
+- `webhook.error`: lỗi bộ xử lý webhook.
+- `message.queued`: thông điệp được đưa vào hàng đợi xử lý.
 - `message.processed`: kết quả + thời lượng + lỗi tùy chọn.
 
 Hàng đợi + phiên:
 
-- `queue.lane.enqueue`: enqueue lane hàng đợi lệnh + độ sâu.
-- `queue.lane.dequeue`: dequeue lane hàng đợi lệnh + thời gian chờ.
+- `queue.lane.enqueue`: enqueue làn hàng đợi lệnh + độ sâu.
+- `queue.lane.dequeue`: dequeue làn hàng đợi lệnh + thời gian chờ.
 - `session.state`: chuyển trạng thái phiên + lý do.
 - `session.stuck`: cảnh báo phiên bị kẹt + tuổi.
-- `run.attempt`: siêu dữ liệu thử lại/lần chạy.
+- `run.attempt`: metadata retry/lần thử chạy.
 - `diagnostic.heartbeat`: bộ đếm tổng hợp (webhook/hàng đợi/phiên).
 
 ### Bật chẩn đoán (không exporter)
 
-Dùng khi bạn muốn sự kiện chẩn đoán sẵn sàng cho plugin hoặc sink tùy chỉnh:
+Dùng khi bạn muốn các sự kiện chẩn đoán sẵn sàng cho plugin hoặc sink tùy chỉnh:
 
 ```json
 {
@@ -201,9 +201,9 @@ Dùng khi bạn muốn sự kiện chẩn đoán sẵn sàng cho plugin hoặc s
 }
 ```
 
-### Cờ chẩn đoán (log có mục tiêu)
+### Cờ chẩn đoán (log theo mục tiêu)
 
-Dùng cờ để bật thêm log debug có mục tiêu mà không tăng `logging.level`.
+Dùng cờ để bật thêm log debug có mục tiêu mà không cần tăng `logging.level`.
 Cờ không phân biệt hoa thường và hỗ trợ wildcard (ví dụ: `telegram.*` hoặc `*`).
 
 ```json
@@ -214,7 +214,7 @@ Cờ không phân biệt hoa thường và hỗ trợ wildcard (ví dụ: `teleg
 }
 ```
 
-Ghi đè bằng biến môi trường (một lần):
+Ghi đè bằng env (dùng một lần):
 
 ```
 OPENCLAW_DIAGNOSTICS=telegram.http,telegram.payload
@@ -222,14 +222,14 @@ OPENCLAW_DIAGNOSTICS=telegram.http,telegram.payload
 
 Ghi chú:
 
-- Log theo cờ ghi vào tệp log tiêu chuẩn (giống `logging.file`).
-- Đầu ra vẫn được che theo `logging.redactSensitive`.
+- Log theo cờ đi vào tệp log tiêu chuẩn (giống `logging.file`).
+- Đầu ra vẫn được che dữ liệu theo `logging.redactSensitive`.
 - Hướng dẫn đầy đủ: [/diagnostics/flags](/diagnostics/flags).
 
 ### Xuất sang OpenTelemetry
 
 Chẩn đoán có thể được xuất qua plugin `diagnostics-otel` (OTLP/HTTP). Điều này
-hoạt động với bất kỳ collector/backend OpenTelemetry nào chấp nhận OTLP/HTTP.
+hoạt động với mọi OpenTelemetry collector/backend chấp nhận OTLP/HTTP.
 
 ```json
 {
@@ -263,9 +263,9 @@ Ghi chú:
 - Bạn cũng có thể bật plugin bằng `openclaw plugins enable diagnostics-otel`.
 - `protocol` hiện chỉ hỗ trợ `http/protobuf`. `grpc` bị bỏ qua.
 - Metrics bao gồm mức sử dụng token, chi phí, kích thước ngữ cảnh, thời lượng chạy, và
-  các counter/histogram luồng thông điệp (webhook, xếp hàng, trạng thái phiên, độ sâu/thời gian chờ).
-- Trace/metric có thể bật/tắt bằng `traces` / `metrics` (mặc định: bật). Trace
-  bao gồm span sử dụng mô hình cùng span xử lý webhook/thông điệp khi được bật.
+  các counter/histogram của luồng thông điệp (webhook, xếp hàng, trạng thái phiên, độ sâu/thời gian chờ hàng đợi).
+- Traces/metrics có thể bật/tắt bằng `traces` / `metrics` (mặc định: bật). Traces
+  bao gồm span sử dụng mô hình cùng span xử lý webhook/thông điệp khi bật.
 - Đặt `headers` khi collector của bạn yêu cầu xác thực.
 - Biến môi trường được hỗ trợ: `OTEL_EXPORTER_OTLP_ENDPOINT`,
   `OTEL_SERVICE_NAME`, `OTEL_EXPORTER_OTLP_PROTOCOL`.
@@ -274,41 +274,41 @@ Ghi chú:
 
 Sử dụng mô hình:
 
-- `openclaw.tokens` (counter, thuộc tính: `openclaw.token`, `openclaw.channel`,
+- `openclaw.tokens` (counter, attrs: `openclaw.token`, `openclaw.channel`,
   `openclaw.provider`, `openclaw.model`)
-- `openclaw.cost.usd` (counter, thuộc tính: `openclaw.channel`, `openclaw.provider`,
+- `openclaw.cost.usd` (counter, attrs: `openclaw.channel`, `openclaw.provider`,
   `openclaw.model`)
-- `openclaw.run.duration_ms` (histogram, thuộc tính: `openclaw.channel`,
+- `openclaw.run.duration_ms` (histogram, attrs: `openclaw.channel`,
   `openclaw.provider`, `openclaw.model`)
-- `openclaw.context.tokens` (histogram, thuộc tính: `openclaw.context`,
+- `openclaw.context.tokens` (histogram, attrs: `openclaw.context`,
   `openclaw.channel`, `openclaw.provider`, `openclaw.model`)
 
 Luồng thông điệp:
 
-- `openclaw.webhook.received` (counter, thuộc tính: `openclaw.channel`,
+- `openclaw.webhook.received` (counter, attrs: `openclaw.channel`,
   `openclaw.webhook`)
-- `openclaw.webhook.error` (counter, thuộc tính: `openclaw.channel`,
+- `openclaw.webhook.error` (counter, attrs: `openclaw.channel`,
   `openclaw.webhook`)
-- `openclaw.webhook.duration_ms` (histogram, thuộc tính: `openclaw.channel`,
+- `openclaw.webhook.duration_ms` (histogram, attrs: `openclaw.channel`,
   `openclaw.webhook`)
-- `openclaw.message.queued` (counter, thuộc tính: `openclaw.channel`,
+- `openclaw.message.queued` (counter, attrs: `openclaw.channel`,
   `openclaw.source`)
-- `openclaw.message.processed` (counter, thuộc tính: `openclaw.channel`,
+- `openclaw.message.processed` (counter, attrs: `openclaw.channel`,
   `openclaw.outcome`)
-- `openclaw.message.duration_ms` (histogram, thuộc tính: `openclaw.channel`,
+- `openclaw.message.duration_ms` (histogram, attrs: `openclaw.channel`,
   `openclaw.outcome`)
 
 Hàng đợi + phiên:
 
-- `openclaw.queue.lane.enqueue` (counter, thuộc tính: `openclaw.lane`)
-- `openclaw.queue.lane.dequeue` (counter, thuộc tính: `openclaw.lane`)
-- `openclaw.queue.depth` (histogram, thuộc tính: `openclaw.lane` hoặc
+- `openclaw.queue.lane.enqueue` (counter, attrs: `openclaw.lane`)
+- `openclaw.queue.lane.dequeue` (counter, attrs: `openclaw.lane`)
+- `openclaw.queue.depth` (histogram, attrs: `openclaw.lane` hoặc
   `openclaw.channel=heartbeat`)
-- `openclaw.queue.wait_ms` (histogram, thuộc tính: `openclaw.lane`)
-- `openclaw.session.state` (counter, thuộc tính: `openclaw.state`, `openclaw.reason`)
-- `openclaw.session.stuck` (counter, thuộc tính: `openclaw.state`)
-- `openclaw.session.stuck_age_ms` (histogram, thuộc tính: `openclaw.state`)
-- `openclaw.run.attempt` (counter, thuộc tính: `openclaw.attempt`)
+- `openclaw.queue.wait_ms` (histogram, attrs: `openclaw.lane`)
+- `openclaw.session.state` (counter, attrs: `openclaw.state`, `openclaw.reason`)
+- `openclaw.session.stuck` (counter, attrs: `openclaw.state`)
+- `openclaw.session.stuck_age_ms` (histogram, attrs: `openclaw.state`)
+- `openclaw.run.attempt` (counter, attrs: `openclaw.attempt`)
 
 ### Span được xuất (tên + thuộc tính chính)
 
@@ -329,29 +329,29 @@ Hàng đợi + phiên:
   - `openclaw.state`, `openclaw.ageMs`, `openclaw.queueDepth`,
     `openclaw.sessionKey`, `openclaw.sessionId`
 
-### Lấy mẫu + xả
+### Lấy mẫu + flush
 
 - Lấy mẫu trace: `diagnostics.otel.sampleRate` (0.0–1.0, chỉ span gốc).
-- Chu kỳ xuất metric: `diagnostics.otel.flushIntervalMs` (tối thiểu 1000ms).
+- Khoảng thời gian xuất metric: `diagnostics.otel.flushIntervalMs` (tối thiểu 1000ms).
 
-### Ghi chú giao thức
+### Ghi chú về giao thức
 
 - Endpoint OTLP/HTTP có thể đặt qua `diagnostics.otel.endpoint` hoặc
   `OTEL_EXPORTER_OTLP_ENDPOINT`.
-- Nếu endpoint đã chứa `/v1/traces` hoặc `/v1/metrics`, nó sẽ được dùng nguyên trạng.
-- Nếu endpoint đã chứa `/v1/logs`, nó sẽ được dùng nguyên trạng cho log.
+- Nếu endpoint đã chứa `/v1/traces` hoặc `/v1/metrics`, sẽ dùng nguyên trạng.
+- Nếu endpoint đã chứa `/v1/logs`, sẽ dùng nguyên trạng cho logs.
 - `diagnostics.otel.logs` bật xuất log OTLP cho đầu ra logger chính.
 
 ### Hành vi xuất log
 
-- Log OTLP dùng cùng bản ghi có cấu trúc được ghi vào `logging.file`.
-- Tuân theo `logging.level` (mức log tệp). Che console **không** áp dụng
+- Log OTLP dùng cùng các bản ghi có cấu trúc được ghi vào `logging.file`.
+- Tôn trọng `logging.level` (mức log tệp). Che dữ liệu console **không** áp dụng
   cho log OTLP.
-- Triển khai lưu lượng cao nên ưu tiên lấy mẫu/lọc tại collector OTLP.
+- Các cài đặt lưu lượng cao nên ưu tiên lấy mẫu/lọc tại OTLP collector.
 
 ## Mẹo xử lý sự cố
 
 - **Gateway không truy cập được?** Chạy `openclaw doctor` trước.
 - **Log trống?** Kiểm tra Gateway đang chạy và ghi vào đường dẫn tệp
   trong `logging.file`.
-- **Cần chi tiết hơn?** Đặt `logging.level` thành `debug` hoặc `trace` rồi thử lại.
+- **Cần nhiều chi tiết hơn?** Đặt `logging.level` thành `debug` hoặc `trace` rồi thử lại.

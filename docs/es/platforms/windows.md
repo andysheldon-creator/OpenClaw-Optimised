@@ -1,40 +1,39 @@
 ---
-summary: "Soporte de Windows (WSL2) + estado de la aplicacion complementaria"
+summary: "Soporte de Windows (WSL2) + estado de la aplicación complementaria"
 read_when:
-  - Instalando OpenClaw en Windows
-  - Buscando el estado de la aplicacion complementaria para Windows
+  - Instalación de OpenClaw en Windows
+  - Búsqueda del estado de la aplicación complementaria de Windows
 title: "Windows (WSL2)"
 x-i18n:
   source_path: platforms/windows.md
-  source_hash: c93d2263b4e5b60c
+  source_hash: d17df1bd5636502e
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:59:35Z
+  generated_at: 2026-02-08T09:34:15Z
 ---
 
 # Windows (WSL2)
 
-Se recomienda usar OpenClaw en Windows **a traves de WSL2** (se recomienda Ubuntu). La
-CLI + Gateway se ejecutan dentro de Linux, lo que mantiene el entorno de ejecucion consistente y hace
-que las herramientas sean mucho mas compatibles (Node/Bun/pnpm, binarios de Linux, Skills). Windows nativo
-podria ser mas complicado. WSL2 le brinda la experiencia completa de Linux — un solo comando
+Se recomienda usar OpenClaw en Windows **mediante WSL2** (se recomienda Ubuntu). La
+CLI + el Gateway se ejecutan dentro de Linux, lo que mantiene el entorno de ejecución consistente y hace que las
+herramientas sean mucho más compatibles (Node/Bun/pnpm, binarios de Linux, Skills). Windows nativo puede ser más complicado. WSL2 le ofrece la experiencia completa de Linux — un comando
 para instalar: `wsl --install`.
 
-Las aplicaciones complementarias nativas para Windows estan planificadas.
+Las aplicaciones complementarias nativas para Windows están planificadas.
 
-## Instalacion (WSL2)
+## Instalación (WSL2)
 
-- [Primeros Pasos](/start/getting-started) (use dentro de WSL)
-- [Instalacion y actualizaciones](/install/updating)
-- Guia oficial de WSL2 (Microsoft): https://learn.microsoft.com/windows/wsl/install
+- [Primeros pasos](/start/getting-started) (úselo dentro de WSL)
+- [Instalación y actualizaciones](/install/updating)
+- Guía oficial de WSL2 (Microsoft): [https://learn.microsoft.com/windows/wsl/install](https://learn.microsoft.com/windows/wsl/install)
 
 ## Gateway
 
-- [Runbook de Gateway](/gateway)
-- [Configuracion](/gateway/configuration)
+- [Runbook del Gateway](/gateway)
+- [Configuración](/gateway/configuration)
 
-## Instalacion del servicio Gateway (CLI)
+## Instalación del servicio del Gateway (CLI)
 
 Dentro de WSL2:
 
@@ -42,13 +41,13 @@ Dentro de WSL2:
 openclaw onboard --install-daemon
 ```
 
-O:
+O bien:
 
 ```
 openclaw gateway install
 ```
 
-O:
+O bien:
 
 ```
 openclaw configure
@@ -64,10 +63,10 @@ openclaw doctor
 
 ## Avanzado: exponer servicios de WSL en la LAN (portproxy)
 
-WSL tiene su propia red virtual. Si otra maquina necesita acceder a un servicio
+WSL tiene su propia red virtual. Si otra máquina necesita acceder a un servicio
 que se ejecuta **dentro de WSL** (SSH, un servidor TTS local o el Gateway), debe
-redirigir un puerto de Windows a la IP actual de WSL. La IP de WSL cambia despues de reinicios,
-por lo que es posible que deba actualizar la regla de redireccionamiento.
+reenviar un puerto de Windows a la IP actual de WSL. La IP de WSL cambia después de los reinicios,
+por lo que puede que deba actualizar la regla de reenvío.
 
 Ejemplo (PowerShell **como Administrador**):
 
@@ -83,14 +82,14 @@ netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=$ListenPor
   connectaddress=$WslIp connectport=$TargetPort
 ```
 
-Permita el puerto a traves del Firewall de Windows (una sola vez):
+Permita el puerto a través del Firewall de Windows (una sola vez):
 
 ```powershell
 New-NetFirewallRule -DisplayName "WSL SSH $ListenPort" -Direction Inbound `
   -Protocol TCP -LocalPort $ListenPort -Action Allow
 ```
 
-Actualice el portproxy despues de reinicios de WSL:
+Actualice el portproxy después de que WSL se reinicie:
 
 ```powershell
 netsh interface portproxy delete v4tov4 listenport=$ListenPort listenaddress=0.0.0.0 | Out-Null
@@ -100,18 +99,18 @@ netsh interface portproxy add v4tov4 listenport=$ListenPort listenaddress=0.0.0.
 
 Notas:
 
-- SSH desde otra maquina apunta a la **IP del host de Windows** (ejemplo: `ssh user@windows-host -p 2222`).
-- Los nodos remotos deben apuntar a una URL de Gateway **accesible** (no `127.0.0.1`); use
+- El acceso SSH desde otra máquina apunta a la **IP del host de Windows** (ejemplo: `ssh user@windows-host -p 2222`).
+- Los nodos remotos deben apuntar a una URL del Gateway **accesible** (no `127.0.0.1`); use
   `openclaw status --all` para confirmar.
-- Use `listenaddress=0.0.0.0` para acceso LAN; `127.0.0.1` lo mantiene solo local.
-- Si desea que esto sea automatico, registre una Tarea Programada para ejecutar el paso
-  de actualizacion al iniciar sesion.
+- Use `listenaddress=0.0.0.0` para acceso en la LAN; `127.0.0.1` lo mantiene solo local.
+- Si desea que esto sea automático, registre una Tarea programada para ejecutar el paso de
+  actualización al iniciar sesión.
 
-## Instalacion paso a paso de WSL2
+## Instalación paso a paso de WSL2
 
 ### 1) Instalar WSL2 + Ubuntu
 
-Abra PowerShell (Admin):
+Abra PowerShell (Administrador):
 
 ```powershell
 wsl --install
@@ -122,7 +121,7 @@ wsl --install -d Ubuntu-24.04
 
 Reinicie si Windows lo solicita.
 
-### 2) Habilitar systemd (requerido para la instalacion del Gateway)
+### 2) Habilitar systemd (requerido para la instalación del Gateway)
 
 En su terminal de WSL:
 
@@ -147,7 +146,7 @@ systemctl --user status
 
 ### 3) Instalar OpenClaw (dentro de WSL)
 
-Siga el flujo de Primeros Pasos de Linux dentro de WSL:
+Siga el flujo de Primeros pasos de Linux dentro de WSL:
 
 ```bash
 git clone https://github.com/openclaw/openclaw.git
@@ -158,9 +157,9 @@ pnpm build
 openclaw onboard
 ```
 
-Guia completa: [Primeros Pasos](/start/getting-started)
+Guía completa: [Primeros pasos](/start/getting-started)
 
-## Aplicacion complementaria para Windows
+## Aplicación complementaria de Windows
 
-Aun no tenemos una aplicacion complementaria para Windows. Las contribuciones son bienvenidas si desea
-aportar para que esto suceda.
+Aún no tenemos una aplicación complementaria para Windows. Las contribuciones son bienvenidas si desea
+ayudar a que esto suceda.

@@ -3,7 +3,7 @@ summary: "OpenClaw no Raspberry Pi (configuração auto-hospedada econômica)"
 read_when:
   - Configurando o OpenClaw em um Raspberry Pi
   - Executando o OpenClaw em dispositivos ARM
-  - Construindo uma IA pessoal barata e sempre ligada
+  - Construindo uma IA pessoal barata e sempre ativa
 title: "Raspberry Pi"
 x-i18n:
   source_path: platforms/raspberry-pi.md
@@ -11,55 +11,55 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:57:11Z
+  generated_at: 2026-02-08T09:31:42Z
 ---
 
 # OpenClaw no Raspberry Pi
 
 ## Objetivo
 
-Executar um Gateway OpenClaw persistente, sempre ligado, em um Raspberry Pi por um custo único de **~US$35–80** (sem taxas mensais).
+Executar um Gateway OpenClaw persistente e sempre ativo em um Raspberry Pi por **~US$ 35–80** de custo único (sem taxas mensais).
 
 Perfeito para:
 
 - Assistente de IA pessoal 24/7
 - Hub de automação residencial
-- Bot de Telegram/WhatsApp de baixo consumo, sempre disponível
+- Bot de Telegram/WhatsApp de baixo consumo e sempre disponível
 
 ## Requisitos de Hardware
 
-| Modelo do Pi    | RAM     | Funciona?   | Observacoes                            |
-| --------------- | ------- | ----------- | -------------------------------------- |
-| **Pi 5**        | 4GB/8GB | ✅ Melhor   | Mais rapido, recomendado               |
-| **Pi 4**        | 4GB     | ✅ Bom      | Ponto ideal para a maioria             |
-| **Pi 4**        | 2GB     | ✅ OK       | Funciona, adicione swap                |
-| **Pi 4**        | 1GB     | ⚠️ Apertado | Possivel com swap, configuracao minima |
-| **Pi 3B+**      | 1GB     | ⚠️ Lento    | Funciona, mas arrastado                |
-| **Pi Zero 2 W** | 512MB   | ❌          | Nao recomendado                        |
+| Modelo do Pi    | RAM     | Funciona?   | Observações                      |
+| --------------- | ------- | ----------- | -------------------------------- |
+| **Pi 5**        | 4GB/8GB | ✅ Melhor   | Mais rápido, recomendado         |
+| **Pi 4**        | 4GB     | ✅ Bom      | Ponto ideal para a maioria       |
+| **Pi 4**        | 2GB     | ✅ OK       | Funciona, adicione swap          |
+| **Pi 4**        | 1GB     | ⚠️ Apertado | Possível com swap, config mínima |
+| **Pi 3B+**      | 1GB     | ⚠️ Lento    | Funciona, mas é arrastado        |
+| **Pi Zero 2 W** | 512MB   | ❌          | Não recomendado                  |
 
-**Especificacoes minimas:** 1GB de RAM, 1 nucleo, 500MB de disco  
-**Recomendado:** 2GB+ de RAM, SO 64-bit, cartao SD de 16GB+ (ou SSD USB)
+**Especificações mínimas:** 1GB de RAM, 1 núcleo, 500MB de disco  
+**Recomendado:** 2GB+ de RAM, SO 64-bit, cartão SD de 16GB+ (ou SSD USB)
 
-## O Que Voce Vai Precisar
+## O que Você Vai Precisar
 
 - Raspberry Pi 4 ou 5 (2GB+ recomendado)
-- Cartao MicroSD (16GB+) ou SSD USB (melhor desempenho)
-- Fonte de alimentacao (PSU oficial do Pi recomendado)
-- Conexao de rede (Ethernet ou WiFi)
+- Cartão MicroSD (16GB+) ou SSD USB (melhor desempenho)
+- Fonte de alimentação (PSU oficial do Pi recomendada)
+- Conexão de rede (Ethernet ou WiFi)
 - ~30 minutos
 
 ## 1) Gravar o SO
 
-Use **Raspberry Pi OS Lite (64-bit)** — nao e necessario desktop para um servidor headless.
+Use **Raspberry Pi OS Lite (64-bit)** — não é necessário desktop para um servidor headless.
 
 1. Baixe o [Raspberry Pi Imager](https://www.raspberrypi.com/software/)
 2. Escolha o SO: **Raspberry Pi OS Lite (64-bit)**
-3. Clique no icone de engrenagem (⚙️) para preconfigurar:
+3. Clique no ícone de engrenagem (⚙️) para pré-configurar:
    - Defina o hostname: `gateway-host`
-   - Ative o SSH
-   - Defina usuario/senha
-   - Configure o WiFi (se nao usar Ethernet)
-4. Grave no seu cartao SD / drive USB
+   - Habilite SSH
+   - Defina usuário/senha
+   - Configure o WiFi (se não usar Ethernet)
+4. Grave no seu cartão SD / drive USB
 5. Insira e inicialize o Pi
 
 ## 2) Conectar via SSH
@@ -70,7 +70,7 @@ ssh user@gateway-host
 ssh user@192.168.x.x
 ```
 
-## 3) Configuracao do Sistema
+## 3) Configuração do Sistema
 
 ```bash
 # Update system
@@ -97,7 +97,7 @@ npm --version
 
 ## 5) Adicionar Swap (Importante para 2GB ou menos)
 
-O swap evita travamentos por falta de memoria:
+O swap evita travamentos por falta de memória:
 
 ```bash
 # Create 2GB swap file
@@ -116,13 +116,13 @@ sudo sysctl -p
 
 ## 6) Instalar o OpenClaw
 
-### Opcao A: Instalacao Padrao (Recomendada)
+### Opção A: Instalação Padrão (Recomendada)
 
 ```bash
 curl -fsSL https://openclaw.ai/install.sh | bash
 ```
 
-### Opcao B: Instalacao Hackeavel (Para experimentar)
+### Opção B: Instalação Hackeável (Para experimentar)
 
 ```bash
 git clone https://github.com/openclaw/openclaw.git
@@ -132,9 +132,9 @@ npm run build
 npm link
 ```
 
-A instalacao hackeavel oferece acesso direto a logs e codigo — util para depurar problemas especificos de ARM.
+A instalação hackeável dá acesso direto a logs e código — útil para depurar problemas específicos de ARM.
 
-## 7) Executar a Integracao Inicial
+## 7) Executar a Integração Inicial
 
 ```bash
 openclaw onboard --install-daemon
@@ -143,11 +143,11 @@ openclaw onboard --install-daemon
 Siga o assistente:
 
 1. **Modo do Gateway:** Local
-2. **Autenticacao:** Chaves de API recomendadas (OAuth pode ser instavel em Pi headless)
-3. **Canais:** Telegram e o mais facil para comecar
+2. **Autenticação:** chaves de API recomendadas (OAuth pode ser instável em Pi headless)
+3. **Canais:** Telegram é o mais fácil para começar
 4. **Daemon:** Sim (systemd)
 
-## 8) Verificar a Instalacao
+## 8) Verificar a Instalação
 
 ```bash
 # Check status
@@ -162,7 +162,7 @@ journalctl -u openclaw -f
 
 ## 9) Acessar o Dashboard
 
-Como o Pi e headless, use um tunel SSH:
+Como o Pi é headless, use um túnel SSH:
 
 ```bash
 # From your laptop/desktop
@@ -172,7 +172,7 @@ ssh -L 18789:localhost:18789 user@gateway-host
 open http://localhost:18789
 ```
 
-Ou use o Tailscale para acesso sempre ligado:
+Ou use o Tailscale para acesso sempre ativo:
 
 ```bash
 # On the Pi
@@ -186,20 +186,20 @@ sudo systemctl restart openclaw
 
 ---
 
-## Otimizacoes de Desempenho
+## Otimizações de Desempenho
 
 ### Use um SSD USB (Grande Melhoria)
 
-Cartoes SD sao lentos e se desgastam. Um SSD USB melhora drasticamente o desempenho:
+Cartões SD são lentos e se desgastam. Um SSD USB melhora drasticamente o desempenho:
 
 ```bash
 # Check if booting from USB
 lsblk
 ```
 
-Veja o [guia de boot USB do Pi](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#usb-mass-storage-boot) para configuracao.
+Veja o [guia de boot USB do Pi](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#usb-mass-storage-boot) para a configuração.
 
-### Reduzir Uso de Memoria
+### Reduzir Uso de Memória
 
 ```bash
 # Disable GPU memory allocation (headless)
@@ -224,21 +224,21 @@ htop
 
 ---
 
-## Observacoes Especificas de ARM
+## Notas Específicas de ARM
 
-### Compatibilidade de Binarios
+### Compatibilidade de Binários
 
-A maioria dos recursos do OpenClaw funciona em ARM64, mas alguns binarios externos podem precisar de builds ARM:
+A maioria dos recursos do OpenClaw funciona em ARM64, mas alguns binários externos podem precisar de builds ARM:
 
-| Ferramenta         | Status ARM64 | Observacoes                         |
-| ------------------ | ------------ | ----------------------------------- |
-| Node.js            | ✅           | Funciona muito bem                  |
-| WhatsApp (Baileys) | ✅           | JS puro, sem problemas              |
-| Telegram           | ✅           | JS puro, sem problemas              |
-| gog (Gmail CLI)    | ⚠️           | Verifique se ha release ARM         |
-| Chromium (browser) | ✅           | `sudo apt install chromium-browser` |
+| Ferramenta           | Status ARM64 | Observações                         |
+| -------------------- | ------------ | ----------------------------------- |
+| Node.js              | ✅           | Funciona muito bem                  |
+| WhatsApp (Baileys)   | ✅           | JS puro, sem problemas              |
+| Telegram             | ✅           | JS puro, sem problemas              |
+| gog (Gmail CLI)      | ⚠️           | Verifique se há release ARM         |
+| Chromium (navegador) | ✅           | `sudo apt install chromium-browser` |
 
-Se uma skill falhar, verifique se o binario tem build ARM. Muitas ferramentas em Go/Rust tem; algumas nao.
+Se uma skill falhar, verifique se o binário tem build ARM. Muitas ferramentas em Go/Rust têm; algumas não.
 
 ### 32-bit vs 64-bit
 
@@ -251,9 +251,9 @@ uname -m
 
 ---
 
-## Configuracao de Modelo Recomendada
+## Configuração de Modelo Recomendada
 
-Como o Pi e apenas o Gateway (os modelos rodam na nuvem), use modelos baseados em API:
+Como o Pi é apenas o Gateway (os modelos rodam na nuvem), use modelos baseados em API:
 
 ```json
 {
@@ -268,13 +268,13 @@ Como o Pi e apenas o Gateway (os modelos rodam na nuvem), use modelos baseados e
 }
 ```
 
-**Nao tente rodar LLMs locais em um Pi** — mesmo modelos pequenos sao lentos demais. Deixe Claude/GPT fazerem o trabalho pesado.
+**Não tente rodar LLMs locais em um Pi** — até modelos pequenos são lentos demais. Deixe Claude/GPT fazer o trabalho pesado.
 
 ---
 
-## Inicializacao Automatica no Boot
+## Inicialização Automática no Boot
 
-O assistente de integracao inicial configura isso, mas para verificar:
+O assistente de integração inicial configura isso, mas para verificar:
 
 ```bash
 # Check service is enabled
@@ -289,9 +289,9 @@ sudo systemctl start openclaw
 
 ---
 
-## Solucao de Problemas
+## Solução de Problemas
 
-### Falta de Memoria (OOM)
+### Falta de Memória (OOM)
 
 ```bash
 # Check memory
@@ -303,11 +303,11 @@ free -h
 
 ### Desempenho Lento
 
-- Use SSD USB em vez de cartao SD
-- Desative servicos nao utilizados: `sudo systemctl disable cups bluetooth avahi-daemon`
-- Verifique limitacao de CPU: `vcgencmd get_throttled` (deve retornar `0x0`)
+- Use SSD USB em vez de cartão SD
+- Desative serviços não utilizados: `sudo systemctl disable cups bluetooth avahi-daemon`
+- Verifique throttling da CPU: `vcgencmd get_throttled` (deve retornar `0x0`)
 
-### Servico Nao Inicia
+### Serviço Não Inicia
 
 ```bash
 # Check logs
@@ -319,17 +319,17 @@ npm run build
 sudo systemctl restart openclaw
 ```
 
-### Problemas com Binarios ARM
+### Problemas com Binários ARM
 
 Se uma skill falhar com "exec format error":
 
-1. Verifique se o binario tem build ARM64
-2. Tente compilar a partir do codigo-fonte
-3. Ou use um container Docker com suporte a ARM
+1. Verifique se o binário tem build ARM64
+2. Tente compilar a partir do código-fonte
+3. Ou use um contêiner Docker com suporte a ARM
 
 ### Quedas de WiFi
 
-Para Pis headless usando WiFi:
+Para Pis headless em WiFi:
 
 ```bash
 # Disable WiFi power management
@@ -341,25 +341,25 @@ echo 'wireless-power off' | sudo tee -a /etc/network/interfaces
 
 ---
 
-## Comparacao de Custos
+## Comparação de Custos
 
-| Configuracao   | Custo Unico | Custo Mensal | Observacoes                    |
+| Configuração   | Custo Único | Custo Mensal | Observações                    |
 | -------------- | ----------- | ------------ | ------------------------------ |
 | **Pi 4 (2GB)** | ~$45        | $0           | + energia (~$5/ano)            |
 | **Pi 4 (4GB)** | ~$55        | $0           | Recomendado                    |
 | **Pi 5 (4GB)** | ~$60        | $0           | Melhor desempenho              |
-| **Pi 5 (8GB)** | ~$80        | $0           | Exagero, mas a prova do futuro |
-| DigitalOcean   | $0          | $6/mes       | $72/ano                        |
-| Hetzner        | $0          | €3,79/mes    | ~$50/ano                       |
+| **Pi 5 (8GB)** | ~$80        | $0           | Exagero, mas à prova do futuro |
+| DigitalOcean   | $0          | $6/mês       | $72/ano                        |
+| Hetzner        | $0          | €3,79/mês    | ~$50/ano                       |
 
-**Ponto de equilibrio:** Um Pi se paga em ~6–12 meses em comparacao com VPS na nuvem.
+**Ponto de equilíbrio:** um Pi se paga em ~6–12 meses em comparação a um VPS na nuvem.
 
 ---
 
-## Veja Tambem
+## Veja também
 
-- [Guia Linux](/platforms/linux) — configuracao geral no Linux
-- [Guia DigitalOcean](/platforms/digitalocean) — alternativa na nuvem
-- [Guia Hetzner](/install/hetzner) — configuracao com Docker
+- [Guia Linux](/platforms/linux) — configuração geral no Linux
+- [Guia DigitalOcean](/platforms/digitalocean) — alternativa em nuvem
+- [Guia Hetzner](/install/hetzner) — configuração com Docker
 - [Tailscale](/gateway/tailscale) — acesso remoto
-- [Nodes](/nodes) — conecte seu laptop/telefone ao gateway do Pi
+- [Nodes](/nodes) — conecte seu laptop/celular ao gateway do Pi

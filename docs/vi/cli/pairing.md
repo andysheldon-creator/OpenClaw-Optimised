@@ -1,26 +1,26 @@
 ---
-summary: "Tham chieu CLI cho `openclaw pairing` (phe duyet/liet ke yeu cau ghep cap)"
+summary: "Tài liệu tham chiếu CLI cho `openclaw pairing` (phê duyệt/liệt kê các yêu cầu ghép đôi)"
 read_when:
-  - Ban dang su dung DMs o che do ghep cap va can phe duyet nguoi gui
-title: "ghep cap"
+  - Bạn đang sử dụng DM ở chế độ ghép đôi và cần phê duyệt người gửi
+title: "pairing"
 x-i18n:
   source_path: cli/pairing.md
-  source_hash: e0bc9707294463c9
+  source_hash: 785869d24d953141
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:30Z
+  generated_at: 2026-02-08T09:38:19Z
 ---
 
 # `openclaw pairing`
 
-Phe duyet hoac kiem tra cac yeu cau ghep cap Tin nhan truc tiep (doi voi cac kenh ho tro ghep cap).
+Phê duyệt hoặc kiểm tra các yêu cầu ghép đôi DM (đối với các kênh hỗ trợ ghép đôi).
 
-Lien quan:
+Liên quan:
 
-- Luong ghep cap: [Pairing](/start/pairing)
+- Luồng ghép đôi: [Pairing](/channels/pairing)
 
-## Lenh
+## Commands
 
 ```bash
 openclaw pairing list whatsapp

@@ -1,204 +1,204 @@
 ---
-summary: "Cac hub lien ket den moi tai lieu OpenClaw"
+summary: "Các hub liên kết tới mọi tài liệu OpenClaw"
 read_when:
-  - Ban muon co mot ban do day du cua tai lieu
-title: "Hub Tai Lieu"
+  - Bạn muốn có bản đồ đầy đủ của tài liệu
+title: "Các hub tài liệu"
 x-i18n:
   source_path: start/hubs.md
-  source_hash: a2e3aa07d6c8c2dc
+  source_hash: 027cb7937ba63866
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:08:41Z
+  generated_at: 2026-02-08T09:40:16Z
 ---
 
-# Hub tai lieu
+# Các hub tài liệu
 
 <Note>
-Neu ban moi bat dau voi OpenClaw, hay bat dau tu [Bat Dau](/start/getting-started).
+Nếu bạn mới dùng OpenClaw, hãy bắt đầu với [Getting Started](/start/getting-started).
 </Note>
 
-Su dung cac hub nay de kham pha moi trang, bao gom ca cac bai phan tich chuyen sau va tai lieu tham chieu khong xuat hien trong thanh dieu huong ben trai.
+Sử dụng các hub này để khám phá mọi trang, bao gồm các bài phân tích chuyên sâu và tài liệu tham chiếu không xuất hiện trong thanh điều hướng bên trái.
 
-## Bat dau tu day
+## Bắt đầu tại đây
 
 - [Index](/)
-- [Bat Dau](/start/getting-started)
-- [Khoi dong nhanh](/start/quickstart)
-- [Huong Dan Ban Dau](/start/onboarding)
-- [Trinh huong dan](/start/wizard)
-- [Thiet lap](/start/setup)
-- [Bang dieu khien (Gateway cuc bo)](http://127.0.0.1:18789/)
-- [Tro giup](/help)
-- [Thu muc tai lieu](/start/docs-directory)
-- [Cau hinh](/gateway/configuration)
-- [Vi du cau hinh](/gateway/configuration-examples)
-- [Tro ly OpenClaw](/start/openclaw)
-- [Trinh dien](/start/showcase)
-- [Truyen thuyet](/start/lore)
+- [Getting Started](/start/getting-started)
+- [Quick start](/start/quickstart)
+- [Onboarding](/start/onboarding)
+- [Wizard](/start/wizard)
+- [Setup](/start/setup)
+- [Dashboard (local Gateway)](http://127.0.0.1:18789/)
+- [Help](/help)
+- [Docs directory](/start/docs-directory)
+- [Configuration](/gateway/configuration)
+- [Configuration examples](/gateway/configuration-examples)
+- [OpenClaw assistant](/start/openclaw)
+- [Showcase](/start/showcase)
+- [Lore](/start/lore)
 
-## Cai dat + cap nhat
+## Cài đặt + cập nhật
 
 - [Docker](/install/docker)
 - [Nix](/install/nix)
-- [Cap nhat / quay lui](/install/updating)
-- [Quy trinh Bun (thu nghiem)](/install/bun)
+- [Updating / rollback](/install/updating)
+- [Bun workflow (experimental)](/install/bun)
 
-## Khai niem cot loi
+## Khái niệm cốt lõi
 
-- [Kien truc](/concepts/architecture)
-- [Tinh nang](/concepts/features)
-- [Hub mang](/network)
-- [Moi truong chay agent](/concepts/agent)
-- [Khong gian lam viec agent](/concepts/agent-workspace)
-- [Bo nho](/concepts/memory)
-- [Vong lap agent](/concepts/agent-loop)
+- [Architecture](/concepts/architecture)
+- [Features](/concepts/features)
+- [Network hub](/network)
+- [Agent runtime](/concepts/agent)
+- [Agent workspace](/concepts/agent-workspace)
+- [Memory](/concepts/memory)
+- [Agent loop](/concepts/agent-loop)
 - [Streaming + chunking](/concepts/streaming)
-- [Dinh tuyen da agent](/concepts/multi-agent)
-- [Nen gon](/concepts/compaction)
-- [Phien](/concepts/session)
-- [Phien (ten goi khac)](/concepts/sessions)
-- [Cat tia phien](/concepts/session-pruning)
-- [Cong cu phien](/concepts/session-tool)
-- [Hang doi](/concepts/queue)
-- [Lenh slash](/tools/slash-commands)
-- [Bo dieu hop RPC](/reference/rpc)
-- [Schema TypeBox](/concepts/typebox)
-- [Xu ly mui gio](/concepts/timezone)
-- [Hien dien](/concepts/presence)
-- [Kham pha + transport](/gateway/discovery)
+- [Multi-agent routing](/concepts/multi-agent)
+- [Compaction](/concepts/compaction)
+- [Sessions](/concepts/session)
+- [Sessions (alias)](/concepts/sessions)
+- [Session pruning](/concepts/session-pruning)
+- [Session tools](/concepts/session-tool)
+- [Queue](/concepts/queue)
+- [Slash commands](/tools/slash-commands)
+- [RPC adapters](/reference/rpc)
+- [TypeBox schemas](/concepts/typebox)
+- [Timezone handling](/concepts/timezone)
+- [Presence](/concepts/presence)
+- [Discovery + transports](/gateway/discovery)
 - [Bonjour](/gateway/bonjour)
-- [Dinh tuyen kenh](/concepts/channel-routing)
-- [Nhom](/concepts/groups)
-- [Tin nhan nhom](/concepts/group-messages)
-- [Chuyen doi du phong mo hinh](/concepts/model-failover)
+- [Channel routing](/channels/channel-routing)
+- [Groups](/channels/groups)
+- [Group messages](/channels/group-messages)
+- [Model failover](/concepts/model-failover)
 - [OAuth](/concepts/oauth)
 
-## Nha cung cap + ingress
+## Nhà cung cấp + ingress
 
-- [Hub kenh chat](/channels)
-- [Hub nha cung cap mo hinh](/providers/models)
+- [Chat channels hub](/channels)
+- [Model providers hub](/providers/models)
 - [WhatsApp](/channels/whatsapp)
 - [Telegram](/channels/telegram)
-- [Telegram (ghi chu grammY)](/channels/grammy)
+- [Telegram (ghi chú grammY)](/channels/grammy)
 - [Slack](/channels/slack)
 - [Discord](/channels/discord)
 - [Mattermost](/channels/mattermost) (plugin)
 - [Signal](/channels/signal)
 - [BlueBubbles (iMessage)](/channels/bluebubbles)
-- [iMessage (ke thua)](/channels/imessage)
-- [Phan tich vi tri](/channels/location)
+- [iMessage (legacy)](/channels/imessage)
+- [Location parsing](/channels/location)
 - [WebChat](/web/webchat)
 - [Webhooks](/automation/webhook)
 - [Gmail Pub/Sub](/automation/gmail-pubsub)
 
-## Gateway + van hanh
+## Gateway + vận hành
 
-- [So tay van hanh Gateway](/gateway)
-- [Mo hinh mang](/gateway/network-model)
-- [Ghep doi Gateway](/gateway/pairing)
-- [Khoa Gateway](/gateway/gateway-lock)
-- [Tien trinh nen](/gateway/background-process)
-- [Tinh trang suc khoe](/gateway/health)
-- [Nhip tim](/gateway/heartbeat)
+- [Gateway runbook](/gateway)
+- [Network model](/gateway/network-model)
+- [Gateway pairing](/gateway/pairing)
+- [Gateway lock](/gateway/gateway-lock)
+- [Background process](/gateway/background-process)
+- [Health](/gateway/health)
+- [Heartbeat](/gateway/heartbeat)
 - [Doctor](/gateway/doctor)
-- [Ghi log](/gateway/logging)
+- [Logging](/gateway/logging)
 - [Sandboxing](/gateway/sandboxing)
-- [Bang dieu khien](/web/dashboard)
-- [Giao dien dieu khien](/web/control-ui)
-- [Truy cap tu xa](/gateway/remote)
-- [README Gateway tu xa](/gateway/remote-gateway-readme)
+- [Dashboard](/web/dashboard)
+- [Control UI](/web/control-ui)
+- [Remote access](/gateway/remote)
+- [Remote gateway README](/gateway/remote-gateway-readme)
 - [Tailscale](/gateway/tailscale)
-- [Bao mat](/gateway/security)
-- [Xu ly su co](/gateway/troubleshooting)
+- [Security](/gateway/security)
+- [Troubleshooting](/gateway/troubleshooting)
 
-## Cong cu + tu dong hoa
+## Công cụ + tự động hóa
 
-- [Be mat cong cu](/tools)
+- [Tools surface](/tools)
 - [OpenProse](/prose)
-- [Tham chieu CLI](/cli)
-- [Cong cu Exec](/tools/exec)
-- [Che do nang cao](/tools/elevated)
-- [Cong viec Cron](/automation/cron-jobs)
+- [CLI reference](/cli)
+- [Exec tool](/tools/exec)
+- [Elevated mode](/tools/elevated)
+- [Cron jobs](/automation/cron-jobs)
 - [Cron vs Heartbeat](/automation/cron-vs-heartbeat)
-- [Suy nghi + chi tiet](/tools/thinking)
-- [Mo hinh](/concepts/models)
-- [Sub-agent](/tools/subagents)
+- [Thinking + verbose](/tools/thinking)
+- [Models](/concepts/models)
+- [Sub-agents](/tools/subagents)
 - [Agent send CLI](/tools/agent-send)
-- [Giao dien Terminal](/tui)
-- [Dieu khien trinh duyet](/tools/browser)
-- [Trinh duyet (xu ly su co Linux)](/tools/browser-linux-troubleshooting)
-- [Tham do](/automation/poll)
+- [Terminal UI](/web/tui)
+- [Browser control](/tools/browser)
+- [Browser (Linux troubleshooting)](/tools/browser-linux-troubleshooting)
+- [Polls](/automation/poll)
 
-## Nut, media, giong noi
+## Nodes, media, giọng nói
 
-- [Tong quan nut](/nodes)
+- [Nodes overview](/nodes)
 - [Camera](/nodes/camera)
-- [Hinh anh](/nodes/images)
-- [Am thanh](/nodes/audio)
-- [Lenh vi tri](/nodes/location-command)
-- [Danh thuc giong noi](/nodes/voicewake)
-- [Che do noi chuyen](/nodes/talk)
+- [Images](/nodes/images)
+- [Audio](/nodes/audio)
+- [Location command](/nodes/location-command)
+- [Voice wake](/nodes/voicewake)
+- [Talk mode](/nodes/talk)
 
-## Nen tang
+## Nền tảng
 
-- [Tong quan nen tang](/platforms)
+- [Platforms overview](/platforms)
 - [macOS](/platforms/macos)
 - [iOS](/platforms/ios)
 - [Android](/platforms/android)
 - [Windows (WSL2)](/platforms/windows)
 - [Linux](/platforms/linux)
-- [Be mat Web](/web)
+- [Web surfaces](/web)
 
-## Ung dung dong hanh macOS (nang cao)
+## Ứng dụng đồng hành macOS (nâng cao)
 
-- [Thiet lap dev macOS](/platforms/mac/dev-setup)
-- [Thanh menu macOS](/platforms/mac/menu-bar)
-- [Danh thuc giong noi macOS](/platforms/mac/voicewake)
-- [Lop phu giong noi macOS](/platforms/mac/voice-overlay)
-- [WebChat macOS](/platforms/mac/webchat)
-- [Canvas macOS](/platforms/mac/canvas)
-- [Tien trinh con macOS](/platforms/mac/child-process)
-- [Suc khoe macOS](/platforms/mac/health)
-- [Bieu tuong macOS](/platforms/mac/icon)
-- [Ghi log macOS](/platforms/mac/logging)
-- [Quyen macOS](/platforms/mac/permissions)
-- [Truy cap tu xa macOS](/platforms/mac/remote)
-- [Ky macOS](/platforms/mac/signing)
-- [Phat hanh macOS](/platforms/mac/release)
-- [Gateway macOS (launchd)](/platforms/mac/bundled-gateway)
-- [XPC macOS](/platforms/mac/xpc)
-- [Skills macOS](/platforms/mac/skills)
-- [Peekaboo macOS](/platforms/mac/peekaboo)
+- [macOS dev setup](/platforms/mac/dev-setup)
+- [macOS menu bar](/platforms/mac/menu-bar)
+- [macOS voice wake](/platforms/mac/voicewake)
+- [macOS voice overlay](/platforms/mac/voice-overlay)
+- [macOS WebChat](/platforms/mac/webchat)
+- [macOS Canvas](/platforms/mac/canvas)
+- [macOS child process](/platforms/mac/child-process)
+- [macOS health](/platforms/mac/health)
+- [macOS icon](/platforms/mac/icon)
+- [macOS logging](/platforms/mac/logging)
+- [macOS permissions](/platforms/mac/permissions)
+- [macOS remote](/platforms/mac/remote)
+- [macOS signing](/platforms/mac/signing)
+- [macOS release](/platforms/mac/release)
+- [macOS gateway (launchd)](/platforms/mac/bundled-gateway)
+- [macOS XPC](/platforms/mac/xpc)
+- [macOS skills](/platforms/mac/skills)
+- [macOS Peekaboo](/platforms/mac/peekaboo)
 
-## Workspace + mau
+## Workspace + mẫu
 
 - [Skills](/tools/skills)
 - [ClawHub](/tools/clawhub)
-- [Cau hinh Skills](/tools/skills-config)
-- [AGENTS mac dinh](/reference/AGENTS.default)
-- [Mau: AGENTS](/reference/templates/AGENTS)
-- [Mau: BOOTSTRAP](/reference/templates/BOOTSTRAP)
-- [Mau: HEARTBEAT](/reference/templates/HEARTBEAT)
-- [Mau: IDENTITY](/reference/templates/IDENTITY)
-- [Mau: SOUL](/reference/templates/SOUL)
-- [Mau: TOOLS](/reference/templates/TOOLS)
-- [Mau: USER](/reference/templates/USER)
+- [Skills config](/tools/skills-config)
+- [Default AGENTS](/reference/AGENTS.default)
+- [Templates: AGENTS](/reference/templates/AGENTS)
+- [Templates: BOOTSTRAP](/reference/templates/BOOTSTRAP)
+- [Templates: HEARTBEAT](/reference/templates/HEARTBEAT)
+- [Templates: IDENTITY](/reference/templates/IDENTITY)
+- [Templates: SOUL](/reference/templates/SOUL)
+- [Templates: TOOLS](/reference/templates/TOOLS)
+- [Templates: USER](/reference/templates/USER)
 
-## Thu nghiem (kham pha)
+## Thử nghiệm (khám phá)
 
-- [Giao thuc cau hinh onboarding](/experiments/onboarding-config-protocol)
-- [Ghi chu tang cuong Cron](/experiments/plans/cron-add-hardening)
-- [Ghi chu tang cuong chinh sach nhom](/experiments/plans/group-policy-hardening)
-- [Nghien cuu: bo nho](/experiments/research/memory)
-- [Kham pha cau hinh mo hinh](/experiments/proposals/model-config)
+- [Onboarding config protocol](/experiments/onboarding-config-protocol)
+- [Cron hardening notes](/experiments/plans/cron-add-hardening)
+- [Group policy hardening notes](/experiments/plans/group-policy-hardening)
+- [Research: memory](/experiments/research/memory)
+- [Model config exploration](/experiments/proposals/model-config)
 
-## Du an
+## Dự án
 
-- [Ghi nhan](/reference/credits)
+- [Credits](/reference/credits)
 
-## Kiem thu + phat hanh
+## Kiểm thử + phát hành
 
-- [Kiem thu](/reference/test)
-- [Danh sach kiem tra phat hanh](/reference/RELEASING)
-- [Mo hinh thiet bi](/reference/device-models)
+- [Testing](/reference/test)
+- [Release checklist](/reference/RELEASING)
+- [Device models](/reference/device-models)

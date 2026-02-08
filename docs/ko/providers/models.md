@@ -1,16 +1,16 @@
 ---
-summary: "OpenClaw 에서 지원하는 모델 프로바이더(LLM)"
+summary: "OpenClaw 에서 지원하는 모델 프로바이더 (LLM)"
 read_when:
   - 모델 프로바이더를 선택하려는 경우
   - LLM 인증 + 모델 선택을 위한 빠른 설정 예제가 필요한 경우
 title: "모델 프로바이더 빠른 시작"
 x-i18n:
   source_path: providers/models.md
-  source_hash: c897ca87805f1ec5
+  source_hash: 691d2c97ef6b01cc
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:40:18Z
+  generated_at: 2026-02-08T09:25:56Z
 ---
 
 # 모델 프로바이더
@@ -20,16 +20,16 @@ OpenClaw 는 다양한 LLM 프로바이더를 사용할 수 있습니다. 하나
 
 ## 하이라이트: Venice (Venice AI)
 
-Venice 는 프라이버시 우선 추론을 위한 권장 Venice AI 설정으로, 가장 어려운 작업에는 Opus 를 사용할 수 있는 옵션을 제공합니다.
+Venice 는 프라이버시 우선 추론을 위한 권장 Venice AI 설정이며, 가장 어려운 작업에는 Opus 를 사용할 수 있는 옵션을 제공합니다.
 
 - 기본값: `venice/llama-3.3-70b`
-- 전반적으로 최상: `venice/claude-opus-45` (Opus 가 여전히 가장 강력합니다)
+- 전반적으로 최고: `venice/claude-opus-45` (Opus 가 여전히 가장 강력합니다)
 
-자세한 내용은 [Venice AI](/providers/venice) 를 참조하세요.
+[Venice AI](/providers/venice)를 참고하십시오.
 
 ## 빠른 시작 (두 단계)
 
-1. 프로바이더로 인증합니다(보통 `openclaw onboard` 를 통해 수행합니다).
+1. 프로바이더로 인증합니다 (일반적으로 `openclaw onboard` 를 사용).
 2. 기본 모델을 설정합니다:
 
 ```json5
@@ -38,7 +38,7 @@ Venice 는 프라이버시 우선 추론을 위한 권장 Venice AI 설정으로
 }
 ```
 
-## 지원되는 프로바이더 (시작 세트)
+## 지원되는 프로바이더 (스타터 세트)
 
 - [OpenAI (API + Codex)](/providers/openai)
 - [Anthropic (API + Claude Code CLI)](/providers/anthropic)
@@ -52,7 +52,8 @@ Venice 는 프라이버시 우선 추론을 위한 권장 Venice AI 설정으로
 - [GLM models](/providers/glm)
 - [MiniMax](/providers/minimax)
 - [Venice (Venice AI)](/providers/venice)
-- [Amazon Bedrock](/bedrock)
+- [Amazon Bedrock](/providers/bedrock)
+- [Qianfan](/providers/qianfan)
 
-전체 프로바이더 카탈로그(xAI, Groq, Mistral 등)와 고급 구성에 대해서는
-[Model providers](/concepts/model-providers) 를 참조하세요.
+전체 프로바이더 카탈로그 (xAI, Groq, Mistral 등)와 고급 구성에 대해서는
+[Model providers](/concepts/model-providers)를 참고하십시오.

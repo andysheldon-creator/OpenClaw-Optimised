@@ -1,27 +1,27 @@
 ---
-summary: "Einrichtungsanleitung für Entwickler, die an der OpenClaw macOS-App arbeiten"
+summary: „Einrichtungsleitfaden für Entwickler, die an der OpenClaw macOS-App arbeiten“
 read_when:
   - Einrichten der macOS-Entwicklungsumgebung
-title: "macOS-Entwickler-Setup"
+title: „macOS-Entwickler-Setup“
 x-i18n:
   source_path: platforms/mac/dev-setup.md
-  source_hash: 4ea67701bd58b751
+  source_hash: 52d3cadae980ae62
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:00Z
+  generated_at: 2026-02-08T09:36:52Z
 ---
 
 # macOS-Entwickler-Setup
 
-Diese Anleitung beschreibt die erforderlichen Schritte, um die OpenClaw macOS-Anwendung aus dem Quellcode zu erstellen und auszuführen.
+Dieser Leitfaden beschreibt die notwendigen Schritte, um die OpenClaw macOS-Anwendung aus dem Quellcode zu bauen und auszuführen.
 
 ## Voraussetzungen
 
-Bevor Sie die App erstellen, stellen Sie sicher, dass Folgendes installiert ist:
+Stellen Sie vor dem Build der App sicher, dass Folgendes installiert ist:
 
-1.  **Xcode 26.2+**: Erforderlich für die Swift-Entwicklung.
-2.  **Node.js 22+ & pnpm**: Erforderlich für das Gateway, die CLI und die Packaging-Skripte.
+1. **Xcode 26.2+**: Erforderlich für die Swift-Entwicklung.
+2. **Node.js 22+ & pnpm**: Erforderlich für Gateway, CLI und Packaging-Skripte.
 
 ## 1. Abhängigkeiten installieren
 
@@ -31,9 +31,9 @@ Installieren Sie die projektweiten Abhängigkeiten:
 pnpm install
 ```
 
-## 2. App erstellen und paketieren
+## 2. App bauen und paketieren
 
-Um die macOS-App zu erstellen und in `dist/OpenClaw.app` zu paketieren, führen Sie Folgendes aus:
+Um die macOS-App zu bauen und in `dist/OpenClaw.app` zu paketieren, führen Sie aus:
 
 ```bash
 ./scripts/package-mac-app.sh
@@ -41,10 +41,10 @@ Um die macOS-App zu erstellen und in `dist/OpenClaw.app` zu paketieren, führen 
 
 Wenn Sie kein Apple Developer ID-Zertifikat haben, verwendet das Skript automatisch **Ad-hoc-Signierung** (`-`).
 
-Informationen zu Dev-Ausführungsmodi, Signierungs-Flags und zur Fehlerbehebung bei der Team-ID finden Sie in der README der macOS-App:
-https://github.com/openclaw/openclaw/blob/main/apps/macos/README.md
+Zu Dev-Ausführungsmodi, Signierungs-Flags und Team-ID-Fehlerbehebung siehe das README der macOS-App:
+[https://github.com/openclaw/openclaw/blob/main/apps/macos/README.md](https://github.com/openclaw/openclaw/blob/main/apps/macos/README.md)
 
-> **Hinweis**: Ad-hoc-signierte Apps können Sicherheitsabfragen auslösen. Wenn die App sofort mit „Abort trap 6“ abstürzt, lesen Sie den Abschnitt [Fehlerbehebung](#troubleshooting).
+> **Hinweis**: Ad-hoc-signierte Apps können Sicherheitsabfragen auslösen. Wenn die App sofort mit „Abort trap 6“ abstürzt, siehe den Abschnitt [Fehlerbehebung](#troubleshooting).
 
 ## 3. CLI installieren
 
@@ -52,11 +52,11 @@ Die macOS-App erwartet eine globale `openclaw` CLI-Installation zur Verwaltung v
 
 **So installieren Sie sie (empfohlen):**
 
-1.  Öffnen Sie die OpenClaw-App.
-2.  Wechseln Sie zur Registerkarte **Allgemein** in den Einstellungen.
-3.  Klicken Sie auf **„CLI installieren“**.
+1. Öffnen Sie die OpenClaw-App.
+2. Wechseln Sie zum Tab **Allgemein**.
+3. Klicken Sie auf **„CLI installieren“**.
 
-Alternativ können Sie die Installation manuell durchführen:
+Alternativ können Sie sie manuell installieren:
 
 ```bash
 npm install -g openclaw@<version>
@@ -64,13 +64,13 @@ npm install -g openclaw@<version>
 
 ## Fehlerbehebung
 
-### Build schlägt fehl: Toolchain- oder SDK-Nichtübereinstimmung
+### Build schlägt fehl: Toolchain- oder SDK-Mismatch
 
-Der Build der macOS-App erwartet das neueste macOS-SDK und die Swift-6.2-Toolchain.
+Der Build der macOS-App erwartet das neueste macOS SDK und die Swift-6.2-Toolchain.
 
 **Systemabhängigkeiten (erforderlich):**
 
-- **Neueste über „Softwareupdate“ verfügbare macOS-Version** (erforderlich für die Xcode-26.2-SDKs)
+- **Neueste in der Softwareaktualisierung verfügbare macOS-Version** (erforderlich für Xcode-26.2-SDKs)
 - **Xcode 26.2** (Swift-6.2-Toolchain)
 
 **Prüfungen:**
@@ -82,21 +82,23 @@ xcrun swift --version
 
 Wenn die Versionen nicht übereinstimmen, aktualisieren Sie macOS/Xcode und führen Sie den Build erneut aus.
 
-### App stürzt bei Erteilung von Berechtigungen ab
+### App stürzt beim Erteilen von Berechtigungen ab
 
-Wenn die App abstürzt, sobald Sie den Zugriff auf **Spracherkennung** oder **Mikrofon** erlauben, kann dies an einem beschädigten TCC-Cache oder einer Signatur-Nichtübereinstimmung liegen.
+Wenn die App abstürzt, wenn Sie **Spracherkennung** oder **Mikrofon**-Zugriff erlauben, kann dies an einem beschädigten TCC-Cache oder einer Signaturabweichung liegen.
 
 **Behebung:**
 
 1. Setzen Sie die TCC-Berechtigungen zurück:
+
    ```bash
    tccutil reset All bot.molt.mac.debug
    ```
-2. Falls das nicht hilft, ändern Sie vorübergehend die `BUNDLE_ID` in [`scripts/package-mac-app.sh`](https://github.com/openclaw/openclaw/blob/main/scripts/package-mac-app.sh), um macOS zu einem „Neustart auf leerer Basis“ zu zwingen.
 
-### Gateway bleibt dauerhaft bei „Starting…“
+2. Falls das nicht hilft, ändern Sie vorübergehend `BUNDLE_ID` in [`scripts/package-mac-app.sh`](https://github.com/openclaw/openclaw/blob/main/scripts/package-mac-app.sh), um von macOS einen „Clean Slate“ zu erzwingen.
 
-Wenn der Gateway-Status dauerhaft auf „Starting…“ bleibt, prüfen Sie, ob ein Zombie-Prozess den Port belegt:
+### Gateway bleibt dauerhaft bei „Starting...“
+
+Wenn der Gateway-Status bei „Starting...“ stehen bleibt, prüfen Sie, ob ein Zombie-Prozess den Port blockiert:
 
 ```bash
 openclaw gateway status

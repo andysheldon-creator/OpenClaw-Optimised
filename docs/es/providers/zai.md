@@ -1,8 +1,8 @@
 ---
 summary: "Use Z.AI (modelos GLM) con OpenClaw"
 read_when:
-  - Quiere modelos Z.AI / GLM en OpenClaw
-  - Necesita una configuracion simple de ZAI_API_KEY
+  - Desea modelos Z.AI / GLM en OpenClaw
+  - Necesita una configuración simple de ZAI_API_KEY
 title: "Z.AI"
 x-i18n:
   source_path: providers/zai.md
@@ -10,16 +10,16 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:59:43Z
+  generated_at: 2026-02-08T09:34:21Z
 ---
 
 # Z.AI
 
-Z.AI es la plataforma de API para los modelos **GLM**. Proporciona APIs REST para GLM y utiliza claves de API
-para la autenticacion. Cree su clave de API en la consola de Z.AI. OpenClaw utiliza el proveedor `zai`
+Z.AI es la plataforma de API para los modelos **GLM**. Proporciona API REST para GLM y utiliza claves de API
+para la autenticación. Cree su clave de API en la consola de Z.AI. OpenClaw utiliza el proveedor `zai`
 con una clave de API de Z.AI.
 
-## Configuracion del CLI
+## Configuración de la CLI
 
 ```bash
 openclaw onboard --auth-choice zai-api-key
@@ -27,7 +27,7 @@ openclaw onboard --auth-choice zai-api-key
 openclaw onboard --zai-api-key "$ZAI_API_KEY"
 ```
 
-## Fragmento de configuracion
+## Fragmento de configuración
 
 ```json5
 {
@@ -38,6 +38,6 @@ openclaw onboard --zai-api-key "$ZAI_API_KEY"
 
 ## Notas
 
-- Los modelos GLM estan disponibles como `zai/<model>` (ejemplo: `zai/glm-4.7`).
-- Consulte [/providers/glm](/providers/glm) para el resumen de la familia de modelos.
-- Z.AI utiliza autenticacion Bearer con su clave de API.
+- Los modelos GLM están disponibles como `zai/<model>` (ejemplo: `zai/glm-4.7`).
+- Consulte [/providers/glm](/providers/glm) para obtener una visión general de la familia de modelos.
+- Z.AI utiliza autenticación Bearer con su clave de API.

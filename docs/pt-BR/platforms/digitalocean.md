@@ -10,7 +10,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:56:51Z
+  generated_at: 2026-02-08T09:31:29Z
 ---
 
 # OpenClaw no DigitalOcean
@@ -23,25 +23,25 @@ Se você quer uma opção de US$ 0/mês e não se importa com ARM + configuraç�
 
 ## Comparação de custos (2026)
 
-| Provedor     | Plano           | Especificações       | Preço/mês   | Observações                                   |
-| ------------ | --------------- | -------------------- | ----------- | --------------------------------------------- |
-| Oracle Cloud | Always Free ARM | até 4 OCPU, 24GB RAM | $0          | ARM, capacidade limitada / quirks no cadastro |
-| Hetzner      | CX22            | 2 vCPU, 4GB RAM      | €3,79 (~$4) | Opção paga mais barata                        |
-| DigitalOcean | Basic           | 1 vCPU, 1GB RAM      | $6          | UI fácil, boa documentação                    |
-| Vultr        | Cloud Compute   | 1 vCPU, 1GB RAM      | $6          | Muitas localizações                           |
-| Linode       | Nanode          | 1 vCPU, 1GB RAM      | $5          | Agora parte da Akamai                         |
+| Provedor     | Plano           | Especificações       | Preço/mês      | Notas                                                 |
+| ------------ | --------------- | -------------------- | -------------- | ----------------------------------------------------- |
+| Oracle Cloud | Always Free ARM | até 4 OCPU, 24GB RAM | US$ 0          | ARM, capacidade limitada / peculiaridades de cadastro |
+| Hetzner      | CX22            | 2 vCPU, 4GB RAM      | €3,79 (~US$ 4) | Opção paga mais barata                                |
+| DigitalOcean | Basic           | 1 vCPU, 1GB RAM      | US$ 6          | UI fácil, boa documentação                            |
+| Vultr        | Cloud Compute   | 1 vCPU, 1GB RAM      | US$ 6          | Muitas localizações                                   |
+| Linode       | Nanode          | 1 vCPU, 1GB RAM      | US$ 5          | Agora parte da Akamai                                 |
 
 **Escolhendo um provedor:**
 
 - DigitalOcean: UX mais simples + configuração previsível (este guia)
-- Hetzner: bom custo/benefício (veja o [guia da Hetzner](/install/hetzner))
-- Oracle Cloud: pode ser US$ 0/mês, mas é mais exigente e somente ARM (veja o [guia do Oracle](/platforms/oracle))
+- Hetzner: bom custo/desempenho (veja o [guia da Hetzner](/install/hetzner))
+- Oracle Cloud: pode custar US$ 0/mês, mas é mais exigente e apenas ARM (veja o [guia do Oracle](/platforms/oracle))
 
 ---
 
 ## Pré-requisitos
 
-- Conta no DigitalOcean ([cadastro com US$ 200 de crédito gratuito](https://m.do.co/c/signup))
+- Conta no DigitalOcean ([cadastre-se com US$ 200 de crédito grátis](https://m.do.co/c/signup))
 - Par de chaves SSH (ou disposição para usar autenticação por senha)
 - ~20 minutos
 
@@ -108,7 +108,7 @@ journalctl --user -u openclaw-gateway.service -f
 
 ## 6) Acessar o Dashboard
 
-O gateway se vincula ao loopback por padrão. Para acessar a UI de Controle:
+O gateway se vincula ao local loopback por padrão. Para acessar a UI de controle:
 
 **Opção A: Túnel SSH (recomendado)**
 
@@ -119,7 +119,7 @@ ssh -L 18789:localhost:18789 root@YOUR_DROPLET_IP
 # Then open: http://localhost:18789
 ```
 
-**Opção B: Tailscale Serve (HTTPS, somente loopback)**
+**Opção B: Tailscale Serve (HTTPS, apenas loopback)**
 
 ```bash
 # On the droplet
@@ -131,12 +131,12 @@ openclaw config set gateway.tailscale.mode serve
 openclaw gateway restart
 ```
 
-Abrir: `https://<magicdns>/`
+Abra: `https://<magicdns>/`
 
 Notas:
 
 - O Serve mantém o Gateway apenas em loopback e autentica via cabeçalhos de identidade do Tailscale.
-- Para exigir token/senha em vez disso, defina `gateway.auth.allowTailscale: false` ou use `gateway.auth.mode: "password"`.
+- Para exigir token/senha, defina `gateway.auth.allowTailscale: false` ou use `gateway.auth.mode: "password"`.
 
 **Opção C: Bind na tailnet (sem Serve)**
 
@@ -145,9 +145,9 @@ openclaw config set gateway.bind tailnet
 openclaw gateway restart
 ```
 
-Abrir: `http://<tailscale-ip>:18789` (token obrigatório).
+Abra: `http://<tailscale-ip>:18789` (token obrigatório).
 
-## 7) Conectar seus canais
+## 7) Conecte seus canais
 
 ### Telegram
 
@@ -169,7 +169,7 @@ Veja [Canais](/channels) para outros provedores.
 
 ## Otimizações para 1GB de RAM
 
-O droplet de US$ 6 tem apenas 1GB de RAM. Para manter tudo funcionando bem:
+O droplet de US$ 6 tem apenas 1GB de RAM. Para manter tudo funcionando sem problemas:
 
 ### Adicionar swap (recomendado)
 
@@ -201,8 +201,8 @@ htop
 
 Todo o estado fica em:
 
-- `~/.openclaw/` — configuracao, credenciais, dados de sessao
-- `~/.openclaw/workspace/` — workspace (SOUL.md, memoria, etc.)
+- `~/.openclaw/` — configuração, credenciais, dados de sessão
+- `~/.openclaw/workspace/` — workspace (SOUL.md, memória, etc.)
 
 Eles sobrevivem a reinicializações. Faça backup periodicamente:
 
@@ -216,23 +216,23 @@ tar -czvf openclaw-backup.tar.gz ~/.openclaw ~/.openclaw/workspace
 
 O Oracle Cloud oferece instâncias ARM **Always Free** que são significativamente mais poderosas do que qualquer opção paga aqui — por US$ 0/mês.
 
-| O que você recebe      | Especificações          |
-| ---------------------- | ----------------------- |
-| **4 OCPUs**            | ARM Ampere A1           |
-| **24GB RAM**           | Mais do que suficiente  |
-| **200GB storage**      | Volume em bloco         |
-| **Grátis para sempre** | Sem cobranças no cartão |
+| O que você recebe          | Especificações                     |
+| -------------------------- | ---------------------------------- |
+| **4 OCPUs**                | ARM Ampere A1                      |
+| **24GB RAM**               | Mais do que suficiente             |
+| **200GB de armazenamento** | Volume de bloco                    |
+| **Grátis para sempre**     | Sem cobranças no cartão de crédito |
 
 **Ressalvas:**
 
 - O cadastro pode ser exigente (tente novamente se falhar)
 - Arquitetura ARM — a maioria das coisas funciona, mas alguns binários precisam de builds ARM
 
-Para o guia completo de configuração, veja [Oracle Cloud](/platforms/oracle). Para dicas de cadastro e solução de problemas no processo de inscrição, veja este [guia da comunidade](https://gist.github.com/rssnyder/51e3cfedd730e7dd5f4a816143b25dbd).
+Para o guia completo de configuração, veja [Oracle Cloud](/platforms/oracle). Para dicas de cadastro e solução de problemas do processo de inscrição, veja este [guia da comunidade](https://gist.github.com/rssnyder/51e3cfedd730e7dd5f4a816143b25dbd).
 
 ---
 
-## Solucao de problemas
+## Solução de problemas
 
 ### O Gateway não inicia
 
@@ -266,4 +266,4 @@ free -h
 - [Guia da Hetzner](/install/hetzner) — mais barato, mais poderoso
 - [Instalação com Docker](/install/docker) — configuração em contêiner
 - [Tailscale](/gateway/tailscale) — acesso remoto seguro
-- [Configuracao](/gateway/configuration) — referência completa de configuracao
+- [Configuração](/gateway/configuration) — referência completa de configuração

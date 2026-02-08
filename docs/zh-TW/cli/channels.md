@@ -1,16 +1,16 @@
 ---
-summary: "用於 `openclaw channels` 的 CLI 參考（帳號、狀態、登入/登出、日誌）"
+summary: "「openclaw channels」的 CLI 參考（帳號、狀態、登入／登出、日誌）"
 read_when:
-  - 您想要新增/移除頻道帳號（WhatsApp/Telegram/Discord/Google Chat/Slack/Mattermost（外掛）/Signal/iMessage）
-  - 您想要檢查頻道狀態或即時追蹤頻道日誌
-title: "channels"
+  - 你想要新增／移除頻道帳號（WhatsApp／Telegram／Discord／Google Chat／Slack／Mattermost（外掛）／Signal／iMessage）
+  - 你想要檢查頻道狀態或即時查看頻道日誌
+title: "頻道"
 x-i18n:
   source_path: cli/channels.md
   source_hash: 16ab1642f247bfa9
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:52:28Z
+  generated_at: 2026-02-08T09:27:15Z
 ---
 
 # `openclaw channels`
@@ -33,16 +33,16 @@ openclaw channels resolve --channel slack "#general" "@jane"
 openclaw channels logs --channel all
 ```
 
-## 新增 / 移除帳號
+## 新增／移除帳號
 
 ```bash
 openclaw channels add --channel telegram --token <bot-token>
 openclaw channels remove --channel telegram --delete
 ```
 
-提示：`openclaw channels add --help` 會顯示各頻道的旗標（token、app token、signal-cli 路徑等）。
+提示：`openclaw channels add --help` 會顯示各頻道專用的旗標（權杖、應用程式權杖、 signal-cli 路徑等）。
 
-## 登入 / 登出（互動式）
+## 登入／登出（互動式）
 
 ```bash
 openclaw channels login --channel whatsapp
@@ -51,28 +51,28 @@ openclaw channels logout --channel whatsapp
 
 ## 疑難排解
 
-- 執行 `openclaw status --deep` 進行廣泛的探測。
+- 執行 `openclaw status --deep` 進行全面檢測。
 - 使用 `openclaw doctor` 取得引導式修復。
-- `openclaw channels list` 會列印 `Claude: HTTP 403 ... user:profile` → 使用情況快照需要 `user:profile` 範圍。請使用 `--no-usage`，或提供 claude.ai 工作階段金鑰（`CLAUDE_WEB_SESSION_KEY` / `CLAUDE_WEB_COOKIE`），或透過 Claude Code CLI 重新驗證。
+- `openclaw channels list` 會列印 `Claude: HTTP 403 ... user:profile` → 使用快照需要 `user:profile` 範圍。請使用 `--no-usage`，或提供 claude.ai 工作階段金鑰（`CLAUDE_WEB_SESSION_KEY`／`CLAUDE_WEB_COOKIE`），或透過 Claude Code CLI 重新驗證。
 
 ## 能力探測
 
-擷取提供者的能力提示（在可用時包含 intents/scopes）以及靜態功能支援：
+擷取提供者的能力提示（在可用時包含 intents／scopes）以及靜態功能支援：
 
 ```bash
 openclaw channels capabilities
 openclaw channels capabilities --channel discord --target channel:123
 ```
 
-說明：
+注意事項：
 
-- `--channel` 為選用；省略即可列出所有頻道（包含擴充功能）。
-- `--target` 接受 `channel:<id>` 或原始的數字頻道 id，且僅適用於 Discord。
-- 探測為提供者特定：Discord intents + 選用的頻道權限；Slack bot + 使用者 scopes；Telegram bot 旗標 + webhook；Signal 常駐程式版本；MS Teams 應用程式 token + Graph 角色/scopes（在已知處加註）。未提供探測的頻道會回報 `Probe: unavailable`。
+- `--channel` 為選用；省略即可列出所有頻道（包含擴充）。
+- `--target` 接受 `channel:<id>` 或原始的數字頻道 ID，且僅適用於 Discord。
+- 探測為提供者特定：Discord 的 intents 與選用頻道權限；Slack 的機器人與使用者 scopes；Telegram 的機器人旗標與 webhook；Signal 的常駐程式版本；Microsoft Teams 的應用程式權杖與 Graph 角色／scopes（在已知處加註）。未提供探測的頻道會回報 `Probe: unavailable`。
 
 ## 將名稱解析為 ID
 
-使用提供者目錄將頻道/使用者名稱解析為 ID：
+使用提供者目錄將頻道／使用者名稱解析為 ID：
 
 ```bash
 openclaw channels resolve --channel slack "#general" "@jane"
@@ -80,7 +80,7 @@ openclaw channels resolve --channel discord "My Server/#support" "@someone"
 openclaw channels resolve --channel matrix "Project Room"
 ```
 
-說明：
+注意事項：
 
-- 使用 `--kind user|group|auto` 以強制指定目標類型。
-- 當多個項目共用相同名稱時，解析會優先選擇作用中的符合項目。
+- 使用 `--kind user|group|auto` 強制指定目標類型。
+- 當多個項目共用相同名稱時，解析會優先選擇作用中的相符項目。

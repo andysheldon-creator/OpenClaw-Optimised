@@ -1,36 +1,34 @@
 ---
-summary: "Windows（WSL2）支援 + 配套應用程式狀態"
+summary: "Windows（WSL2）支援與配套應用程式狀態"
 read_when:
   - 在 Windows 上安裝 OpenClaw
   - 尋找 Windows 配套應用程式狀態
 title: "Windows（WSL2）"
 x-i18n:
   source_path: platforms/windows.md
-  source_hash: c93d2263b4e5b60c
+  source_hash: d17df1bd5636502e
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:54:14Z
+  generated_at: 2026-02-08T09:28:59Z
 ---
 
 # Windows（WSL2）
 
-建議在 Windows 上 **透過 WSL2**（建議使用 Ubuntu）執行 OpenClaw。  
-CLI + Gateway 會在 Linux 內執行，這能保持執行環境一致，並讓工具鏈更相容（Node/Bun/pnpm、Linux 二進位檔、Skills）。  
-原生 Windows 可能會較為棘手。WSL2 提供完整的 Linux 體驗——只需一個指令即可安裝：`wsl --install`。
+在 Windows 上使用 OpenClaw **建議透過 WSL2**（建議使用 Ubuntu）。CLI 與 Gateway 閘道器 會在 Linux 內執行，這能保持執行環境一致，並讓工具鏈具有更高的相容性（Node/Bun/pnpm、Linux 二進位檔、skills）。原生 Windows 可能會比較棘手。WSL2 可提供完整的 Linux 體驗——只需一個指令即可安裝：`wsl --install`。
 
-原生 Windows 配套應用程式已在規劃中。
+原生 Windows 配套應用程式已列入規劃中。
 
 ## 安裝（WSL2）
 
-- [Getting Started](/start/getting-started)（在 WSL 內使用）
-- [Install & updates](/install/updating)
-- 官方 WSL2 指南（Microsoft）：https://learn.microsoft.com/windows/wsl/install
+- [入門指南](/start/getting-started)（請在 WSL 內使用）
+- [安裝與更新](/install/updating)
+- 官方 WSL2 指南（Microsoft）：[https://learn.microsoft.com/windows/wsl/install](https://learn.microsoft.com/windows/wsl/install)
 
 ## Gateway
 
-- [Gateway runbook](/gateway)
-- [Configuration](/gateway/configuration)
+- [Gateway 操作手冊](/gateway)
+- [設定](/gateway/configuration)
 
 ## Gateway 服務安裝（CLI）
 
@@ -52,7 +50,7 @@ openclaw gateway install
 openclaw configure
 ```
 
-在提示時選擇 **Gateway service**。
+出現提示時選擇 **Gateway service**。
 
 修復／遷移：
 
@@ -60,9 +58,9 @@ openclaw configure
 openclaw doctor
 ```
 
-## 進階：透過 LAN 將 WSL 服務對外公開（portproxy）
+## 進階：透過 LAN 公開 WSL 服務（portproxy）
 
-WSL 有其獨立的虛擬網路。若另一台機器需要連線到 **在 WSL 內** 執行的服務（SSH、本機 TTS 伺服器，或 Gateway），你必須將 Windows 的連接埠轉送到目前的 WSL IP。WSL IP 會在重新啟動後變更，因此你可能需要重新整理轉送規則。
+WSL 有自己的虛擬網路。若另一台機器需要連線到**在 WSL 內**執行的服務（SSH、本機 TTS 伺服器，或 Gateway 閘道器），你必須將 Windows 連接埠轉送到目前的 WSL IP。WSL IP 會在重新啟動後變更，因此你可能需要重新整理轉送規則。
 
 範例（PowerShell **以系統管理員身分**）：
 
@@ -95,17 +93,17 @@ netsh interface portproxy add v4tov4 listenport=$ListenPort listenaddress=0.0.0.
 
 注意事項：
 
-- 從另一台機器進行 SSH 連線時，目標是 **Windows 主機 IP**（例如：`ssh user@windows-host -p 2222`）。
-- 遠端節點必須指向 **可連線** 的 Gateway URL（不是 `127.0.0.1`）；請使用
+- 從另一台機器進行 SSH 時，目標為 **Windows 主機 IP**（例如：`ssh user@windows-host -p 2222`）。
+- 遠端節點必須指向**可到達的** Gateway 閘道器 URL（不是 `127.0.0.1`）；請使用
   `openclaw status --all` 進行確認。
 - 使用 `listenaddress=0.0.0.0` 以供 LAN 存取；`127.0.0.1` 則僅限本機。
 - 若希望自動化，可註冊一個排程工作，在登入時執行重新整理步驟。
 
-## 逐步安裝 WSL2
+## WSL2 逐步安裝
 
-### 1）安裝 WSL2 + Ubuntu
+### 1) 安裝 WSL2 + Ubuntu
 
-開啟 PowerShell（管理員）：
+開啟 PowerShell（系統管理員）：
 
 ```powershell
 wsl --install
@@ -116,7 +114,7 @@ wsl --install -d Ubuntu-24.04
 
 若 Windows 要求，請重新啟動。
 
-### 2）啟用 systemd（Gateway 安裝所需）
+### 2) 啟用 systemd（安裝 Gateway 閘道器 所需）
 
 在你的 WSL 終端機中：
 
@@ -139,9 +137,9 @@ wsl --shutdown
 systemctl --user status
 ```
 
-### 3）安裝 OpenClaw（在 WSL 內）
+### 3) 安裝 OpenClaw（在 WSL 內）
 
-在 WSL 內依照 Linux 的「Getting Started」流程操作：
+在 WSL 內依照 Linux 的入門指南流程操作：
 
 ```bash
 git clone https://github.com/openclaw/openclaw.git
@@ -152,8 +150,8 @@ pnpm build
 openclaw onboard
 ```
 
-完整指南：[Getting Started](/start/getting-started)
+完整指南：[入門指南](/start/getting-started)
 
 ## Windows 配套應用程式
 
-目前尚未提供 Windows 配套應用程式。若你希望促成此事，歡迎提供貢獻。
+目前尚未提供 Windows 配套應用程式。若你有興趣協助實現，歡迎貢獻。

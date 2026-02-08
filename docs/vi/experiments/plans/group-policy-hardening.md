@@ -1,18 +1,18 @@
 ---
-summary: "Gia cố allowlist Telegram: tiền tố + chuẩn hóa khoảng trắng"
+summary: "Gia cố danh sách cho phép Telegram: chuẩn hóa tiền tố + khoảng trắng"
 read_when:
-  - Xem lại các thay đổi allowlist Telegram trong lịch sử
-title: "Gia Cố Allowlist Telegram"
+  - Xem lại các thay đổi lịch sử của danh sách cho phép Telegram
+title: "Gia cố danh sách cho phép Telegram"
 x-i18n:
   source_path: experiments/plans/group-policy-hardening.md
-  source_hash: a2eca5fcc8537694
+  source_hash: 70569968857d4084
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:58Z
+  generated_at: 2026-02-08T09:38:50Z
 ---
 
-# Gia Cố Allowlist Telegram
+# Gia cố danh sách cho phép Telegram
 
 **Ngày**: 2026-01-05  
 **Trạng thái**: Hoàn tất  
@@ -20,13 +20,13 @@ x-i18n:
 
 ## Tóm tắt
 
-Allowlist Telegram hiện chấp nhận các tiền tố `telegram:` và `tg:` không phân biệt hoa/thường, và chịu được
-khoảng trắng vô tình. Điều này căn chỉnh kiểm tra allowlist đầu vào với chuẩn hóa khi gửi đi.
+Danh sách cho phép Telegram hiện chấp nhận các tiền tố `telegram:` và `tg:` không phân biệt chữ hoa/chữ thường, và dung thứ
+khoảng trắng vô tình. Điều này đồng bộ việc kiểm tra danh sách cho phép đầu vào với chuẩn hóa gửi đi.
 
-## Những thay đổi
+## Thay đổi gì
 
-- Các tiền tố `telegram:` và `tg:` được xử lý như nhau (không phân biệt hoa/thường).
-- Các mục trong allowlist được cắt khoảng trắng; các mục rỗng sẽ bị bỏ qua.
+- Các tiền tố `telegram:` và `tg:` được xử lý như nhau (không phân biệt chữ hoa/chữ thường).
+- Các mục trong danh sách cho phép được cắt khoảng trắng; các mục rỗng bị bỏ qua.
 
 ## Ví dụ
 
@@ -38,10 +38,10 @@ Tất cả các giá trị sau đều được chấp nhận cho cùng một ID:
 
 ## Vì sao quan trọng
 
-Sao chép/dán từ log hoặc ID chat thường bao gồm tiền tố và khoảng trắng. Chuẩn hóa giúp tránh
-âm tính giả khi quyết định có phản hồi trong Tin nhan truc tiep hay nhóm hay không.
+Việc sao chép/dán từ log hoặc ID chat thường bao gồm tiền tố và khoảng trắng. Chuẩn hóa giúp tránh
+âm tính giả khi quyết định có phản hồi trong DM hoặc nhóm hay không.
 
 ## Tài liệu liên quan
 
-- [Group Chats](/concepts/groups)
+- [Group Chats](/channels/groups)
 - [Telegram Provider](/channels/telegram)

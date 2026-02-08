@@ -1,29 +1,29 @@
 ---
-summary: "Palavras de ativacao por voz globais (de propriedade do Gateway) e como elas sincronizam entre os nodes"
+summary: "Palavras de ativação por voz globais (de propriedade do Gateway) e como elas são sincronizadas entre nós"
 read_when:
-  - Alterar o comportamento ou os padroes das palavras de ativacao por voz
-  - Adicionar novas plataformas de node que precisam de sincronizacao de palavras de ativacao
-title: "Ativacao por Voz"
+  - Alterar o comportamento ou os padrões das palavras de ativação por voz
+  - Adicionar novas plataformas de nós que precisam de sincronização de palavras de ativação
+title: "Ativação por Voz"
 x-i18n:
   source_path: nodes/voicewake.md
   source_hash: eb34f52dfcdc3fc1
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:56:45Z
+  generated_at: 2026-02-08T09:31:20Z
 ---
 
-# Ativacao por Voz (Palavras de Ativacao Globais)
+# Ativação por Voz (Palavras de Ativação Globais)
 
-O OpenClaw trata **palavras de ativacao como uma unica lista global** de propriedade do **Gateway**.
+O OpenClaw trata as **palavras de ativação como uma única lista global** pertencente ao **Gateway**.
 
-- **Nao ha palavras de ativacao personalizadas por node**.
-- **Qualquer UI de node/app pode editar** a lista; as alteracoes sao persistidas pelo Gateway e transmitidas para todos.
-- Cada dispositivo ainda mantem seu proprio alternador **Ativacao por Voz ativada/desativada** (UX local + permissoes diferem).
+- **Não existem palavras de ativação personalizadas por nó**.
+- **Qualquer UI de nó/app pode editar** a lista; as alterações são persistidas pelo Gateway e transmitidas para todos.
+- Cada dispositivo ainda mantém seu próprio alternador **Ativação por Voz ativada/desativada** (a UX local + permissões diferem).
 
 ## Armazenamento (host do Gateway)
 
-As palavras de ativacao sao armazenadas na maquina do gateway em:
+As palavras de ativação são armazenadas na máquina do gateway em:
 
 - `~/.openclaw/settings/voicewake.json`
 
@@ -35,15 +35,15 @@ Formato:
 
 ## Protocolo
 
-### Metodos
+### Métodos
 
 - `voicewake.get` → `{ triggers: string[] }`
-- `voicewake.set` com parametros `{ triggers: string[] }` → `{ triggers: string[] }`
+- `voicewake.set` com parâmetros `{ triggers: string[] }` → `{ triggers: string[] }`
 
-Observacoes:
+Notas:
 
-- Os gatilhos sao normalizados (espacos removidos, vazios descartados). Listas vazias retornam aos padroes.
-- Limites sao aplicados por seguranca (limites de quantidade/comprimento).
+- Os gatilhos são normalizados (espaços aparados, vazios descartados). Listas vazias retornam aos padrões.
+- Limites são aplicados por segurança (limites de quantidade/comprimento).
 
 ### Eventos
 
@@ -52,21 +52,21 @@ Observacoes:
 Quem recebe:
 
 - Todos os clientes WebSocket (app macOS, WebChat, etc.)
-- Todos os nodes conectados (iOS/Android) e tambem no momento da conexao do node como um envio inicial do “estado atual”.
+- Todos os nós conectados (iOS/Android), e também no momento da conexão do nó como um envio inicial do “estado atual”.
 
 ## Comportamento do cliente
 
-### App macOS
+### app macOS
 
-- Usa a lista global para controlar gatilhos de `VoiceWakeRuntime`.
-- Editar “Palavras de gatilho” nas configuracoes de Ativacao por Voz chama `voicewake.set` e entao depende da transmissao para manter outros clientes sincronizados.
+- Usa a lista global para controlar gatilhos `VoiceWakeRuntime`.
+- Editar “Palavras de gatilho” nas configurações de Ativação por Voz chama `voicewake.set` e então depende da transmissão para manter outros clientes em sincronia.
 
-### Node iOS
+### nó iOS
 
-- Usa a lista global para deteccao de gatilhos de `VoiceWakeManager`.
-- Editar Palavras de Ativacao em Configuracoes chama `voicewake.set` (via WS do Gateway) e tambem mantem a deteccao local de palavras de ativacao responsiva.
+- Usa a lista global para detecção de gatilhos `VoiceWakeManager`.
+- Editar Palavras de Ativação em Configurações chama `voicewake.set` (via WS do Gateway) e também mantém a detecção local de palavras de ativação responsiva.
 
-### Node Android
+### nó Android
 
-- Exibe um editor de Palavras de Ativacao em Configuracoes.
-- Chama `voicewake.set` via WS do Gateway para que as edicoes sincronizem em todos os lugares.
+- Expõe um editor de Palavras de Ativação em Configurações.
+- Chama `voicewake.set` via WS do Gateway para que as edições sejam sincronizadas em todos os lugares.

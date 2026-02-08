@@ -1,27 +1,27 @@
 ---
-summary: "Como executar testes localmente (vitest) e quando usar modos forcar/cobertura"
+summary: "Como executar testes localmente (vitest) e quando usar os modos force/coverage"
 read_when:
   - Executando ou corrigindo testes
 title: "Testes"
 x-i18n:
   source_path: reference/test.md
-  source_hash: be7b751fb81c8c94
+  source_hash: 814cc52aae0788eb
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:57:21Z
+  generated_at: 2026-02-08T09:31:54Z
 ---
 
 # Testes
 
-- Kit completo de testes (suites, live, Docker): [Testing](/testing)
+- Kit completo de testes (suites, live, Docker): [Testing](/help/testing)
 
-- `pnpm test:force`: Encerra qualquer processo de gateway remanescente que esteja ocupando a porta de controle padrão e, em seguida, executa o conjunto completo do Vitest com uma porta de gateway isolada para que os testes de servidor não colidam com uma instancia em execucao. Use isso quando uma execucao anterior do gateway deixou a porta 18789 ocupada.
-- `pnpm test:coverage`: Executa o Vitest com cobertura V8. Os limites globais sao 70% para linhas/branches/funcoes/estatisticas. A cobertura exclui entrypoints com forte integracao (wiring de CLI, bridges gateway/telegram, servidor estatico do webchat) para manter o alvo focado em logica testavel por testes unitarios.
-- `pnpm test:e2e`: Executa testes de fumaca end-to-end do gateway (pareamento WS/HTTP/node com multiplas instancias).
-- `pnpm test:live`: Executa testes live de provedores (minimax/zai). Requer chaves de API e `LIVE=1` (ou `*_LIVE_TEST=1` especifico do provedor) para remover o skip.
+- `pnpm test:force`: Encerra qualquer processo de gateway remanescente que esteja segurando a porta de controle padrão e, em seguida, executa a suíte completa do Vitest com uma porta de gateway isolada para que os testes de servidor não colidam com uma instância em execução. Use isto quando uma execução anterior do gateway deixou a porta 18789 ocupada.
+- `pnpm test:coverage`: Executa o Vitest com cobertura V8. Os limites globais são 70% para linhas/branches/funções/statements. A cobertura exclui entrypoints com muita integração (wiring da CLI, bridges gateway/telegram, servidor estático do webchat) para manter o alvo focado em lógica testável por testes unitários.
+- `pnpm test:e2e`: Executa testes de smoke end-to-end do gateway (pareamento multi-instância WS/HTTP/node).
+- `pnpm test:live`: Executa testes live de provedores (minimax/zai). Requer chaves de API e `LIVE=1` (ou `*_LIVE_TEST=1` específico do provedor) para desativar o skip.
 
-## Benchmark de latencia de modelo (chaves locais)
+## Bench de latência do modelo (chaves locais)
 
 Script: [`scripts/bench-model.ts`](https://github.com/openclaw/openclaw/blob/main/scripts/bench-model.ts)
 
@@ -29,28 +29,28 @@ Uso:
 
 - `source ~/.profile && pnpm tsx scripts/bench-model.ts --runs 10`
 - Env opcional: `MINIMAX_API_KEY`, `MINIMAX_BASE_URL`, `MINIMAX_MODEL`, `ANTHROPIC_API_KEY`
-- Prompt padrao: “Responda com uma unica palavra: ok. Sem pontuacao ou texto extra.”
+- Prompt padrão: “Responda com uma única palavra: ok. Sem pontuação ou texto extra.”
 
-Ultima execucao (2025-12-31, 20 execucoes):
+Última execução (2025-12-31, 20 execuções):
 
-- minimax mediana 1279ms (min 1114, max 2431)
-- opus mediana 2454ms (min 1224, max 3170)
+- minimax mediana 1279ms (mín 1114, máx 2431)
+- opus mediana 2454ms (mín 1224, máx 3170)
 
-## Integracao Inicial E2E (Docker)
+## Onboarding E2E (Docker)
 
-Docker e opcional; isso e necessario apenas para testes de fumaca de integracao inicial em container.
+Docker é opcional; isto é necessário apenas para testes de smoke de onboarding em contêiner.
 
-Fluxo completo de cold-start em um container Linux limpo:
+Fluxo completo de cold-start em um contêiner Linux limpo:
 
 ```bash
 scripts/e2e/onboard-docker.sh
 ```
 
-Este script conduz o assistente interativo via um pseudo-tty, verifica arquivos de configuracao/workspace/sessao e, em seguida, inicia o gateway e executa `openclaw health`.
+Este script conduz o assistente interativo via pseudo-tty, verifica arquivos de configuração/workspace/sessão e, em seguida, inicia o gateway e executa `openclaw health`.
 
-## Fumaca de importacao por QR (Docker)
+## Smoke de importação por QR (Docker)
 
-Garante que `qrcode-terminal` carrega sob Node 22+ no Docker:
+Garante que `qrcode-terminal` carregue no Node 22+ em Docker:
 
 ```bash
 pnpm test:docker:qr

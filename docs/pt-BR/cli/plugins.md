@@ -1,29 +1,29 @@
 ---
-summary: "Referencia da CLI para `openclaw plugins` (listar, instalar, habilitar/desabilitar, doctor)"
+summary: "Referência da CLI para `openclaw plugins` (listar, instalar, ativar/desativar, diagnóstico)"
 read_when:
   - Voce quer instalar ou gerenciar plugins do Gateway em processo
   - Voce quer depurar falhas de carregamento de plugins
 title: "plugins"
 x-i18n:
   source_path: cli/plugins.md
-  source_hash: c6bf76b1e766b912
+  source_hash: 60476e0a9b7247bd
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:45Z
+  generated_at: 2026-02-08T09:30:21Z
 ---
 
 # `openclaw plugins`
 
-Gerencie plugins/extensoes do Gateway (carregados em processo).
+Gerencie plugins/extensões do Gateway (carregados em processo).
 
 Relacionado:
 
-- Sistema de plugins: [Plugins](/plugin)
+- Sistema de plugins: [Plugins](/tools/plugin)
 - Manifesto + esquema de plugin: [Plugin manifest](/plugins/manifest)
-- Endurecimento de seguranca: [Security](/gateway/security)
+- Endurecimento de segurança: [Security](/gateway/security)
 
-## Commands
+## Comandos
 
 ```bash
 openclaw plugins list
@@ -35,12 +35,12 @@ openclaw plugins update <id>
 openclaw plugins update --all
 ```
 
-Plugins incluidos sao distribuidos com o OpenClaw, mas iniciam desativados. Use `plugins enable` para
-ativa-los.
+Plugins incluídos vêm com o OpenClaw, mas começam desativados. Use `plugins enable` para
+ativá-los.
 
-Todos os plugins devem incluir um arquivo `openclaw.plugin.json` com um JSON Schema inline
-(`configSchema`, mesmo que vazio). Manifestos ou esquemas ausentes/invalidos impedem
-o carregamento do plugin e fazem a validacao de configuracao falhar.
+Todos os plugins devem incluir um arquivo `openclaw.plugin.json` com um JSON Schema embutido
+(`configSchema`, mesmo que vazio). Manifestos ou esquemas ausentes/inválidos impedem
+o carregamento do plugin e fazem a validação de configuração falhar.
 
 ### Instalar
 
@@ -48,11 +48,11 @@ o carregamento do plugin e fazem a validacao de configuracao falhar.
 openclaw plugins install <path-or-spec>
 ```
 
-Nota de seguranca: trate a instalacao de plugins como a execucao de codigo. Prefira versoes fixadas.
+Nota de segurança: trate instalações de plugins como execução de código. Prefira versões fixadas.
 
 Arquivos suportados: `.zip`, `.tgz`, `.tar.gz`, `.tar`.
 
-Use `--link` para evitar copiar um diretorio local (adiciona a `plugins.load.paths`):
+Use `--link` para evitar copiar um diretório local (adiciona a `plugins.load.paths`):
 
 ```bash
 openclaw plugins install -l ./my-plugin
@@ -66,4 +66,4 @@ openclaw plugins update --all
 openclaw plugins update <id> --dry-run
 ```
 
-As atualizacoes se aplicam apenas a plugins instalados a partir do npm (rastreados em `plugins.installs`).
+As atualizações se aplicam apenas a plugins instalados via npm (rastreados em `plugins.installs`).

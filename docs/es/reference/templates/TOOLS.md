@@ -8,23 +8,23 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:59:52Z
+  generated_at: 2026-02-08T09:34:29Z
 ---
 
 # TOOLS.md - Notas locales
 
-Las Skills definen _cómo_ funcionan las herramientas. Este archivo es para _sus_ particularidades — lo que es único de su configuración.
+Skills definen _cómo_ funcionan las herramientas. Este archivo es para _sus_ particularidades — lo que es único de su configuración.
 
 ## Qué va aquí
 
 Cosas como:
 
 - Nombres y ubicaciones de cámaras
-- Hosts y alias SSH
+- Hosts y alias de SSH
 - Voces preferidas para TTS
 - Nombres de altavoces/salas
 - Apodos de dispositivos
-- Cualquier elemento específico del entorno
+- Cualquier cosa específica del entorno
 
 ## Ejemplos
 
@@ -44,10 +44,10 @@ Cosas como:
 - Default speaker: Kitchen HomePod
 ```
 
-## ¿Por qué separarlo?
+## ¿Por qué separar?
 
-Las Skills se comparten. Su configuración es suya. Mantenerlas separadas significa que puede actualizar las Skills sin perder sus notas y compartir Skills sin exponer su infraestructura.
+Skills se comparten. Su configuración es suya. Mantenerlos separados significa que puede actualizar skills sin perder sus notas, y compartir skills sin filtrar su infraestructura.
 
 ---
 
-Agregue lo que le ayude a hacer su trabajo. Esta es su hoja de referencia.
+Agregue lo que le ayude a hacer su trabajo. Esta es su chuleta.

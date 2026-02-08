@@ -1,7 +1,7 @@
 ---
 title: Sandbox CLI
-summary: "Quan ly cac container sandbox va kiem tra chinh sach sandbox hieu luc"
-read_when: "Khi ban dang quan ly cac container sandbox hoac debug hanh vi sandbox/chinh sach cong cu."
+summary: "Quản lý các container sandbox và kiểm tra chính sách sandbox hiệu lực"
+read_when: "Khi bạn đang quản lý các container sandbox hoặc gỡ lỗi hành vi sandbox/chính sách công cụ."
 status: active
 x-i18n:
   source_path: cli/sandbox.md
@@ -9,22 +9,22 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:37Z
+  generated_at: 2026-02-08T09:38:26Z
 ---
 
 # Sandbox CLI
 
-Quan ly cac container sandbox dua tren Docker cho viec thuc thi tac tu co lap.
+Quản lý các container sandbox dựa trên Docker để thực thi tác tử một cách cô lập.
 
-## Tong quan
+## Tổng quan
 
-OpenClaw co the chay cac tac tu trong cac container Docker co lap de tang bao mat. Cac lenh `sandbox` giup ban quan ly cac container nay, dac biet sau khi cap nhat hoac thay doi cau hinh.
+OpenClaw có thể chạy các tác tử trong các container Docker cô lập để tăng cường bảo mật. Các lệnh `sandbox` giúp bạn quản lý các container này, đặc biệt sau khi cập nhật hoặc thay đổi cấu hình.
 
-## Lenh
+## Lệnh
 
 ### `openclaw sandbox explain`
 
-Kiem tra che do/pham vi/truy cap workspace sandbox **hieu luc**, chinh sach cong cu sandbox, va cac gate dac quyen (kem duong dan khoa cau hinh fix-it).
+Kiểm tra **hiệu lực** của chế độ/phạm vi/quyền truy cập workspace của sandbox, chính sách công cụ sandbox, và các cổng nâng quyền (kèm đường dẫn khóa cấu hình fix-it).
 
 ```bash
 openclaw sandbox explain
@@ -35,7 +35,7 @@ openclaw sandbox explain --json
 
 ### `openclaw sandbox list`
 
-Liet ke tat ca cac container sandbox cung trang thai va cau hinh cua chung.
+Liệt kê tất cả các container sandbox cùng trạng thái và cấu hình của chúng.
 
 ```bash
 openclaw sandbox list
@@ -43,17 +43,17 @@ openclaw sandbox list --browser  # List only browser containers
 openclaw sandbox list --json     # JSON output
 ```
 
-**Dau ra bao gom:**
+**Đầu ra bao gồm:**
 
-- Ten container va trang thai (dang chay/dung)
-- Image Docker va lieu no co khop voi cau hinh hay khong
-- Tuoi doi (thoi gian ke tu khi tao)
-- Thoi gian nhan roi (thoi gian ke tu lan su dung cuoi)
-- Phien/tac tu lien ket
+- Tên container và trạng thái (đang chạy/dừng)
+- Ảnh Docker và việc nó có khớp với cấu hình hay không
+- Tuổi (thời gian kể từ khi tạo)
+- Thời gian nhàn rỗi (thời gian kể từ lần sử dụng cuối)
+- Phiên/tác tử liên kết
 
 ### `openclaw sandbox recreate`
 
-Xoa cac container sandbox de bat buoc tao lai voi image/cau hinh da cap nhat.
+Xóa các container sandbox để buộc tạo lại với ảnh/cấu hình đã cập nhật.
 
 ```bash
 openclaw sandbox recreate --all                # Recreate all containers
@@ -63,19 +63,19 @@ openclaw sandbox recreate --browser            # Only browser containers
 openclaw sandbox recreate --all --force        # Skip confirmation
 ```
 
-**Tuy chon:**
+**Tùy chọn:**
 
-- `--all`: Tao lai tat ca cac container sandbox
-- `--session <key>`: Tao lai container cho phien cu the
-- `--agent <id>`: Tao lai cac container cho tac tu cu the
-- `--browser`: Chi tao lai cac container trinh duyet
-- `--force`: Bo qua hoi xac nhan
+- `--all`: Tạo lại tất cả các container sandbox
+- `--session <key>`: Tạo lại container cho một phiên cụ thể
+- `--agent <id>`: Tạo lại các container cho một tác tử cụ thể
+- `--browser`: Chỉ tạo lại các container trình duyệt
+- `--force`: Bỏ qua lời nhắc xác nhận
 
-**Quan trong:** Cac container se duoc tao lai tu dong khi tac tu duoc su dung lan tiep theo.
+**Quan trọng:** Các container sẽ được tự động tạo lại khi tác tử được sử dụng lần tiếp theo.
 
-## Tinh huong su dung
+## Trường hợp sử dụng
 
-### Sau khi cap nhat image Docker
+### Sau khi cập nhật ảnh Docker
 
 ```bash
 # Pull new image
@@ -89,7 +89,7 @@ docker tag openclaw-sandbox:latest openclaw-sandbox:bookworm-slim
 openclaw sandbox recreate --all
 ```
 
-### Sau khi thay doi cau hinh sandbox
+### Sau khi thay đổi cấu hình sandbox
 
 ```bash
 # Edit config: agents.defaults.sandbox.* (or agents.list[].sandbox.*)
@@ -98,7 +98,7 @@ openclaw sandbox recreate --all
 openclaw sandbox recreate --all
 ```
 
-### Sau khi thay doi setupCommand
+### Sau khi thay đổi setupCommand
 
 ```bash
 openclaw sandbox recreate --all
@@ -106,28 +106,28 @@ openclaw sandbox recreate --all
 openclaw sandbox recreate --agent family
 ```
 
-### Chi cho mot tac tu cu the
+### Chỉ cho một tác tử cụ thể
 
 ```bash
 # Update only one agent's containers
 openclaw sandbox recreate --agent alfred
 ```
 
-## Tai sao can thiet?
+## Vì sao cần điều này?
 
-**Van de:** Khi ban cap nhat image Docker sandbox hoac cau hinh:
+**Vấn đề:** Khi bạn cập nhật ảnh Docker sandbox hoặc cấu hình:
 
-- Cac container hien tai tiep tuc chay voi thiet lap cu
-- Cac container chi duoc don dep sau 24 gio khong hoat dong
-- Cac tac tu duoc su dung thuong xuyen giu cac container cu chay vo thoi han
+- Các container hiện có tiếp tục chạy với thiết lập cũ
+- Container chỉ được dọn dẹp sau 24 giờ không hoạt động
+- Các tác tử được sử dụng thường xuyên giữ các container cũ chạy vô thời hạn
 
-**Giai phap:** Su dung `openclaw sandbox recreate` de buoc xoa cac container cu. Chung se duoc tao lai tu dong voi thiet lap hien tai khi can dung.
+**Giải pháp:** Sử dụng `openclaw sandbox recreate` để buộc xóa các container cũ. Chúng sẽ được tự động tạo lại với thiết lập hiện tại khi cần dùng lần tiếp theo.
 
-Meo: uu tien `openclaw sandbox recreate` hon `docker rm` thu cong. No su dung cach dat ten container cua Gateway va tranh lech khi cac khoa scope/phien thay doi.
+Mẹo: ưu tiên `openclaw sandbox recreate` hơn `docker rm` thủ công. Lệnh này sử dụng cách đặt tên container của Gateway và tránh sai lệch khi khóa phạm vi/phiên thay đổi.
 
-## Cau hinh
+## Cấu hình
 
-Cac thiet lap sandbox nam trong `~/.openclaw/openclaw.json` duoi `agents.defaults.sandbox` (ghi de theo tung tac tu nam trong `agents.list[].sandbox`):
+Thiết lập sandbox nằm trong `~/.openclaw/openclaw.json` dưới `agents.defaults.sandbox` (ghi đè theo từng tác tử nằm trong `agents.list[].sandbox`):
 
 ```jsonc
 {
@@ -151,8 +151,8 @@ Cac thiet lap sandbox nam trong `~/.openclaw/openclaw.json` duoi `agents.default
 }
 ```
 
-## Xem them
+## Xem thêm
 
-- [Tai lieu Sandbox](/gateway/sandboxing)
-- [Cau hinh Tac tu](/concepts/agent-workspace)
-- [Lenh Doctor](/gateway/doctor) - Kiem tra thiet lap sandbox
+- [Tài liệu Sandbox](/gateway/sandboxing)
+- [Cấu hình Tác tử](/concepts/agent-workspace)
+- [Lệnh Doctor](/gateway/doctor) - Kiểm tra thiết lập sandbox

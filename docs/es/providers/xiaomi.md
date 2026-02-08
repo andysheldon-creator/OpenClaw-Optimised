@@ -2,7 +2,7 @@
 summary: "Use Xiaomi MiMo (mimo-v2-flash) con OpenClaw"
 read_when:
   - Quiere modelos Xiaomi MiMo en OpenClaw
-  - Necesita la configuracion de XIAOMI_API_KEY
+  - Necesita configurar XIAOMI_API_KEY
 title: "Xiaomi MiMo"
 x-i18n:
   source_path: providers/xiaomi.md
@@ -10,17 +10,14 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:59:43Z
+  generated_at: 2026-02-08T09:34:23Z
 ---
 
 # Xiaomi MiMo
 
-Xiaomi MiMo es la plataforma de API para los modelos **MiMo**. Proporciona APIs REST compatibles con
-los formatos de OpenAI y Anthropic y utiliza claves de API para la autenticación. Cree su clave de API en
-la [consola de Xiaomi MiMo](https://platform.xiaomimimo.com/#/console/api-keys). OpenClaw utiliza
-el proveedor `xiaomi` con una clave de API de Xiaomi MiMo.
+Xiaomi MiMo es la plataforma de API para los modelos **MiMo**. Proporciona APIs REST compatibles con los formatos de OpenAI y Anthropic y utiliza claves de API para la autenticación. Cree su clave de API en la [consola de Xiaomi MiMo](https://platform.xiaomimimo.com/#/console/api-keys). OpenClaw usa el proveedor `xiaomi` con una clave de API de Xiaomi MiMo.
 
-## Descripción general del modelo
+## Resumen del modelo
 
 - **mimo-v2-flash**: ventana de contexto de 262144 tokens, compatible con la API de Mensajes de Anthropic.
 - URL base: `https://api.xiaomimimo.com/anthropic`
@@ -68,4 +65,4 @@ openclaw onboard --auth-choice xiaomi-api-key --xiaomi-api-key "$XIAOMI_API_KEY"
 
 - Referencia del modelo: `xiaomi/mimo-v2-flash`.
 - El proveedor se inyecta automáticamente cuando se establece `XIAOMI_API_KEY` (o existe un perfil de autenticación).
-- Consulte [/concepts/model-providers](/concepts/model-providers) para las reglas del proveedor.
+- Consulte [/concepts/model-providers](/concepts/model-providers) para las reglas de proveedores.

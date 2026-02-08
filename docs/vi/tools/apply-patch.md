@@ -2,7 +2,7 @@
 summary: "Áp dụng các bản vá nhiều tệp bằng công cụ apply_patch"
 read_when:
   - Bạn cần chỉnh sửa tệp có cấu trúc trên nhiều tệp
-  - Bạn muốn ghi chép hoặc gỡ lỗi các chỉnh sửa dựa trên bản vá
+  - Bạn muốn ghi lại tài liệu hoặc gỡ lỗi các chỉnh sửa dựa trên bản vá
 title: "Công cụ apply_patch"
 x-i18n:
   source_path: tools/apply-patch.md
@@ -10,13 +10,13 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:08:33Z
+  generated_at: 2026-02-08T09:40:15Z
 ---
 
 # công cụ apply_patch
 
-Áp dụng các thay đổi tệp bằng định dạng bản vá có cấu trúc. Cách này lý tưởng cho các chỉnh sửa
-nhiều tệp hoặc nhiều hunk, nơi một lần gọi `edit` duy nhất sẽ dễ bị mong manh.
+Áp dụng thay đổi tệp bằng định dạng bản vá có cấu trúc. Cách này lý tưởng cho các chỉnh sửa
+nhiều tệp hoặc nhiều hunk, nơi một lệnh gọi `edit` duy nhất sẽ dễ bị lỗi.
 
 Công cụ chấp nhận một chuỗi `input` duy nhất, bao bọc một hoặc nhiều thao tác trên tệp:
 
@@ -35,14 +35,14 @@ Công cụ chấp nhận một chuỗi `input` duy nhất, bao bọc một hoặ
 
 ## Tham số
 
-- `input` (bắt buộc): Toàn bộ nội dung bản vá bao gồm `*** Begin Patch` và `*** End Patch`.
+- `input` (bắt buộc): Toàn bộ nội dung bản vá, bao gồm `*** Begin Patch` và `*** End Patch`.
 
 ## Ghi chú
 
 - Đường dẫn được phân giải tương đối so với thư mục gốc của workspace.
-- Sử dụng `*** Move to:` trong một hunk `*** Update File:` để đổi tên tệp.
-- `*** End of File` đánh dấu một lần chèn chỉ-EOF khi cần.
-- Ở trạng thái thử nghiệm và bị tắt theo mặc định. Bật bằng `tools.exec.applyPatch.enabled`.
+- Dùng `*** Move to:` trong một hunk `*** Update File:` để đổi tên tệp.
+- `*** End of File` đánh dấu chèn chỉ-EOF khi cần.
+- Thử nghiệm và bị tắt theo mặc định. Bật bằng `tools.exec.applyPatch.enabled`.
 - Chỉ dành cho OpenAI (bao gồm OpenAI Codex). Có thể tùy chọn kiểm soát theo mô hình qua
   `tools.exec.applyPatch.allowModels`.
 - Cấu hình chỉ nằm dưới `tools.exec`.

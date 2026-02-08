@@ -10,14 +10,14 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:35Z
+  generated_at: 2026-02-08T09:39:24Z
 ---
 
 # Gỡ cài đặt
 
 Có hai cách:
 
-- **Cách dễ** nếu `openclaw` vẫn còn được cài đặt.
+- **Cách dễ** nếu `openclaw` vẫn còn được cài.
 - **Gỡ dịch vụ thủ công** nếu CLI đã bị xóa nhưng dịch vụ vẫn đang chạy.
 
 ## Cách dễ (CLI vẫn còn)
@@ -35,7 +35,7 @@ openclaw uninstall --all --yes --non-interactive
 npx -y openclaw uninstall --all --yes --non-interactive
 ```
 
-Các bước thủ công (kết quả tương tự):
+Các bước thủ công (kết quả tương đương):
 
 1. Dừng dịch vụ Gateway:
 
@@ -43,7 +43,7 @@ Các bước thủ công (kết quả tương tự):
 openclaw gateway stop
 ```
 
-2. Gỡ cài đặt dịch vụ Gateway (launchd/systemd/schtasks):
+2. Gỡ dịch vụ Gateway (launchd/systemd/schtasks):
 
 ```bash
 openclaw gateway uninstall
@@ -55,9 +55,9 @@ openclaw gateway uninstall
 rm -rf "${OPENCLAW_STATE_DIR:-$HOME/.openclaw}"
 ```
 
-Nếu bạn đặt `OPENCLAW_CONFIG_PATH` ở vị trí tùy chỉnh bên ngoài thư mục trạng thái, hãy xóa tệp đó luôn.
+Nếu bạn đặt `OPENCLAW_CONFIG_PATH` ở vị trí tùy chỉnh bên ngoài thư mục trạng thái, hãy xóa cả tệp đó.
 
-4. Xóa workspace của bạn (tùy chọn, sẽ xóa các tệp agent):
+4. Xóa workspace của bạn (tùy chọn, sẽ xóa các tệp tác tử):
 
 ```bash
 rm -rf ~/.openclaw/workspace
@@ -79,23 +79,23 @@ rm -rf /Applications/OpenClaw.app
 
 Ghi chú:
 
-- Nếu bạn dùng profiles (`--profile` / `OPENCLAW_PROFILE`), lặp lại bước 3 cho từng thư mục trạng thái (mặc định là `~/.openclaw-<profile>`).
-- Ở chế độ remote, thư mục trạng thái nằm trên **máy chủ Gateway**, vì vậy hãy chạy các bước 1–4 ở đó nữa.
+- Nếu bạn dùng profile (`--profile` / `OPENCLAW_PROFILE`), hãy lặp lại bước 3 cho từng thư mục trạng thái (mặc định là `~/.openclaw-<profile>`).
+- Ở chế độ từ xa, thư mục trạng thái nằm trên **máy chủ gateway**, vì vậy hãy chạy các bước 1–4 ở đó nữa.
 
-## Gỡ dịch vụ thủ công (không có CLI)
+## Gỡ dịch vụ thủ công (không cài CLI)
 
-Dùng cách này nếu dịch vụ Gateway vẫn chạy nhưng `openclaw` bị thiếu.
+Dùng cách này nếu dịch vụ Gateway vẫn chạy nhưng `openclaw` không còn.
 
 ### macOS (launchd)
 
-Nhãn mặc định là `bot.molt.gateway` (hoặc `bot.molt.<profile>`; bản legacy `com.openclaw.*` có thể vẫn tồn tại):
+Nhãn mặc định là `bot.molt.gateway` (hoặc `bot.molt.<profile>`; bản cũ `com.openclaw.*` có thể vẫn tồn tại):
 
 ```bash
 launchctl bootout gui/$UID/bot.molt.gateway
 rm -f ~/Library/LaunchAgents/bot.molt.gateway.plist
 ```
 
-Nếu bạn dùng profile, thay nhãn và tên plist bằng `bot.molt.<profile>`. Xóa mọi plist `com.openclaw.*` legacy nếu có.
+Nếu bạn dùng profile, hãy thay nhãn và tên plist bằng `bot.molt.<profile>`. Xóa mọi plist `com.openclaw.*` cũ nếu có.
 
 ### Linux (systemd user unit)
 
@@ -109,27 +109,27 @@ systemctl --user daemon-reload
 
 ### Windows (Scheduled Task)
 
-Tên task mặc định là `OpenClaw Gateway` (hoặc `OpenClaw Gateway (<profile>)`).
-Script của task nằm trong thư mục trạng thái của bạn.
+Tên tác vụ mặc định là `OpenClaw Gateway` (hoặc `OpenClaw Gateway (<profile>)`).
+Script của tác vụ nằm trong thư mục trạng thái của bạn.
 
 ```powershell
 schtasks /Delete /F /TN "OpenClaw Gateway"
 Remove-Item -Force "$env:USERPROFILE\.openclaw\gateway.cmd"
 ```
 
-Nếu bạn dùng profile, hãy xóa task tương ứng và `~\.openclaw-<profile>\gateway.cmd`.
+Nếu bạn dùng profile, hãy xóa tên tác vụ tương ứng và `~\.openclaw-<profile>\gateway.cmd`.
 
-## Cài đặt thông thường vs checkout mã nguồn
+## Cài đặt thông thường vs checkout từ nguồn
 
 ### Cài đặt thông thường (install.sh / npm / pnpm / bun)
 
-Nếu bạn dùng `https://openclaw.ai/install.sh` hoặc `install.ps1`, CLI được cài bằng `npm install -g openclaw@latest`.
+Nếu bạn dùng `https://openclaw.ai/install.sh` hoặc `install.ps1`, CLI đã được cài bằng `npm install -g openclaw@latest`.
 Hãy gỡ bằng `npm rm -g openclaw` (hoặc `pnpm remove -g` / `bun remove -g` nếu bạn cài theo cách đó).
 
-### Checkout mã nguồn (git clone)
+### Checkout từ nguồn (git clone)
 
-Nếu bạn chạy từ một repo đã checkout (`git clone` + `openclaw ...` / `bun run openclaw ...`):
+Nếu bạn chạy từ một bản checkout của repo (`git clone` + `openclaw ...` / `bun run openclaw ...`):
 
 1. Gỡ dịch vụ Gateway **trước khi** xóa repo (dùng cách dễ ở trên hoặc gỡ dịch vụ thủ công).
 2. Xóa thư mục repo.
-3. Xóa trạng thái + workspace như hướng dẫn ở trên.
+3. Xóa trạng thái + workspace như đã nêu ở trên.

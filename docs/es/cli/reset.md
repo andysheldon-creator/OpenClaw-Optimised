@@ -1,8 +1,8 @@
 ---
 summary: "Referencia de la CLI para `openclaw reset` (restablecer el estado/configuración local)"
 read_when:
-  - Desea borrar el estado local manteniendo la CLI instalada
-  - Desea una simulación de lo que se eliminaría
+  - Quiere borrar el estado local manteniendo la CLI instalada
+  - Quiere una simulación de lo que se eliminaría
 title: "restablecer"
 x-i18n:
   source_path: cli/reset.md
@@ -10,7 +10,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:58:18Z
+  generated_at: 2026-02-08T09:32:57Z
 ---
 
 # `openclaw reset`

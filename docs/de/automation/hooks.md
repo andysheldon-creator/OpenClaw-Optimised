@@ -1,48 +1,48 @@
 ---
-summary: „Hooks: ereignisgesteuerte Automatisierung für Befehle und Lifecycle-Ereignisse“
+summary: "Hooks: ereignisgesteuerte Automatisierung für Befehle und Lifecycle-Ereignisse"
 read_when:
   - Sie möchten ereignisgesteuerte Automatisierung für /new, /reset, /stop und Agent-Lifecycle-Ereignisse
   - Sie möchten Hooks erstellen, installieren oder debuggen
-title: „Hooks“
+title: "Hooks"
 x-i18n:
   source_path: automation/hooks.md
   source_hash: 9fbcf9e04fd9e62c
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:16:04Z
+  generated_at: 2026-02-08T09:35:25Z
 ---
 
 # Hooks
 
-Hooks stellen ein erweiterbares, ereignisgesteuertes System bereit, um Aktionen als Reaktion auf Agent-Befehle und -Ereignisse zu automatisieren. Hooks werden automatisch aus Verzeichnissen erkannt und können über CLI-Befehle verwaltet werden, ähnlich wie Skills in OpenClaw funktionieren.
+Hooks bieten ein erweiterbares, ereignisgesteuertes System zur Automatisierung von Aktionen als Reaktion auf Agent-Befehle und -Ereignisse. Hooks werden automatisch aus Verzeichnissen erkannt und können über CLI-Befehle verwaltet werden, ähnlich wie Skills in OpenClaw funktionieren.
 
 ## Orientierung
 
 Hooks sind kleine Skripte, die ausgeführt werden, wenn etwas passiert. Es gibt zwei Arten:
 
-- **Hooks** (diese Seite): werden innerhalb des Gateway ausgeführt, wenn Agent-Ereignisse ausgelöst werden, etwa `/new`, `/reset`, `/stop` oder Lifecycle-Ereignisse.
+- **Hooks** (diese Seite): werden im Gateway ausgeführt, wenn Agent-Ereignisse ausgelöst werden, z. B. `/new`, `/reset`, `/stop` oder Lifecycle-Ereignisse.
 - **Webhooks**: externe HTTP-Webhooks, mit denen andere Systeme Arbeit in OpenClaw auslösen können. Siehe [Webhook Hooks](/automation/webhook) oder verwenden Sie `openclaw webhooks` für Gmail-Hilfsbefehle.
 
-Hooks können auch in Plugins gebündelt sein; siehe [Plugins](/tools/plugin#plugin-hooks).
+Hooks können auch in Plugins gebündelt werden; siehe [Plugins](/tools/plugin#plugin-hooks).
 
 Häufige Anwendungsfälle:
 
 - Einen Memory-Snapshot speichern, wenn Sie eine Sitzung zurücksetzen
-- Einen Audit-Trail von Befehlen für Fehlerbehebung oder Compliance führen
+- Einen Audit-Trail von Befehlen zur Fehlerbehebung oder Compliance führen
 - Folgeautomatisierungen auslösen, wenn eine Sitzung beginnt oder endet
-- Dateien in den Agent-Workspace schreiben oder externe APIs aufrufen, wenn Ereignisse ausgelöst werden
+- Dateien in den Agent-Arbeitsbereich schreiben oder externe APIs aufrufen, wenn Ereignisse ausgelöst werden
 
-Wenn Sie eine kleine TypeScript-Funktion schreiben können, können Sie einen Hook schreiben. Hooks werden automatisch erkannt, und Sie aktivieren oder deaktivieren sie über die CLI.
+Wenn Sie eine kleine TypeScript-Funktion schreiben können, können Sie auch einen Hook schreiben. Hooks werden automatisch erkannt, und Sie aktivieren oder deaktivieren sie über die CLI.
 
 ## Überblick
 
 Das Hook-System ermöglicht Ihnen:
 
-- Sitzungskontext im Memory zu speichern, wenn `/new` ausgeführt wird
-- Alle Befehle zur Auditierung zu protokollieren
+- Sitzungs-Kontext in den Speicher zu sichern, wenn `/new` ausgeführt wird
+- Alle Befehle für Audit-Zwecke zu protokollieren
 - Benutzerdefinierte Automatisierungen bei Agent-Lifecycle-Ereignissen auszulösen
-- Das Verhalten von OpenClaw zu erweitern, ohne den Core-Code zu ändern
+- Das Verhalten von OpenClaw zu erweitern, ohne den Core-Code zu verändern
 
 ## Erste Schritte
 
@@ -50,10 +50,10 @@ Das Hook-System ermöglicht Ihnen:
 
 OpenClaw wird mit vier gebündelten Hooks ausgeliefert, die automatisch erkannt werden:
 
-- **💾 session-memory**: Speichert den Sitzungskontext in Ihrem Agent-Workspace (Standard `~/.openclaw/workspace/memory/`), wenn Sie `/new` ausführen
-- **📝 command-logger**: Protokolliert alle Befehlsereignisse nach `~/.openclaw/logs/commands.log`
+- **💾 session-memory**: Speichert den Sitzungs-Kontext in Ihrem Agent-Arbeitsbereich (Standard `~/.openclaw/workspace/memory/`), wenn Sie `/new` ausführen
+- **📝 command-logger**: Protokolliert alle Befehlsereignisse in `~/.openclaw/logs/commands.log`
 - **🚀 boot-md**: Führt `BOOT.md` aus, wenn das Gateway startet (erfordert aktivierte interne Hooks)
-- **😈 soul-evil**: Tauscht injizierte `SOUL.md`-Inhalte während eines Purge-Fensters oder zufällig gegen `SOUL_EVIL.md` aus
+- **😈 soul-evil**: Tauscht injizierten `SOUL.md`-Inhalt während eines Purge-Fensters oder mit zufälliger Wahrscheinlichkeit gegen `SOUL_EVIL.md` aus
 
 Verfügbare Hooks auflisten:
 
@@ -79,19 +79,19 @@ Detaillierte Informationen abrufen:
 openclaw hooks info session-memory
 ```
 
-### Einführung
+### Onboarding
 
-Während der Einführung (`openclaw onboard`) werden Sie aufgefordert, empfohlene Hooks zu aktivieren. Der Assistent erkennt automatisch geeignete Hooks und stellt sie zur Auswahl.
+Während des Onboardings (`openclaw onboard`) werden Sie aufgefordert, empfohlene Hooks zu aktivieren. Der Assistent erkennt automatisch geeignete Hooks und stellt sie zur Auswahl.
 
 ## Hook-Erkennung
 
-Hooks werden automatisch aus drei Verzeichnissen erkannt (in Reihenfolge der Priorität):
+Hooks werden automatisch aus drei Verzeichnissen erkannt (in der Reihenfolge der Priorität):
 
 1. **Workspace-Hooks**: `<workspace>/hooks/` (pro Agent, höchste Priorität)
 2. **Verwaltete Hooks**: `~/.openclaw/hooks/` (benutzerinstalliert, gemeinsam über Workspaces hinweg)
 3. **Gebündelte Hooks**: `<openclaw>/dist/hooks/bundled/` (mit OpenClaw ausgeliefert)
 
-Verzeichnisse für verwaltete Hooks können entweder ein **einzelner Hook** oder ein **Hook-Pack** (Paketverzeichnis) sein.
+Verwaltete Hook-Verzeichnisse können entweder ein **einzelner Hook** oder ein **Hook-Pack** (Paketverzeichnis) sein.
 
 Jeder Hook ist ein Verzeichnis mit folgendem Inhalt:
 
@@ -110,7 +110,7 @@ Hook-Packs sind standardmäßige npm-Pakete, die einen oder mehrere Hooks über 
 openclaw hooks install <path-or-spec>
 ```
 
-Beispiel für `package.json`:
+Beispiel `package.json`:
 
 ```json
 {
@@ -122,8 +122,8 @@ Beispiel für `package.json`:
 }
 ```
 
-Jeder Eintrag verweist auf ein Hook-Verzeichnis mit `HOOK.md` und `handler.ts` (oder `index.ts`).
-Hook-Packs können Abhängigkeiten enthalten; diese werden unter `~/.openclaw/hooks/<id>` installiert.
+Jeder Eintrag verweist auf ein Hook-Verzeichnis, das `HOOK.md` und `handler.ts` (oder `index.ts`) enthält.
+Hook-Packs können Abhängigkeiten mitbringen; diese werden unter `~/.openclaw/hooks/<id>` installiert.
 
 ## Hook-Struktur
 
@@ -173,7 +173,7 @@ Das Objekt `metadata.openclaw` unterstützt:
   - **`env`**: Erforderliche Umgebungsvariablen
   - **`config`**: Erforderliche Konfigurationspfade (z. B. `["workspace.dir"]`)
   - **`os`**: Erforderliche Plattformen (z. B. `["darwin", "linux"]`)
-- **`always`**: Eignungsprüfungen umgehen (Boolean)
+- **`always`**: Eignungsprüfungen umgehen (boolean)
 - **`install`**: Installationsmethoden (für gebündelte Hooks: `[{"id":"bundled","kind":"bundled"}]`)
 
 ### Handler-Implementierung
@@ -230,7 +230,7 @@ Jedes Ereignis enthält:
 
 ### Befehlsereignisse
 
-Werden ausgelöst, wenn Agent-Befehle ausgeführt werden:
+Ausgelöst, wenn Agent-Befehle ausgeführt werden:
 
 - **`command`**: Alle Befehlsereignisse (allgemeiner Listener)
 - **`command:new`**: Wenn der Befehl `/new` ausgeführt wird
@@ -239,11 +239,11 @@ Werden ausgelöst, wenn Agent-Befehle ausgeführt werden:
 
 ### Agent-Ereignisse
 
-- **`agent:bootstrap`**: Bevor Workspace-Bootstrap-Dateien injiziert werden (Hooks können `context.bootstrapFiles` verändern)
+- **`agent:bootstrap`**: Bevor Workspace-Bootstrap-Dateien injiziert werden (Hooks dürfen `context.bootstrapFiles` verändern)
 
 ### Gateway-Ereignisse
 
-Werden ausgelöst, wenn das Gateway startet:
+Ausgelöst, wenn das Gateway startet:
 
 - **`gateway:startup`**: Nachdem Kanäle gestartet sind und Hooks geladen wurden
 
@@ -251,7 +251,7 @@ Werden ausgelöst, wenn das Gateway startet:
 
 Diese Hooks sind keine Event-Stream-Listener; sie ermöglichen es Plugins, Tool-Ergebnisse synchron anzupassen, bevor OpenClaw sie persistiert.
 
-- **`tool_result_persist`**: Transformiert Tool-Ergebnisse, bevor sie in das Sitzungsprotokoll geschrieben werden. Muss synchron sein; geben Sie die aktualisierte Tool-Result-Payload zurück oder `undefined`, um sie unverändert zu lassen. Siehe [Agent Loop](/concepts/agent-loop).
+- **`tool_result_persist`**: Transformiert Tool-Ergebnisse, bevor sie in das Sitzungsprotokoll geschrieben werden. Muss synchron sein; geben Sie die aktualisierte Tool-Ergebnis-Payload zurück oder `undefined`, um sie unverändert zu lassen. Siehe [Agent Loop](/concepts/agent-loop).
 
 ### Zukünftige Ereignisse
 
@@ -265,7 +265,7 @@ Geplante Ereignistypen:
 
 ## Eigene Hooks erstellen
 
-### 1. Speicherort wählen
+### 1. Ort wählen
 
 - **Workspace-Hooks** (`<workspace>/hooks/`): Pro Agent, höchste Priorität
 - **Verwaltete Hooks** (`~/.openclaw/hooks/`): Gemeinsam über Workspaces hinweg
@@ -401,7 +401,7 @@ Das alte Konfigurationsformat funktioniert aus Gründen der Abwärtskompatibilit
 }
 ```
 
-**Migration**: Verwenden Sie für neue Hooks das neue, auf Erkennung basierende System. Legacy-Handler werden nach den verzeichnisbasierten Hooks geladen.
+**Migration**: Verwenden Sie für neue Hooks das neue, erkennungsgestützte System. Legacy-Handler werden nach den verzeichnisbasierten Hooks geladen.
 
 ## CLI-Befehle
 
@@ -455,7 +455,7 @@ openclaw hooks disable command-logger
 
 ### session-memory
 
-Speichert den Sitzungskontext im Memory, wenn Sie `/new` ausführen.
+Speichert den Sitzungs-Kontext im Speicher, wenn Sie `/new` ausführen.
 
 **Ereignisse**: `command:new`
 
@@ -463,11 +463,11 @@ Speichert den Sitzungskontext im Memory, wenn Sie `/new` ausführen.
 
 **Ausgabe**: `<workspace>/memory/YYYY-MM-DD-slug.md` (Standard: `~/.openclaw/workspace`)
 
-**Funktion**:
+**Was es tut**:
 
-1. Verwendet den Pre-Reset-Sitzungseintrag, um das korrekte Transkript zu finden
-2. Extrahiert die letzten 15 Zeilen der Unterhaltung
-3. Verwendet ein LLM, um einen beschreibenden Dateinamen-Slug zu erzeugen
+1. Verwendet den Vor-Reset-Sitzungseintrag, um das korrekte Transkript zu finden
+2. Extrahiert die letzten 15 Zeilen der Konversation
+3. Verwendet ein LLM, um einen beschreibenden Dateinamen-Slug zu generieren
 4. Speichert Sitzungsmetadaten in einer datierten Memory-Datei
 
 **Beispielausgabe**:
@@ -484,7 +484,7 @@ Speichert den Sitzungskontext im Memory, wenn Sie `/new` ausführen.
 
 - `2026-01-16-vendor-pitch.md`
 - `2026-01-16-api-design.md`
-- `2026-01-16-1430.md` (Fallback-Zeitstempel, falls die Slug-Erzeugung fehlschlägt)
+- `2026-01-16-1430.md` (Fallback-Zeitstempel, falls die Slug-Generierung fehlschlägt)
 
 **Aktivieren**:
 
@@ -502,11 +502,11 @@ Protokolliert alle Befehlsereignisse in eine zentrale Audit-Datei.
 
 **Ausgabe**: `~/.openclaw/logs/commands.log`
 
-**Funktion**:
+**Was es tut**:
 
-1. Erfasst Ereignisdetails (Befehlsaktion, Zeitstempel, Sitzungsschlüssel, Absender-ID, Quelle)
+1. Erfasst Ereignisdetails (Befehlsaktion, Zeitstempel, Sitzungs-Schlüssel, Absender-ID, Quelle)
 2. Hängt sie im JSONL-Format an die Logdatei an
-3. Läuft still im Hintergrund
+3. Läuft unauffällig im Hintergrund
 
 **Beispiel-Logeinträge**:
 
@@ -536,13 +536,13 @@ openclaw hooks enable command-logger
 
 ### soul-evil
 
-Tauscht injizierte `SOUL.md`-Inhalte während eines Purge-Fensters oder zufällig gegen `SOUL_EVIL.md` aus.
+Tauscht injizierten `SOUL.md`-Inhalt während eines Purge-Fensters oder mit zufälliger Wahrscheinlichkeit gegen `SOUL_EVIL.md` aus.
 
 **Ereignisse**: `agent:bootstrap`
 
-**Doku**: [SOUL Evil Hook](/hooks/soul-evil)
+**Docs**: [SOUL Evil Hook](/hooks/soul-evil)
 
-**Ausgabe**: Es werden keine Dateien geschrieben; der Austausch erfolgt ausschließlich im Speicher.
+**Ausgabe**: Es werden keine Dateien geschrieben; die Tauschaktionen erfolgen ausschließlich im Speicher.
 
 **Aktivieren**:
 
@@ -572,18 +572,18 @@ openclaw hooks enable soul-evil
 
 ### boot-md
 
-Führt `BOOT.md` aus, wenn das Gateway startet (nachdem Kanäle gestartet sind).
+Führt `BOOT.md` aus, wenn das Gateway startet (nachdem die Kanäle gestartet sind).
 Interne Hooks müssen aktiviert sein, damit dies ausgeführt wird.
 
 **Ereignisse**: `gateway:startup`
 
 **Anforderungen**: `workspace.dir` muss konfiguriert sein
 
-**Funktion**:
+**Was es tut**:
 
 1. Liest `BOOT.md` aus Ihrem Workspace
 2. Führt die Anweisungen über den Agent-Runner aus
-3. Sendet angeforderte ausgehende Nachrichten über das Message-Tool
+3. Sendet angeforderte ausgehende Nachrichten über das Nachrichten-Werkzeug
 
 **Aktivieren**:
 
@@ -595,7 +595,7 @@ openclaw hooks enable boot-md
 
 ### Handler schnell halten
 
-Hooks werden während der Befehlsverarbeitung ausgeführt. Halten Sie sie leichtgewichtig:
+Hooks laufen während der Befehlsverarbeitung. Halten Sie sie leichtgewichtig:
 
 ```typescript
 // ✓ Good - async work, returns immediately
@@ -610,7 +610,7 @@ const handler: HookHandler = async (event) => {
 };
 ```
 
-### Fehler sauber behandeln
+### Fehler robust behandeln
 
 Umschließen Sie riskante Operationen immer:
 
@@ -642,13 +642,13 @@ const handler: HookHandler = async (event) => {
 
 ### Spezifische Ereignisschlüssel verwenden
 
-Geben Sie nach Möglichkeit genaue Ereignisse in den Metadaten an:
+Geben Sie in den Metadaten nach Möglichkeit exakte Ereignisse an:
 
 ```yaml
 metadata: { "openclaw": { "events": ["command:new"] } } # Specific
 ```
 
-Stattdessen nicht:
+Stattdessen:
 
 ```yaml
 metadata: { "openclaw": { "events": ["command"] } } # General - more overhead
@@ -695,11 +695,11 @@ openclaw hooks info my-hook
 
 Achten Sie in der Ausgabe auf fehlende Anforderungen.
 
-## Tests
+## Testen
 
 ### Gateway-Logs
 
-Überwachen Sie die Gateway-Logs, um die Hook-Ausführung zu sehen:
+Überwachen Sie die Gateway-Logs, um die Ausführung von Hooks zu sehen:
 
 ```bash
 # macOS
@@ -734,7 +734,7 @@ test("my handler works", async () => {
 ### Kernkomponenten
 
 - **`src/hooks/types.ts`**: Typdefinitionen
-- **`src/hooks/workspace.ts`**: Verzeichnisscan und -laden
+- **`src/hooks/workspace.ts`**: Verzeichnisscans und Laden
 - **`src/hooks/frontmatter.ts`**: Parsing der HOOK.md-Metadaten
 - **`src/hooks/config.ts`**: Eignungsprüfung
 - **`src/hooks/hooks-status.ts`**: Statusberichterstattung
@@ -743,7 +743,7 @@ test("my handler works", async () => {
 - **`src/gateway/server-startup.ts`**: Lädt Hooks beim Gateway-Start
 - **`src/auto-reply/reply/commands-core.ts`**: Löst Befehlsereignisse aus
 
-### Erkennungsablauf
+### Erkennungsfluss
 
 ```
 Gateway startup
@@ -759,7 +759,7 @@ Load handlers from eligible hooks
 Register handlers for events
 ```
 
-### Ereignisablauf
+### Ereignisfluss
 
 ```
 User sends /new
@@ -777,7 +777,7 @@ Session reset
 
 ## Fehlerbehebung
 
-### Hook wird nicht erkannt
+### Hook nicht erkannt
 
 1. Verzeichnisstruktur prüfen:
 
@@ -799,7 +799,7 @@ Session reset
    openclaw hooks list
    ```
 
-### Hook ist nicht geeignet
+### Hook nicht geeignet
 
 Anforderungen prüfen:
 
@@ -816,7 +816,7 @@ Achten Sie auf fehlende:
 
 ### Hook wird nicht ausgeführt
 
-1. Prüfen Sie, ob der Hook aktiviert ist:
+1. Prüfen, ob der Hook aktiviert ist:
 
    ```bash
    openclaw hooks list
@@ -833,7 +833,7 @@ Achten Sie auf fehlende:
 
 ### Handler-Fehler
 
-Prüfen Sie auf TypeScript-/Import-Fehler:
+Auf TypeScript-/Import-Fehler prüfen:
 
 ```bash
 # Test import directly
@@ -842,7 +842,7 @@ node -e "import('./path/to/handler.ts').then(console.log)"
 
 ## Migrationsleitfaden
 
-### Von Legacy-Konfig zu Erkennung
+### Von Legacy-Konfiguration zu Erkennung
 
 **Vorher**:
 
@@ -900,7 +900,7 @@ node -e "import('./path/to/handler.ts').then(console.log)"
    }
    ```
 
-4. Gateway-Prozess verifizieren und neu starten:
+4. Verifizieren und Ihren Gateway-Prozess neu starten:
 
    ```bash
    openclaw hooks list
@@ -913,7 +913,7 @@ node -e "import('./path/to/handler.ts').then(console.log)"
 - CLI-Verwaltung
 - Eignungsprüfung
 - Bessere Dokumentation
-- Einheitliche Struktur
+- Konsistente Struktur
 
 ## Siehe auch
 

@@ -1,7 +1,7 @@
 ---
 summary: "CLI-Referenz für `openclaw docs` (Durchsuchen des Live-Dokumentationsindex)"
 read_when:
-  - Sie möchten die Live-OpenClaw-Dokumentation vom Terminal aus durchsuchen
+  - Sie möchten den Live-OpenClaw-Dokumentationsindex vom Terminal aus durchsuchen
 title: "Dokumente"
 x-i18n:
   source_path: cli/docs.md
@@ -9,7 +9,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:44Z
+  generated_at: 2026-02-08T09:35:33Z
 ---
 
 # `openclaw docs`

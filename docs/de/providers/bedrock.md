@@ -1,32 +1,32 @@
 ---
-summary: "Amazon-Bedrock-Modelle (Converse API) mit OpenClaw verwenden"
+summary: „Verwenden Sie Amazon-Bedrock-Modelle (Converse API) mit OpenClaw“
 read_when:
   - Sie möchten Amazon-Bedrock-Modelle mit OpenClaw verwenden
-  - Sie benötigen die Einrichtung von AWS-Anmeldeinformationen/Region für Modellaufrufe
-title: "Amazon Bedrock"
+  - Sie benötigen die Einrichtung von AWS-Anmeldeinformationen/Regionen für Modellaufrufe
+title: „Amazon Bedrock“
 x-i18n:
   source_path: providers/bedrock.md
   source_hash: d2e02a8c51586219
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:15:52Z
+  generated_at: 2026-02-08T09:37:02Z
 ---
 
 # Amazon Bedrock
 
-OpenClaw kann **Amazon Bedrock**-Modelle über den **Bedrock-Converse**-Streaming-Anbieter von pi‑ai verwenden. Die Bedrock-Authentifizierung nutzt die **AWS-SDK-Standard-Anmeldeinformationskette**, keinen API-Schlüssel.
+OpenClaw kann **Amazon Bedrock**-Modelle über den **Bedrock Converse**-Streaming-Anbieter von pi‑ai verwenden. Die Bedrock-Authentifizierung nutzt die **Standard-Anmeldeinformationskette des AWS SDK** und keinen API-Schlüssel.
 
 ## Was pi‑ai unterstützt
 
 - Anbieter: `amazon-bedrock`
 - API: `bedrock-converse-stream`
-- Auth: AWS-Anmeldeinformationen (Umgebungsvariablen, Shared Config oder Instanzrolle)
+- Auth: AWS-Anmeldeinformationen (Umgebungsvariablen, gemeinsame Konfiguration oder Instanzrolle)
 - Region: `AWS_REGION` oder `AWS_DEFAULT_REGION` (Standard: `us-east-1`)
 
 ## Automatische Modellerkennung
 
-Wenn AWS-Anmeldeinformationen erkannt werden, kann OpenClaw automatisch Bedrock-Modelle erkennen, die **Streaming** und **Textausgabe** unterstützen. Die Erkennung verwendet `bedrock:ListFoundationModels` und wird zwischengespeichert (Standard: 1 Stunde).
+Wenn AWS-Anmeldeinformationen erkannt werden, kann OpenClaw automatisch Bedrock-Modelle ermitteln, die **Streaming** und **Textausgabe** unterstützen. Die Erkennung verwendet `bedrock:ListFoundationModels` und wird zwischengespeichert (Standard: 1 Stunde).
 
 Konfigurationsoptionen befinden sich unter `models.bedrockDiscovery`:
 
@@ -48,11 +48,11 @@ Konfigurationsoptionen befinden sich unter `models.bedrockDiscovery`:
 Hinweise:
 
 - `enabled` ist standardmäßig `true`, wenn AWS-Anmeldeinformationen vorhanden sind.
-- `region` ist standardmäßig `AWS_REGION` oder `AWS_DEFAULT_REGION`, dann `us-east-1`.
-- `providerFilter` entspricht den Namen der Bedrock-Anbieter (z. B. `anthropic`).
+- `region` ist standardmäßig `AWS_REGION` oder `AWS_DEFAULT_REGION`, danach `us-east-1`.
+- `providerFilter` entspricht den Bedrock-Anbieternamen (zum Beispiel `anthropic`).
 - `refreshInterval` ist in Sekunden; setzen Sie `0`, um das Caching zu deaktivieren.
 - `defaultContextWindow` (Standard: `32000`) und `defaultMaxTokens` (Standard: `4096`)
-  werden für erkannte Modelle verwendet (überschreiben Sie diese, wenn Sie Ihre Modelllimits kennen).
+  werden für erkannte Modelle verwendet (überschreiben Sie diese, wenn Sie Ihre Modellgrenzen kennen).
 
 ## Einrichtung (manuell)
 
@@ -103,9 +103,9 @@ export AWS_BEARER_TOKEN_BEDROCK="..."
 
 ## EC2-Instanzrollen
 
-Wenn OpenClaw auf einer EC2-Instanz mit angehängter IAM-Rolle ausgeführt wird, verwendet das AWS SDK automatisch den Instance Metadata Service (IMDS) zur Authentifizierung. Die Anmeldeinformations-Erkennung von OpenClaw prüft derzeit jedoch nur Umgebungsvariablen, nicht IMDS-Anmeldeinformationen.
+Wenn OpenClaw auf einer EC2-Instanz mit angehängter IAM-Rolle ausgeführt wird, verwendet das AWS SDK automatisch den Instance Metadata Service (IMDS) zur Authentifizierung. Die Anmeldeinformations-Erkennung von OpenClaw prüft derzeit jedoch nur Umgebungsvariablen und nicht IMDS-Anmeldeinformationen.
 
-**Workaround:** Setzen Sie `AWS_PROFILE=default`, um zu signalisieren, dass AWS-Anmeldeinformationen verfügbar sind. Die tatsächliche Authentifizierung nutzt weiterhin die Instanzrolle über IMDS.
+**Workaround:** Setzen Sie `AWS_PROFILE=default`, um zu signalisieren, dass AWS-Anmeldeinformationen verfügbar sind. Die tatsächliche Authentifizierung verwendet weiterhin die Instanzrolle über IMDS.
 
 ```bash
 # Add to ~/.bashrc or your shell profile
@@ -117,11 +117,11 @@ export AWS_REGION=us-east-1
 
 - `bedrock:InvokeModel`
 - `bedrock:InvokeModelWithResponseStream`
-- `bedrock:ListFoundationModels` (für automatische Erkennung)
+- `bedrock:ListFoundationModels` (für die automatische Erkennung)
 
-Oder binden Sie die verwaltete Richtlinie `AmazonBedrockFullAccess` an.
+Oder hängen Sie die verwaltete Richtlinie `AmazonBedrockFullAccess` an.
 
-**Schnelle Einrichtung:**
+**Schnelleinrichtung:**
 
 ```bash
 # 1. Create IAM role and instance profile
@@ -163,13 +163,13 @@ openclaw models list
 
 ## Hinweise
 
-- Bedrock erfordert **Modellzugriff**, der in Ihrem AWS-Konto/Ihrer Region aktiviert ist.
+- Bedrock erfordert aktivierten **Modellzugriff** in Ihrem AWS-Konto/Ihrer Region.
 - Die automatische Erkennung benötigt die Berechtigung `bedrock:ListFoundationModels`.
 - Wenn Sie Profile verwenden, setzen Sie `AWS_PROFILE` auf dem Gateway-Host.
 - OpenClaw zeigt die Quelle der Anmeldeinformationen in dieser Reihenfolge an: `AWS_BEARER_TOKEN_BEDROCK`,
-  dann `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY`, dann `AWS_PROFILE`, dann die
+  dann `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY`, dann `AWS_PROFILE`, anschließend die
   Standardkette des AWS SDK.
-- Die Unterstützung für Reasoning hängt vom Modell ab; prüfen Sie die Bedrock-Modellkarte für
+- Die Unterstützung von Reasoning hängt vom Modell ab; prüfen Sie die Bedrock-Modellkarte auf
   aktuelle Fähigkeiten.
-- Wenn Sie einen verwalteten Key-Flow bevorzugen, können Sie auch einen OpenAI‑kompatiblen
+- Wenn Sie einen verwalteten Schlüsselablauf bevorzugen, können Sie auch einen OpenAI‑kompatiblen
   Proxy vor Bedrock platzieren und ihn stattdessen als OpenAI-Anbieter konfigurieren.

@@ -1,32 +1,32 @@
 ---
-summary: "Bun-Workflow (experimentell): Installation und Fallstricke im Vergleich zu pnpm"
+summary: „Bun-Workflow (experimentell): Installation und Fallstricke im Vergleich zu pnpm“
 read_when:
-  - Sie moechten die schnellste lokale Entwicklungsiteration (bun + watch)
-  - Sie stossen auf Probleme bei Bun-Installation/Patching/Lifecycle-Skripten
-title: "Bun (Experimentell)"
+  - Sie möchten den schnellsten lokalen Entwicklungszyklus (bun + watch)
+  - Sie stoßen auf Probleme bei Bun-Installation/Patching/Lifecycle-Skripten
+title: „Bun (Experimentell)“
 x-i18n:
   source_path: install/bun.md
   source_hash: eb3f4c222b6bae49
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:04:35Z
+  generated_at: 2026-02-08T09:36:28Z
 ---
 
 # Bun (experimentell)
 
-Ziel: Dieses Repo mit **Bun** ausfuehren (optional, nicht empfohlen fuer WhatsApp/Telegram),
+Ziel: Dieses Repo mit **Bun** ausführen (optional, nicht empfohlen für WhatsApp/Telegram),
 ohne von pnpm-Workflows abzuweichen.
 
-⚠️ **Nicht empfohlen fuer den Gateway-Runtime** (WhatsApp/Telegram-Bugs). Verwenden Sie Node fuer die Produktion.
+⚠️ **Nicht empfohlen für die Gateway-Laufzeit** (WhatsApp/Telegram-Bugs). Verwenden Sie Node für die Produktion.
 
 ## Status
 
-- Bun ist eine optionale lokale Laufzeit zum direkten Ausfuehren von TypeScript (`bun run …`, `bun --watch …`).
-- `pnpm` ist der Standard fuer Builds und bleibt voll unterstuetzt (und wird von einigen Docs-Tools verwendet).
+- Bun ist eine optionale lokale Laufzeit, um TypeScript direkt auszuführen (`bun run …`, `bun --watch …`).
+- `pnpm` ist der Standard für Builds und bleibt vollständig unterstützt (und wird von einigen Docs-Tools verwendet).
 - Bun kann `pnpm-lock.yaml` nicht verwenden und ignoriert es.
 
-## Installieren
+## Installation
 
 Standard:
 
@@ -34,7 +34,7 @@ Standard:
 bun install
 ```
 
-Hinweis: `bun.lock`/`bun.lockb` werden von git ignoriert, es gibt also in beiden Faellen keine Repo-Aenderungen. Wenn Sie _keine Lockfile-Schreibvorgaenge_ wollen:
+Hinweis: `bun.lock`/`bun.lockb` werden von git ignoriert, es gibt also so oder so keine Repo-Änderungen. Wenn Sie _keine Lockfile-Schreibvorgänge_ möchten:
 
 ```sh
 bun install --no-save
@@ -47,20 +47,20 @@ bun run build
 bun run vitest run
 ```
 
-## Bun-Lifecycle-Skripte (standardmaessig blockiert)
+## Bun-Lifecycle-Skripte (standardmäßig blockiert)
 
-Bun kann Abhaengigkeits-Lifecycle-Skripte blockieren, sofern sie nicht explizit als vertrauenswuerdig markiert sind (`bun pm untrusted` / `bun pm trust`).
-Fuer dieses Repo sind die haeufig blockierten Skripte nicht erforderlich:
+Bun kann Abhängigkeits-Lifecycle-Skripte blockieren, sofern sie nicht explizit vertraut werden (`bun pm untrusted` / `bun pm trust`).
+Für dieses Repo sind die häufig blockierten Skripte nicht erforderlich:
 
-- `@whiskeysockets/baileys` `preinstall`: prueft Node-Major >= 20 (wir verwenden Node 22+).
+- `@whiskeysockets/baileys` `preinstall`: prüft Node-Major >= 20 (wir verwenden Node 22+).
 - `protobufjs` `postinstall`: gibt Warnungen zu inkompatiblen Versionsschemata aus (keine Build-Artefakte).
 
-Wenn Sie auf ein echtes Laufzeitproblem stossen, das diese Skripte erfordert, vertrauen Sie ihnen explizit:
+Wenn Sie auf ein echtes Laufzeitproblem stoßen, das diese Skripte erfordert, vertrauen Sie ihnen explizit:
 
 ```sh
 bun pm trust @whiskeysockets/baileys protobufjs
 ```
 
-## Einschraenkungen
+## Einschränkungen
 
-- Einige Skripte sind weiterhin fest auf pnpm codiert (z. B. `docs:build`, `ui:*`, `protocol:check`). Fuehren Sie diese vorerst ueber pnpm aus.
+- Einige Skripte sind weiterhin fest auf pnpm verdrahtet (z. B. `docs:build`, `ui:*`, `protocol:check`). Führen Sie diese vorerst über pnpm aus.

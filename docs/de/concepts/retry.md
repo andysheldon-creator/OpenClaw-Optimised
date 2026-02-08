@@ -1,8 +1,8 @@
 ---
 summary: „Wiederholungsrichtlinie für ausgehende Anbieteraufrufe“
 read_when:
-  - Aktualisieren des Wiederholungsverhaltens oder der Standardwerte des Anbieters
-  - Debuggen von Anbieter-Sendefehlern oder Ratenbegrenzungen
+  - „Beim Aktualisieren des Wiederholungsverhaltens oder der Standardwerte von Anbietern“
+  - „Beim Debuggen von Sende-Fehlern oder Ratenbegrenzungen von Anbietern“
 title: „Wiederholungsrichtlinie“
 x-i18n:
   source_path: concepts/retry.md
@@ -10,7 +10,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:59Z
+  generated_at: 2026-02-08T09:35:50Z
 ---
 
 # Wiederholungsrichtlinie
@@ -18,8 +18,8 @@ x-i18n:
 ## Ziele
 
 - Wiederholung pro HTTP-Anfrage, nicht pro mehrstufigem Ablauf.
-- Reihenfolge bewahren, indem nur der aktuelle Schritt wiederholt wird.
-- Duplizierung nicht-idempotenter Operationen vermeiden.
+- Reihenfolge beibehalten, indem nur der aktuelle Schritt wiederholt wird.
+- Duplizierung nicht-idempotenter Vorgänge vermeiden.
 
 ## Standardwerte
 
@@ -27,21 +27,21 @@ x-i18n:
 - Maximale Verzögerungsobergrenze: 30000 ms
 - Jitter: 0,1 (10 Prozent)
 - Anbieter-Standardwerte:
-  - Telegram Mindestverzögerung: 400 ms
-  - Discord Mindestverzögerung: 500 ms
+  - Telegram minimale Verzögerung: 400 ms
+  - Discord minimale Verzögerung: 500 ms
 
 ## Verhalten
 
 ### Discord
 
-- Wiederholt nur bei Rate-Limit-Fehlern (HTTP 429).
-- Verwendet `retry_after`, wenn verfügbar, andernfalls exponentielles Backoff.
+- Wiederholungen nur bei Rate-Limit-Fehlern (HTTP 429).
+- Verwendet Discord `retry_after`, sofern verfügbar, andernfalls exponentielles Backoff.
 
 ### Telegram
 
-- Wiederholt bei transienten Fehlern (429, Timeout, Connect/Reset/Closed, vorübergehend nicht verfügbar).
-- Verwendet `retry_after`, wenn verfügbar, andernfalls exponentielles Backoff.
-- Markdown-Parsefehler werden nicht wiederholt; stattdessen erfolgt ein Fallback auf Klartext.
+- Wiederholungen bei transienten Fehlern (429, Timeout, Verbindung/Reset/Geschlossen, vorübergehend nicht verfügbar).
+- Verwendet `retry_after`, sofern verfügbar, andernfalls exponentielles Backoff.
+- Markdown-Parse-Fehler werden nicht wiederholt; es wird auf Klartext zurückgefallen.
 
 ## Konfiguration
 

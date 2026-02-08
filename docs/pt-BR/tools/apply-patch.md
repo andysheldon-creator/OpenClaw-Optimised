@@ -1,8 +1,8 @@
 ---
-summary: "Aplique patches de varios arquivos com a ferramenta apply_patch"
+summary: "Aplique patches de vários arquivos com a ferramenta apply_patch"
 read_when:
-  - Voce precisa de edicoes estruturadas de arquivos em varios arquivos
-  - Voce quer documentar ou depurar edicoes baseadas em patch
+  - Voce precisa de edições estruturadas de arquivos em vários arquivos
+  - Voce quer documentar ou depurar edições baseadas em patch
 title: "Ferramenta apply_patch"
 x-i18n:
   source_path: tools/apply-patch.md
@@ -10,15 +10,15 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:57:28Z
+  generated_at: 2026-02-08T09:32:04Z
 ---
 
 # ferramenta apply_patch
 
-Aplique alteracoes em arquivos usando um formato de patch estruturado. Isso e ideal para edicoes de varios arquivos
-ou de varios hunks, onde uma unica chamada `edit` seria fragil.
+Aplique alterações de arquivos usando um formato de patch estruturado. Isso é ideal para edições em vários arquivos
+ou com vários hunks, onde uma única chamada `edit` seria frágil.
 
-A ferramenta aceita uma unica string `input` que envolve uma ou mais operacoes de arquivo:
+A ferramenta aceita uma única string `input` que encapsula uma ou mais operações de arquivo:
 
 ```
 *** Begin Patch
@@ -33,19 +33,19 @@ A ferramenta aceita uma unica string `input` que envolve uma ou mais operacoes d
 *** End Patch
 ```
 
-## Parametros
+## Parâmetros
 
-- `input` (obrigatorio): Conteudo completo do patch, incluindo `*** Begin Patch` e `*** End Patch`.
+- `input` (obrigatório): Conteúdo completo do patch, incluindo `*** Begin Patch` e `*** End Patch`.
 
 ## Notas
 
-- Os caminhos sao resolvidos em relacao a raiz do workspace.
+- Os caminhos são resolvidos em relação à raiz do workspace.
 - Use `*** Move to:` dentro de um hunk `*** Update File:` para renomear arquivos.
-- `*** End of File` marca uma insercao apenas de EOF quando necessario.
-- Experimental e desativado por padrao. Ative com `tools.exec.applyPatch.enabled`.
-- Exclusivo da OpenAI (incluindo OpenAI Codex). Opcionalmente controle por modelo via
+- `*** End of File` marca uma inserção apenas no EOF quando necessário.
+- Experimental e desativado por padrão. Habilite com `tools.exec.applyPatch.enabled`.
+- Exclusivo da OpenAI (incluindo OpenAI Codex). Opcionalmente, restrinja por modelo via
   `tools.exec.applyPatch.allowModels`.
-- A configuracao fica apenas em `tools.exec`.
+- A configuração fica apenas em `tools.exec`.
 
 ## Exemplo
 

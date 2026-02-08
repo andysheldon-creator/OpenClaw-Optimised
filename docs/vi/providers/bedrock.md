@@ -10,27 +10,27 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:16:05Z
+  generated_at: 2026-02-08T09:39:52Z
 ---
 
 # Amazon Bedrock
 
 OpenClaw có thể sử dụng các mô hình **Amazon Bedrock** thông qua nhà cung cấp
 streaming **Bedrock Converse** của pi‑ai. Xác thực Bedrock sử dụng **chuỗi thông
-tin xác thực mặc định của AWS SDK**, không dùng API key.
+tin xác thực mặc định của AWS SDK**, không dùng khóa API.
 
 ## Những gì pi‑ai hỗ trợ
 
-- Provider: `amazon-bedrock`
+- Nhà cung cấp: `amazon-bedrock`
 - API: `bedrock-converse-stream`
-- Auth: Thông tin xác thực AWS (biến môi trường, cấu hình dùng chung hoặc vai trò instance)
-- Region: `AWS_REGION` hoặc `AWS_DEFAULT_REGION` (mặc định: `us-east-1`)
+- Xác thực: thông tin xác thực AWS (biến môi trường, cấu hình dùng chung, hoặc vai trò instance)
+- Khu vực: `AWS_REGION` hoặc `AWS_DEFAULT_REGION` (mặc định: `us-east-1`)
 
 ## Tự động khám phá mô hình
 
 Nếu phát hiện thông tin xác thực AWS, OpenClaw có thể tự động khám phá các mô hình
 Bedrock hỗ trợ **streaming** và **đầu ra văn bản**. Việc khám phá sử dụng
-`bedrock:ListFoundationModels` và được lưu bộ nhớ đệm (mặc định: 1 giờ).
+`bedrock:ListFoundationModels` và được lưu vào bộ nhớ đệm (mặc định: 1 giờ).
 
 Các tùy chọn cấu hình nằm dưới `models.bedrockDiscovery`:
 
@@ -53,14 +53,14 @@ Ghi chú:
 
 - `enabled` mặc định là `true` khi có thông tin xác thực AWS.
 - `region` mặc định là `AWS_REGION` hoặc `AWS_DEFAULT_REGION`, sau đó là `us-east-1`.
-- `providerFilter` khớp với tên provider của Bedrock (ví dụ `anthropic`).
+- `providerFilter` khớp với tên nhà cung cấp Bedrock (ví dụ `anthropic`).
 - `refreshInterval` tính bằng giây; đặt thành `0` để tắt bộ nhớ đệm.
 - `defaultContextWindow` (mặc định: `32000`) và `defaultMaxTokens` (mặc định: `4096`)
-  được dùng cho các mô hình được khám phá (ghi đè nếu bạn biết giới hạn mô hình của mình).
+  được dùng cho các mô hình được khám phá (ghi đè nếu bạn biết giới hạn của mô hình).
 
 ## Thiết lập (thủ công)
 
-1. Đảm bảo thông tin xác thực AWS khả dụng trên **máy chủ Gateway**:
+1. Đảm bảo thông tin xác thực AWS có sẵn trên **máy chủ gateway**:
 
 ```bash
 export AWS_ACCESS_KEY_ID="AKIA..."
@@ -73,7 +73,7 @@ export AWS_PROFILE="your-profile"
 export AWS_BEARER_TOKEN_BEDROCK="..."
 ```
 
-2. Thêm một provider Bedrock và mô hình vào cấu hình của bạn (không cần `apiKey`):
+2. Thêm một nhà cung cấp Bedrock và mô hình vào cấu hình của bạn (không cần `apiKey`):
 
 ```json5
 {
@@ -105,15 +105,15 @@ export AWS_BEARER_TOKEN_BEDROCK="..."
 }
 ```
 
-## Vai trò Instance EC2
+## Vai trò EC2 Instance
 
-Khi chạy OpenClaw trên một instance EC2 có gắn vai trò IAM, AWS SDK sẽ tự động sử
-dụng dịch vụ metadata của instance (IMDS) để xác thực. Tuy nhiên, cơ chế phát hiện
-thông tin xác thực của OpenClaw hiện chỉ kiểm tra các biến môi trường, không kiểm
-tra thông tin xác thực từ IMDS.
+Khi chạy OpenClaw trên một EC2 instance có gắn vai trò IAM, AWS SDK sẽ tự động sử
+dụng dịch vụ metadata của instance (IMDS) để xác thực. Tuy nhiên, việc phát hiện
+thông tin xác thực của OpenClaw hiện chỉ kiểm tra biến môi trường, không kiểm tra
+thông tin xác thực từ IMDS.
 
-**Cách khắc phục:** Đặt `AWS_PROFILE=default` để báo hiệu rằng thông tin xác thực AWS
-đang khả dụng. Việc xác thực thực tế vẫn sử dụng vai trò instance thông qua IMDS.
+**Cách khắc phục:** Đặt `AWS_PROFILE=default` để báo hiệu rằng thông tin xác thực AWS có
+sẵn. Việc xác thực thực tế vẫn sử dụng vai trò instance thông qua IMDS.
 
 ```bash
 # Add to ~/.bashrc or your shell profile
@@ -121,13 +121,13 @@ export AWS_PROFILE=default
 export AWS_REGION=us-east-1
 ```
 
-**Quyền IAM bắt buộc** cho vai trò instance EC2:
+**Quyền IAM bắt buộc** cho vai trò EC2 instance:
 
 - `bedrock:InvokeModel`
 - `bedrock:InvokeModelWithResponseStream`
 - `bedrock:ListFoundationModels` (cho tự động khám phá)
 
-Hoặc gắn policy được quản lý `AmazonBedrockFullAccess`.
+Hoặc gắn chính sách được quản lý `AmazonBedrockFullAccess`.
 
 **Thiết lập nhanh:**
 
@@ -171,13 +171,14 @@ openclaw models list
 
 ## Ghi chú
 
-- Bedrock yêu cầu **quyền truy cập mô hình** được bật trong tài khoản/khu vực AWS của bạn.
+- Bedrock yêu cầu bật **quyền truy cập mô hình** trong tài khoản/khu vực AWS của bạn.
 - Tự động khám phá cần quyền `bedrock:ListFoundationModels`.
-- Nếu bạn dùng profile, hãy đặt `AWS_PROFILE` trên máy chủ Gateway.
+- Nếu bạn dùng profile, hãy đặt `AWS_PROFILE` trên máy chủ gateway.
 - OpenClaw hiển thị nguồn thông tin xác thực theo thứ tự sau: `AWS_BEARER_TOKEN_BEDROCK`,
-  sau đó `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY`, rồi `AWS_PROFILE`, và cuối cùng là
+  sau đó `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY`, rồi `AWS_PROFILE`, cuối cùng là
   chuỗi mặc định của AWS SDK.
-- Hỗ trợ suy luận phụ thuộc vào mô hình; hãy kiểm tra thẻ mô hình Bedrock để biết
-  các khả năng hiện tại.
-- Nếu bạn muốn một luồng quản lý khóa, bạn cũng có thể đặt một proxy tương thích
-  OpenAI phía trước Bedrock và cấu hình nó như một provider OpenAI.
+- Hỗ trợ reasoning phụ thuộc vào mô hình; hãy kiểm tra thẻ mô hình Bedrock để biết
+  khả năng hiện tại.
+- Nếu bạn предпоч thích một luồng khóa được quản lý, bạn cũng có thể đặt một proxy
+  tương thích OpenAI phía trước Bedrock và cấu hình nó như một nhà cung cấp OpenAI
+  thay thế.

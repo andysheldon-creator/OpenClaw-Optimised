@@ -1,22 +1,22 @@
 ---
-summary: „CLI-Referenz für `openclaw system` (Systemereignisse, Heartbeat, Präsenz)“
+summary: "CLI-Referenz für `openclaw system` (Systemereignisse, Heartbeat, Präsenz)"
 read_when:
   - Sie möchten ein Systemereignis einreihen, ohne einen Cron-Job zu erstellen
   - Sie müssen Heartbeats aktivieren oder deaktivieren
-  - Sie möchten System-Präsenzeinträge prüfen
-title: „System“
+  - Sie möchten System-Präsenzeinträge einsehen
+title: "system"
 x-i18n:
   source_path: cli/system.md
   source_hash: 36ae5dbdec327f5a
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:49Z
+  generated_at: 2026-02-08T09:35:43Z
 ---
 
 # `openclaw system`
 
-Systemweite Hilfsfunktionen für den Gateway: Systemereignisse einreihen, Heartbeats steuern
+Systemweite Hilfsfunktionen für das Gateway: Systemereignisse einreihen, Heartbeats steuern
 und Präsenz anzeigen.
 
 ## Common commands
@@ -30,13 +30,13 @@ openclaw system presence
 
 ## `system event`
 
-Reiht ein Systemereignis in der **Haupt**-Sitzung ein. Der nächste Heartbeat injiziert es
-als eine `System:`-Zeile in den Prompt. Verwenden Sie `--mode now`, um den Heartbeat
+Reihen Sie ein Systemereignis in der **main**-Sitzung ein. Der nächste Heartbeat fügt es
+als eine `System:`-Zeile in den Prompt ein. Verwenden Sie `--mode now`, um den Heartbeat
 sofort auszulösen; `next-heartbeat` wartet auf den nächsten geplanten Tick.
 
 Flags:
 
-- `--text <text>`: erforderlicher Text für das Systemereignis.
+- `--text <text>`: erforderlicher Text des Systemereignisses.
 - `--mode <mode>`: `now` oder `next-heartbeat` (Standard).
 - `--json`: maschinenlesbare Ausgabe.
 
@@ -54,7 +54,7 @@ Flags:
 
 ## `system presence`
 
-Listet die aktuellen System-Präsenzeinträge auf, die dem Gateway bekannt sind (Knoten,
+Listet die aktuellen System-Präsenzeinträge auf, die dem Gateway bekannt sind (Nodes,
 Instanzen und ähnliche Statuszeilen).
 
 Flags:
@@ -63,5 +63,5 @@ Flags:
 
 ## Hinweise
 
-- Erfordert einen laufenden Gateway, der über Ihre aktuelle Konfiguration erreichbar ist (lokal oder remote).
-- Systemereignisse sind flüchtig und werden nicht über Neustarts hinweg persistiert.
+- Erfordert ein laufendes Gateway, das über Ihre aktuelle Konfiguration erreichbar ist (lokal oder remote).
+- Systemereignisse sind ephemer und werden über Neustarts hinweg nicht persistiert.

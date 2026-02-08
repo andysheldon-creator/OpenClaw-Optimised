@@ -1,29 +1,29 @@
 ---
-summary: "Tham chiếu CLI cho `openclaw plugins` (liệt kê, cài đặt, bật/tắt, doctor)"
+summary: "Tài liệu tham chiếu CLI cho `openclaw plugins` (liệt kê, cài đặt, bật/tắt, doctor)"
 read_when:
   - Bạn muốn cài đặt hoặc quản lý các plugin Gateway chạy trong tiến trình
   - Bạn muốn gỡ lỗi các lỗi tải plugin
 title: "plugin"
 x-i18n:
   source_path: cli/plugins.md
-  source_hash: c6bf76b1e766b912
+  source_hash: 60476e0a9b7247bd
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:31Z
+  generated_at: 2026-02-08T09:38:26Z
 ---
 
 # `openclaw plugins`
 
-Quản lý các plugin/tiện ích mở rộng của Gateway (được tải trong tiến trình).
+Quản lý các plugin/extension của Gateway (được tải trong tiến trình).
 
 Liên quan:
 
-- Hệ thống plugin: [Plugins](/plugin)
+- Hệ thống plugin: [Plugins](/tools/plugin)
 - Manifest + schema của plugin: [Plugin manifest](/plugins/manifest)
 - Tăng cường bảo mật: [Security](/gateway/security)
 
-## Commands
+## Lệnh
 
 ```bash
 openclaw plugins list
@@ -35,22 +35,22 @@ openclaw plugins update <id>
 openclaw plugins update --all
 ```
 
-Các plugin đi kèm được phát hành cùng OpenClaw nhưng mặc định bị tắt. Dùng `plugins enable` để
+Các plugin đi kèm được phân phối cùng OpenClaw nhưng mặc định bị tắt. Dùng `plugins enable` để
 kích hoạt chúng.
 
-Tất cả plugin phải đi kèm một tệp `openclaw.plugin.json` với JSON Schema nội tuyến
-(`configSchema`, ngay cả khi trống). Thiếu hoặc không hợp lệ manifest hay schema
-sẽ ngăn plugin được tải và làm thất bại việc xác thực cấu hình.
+Tất cả plugin phải cung cấp một tệp `openclaw.plugin.json` với JSON Schema nội tuyến
+(`configSchema`, kể cả khi rỗng). Manifest hoặc schema thiếu/không hợp lệ sẽ
+ngăn plugin tải và làm thất bại việc xác thực cấu hình.
 
-### Install
+### Cài đặt
 
 ```bash
 openclaw plugins install <path-or-spec>
 ```
 
-Lưu ý bảo mật: hãy coi việc cài plugin như chạy mã. Ưu tiên các phiên bản được ghim.
+Lưu ý bảo mật: hãy coi việc cài plugin giống như chạy mã. Ưu tiên các phiên bản được ghim.
 
-Các định dạng lưu trữ được hỗ trợ: `.zip`, `.tgz`, `.tar.gz`, `.tar`.
+Định dạng gói hỗ trợ: `.zip`, `.tgz`, `.tar.gz`, `.tar`.
 
 Dùng `--link` để tránh sao chép một thư mục cục bộ (thêm vào `plugins.load.paths`):
 
@@ -58,7 +58,7 @@ Dùng `--link` để tránh sao chép một thư mục cục bộ (thêm vào `p
 openclaw plugins install -l ./my-plugin
 ```
 
-### Update
+### Cập nhật
 
 ```bash
 openclaw plugins update <id>
@@ -66,4 +66,4 @@ openclaw plugins update --all
 openclaw plugins update <id> --dry-run
 ```
 
-Cập nhật chỉ áp dụng cho các plugin được cài từ npm (được theo dõi trong `plugins.installs`).
+Việc cập nhật chỉ áp dụng cho các plugin được cài từ npm (được theo dõi trong `plugins.installs`).

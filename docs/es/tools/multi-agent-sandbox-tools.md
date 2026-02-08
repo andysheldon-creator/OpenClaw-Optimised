@@ -1,7 +1,7 @@
 ---
 summary: "Sandbox por agente + restricciones de herramientas, precedencia y ejemplos"
 title: Sandbox y Herramientas Multi-Agente
-read_when: "Quiere sandboxing por agente o políticas de permitir/denegar herramientas por agente en un gateway multi-agente."
+read_when: "Quiere sandboxing por agente o políticas de permitir/denegar herramientas por agente en un Gateway multi-agente."
 status: active
 x-i18n:
   source_path: tools/multi-agent-sandbox-tools.md
@@ -9,7 +9,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:15:41Z
+  generated_at: 2026-02-08T09:35:00Z
 ---
 
 # Configuración de Sandbox y Herramientas Multi-Agente
@@ -18,13 +18,13 @@ x-i18n:
 
 Cada agente en una configuración multi-agente ahora puede tener su propio:
 
-- **Configuración de Sandbox** (`agents.list[].sandbox` anula `agents.defaults.sandbox`)
+- **Configuración de sandbox** (`agents.list[].sandbox` anula `agents.defaults.sandbox`)
 - **Restricciones de herramientas** (`tools.allow` / `tools.deny`, además de `agents.list[].tools`)
 
 Esto le permite ejecutar múltiples agentes con diferentes perfiles de seguridad:
 
 - Asistente personal con acceso completo
-- Agentes familiares/laborales con herramientas restringidas
+- Agentes familiares/de trabajo con herramientas restringidas
 - Agentes de cara al público en sandboxes
 
 `setupCommand` pertenece bajo `sandbox.docker` (global o por agente) y se ejecuta una vez
@@ -40,7 +40,7 @@ Las credenciales **no** se comparten entre agentes. Nunca reutilice `agentDir` e
 Si desea compartir credenciales, copie `auth-profiles.json` en el `agentDir` del otro agente.
 
 Para conocer cómo se comporta el sandbox en tiempo de ejecución, consulte [Sandboxing](/gateway/sandboxing).
-Para depurar “¿por qué esto está bloqueado?”, consulte [Sandbox vs Tool Policy vs Elevated](/gateway/sandbox-vs-tool-policy-vs-elevated) y `openclaw sandbox explain`.
+Para depurar “¿por qué está bloqueado?”, consulte [Sandbox vs Tool Policy vs Elevated](/gateway/sandbox-vs-tool-policy-vs-elevated) y `openclaw sandbox explain`.
 
 ---
 
@@ -97,7 +97,7 @@ Para depurar “¿por qué esto está bloqueado?”, consulte [Sandbox vs Tool P
 
 ---
 
-### Ejemplo 2: Agente de trabajo con Sandbox compartido
+### Ejemplo 2: Agente de trabajo con sandbox compartido
 
 ```json
 {
@@ -128,7 +128,7 @@ Para depurar “¿por qué esto está bloqueado?”, consulte [Sandbox vs Tool P
 
 ---
 
-### Ejemplo 2b: Perfil de programación global + agente solo de mensajería
+### Ejemplo 2b: Perfil global de programación + agente solo de mensajería
 
 ```json
 {
@@ -146,12 +146,12 @@ Para depurar “¿por qué esto está bloqueado?”, consulte [Sandbox vs Tool P
 
 **Resultado:**
 
-- los agentes predeterminados obtienen herramientas de programación
-- el agente `support` es solo de mensajería (+ herramienta Slack)
+- Los agentes predeterminados obtienen herramientas de programación
+- El agente `support` es solo de mensajería (+ herramienta de Slack)
 
 ---
 
-### Ejemplo 3: Diferentes modos de Sandbox por agente
+### Ejemplo 3: Diferentes modos de sandbox por agente
 
 ```json
 {
@@ -191,11 +191,11 @@ Para depurar “¿por qué esto está bloqueado?”, consulte [Sandbox vs Tool P
 
 ## Precedencia de configuración
 
-Cuando existen configuraciones globales (`agents.defaults.*`) y específicas por agente (`agents.list[].*`):
+Cuando existen configuraciones tanto globales (`agents.defaults.*`) como específicas del agente (`agents.list[].*`):
 
 ### Configuración de Sandbox
 
-Las configuraciones específicas del agente anulan las globales:
+La configuración específica del agente anula la global:
 
 ```
 agents.list[].sandbox.mode > agents.defaults.sandbox.mode
@@ -209,7 +209,7 @@ agents.list[].sandbox.prune.* > agents.defaults.sandbox.prune.*
 
 **Notas:**
 
-- `agents.list[].sandbox.{docker,browser,prune}.*` anula `agents.defaults.sandbox.{docker,browser,prune}.*` para ese agente (se ignora cuando el alcance del sandbox se resuelve a `"shared"`).
+- `agents.list[].sandbox.{docker,browser,prune}.*` anula `agents.defaults.sandbox.{docker,browser,prune}.*` para ese agente (se ignora cuando el alcance del sandbox se resuelve en `"shared"`).
 
 ### Restricciones de herramientas
 
@@ -221,7 +221,7 @@ El orden de filtrado es:
 4. **Política de herramientas del proveedor** (`tools.byProvider[provider].allow/deny`)
 5. **Política de herramientas específica del agente** (`agents.list[].tools.allow/deny`)
 6. **Política del proveedor del agente** (`agents.list[].tools.byProvider[provider].allow/deny`)
-7. **Política de herramientas del Sandbox** (`tools.sandbox.tools` o `agents.list[].tools.sandbox.tools`)
+7. **Política de herramientas del sandbox** (`tools.sandbox.tools` o `agents.list[].tools.sandbox.tools`)
 8. **Política de herramientas del subagente** (`tools.subagents.tools`, si aplica)
 
 Cada nivel puede restringir aún más las herramientas, pero no puede volver a conceder herramientas denegadas en niveles anteriores.
@@ -243,20 +243,20 @@ Las políticas de herramientas (global, agente, sandbox) admiten entradas `group
 - `group:nodes`: `nodes`
 - `group:openclaw`: todas las herramientas integradas de OpenClaw (excluye plugins de proveedores)
 
-### Modo Elevado
+### Modo Elevated
 
-`tools.elevated` es la línea base global (lista de permitidos basada en el remitente). `agents.list[].tools.elevated` puede restringir aún más el modo elevado para agentes específicos (ambos deben permitir).
+`tools.elevated` es la línea base global (lista de permitidos basada en remitentes). `agents.list[].tools.elevated` puede restringir aún más Elevated para agentes específicos (ambos deben permitir).
 
 Patrones de mitigación:
 
-- Denegar `exec` para agentes no confiables (`agents.list[].tools.deny: ["exec"]`)
-- Evitar permitir remitentes que enruten a agentes restringidos
-- Deshabilitar el modo elevado globalmente (`tools.elevated.enabled: false`) si solo desea ejecución en sandbox
-- Deshabilitar el modo elevado por agente (`agents.list[].tools.elevated.enabled: false`) para perfiles sensibles
+- Deniegue `exec` para agentes no confiables (`agents.list[].tools.deny: ["exec"]`)
+- Evite permitir remitentes que enruten a agentes restringidos
+- Desactive Elevated globalmente (`tools.elevated.enabled: false`) si solo desea ejecución en sandbox
+- Desactive Elevated por agente (`agents.list[].tools.elevated.enabled: false`) para perfiles sensibles
 
 ---
 
-## Migración desde agente único
+## Migración desde un agente único
 
 **Antes (agente único):**
 
@@ -298,7 +298,7 @@ Patrones de mitigación:
 }
 ```
 
-Las configuraciones heredadas `agent.*` son migradas por `openclaw doctor`; a futuro, prefiera `agents.defaults` + `agents.list`.
+Las configuraciones heredadas `agent.*` se migran mediante `openclaw doctor`; en adelante, prefiera `agents.defaults` + `agents.list`.
 
 ---
 
@@ -367,7 +367,7 @@ Después de configurar sandbox y herramientas multi-agente:
    - Envíe un mensaje que requiera herramientas restringidas
    - Verifique que el agente no pueda usar herramientas denegadas
 
-4. **Monitoree los registros:**
+4. **Supervise los registros:**
 
    ```exec
    tail -f "${OPENCLAW_STATE_DIR:-$HOME/.openclaw}/logs/gateway.log" | grep -E "routing|sandbox|tools"
@@ -379,8 +379,8 @@ Después de configurar sandbox y herramientas multi-agente:
 
 ### El agente no está en sandbox a pesar de `mode: "all"`
 
-- Verifique si hay un `agents.defaults.sandbox.mode` global que lo anule
-- La configuración específica del agente tiene precedencia, por lo que configure `agents.list[].sandbox.mode: "all"`
+- Verifique si existe un `agents.defaults.sandbox.mode` global que lo anule
+- La configuración específica del agente tiene precedencia, así que configure `agents.list[].sandbox.mode: "all"`
 
 ### Las herramientas siguen disponibles a pesar de la lista de denegación
 
@@ -395,8 +395,8 @@ Después de configurar sandbox y herramientas multi-agente:
 
 ---
 
-## Ver también
+## Véase también
 
 - [Enrutamiento Multi-Agente](/concepts/multi-agent)
 - [Configuración de Sandbox](/gateway/configuration#agentsdefaults-sandbox)
-- [Gestión de Sesiones](/concepts/session)
+- [Gestión de sesiones](/concepts/session)

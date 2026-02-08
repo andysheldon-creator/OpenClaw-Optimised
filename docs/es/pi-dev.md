@@ -1,28 +1,28 @@
 ---
-title: "Flujo de Desarrollo de Pi"
+title: "Flujo de trabajo de desarrollo de Pi"
 x-i18n:
   source_path: pi-dev.md
-  source_hash: 65bd0580dd03df05
+  source_hash: b6c44672306d8867
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:59:21Z
+  generated_at: 2026-02-08T09:33:58Z
 ---
 
-# Flujo de Desarrollo de Pi
+# Flujo de trabajo de desarrollo de Pi
 
-Esta guia resume un flujo de trabajo sensato para trabajar en la integracion de Pi en OpenClaw.
+Esta guía resume un flujo de trabajo sensato para trabajar en la integración de Pi en OpenClaw.
 
-## Verificacion de Tipos y Linting
+## Verificación de tipos y linting
 
 - Verificar tipos y compilar: `pnpm build`
 - Lint: `pnpm lint`
-- Verificacion de formato: `pnpm format`
-- Puerta completa antes de enviar: `pnpm lint && pnpm build && pnpm test`
+- Verificación de formato: `pnpm format`
+- Puerta completa antes de hacer push: `pnpm lint && pnpm build && pnpm test`
 
-## Ejecucion de Pruebas de Pi
+## Ejecución de pruebas de Pi
 
-Use el script dedicado para el conjunto de pruebas de integracion de Pi:
+Use el script dedicado para el conjunto de pruebas de integración de Pi:
 
 ```bash
 scripts/pi/run-tests.sh
@@ -43,29 +43,29 @@ El script ejecuta todas las pruebas unitarias relacionadas con Pi mediante estos
 - `src/agents/pi-tool-definition-adapter.test.ts`
 - `src/agents/pi-extensions/*.test.ts`
 
-## Pruebas Manuales
+## Pruebas manuales
 
 Flujo recomendado:
 
-- Ejecute el Gateway en modo dev:
+- Ejecutar el Gateway en modo de desarrollo:
   - `pnpm gateway:dev`
-- Dispare el agente directamente:
+- Disparar el agente directamente:
   - `pnpm openclaw agent --message "Hello" --thinking low`
-- Use el TUI para depuracion interactiva:
+- Usar la TUI para depuración interactiva:
   - `pnpm tui`
 
-Para el comportamiento de llamadas a herramientas, solicite una accion de `read` o `exec` para que pueda ver el streaming de herramientas y el manejo de payloads.
+Para el comportamiento de llamadas a herramientas, solicite una acción de `read` o `exec` para poder ver el streaming de herramientas y el manejo de payloads.
 
-## Reinicio a Estado Limpio
+## Restablecimiento a estado limpio
 
-El estado vive bajo el directorio de estado de OpenClaw. El valor predeterminado es `~/.openclaw`. Si se establece `OPENCLAW_STATE_DIR`, use ese directorio en su lugar.
+El estado vive bajo el directorio de estado de OpenClaw. El valor predeterminado es `~/.openclaw`. Si `OPENCLAW_STATE_DIR` está configurado, use ese directorio en su lugar.
 
 Para restablecer todo:
 
-- `openclaw.json` para la configuracion
-- `credentials/` para perfiles de autenticacion y tokens
+- `openclaw.json` para la configuración
+- `credentials/` para perfiles de autenticación y tokens
 - `agents/<agentId>/sessions/` para el historial de sesiones del agente
-- `agents/<agentId>/sessions.json` para el indice de sesiones
+- `agents/<agentId>/sessions.json` para el índice de sesiones
 - `sessions/` si existen rutas heredadas
 - `workspace/` si desea un espacio de trabajo en blanco
 
@@ -73,5 +73,5 @@ Si solo desea restablecer las sesiones, elimine `agents/<agentId>/sessions/` y `
 
 ## Referencias
 
-- https://docs.openclaw.ai/testing
-- https://docs.openclaw.ai/start/getting-started
+- [https://docs.openclaw.ai/testing](https://docs.openclaw.ai/testing)
+- [https://docs.openclaw.ai/start/getting-started](https://docs.openclaw.ai/start/getting-started)

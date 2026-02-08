@@ -1,26 +1,26 @@
 ---
 summary: "すべての OpenClaw ドキュメントにリンクするハブ"
 read_when:
-  - ドキュメント全体の完全なマップが必要なとき
+  - ドキュメント全体の完全なマップが必要な場合
 title: "ドキュメントハブ"
 x-i18n:
   source_path: start/hubs.md
-  source_hash: a2e3aa07d6c8c2dc
+  source_hash: 027cb7937ba63866
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:35:04Z
+  generated_at: 2026-02-08T09:23:19Z
 ---
 
 # ドキュメントハブ
 
 <Note>
-OpenClaw が初めての場合は、[はじめに](/start/getting-started) から始めてください。
+OpenClaw を初めて利用する場合は、[はじめに](/start/getting-started) から開始してください。
 </Note>
 
-これらのハブを使って、左側ナビには表示されない詳細解説やリファレンスドキュメントを含む、すべてのページを見つけてください。
+これらのハブを使用して、左ナビゲーションには表示されない詳細解説やリファレンスドキュメントを含む、すべてのページを見つけることができます。
 
-## ここから開始
+## ここから始める
 
 - [インデックス](/)
 - [はじめに](/start/getting-started)
@@ -37,7 +37,7 @@ OpenClaw が初めての場合は、[はじめに](/start/getting-started) か�
 - [ショーケース](/start/showcase)
 - [ロア](/start/lore)
 
-## インストール + 更新
+## インストール + アップデート
 
 - [Docker](/install/docker)
 - [Nix](/install/nix)
@@ -64,23 +64,23 @@ OpenClaw が初めての場合は、[はじめに](/start/getting-started) か�
 - [スラッシュコマンド](/tools/slash-commands)
 - [RPC アダプター](/reference/rpc)
 - [TypeBox スキーマ](/concepts/typebox)
-- [タイムゾーンの取り扱い](/concepts/timezone)
+- [タイムゾーン処理](/concepts/timezone)
 - [プレゼンス](/concepts/presence)
-- [デバイス検出 + トランスポート](/gateway/discovery)
+- [ディスカバリー + トランスポート](/gateway/discovery)
 - [Bonjour](/gateway/bonjour)
-- [チャンネルルーティング](/concepts/channel-routing)
-- [グループ](/concepts/groups)
-- [グループメッセージ](/concepts/group-messages)
-- [モデルのフェイルオーバー](/concepts/model-failover)
+- [チャンネルルーティング](/channels/channel-routing)
+- [グループ](/channels/groups)
+- [グループメッセージ](/channels/group-messages)
+- [モデルフェイルオーバー](/concepts/model-failover)
 - [OAuth](/concepts/oauth)
 
-## プロバイダー + インジェスト
+## プロバイダー + 受信（ingress）
 
 - [チャットチャンネルハブ](/channels)
 - [モデルプロバイダーハブ](/providers/models)
 - [WhatsApp](/channels/whatsapp)
 - [Telegram](/channels/telegram)
-- [Telegram（grammY ノート）](/channels/grammy)
+- [Telegram（grammY 注記）](/channels/grammy)
 - [Slack](/channels/slack)
 - [Discord](/channels/discord)
 - [Mattermost](/channels/mattermost)（プラグイン）
@@ -94,20 +94,20 @@ OpenClaw が初めての場合は、[はじめに](/start/getting-started) か�
 
 ## Gateway（ゲートウェイ）+ 運用
 
-- [Gateway ランブック](/gateway)
+- [Gateway（ゲートウェイ）ランブック](/gateway)
 - [ネットワークモデル](/gateway/network-model)
-- [Gateway ペアリング](/gateway/pairing)
-- [Gateway ロック](/gateway/gateway-lock)
+- [Gateway（ゲートウェイ）ペアリング](/gateway/pairing)
+- [Gateway（ゲートウェイ）ロック](/gateway/gateway-lock)
 - [バックグラウンドプロセス](/gateway/background-process)
 - [ヘルス](/gateway/health)
 - [ハートビート](/gateway/heartbeat)
-- [Doctor](/gateway/doctor)
-- [ログ](/gateway/logging)
+- [ドクター](/gateway/doctor)
+- [ロギング](/gateway/logging)
 - [サンドボックス化](/gateway/sandboxing)
 - [ダッシュボード](/web/dashboard)
 - [コントロール UI](/web/control-ui)
 - [リモートアクセス](/gateway/remote)
-- [リモート Gateway README](/gateway/remote-gateway-readme)
+- [リモートゲートウェイ README](/gateway/remote-gateway-readme)
 - [Tailscale](/gateway/tailscale)
 - [セキュリティ](/gateway/security)
 - [トラブルシューティング](/gateway/troubleshooting)
@@ -120,13 +120,13 @@ OpenClaw が初めての場合は、[はじめに](/start/getting-started) か�
 - [Exec ツール](/tools/exec)
 - [昇格モード](/tools/elevated)
 - [Cron ジョブ](/automation/cron-jobs)
-- [Cron vs ハートビート](/automation/cron-vs-heartbeat)
-- [Thinking + verbose](/tools/thinking)
+- [Cron とハートビートの比較](/automation/cron-vs-heartbeat)
+- [思考 + 詳細出力](/tools/thinking)
 - [モデル](/concepts/models)
 - [サブエージェント](/tools/subagents)
-- [Agent send CLI](/tools/agent-send)
-- [ターミナル UI](/tui)
-- [ブラウザー操作](/tools/browser)
+- [エージェント送信 CLI](/tools/agent-send)
+- [ターミナル UI](/web/tui)
+- [ブラウザー制御](/tools/browser)
 - [ブラウザー（Linux トラブルシューティング）](/tools/browser-linux-troubleshooting)
 - [投票](/automation/poll)
 
@@ -135,9 +135,9 @@ OpenClaw が初めての場合は、[はじめに](/start/getting-started) か�
 - [ノード概要](/nodes)
 - [カメラ](/nodes/camera)
 - [画像](/nodes/images)
-- [音声](/nodes/audio)
+- [オーディオ](/nodes/audio)
 - [位置情報コマンド](/nodes/location-command)
-- [音声ウェイク](/nodes/voicewake)
+- [ボイスウェイク](/nodes/voicewake)
 - [トークモード](/nodes/talk)
 
 ## プラットフォーム
@@ -150,18 +150,18 @@ OpenClaw が初めての場合は、[はじめに](/start/getting-started) か�
 - [Linux](/platforms/linux)
 - [Web サーフェス](/web)
 
-## macOS コンパニオンアプリ（上級）
+## macOS コンパニオンアプリ（上級者向け）
 
 - [macOS 開発セットアップ](/platforms/mac/dev-setup)
 - [macOS メニューバー](/platforms/mac/menu-bar)
-- [macOS 音声ウェイク](/platforms/mac/voicewake)
-- [macOS 音声オーバーレイ](/platforms/mac/voice-overlay)
+- [macOS ボイスウェイク](/platforms/mac/voicewake)
+- [macOS ボイスオーバーレイ](/platforms/mac/voice-overlay)
 - [macOS WebChat](/platforms/mac/webchat)
-- [macOS Canvas](/platforms/mac/canvas)
+- [macOS キャンバス](/platforms/mac/canvas)
 - [macOS 子プロセス](/platforms/mac/child-process)
 - [macOS ヘルス](/platforms/mac/health)
 - [macOS アイコン](/platforms/mac/icon)
-- [macOS ログ](/platforms/mac/logging)
+- [macOS ロギング](/platforms/mac/logging)
 - [macOS 権限](/platforms/mac/permissions)
 - [macOS リモート](/platforms/mac/remote)
 - [macOS 署名](/platforms/mac/signing)
@@ -191,7 +191,7 @@ OpenClaw が初めての場合は、[はじめに](/start/getting-started) か�
 - [Cron 強化ノート](/experiments/plans/cron-add-hardening)
 - [グループポリシー強化ノート](/experiments/plans/group-policy-hardening)
 - [研究: メモリ](/experiments/research/memory)
-- [モデル設定の探索](/experiments/proposals/model-config)
+- [モデル設定の検討](/experiments/proposals/model-config)
 
 ## プロジェクト
 

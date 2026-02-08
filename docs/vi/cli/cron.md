@@ -1,42 +1,44 @@
 ---
-summary: "Tham chiếu CLI cho `openclaw cron` (lập lịch và chạy các tác vụ nền)"
+summary: "Tài liệu tham chiếu CLI cho `openclaw cron` (lên lịch và chạy các tác vụ nền)"
 read_when:
-  - Bạn muốn các tác vụ và đánh thức theo lịch
+  - Bạn cần các tác vụ theo lịch và đánh thức
   - Bạn đang gỡ lỗi việc thực thi cron và nhật ký
 title: "cron"
 x-i18n:
   source_path: cli/cron.md
-  source_hash: cef64f2ac4a648d4
+  source_hash: 09982d6dd1036a56
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:21Z
+  generated_at: 2026-02-08T09:38:14Z
 ---
 
 # `openclaw cron`
 
-Quản lý các tác vụ cron cho bộ lập lịch Gateway.
+Quản lý các tác vụ cron cho bộ lập lịch của Gateway.
 
 Liên quan:
 
 - Tác vụ cron: [Cron jobs](/automation/cron-jobs)
 
-Mẹo: chạy `openclaw cron --help` để xem toàn bộ bề mặt lệnh.
+Mẹo: chạy `openclaw cron --help` để xem đầy đủ bề mặt lệnh.
 
-Lưu ý: các tác vụ `cron add` được cô lập mặc định gửi theo kiểu `--announce`. Dùng `--no-deliver` để giữ
-đầu ra ở nội bộ. `--deliver` vẫn tồn tại như một bí danh đã bị ngừng cho `--announce`.
+Lưu ý: các tác vụ `cron add` cô lập mặc định gửi theo `--announce`. Dùng `--no-deliver` để giữ
+đầu ra ở nội bộ. `--deliver` vẫn tồn tại như một bí danh đã ngừng dùng cho `--announce`.
 
-Lưu ý: các tác vụ một lần (`--at`) mặc định sẽ tự xóa sau khi thành công. Dùng `--keep-after-run` để giữ chúng.
+Lưu ý: các tác vụ một lần (`--at`) mặc định sẽ tự xóa sau khi chạy thành công. Dùng `--keep-after-run` để giữ lại.
 
-## Các chỉnh sửa thường gặp
+Lưu ý: các tác vụ định kỳ hiện dùng cơ chế lùi thử lại theo hàm mũ sau các lỗi liên tiếp (30s → 1m → 5m → 15m → 60m), sau đó quay lại lịch bình thường sau lần chạy thành công tiếp theo.
 
-Cập nhật cài đặt gửi mà không thay đổi thông điệp:
+## Chỉnh sửa thường gặp
+
+Cập nhật cài đặt phân phối mà không thay đổi thông điệp:
 
 ```bash
 openclaw cron edit <job-id> --announce --channel telegram --to "123456789"
 ```
 
-Tắt gửi cho một tác vụ được cô lập:
+Tắt phân phối cho một tác vụ cô lập:
 
 ```bash
 openclaw cron edit <job-id> --no-deliver

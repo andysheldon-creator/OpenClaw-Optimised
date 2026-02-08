@@ -1,8 +1,8 @@
 ---
-summary: "Hilfe-Hub: haeufige Behebungen, Installationspruefung und wo Sie nachsehen, wenn etwas schiefgeht"
+summary: "Hilfe-Hub: häufige Lösungen, Installationsprüfung und wo Sie nachsehen, wenn etwas nicht funktioniert"
 read_when:
-  - Sie sind neu und moechten die Anleitung „Was klicke/ausfuehre ich?“
-  - Etwas ist kaputtgegangen und Sie moechten den schnellsten Weg zur Behebung
+  - Sie sind neu und möchten die „Was klicke/führe ich aus“-Anleitung
+  - Etwas ist kaputtgegangen und Sie möchten den schnellsten Weg zur Lösung
 title: "Hilfe"
 x-i18n:
   source_path: help/index.md
@@ -10,19 +10,19 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:04:34Z
+  generated_at: 2026-02-08T09:36:20Z
 ---
 
 # Hilfe
 
-Wenn Sie einen schnellen „Wieder handlungsfaehig werden“-Ablauf moechten, starten Sie hier:
+Wenn Sie einen schnellen „aus der Sackgasse herauskommen“-Ablauf möchten, starten Sie hier:
 
 - **Fehlerbehebung:** [Hier starten](/help/troubleshooting)
-- **Installationspruefung (Node/npm/PATH):** [Installation](/install#nodejs--npm-path-sanity)
+- **Installationsprüfung (Node/npm/PATH):** [Installation](/install#nodejs--npm-path-sanity)
 - **Gateway-Probleme:** [Gateway-Fehlerbehebung](/gateway/troubleshooting)
 - **Logs:** [Logging](/logging) und [Gateway-Logging](/gateway/logging)
 - **Reparaturen:** [Doctor](/gateway/doctor)
 
-Wenn Sie nach konzeptionellen Fragen suchen (nicht „etwas ist kaputt“):
+Wenn Sie nach konzeptionellen Fragen suchen (nicht „etwas ist kaputtgegangen“):
 
 - [FAQ (Konzepte)](/help/faq)

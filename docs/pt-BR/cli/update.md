@@ -1,7 +1,7 @@
 ---
-summary: "Referencia da CLI para `openclaw update` (atualizacao de codigo-fonte relativamente segura + reinicio automatico do Gateway)"
+summary: "Referência da CLI para `openclaw update` (atualização de origem relativamente segura + reinício automático do gateway)"
 read_when:
-  - Voce quer atualizar um checkout de codigo-fonte com seguranca
+  - Voce quer atualizar um checkout de origem com segurança
   - Voce precisa entender o comportamento do atalho `--update`
 title: "update"
 x-i18n:
@@ -10,14 +10,14 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:49Z
+  generated_at: 2026-02-08T09:30:31Z
 ---
 
 # `openclaw update`
 
-Atualize o OpenClaw com seguranca e alterne entre os canais stable/beta/dev.
+Atualize o OpenClaw com segurança e alterne entre os canais stable/beta/dev.
 
-Se voce instalou via **npm/pnpm** (instalacao global, sem metadados git), as atualizacoes acontecem pelo fluxo do gerenciador de pacotes em [Updating](/install/updating).
+Se voce instalou via **npm/pnpm** (instalação global, sem metadados git), as atualizações acontecem pelo fluxo do gerenciador de pacotes em [Updating](/install/updating).
 
 ## Usage
 
@@ -35,17 +35,17 @@ openclaw --update
 
 ## Options
 
-- `--no-restart`: pular o reinicio do servico do Gateway apos uma atualizacao bem-sucedida.
-- `--channel <stable|beta|dev>`: definir o canal de atualizacao (git + npm; persistido na configuracao).
-- `--tag <dist-tag|version>`: sobrescrever o dist-tag ou a versao do npm apenas para esta atualizacao.
-- `--json`: imprimir JSON `UpdateRunResult` legivel por maquina.
-- `--timeout <seconds>`: timeout por etapa (o padrao e 1200s).
+- `--no-restart`: pula o reinício do serviço do Gateway após uma atualização bem-sucedida.
+- `--channel <stable|beta|dev>`: define o canal de atualização (git + npm; persistido na configuração).
+- `--tag <dist-tag|version>`: substitui o dist-tag do npm ou a versão apenas para esta atualização.
+- `--json`: imprime JSON `UpdateRunResult` legível por máquina.
+- `--timeout <seconds>`: tempo limite por etapa (o padrão é 1200s).
 
-Nota: downgrades exigem confirmacao porque versoes mais antigas podem quebrar a configuracao.
+Nota: downgrades exigem confirmação porque versões mais antigas podem quebrar a configuração.
 
 ## `update status`
 
-Mostra o canal de atualizacao ativo + tag/branch/SHA do git (para checkouts de codigo-fonte), alem da disponibilidade de atualizacao.
+Mostra o canal de atualização ativo + tag/branch/SHA do git (para checkouts de origem), além da disponibilidade de atualização.
 
 ```bash
 openclaw update status
@@ -55,51 +55,51 @@ openclaw update status --timeout 10
 
 Options:
 
-- `--json`: imprimir JSON de status legivel por maquina.
-- `--timeout <seconds>`: timeout para verificacoes (o padrao e 3s).
+- `--json`: imprime JSON de status legível por máquina.
+- `--timeout <seconds>`: tempo limite para verificações (o padrão é 3s).
 
 ## `update wizard`
 
-Fluxo interativo para escolher um canal de atualizacao e confirmar se o Gateway deve ser reiniciado
-apos a atualizacao (o padrao e reiniciar). Se voce selecionar `dev` sem um checkout git, ele
+Fluxo interativo para escolher um canal de atualização e confirmar se deve reiniciar o Gateway
+após a atualização (o padrão é reiniciar). Se voce selecionar `dev` sem um checkout git, ele
 oferece criar um.
 
 ## What it does
 
-Quando voce muda explicitamente de canal (`--channel ...`), o OpenClaw tambem mantem o
-metodo de instalacao alinhado:
+Quando voce troca de canal explicitamente (`--channel ...`), o OpenClaw também mantém o
+método de instalação alinhado:
 
-- `dev` → garante um checkout git (padrao: `~/openclaw`, sobrescreva com `OPENCLAW_GIT_DIR`),
+- `dev` → garante um checkout git (padrão: `~/openclaw`, substitua com `OPENCLAW_GIT_DIR`),
   atualiza-o e instala a CLI global a partir desse checkout.
 - `stable`/`beta` → instala a partir do npm usando o dist-tag correspondente.
 
 ## Git checkout flow
 
-Canais:
+Channels:
 
-- `stable`: faz checkout da tag mais recente nao-beta, depois build + doctor.
-- `beta`: faz checkout da tag `-beta` mais recente, depois build + doctor.
-- `dev`: faz checkout de `main`, depois fetch + rebase.
+- `stable`: faz checkout da tag não-beta mais recente e então build + doctor.
+- `beta`: faz checkout da tag `-beta` mais recente e então build + doctor.
+- `dev`: faz checkout de `main` e então fetch + rebase.
 
-Em alto nivel:
+High-level:
 
-1. Requer um worktree limpo (sem alteracoes nao commitadas).
+1. Requer uma worktree limpa (sem alterações não commitadas).
 2. Alterna para o canal selecionado (tag ou branch).
-3. Busca o upstream (apenas dev).
-4. Apenas dev: lint de preflight + build TypeScript em um worktree temporario; se o tip falhar, volta ate 10 commits para encontrar o build limpo mais recente.
-5. Rebase no commit selecionado (apenas dev).
-6. Instala dependencias (pnpm preferido; fallback para npm).
-7. Compila + compila a Control UI.
-8. Executa `openclaw doctor` como a verificacao final de “atualizacao segura”.
-9. Sincroniza plugins com o canal ativo (dev usa extensoes empacotadas; stable/beta usa npm) e atualiza plugins instalados via npm.
+3. Faz fetch do upstream (apenas dev).
+4. Apenas dev: lint de pré-checagem + build TypeScript em uma worktree temporária; se a ponta falhar, volta até 10 commits para encontrar o build limpo mais recente.
+5. Faz rebase sobre o commit selecionado (apenas dev).
+6. Instala dependências (pnpm preferido; fallback para npm).
+7. Build + build da Control UI.
+8. Executa `openclaw doctor` como a verificação final de “atualização segura”.
+9. Sincroniza plugins com o canal ativo (dev usa extensões empacotadas; stable/beta usa npm) e atualiza plugins instalados via npm.
 
 ## `--update` shorthand
 
-`openclaw --update` reescreve para `openclaw update` (util para shells e scripts de inicializacao).
+`openclaw --update` é reescrito para `openclaw update` (útil para shells e scripts de inicialização).
 
 ## See also
 
-- `openclaw doctor` (oferece executar a atualizacao primeiro em checkouts git)
+- `openclaw doctor` (oferece executar a atualização primeiro em checkouts git)
 - [Development channels](/install/development-channels)
 - [Updating](/install/updating)
 - [CLI reference](/cli)

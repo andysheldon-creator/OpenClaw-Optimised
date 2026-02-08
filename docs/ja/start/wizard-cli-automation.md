@@ -1,28 +1,28 @@
 ---
-summary: "OpenClaw CLI 向けのスクリプト化されたオンボーディングとエージェント設定"
+summary: "OpenClaw CLI のスクリプト化されたオンボーディングとエージェントセットアップ"
 read_when:
-  - スクリプトまたは CI でオンボーディングを自動化している場合
+  - スクリプトや CI でオンボーディングを自動化する場合
   - 特定のプロバイダー向けに非対話型の例が必要な場合
 title: "CLI 自動化"
-sidebarTitle: "CLI 自動化"
+sidebarTitle: "CLI automation"
 x-i18n:
   source_path: start/wizard-cli-automation.md
   source_hash: 5b5463359a87cfe6
   provider: openai
-  model: gpt-5.2-pro
+  model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-06T05:10:50Z
+  generated_at: 2026-02-08T09:23:14Z
 ---
 
 # CLI 自動化
 
-`--non-interactive` を使用して、`openclaw onboard` を自動化します。
+`--non-interactive` を使用して `openclaw onboard` を自動化します。
 
 <Note>
-`--json` は非対話型モードを意味しません。スクリプトでは `--non-interactive`（および `--workspace`）を使用してください。
+`--json` は非対話型モードを意味するものではありません。スクリプトでは `--non-interactive`（および `--workspace`）を使用してください。
 </Note>
 
-## ベースラインの非対話型の例
+## ベースラインの非対話型例
 
 ```bash
 openclaw onboard --non-interactive \
@@ -36,12 +36,12 @@ openclaw onboard --non-interactive \
   --skip-skills
 ```
 
-機械可読なサマリーのために `--json` を追加します。
+機械可読なサマリーを得るには `--json` を追加します。
 
 ## プロバイダー別の例
 
 <AccordionGroup>
-  <Accordion title="Gemini example">
+  <Accordion title="Gemini の例">
     ```bash
     openclaw onboard --non-interactive \
       --mode local \
@@ -51,7 +51,7 @@ openclaw onboard --non-interactive \
       --gateway-bind loopback
     ```
   </Accordion>
-  <Accordion title="Z.AI example">
+  <Accordion title="Z.AI の例">
     ```bash
     openclaw onboard --non-interactive \
       --mode local \
@@ -61,7 +61,7 @@ openclaw onboard --non-interactive \
       --gateway-bind loopback
     ```
   </Accordion>
-  <Accordion title="Vercel AI Gateway example">
+  <Accordion title="Vercel AI Gateway の例">
     ```bash
     openclaw onboard --non-interactive \
       --mode local \
@@ -71,7 +71,7 @@ openclaw onboard --non-interactive \
       --gateway-bind loopback
     ```
   </Accordion>
-  <Accordion title="Cloudflare AI Gateway example">
+  <Accordion title="Cloudflare AI Gateway の例">
     ```bash
     openclaw onboard --non-interactive \
       --mode local \
@@ -83,7 +83,7 @@ openclaw onboard --non-interactive \
       --gateway-bind loopback
     ```
   </Accordion>
-  <Accordion title="Moonshot example">
+  <Accordion title="Moonshot の例">
     ```bash
     openclaw onboard --non-interactive \
       --mode local \
@@ -93,7 +93,7 @@ openclaw onboard --non-interactive \
       --gateway-bind loopback
     ```
   </Accordion>
-  <Accordion title="Synthetic example">
+  <Accordion title="Synthetic の例">
     ```bash
     openclaw onboard --non-interactive \
       --mode local \
@@ -103,7 +103,7 @@ openclaw onboard --non-interactive \
       --gateway-bind loopback
     ```
   </Accordion>
-  <Accordion title="OpenCode Zen example">
+  <Accordion title="OpenCode Zen の例">
     ```bash
     openclaw onboard --non-interactive \
       --mode local \
@@ -117,7 +117,7 @@ openclaw onboard --non-interactive \
 
 ## 別のエージェントを追加する
 
-`openclaw agents add <name>` を使用して、独自のワークスペース、セッション、認証プロファイルを持つ別のエージェントを作成します。`--workspace` なしで実行すると、ウィザードが起動します。
+`openclaw agents add <name>` を使用すると、独自のワークスペース、セッション、認証プロファイルを持つ別のエージェントを作成できます。`--workspace` を指定せずに実行すると、ウィザードが起動します。
 
 ```bash
 openclaw agents add work \
@@ -137,11 +137,11 @@ openclaw agents add work \
 注記:
 
 - デフォルトのワークスペースは `~/.openclaw/workspace-<agentId>` に従います。
-- 受信メッセージをルーティングするために `bindings` を追加します（ウィザードで実行できます）。
-- 非対話型フラグ: `--model`、`--agent-dir`、`--bind`、`--non-interactive`。
+- 受信メッセージをルーティングするには `bindings` を追加します（ウィザードでも設定可能です）。
+- 非対話型フラグ: `--model`, `--agent-dir`, `--bind`, `--non-interactive`。
 
 ## 関連ドキュメント
 
-- オンボーディングハブ: [オンボーディングウィザード（CLI）](/start/wizard)
-- 完全なリファレンス: [CLI オンボーディングリファレンス](/start/wizard-cli-reference)
-- コマンドリファレンス: [`openclaw onboard`](/cli/onboard)
+- オンボーディング ハブ: [オンボーディング ウィザード（CLI）](/start/wizard)
+- 完全なリファレンス: [CLI オンボーディング リファレンス](/start/wizard-cli-reference)
+- コマンド リファレンス: [`openclaw onboard`](/cli/onboard)

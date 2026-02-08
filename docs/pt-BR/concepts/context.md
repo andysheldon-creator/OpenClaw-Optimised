@@ -7,11 +7,11 @@ read_when:
 title: "Contexto"
 x-i18n:
   source_path: concepts/context.md
-  source_hash: b32867b9b93254fd
+  source_hash: e6f42f515380ce12
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:58Z
+  generated_at: 2026-02-08T09:30:37Z
 ---
 
 # Contexto
@@ -20,25 +20,25 @@ x-i18n:
 
 Modelo mental para iniciantes:
 
-- **Prompt de sistema** (construído pelo OpenClaw): regras, ferramentas, lista de Skills, tempo/execução e arquivos do workspace injetados.
+- **Prompt do sistema** (construído pelo OpenClaw): regras, ferramentas, lista de Skills, tempo/tempo de execução e arquivos do workspace injetados.
 - **Histórico da conversa**: suas mensagens + as mensagens do assistente desta sessão.
 - **Chamadas/resultados de ferramentas + anexos**: saída de comandos, leituras de arquivos, imagens/áudio etc.
 
 Contexto _não é a mesma coisa_ que “memória”: a memória pode ser armazenada em disco e recarregada depois; contexto é o que está dentro da janela atual do modelo.
 
-## Inicio rapido (inspecionar contexto)
+## Início rápido (inspecionar contexto)
 
 - `/status` → visão rápida de “quão cheia está minha janela?” + configurações da sessão.
-- `/context list` → o que está injetado + tamanhos aproximados (por arquivo + totais).
-- `/context detail` → detalhamento mais profundo: por arquivo, tamanhos de esquema por ferramenta, tamanhos de entrada por Skill e tamanho do prompt de sistema.
+- `/context list` → o que é injetado + tamanhos aproximados (por arquivo + totais).
+- `/context detail` → detalhamento mais profundo: por arquivo, tamanhos de esquemas por ferramenta, tamanhos de entradas por Skill e tamanho do prompt do sistema.
 - `/usage tokens` → acrescenta um rodapé de uso por resposta às respostas normais.
-- `/compact` → resume histórico antigo em uma entrada compacta para liberar espaço da janela.
+- `/compact` → resume histórico mais antigo em uma entrada compacta para liberar espaço da janela.
 
-Veja também: [Slash commands](/tools/slash-commands), [Uso de tokens e custos](/token-use), [Compactação](/concepts/compaction).
+Veja também: [Slash commands](/tools/slash-commands), [Uso de tokens e custos](/reference/token-use), [Compactação](/concepts/compaction).
 
 ## Exemplo de saída
 
-Os valores variam conforme o modelo, provedor, política de ferramentas e o que está no seu workspace.
+Os valores variam por modelo, provedor, política de ferramentas e pelo que está no seu workspace.
 
 ### `/context list`
 
@@ -87,25 +87,25 @@ Top tools (schema size):
 
 Tudo o que o modelo recebe conta, incluindo:
 
-- Prompt de sistema (todas as seções).
+- Prompt do sistema (todas as seções).
 - Histórico da conversa.
-- Chamadas de ferramentas + resultados.
+- Chamadas de ferramentas + resultados de ferramentas.
 - Anexos/transcrições (imagens/áudio/arquivos).
 - Resumos de compactação e artefatos de poda.
 - “Wrappers” do provedor ou cabeçalhos ocultos (não visíveis, ainda contam).
 
-## Como o OpenClaw constrói o prompt de sistema
+## Como o OpenClaw constrói o prompt do sistema
 
-O prompt de sistema é **de propriedade do OpenClaw** e é reconstruído a cada execução. Ele inclui:
+O prompt do sistema é **de propriedade do OpenClaw** e é reconstruído a cada execução. Ele inclui:
 
 - Lista de ferramentas + descrições curtas.
 - Lista de Skills (apenas metadados; veja abaixo).
 - Localização do workspace.
 - Hora (UTC + hora do usuário convertida, se configurado).
-- Metadados de execução (host/OS/modelo/pensamento).
+- Metadados de runtime (host/SO/modelo/raciocínio).
 - Arquivos de bootstrap do workspace injetados em **Project Context**.
 
-Detalhamento completo: [Prompt de Sistema](/concepts/system-prompt).
+Detalhamento completo: [Prompt do sistema](/concepts/system-prompt).
 
 ## Arquivos do workspace injetados (Project Context)
 
@@ -119,20 +119,20 @@ Por padrão, o OpenClaw injeta um conjunto fixo de arquivos do workspace (se pre
 - `HEARTBEAT.md`
 - `BOOTSTRAP.md` (apenas na primeira execução)
 
-Arquivos grandes são truncados por arquivo usando `agents.defaults.bootstrapMaxChars` (padrão `20000` caracteres). `/context` mostra os tamanhos **bruto vs injetado** e se houve truncamento.
+Arquivos grandes são truncados por arquivo usando `agents.defaults.bootstrapMaxChars` (padrão `20000` caracteres). `/context` mostra os tamanhos **brutos vs injetados** e se houve truncamento.
 
 ## Skills: o que é injetado vs carregado sob demanda
 
-O prompt de sistema inclui uma **lista compacta de Skills** (nome + descrição + localização). Essa lista tem sobrecarga real.
+O prompt do sistema inclui uma **lista compacta de Skills** (nome + descrição + localização). Essa lista tem sobrecarga real.
 
-As instruções da Skill _não_ são incluídas por padrão. Espera-se que o modelo `read` a `SKILL.md` da Skill **apenas quando necessário**.
+As instruções das Skills _não_ são incluídas por padrão. Espera-se que o modelo `read` o `SKILL.md` da Skill **apenas quando necessário**.
 
-## Ferramentas: há dois custos
+## Ferramentas: existem dois custos
 
-Ferramentas afetam o contexto de duas formas:
+Ferramentas afetam o contexto de duas maneiras:
 
-1. **Texto da lista de ferramentas** no prompt de sistema (o que você vê como “Tooling”).
-2. **Esquemas de ferramentas** (JSON). Eles são enviados ao modelo para que ele possa chamar ferramentas. Contam para o contexto mesmo que você não os veja como texto simples.
+1. **Texto da lista de ferramentas** no prompt do sistema (o que você vê como “Tooling”).
+2. **Esquemas de ferramentas** (JSON). Eles são enviados ao modelo para que ele possa chamar ferramentas. Eles contam para o contexto mesmo que você não os veja como texto simples.
 
 `/context detail` detalha os maiores esquemas de ferramentas para que você veja o que domina.
 
@@ -140,11 +140,11 @@ Ferramentas afetam o contexto de duas formas:
 
 Slash commands são tratados pelo Gateway. Existem alguns comportamentos diferentes:
 
-- **Comandos independentes**: uma mensagem que é apenas `/...` é executada como comando.
+- **Comandos independentes**: uma mensagem que é apenas `/...` executa como um comando.
 - **Diretivas**: `/think`, `/verbose`, `/reasoning`, `/elevated`, `/model`, `/queue` são removidas antes de o modelo ver a mensagem.
   - Mensagens apenas com diretivas persistem as configurações da sessão.
   - Diretivas inline em uma mensagem normal atuam como dicas por mensagem.
-- **Atalhos inline** (apenas remetentes permitidos): certos tokens `/...` dentro de uma mensagem normal podem executar imediatamente (exemplo: “hey /status”) e são removidos antes de o modelo ver o texto restante.
+- **Atalhos inline** (apenas remetentes na lista de permissões): certos tokens `/...` dentro de uma mensagem normal podem executar imediatamente (exemplo: “hey /status”) e são removidos antes de o modelo ver o texto restante.
 
 Detalhes: [Slash commands](/tools/slash-commands).
 
@@ -160,9 +160,9 @@ Docs: [Sessão](/concepts/session), [Compactação](/concepts/compaction), [Poda
 
 ## O que `/context` realmente reporta
 
-`/context` prefere o relatório mais recente do prompt de sistema **construído na execução** quando disponível:
+`/context` prefere o relatório mais recente do prompt do sistema **construído na execução**, quando disponível:
 
-- `System prompt (run)` = capturado da última execução incorporada (com suporte a ferramentas) e persistido no armazenamento da sessão.
+- `System prompt (run)` = capturado da última execução incorporada (com capacidade de ferramentas) e persistido no armazenamento da sessão.
 - `System prompt (estimate)` = calculado dinamicamente quando não existe relatório de execução (ou ao executar via um backend de CLI que não gera o relatório).
 
-De qualquer forma, ele reporta tamanhos e os principais contribuintes; **não** despeja o prompt de sistema completo nem os esquemas de ferramentas.
+De qualquer forma, ele reporta tamanhos e principais contribuintes; **não** despeja o prompt do sistema completo nem os esquemas de ferramentas.

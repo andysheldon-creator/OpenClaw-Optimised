@@ -1,9 +1,9 @@
 ---
-summary: "iOS ノードアプリ：Gateway（ゲートウェイ）への接続、ペアリング、キャンバス、トラブルシューティング"
+summary: "iOS ノードアプリ：Gateway への接続、ペアリング、キャンバス、トラブルシューティング"
 read_when:
-  - iOS ノードのペアリングまたは再接続
-  - ソースから iOS アプリを実行する場合
-  - ゲートウェイ検出やキャンバスコマンドのデバッグ
+  - iOS ノードのペアリングまたは再接続を行うとき
+  - ソースから iOS アプリを実行するとき
+  - ゲートウェイ検出やキャンバスコマンドをデバッグするとき
 title: "iOS アプリ"
 x-i18n:
   source_path: platforms/ios.md
@@ -11,38 +11,38 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:34:20Z
+  generated_at: 2026-02-08T09:22:30Z
 ---
 
-# iOS アプリ（Node）
+# iOS アプリ（ノード）
 
 提供状況：内部プレビュー。iOS アプリはまだ一般公開されていません。
 
-## 概要
+## できること
 
 - WebSocket（LAN または tailnet）経由で Gateway（ゲートウェイ）に接続します。
-- ノードの機能を公開します：Canvas、画面スナップショット、カメラキャプチャ、位置情報、トークモード、ボイスウェイク。
+- ノードの機能を公開します：Canvas、画面スナップショット、カメラキャプチャ、位置情報、トークモード、音声ウェイク。
 - `node.invoke` コマンドを受信し、ノードのステータスイベントを報告します。
 
 ## 要件
 
-- 別のデバイス（macOS、Linux、または WSL2 経由の Windows）で稼働する Gateway（ゲートウェイ）。
+- 別のデバイスで稼働している Gateway（macOS、Linux、または WSL2 経由の Windows）。
 - ネットワーク経路：
-  - Bonjour による同一 LAN、**または**
-  - ユニキャスト DNS-SD（例のドメイン：`openclaw.internal.`）による tailnet、**または**
+  - Bonjour 経由の同一 LAN、**または**
+  - ユニキャスト DNS-SD（例のドメイン：`openclaw.internal.`）を用いた Tailnet、**または**
   - 手動のホスト／ポート（フォールバック）。
 
-## クイックスタート（ペアリング + 接続）
+## クイックスタート（ペアリング＋接続）
 
-1. Gateway（ゲートウェイ）を起動します：
+1. Gateway を起動します：
 
 ```bash
 openclaw gateway --port 18789
 ```
 
-2. iOS アプリで「設定」を開き、検出されたゲートウェイを選択します（または「Manual Host」を有効にしてホスト／ポートを入力します）。
+2. iOS アプリで「設定」を開き、検出されたゲートウェイを選択します（または「手動ホスト」を有効にしてホスト／ポートを入力します）。
 
-3. ゲートウェイのホストでペアリング要求を承認します：
+3. ゲートウェイ ホストでペアリング要求を承認します：
 
 ```bash
 openclaw nodes pending
@@ -60,30 +60,30 @@ openclaw gateway call node.list --params "{}"
 
 ### Bonjour（LAN）
 
-Gateway（ゲートウェイ）は `local.` 上で `_openclaw-gw._tcp` をアドバタイズします。iOS アプリはこれらを自動的に一覧表示します。
+Gateway は `_openclaw-gw._tcp` を `local.` でアドバタイズします。iOS アプリはこれらを自動的に一覧表示します。
 
 ### Tailnet（クロスネットワーク）
 
-mDNS がブロックされている場合は、ユニキャスト DNS-SD ゾーン（ドメインを選択。例：`openclaw.internal.`）と Tailscale のスプリット DNS を使用します。
+mDNS がブロックされている場合は、ユニキャスト DNS-SD ゾーン（ドメインを選択。例：`openclaw.internal.`）と Tailscale の分割 DNS を使用します。
 CoreDNS の例については [Bonjour](/gateway/bonjour) を参照してください。
 
-### 手動のホスト／ポート
+### 手動ホスト／ポート
 
-「設定」で **Manual Host** を有効にし、ゲートウェイのホスト + ポート（デフォルト `18789`）を入力します。
+「設定」で **手動ホスト** を有効にし、ゲートウェイのホスト＋ポート（デフォルト：`18789`）を入力します。
 
-## Canvas + A2UI
+## Canvas ＋ A2UI
 
-iOS ノードは WKWebView のキャンバスを描画します。`node.invoke` を使用して操作します：
+iOS ノードは WKWebView キャンバスをレンダリングします。`node.invoke` を使用して操作します：
 
 ```bash
 openclaw nodes invoke --node "iOS Node" --command canvas.navigate --params '{"url":"http://<gateway-host>:18793/__openclaw__/canvas/"}'
 ```
 
-注意事項：
+注記：
 
-- Gateway（ゲートウェイ）のキャンバスホストは `/__openclaw__/canvas/` と `/__openclaw__/a2ui/` を提供します。
-- キャンバスホストの URL がアドバタイズされると、iOS ノードは接続時に A2UI へ自動的にナビゲートします。
-- `canvas.navigate` と `{"url":""}` を使用して、内蔵のスキャフォールドに戻ります。
+- Gateway のキャンバスホストは `/__openclaw__/canvas/` と `/__openclaw__/a2ui/` を提供します。
+- キャンバスホスト URL がアドバタイズされている場合、iOS ノードは接続時に自動で A2UI にナビゲートします。
+- `canvas.navigate` と `{"url":""}` で、組み込みのスキャフォールドに戻ります。
 
 ### Canvas の eval／スナップショット
 
@@ -95,17 +95,17 @@ openclaw nodes invoke --node "iOS Node" --command canvas.eval --params '{"javaSc
 openclaw nodes invoke --node "iOS Node" --command canvas.snapshot --params '{"maxWidth":900,"format":"jpeg"}'
 ```
 
-## ボイスウェイク + トークモード
+## 音声ウェイク＋トークモード
 
-- ボイスウェイクとトークモードは「設定」で利用できます。
-- iOS はバックグラウンドオーディオを停止する場合があります。アプリがアクティブでないときの音声機能はベストエフォートとして扱ってください。
+- 音声ウェイクとトークモードは「設定」から利用できます。
+- iOS はバックグラウンド音声を停止する場合があります。アプリが非アクティブなときの音声機能は、ベストエフォートとして扱ってください。
 
 ## よくあるエラー
 
 - `NODE_BACKGROUND_UNAVAILABLE`：iOS アプリをフォアグラウンドにしてください（キャンバス／カメラ／画面コマンドには必要です）。
-- `A2UI_HOST_NOT_CONFIGURED`：Gateway（ゲートウェイ）がキャンバスホスト URL をアドバタイズしていません。[Gateway 設定](/gateway/configuration) の `canvasHost` を確認してください。
+- `A2UI_HOST_NOT_CONFIGURED`：Gateway がキャンバスホスト URL をアドバタイズしていません。[Gateway 設定](/gateway/configuration) の `canvasHost` を確認してください。
 - ペアリングのプロンプトが表示されない：`openclaw nodes pending` を実行し、手動で承認してください。
-- 再インストール後に再接続できない：Keychain のペアリングトークンが消去されています。ノードを再度ペアリングしてください。
+- 再インストール後に再接続できない：Keychain のペアリングトークンがクリアされています。ノードを再ペアリングしてください。
 
 ## 関連ドキュメント
 

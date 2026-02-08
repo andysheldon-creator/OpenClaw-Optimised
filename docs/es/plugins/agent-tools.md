@@ -1,8 +1,8 @@
 ---
-summary: "Escriba herramientas de agente en un plugin (esquemas, herramientas opcionales, allowlists)"
+summary: "Escriba herramientas de agente en un plugin (esquemas, herramientas opcionales, listas de permitidos)"
 read_when:
   - Quiere agregar una nueva herramienta de agente en un plugin
-  - Necesita hacer que una herramienta sea de inclusion voluntaria mediante allowlists
+  - Necesita hacer que una herramienta sea de adhesión voluntaria mediante listas de permitidos
 title: "Herramientas de agente del plugin"
 x-i18n:
   source_path: plugins/agent-tools.md
@@ -10,20 +10,16 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:59:34Z
+  generated_at: 2026-02-08T09:34:13Z
 ---
 
 # Herramientas de agente del plugin
 
-Los plugins de OpenClaw pueden registrar **herramientas de agente** (funciones con esquema JSON) que se exponen
-al LLM durante las ejecuciones del agente. Las herramientas pueden ser **requeridas** (siempre disponibles) u
-**opcionales** (de inclusion voluntaria).
+Los plugins de OpenClaw pueden registrar **herramientas de agente** (funciones con esquema JSON) que se exponen al LLM durante las ejecuciones del agente. Las herramientas pueden ser **requeridas** (siempre disponibles) u **opcionales** (adhesión voluntaria).
 
-Las herramientas de agente se configuran en `tools` en la configuracion principal, o por agente en
-`agents.list[].tools`. La politica de allowlist/denylist controla que herramientas puede
-invocar el agente.
+Las herramientas de agente se configuran en `tools` en la configuración principal, o por agente en `agents.list[].tools`. La política de lista de permitidos/lista de denegados controla qué herramientas puede llamar el agente.
 
-## Herramienta basica
+## Herramienta básica
 
 ```ts
 import { Type } from "@sinclair/typebox";
@@ -42,10 +38,9 @@ export default function (api) {
 }
 ```
 
-## Herramienta opcional (inclusion voluntaria)
+## Herramienta opcional (adhesión voluntaria)
 
-Las herramientas opcionales **nunca** se habilitan automaticamente. Los usuarios deben agregarlas a una allowlist
-del agente.
+Las herramientas opcionales **nunca** se habilitan automáticamente. Los usuarios deben agregarlas a la lista de permitidos de un agente.
 
 ```ts
 export default function (api) {
@@ -69,7 +64,7 @@ export default function (api) {
 }
 ```
 
-Habilite las herramientas opcionales en `agents.list[].tools.allow` (o globalmente en `tools.allow`):
+Habilite herramientas opcionales en `agents.list[].tools.allow` (o globalmente en `tools.allow`):
 
 ```json5
 {
@@ -90,17 +85,15 @@ Habilite las herramientas opcionales en `agents.list[].tools.allow` (o globalmen
 }
 ```
 
-Otros controles de configuracion que afectan la disponibilidad de herramientas:
+Otros ajustes de configuración que afectan la disponibilidad de herramientas:
 
-- Las allowlists que solo nombran herramientas de plugins se tratan como inclusiones voluntarias de plugins; las herramientas centrales permanecen
-  habilitadas a menos que tambien incluya herramientas centrales o grupos en la allowlist.
-- `tools.profile` / `agents.list[].tools.profile` (allowlist base)
-- `tools.byProvider` / `agents.list[].tools.byProvider` (permitir/denegar especifico del proveedor)
-- `tools.sandbox.tools.*` (politica de herramientas de sandbox cuando esta en sandbox)
+- Las listas de permitidos que solo nombran herramientas de plugins se tratan como adhesiones voluntarias de plugins; las herramientas del núcleo permanecen habilitadas a menos que también incluya herramientas o grupos del núcleo en la lista de permitidos.
+- `tools.profile` / `agents.list[].tools.profile` (lista de permitidos base)
+- `tools.byProvider` / `agents.list[].tools.byProvider` (permitir/denegar específico del proveedor)
+- `tools.sandbox.tools.*` (política de herramientas del sandbox cuando está en sandbox)
 
-## Reglas y consejos
+## Reglas + consejos
 
-- Los nombres de las herramientas **no** deben entrar en conflicto con los nombres de herramientas centrales; las herramientas en conflicto se omiten.
-- Los ids de plugins usados en allowlists no deben entrar en conflicto con los nombres de herramientas centrales.
-- Prefiera `optional: true` para herramientas que provocan efectos secundarios o requieren
-  binarios/credenciales adicionales.
+- Los nombres de las herramientas **no** deben entrar en conflicto con los nombres de las herramientas del núcleo; las herramientas en conflicto se omiten.
+- Los ids de plugins usados en listas de permitidos no deben entrar en conflicto con los nombres de las herramientas del núcleo.
+- Prefiera `optional: true` para herramientas que desencadenan efectos secundarios o requieren binarios/credenciales adicionales.

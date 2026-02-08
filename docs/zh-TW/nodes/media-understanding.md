@@ -1,54 +1,54 @@
 ---
-summary: 「入站影像／音訊／影片理解（選用），支援提供者 + CLI 後備方案」
+summary: "入站影像／音訊／影片理解（可選），支援提供者 + CLI 後備方案"
 read_when:
   - 設計或重構媒體理解
   - 調校入站音訊／影片／影像的前處理
-title: 「媒體理解」
+title: "媒體理解"
 x-i18n:
   source_path: nodes/media-understanding.md
   source_hash: 4b275b152060eae3
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:54:04Z
+  generated_at: 2026-02-08T09:28:48Z
 ---
 
 # 媒體理解（入站）— 2026-01-17
 
-OpenClaw 可在回覆管線執行前，**摘要入站媒體**（影像／音訊／影片）。它會自動偵測本機工具或提供者金鑰是否可用，並可停用或自訂。若關閉理解功能，模型仍會如常接收原始檔案／URL。
+OpenClaw 可以在回覆管線執行前，**彙整入站媒體**（影像／音訊／影片）。它會在本機工具或提供者金鑰可用時自動偵測，並可停用或自訂。若理解功能關閉，模型仍會如常接收原始檔案／URL。
 
 ## 目標
 
-- 選用：將入站媒體預先消化為精簡文字，以加快路由並提升指令解析品質。
-- 始終保留原始媒體傳遞給模型（一定會）。
+- 可選：將入站媒體預先消化為短文字，以加快路由並改善指令解析。
+- 保留原始媒體傳遞給模型（始終如此）。
 - 支援 **提供者 API** 與 **CLI 後備方案**。
 - 允許多個模型並具備有序後備（錯誤／大小／逾時）。
 
 ## 高階行為
 
 1. 收集入站附件（`MediaPaths`、`MediaUrls`、`MediaTypes`）。
-2. 針對每個已啟用的能力（影像／音訊／影片），依政策選取附件（預設：**第一個**）。
+2. 針對每個啟用的能力（影像／音訊／影片），依政策選取附件（預設：**第一個**）。
 3. 選擇第一個符合資格的模型項目（大小 + 能力 + 驗證）。
-4. 若模型失敗或媒體過大，**回退到下一個項目**。
+4. 若模型失敗或媒體過大，**後備至下一個項目**。
 5. 成功時：
-   - `Body` 會成為 `[Image]`、`[Audio]` 或 `[Video]` 區塊。
+   - `Body` 會變成 `[Image]`、`[Audio]` 或 `[Video]` 區塊。
    - 音訊會設定 `{{Transcript}}`；指令解析在有字幕時使用字幕文字，否則使用逐字稿。
    - 字幕會以 `User text:` 的形式保留在區塊內。
 
-若理解失敗或被停用，**回覆流程仍會繼續**，並使用原始內容 + 附件。
+若理解失敗或被停用，**回覆流程仍會繼續**，並使用原始內文 + 附件。
 
-## 設定總覽
+## 設定概覽
 
-`tools.media` 支援 **共享模型** 以及各能力的覆寫：
+`tools.media` 支援 **共用模型** 以及各能力的覆寫設定：
 
-- `tools.media.models`：共享模型清單（使用 `capabilities` 進行門控）。
+- `tools.media.models`：共用模型清單（使用 `capabilities` 進行門控）。
 - `tools.media.image` / `tools.media.audio` / `tools.media.video`：
   - 預設值（`prompt`、`maxChars`、`maxBytes`、`timeoutSeconds`、`language`）
   - 提供者覆寫（`baseUrl`、`headers`、`providerOptions`）
   - 透過 `tools.media.audio.providerOptions.deepgram` 的 Deepgram 音訊選項
-  - 選用的 **各能力 `models` 清單**（優先於共享模型）
+  - 可選的 **各能力 `models` 清單**（優先於共用模型）
   - `attachments` 政策（`mode`、`maxAttachments`、`prefer`）
-  - `scope`（依頻道／chatType／session 金鑰進行選用門控）
+  - `scope`（可選，依頻道／聊天類型／工作階段金鑰進行門控）
 - `tools.media.concurrency`：能力同時執行的最大數量（預設 **2**）。
 
 ```json5
@@ -112,15 +112,15 @@ OpenClaw 可在回覆管線執行前，**摘要入站媒體**（影像／音訊�
 CLI 範本也可以使用：
 
 - `{{MediaDir}}`（包含媒體檔案的目錄）
-- `{{OutputDir}}`（為此執行建立的暫存目錄）
-- `{{OutputBase}}`（暫存檔案的基底路徑，無副檔名）
+- `{{OutputDir}}`（為本次執行建立的暫存目錄）
+- `{{OutputBase}}`（暫存檔基底路徑，無副檔名）
 
 ## 預設值與限制
 
 建議的預設值：
 
-- `maxChars`：影像／影片為 **500**（精簡、利於指令）
-- `maxChars`：音訊為 **未設定**（除非你設定限制，否則為完整逐字稿）
+- `maxChars`：影像／影片 **500**（短、利於指令）
+- `maxChars`：音訊 **未設定**（除非設定限制，否則為完整逐字稿）
 - `maxBytes`：
   - 影像：**10MB**
   - 音訊：**20MB**
@@ -128,19 +128,20 @@ CLI 範本也可以使用：
 
 規則：
 
-- 若媒體超過 `maxBytes`，該模型會被略過，並**嘗試下一個模型**。
-- 若模型回傳超過 `maxChars`，輸出會被截斷。
-- `prompt` 預設為簡單的「Describe the {media}.」，並加上 `maxChars` 的指引（僅影像／影片）。
-- 若 `<capability>.enabled: true` 但未設定任何模型，當其提供者支援該能力時，OpenClaw 會嘗試使用 **目前的回覆模型**。
+- 若媒體超過 `maxBytes`，會略過該模型並**嘗試下一個模型**。
+- 若模型回傳超過 `maxChars`，輸出會被裁切。
+- `prompt` 預設為簡單的「Describe the {media}.」，並加上 `maxChars` 指引（僅影像／影片）。
+- 若 `<capability>.enabled: true` 但未設定任何模型，且其提供者支援該能力，OpenClaw 會嘗試使用**目前啟用的回覆模型**。
 
 ### 自動偵測媒體理解（預設）
 
-若未將 `tools.media.<capability>.enabled` 設為 `false`，且你尚未設定模型，OpenClaw 會依下列順序自動偵測，並在**第一個可用選項**即停止：
+若未將 `tools.media.<capability>.enabled` 設為 `false`，且尚未
+設定模型，OpenClaw 會依下列順序自動偵測，並在**第一個可用選項**時停止：
 
 1. **本機 CLI**（僅音訊；若已安裝）
-   - `sherpa-onnx-offline`（需要 `SHERPA_ONNX_MODEL_DIR`，含編碼器／解碼器／joiner／tokens）
+   - `sherpa-onnx-offline`（需要 `SHERPA_ONNX_MODEL_DIR`，含編碼器／解碼器／合併器／tokens）
    - `whisper-cli`（`whisper-cpp`；使用 `WHISPER_CPP_MODEL` 或隨附的 tiny 模型）
-   - `whisper`（Python CLI；自動下載模型）
+   - `whisper`（Python CLI；會自動下載模型）
 2. **Gemini CLI**（`gemini`），使用 `read_many_files`
 3. **提供者金鑰**
    - 音訊：OpenAI → Groq → Deepgram → Google
@@ -161,32 +162,34 @@ CLI 範本也可以使用：
 }
 ```
 
-注意：二進位檔偵測在 macOS／Linux／Windows 上為最佳努力；請確保 CLI 位於 `PATH`（我們會展開 `~`），或設定具備完整命令路徑的明確 CLI 模型。
+注意：二進位檔偵測在 macOS／Linux／Windows 上為最佳努力；請確保 CLI 位於 `PATH`（我們會展開 `~`），或設定一個具有完整指令路徑的明確 CLI 模型。
 
-## 能力（選用）
+## 能力（可選）
 
-若你設定 `capabilities`，該項目只會在那些媒體類型時執行。對於共享清單，OpenClaw 可推斷預設值：
+若設定 `capabilities`，該項目只會針對指定的媒體類型執行。對於共用
+清單，OpenClaw 可推斷預設值：
 
 - `openai`、`anthropic`、`minimax`：**影像**
 - `google`（Gemini API）：**影像 + 音訊 + 影片**
 - `groq`：**音訊**
 - `deepgram`：**音訊**
 
-對於 CLI 項目，**請明確設定 `capabilities`** 以避免意外匹配。若省略 `capabilities`，該項目會符合其所在清單的資格。
+對於 CLI 項目，**請明確設定 `capabilities`**，以避免意外的比對。
+若省略 `capabilities`，該項目將符合其所在清單。
 
 ## 提供者支援矩陣（OpenClaw 整合）
 
-| 能力 | 提供者整合                                         | 備註                                      |
-| ---- | -------------------------------------------------- | ----------------------------------------- |
-| 影像 | OpenAI / Anthropic / Google / 其他（透過 `pi-ai`） | 登錄中的任何支援影像的模型皆可。          |
-| 音訊 | OpenAI、Groq、Deepgram、Google                     | 提供者轉錄（Whisper／Deepgram／Gemini）。 |
-| 影片 | Google（Gemini API）                               | 提供者影片理解。                          |
+| 能力 | 提供者整合                                              | 備註                                        |
+| ---- | ------------------------------------------------------- | ------------------------------------------- |
+| 影像 | OpenAI / Anthropic / Google / 透過 `pi-ai` 的其他提供者 | 登錄表中任何支援影像的模型皆可。            |
+| 音訊 | OpenAI、Groq、Deepgram、Google                          | 提供者逐字稿（Whisper／Deepgram／Gemini）。 |
+| 影片 | Google（Gemini API）                                    | 提供者影片理解。                            |
 
 ## 建議的提供者
 
 **影像**
 
-- 若目前使用的模型支援影像，優先使用它。
+- 若目前啟用的模型支援影像，優先使用。
 - 良好預設：`openai/gpt-5.2`、`anthropic/claude-opus-4-6`、`google/gemini-3-pro-preview`。
 
 **音訊**
@@ -197,22 +200,22 @@ CLI 範本也可以使用：
 
 **影片**
 
-- `google/gemini-3-flash-preview`（快速）、`google/gemini-3-pro-preview`（內容較豐富）。
-- CLI 後備：`gemini` CLI（支援影片／音訊的 `read_file`）。
+- `google/gemini-3-flash-preview`（快速）、`google/gemini-3-pro-preview`（更豐富）。
+- CLI 後備：`gemini` CLI（支援影片／音訊上的 `read_file`）。
 
 ## 附件政策
 
-各能力的 `attachments` 控制要處理哪些附件：
+各能力的 `attachments` 控制哪些附件會被處理：
 
 - `mode`：`first`（預設）或 `all`
-- `maxAttachments`：限制處理數量（預設 **1**）
+- `maxAttachments`：限制處理數量上限（預設 **1**）
 - `prefer`：`first`、`last`、`path`、`url`
 
-當 `mode: "all"` 時，輸出會標示為 `[Image 1/2]`、`[Audio 2/2]`，依此類推。
+當 `mode: "all"` 時，輸出會標示為 `[Image 1/2]`、`[Audio 2/2]` 等。
 
 ## 設定範例
 
-### 1) 共享模型清單 + 覆寫
+### 1) 共用模型清單 + 覆寫
 
 ```json5
 {
@@ -249,7 +252,7 @@ CLI 範本也可以使用：
 }
 ```
 
-### 2) 僅音訊 + 影片（關閉影像）
+### 2) 僅音訊 + 影片（影像關閉）
 
 ```json5
 {
@@ -289,7 +292,7 @@ CLI 範本也可以使用：
 }
 ```
 
-### 3) 選用影像理解
+### 3) 可選的影像理解
 
 ```json5
 {
@@ -320,7 +323,7 @@ CLI 範本也可以使用：
 }
 ```
 
-### 4) 多模態單一項目（明確能力）
+### 4) 單一多模態項目（明確能力）
 
 ```json5
 {
@@ -366,15 +369,15 @@ CLI 範本也可以使用：
 📎 Media: image ok (openai/gpt-5.2) · audio skipped (maxBytes)
 ```
 
-此內容會顯示各能力的結果，以及適用時所選擇的提供者／模型。
+此內容會顯示各能力的結果，以及（適用時）所選擇的提供者／模型。
 
 ## 注意事項
 
-- 理解為 **最佳努力**。錯誤不會阻擋回覆。
-- 即使停用理解，附件仍會傳遞給模型。
-- 使用 `scope` 來限制理解的執行範圍（例如僅限私訊）。
+- 理解為**最佳努力**。錯誤不會阻擋回覆。
+- 即使理解被停用，附件仍會傳遞給模型。
+- 使用 `scope` 來限制理解執行的位置（例如僅限私訊）。
 
 ## 相關文件
 
-- [Configuration](/gateway/configuration)
-- [Image & Media Support](/nodes/images)
+- [設定](/gateway/configuration)
+- [影像與媒體支援](/nodes/images)

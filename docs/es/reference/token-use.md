@@ -1,5 +1,5 @@
 ---
-summary: "Cómo OpenClaw construye el contexto del prompt y reporta el uso de tokens + costos"
+summary: "Cómo OpenClaw construye el contexto del prompt y reporta el uso de tokens y los costos"
 read_when:
   - Al explicar el uso de tokens, costos o ventanas de contexto
   - Al depurar el crecimiento del contexto o el comportamiento de compactación
@@ -10,51 +10,50 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:15:36Z
+  generated_at: 2026-02-08T09:34:41Z
 ---
 
 # Uso de tokens y costos
 
-OpenClaw rastrea **tokens**, no caracteres. Los tokens son específicos del modelo, pero la mayoría
-de los modelos estilo OpenAI promedian ~4 caracteres por token para texto en inglés.
+OpenClaw realiza el seguimiento de **tokens**, no de caracteres. Los tokens son específicos del modelo, pero la mayoría de los modelos de estilo OpenAI promedian ~4 caracteres por token para texto en inglés.
 
 ## Cómo se construye el prompt del sistema
 
 OpenClaw ensambla su propio prompt del sistema en cada ejecución. Incluye:
 
-- Lista de herramientas + descripciones cortas
+- Lista de herramientas + descripciones breves
 - Lista de Skills (solo metadatos; las instrucciones se cargan bajo demanda con `read`)
 - Instrucciones de autoactualización
-- Archivos de workspace + bootstrap (`AGENTS.md`, `SOUL.md`, `TOOLS.md`, `IDENTITY.md`, `USER.md`, `HEARTBEAT.md`, `BOOTSTRAP.md` cuando son nuevos). Los archivos grandes se truncan mediante `agents.defaults.bootstrapMaxChars` (predeterminado: 20000).
+- Espacio de trabajo + archivos de arranque (`AGENTS.md`, `SOUL.md`, `TOOLS.md`, `IDENTITY.md`, `USER.md`, `HEARTBEAT.md`, `BOOTSTRAP.md` cuando son nuevos). Los archivos grandes se truncan mediante `agents.defaults.bootstrapMaxChars` (predeterminado: 20000).
 - Hora (UTC + zona horaria del usuario)
-- Etiquetas de respuesta + comportamiento de latido (heartbeat)
-- Metadatos de ejecución (host/OS/modelo/pensamiento)
+- Etiquetas de respuesta + comportamiento de heartbeat
+- Metadatos de tiempo de ejecución (host/OS/model/thinking)
 
 Vea el desglose completo en [System Prompt](/concepts/system-prompt).
 
 ## Qué cuenta dentro de la ventana de contexto
 
-Todo lo que el modelo recibe cuenta para el límite de contexto:
+Todo lo que recibe el modelo cuenta para el límite de contexto:
 
 - Prompt del sistema (todas las secciones listadas arriba)
-- Historial de la conversación (mensajes del usuario + del asistente)
+- Historial de la conversación (mensajes del usuario + asistente)
 - Llamadas a herramientas y resultados de herramientas
 - Adjuntos/transcripciones (imágenes, audio, archivos)
 - Resúmenes de compactación y artefactos de poda
-- Envoltorios del proveedor o encabezados de seguridad (no visibles, pero aun así cuentan)
+- Envoltorios del proveedor o encabezados de seguridad (no visibles, pero igualmente contados)
 
-Para un desglose práctico (por archivo inyectado, herramientas, Skills y tamaño del prompt del sistema), use `/context list` o `/context detail`. Vea [Context](/concepts/context).
+Para un desglose práctico (por archivo inyectado, herramientas, skills y tamaño del prompt del sistema), use `/context list` o `/context detail`. Consulte [Context](/concepts/context).
 
 ## Cómo ver el uso actual de tokens
 
-Use estos en el chat:
+Use estos comandos en el chat:
 
-- `/status` → **tarjeta de estado rica en emojis** con el modelo de la sesión, uso de contexto,
+- `/status` → **tarjeta de estado rica en emojis** con el modelo de la sesión, uso del contexto,
   tokens de entrada/salida de la última respuesta y **costo estimado** (solo con clave de API).
 - `/usage off|tokens|full` → agrega un **pie de uso por respuesta** a cada respuesta.
   - Persiste por sesión (almacenado como `responseUsage`).
   - La autenticación OAuth **oculta el costo** (solo tokens).
-- `/usage cost` → muestra un resumen de costos local desde los registros de sesión de OpenClaw.
+- `/usage cost` → muestra un resumen local de costos a partir de los registros de sesión de OpenClaw.
 
 Otras superficies:
 
@@ -64,36 +63,36 @@ Otras superficies:
 
 ## Estimación de costos (cuando se muestra)
 
-Los costos se estiman a partir de su configuracion de precios del modelo:
+Los costos se estiman a partir de la configuración de precios de su modelo:
 
 ```
 models.providers.<provider>.models[].cost
 ```
 
 Estos son **USD por 1M de tokens** para `input`, `output`, `cacheRead` y
-`cacheWrite`. Si falta el precio, OpenClaw muestra solo los tokens. Los tokens OAuth
+`cacheWrite`. Si faltan precios, OpenClaw muestra solo los tokens. Los tokens OAuth
 nunca muestran el costo en dólares.
 
-## Impacto del TTL de caché y la poda
+## TTL de caché e impacto de la poda
 
-El almacenamiento en caché de prompts del proveedor solo aplica dentro de la ventana de TTL de la caché. OpenClaw puede
-opcionalmente ejecutar **poda por cache-ttl**: poda la sesión una vez que el TTL de la caché
-ha expirado y luego restablece la ventana de caché para que las solicitudes posteriores puedan reutilizar el
-contexto recién almacenado en caché en lugar de volver a cachear todo el historial. Esto mantiene
-los costos de escritura de caché más bajos cuando una sesión queda inactiva más allá del TTL.
+El almacenamiento en caché de prompts del proveedor solo se aplica dentro de la ventana de TTL de la caché. OpenClaw puede
+ejecutar opcionalmente **poda por cache-ttl**: poda la sesión una vez que el TTL de la caché
+ha expirado y luego reinicia la ventana de caché para que las solicitudes posteriores puedan reutilizar el
+contexto recién almacenado en caché en lugar de volver a almacenar en caché todo el historial. Esto mantiene
+más bajos los costos de escritura de caché cuando una sesión queda inactiva más allá del TTL.
 
-Configúrelo en [Gateway configuration](/gateway/configuration) y vea los
-detalles del comportamiento en [Session pruning](/concepts/session-pruning).
+Configúrelo en [Gateway configuration](/gateway/configuration) y consulte los
+detalles de comportamiento en [Session pruning](/concepts/session-pruning).
 
-El latido (heartbeat) puede mantener la caché **caliente** durante intervalos de inactividad. Si el TTL de caché de su modelo
-es `1h`, establecer el intervalo de latido justo por debajo de eso (por ejemplo, `55m`) puede evitar
-re-cachear todo el prompt, reduciendo los costos de escritura de caché.
+El heartbeat puede mantener la caché **caliente** a través de períodos de inactividad. Si el TTL de caché de su modelo
+es `1h`, configurar el intervalo de heartbeat justo por debajo de ese valor (por ejemplo, `55m`) puede evitar
+volver a almacenar en caché el prompt completo, reduciendo los costos de escritura de caché.
 
 Para los precios de la API de Anthropic, las lecturas de caché son significativamente más baratas que los tokens de entrada,
-mientras que las escrituras de caché se facturan con un multiplicador más alto. Consulte los precios más recientes y los multiplicadores de TTL para el almacenamiento en caché de prompts de Anthropic:
+mientras que las escrituras de caché se facturan con un multiplicador más alto. Consulte los precios de almacenamiento en caché de prompts de Anthropic para conocer las tarifas y multiplicadores de TTL más recientes:
 [https://docs.anthropic.com/docs/build-with-claude/prompt-caching](https://docs.anthropic.com/docs/build-with-claude/prompt-caching)
 
-### Ejemplo: mantener caliente una caché de 1 h con latido
+### Ejemplo: mantener caliente una caché de 1 h con heartbeat
 
 ```yaml
 agents:
@@ -112,7 +111,7 @@ agents:
 
 - Use `/compact` para resumir sesiones largas.
 - Recorte salidas grandes de herramientas en sus flujos de trabajo.
-- Mantenga cortas las descripciones de Skills (la lista de Skills se inyecta en el prompt).
-- Prefiera modelos más pequeños para trabajo verboso y exploratorio.
+- Mantenga cortas las descripciones de skills (la lista de skills se inyecta en el prompt).
+- Prefiera modelos más pequeños para trabajo exploratorio y verboso.
 
-Vea [Skills](/tools/skills) para la fórmula exacta de sobrecarga de la lista de Skills.
+Consulte [Skills](/tools/skills) para conocer la fórmula exacta de sobrecarga de la lista de skills.

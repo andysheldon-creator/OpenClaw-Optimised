@@ -1,15 +1,15 @@
 ---
-summary: "Configuración y configuración inicial del bot de chat de Twitch"
+summary: "Configuración y puesta en marcha del bot de chat de Twitch"
 read_when:
-  - Configuración de la integración de chat de Twitch para OpenClaw
+  - Configurar la integración de chat de Twitch para OpenClaw
 title: "Twitch"
 x-i18n:
   source_path: channels/twitch.md
-  source_hash: 0dd1c05bef570470
+  source_hash: 4fa7daa11d1e5ed4
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:58:14Z
+  generated_at: 2026-02-08T09:32:56Z
 ---
 
 # Twitch (plugin)
@@ -20,33 +20,33 @@ Soporte de chat de Twitch mediante conexión IRC. OpenClaw se conecta como un us
 
 Twitch se distribuye como un plugin y no viene incluido con la instalación principal.
 
-Instale vía CLI (registro npm):
+Instale mediante CLI (registro npm):
 
 ```bash
 openclaw plugins install @openclaw/twitch
 ```
 
-Clonado local (cuando se ejecuta desde un repositorio git):
+Clonado local (al ejecutar desde un repositorio git):
 
 ```bash
 openclaw plugins install ./extensions/twitch
 ```
 
-Detalles: [Plugins](/plugin)
+Detalles: [Plugins](/tools/plugin)
 
-## Inicio rapido (principiante)
+## Configuración rápida (principiante)
 
 1. Cree una cuenta dedicada de Twitch para el bot (o use una cuenta existente).
 2. Genere credenciales: [Twitch Token Generator](https://twitchtokengenerator.com/)
    - Seleccione **Bot Token**
    - Verifique que los alcances `chat:read` y `chat:write` estén seleccionados
    - Copie el **Client ID** y el **Access Token**
-3. Encuentre su ID de usuario de Twitch: https://www.streamweasels.com/tools/convert-twitch-username-to-user-id/
+3. Encuentre su ID de usuario de Twitch: [https://www.streamweasels.com/tools/convert-twitch-username-to-user-id/](https://www.streamweasels.com/tools/convert-twitch-username-to-user-id/)
 4. Configure el token:
    - Env: `OPENCLAW_TWITCH_ACCESS_TOKEN=...` (solo cuenta predeterminada)
    - O config: `channels.twitch.accessToken`
-   - Si ambos están configurados, la config tiene prioridad (el env es respaldo solo para la cuenta predeterminada).
-5. Inicie el Gateway.
+   - Si ambos están configurados, la configuración tiene prioridad (el fallback por env es solo para la cuenta predeterminada).
+5. Inicie el gateway.
 
 **⚠️ Importante:** Agregue control de acceso (`allowFrom` o `allowedRoles`) para evitar que usuarios no autorizados activen el bot. `requireMention` tiene como valor predeterminado `true`.
 
@@ -71,8 +71,8 @@ Configuración mínima:
 
 - Un canal de Twitch propiedad del Gateway.
 - Enrutamiento determinista: las respuestas siempre regresan a Twitch.
-- Cada cuenta se asigna a una clave de sesion aislada `agent:<agentId>:twitch:<accountName>`.
-- `username` es la cuenta del bot (quien se autentica), `channel` es la sala de chat a la que se une.
+- Cada cuenta se asigna a una clave de sesión aislada `agent:<agentId>:twitch:<accountName>`.
+- `username` es la cuenta del bot (quien autentica), `channel` es la sala de chat a la que se une.
 
 ## Configuración (detallada)
 
@@ -84,7 +84,7 @@ Use [Twitch Token Generator](https://twitchtokengenerator.com/):
 - Verifique que los alcances `chat:read` y `chat:write` estén seleccionados
 - Copie el **Client ID** y el **Access Token**
 
-No se requiere registro manual de aplicaciones. Los tokens expiran después de varias horas.
+No se requiere registro manual de la aplicación. Los tokens expiran después de varias horas.
 
 ### Configurar el bot
 
@@ -110,7 +110,7 @@ OPENCLAW_TWITCH_ACCESS_TOKEN=oauth:abc123...
 }
 ```
 
-Si se configuran tanto env como config, la config tiene prioridad.
+Si se configuran tanto env como config, config tiene prioridad.
 
 ### Control de acceso (recomendado)
 
@@ -124,19 +124,19 @@ Si se configuran tanto env como config, la config tiene prioridad.
 }
 ```
 
-Prefiera `allowFrom` para una allowlist estricta. Use `allowedRoles` en su lugar si desea acceso basado en roles.
+Prefiera `allowFrom` para una lista de permitidos estricta. Use `allowedRoles` si desea acceso basado en roles.
 
 **Roles disponibles:** `"moderator"`, `"owner"`, `"vip"`, `"subscriber"`, `"all"`.
 
-**¿Por qué IDs de usuario?** Los nombres de usuario pueden cambiar, permitiendo suplantación. Los IDs de usuario son permanentes.
+**¿Por qué IDs de usuario?** Los nombres de usuario pueden cambiar, lo que permite suplantación. Los IDs de usuario son permanentes.
 
-Encuentre su ID de usuario de Twitch: https://www.streamweasels.com/tools/convert-twitch-username-%20to-user-id/ (Convierta su nombre de usuario de Twitch a ID)
+Encuentre su ID de usuario de Twitch: [https://www.streamweasels.com/tools/convert-twitch-username-%20to-user-id/](https://www.streamweasels.com/tools/convert-twitch-username-%20to-user-id/) (Convierta su nombre de usuario de Twitch a ID)
 
-## Renovación de token (opcional)
+## Actualización de token (opcional)
 
-Los tokens de [Twitch Token Generator](https://twitchtokengenerator.com/) no se pueden renovar automáticamente; regenérelos cuando expiren.
+Los tokens de [Twitch Token Generator](https://twitchtokengenerator.com/) no se pueden actualizar automáticamente; regenérelos cuando expiren.
 
-Para renovación automática de tokens, cree su propia aplicación de Twitch en [Twitch Developer Console](https://dev.twitch.tv/console) y agréguela a la configuración:
+Para actualización automática de tokens, cree su propia aplicación de Twitch en [Twitch Developer Console](https://dev.twitch.tv/console) y agréguela a la configuración:
 
 ```json5
 {
@@ -149,7 +149,7 @@ Para renovación automática de tokens, cree su propia aplicación de Twitch en 
 }
 ```
 
-El bot renueva automáticamente los tokens antes de que expiren y registra eventos de renovación.
+El bot actualiza automáticamente los tokens antes de su vencimiento y registra los eventos de actualización.
 
 ## Soporte multi-cuenta
 
@@ -200,7 +200,7 @@ Ejemplo (una cuenta de bot en dos canales):
 }
 ```
 
-### Allowlist por ID de usuario (más seguro)
+### Lista de permitidos por ID de usuario (más seguro)
 
 ```json5
 {
@@ -218,7 +218,7 @@ Ejemplo (una cuenta de bot en dos canales):
 
 ### Acceso basado en roles (alternativa)
 
-`allowFrom` es una allowlist estricta. Cuando está configurada, solo se permiten esos IDs de usuario.
+`allowFrom` es una lista de permitidos estricta. Cuando se establece, solo se permiten esos IDs de usuario.
 Si desea acceso basado en roles, deje `allowFrom` sin configurar y configure `allowedRoles` en su lugar:
 
 ```json5
@@ -235,7 +235,7 @@ Si desea acceso basado en roles, deje `allowFrom` sin configurar y configure `al
 }
 ```
 
-### Deshabilitar el requisito de @mention
+### Deshabilitar el requisito de @mención
 
 De forma predeterminada, `requireMention` es `true`. Para deshabilitarlo y responder a todos los mensajes:
 
@@ -253,9 +253,9 @@ De forma predeterminada, `requireMention` es `true`. Para deshabilitarlo y respo
 }
 ```
 
-## Solucion de problemas
+## Solución de problemas
 
-Primero, ejecute comandos de diagnóstico:
+Primero, ejecute los comandos de diagnóstico:
 
 ```bash
 openclaw doctor
@@ -265,28 +265,28 @@ openclaw channels status --probe
 ### El bot no responde a los mensajes
 
 **Verifique el control de acceso:** Asegúrese de que su ID de usuario esté en `allowFrom`, o elimine temporalmente
-`allowFrom` y configure `allowedRoles: ["all"]` para probar.
+`allowFrom` y establezca `allowedRoles: ["all"]` para probar.
 
 **Verifique que el bot esté en el canal:** El bot debe unirse al canal especificado en `channel`.
 
 ### Problemas de token
 
-**"Failed to connect" o errores de autenticación:**
+**“Failed to connect” o errores de autenticación:**
 
 - Verifique que `accessToken` sea el valor del token de acceso OAuth (normalmente comienza con el prefijo `oauth:`)
 - Verifique que el token tenga los alcances `chat:read` y `chat:write`
-- Si usa renovación de tokens, verifique que `clientSecret` y `refreshToken` estén configurados
+- Si usa actualización de token, verifique que `clientSecret` y `refreshToken` estén configurados
 
-### La renovación de tokens no funciona
+### La actualización de token no funciona
 
-**Revise los logs para eventos de renovación:**
+**Revise los registros para eventos de actualización:**
 
 ```
 Using env token source for mybot
 Access token refreshed for user 123456 (expires in 14400s)
 ```
 
-Si ve "token refresh disabled (no refresh token)":
+Si ve “token refresh disabled (no refresh token)”:
 
 - Asegúrese de que `clientSecret` esté proporcionado
 - Asegúrese de que `refreshToken` esté proporcionado
@@ -300,13 +300,13 @@ Si ve "token refresh disabled (no refresh token)":
 - `clientId` - Client ID de Twitch (del Token Generator o de su aplicación)
 - `channel` - Canal al que unirse (requerido)
 - `enabled` - Habilitar esta cuenta (predeterminado: `true`)
-- `clientSecret` - Opcional: Para renovación automática de tokens
-- `refreshToken` - Opcional: Para renovación automática de tokens
+- `clientSecret` - Opcional: Para actualización automática de tokens
+- `refreshToken` - Opcional: Para actualización automática de tokens
 - `expiresIn` - Vencimiento del token en segundos
 - `obtainmentTimestamp` - Marca de tiempo de obtención del token
-- `allowFrom` - Allowlist de IDs de usuario
+- `allowFrom` - Lista de permitidos de IDs de usuario
 - `allowedRoles` - Control de acceso basado en roles (`"moderator" | "owner" | "vip" | "subscriber" | "all"`)
-- `requireMention` - Requerir @mention (predeterminado: `true`)
+- `requireMention` - Requerir @mención (predeterminado: `true`)
 
 **Opciones del proveedor:**
 
@@ -352,7 +352,7 @@ Ejemplo completo:
 }
 ```
 
-## Acciones de herramienta
+## Acciones de herramientas
 
 El agente puede llamar a `twitch` con la acción:
 
@@ -372,15 +372,15 @@ Ejemplo:
 
 ## Seguridad y operaciones
 
-- **Trate los tokens como contraseñas** - Nunca confirme tokens en git
-- **Use renovación automática de tokens** para bots de larga duración
-- **Use allowlists de IDs de usuario** en lugar de nombres de usuario para el control de acceso
-- **Monitoree los logs** para eventos de renovación de tokens y estado de conexión
-- **Limite los alcances de los tokens** - Solicite solo `chat:read` y `chat:write`
-- **Si se queda atascado**: Reinicie el Gateway después de confirmar que ningún otro proceso posee la sesion
+- **Trate los tokens como contraseñas**: nunca confirme tokens en git
+- **Use actualización automática de tokens** para bots de larga ejecución
+- **Use listas de permitidos por ID de usuario** en lugar de nombres de usuario para el control de acceso
+- **Monitoree los registros** para eventos de actualización de tokens y estado de conexión
+- **Limite los alcances de los tokens**: solicite solo `chat:read` y `chat:write`
+- **Si se atasca**: reinicie el gateway después de confirmar que ningún otro proceso sea propietario de la sesión
 
 ## Límites
 
-- **500 caracteres** por mensaje (dividido automáticamente por límites de palabras)
-- El Markdown se elimina antes de la división
-- Sin limitación de tasa (usa los límites integrados de Twitch)
+- **500 caracteres** por mensaje (segmentado automáticamente en límites de palabras)
+- El Markdown se elimina antes de la segmentación
+- Sin limitación de velocidad (usa los límites integrados de Twitch)

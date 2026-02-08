@@ -1,7 +1,7 @@
 ---
 summary: "Cuándo OpenClaw muestra indicadores de escritura y cómo ajustarlos"
 read_when:
-  - Cambiar el comportamiento o los valores predeterminados del indicador de escritura
+  - Cambiar el comportamiento o los valores predeterminados de los indicadores de escritura
 title: "Indicadores de escritura"
 x-i18n:
   source_path: concepts/typing-indicators.md
@@ -9,7 +9,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:58:41Z
+  generated_at: 2026-02-08T09:33:17Z
 ---
 
 # Indicadores de escritura
@@ -25,18 +25,18 @@ Cuando `agents.defaults.typingMode` está **sin configurar**, OpenClaw mantiene 
 - **Chats directos**: la escritura comienza inmediatamente cuando inicia el bucle del modelo.
 - **Chats grupales con una mención**: la escritura comienza inmediatamente.
 - **Chats grupales sin una mención**: la escritura comienza solo cuando el texto del mensaje empieza a transmitirse.
-- **Ejecuciones de latido**: la escritura está deshabilitada.
+- **Ejecuciones de heartbeat**: la escritura está deshabilitada.
 
 ## Modos
 
-Configure `agents.defaults.typingMode` en uno de:
+Configure `agents.defaults.typingMode` en uno de los siguientes:
 
-- `never` — nunca muestra indicador de escritura.
-- `instant` — comienza a escribir **tan pronto como inicia el bucle del modelo**, incluso si la ejecución
+- `never` — sin indicador de escritura, nunca.
+- `instant` — comenzar a escribir **tan pronto como inicia el bucle del modelo**, incluso si la ejecución
   luego devuelve solo el token de respuesta silenciosa.
-- `thinking` — comienza a escribir en el **primer delta de razonamiento** (requiere
+- `thinking` — comenzar a escribir en el **primer delta de razonamiento** (requiere
   `reasoningLevel: "stream"` para la ejecución).
-- `message` — comienza a escribir en el **primer delta de texto no silencioso** (ignora
+- `message` — comenzar a escribir en el **primer delta de texto no silencioso** (ignora
   el token silencioso `NO_REPLY`).
 
 Orden de “qué tan temprano se activa”:
@@ -53,7 +53,7 @@ Orden de “qué tan temprano se activa”:
 }
 ```
 
-Puede anular el modo o la cadencia por sesión:
+Puede sobrescribir el modo o la cadencia por sesión:
 
 ```json5
 {
@@ -66,10 +66,10 @@ Puede anular el modo o la cadencia por sesión:
 
 ## Notas
 
-- El modo `message` no mostrará escritura para respuestas solo silenciosas (p. ej., el token `NO_REPLY`
+- El modo `message` no mostrará escritura para respuestas solo silenciosas (por ejemplo, el token `NO_REPLY`
   usado para suprimir la salida).
 - `thinking` solo se activa si la ejecución transmite razonamiento (`reasoningLevel: "stream"`).
   Si el modelo no emite deltas de razonamiento, la escritura no comenzará.
-- Los latidos nunca muestran escritura, independientemente del modo.
+- Los heartbeats nunca muestran escritura, independientemente del modo.
 - `typingIntervalSeconds` controla la **cadencia de actualización**, no el momento de inicio.
-  El valor predeterminado es de 6 segundos.
+  El valor predeterminado es 6 segundos.

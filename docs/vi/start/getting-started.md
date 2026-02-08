@@ -3,36 +3,36 @@ summary: "Cài đặt OpenClaw và chạy cuộc trò chuyện đầu tiên ch�
 read_when:
   - Thiết lập lần đầu từ con số không
   - Bạn muốn con đường nhanh nhất để có một cuộc trò chuyện hoạt động
-title: "Bat Dau"
+title: "Bắt đầu"
 x-i18n:
   source_path: start/getting-started.md
-  source_hash: 27aeeb3d18c49538
+  source_hash: 6eeb4d38a70f2ad9
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:08:25Z
+  generated_at: 2026-02-08T09:40:16Z
 ---
 
-# Bat Dau
+# Bắt đầu
 
-Mục tiêu: đi từ con số không đến cuộc trò chuyện đầu tiên hoạt động với thiết lập tối thiểu.
+Mục tiêu: đi từ con số không đến cuộc trò chuyện hoạt động đầu tiên với thiết lập tối thiểu.
 
 <Info>
 Cách trò chuyện nhanh nhất: mở Control UI (không cần thiết lập kênh). Chạy `openclaw dashboard`
 và trò chuyện trong trình duyệt, hoặc mở `http://127.0.0.1:18789/` trên
-<Tooltip headline="Gateway host" tip="Máy chạy dịch vụ OpenClaw gateway.">gateway host</Tooltip>.
+<Tooltip headline="Gateway host" tip="The machine running the OpenClaw gateway service.">máy chủ gateway</Tooltip>.
 Tài liệu: [Dashboard](/web/dashboard) và [Control UI](/web/control-ui).
 </Info>
 
-## Prereqs
+## Điều kiện tiên quyết
 
 - Node 22 hoặc mới hơn
 
 <Tip>
-Kiểm tra phiên bản Node của bạn bằng `node --version` nếu bạn không chắc.
+Kiểm tra phiên bản Node của bạn bằng `node --version` nếu bạn chưa chắc chắn.
 </Tip>
 
-## Khoi dong nhanh (CLI)
+## Thiết lập nhanh (CLI)
 
 <Steps>
   <Step title="Cài đặt OpenClaw (khuyến nghị)">
@@ -50,21 +50,21 @@ Kiểm tra phiên bản Node của bạn bằng `node --version` nếu bạn kh�
     </Tabs>
 
     <Note>
-    Các phương pháp cài đặt và yêu cầu khác: [Install](/install).
+    Các phương thức cài đặt khác và yêu cầu: [Install](/install).
     </Note>
 
   </Step>
-  <Step title="Chạy trình huong dan onboarding">
+  <Step title="Chạy trình hướng dẫn ban đầu">
     ```bash
     openclaw onboard --install-daemon
     ```
 
-    Trình huong dan cấu hình xác thực, cài đặt Gateway và các kênh tùy chọn.
-    Xem [Onboarding Wizard](/start/wizard) de biet them chi tiet.
+    Trình hướng dẫn cấu hình xác thực, cài đặt gateway và các kênh tùy chọn.
+    Xem [Onboarding Wizard](/start/wizard) để biết chi tiết.
 
   </Step>
   <Step title="Kiểm tra Gateway">
-    Nếu bạn đã cài đặt dịch vụ, nó sẽ đang chạy sẵn:
+    Nếu bạn đã cài đặt dịch vụ, nó sẽ chạy sẵn:
 
     ```bash
     openclaw gateway status
@@ -79,21 +79,21 @@ Kiểm tra phiên bản Node của bạn bằng `node --version` nếu bạn kh�
 </Steps>
 
 <Check>
-Nếu Control UI tải được, Gateway của bạn đã sẵn sàng để sử dụng.
+Nếu Control UI tải được, Gateway của bạn đã sẵn sàng sử dụng.
 </Check>
 
 ## Kiểm tra tùy chọn và phần bổ sung
 
 <AccordionGroup>
   <Accordion title="Chạy Gateway ở chế độ foreground">
-    Hữu ích cho các thử nghiệm nhanh hoặc xu ly su co.
+    Hữu ích cho kiểm tra nhanh hoặc xử lý sự cố.
 
     ```bash
     openclaw gateway --port 18789
     ```
 
   </Accordion>
-  <Accordion title="Gửi tin nhắn thử">
+  <Accordion title="Gửi tin nhắn kiểm tra">
     Yêu cầu một kênh đã được cấu hình.
 
     ```bash
@@ -103,25 +103,25 @@ Nếu Control UI tải được, Gateway của bạn đã sẵn sàng để sử
   </Accordion>
 </AccordionGroup>
 
-## Đi sâu hơn
+## Tìm hiểu sâu hơn
 
 <Columns>
   <Card title="Onboarding Wizard (chi tiết)" href="/start/wizard">
-    Tài liệu đầy đủ cho trình huong dan CLI và các tùy chọn nâng cao.
+    Tài liệu tham chiếu đầy đủ cho trình hướng dẫn CLI và các tùy chọn nâng cao.
   </Card>
-  <Card title="Onboarding ứng dụng macOS" href="/start/onboarding">
-    Luồng chạy lần đầu cho ứng dụng macOS.
+  <Card title="Hướng dẫn ban đầu cho ứng dụng macOS" href="/start/onboarding">
+    Quy trình chạy lần đầu cho ứng dụng macOS.
   </Card>
 </Columns>
 
 ## Những gì bạn sẽ có
 
 - Một Gateway đang chạy
-- Xác thực đã được cấu hình
+- Đã cấu hình xác thực
 - Quyền truy cập Control UI hoặc một kênh đã kết nối
 
-## Các bước tiếp theo
+## Bước tiếp theo
 
-- An toàn DM và phê duyệt: [Pairing](/start/pairing)
+- An toàn DM và phê duyệt: [Pairing](/channels/pairing)
 - Kết nối thêm kênh: [Channels](/channels)
 - Quy trình nâng cao và chạy từ mã nguồn: [Setup](/start/setup)

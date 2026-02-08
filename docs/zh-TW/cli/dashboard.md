@@ -1,8 +1,8 @@
 ---
-summary: "`openclaw dashboard` 的 CLI 參考（開啟控制 UI）"
+summary: "「openclaw dashboard」的 CLI 參考（開啟 Control UI）"
 read_when:
-  - 您想要使用目前的權杖開啟控制 UI
-  - 您想要在不啟動瀏覽器的情況下列印 URL
+  - 你想使用目前的權杖開啟 Control UI
+  - 你想在不啟動瀏覽器的情況下列印 URL
 title: "儀表板"
 x-i18n:
   source_path: cli/dashboard.md
@@ -10,12 +10,12 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:52:35Z
+  generated_at: 2026-02-08T09:27:15Z
 ---
 
 # `openclaw dashboard`
 
-使用您目前的驗證開啟控制 UI。
+使用你目前的身分驗證開啟 Control UI。
 
 ```bash
 openclaw dashboard

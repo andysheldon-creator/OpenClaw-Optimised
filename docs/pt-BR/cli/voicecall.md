@@ -1,8 +1,8 @@
 ---
-summary: "Referencia da CLI para `openclaw voicecall` (superficie de comandos do plugin voice-call)"
+summary: "Referência da CLI para `openclaw voicecall` (superfície de comandos do plugin de chamadas de voz)"
 read_when:
-  - Voce usa o plugin voice-call e quer os pontos de entrada da CLI
-  - Voce quer exemplos rapidos para `voicecall call|continue|status|tail|expose`
+  - Você usa o plugin de chamadas de voz e quer os pontos de entrada da CLI
+  - Você quer exemplos rápidos para `voicecall call|continue|status|tail|expose`
 title: "voicecall"
 x-i18n:
   source_path: cli/voicecall.md
@@ -10,12 +10,12 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:43Z
+  generated_at: 2026-02-08T09:30:30Z
 ---
 
 # `openclaw voicecall`
 
-`voicecall` e um comando fornecido por plugin. Ele so aparece se o plugin voice-call estiver instalado e habilitado.
+`voicecall` é um comando fornecido por plugin. Ele só aparece se o plugin voice-call estiver instalado e habilitado.
 
 Documento principal:
 
@@ -38,4 +38,4 @@ openclaw voicecall expose --mode funnel
 openclaw voicecall unexpose
 ```
 
-Nota de seguranca: exponha o endpoint de webhook apenas para redes em que voce confia. Prefira Tailscale Serve em vez de Funnel quando possivel.
+Nota de segurança: exponha o endpoint de webhook apenas para redes em que você confia. Prefira o Tailscale Serve ao Funnel quando possível.

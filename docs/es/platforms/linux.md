@@ -1,8 +1,8 @@
 ---
 summary: "Compatibilidad con Linux + estado de la aplicación complementaria"
 read_when:
-  - Buscando el estado de la aplicación complementaria para Linux
-  - Planificando la cobertura de plataformas o contribuciones
+  - Buscar el estado de la aplicación complementaria para Linux
+  - Planificar la cobertura de plataformas o contribuciones
 title: "Aplicación Linux"
 x-i18n:
   source_path: platforms/linux.md
@@ -10,29 +10,29 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:59:23Z
+  generated_at: 2026-02-08T09:34:02Z
 ---
 
 # Aplicación Linux
 
 El Gateway es totalmente compatible con Linux. **Node es el runtime recomendado**.
-Bun no se recomienda para el Gateway (errores de WhatsApp/Telegram).
+Bun no se recomienda para el Gateway (errores con WhatsApp/Telegram).
 
-Se planean aplicaciones complementarias nativas para Linux. Las contribuciones son bienvenidas si desea ayudar a crear una.
+Las aplicaciones complementarias nativas para Linux están planificadas. Las contribuciones son bienvenidas si desea ayudar a crear una.
 
 ## Ruta rápida para principiantes (VPS)
 
 1. Instale Node 22+
 2. `npm i -g openclaw@latest`
 3. `openclaw onboard --install-daemon`
-4. Desde su portátil: `ssh -N -L 18789:127.0.0.1:18789 <user>@<host>`
+4. Desde su laptop: `ssh -N -L 18789:127.0.0.1:18789 <user>@<host>`
 5. Abra `http://127.0.0.1:18789/` y pegue su token
 
 Guía paso a paso para VPS: [exe.dev](/install/exe-dev)
 
 ## Instalación
 
-- [Primeros Pasos](/start/getting-started)
+- [Primeros pasos](/start/getting-started)
 - [Instalación y actualizaciones](/install/updating)
 - Flujos opcionales: [Bun (experimental)](/install/bun), [Nix](/install/nix), [Docker](/install/docker)
 
@@ -43,7 +43,7 @@ Guía paso a paso para VPS: [exe.dev](/install/exe-dev)
 
 ## Instalación del servicio del Gateway (CLI)
 
-Use uno de estos:
+Use una de estas opciones:
 
 ```
 openclaw onboard --install-daemon
@@ -71,7 +71,7 @@ openclaw doctor
 
 ## Control del sistema (unidad de usuario systemd)
 
-OpenClaw instala de forma predeterminada un servicio **user** de systemd. Use un servicio **system**
+OpenClaw instala de forma predeterminada un servicio systemd de **usuario**. Use un servicio de **sistema**
 para servidores compartidos o siempre activos. El ejemplo completo de la unidad y la guía
 se encuentran en el [runbook del Gateway](/gateway).
 

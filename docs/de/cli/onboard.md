@@ -1,7 +1,7 @@
 ---
-summary: "CLI-Referenz für `openclaw onboard` (interaktiver Einrichtungsassistent)"
+summary: "CLI-Referenz für `openclaw onboard` (interaktiver Onboarding-Assistent)"
 read_when:
-  - Sie möchten eine geführte Einrichtung für Gateway, Workspace, Auth, Kanäle und Skills
+  - Sie möchten eine geführte Einrichtung für Gateway, Workspace, Authentifizierung, Kanäle und Skills
 title: "onboard"
 x-i18n:
   source_path: cli/onboard.md
@@ -9,12 +9,12 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:48Z
+  generated_at: 2026-02-08T09:35:37Z
 ---
 
 # `openclaw onboard`
 
-Interaktiver Einrichtungsassistent (lokales oder entferntes Gateway-Setup).
+Interaktiver Onboarding-Assistent (lokale oder entfernte Gateway-Einrichtung).
 
 ## Zugehörige Anleitungen
 
@@ -34,11 +34,11 @@ openclaw onboard --mode remote --remote-url ws://gateway-host:18789
 
 Ablaufhinweise:
 
-- `quickstart`: minimale Eingabeaufforderungen, erzeugt automatisch ein Gateway-Token.
-- `manual`: vollständige Eingabeaufforderungen für Port/Bind/Auth (Alias von `advanced`).
-- Schnellster erster Chat: `openclaw dashboard` (Control UI, keine Kanal-Einrichtung).
+- `quickstart`: minimale Abfragen, generiert automatisch ein Gateway-Token.
+- `manual`: vollständige Abfragen für Port/Bind/Auth (Alias von `advanced`).
+- Schnellster erster Chat: `openclaw dashboard` (Control-UI, keine Kanaleinrichtung).
 
-## Häufige Anschlussbefehle
+## Häufige Folgekommandos
 
 ```bash
 openclaw configure

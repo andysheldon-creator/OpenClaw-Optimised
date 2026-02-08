@@ -1,30 +1,30 @@
 ---
-summary: "OpenProse: quy trình .prose, lệnh gạch chéo và trạng thái trong OpenClaw"
+summary: "OpenProse: quy trình làm việc .prose, lệnh slash và trạng thái trong OpenClaw"
 read_when:
-  - Bạn muốn chạy hoặc viết các quy trình .prose
+  - Bạn muốn chạy hoặc viết các quy trình làm việc .prose
   - Bạn muốn bật plugin OpenProse
-  - Bạn cần hiểu về lưu trữ trạng thái
+  - Bạn cần hiểu cách lưu trữ trạng thái
 title: "OpenProse"
 x-i18n:
   source_path: prose.md
-  source_hash: cf7301e927b9a463
+  source_hash: 53c161466d278e5f
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:08:03Z
+  generated_at: 2026-02-08T09:39:53Z
 ---
 
 # OpenProse
 
-OpenProse là một định dạng quy trình làm việc di động, ưu tiên markdown để điều phối các phiên AI. Trong OpenClaw, nó được cung cấp dưới dạng một plugin cài đặt một gói Skills OpenProse cùng với một lệnh gạch chéo `/prose`. Các chương trình nằm trong các tệp `.prose` và có thể tạo nhiều tác tử con với luồng điều khiển rõ ràng.
+OpenProse là một định dạng quy trình làm việc di động, ưu tiên markdown để điều phối các phiên AI. Trong OpenClaw, nó được cung cấp dưới dạng một plugin cài đặt một gói skill OpenProse cùng với một lệnh slash `/prose`. Các chương trình nằm trong các tệp `.prose` và có thể tạo nhiều tác tử con với luồng điều khiển tường minh.
 
-Trang chính thức: https://www.prose.md
+Trang chính thức: [https://www.prose.md](https://www.prose.md)
 
 ## Những gì nó có thể làm
 
-- Nghiên cứu + tổng hợp đa tác tử với khả năng song song hóa rõ ràng.
-- Các quy trình có thể lặp lại và an toàn cho phê duyệt (đánh giá mã, phân loại sự cố, pipeline nội dung).
-- Các chương trình `.prose` có thể tái sử dụng để chạy trên các runtime tác tử được hỗ trợ.
+- Nghiên cứu và tổng hợp đa tác tử với song song hóa tường minh.
+- Quy trình làm việc lặp lại, an toàn phê duyệt (đánh giá mã, phân loại sự cố, pipeline nội dung).
+- Các chương trình `.prose` có thể tái sử dụng, chạy trên các runtime tác tử được hỗ trợ.
 
 ## Cài đặt + bật
 
@@ -36,15 +36,15 @@ openclaw plugins enable open-prose
 
 Khởi động lại Gateway sau khi bật plugin.
 
-Bản checkout dev/local: `openclaw plugins install ./extensions/open-prose`
+Bản dev/checkout cục bộ: `openclaw plugins install ./extensions/open-prose`
 
-Tài liệu liên quan: [Plugins](/plugin), [Plugin manifest](/plugins/manifest), [Skills](/tools/skills).
+Tài liệu liên quan: [Plugins](/tools/plugin), [Plugin manifest](/plugins/manifest), [Skills](/tools/skills).
 
-## Lệnh gạch chéo
+## Lệnh slash
 
-OpenProse đăng ký `/prose` như một lệnh Skills mà người dùng có thể gọi. Nó định tuyến đến các chỉ dẫn của OpenProse VM và sử dụng các công cụ OpenClaw ở phía dưới.
+OpenProse đăng ký `/prose` như một lệnh skill do người dùng gọi. Lệnh này định tuyến tới các chỉ dẫn VM của OpenProse và sử dụng các công cụ OpenClaw ở phía dưới.
 
-Các lệnh phổ biến:
+Các lệnh thường dùng:
 
 ```
 /prose help
@@ -97,7 +97,7 @@ OpenProse lưu trạng thái dưới `.prose/` trong workspace của bạn:
 └── agents/
 ```
 
-Các tác tử bền vững ở cấp người dùng nằm tại:
+Các tác tử bền vững cấp người dùng nằm tại:
 
 ```
 ~/.prose/agents/
@@ -114,13 +114,13 @@ OpenProse hỗ trợ nhiều backend trạng thái:
 
 Ghi chú:
 
-- sqlite/postgres là tùy chọn và ở trạng thái thử nghiệm.
-- Thông tin xác thực postgres đi vào log của tác tử con; hãy dùng DB chuyên dụng với quyền tối thiểu cần thiết.
+- sqlite/postgres là tùy chọn và đang thử nghiệm.
+- Thông tin xác thực postgres đi vào log của tác tử con; hãy dùng CSDL riêng với quyền tối thiểu cần thiết.
 
 ## Chương trình từ xa
 
-`/prose run <handle/slug>` được phân giải thành `https://p.prose.md/<handle>/<slug>`.
-Các URL trực tiếp được tải nguyên trạng. Điều này sử dụng công cụ `web_fetch` (hoặc `exec` cho POST).
+`/prose run <handle/slug>` phân giải thành `https://p.prose.md/<handle>/<slug>`.
+Các URL trực tiếp được tải nguyên trạng. Việc này sử dụng công cụ `web_fetch` (hoặc `exec` cho POST).
 
 ## Ánh xạ runtime OpenClaw
 
@@ -132,10 +132,10 @@ Các chương trình OpenProse ánh xạ sang các nguyên thủy của OpenClaw
 | Đọc/ghi tệp              | `read` / `write` |
 | Tải web                  | `web_fetch`      |
 
-Nếu allowlist công cụ của bạn chặn các công cụ này, các chương trình OpenProse sẽ thất bại. Xem [Skills config](/tools/skills-config).
+Nếu danh sách cho phép công cụ của bạn chặn các công cụ này, các chương trình OpenProse sẽ thất bại. Xem [Skills config](/tools/skills-config).
 
 ## Bảo mật + phê duyệt
 
-Hãy coi các tệp `.prose` như mã nguồn. Xem xét trước khi chạy. Sử dụng allowlist công cụ của OpenClaw và các cổng phê duyệt để kiểm soát tác dụng phụ.
+Hãy coi các tệp `.prose` như mã nguồn. Rà soát trước khi chạy. Sử dụng danh sách cho phép công cụ và cổng phê duyệt của OpenClaw để kiểm soát các tác dụng phụ.
 
-Đối với các quy trình mang tính xác định và có cổng phê duyệt, hãy so sánh với [Lobster](/tools/lobster).
+Đối với các quy trình làm việc xác định và có cổng phê duyệt, hãy so sánh với [Lobster](/tools/lobster).

@@ -1,23 +1,23 @@
 ---
-summary: "OpenClaw CLI の `openclaw` コマンド、サブコマンド、オプションのリファレンスです"
+summary: "openclaw コマンド、サブコマンド、およびオプションのための OpenClaw CLI リファレンス"
 read_when:
-  - CLI コマンドやオプションを追加または変更するとき
-  - 新しいコマンドサーフェスをドキュメント化するとき
+  - CLI コマンドやオプションを追加または変更する場合
+  - 新しいコマンド サーフェスを文書化する場合
 title: "CLI リファレンス"
 x-i18n:
   source_path: cli/index.md
-  source_hash: 973e7806d0261c6a
+  source_hash: 0013f522ac602176
   provider: openai
-  model: gpt-5.2-pro
+  model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-06T05:04:28Z
+  generated_at: 2026-02-08T09:22:10Z
 ---
 
 # CLI リファレンス
 
 このページでは、現在の CLI の挙動について説明します。コマンドが変更された場合は、このドキュメントを更新してください。
 
-## コマンドページ
+## コマンド ページ
 
 - [`setup`](/cli/setup)
 - [`onboard`](/cli/onboard)
@@ -53,44 +53,44 @@ x-i18n:
 - [`hooks`](/cli/hooks)
 - [`webhooks`](/cli/webhooks)
 - [`pairing`](/cli/pairing)
-- [`plugins`](/cli/plugins)（プラグインコマンド）
+- [`plugins`](/cli/plugins)（プラグイン コマンド）
 - [`channels`](/cli/channels)
 - [`security`](/cli/security)
 - [`skills`](/cli/skills)
-- [`voicecall`](/cli/voicecall)（プラグイン。インストールされている場合）
+- [`voicecall`](/cli/voicecall)（プラグイン；インストールされている場合）
 
-## グローバルフラグ
+## グローバル フラグ
 
-- `--dev`: 状態を `~/.openclaw-dev` 配下に分離し、デフォルトポートをシフトします。
+- `--dev`: 状態を `~/.openclaw-dev` 配下に分離し、デフォルト ポートをシフトします。
 - `--profile <name>`: 状態を `~/.openclaw-<name>` 配下に分離します。
 - `--no-color`: ANSI カラーを無効化します。
-- `--update`: `openclaw update` のショートハンドです（ソースインストールのみ）。
+- `--update`: `openclaw update` の省略形（ソース インストールのみ）。
 - `-V`, `--version`, `-v`: バージョンを表示して終了します。
 
-## 出力スタイリング
+## 出力スタイル
 
-- ANSI カラーと進捗インジケーターは、TTY セッションでのみレンダリングされます。
-- OSC-8 ハイパーリンクは、対応ターミナルではクリック可能なリンクとしてレンダリングされます。非対応の場合は、プレーンな URL にフォールバックします。
+- ANSI カラーと進捗インジケーターは、TTY セッションでのみ描画されます。
+- OSC-8 ハイパーリンクは、対応するターミナルではクリック可能なリンクとして表示されます。それ以外の場合は、プレーンな URL にフォールバックします。
 - `--json`（および対応環境では `--plain`）は、クリーンな出力のためにスタイリングを無効化します。
-- `--no-color` は ANSI スタイリングを無効化します。`NO_COLOR=1` も尊重されます。
-- 長時間実行コマンドは進捗インジケーターを表示します（対応時は OSC 9;4）。
+- `--no-color` は ANSI スタイルを無効化します。`NO_COLOR=1` も考慮されます。
+- 長時間実行されるコマンドでは、進捗インジケーターが表示されます（対応環境では OSC 9;4）。
 
-## カラーパレット
+## カラー パレット
 
-OpenClaw は、CLI 出力に lobster パレットを使用します。
+OpenClaw は、CLI 出力に「lobster」パレットを使用します。
 
-- `accent`（#FF5A2D）: 見出し、ラベル、主要ハイライト。
-- `accentBright`（#FF7A3D）: コマンド名、強調。
-- `accentDim`（#D14A22）: セカンダリのハイライトテキスト。
-- `info`（#FF8A5B）: 情報値。
-- `success`（#2FBF71）: 成功状態。
-- `warn`（#FFB020）: 警告、フォールバック、注意。
-- `error`（#E23D2D）: エラー、失敗。
-- `muted`（#8B7F77）: 非強調、メタデータ。
+- `accent` (#FF5A2D): 見出し、ラベル、主要なハイライト。
+- `accentBright` (#FF7A3D): コマンド名、強調。
+- `accentDim` (#D14A22): 二次的なハイライト テキスト。
+- `info` (#FF8A5B): 情報値。
+- `success` (#2FBF71): 成功状態。
+- `warn` (#FFB020): 警告、フォールバック、注意。
+- `error` (#E23D2D): エラー、失敗。
+- `muted` (#8B7F77): 非強調、メタデータ。
 
-パレットの信頼できる参照元: `src/terminal/palette.ts`（別名「lobster seam」）。
+パレットの一次情報源: `src/terminal/palette.ts`（別名「lobster seam」）。
 
-## コマンドツリー
+## コマンド ツリー
 
 ```
 openclaw [--dev] [--profile <name>] <command>
@@ -244,77 +244,77 @@ openclaw [--dev] [--profile <name>] <command>
   tui
 ```
 
-注: プラグインは追加のトップレベルコマンドを追加できます（例: `openclaw voicecall`）。
+注記: プラグインは、追加のトップレベル コマンドを追加できます（例: `openclaw voicecall`）。
 
 ## セキュリティ
 
-- `openclaw security audit` — 一般的なセキュリティ上の落とし穴に対して、設定 + ローカル状態を監査します。
-- `openclaw security audit --deep` — best-effort で稼働中の Gateway（ゲートウェイ）をライブプローブします。
-- `openclaw security audit --fix` — 安全なデフォルトを強化し、状態/設定に chmod を適用します。
+- `openclaw security audit` — 設定とローカル状態を監査し、一般的なセキュリティ上の落とし穴を検出します。
+- `openclaw security audit --deep` — ベストエフォートでのライブ Gateway プローブ。
+- `openclaw security audit --fix` — 安全なデフォルトを強化し、状態／設定に chmod を適用します。
 
 ## プラグイン
 
 拡張機能とその設定を管理します。
 
-- `openclaw plugins list` — プラグインを検出します（機械向け出力には `--json` を使用します）。
+- `openclaw plugins list` — プラグインを検出します（機械可読な出力には `--json` を使用）。
 - `openclaw plugins info <id>` — プラグインの詳細を表示します。
-- `openclaw plugins install <path|.tgz|npm-spec>` — プラグインをインストールします（またはプラグインパスを `plugins.load.paths` に追加します）。
+- `openclaw plugins install <path|.tgz|npm-spec>` — プラグインをインストールします（または `plugins.load.paths` にプラグイン パスを追加します）。
 - `openclaw plugins enable <id>` / `disable <id>` — `plugins.entries.<id>.enabled` を切り替えます。
-- `openclaw plugins doctor` — プラグインのロードエラーを報告します。
+- `openclaw plugins doctor` — プラグインのロード エラーを報告します。
 
-多くのプラグイン変更には Gateway（ゲートウェイ）の再起動が必要です。[/plugin](/plugin) を参照してください。
+ほとんどのプラグイン変更には、ゲートウェイの再起動が必要です。[/plugin](/tools/plugin) を参照してください。
 
 ## メモリ
 
-`MEMORY.md` + `memory/*.md` に対するベクター検索:
+`MEMORY.md` + `memory/*.md` に対するベクトル検索:
 
 - `openclaw memory status` — インデックス統計を表示します。
-- `openclaw memory index` — メモリファイルを再インデックスします。
-- `openclaw memory search "<query>"` — メモリに対してセマンティック検索を実行します。
+- `openclaw memory index` — メモリ ファイルを再インデックスします。
+- `openclaw memory search "<query>"` — メモリに対するセマンティック検索。
 
-## チャットのスラッシュコマンド
+## チャット スラッシュ コマンド
 
-チャットメッセージは `/...` コマンド（テキストおよびネイティブ）をサポートします。[/tools/slash-commands](/tools/slash-commands) を参照してください。
+チャット メッセージは、テキストおよびネイティブの `/...` コマンドをサポートします。[/tools/slash-commands](/tools/slash-commands) を参照してください。
 
 ハイライト:
 
-- 迅速な診断には `/status` を使用します。
-- 永続化される設定変更には `/config` を使用します。
-- 実行時のみの設定オーバーライド（ディスクではなくメモリ。`commands.debug: true` が必要）には `/debug` を使用します。
+- クイック診断には `/status`。
+- 永続化された設定変更には `/config`。
+- 実行時のみの設定上書き（メモリのみ、ディスク非書き込み；`commands.debug: true` が必要）には `/debug`。
 
 ## セットアップ + オンボーディング
 
 ### `setup`
 
-設定 + ワークスペースを初期化します。
+設定とワークスペースを初期化します。
 
 オプション:
 
-- `--workspace <dir>`: エージェントのワークスペースパス（デフォルトは `~/.openclaw/workspace`）。
-- `--wizard`: オンボーディングウィザードを実行します。
+- `--workspace <dir>`: エージェント ワークスペースのパス（デフォルト: `~/.openclaw/workspace`）。
+- `--wizard`: オンボーディング ウィザードを実行します。
 - `--non-interactive`: プロンプトなしでウィザードを実行します。
-- `--mode <local|remote>`: ウィザードモード。
-- `--remote-url <url>`: リモート Gateway（ゲートウェイ）URL。
-- `--remote-token <token>`: リモート Gateway（ゲートウェイ）トークン。
+- `--mode <local|remote>`: ウィザード モード。
+- `--remote-url <url>`: リモート Gateway の URL。
+- `--remote-token <token>`: リモート Gateway トークン。
 
-いずれかのウィザードフラグ（`--non-interactive`, `--mode`, `--remote-url`, `--remote-token`）が存在する場合、ウィザードは自動実行されます。
+いずれかのウィザード フラグ（`--non-interactive`, `--mode`, `--remote-url`, `--remote-token`）が指定されている場合、ウィザードは自動実行されます。
 
 ### `onboard`
 
-gateway、ワークスペース、Skills をセットアップするための対話式ウィザードです。
+ゲートウェイ、ワークスペース、Skills をセットアップするための対話型ウィザードです。
 
 オプション:
 
 - `--workspace <dir>`
-- `--reset`（ウィザード前に設定 + 認証情報 + セッション + ワークスペースをリセット）
+- `--reset`（ウィザード前に設定 + 資格情報 + セッション + ワークスペースをリセット）
 - `--non-interactive`
 - `--mode <local|remote>`
 - `--flow <quickstart|advanced|manual>`（manual は advanced のエイリアス）
 - `--auth-choice <setup-token|token|chutes|openai-codex|openai-api-key|openrouter-api-key|ai-gateway-api-key|moonshot-api-key|moonshot-api-key-cn|kimi-code-api-key|synthetic-api-key|venice-api-key|gemini-api-key|zai-api-key|apiKey|minimax-api|minimax-api-lightning|opencode-zen|skip>`
-- `--token-provider <id>`（非対話式。`--auth-choice token` と併用）
-- `--token <token>`（非対話式。`--auth-choice token` と併用）
-- `--token-profile-id <id>`（非対話式。デフォルト: `<provider>:manual`）
-- `--token-expires-in <duration>`（非対話式。例: `365d`, `12h`）
+- `--token-provider <id>`（非対話型；`--auth-choice token` と併用）
+- `--token <token>`（非対話型；`--auth-choice token` と併用）
+- `--token-profile-id <id>`（非対話型；デフォルト: `<provider>:manual`）
+- `--token-expires-in <duration>`（非対話型；例: `365d`, `12h`）
 - `--anthropic-api-key <key>`
 - `--openai-api-key <key>`
 - `--openrouter-api-key <key>`
@@ -341,77 +341,77 @@ gateway、ワークスペース、Skills をセットアップするための対
 - `--skip-skills`
 - `--skip-health`
 - `--skip-ui`
-- `--node-manager <npm|pnpm|bun>`（pnpm 推奨。Gateway（ゲートウェイ）ランタイムには bun は非推奨）
+- `--node-manager <npm|pnpm|bun>`（pnpm 推奨；Gateway ランタイムでは bun は非推奨）
 - `--json`
 
 ### `configure`
 
-対話式の設定ウィザード（モデル、チャンネル、Skills、gateway）。
+対話型設定ウィザード（モデル、チャンネル、Skills、ゲートウェイ）。
 
 ### `config`
 
-非対話式の設定ヘルパー（get/set/unset）です。サブコマンドなしで `openclaw config` を実行すると、ウィザードが起動します。
+非対話型の設定ヘルパー（get/set/unset）。サブコマンドなしで `openclaw config` を実行すると、ウィザードが起動します。
 
 サブコマンド:
 
-- `config get <path>`: 設定値を表示します（ドット/ブラケットのパス）。
+- `config get <path>`: 設定値を表示します（ドット／ブラケット パス）。
 - `config set <path> <value>`: 値を設定します（JSON5 または生文字列）。
 - `config unset <path>`: 値を削除します。
 
 ### `doctor`
 
-ヘルスチェック + クイック修正（設定 + gateway + レガシーサービス）。
+ヘルス チェックとクイック修復（設定 + ゲートウェイ + レガシー サービス）。
 
 オプション:
 
-- `--no-workspace-suggestions`: ワークスペースのメモリヒントを無効化します。
+- `--no-workspace-suggestions`: ワークスペース メモリ ヒントを無効化します。
 - `--yes`: プロンプトなしでデフォルトを受け入れます（ヘッドレス）。
 - `--non-interactive`: プロンプトをスキップし、安全なマイグレーションのみを適用します。
-- `--deep`: 追加の gateway インストールがないかシステムサービスをスキャンします。
+- `--deep`: 追加のゲートウェイ インストールについてシステム サービスをスキャンします。
 
-## チャンネルヘルパー
+## チャンネル ヘルパー
 
 ### `channels`
 
-チャットチャンネルアカウント（WhatsApp/Telegram/Discord/Google Chat/Slack/Mattermost（プラグイン）/Signal/iMessage/MS Teams）を管理します。
+チャット チャンネル アカウントを管理します（WhatsApp/Telegram/Discord/Google Chat/Slack/Mattermost（プラグイン）/Signal/iMessage/MS Teams）。
 
 サブコマンド:
 
 - `channels list`: 設定済みチャンネルと認証プロファイルを表示します。
-- `channels status`: Gateway（ゲートウェイ）の到達性とチャンネルヘルスを確認します（`--probe` は追加チェックを実行。gateway のヘルスプローブには `openclaw health` または `openclaw status --deep` を使用してください）。
-- ヒント: `channels status` は、一般的な設定ミスを検出できる場合に、推奨される修正とともに警告を表示します（その後 `openclaw doctor` を案内します）。
-- `channels logs`: gateway ログファイルから最近のチャンネルログを表示します。
-- `channels add`: フラグ未指定の場合はウィザード形式でセットアップします。フラグを渡すと非対話式モードに切り替わります。
-- `channels remove`: デフォルトでは無効です。プロンプトなしで設定エントリを削除するには `--delete` を渡します。
-- `channels login`: 対話式のチャンネルログイン（WhatsApp Web のみ）。
-- `channels logout`: チャンネルセッションからログアウトします（対応している場合）。
+- `channels status`: ゲートウェイ到達性とチャンネル ヘルスを確認します（`--probe` は追加チェックを実行；ゲートウェイのヘルス プローブには `openclaw health` または `openclaw status --deep` を使用）。
+- ヒント: `channels status` は、一般的な誤設定を検出できる場合に、修正案付きの警告を表示します（その後 `openclaw doctor` を案内します）。
+- `channels logs`: ゲートウェイ ログ ファイルから最近のチャンネル ログを表示します。
+- `channels add`: フラグ未指定時はウィザード形式のセットアップを実行します。フラグ指定時は非対話型モードに切り替わります。
+- `channels remove`: 既定では無効です。プロンプトなしで設定エントリを削除するには `--delete` を指定します。
+- `channels login`: 対話型のチャンネル ログイン（WhatsApp Web のみ）。
+- `channels logout`: チャンネル セッションからログアウトします（対応している場合）。
 
 共通オプション:
 
 - `--channel <name>`: `whatsapp|telegram|discord|googlechat|slack|mattermost|signal|imessage|msteams`
-- `--account <id>`: チャンネルアカウント ID（デフォルトは `default`）
+- `--account <id>`: チャンネル アカウント ID（デフォルト: `default`）
 - `--name <label>`: アカウントの表示名
 
 `channels login` のオプション:
 
-- `--channel <channel>`（デフォルトは `whatsapp`。`whatsapp`/`web` をサポート）
+- `--channel <channel>`（デフォルト: `whatsapp`；`whatsapp`/`web` をサポート）
 - `--account <id>`
 - `--verbose`
 
 `channels logout` のオプション:
 
-- `--channel <channel>`（デフォルトは `whatsapp`）
+- `--channel <channel>`（デフォルト: `whatsapp`）
 - `--account <id>`
 
 `channels list` のオプション:
 
-- `--no-usage`: モデルプロバイダーの使用量/クォータのスナップショットをスキップします（OAuth/API 連携のみ）。
+- `--no-usage`: モデル プロバイダーの使用量／クォータ スナップショットをスキップします（OAuth/API 対応のみ）。
 - `--json`: JSON を出力します（`--no-usage` が設定されていない限り使用量を含みます）。
 
 `channels logs` のオプション:
 
-- `--channel <name|all>`（デフォルトは `all`）
-- `--lines <n>`（デフォルトは `200`）
+- `--channel <name|all>`（デフォルト: `all`）
+- `--lines <n>`（デフォルト: `200`）
 - `--json`
 
 詳細: [/concepts/oauth](/concepts/oauth)
@@ -428,13 +428,13 @@ openclaw status --deep
 
 ### `skills`
 
-利用可能な Skills とレディネス情報を一覧表示し、検査します。
+利用可能な Skills の一覧と、準備状況の情報を表示します。
 
 サブコマンド:
 
-- `skills list`: Skills を一覧表示します（サブコマンドなしの場合のデフォルト）。
+- `skills list`: Skills を一覧表示します（サブコマンド未指定時のデフォルト）。
 - `skills info <name>`: 1 つの Skill の詳細を表示します。
-- `skills check`: 準備完了と不足要件のサマリーを表示します。
+- `skills check`: 準備完了と不足要件のサマリー。
 
 オプション:
 
@@ -446,7 +446,7 @@ openclaw status --deep
 
 ### `pairing`
 
-チャンネルをまたいだダイレクトメッセージのペアリング要求を承認します。
+チャンネル間の DM ペアリング リクエストを承認します。
 
 サブコマンド:
 
@@ -455,26 +455,26 @@ openclaw status --deep
 
 ### `webhooks gmail`
 
-Gmail Pub/Sub フックのセットアップ + ランナー。[/automation/gmail-pubsub](/automation/gmail-pubsub) を参照してください。
+Gmail Pub/Sub フックのセットアップとランナーです。[/automation/gmail-pubsub](/automation/gmail-pubsub) を参照してください。
 
 サブコマンド:
 
-- `webhooks gmail setup`（`--account <email>` が必要。`--project`, `--topic`, `--subscription`, `--label`, `--hook-url`, `--hook-token`, `--push-token`, `--bind`, `--port`, `--path`, `--include-body`, `--max-bytes`, `--renew-minutes`, `--tailscale`, `--tailscale-path`, `--tailscale-target`, `--push-endpoint`, `--json` をサポート）
-- `webhooks gmail run`（同一フラグのランタイムオーバーライド）
+- `webhooks gmail setup`（`--account <email>` が必要；`--project`, `--topic`, `--subscription`, `--label`, `--hook-url`, `--hook-token`, `--push-token`, `--bind`, `--port`, `--path`, `--include-body`, `--max-bytes`, `--renew-minutes`, `--tailscale`, `--tailscale-path`, `--tailscale-target`, `--push-endpoint`, `--json` をサポート）
+- `webhooks gmail run`（同一フラグに対するランタイム上書き）
 
 ### `dns setup`
 
-広域デバイス検出用の DNS ヘルパー（CoreDNS + Tailscale）。[/gateway/discovery](/gateway/discovery) を参照してください。
+広域探索用 DNS ヘルパー（CoreDNS + Tailscale）。[/gateway/discovery](/gateway/discovery) を参照してください。
 
 オプション:
 
-- `--apply`: CoreDNS 設定をインストール/更新します（sudo が必要。macOS のみ）。
+- `--apply`: CoreDNS 設定をインストール／更新します（sudo が必要；macOS のみ）。
 
 ## メッセージング + エージェント
 
 ### `message`
 
-統合アウトバウンドメッセージング + チャンネルアクション。
+統合された送信メッセージングとチャンネル操作。
 
 参照: [/cli/message](/cli/message)
 
@@ -497,7 +497,7 @@ Gmail Pub/Sub フックのセットアップ + ランナー。[/automation/gmail
 
 ### `agent`
 
-Gateway（ゲートウェイ）（または埋め込みの `--local`）経由で、エージェントの 1 ターンを実行します。
+Gateway（または埋め込みの `--local`）経由で、エージェントの 1 ターンを実行します。
 
 必須:
 
@@ -505,7 +505,7 @@ Gateway（ゲートウェイ）（または埋め込みの `--local`）経由で
 
 オプション:
 
-- `--to <dest>`（セッションキーおよび任意の配信向け）
+- `--to <dest>`（セッション キーおよび任意の配信用）
 - `--session-id <id>`
 - `--thinking <off|minimal|low|medium|high|xhigh>`（GPT-5.2 + Codex モデルのみ）
 - `--verbose <on|full|off>`
@@ -530,7 +530,7 @@ Gateway（ゲートウェイ）（または埋め込みの `--local`）経由で
 
 #### `agents add [name]`
 
-新しい分離エージェントを追加します。フラグ（または `--non-interactive`）が渡されない場合はガイド付きウィザードを実行します。非対話式モードでは `--workspace` が必須です。
+新しい分離エージェントを追加します。フラグ（または `--non-interactive`）が指定されていない場合は、ガイド付きウィザードを実行します。非対話型モードでは `--workspace` が必須です。
 
 オプション:
 
@@ -541,11 +541,11 @@ Gateway（ゲートウェイ）（または埋め込みの `--local`）経由で
 - `--non-interactive`
 - `--json`
 
-バインディング仕様は `channel[:accountId]` を使用します。WhatsApp で `accountId` を省略した場合、デフォルトのアカウント ID が使用されます。
+バインディング仕様には `channel[:accountId]` を使用します。WhatsApp で `accountId` が省略された場合、デフォルトのアカウント ID が使用されます。
 
 #### `agents delete <id>`
 
-エージェントを削除し、そのワークスペース + 状態を剪定します。
+エージェントを削除し、そのワークスペースと状態を整理します。
 
 オプション:
 
@@ -554,7 +554,7 @@ Gateway（ゲートウェイ）（または埋め込みの `--local`）経由で
 
 ### `acp`
 
-IDE を Gateway（ゲートウェイ）に接続する ACP ブリッジを実行します。
+IDE を Gateway に接続する ACP ブリッジを実行します。
 
 完全なオプションと例については [`acp`](/cli/acp) を参照してください。
 
@@ -565,37 +565,37 @@ IDE を Gateway（ゲートウェイ）に接続する ACP ブリッジを実行
 オプション:
 
 - `--json`
-- `--all`（完全診断。読み取り専用で貼り付け可能）
+- `--all`（完全診断；読み取り専用、貼り付け可能）
 - `--deep`（チャンネルをプローブ）
-- `--usage`（モデルプロバイダーの使用量/クォータを表示）
+- `--usage`（モデル プロバイダーの使用量／クォータを表示）
 - `--timeout <ms>`
 - `--verbose`
 - `--debug`（`--verbose` のエイリアス）
 
 注記:
 
-- 概要には、利用可能な場合に Gateway（ゲートウェイ）+ node ホストサービスのステータスが含まれます。
+- 概要には、利用可能な場合に Gateway とノード ホスト サービスの状態が含まれます。
 
 ### 使用量トラッキング
 
-OpenClaw は、OAuth/API 認証情報が利用可能な場合にプロバイダーの使用量/クォータを表示できます。
+OpenClaw は、OAuth/API 資格情報が利用可能な場合に、プロバイダーの使用量／クォータを表示できます。
 
-表示サーフェス:
+表示箇所:
 
-- `/status`（利用可能な場合、短いプロバイダー使用量行を追加）
-- `openclaw status --usage`（プロバイダー別の内訳を完全に出力）
-- macOS メニューバー（Context 配下の Usage セクション）
+- `/status`（利用可能な場合、短い使用量行を追加）
+- `openclaw status --usage`（プロバイダー別の詳細内訳を表示）
+- macOS メニュー バー（Context 配下の Usage セクション）
 
 注記:
 
-- データはプロバイダーの使用量エンドポイントから直接取得されます（推定値ではありません）。
-- プロバイダー: Anthropic、GitHub Copilot、OpenAI Codex OAuth、ならびにそれらのプロバイダープラグインが有効な場合は Gemini CLI/Antigravity。
-- 一致する認証情報が存在しない場合、使用量は非表示になります。
+- データは、プロバイダーの使用量エンドポイントから直接取得されます（推定値ではありません）。
+- プロバイダー: Anthropic、GitHub Copilot、OpenAI Codex OAuth、さらに対応プラグイン有効時の Gemini CLI/Antigravity。
+- 一致する資格情報が存在しない場合、使用量は非表示になります。
 - 詳細: [Usage tracking](/concepts/usage-tracking) を参照してください。
 
 ### `health`
 
-稼働中の Gateway（ゲートウェイ）からヘルスを取得します。
+実行中の Gateway からヘルス情報を取得します。
 
 オプション:
 
@@ -605,7 +605,7 @@ OpenClaw は、OAuth/API 認証情報が利用可能な場合にプロバイダ�
 
 ### `sessions`
 
-保存された会話セッションを一覧表示します。
+保存されている会話セッションを一覧表示します。
 
 オプション:
 
@@ -618,7 +618,7 @@ OpenClaw は、OAuth/API 認証情報が利用可能な場合にプロバイダ�
 
 ### `reset`
 
-ローカルの設定/状態をリセットします（CLI はインストールされたままです）。
+ローカルの設定／状態をリセットします（CLI はインストールされたままです）。
 
 オプション:
 
@@ -633,7 +633,7 @@ OpenClaw は、OAuth/API 認証情報が利用可能な場合にプロバイダ�
 
 ### `uninstall`
 
-gateway サービス + ローカルデータをアンインストールします（CLI は残ります）。
+ゲートウェイ サービスとローカル データをアンインストールします（CLI は残ります）。
 
 オプション:
 
@@ -650,11 +650,11 @@ gateway サービス + ローカルデータをアンインストールします
 
 - `--non-interactive` には `--yes` と明示的なスコープ（または `--all`）が必要です。
 
-## Gateway（ゲートウェイ）
+## ゲートウェイ
 
 ### `gateway`
 
-WebSocket Gateway（ゲートウェイ）を実行します。
+WebSocket Gateway を実行します。
 
 オプション:
 
@@ -667,8 +667,8 @@ WebSocket Gateway（ゲートウェイ）を実行します。
 - `--tailscale-reset-on-exit`
 - `--allow-unconfigured`
 - `--dev`
-- `--reset`（開発用設定 + 認証情報 + セッション + ワークスペースをリセット）
-- `--force`（ポート上の既存リスナーを kill）
+- `--reset`（開発用の設定 + 資格情報 + セッション + ワークスペースをリセット）
+- `--force`（ポート上の既存リスナーを終了）
 - `--verbose`
 - `--claude-cli-logs`
 - `--ws-log <auto|full|compact>`
@@ -678,11 +678,11 @@ WebSocket Gateway（ゲートウェイ）を実行します。
 
 ### `gateway service`
 
-Gateway（ゲートウェイ）サービス（launchd/systemd/schtasks）を管理します。
+Gateway サービスを管理します（launchd/systemd/schtasks）。
 
 サブコマンド:
 
-- `gateway status`（デフォルトで Gateway（ゲートウェイ）RPC をプローブ）
+- `gateway status`（デフォルトで Gateway RPC をプローブ）
 - `gateway install`（サービスのインストール）
 - `gateway uninstall`
 - `gateway start`
@@ -691,22 +691,22 @@ Gateway（ゲートウェイ）サービス（launchd/systemd/schtasks）を管�
 
 注記:
 
-- `gateway status` は、サービスの解決済みポート/設定を使用してデフォルトで Gateway（ゲートウェイ）RPC をプローブします（`--url/--token/--password` で上書き）。
-- `gateway status` は、スクリプト向けに `--no-probe`, `--deep`, `--json` をサポートします。
-- `gateway status` は、検出できる場合にレガシーまたは追加の gateway サービスも表示します（`--deep` はシステムレベルのスキャンを追加）。プロファイル名付きの OpenClaw サービスは第一級として扱われ、「extra」としてフラグされません。
-- `gateway status` は、CLI が使用する設定パスと、サービスが使用している可能性が高い設定（サービス環境変数）を表示し、加えて解決済みのプローブ対象 URL を表示します。
-- `gateway install|uninstall|start|stop|restart` は、スクリプト向けに `--json` をサポートします（デフォルト出力は人間向けのままです）。
-- `gateway install` は Node ランタイムがデフォルトです。bun は **非推奨** です（WhatsApp/Telegram のバグ）。
+- `gateway status` は、サービスで解決されたポート／設定を使用して、デフォルトで Gateway RPC をプローブします（`--url/--token/--password` で上書き可能）。
+- `gateway status` は、スクリプト用に `--no-probe`, `--deep`, `--json` をサポートします。
+- `gateway status` は、検出可能な場合にレガシーまたは追加のゲートウェイ サービスも表示します（`--deep` はシステム レベルのスキャンを追加）。プロファイル名付きの OpenClaw サービスは、第一級として扱われ、「extra」としてはフラグ付けされません。
+- `gateway status` は、CLI が使用する設定パスと、サービスが使用している可能性の高い設定（サービス環境）、および解決されたプローブ対象 URL を表示します。
+- `gateway install|uninstall|start|stop|restart` は、スクリプト用に `--json` をサポートします（デフォルト出力は人間に優しい形式のままです）。
+- `gateway install` は Node ランタイムがデフォルトです。bun は **非推奨** です（WhatsApp/Telegram の不具合）。
 - `gateway install` のオプション: `--port`, `--runtime`, `--token`, `--force`, `--json`。
 
 ### `logs`
 
-RPC 経由で Gateway（ゲートウェイ）のファイルログを tail します。
+RPC 経由で Gateway のファイル ログを追跡表示します。
 
 注記:
 
-- TTY セッションでは色付きの構造化ビューがレンダリングされます。非 TTY ではプレーンテキストにフォールバックします。
-- `--json` は 1 行ごとの JSON（1 行につき 1 ログイベント）を出力します。
+- TTY セッションでは、色付きで構造化された表示が描画されます。非 TTY ではプレーン テキストにフォールバックします。
+- `--json` は、行区切りの JSON（1 行につき 1 ログ イベント）を出力します。
 
 例:
 
@@ -720,9 +720,9 @@ openclaw logs --no-color
 
 ### `gateway <subcommand>`
 
-Gateway（ゲートウェイ）の CLI ヘルパー（RPC サブコマンドには `--url`, `--token`, `--password`, `--timeout`, `--expect-final` を使用してください）。
-`--url` を渡すと、CLI は設定または環境の認証情報を自動適用しません。
-`--token` または `--password` を明示的に含めてください。明示的な認証情報が欠落している場合はエラーになります。
+Gateway CLI ヘルパー（RPC サブコマンドには `--url`, `--token`, `--password`, `--timeout`, `--expect-final` を使用）。
+`--url` を指定した場合、CLI は設定や環境資格情報を自動適用しません。
+`--token` または `--password` を明示的に含めてください。明示的な資格情報がない場合はエラーとなります。
 
 サブコマンド:
 
@@ -736,12 +736,12 @@ Gateway（ゲートウェイ）の CLI ヘルパー（RPC サブコマンドに�
 
 共通 RPC:
 
-- `config.apply`（検証 + 設定の書き込み + 再起動 + wake）
-- `config.patch`（部分更新のマージ + 再起動 + wake）
-- `update.run`（更新の実行 + 再起動 + wake）
+- `config.apply`（検証 + 設定書き込み + 再起動 + ウェイク）
+- `config.patch`（部分更新をマージ + 再起動 + ウェイク）
+- `update.run`（更新実行 + 再起動 + ウェイク）
 
-ヒント: `config.set`/`config.apply`/`config.patch` を直接呼び出す場合、既に設定が存在するなら
-`config.get` から `baseHash` を渡してください。
+ヒント: `config.set`/`config.apply`/`config.patch` を直接呼び出す場合、既存の設定があるときは
+`config.get` からの `baseHash` を渡してください。
 
 ## モデル
 
@@ -755,11 +755,11 @@ openclaw models auth setup-token --provider anthropic
 openclaw models status
 ```
 
-### `models`（root）
+### `models`（ルート）
 
 `openclaw models` は `models status` のエイリアスです。
 
-root オプション:
+ルート オプション:
 
 - `--status-json`（`models status --json` のエイリアス）
 - `--status-plain`（`models status --plain` のエイリアス）
@@ -780,16 +780,16 @@ root オプション:
 
 - `--json`
 - `--plain`
-- `--check`（終了コード 1=期限切れ/未設定、2=期限が近い）
-- `--probe`（設定済み認証プロファイルのライブプローブ）
+- `--check`（終了コード: 1=期限切れ／未設定、2=期限切れ間近）
+- `--probe`（設定済み認証プロファイルのライブ プローブ）
 - `--probe-provider <name>`
 - `--probe-profile <id>`（繰り返し指定またはカンマ区切り）
 - `--probe-timeout <ms>`
 - `--probe-concurrency <n>`
 - `--probe-max-tokens <n>`
 
-常に、認証ストア内プロファイルの認証概要と OAuth 期限ステータスが含まれます。
-`--probe` はライブリクエストを実行します（トークンを消費し、レート制限を誘発する可能性があります）。
+常に、認証ストア内プロファイルの認証概要と OAuth の有効期限ステータスが含まれます。
+`--probe` はライブ リクエストを実行します（トークン消費やレート制限を引き起こす可能性があります）。
 
 ### `models set <model>`
 
@@ -846,8 +846,8 @@ root オプション:
 
 オプション:
 
-- `add`: 対話式の認証ヘルパー
-- `setup-token`: `--provider <name>`（デフォルトは `anthropic`）, `--yes`
+- `add`: 対話型認証ヘルパー
+- `setup-token`: `--provider <name>`（デフォルト: `anthropic`）、`--yes`
 - `paste-token`: `--provider <name>`, `--profile-id <id>`, `--expires-in <duration>`
 
 ### `models auth order get|set|clear`
@@ -862,7 +862,7 @@ root オプション:
 
 ### `system event`
 
-システムイベントをキューに入れ、必要に応じてハートビートをトリガーします（Gateway（ゲートウェイ）RPC）。
+システム イベントをキューに追加し、必要に応じてハートビートをトリガーします（Gateway RPC）。
 
 必須:
 
@@ -876,7 +876,7 @@ root オプション:
 
 ### `system heartbeat last|enable|disable`
 
-ハートビート制御（Gateway（ゲートウェイ）RPC）。
+ハートビート制御（Gateway RPC）。
 
 オプション:
 
@@ -885,7 +885,7 @@ root オプション:
 
 ### `system presence`
 
-システムプレゼンスエントリを一覧表示します（Gateway（ゲートウェイ）RPC）。
+システム プレゼンス エントリを一覧表示します（Gateway RPC）。
 
 オプション:
 
@@ -894,13 +894,13 @@ root オプション:
 
 ## Cron
 
-スケジュールジョブを管理します（Gateway（ゲートウェイ）RPC）。[/automation/cron-jobs](/automation/cron-jobs) を参照してください。
+スケジュール ジョブを管理します（Gateway RPC）。[/automation/cron-jobs](/automation/cron-jobs) を参照してください。
 
 サブコマンド:
 
 - `cron status [--json]`
-- `cron list [--all] [--json]`（デフォルトはテーブル出力。生の出力には `--json` を使用）
-- `cron add`（エイリアス: `create`。`--name` と、`--at` | `--every` | `--cron` のいずれか 1 つ、かつ `--system-event` | `--message` のペイロードいずれか 1 つが必要）
+- `cron list [--all] [--json]`（デフォルトはテーブル出力；生データには `--json` を使用）
+- `cron add`（エイリアス: `create`；`--name` と、`--at` | `--every` | `--cron` のいずれか 1 つ、さらに `--system-event` | `--message` のいずれか 1 つのペイロードが必須）
 - `cron edit <id>`（フィールドをパッチ）
 - `cron rm <id>`（エイリアス: `remove`, `delete`）
 - `cron enable <id>`
@@ -908,11 +908,11 @@ root オプション:
 - `cron runs --id <id> [--limit <n>]`
 - `cron run <id> [--force]`
 
-すべての `cron` コマンドは `--url`, `--token`, `--timeout`, `--expect-final` を受け付けます。
+すべての `cron` コマンドは、`--url`, `--token`, `--timeout`, `--expect-final` を受け付けます。
 
-## Node host
+## ノード ホスト
 
-`node` は **ヘッドレス node host** を実行するか、バックグラウンドサービスとして管理します。
+`node` は **ヘッドレス ノード ホスト** を実行するか、バックグラウンド サービスとして管理します。
 [`openclaw node`](/cli/node) を参照してください。
 
 サブコマンド:
@@ -924,9 +924,9 @@ root オプション:
 - `node stop`
 - `node restart`
 
-## Nodes
+## ノード
 
-`nodes` は Gateway（ゲートウェイ）と通信し、ペアリング済みノードを対象にします。[/nodes](/nodes) を参照してください。
+`nodes` は Gateway と通信し、ペアリングされたノードを対象とします。[/nodes](/nodes) を参照してください。
 
 共通オプション:
 
@@ -942,7 +942,7 @@ root オプション:
 - `nodes reject <requestId>`
 - `nodes rename --node <id|name|ip> --name <displayName>`
 - `nodes invoke --node <id|name|ip> --command <command> [--params <json>] [--invoke-timeout <ms>] [--idempotency-key <key>]`
-- `nodes run --node <id|name|ip> [--cwd <path>] [--env KEY=VAL] [--command-timeout <ms>] [--needs-screen-recording] [--invoke-timeout <ms>] <command...>`（mac ノードまたはヘッドレス node host）
+- `nodes run --node <id|name|ip> [--cwd <path>] [--env KEY=VAL] [--command-timeout <ms>] [--needs-screen-recording] [--invoke-timeout <ms>] <command...>`（mac ノードまたはヘッドレス ノード ホスト）
 - `nodes notify --node <id|name|ip> [--title <text>] [--body <text>] [--sound <name>] [--priority <passive|active|timeSensitive>] [--delivery <system|overlay|auto>] [--invoke-timeout <ms>]`（mac のみ）
 
 カメラ:
@@ -951,7 +951,7 @@ root オプション:
 - `nodes camera snap --node <id|name|ip> [--facing front|back|both] [--device-id <id>] [--max-width <px>] [--quality <0-1>] [--delay-ms <ms>] [--invoke-timeout <ms>]`
 - `nodes camera clip --node <id|name|ip> [--facing front|back] [--device-id <id>] [--duration <ms|10s|1m>] [--no-audio] [--invoke-timeout <ms>]`
 
-Canvas + 画面:
+キャンバス + 画面:
 
 - `nodes canvas snapshot --node <id|name|ip> [--format png|jpg|jpeg] [--max-width <px>] [--quality <0-1>] [--invoke-timeout <ms>]`
 - `nodes canvas present --node <id|name|ip> [--target <urlOrPath>] [--x <px>] [--y <px>] [--width <px>] [--height <px>] [--invoke-timeout <ms>]`
@@ -966,9 +966,9 @@ Canvas + 画面:
 
 - `nodes location get --node <id|name|ip> [--max-age <ms>] [--accuracy <coarse|balanced|precise>] [--location-timeout <ms>] [--invoke-timeout <ms>]`
 
-## Browser
+## ブラウザ
 
-Browser 制御 CLI（専用 Chrome/Brave/Edge/Chromium）。[`openclaw browser`](/cli/browser) および [Browser tool](/tools/browser) を参照してください。
+ブラウザ制御 CLI（専用の Chrome/Brave/Edge/Chromium）。[`openclaw browser`](/cli/browser) および [Browser ツール](/tools/browser) を参照してください。
 
 共通オプション:
 
@@ -1012,17 +1012,17 @@ Browser 制御 CLI（専用 Chrome/Brave/Edge/Chromium）。[`openclaw browser`]
 - `browser console [--level <error|warn|info>] [--target-id <id>]`
 - `browser pdf [--target-id <id>]`
 
-## Docs 検索
+## ドキュメント検索
 
 ### `docs [query...]`
 
-ライブのドキュメントインデックスを検索します。
+ライブ ドキュメント インデックスを検索します。
 
 ## TUI
 
 ### `tui`
 
-Gateway（ゲートウェイ）に接続されたターミナル UI を開きます。
+Gateway に接続されたターミナル UI を開きます。
 
 オプション:
 
@@ -1033,5 +1033,5 @@ Gateway（ゲートウェイ）に接続されたターミナル UI を開きま
 - `--deliver`
 - `--thinking <level>`
 - `--message <text>`
-- `--timeout-ms <ms>`（デフォルトは `agents.defaults.timeoutSeconds`）
+- `--timeout-ms <ms>`（デフォルト: `agents.defaults.timeoutSeconds`）
 - `--history-limit <n>`

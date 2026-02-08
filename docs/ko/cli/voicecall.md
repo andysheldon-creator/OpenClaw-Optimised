@@ -1,7 +1,7 @@
 ---
-summary: "`openclaw voicecall`에 대한 CLI 참조(음성 통화 플러그인 명령 표면)"
+summary: "`openclaw voicecall`에 대한 CLI 참조 (음성 통화 플러그인 명령 인터페이스)"
 read_when:
-  - 음성 통화 플러그인을 사용하며 CLI 진입점을 알고 싶을 때
+  - 음성 통화 플러그인을 사용하며 CLI 진입점이 필요할 때
   - `voicecall call|continue|status|tail|expose`에 대한 빠른 예제가 필요할 때
 title: "voicecall"
 x-i18n:
@@ -10,14 +10,14 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:35:36Z
+  generated_at: 2026-02-08T09:24:32Z
 ---
 
 # `openclaw voicecall`
 
-`voicecall`는 플러그인이 제공하는 명령입니다. 음성 통화 플러그인이 설치되고 활성화된 경우에만 표시됩니다.
+`voicecall`는 플러그인에서 제공하는 명령입니다. 음성 통화 플러그인이 설치되고 활성화된 경우에만 표시됩니다.
 
-기본 문서:
+주 문서:
 
 - 음성 통화 플러그인: [Voice Call](/plugins/voice-call)
 
@@ -30,7 +30,7 @@ openclaw voicecall continue --call-id <id> --message "Any questions?"
 openclaw voicecall end --call-id <id>
 ```
 
-## 웹훅 노출(Tailscale)
+## 웹훅 노출 (Tailscale)
 
 ```bash
 openclaw voicecall expose --mode serve
@@ -38,4 +38,4 @@ openclaw voicecall expose --mode funnel
 openclaw voicecall unexpose
 ```
 
-보안 참고 사항: 신뢰하는 네트워크에만 웹훅 엔드포인트를 노출하십시오. 가능하면 Funnel보다 Tailscale Serve를 우선 사용하십시오.
+보안 참고 사항: 신뢰하는 네트워크에만 웹훅 엔드포인트를 노출하십시오. 가능하면 Funnel 대신 Tailscale Serve 사용을 권장합니다.

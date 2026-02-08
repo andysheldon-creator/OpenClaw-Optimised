@@ -5,20 +5,20 @@ read_when:
 title: "Pairing"
 x-i18n:
   source_path: cli/pairing.md
-  source_hash: e0bc9707294463c9
+  source_hash: 785869d24d953141
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:45Z
+  generated_at: 2026-02-08T09:35:37Z
 ---
 
 # `openclaw pairing`
 
-Genehmigen oder prüfen Sie Pairing-Anfragen für Direktnachrichten (für Kanäle, die Pairing unterstützen).
+Pairing-Anfragen für Direktnachrichten genehmigen oder prüfen (für Kanäle, die Pairing unterstützen).
 
 Verwandt:
 
-- Pairing-Ablauf: [Pairing](/start/pairing)
+- Pairing-Ablauf: [Pairing](/channels/pairing)
 
 ## Befehle
 

@@ -1,33 +1,33 @@
 ---
 summary: "エージェント、エンベロープ、プロンプトにおけるタイムゾーンの扱い"
 read_when:
-  - モデル向けにタイムスタンプがどのように正規化されるかを理解する必要があります
-  - システムプロンプト用にユーザーのタイムゾーンを設定する必要があります
+  - モデル向けにタイムスタンプがどのように正規化されるかを理解する必要がある場合
+  - システムプロンプトにユーザーのタイムゾーンを設定する場合
 title: "タイムゾーン"
 x-i18n:
   source_path: concepts/timezone.md
   source_hash: 9ee809c96897db11
   provider: openai
-  model: gpt-5.2-pro
+  model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-06T05:12:00Z
+  generated_at: 2026-02-08T09:21:32Z
 ---
 
 # タイムゾーン
 
-OpenClaw は、モデルが **単一の基準時刻** を参照できるようにタイムスタンプを標準化します。
+OpenClaw はタイムスタンプを標準化し、モデルが **単一の参照時刻** を認識するようにします。
 
-## メッセージエンベロープ（デフォルトはローカル）
+## メッセージエンベロープ（既定はローカル）
 
-受信メッセージは次のようなエンベロープでラップされます。
+受信メッセージは、次のようなエンベロープでラップされます。
 
 ```
 [Provider ... 2026-01-05 16:26 PST] message text
 ```
 
-エンベロープ内のタイムスタンプは、デフォルトで **ホストのローカル時刻** になっており、分単位の精度です。
+エンベロープ内のタイムスタンプは **既定でホストのローカル時刻** で、分精度です。
 
-これは次で上書きできます。
+次で上書きできます。
 
 ```json5
 {
@@ -42,14 +42,14 @@ OpenClaw は、モデルが **単一の基準時刻** を参照できるよう�
 ```
 
 - `envelopeTimezone: "utc"` は UTC を使用します。
-- `envelopeTimezone: "user"` は `agents.defaults.userTimezone` を使用します（ホストのタイムゾーンにフォールバックします）。
-- 固定オフセットにするには、明示的な IANA タイムゾーン（例: `"Europe/Vienna"`）を使用します。
-- `envelopeTimestamp: "off"` は、エンベロープヘッダーから絶対タイムスタンプを削除します。
-- `envelopeElapsed: "off"` は、経過時間サフィックス（`+2m` スタイル）を削除します。
+- `envelopeTimezone: "user"` は `agents.defaults.userTimezone` を使用します（ホストのタイムゾーンにフォールバック）。
+- 明示的な IANA タイムゾーン（例: `"Europe/Vienna"`）を指定して固定オフセットにできます。
+- `envelopeTimestamp: "off"` はエンベロープヘッダーから絶対タイムスタンプを削除します。
+- `envelopeElapsed: "off"` は経過時間のサフィックス（`+2m` 形式）を削除します。
 
 ### 例
 
-**ローカル（デフォルト）:**
+**ローカル（既定）:**
 
 ```
 [Signal Alice +1555 2026-01-18 00:19 PST] hello
@@ -69,18 +69,17 @@ OpenClaw は、モデルが **単一の基準時刻** を参照できるよう�
 
 ## ツールペイロード（生のプロバイダーデータ + 正規化フィールド）
 
-ツール呼び出し（`channels.discord.readMessages`、`channels.slack.readMessages` など）は **生のプロバイダータイムスタンプ** を返します。
-また、一貫性のために正規化フィールドも付与します。
+ツール呼び出し（`channels.discord.readMessages`、`channels.slack.readMessages` など）は **プロバイダーの生タイムスタンプ** を返します。
+一貫性のため、正規化フィールドも付与されます。
 
-- `timestampMs`（UTC エポックミリ秒）
+- `timestampMs`（UTC のエポックミリ秒）
 - `timestampUtc`（ISO 8601 の UTC 文字列）
 
 生のプロバイダーフィールドは保持されます。
 
-## システムプロンプト用のユーザータイムゾーン
+## システムプロンプトのユーザータイムゾーン
 
-`agents.defaults.userTimezone` を設定して、モデルにユーザーのローカルタイムゾーンを伝えます。これが
-未設定の場合、OpenClaw は **実行時にホストのタイムゾーンを解決** します（設定の書き込みは行いません）。
+`agents.defaults.userTimezone` を設定して、モデルにユーザーのローカルタイムゾーンを伝えます。未設定の場合、OpenClaw は **実行時にホストのタイムゾーンを解決** します（設定の書き込みは行いません）。
 
 ```json5
 {
@@ -93,6 +92,6 @@ OpenClaw は、モデルが **単一の基準時刻** を参照できるよう�
 - ローカル時刻とタイムゾーンを含む `Current Date & Time` セクション
 - `Time format: 12-hour` または `24-hour`
 
-`agents.defaults.timeFormat`（`auto` | `12` | `24`）で、プロンプト形式を制御できます。
+`agents.defaults.timeFormat`（`auto` | `12` | `24`）でプロンプト形式を制御できます。
 
-完全な挙動と例については、[Date & Time](/date-time) を参照してください。
+全体の挙動と例については [Date & Time](/date-time) を参照してください。

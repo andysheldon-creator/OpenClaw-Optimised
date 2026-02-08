@@ -1,79 +1,79 @@
 ---
-summary: "Betreiben Sie OpenClaw Gateway rund um die Uhr auf einem günstigen Hetzner-VPS (Docker) mit dauerhaftem Zustand und fest eingebauten Binärdateien"
+summary: „Betreiben Sie OpenClaw Gateway rund um die Uhr auf einem günstigen Hetzner‑VPS (Docker) mit dauerhaftem Zustand und fest integrierten Binaries“
 read_when:
-  - Sie möchten OpenClaw rund um die Uhr auf einem Cloud-VPS ausführen (nicht auf Ihrem Laptop)
+  - Sie möchten OpenClaw rund um die Uhr auf einem Cloud‑VPS (nicht auf Ihrem Laptop) betreiben
   - Sie möchten ein produktionsreifes, dauerhaft aktives Gateway auf Ihrem eigenen VPS
-  - Sie möchten volle Kontrolle über Persistenz, Binärdateien und Neustartverhalten
+  - Sie möchten volle Kontrolle über Persistenz, Binaries und Neustartverhalten
   - Sie betreiben OpenClaw in Docker auf Hetzner oder einem ähnlichen Anbieter
-title: "Hetzner"
+title: „Hetzner“
 x-i18n:
   source_path: install/hetzner.md
   source_hash: 84d9f24f1a803aa1
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:04:45Z
+  generated_at: 2026-02-08T09:36:43Z
 ---
 
-# OpenClaw auf Hetzner (Docker, Produktions-VPS-Leitfaden)
+# OpenClaw auf Hetzner (Docker, Produktions‑VPS‑Leitfaden)
 
 ## Ziel
 
-Betreiben Sie ein persistentes OpenClaw Gateway auf einem Hetzner-VPS mit Docker, mit dauerhaftem Zustand, fest eingebauten Binärdateien und sicherem Neustartverhalten.
+Ein persistentes OpenClaw Gateway auf einem Hetzner‑VPS mit Docker betreiben – mit dauerhaftem Zustand, fest integrierten Binaries und sicherem Neustartverhalten.
 
-Wenn Sie „OpenClaw 24/7 für ~5 $“ möchten, ist dies das einfachste zuverlässige Setup.  
-Die Hetzner-Preise ändern sich; wählen Sie den kleinsten Debian-/Ubuntu-VPS und skalieren Sie hoch, falls Sie auf OOMs stoßen.
+Wenn Sie „OpenClaw 24/7 für ~5 $“ möchten, ist dies das einfachste zuverlässige Setup.
+Die Preise bei Hetzner ändern sich; wählen Sie den kleinsten Debian/Ubuntu‑VPS und skalieren Sie hoch, falls OOMs auftreten.
 
-## Was machen wir (einfach erklärt)?
+## Was machen wir (in einfachen Worten)?
 
-- Mieten eines kleinen Linux-Servers (Hetzner VPS)
-- Installation von Docker (isolierte App-Laufzeit)
-- Start des OpenClaw Gateway in Docker
-- Persistieren von `~/.openclaw` + `~/.openclaw/workspace` auf dem Host (überlebt Neustarts/Neubauten)
-- Zugriff auf die Control UI von Ihrem Laptop über einen SSH-Tunnel
+- Einen kleinen Linux‑Server mieten (Hetzner‑VPS)
+- Docker installieren (isolierte App‑Laufzeit)
+- Das OpenClaw Gateway in Docker starten
+- `~/.openclaw` + `~/.openclaw/workspace` auf dem Host persistieren (übersteht Neustarts/Rebuilds)
+- Über einen SSH‑Tunnel von Ihrem Laptop auf die Control UI zugreifen
 
-Der Zugriff auf das Gateway ist möglich über:
+Auf das Gateway kann zugegriffen werden über:
 
-- SSH-Portweiterleitung von Ihrem Laptop
-- Direkte Portfreigabe, wenn Sie Firewalling und Tokens selbst verwalten
+- SSH‑Port‑Weiterleitung von Ihrem Laptop
+- Direkte Port‑Freigabe, wenn Sie Firewalling und Tokens selbst verwalten
 
 Dieser Leitfaden geht von Ubuntu oder Debian auf Hetzner aus.  
-Wenn Sie einen anderen Linux-VPS verwenden, passen Sie die Pakete entsprechend an.  
-Für den generischen Docker-Ablauf siehe [Docker](/install/docker).
+Wenn Sie einen anderen Linux‑VPS verwenden, ordnen Sie die Pakete entsprechend zu.
+Für den generischen Docker‑Ablauf siehe [Docker](/install/docker).
 
 ---
 
-## Schnellpfad (erfahrene Operatoren)
+## Schneller Weg (erfahrene Betreiber)
 
-1. Hetzner-VPS bereitstellen
+1. Hetzner‑VPS bereitstellen
 2. Docker installieren
-3. OpenClaw-Repository klonen
-4. Persistente Host-Verzeichnisse erstellen
+3. OpenClaw‑Repository klonen
+4. Persistente Host‑Verzeichnisse erstellen
 5. `.env` und `docker-compose.yml` konfigurieren
-6. Erforderliche Binärdateien in das Image einbauen
+6. Erforderliche Binaries in das Image einbacken
 7. `docker compose up -d`
-8. Persistenz und Gateway-Zugriff verifizieren
+8. Persistenz und Gateway‑Zugriff verifizieren
 
 ---
 
 ## Was Sie benötigen
 
-- Hetzner-VPS mit Root-Zugriff
-- SSH-Zugriff von Ihrem Laptop
+- Hetzner‑VPS mit Root‑Zugriff
+- SSH‑Zugriff von Ihrem Laptop
 - Grundlegende Vertrautheit mit SSH + Copy/Paste
 - ~20 Minuten
 - Docker und Docker Compose
-- Modell-Auth-Zugangsdaten
-- Optionale Anbieter-Zugangsdaten
-  - WhatsApp-QR
-  - Telegram-Bot-Token
-  - Gmail-OAuth
+- Modell‑Authentifizierungsdaten
+- Optionale Anbieter‑Zugangsdaten
+  - WhatsApp‑QR
+  - Telegram‑Bot‑Token
+  - Gmail‑OAuth
 
 ---
 
 ## 1) VPS bereitstellen
 
-Erstellen Sie einen Ubuntu- oder Debian-VPS bei Hetzner.
+Erstellen Sie einen Ubuntu‑ oder Debian‑VPS bei Hetzner.
 
 Als Root verbinden:
 
@@ -81,7 +81,7 @@ Als Root verbinden:
 ssh root@YOUR_VPS_IP
 ```
 
-Dieser Leitfaden geht davon aus, dass der VPS zustandsbehaftet ist.  
+Dieser Leitfaden geht davon aus, dass der VPS zustandsbehaftet ist.
 Behandeln Sie ihn nicht als wegwerfbare Infrastruktur.
 
 ---
@@ -94,7 +94,7 @@ apt-get install -y git curl ca-certificates
 curl -fsSL https://get.docker.com | sh
 ```
 
-Überprüfen:
+Verifizieren:
 
 ```bash
 docker --version
@@ -103,21 +103,21 @@ docker compose version
 
 ---
 
-## 3) OpenClaw-Repository klonen
+## 3) OpenClaw‑Repository klonen
 
 ```bash
 git clone https://github.com/openclaw/openclaw.git
 cd openclaw
 ```
 
-Dieser Leitfaden geht davon aus, dass Sie ein benutzerdefiniertes Image bauen, um die Persistenz der Binärdateien sicherzustellen.
+Dieser Leitfaden geht davon aus, dass Sie ein benutzerdefiniertes Image bauen, um die Persistenz der Binaries zu gewährleisten.
 
 ---
 
-## 4) Persistente Host-Verzeichnisse erstellen
+## 4) Persistente Host‑Verzeichnisse erstellen
 
-Docker-Container sind ephemer.  
-Alle langlebigen Zustände müssen auf dem Host liegen.
+Docker‑Container sind ephemer.
+Jeglicher langlebige Zustand muss auf dem Host liegen.
 
 ```bash
 mkdir -p /root/.openclaw
@@ -132,7 +132,7 @@ chown -R 1000:1000 /root/.openclaw/workspace
 
 ## 5) Umgebungsvariablen konfigurieren
 
-Erstellen Sie `.env` im Repository-Root.
+Erstellen Sie `.env` im Repository‑Root.
 
 ```bash
 OPENCLAW_IMAGE=openclaw:latest
@@ -157,7 +157,7 @@ openssl rand -hex 32
 
 ---
 
-## 6) Docker-Compose-Konfiguration
+## 6) Docker‑Compose‑Konfiguration
 
 Erstellen oder aktualisieren Sie `docker-compose.yml`.
 
@@ -204,29 +204,29 @@ services:
 
 ---
 
-## 7) Erforderliche Binärdateien in das Image einbauen (kritisch)
+## 7) Erforderliche Binaries in das Image einbacken (kritisch)
 
-Das Installieren von Binärdateien in einem laufenden Container ist eine Falle.  
-Alles, was zur Laufzeit installiert wird, geht bei einem Neustart verloren.
+Binaries in einem laufenden Container zu installieren, ist eine Falle.
+Alles, was zur Laufzeit installiert wird, geht beim Neustart verloren.
 
-Alle externen Binärdateien, die von Skills benötigt werden, müssen beim Build des Images installiert werden.
+Alle externen Binaries, die von Skills benötigt werden, müssen zur Build‑Zeit des Images installiert werden.
 
-Die folgenden Beispiele zeigen nur drei gängige Binärdateien:
+Die folgenden Beispiele zeigen nur drei gängige Binaries:
 
-- `gog` für Gmail-Zugriff
+- `gog` für Gmail‑Zugriff
 - `goplaces` für Google Places
 - `wacli` für WhatsApp
 
-Dies sind Beispiele, keine vollständige Liste.  
-Sie können beliebig viele Binärdateien nach demselben Muster installieren.
+Dies sind Beispiele, keine vollständige Liste.
+Sie können beliebig viele Binaries nach demselben Muster installieren.
 
-Wenn Sie später neue Skills hinzufügen, die zusätzliche Binärdateien benötigen, müssen Sie:
+Wenn Sie später neue Skills hinzufügen, die zusätzliche Binaries benötigen, müssen Sie:
 
 1. Das Dockerfile aktualisieren
 2. Das Image neu bauen
 3. Die Container neu starten
 
-**Beispiel-Dockerfile**
+**Beispiel‑Dockerfile**
 
 ```dockerfile
 FROM node:22-bookworm
@@ -274,7 +274,7 @@ docker compose build
 docker compose up -d openclaw-gateway
 ```
 
-Binärdateien überprüfen:
+Binaries verifizieren:
 
 ```bash
 docker compose exec openclaw-gateway which gog
@@ -314,24 +314,24 @@ ssh -N -L 18789:127.0.0.1:18789 root@YOUR_VPS_IP
 
 `http://127.0.0.1:18789/`
 
-Fügen Sie Ihr Gateway-Token ein.
+Fügen Sie Ihr Gateway‑Token ein.
 
 ---
 
-## Was wo persistiert (Quelle der Wahrheit)
+## Was wo persistiert (Single Source of Truth)
 
-OpenClaw läuft in Docker, aber Docker ist nicht die Quelle der Wahrheit.  
-Alle langlebigen Zustände müssen Neustarts, Neubauten und Reboots überleben.
+OpenClaw läuft in Docker, aber Docker ist nicht die Single Source of Truth.
+Jeglicher langlebige Zustand muss Neustarts, Rebuilds und Reboots überstehen.
 
-| Komponente             | Speicherort                       | Persistenzmechanismus  | Hinweise                           |
-| ---------------------- | --------------------------------- | ---------------------- | ---------------------------------- |
-| Gateway-Konfiguration  | `/home/node/.openclaw/`           | Host-Volume-Mount      | Enthält `openclaw.json`, Tokens    |
-| Modell-Auth-Profile    | `/home/node/.openclaw/`           | Host-Volume-Mount      | OAuth-Tokens, API-Schlüssel        |
-| Skills-Konfigurationen | `/home/node/.openclaw/skills/`    | Host-Volume-Mount      | Skill-spezifischer Zustand         |
-| Agent-Arbeitsbereich   | `/home/node/.openclaw/workspace/` | Host-Volume-Mount      | Code und Agent-Artefakte           |
-| WhatsApp-Sitzung       | `/home/node/.openclaw/`           | Host-Volume-Mount      | Erhält QR-Login                    |
-| Gmail-Schlüsselbund    | `/home/node/.openclaw/`           | Host-Volume + Passwort | Erfordert `GOG_KEYRING_PASSWORD`   |
-| Externe Binärdateien   | `/usr/local/bin/`                 | Docker-Image           | Müssen beim Build eingebaut werden |
-| Node-Runtime           | Container-Dateisystem             | Docker-Image           | Bei jedem Image-Build neu gebaut   |
-| OS-Pakete              | Container-Dateisystem             | Docker-Image           | Nicht zur Laufzeit installieren    |
-| Docker-Container       | Ephemer                           | Neustartbar            | Sicher zu zerstören                |
+| Komponente             | Speicherort                       | Persistenzmechanismus  | Hinweise                                 |
+| ---------------------- | --------------------------------- | ---------------------- | ---------------------------------------- |
+| Gateway‑Konfiguration  | `/home/node/.openclaw/`           | Host‑Volume‑Mount      | Enthält `openclaw.json`, Tokens          |
+| Modell‑Auth‑Profile    | `/home/node/.openclaw/`           | Host‑Volume‑Mount      | OAuth‑Tokens, API‑Schlüssel              |
+| Skills‑Konfigurationen | `/home/node/.openclaw/skills/`    | Host‑Volume‑Mount      | Zustand auf Skill‑Ebene                  |
+| Agent‑Arbeitsbereich   | `/home/node/.openclaw/workspace/` | Host‑Volume‑Mount      | Code und Agent‑Artefakte                 |
+| WhatsApp‑Sitzung       | `/home/node/.openclaw/`           | Host‑Volume‑Mount      | Bewahrt QR‑Login                         |
+| Gmail‑Keyring          | `/home/node/.openclaw/`           | Host‑Volume + Passwort | Erfordert `GOG_KEYRING_PASSWORD`         |
+| Externe Binaries       | `/usr/local/bin/`                 | Docker‑Image           | Müssen zur Build‑Zeit eingebacken werden |
+| Node‑Runtime           | Container‑Dateisystem             | Docker‑Image           | Bei jedem Image‑Build neu gebaut         |
+| OS‑Pakete              | Container‑Dateisystem             | Docker‑Image           | Nicht zur Laufzeit installieren          |
+| Docker‑Container       | Ephemer                           | Neustartbar            | Sicher zu zerstören                      |

@@ -1,5 +1,5 @@
 ---
-summary: "OpenProse: flujos de trabajo .prose, comandos con barra y estado en OpenClaw"
+summary: "OpenProse: flujos de trabajo .prose, comandos de barra y estado en OpenClaw"
 read_when:
   - Quiere ejecutar o escribir flujos de trabajo .prose
   - Quiere habilitar el plugin OpenProse
@@ -7,26 +7,26 @@ read_when:
 title: "OpenProse"
 x-i18n:
   source_path: prose.md
-  source_hash: cf7301e927b9a463
+  source_hash: 53c161466d278e5f
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:59:39Z
+  generated_at: 2026-02-08T09:34:17Z
 ---
 
 # OpenProse
 
-OpenProse es un formato de flujo de trabajo portátil, basado primero en Markdown, para orquestar sesiones de IA. En OpenClaw se distribuye como un plugin que instala un paquete de Skills de OpenProse además de un comando con barra `/prose`. Los programas viven en archivos `.prose` y pueden generar múltiples subagentes con control de flujo explícito.
+OpenProse es un formato de flujo de trabajo portátil, _markdown-first_, para orquestar sesiones de IA. En OpenClaw se distribuye como un plugin que instala un paquete de Skills de OpenProse más un comando de barra `/prose`. Los programas viven en archivos `.prose` y pueden generar múltiples subagentes con control de flujo explícito.
 
-Sitio oficial: https://www.prose.md
+Sitio oficial: [https://www.prose.md](https://www.prose.md)
 
-## Qué puede hacer
+## Lo que puede hacer
 
 - Investigación y síntesis multiagente con paralelismo explícito.
-- Flujos de trabajo repetibles y seguros para aprobación (revisión de código, triaje de incidentes, canalizaciones de contenido).
-- Programas `.prose` reutilizables que puede ejecutar en los entornos de agente compatibles.
+- Flujos de trabajo repetibles y seguros para aprobaciones (revisión de código, triaje de incidentes, pipelines de contenido).
+- Programas `.prose` reutilizables que puede ejecutar en runtimes de agentes compatibles.
 
-## Instalar y habilitar
+## Instalar + habilitar
 
 Los plugins incluidos vienen deshabilitados por defecto. Habilite OpenProse:
 
@@ -38,11 +38,11 @@ Reinicie el Gateway después de habilitar el plugin.
 
 Checkout de desarrollo/local: `openclaw plugins install ./extensions/open-prose`
 
-Documentación relacionada: [Plugins](/plugin), [Manifiesto de plugin](/plugins/manifest), [Skills](/tools/skills).
+Documentos relacionados: [Plugins](/tools/plugin), [Manifiesto de plugin](/plugins/manifest), [Skills](/tools/skills).
 
-## Comando con barra
+## Comando de barra
 
-OpenProse registra `/prose` como un comando de Skill invocable por el usuario. Enruta a las instrucciones de la VM de OpenProse y utiliza herramientas de OpenClaw internamente.
+OpenProse registra `/prose` como un comando de Skills invocable por el usuario. Se enruta a las instrucciones de la VM de OpenProse y usa herramientas de OpenClaw por debajo.
 
 Comandos comunes:
 
@@ -114,28 +114,28 @@ OpenProse admite múltiples backends de estado:
 
 Notas:
 
-- sqlite/postgres son de activación opcional y experimentales.
-- Las credenciales de postgres fluyen a los registros de subagentes; use una base de datos dedicada con privilegios mínimos.
+- sqlite/postgres son opcionales y experimentales.
+- Las credenciales de postgres fluyen a los logs de subagentes; use una base de datos dedicada con privilegios mínimos.
 
 ## Programas remotos
 
 `/prose run <handle/slug>` se resuelve a `https://p.prose.md/<handle>/<slug>`.
-Las URL directas se obtienen tal cual. Esto utiliza la herramienta `web_fetch` (o `exec` para POST).
+Las URL directas se obtienen tal cual. Esto usa la herramienta `web_fetch` (o `exec` para POST).
 
-## Mapeo del runtime de OpenClaw
+## Mapeo de runtime de OpenClaw
 
 Los programas de OpenProse se mapean a primitivas de OpenClaw:
 
-| Concepto de OpenProse               | Herramienta de OpenClaw |
-| ----------------------------------- | ----------------------- |
-| Crear sesión / herramienta de tarea | `sessions_spawn`        |
-| Lectura/escritura de archivos       | `read` / `write`        |
-| Obtención web                       | `web_fetch`             |
+| Concepto de OpenProse                 | Herramienta de OpenClaw |
+| ------------------------------------- | ----------------------- |
+| Iniciar sesión / Herramienta de tarea | `sessions_spawn`        |
+| Lectura/escritura de archivos         | `read` / `write`        |
+| Obtención web                         | `web_fetch`             |
 
-Si su lista permitida de herramientas bloquea estas herramientas, los programas de OpenProse fallarán. Consulte la [configuracion de Skills](/tools/skills-config).
+Si su lista de permitidos de herramientas bloquea estas herramientas, los programas de OpenProse fallarán. Consulte [Configuración de Skills](/tools/skills-config).
 
-## Seguridad y aprobaciones
+## Seguridad + aprobaciones
 
-Trate los archivos `.prose` como código. Revise antes de ejecutar. Use listas permitidas de herramientas de OpenClaw y compuertas de aprobación para controlar efectos secundarios.
+Trate los archivos `.prose` como código. Revise antes de ejecutar. Use listas de permitidos de herramientas de OpenClaw y compuertas de aprobación para controlar efectos secundarios.
 
-Para flujos de trabajo deterministas y con aprobación controlada, compárelo con [Lobster](/tools/lobster).
+Para flujos de trabajo deterministas y con aprobación, compare con [Lobster](/tools/lobster).

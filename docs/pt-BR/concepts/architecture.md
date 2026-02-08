@@ -5,11 +5,11 @@ read_when:
 title: "Arquitetura do Gateway"
 x-i18n:
   source_path: concepts/architecture.md
-  source_hash: c636d5d8a5e62806
+  source_hash: 14079136faa267d7
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:53Z
+  generated_at: 2026-02-08T09:30:35Z
 ---
 
 # Arquitetura do Gateway
@@ -18,22 +18,22 @@ x-i18n:
 
 ## Visão geral
 
-- Um único **Gateway** de longa duração é dono de todas as superfícies de mensagens (WhatsApp via
+- Um único **Gateway** de longa duração controla todas as superfícies de mensagens (WhatsApp via
   Baileys, Telegram via grammY, Slack, Discord, Signal, iMessage, WebChat).
-- Clientes do plano de controle (app macOS, CLI, UI web, automações) se conectam ao
+- Clientes do plano de controle (app macOS, CLI, UI web, automações) conectam-se ao
   Gateway via **WebSocket** no host de bind configurado (padrão
   `127.0.0.1:18789`).
 - **Nodes** (macOS/iOS/Android/headless) também se conectam via **WebSocket**, mas
-  declaram `role: node` com caps/comandos explícitos.
-- Um Gateway por host; é o único local que abre uma sessão do WhatsApp.
-- Um **host de canvas** (padrão `18793`) serve HTML editável por agentes e A2UI.
+  declaram `role: node` com capacidades/comandos explícitos.
+- Um Gateway por host; é o único lugar que abre uma sessão do WhatsApp.
+- Um **host de canvas** (padrão `18793`) serve HTML editável pelo agente e A2UI.
 
 ## Componentes e fluxos
 
 ### Gateway (daemon)
 
 - Mantém conexões com provedores.
-- Expõe uma API WS tipada (requisições, respostas, eventos de push do servidor).
+- Expõe uma API WS tipada (requisições, respostas, eventos enviados pelo servidor).
 - Valida frames de entrada contra JSON Schema.
 - Emite eventos como `agent`, `chat`, `presence`, `health`, `heartbeat`, `cron`.
 
@@ -45,19 +45,19 @@ x-i18n:
 
 ### Nodes (macOS / iOS / Android / headless)
 
-- Conectam ao **mesmo servidor WS** com `role: node`.
+- Conectam-se ao **mesmo servidor WS** com `role: node`.
 - Fornecem uma identidade de dispositivo em `connect`; o pareamento é **baseado em dispositivo** (papel `node`) e
-  a aprovação fica na store de pareamento de dispositivos.
-- Expõem comandos como `canvas.*`, `camera.*`, `screen.record`, `location.get`.
+  a aprovação fica no armazenamento de pareamento de dispositivos.
+- Exponham comandos como `canvas.*`, `camera.*`, `screen.record`, `location.get`.
 
 Detalhes do protocolo:
 
-- [Protocolo do Gateway](/gateway/protocol)
+- [Gateway protocol](/gateway/protocol)
 
 ### WebChat
 
 - UI estática que usa a API WS do Gateway para histórico de chat e envios.
-- Em configurações remotas, conecta pelo mesmo túnel SSH/Tailscale que outros
+- Em configurações remotas, conecta-se pelo mesmo túnel SSH/Tailscale que outros
   clientes.
 
 ## Ciclo de vida da conexão (cliente único)
@@ -79,7 +79,7 @@ Client                    Gateway
   |                          |
 ```
 
-## Protocolo de wire (resumo)
+## Protocolo de fio (resumo)
 
 - Transporte: WebSocket, frames de texto com payloads JSON.
 - O primeiro frame **deve** ser `connect`.
@@ -89,48 +89,50 @@ Client                    Gateway
 - Se `OPENCLAW_GATEWAY_TOKEN` (ou `--token`) estiver definido, `connect.params.auth.token`
   deve corresponder ou o socket é fechado.
 - Chaves de idempotência são obrigatórias para métodos com efeitos colaterais (`send`, `agent`) para
-  permitir retry seguro; o servidor mantém um cache de deduplicação de curta duração.
-- Nodes devem incluir `role: "node"` mais caps/comandos/permissões em `connect`.
+  permitir retry com segurança; o servidor mantém um cache de deduplicação de curta duração.
+- Nodes devem incluir `role: "node"` mais capacidades/comandos/permissões em `connect`.
 
 ## Pareamento + confiança local
 
 - Todos os clientes WS (operadores + nodes) incluem uma **identidade de dispositivo** em `connect`.
 - Novos IDs de dispositivo exigem aprovação de pareamento; o Gateway emite um **token de dispositivo**
   para conexões subsequentes.
-- Conexões **locais** (loopback ou o próprio endereço tailnet do host do gateway) podem ser
-  autoaprovadas para manter uma UX fluida no mesmo host.
+- Conexões **locais** (loopback ou o endereço do próprio host do gateway na tailnet) podem ser
+  aprovadas automaticamente para manter a UX no mesmo host fluida.
 - Conexões **não locais** devem assinar o nonce `connect.challenge` e exigem
   aprovação explícita.
 - A autenticação do Gateway (`gateway.auth.*`) ainda se aplica a **todas** as conexões, locais ou
   remotas.
 
-Detalhes: [Protocolo do Gateway](/gateway/protocol), [Pareamento](/start/pairing),
-[Segurança](/gateway/security).
+Detalhes: [Gateway protocol](/gateway/protocol), [Pairing](/channels/pairing),
+[Security](/gateway/security).
 
-## Tipagem de protocolo e codegen
+## Tipagem do protocolo e codegen
 
-- Schemas TypeBox definem o protocolo.
-- JSON Schema é gerado a partir desses schemas.
+- Esquemas TypeBox definem o protocolo.
+- JSON Schema é gerado a partir desses esquemas.
 - Modelos Swift são gerados a partir do JSON Schema.
 
 ## Acesso remoto
 
 - Preferencial: Tailscale ou VPN.
 - Alternativa: túnel SSH
+
   ```bash
   ssh -N -L 18789:127.0.0.1:18789 user@host
   ```
+
 - O mesmo handshake + token de autenticação se aplicam pelo túnel.
-- TLS + pinning opcional podem ser habilitados para WS em configurações remotas.
+- TLS + pinagem opcional podem ser habilitados para WS em configurações remotas.
 
-## Snapshot operacional
+## Panorama de operações
 
-- Início: `openclaw gateway` (foreground, logs em stdout).
+- Inicialização: `openclaw gateway` (foreground, logs para stdout).
 - Saúde: `health` via WS (também incluído em `hello-ok`).
 - Supervisão: launchd/systemd para reinício automático.
 
 ## Invariantes
 
 - Exatamente um Gateway controla uma única sessão Baileys por host.
-- Handshake é obrigatório; qualquer primeiro frame que não seja JSON ou não seja connect resulta em fechamento imediato.
-- Eventos não são reproduzidos; clientes devem atualizar ao detectar lacunas.
+- O handshake é obrigatório; qualquer primeiro frame não‑JSON ou não‑connect resulta em fechamento imediato.
+- Eventos não são reproduzidos; clientes devem atualizar em caso de lacunas.

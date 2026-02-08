@@ -1,5 +1,5 @@
 ---
-summary: "Bảng Canvas do tác tử điều khiển được nhúng qua WKWebView + sơ đồ URL tùy chỉnh"
+summary: "Bảng Canvas do tác tử điều khiển được nhúng qua WKWebView + cơ chế URL tùy chỉnh"
 read_when:
   - Triển khai bảng Canvas trên macOS
   - Thêm điều khiển tác tử cho không gian làm việc trực quan
@@ -11,7 +11,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:51Z
+  generated_at: 2026-02-08T09:39:41Z
 ---
 
 # Canvas (ứng dụng macOS)
@@ -26,7 +26,7 @@ Trạng thái Canvas được lưu dưới Application Support:
 
 - `~/Library/Application Support/OpenClaw/canvas/<session>/...`
 
-Bảng Canvas phục vụ các tệp đó thông qua **sơ đồ URL tùy chỉnh**:
+Bảng Canvas phục vụ các tệp đó thông qua **cơ chế URL tùy chỉnh**:
 
 - `openclaw-canvas://<session>/<path>`
 
@@ -36,24 +36,24 @@ Ví dụ:
 - `openclaw-canvas://main/assets/app.css` → `<canvasRoot>/main/assets/app.css`
 - `openclaw-canvas://main/widgets/todo/` → `<canvasRoot>/main/widgets/todo/index.html`
 
-Nếu không tồn tại `index.html` ở thư mục gốc, ứng dụng sẽ hiển thị **trang khung dựng sẵn**.
+Nếu không có `index.html` ở thư mục gốc, ứng dụng sẽ hiển thị **trang khung dựng sẵn**.
 
 ## Hành vi của bảng
 
-- Bảng không viền, có thể thay đổi kích thước, neo gần thanh menu (hoặc con trỏ chuột).
+- Bảng không viền, có thể thay đổi kích thước, được neo gần thanh menu (hoặc con trỏ chuột).
 - Ghi nhớ kích thước/vị trí theo từng phiên.
-- Tự động tải lại khi các tệp canvas cục bộ thay đổi.
+- Tự động tải lại khi các tệp Canvas cục bộ thay đổi.
 - Chỉ một bảng Canvas hiển thị tại một thời điểm (phiên sẽ được chuyển khi cần).
 
-Canvas có thể bị tắt từ Cài đặt → **Allow Canvas**. Khi bị tắt, các lệnh node canvas
+Canvas có thể bị tắt từ Settings → **Allow Canvas**. Khi bị tắt, các lệnh node canvas
 trả về `CANVAS_DISABLED`.
 
 ## Bề mặt API cho tác tử
 
-Canvas được phơi bày qua **Gateway WebSocket**, vì vậy tác tử có thể:
+Canvas được mở ra qua **Gateway WebSocket**, vì vậy tác tử có thể:
 
 - hiển thị/ẩn bảng
-- điều hướng đến một đường dẫn hoặc URL
+- điều hướng tới một đường dẫn hoặc URL
 - thực thi JavaScript
 - chụp ảnh snapshot
 
@@ -68,14 +68,14 @@ openclaw nodes canvas snapshot --node <id>
 
 Ghi chú:
 
-- `canvas.navigate` chấp nhận **đường dẫn canvas cục bộ**, URL `http(s)` và URL `file://`.
+- `canvas.navigate` chấp nhận **đường dẫn Canvas cục bộ**, URL `http(s)` và URL `file://`.
 - Nếu bạn truyền `"/"`, Canvas sẽ hiển thị khung dựng cục bộ hoặc `index.html`.
 
 ## A2UI trong Canvas
 
-A2UI được lưu trữ bởi Gateway canvas host và được render bên trong bảng Canvas.
+A2UI được Gateway canvas host lưu trữ và được render bên trong bảng Canvas.
 Khi Gateway quảng bá một Canvas host, ứng dụng macOS sẽ tự động điều hướng đến
-trang host A2UI ở lần mở đầu tiên.
+trang host A2UI khi mở lần đầu.
 
 URL host A2UI mặc định:
 
@@ -85,7 +85,7 @@ http://<gateway-host>:18793/__openclaw__/a2ui/
 
 ### Lệnh A2UI (v0.8)
 
-Hiện tại Canvas chấp nhận các thông điệp server→client **A2UI v0.8**:
+Canvas hiện chấp nhận các thông điệp server→client **A2UI v0.8**:
 
 - `beginRendering`
 - `surfaceUpdate`
@@ -111,7 +111,7 @@ Kiểm tra nhanh:
 openclaw nodes canvas a2ui push --node <id> --text "Hello from A2UI"
 ```
 
-## Kích hoạt chạy tác tử từ Canvas
+## Kích hoạt tác tử chạy từ Canvas
 
 Canvas có thể kích hoạt các lần chạy tác tử mới thông qua deep link:
 
@@ -123,10 +123,10 @@ Ví dụ (trong JS):
 window.location.href = "openclaw://agent?message=Review%20this%20design";
 ```
 
-Ứng dụng sẽ yêu cầu xác nhận trừ khi cung cấp khóa hợp lệ.
+Ứng dụng sẽ yêu cầu xác nhận trừ khi có khóa hợp lệ được cung cấp.
 
 ## Ghi chú bảo mật
 
-- Sơ đồ Canvas chặn truy cập vượt thư mục; các tệp phải nằm dưới thư mục gốc của phiên.
-- Nội dung Canvas cục bộ sử dụng sơ đồ tùy chỉnh (không cần máy chủ local loopback).
-- Các URL `http(s)` bên ngoài chỉ được cho phép khi được điều hướng một cách tường minh.
+- Cơ chế Canvas chặn truy cập vượt thư mục; tệp phải nằm dưới thư mục gốc của phiên.
+- Nội dung Canvas cục bộ dùng cơ chế tùy chỉnh (không cần máy chủ loopback).
+- Các URL `http(s)` bên ngoài chỉ được cho phép khi được điều hướng một cách rõ ràng.

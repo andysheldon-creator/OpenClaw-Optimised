@@ -6,35 +6,35 @@ read_when:
 title: "Zalo Personal"
 x-i18n:
   source_path: channels/zalouser.md
-  source_hash: 2a249728d556e5cc
+  source_hash: ede847ebe6272256
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:35:20Z
+  generated_at: 2026-02-08T09:24:11Z
 ---
 
-# Zalo Personal(비공식)
+# Zalo Personal (비공식)
 
-상태: 실험적입니다. 이 통합은 `zca-cli`를 통해 **개인 Zalo 계정**을 자동화합니다.
+상태: 실험적. 이 통합은 `zca-cli` 를 통해 **Zalo 개인 계정**을 자동화합니다.
 
 > **경고:** 이는 비공식 통합이며 계정 정지/차단으로 이어질 수 있습니다. 사용에 따른 책임은 사용자에게 있습니다.
 
 ## 필요한 플러그인
 
-Zalo Personal은 플러그인으로 제공되며 코어 설치에 번들되어 있지 않습니다.
+Zalo Personal 은 플러그인으로 제공되며 코어 설치에 번들되어 있지 않습니다.
 
-- CLI로 설치: `openclaw plugins install @openclaw/zalouser`
-- 또는 소스 체크아웃에서: `openclaw plugins install ./extensions/zalouser`
-- 자세한 내용은 [Plugins](/plugin)
+- CLI 를 통해 설치: `openclaw plugins install @openclaw/zalouser`
+- 또는 소스 체크아웃에서 설치: `openclaw plugins install ./extensions/zalouser`
+- 세부 정보: [Plugins](/tools/plugin)
 
 ## 사전 요구 사항: zca-cli
 
-Gateway(게이트웨이) 머신에는 `zca` 바이너리가 `PATH`에 उपलब्ध해야 합니다.
+Gateway(게이트웨이) 머신에는 `zca` 바이너리가 `PATH` 에서 사용 가능해야 합니다.
 
 - 확인: `zca --version`
-- 누락된 경우 zca-cli를 설치하십시오(`extensions/zalouser/README.md` 또는 상위 zca-cli 문서 참조).
+- 없을 경우 zca-cli 를 설치하십시오(`extensions/zalouser/README.md` 또는 상위 zca-cli 문서 참고).
 
-## 빠른 설정(초보자)
+## 빠른 설정 (초보자)
 
 1. 플러그인을 설치합니다(위 참조).
 2. 로그인(QR, Gateway(게이트웨이) 머신에서):
@@ -54,21 +54,21 @@ Gateway(게이트웨이) 머신에는 `zca` 바이너리가 `PATH`에 उपल�
 ```
 
 4. Gateway(게이트웨이)를 재시작합니다(또는 온보딩을 완료합니다).
-5. 다이렉트 메시지 접근은 기본적으로 페어링으로 설정되며, 최초 접촉 시 페어링 코드를 승인해야 합니다.
+5. 다이렉트 메시지 접근은 기본적으로 페어링 방식입니다. 최초 접촉 시 페어링 코드를 승인하십시오.
 
-## 개요
+## 무엇인가
 
-- `zca listen`를 사용하여 수신 메시지를 받습니다.
-- `zca msg ...`를 사용하여 응답(텍스트/미디어/링크)을 전송합니다.
-- Zalo Bot API를 사용할 수 없는 “개인 계정” 사용 사례를 위해 설계되었습니다.
+- `zca listen` 를 사용하여 수신 메시지를 수신합니다.
+- `zca msg ...` 를 사용하여 응답(텍스트/미디어/링크)을 전송합니다.
+- Zalo Bot API 를 사용할 수 없는 “개인 계정” 사용 사례를 위해 설계되었습니다.
 
-## 명명
+## 명명 규칙
 
-채널 ID는 **개인 Zalo 사용자 계정**(비공식)을 자동화함을 명확히 하기 위해 `zalouser`입니다. 향후 공식 Zalo API 통합 가능성을 위해 `zalo`는 예약해 둡니다.
+채널 id 는 비공식 **Zalo 개인 사용자 계정** 자동화임을 명확히 하기 위해 `zalouser` 입니다. 향후 공식 Zalo API 통합 가능성을 위해 `zalo` 는 예약해 둡니다.
 
 ## ID 찾기(디렉토리)
 
-디렉토리 CLI를 사용하여 피어/그룹과 해당 ID를 검색합니다:
+디렉토리 CLI 를 사용하여 상대/그룹과 해당 ID 를 탐색할 수 있습니다:
 
 ```bash
 openclaw directory self --channel zalouser
@@ -78,28 +78,28 @@ openclaw directory groups list --channel zalouser --query "work"
 
 ## 제한 사항
 
-- 발신 텍스트는 Zalo 클라이언트 제한으로 인해 약 2000자로 분할됩니다.
+- 발신 텍스트는 Zalo 클라이언트 제한으로 인해 약 2000 자 단위로 분할됩니다.
 - 스트리밍은 기본적으로 차단됩니다.
 
 ## 접근 제어(다이렉트 메시지)
 
-`channels.zalouser.dmPolicy`는 `pairing | allowlist | open | disabled`을 지원합니다(기본값: `pairing`).
-`channels.zalouser.allowFrom`는 사용자 ID 또는 이름을 허용합니다. 마법사는 사용 가능한 경우 `zca friend find`를 통해 이름을 ID로 해석합니다.
+`channels.zalouser.dmPolicy` 은 `pairing | allowlist | open | disabled` 를 지원합니다(기본값: `pairing`).
+`channels.zalouser.allowFrom` 는 사용자 ID 또는 이름을 허용합니다. 마법사는 가능할 경우 `zca friend find` 를 통해 이름을 ID 로 해석합니다.
 
-승인 방법:
+다음을 통해 승인합니다:
 
 - `openclaw pairing list zalouser`
 - `openclaw pairing approve zalouser <code>`
 
 ## 그룹 접근(선택 사항)
 
-- 기본값: `channels.zalouser.groupPolicy = "open"`(그룹 허용). 설정되지 않은 경우 기본값을 재정의하려면 `channels.defaults.groupPolicy`를 사용합니다.
+- 기본값: `channels.zalouser.groupPolicy = "open"` (그룹 허용). 미설정 시 기본값을 재정의하려면 `channels.defaults.groupPolicy` 를 사용하십시오.
 - 허용 목록으로 제한:
   - `channels.zalouser.groupPolicy = "allowlist"`
-  - `channels.zalouser.groups`(키는 그룹 ID 또는 이름)
+  - `channels.zalouser.groups` (키는 그룹 ID 또는 이름)
 - 모든 그룹 차단: `channels.zalouser.groupPolicy = "disabled"`.
-- 구성 마법사는 그룹 허용 목록 입력을 안내할 수 있습니다.
-- 시작 시 OpenClaw는 허용 목록의 그룹/사용자 이름을 ID로 해석하고 매핑을 로그로 남기며, 해석되지 않은 항목은 입력된 그대로 유지합니다.
+- 구성 마법사는 그룹 허용 목록을 묻는 프롬프트를 제공할 수 있습니다.
+- 시작 시 OpenClaw 는 허용 목록의 그룹/사용자 이름을 ID 로 해석하고 매핑을 로그에 기록합니다. 해석되지 않은 항목은 입력된 그대로 유지됩니다.
 
 예시:
 
@@ -137,11 +137,11 @@ openclaw directory groups list --channel zalouser --query "work"
 
 ## 문제 해결
 
-**`zca`를 찾을 수 없음:**
+**`zca` 를 찾을 수 없음:**
 
-- zca-cli를 설치하고 Gateway(게이트웨이) 프로세스의 `PATH`에 포함되어 있는지 확인하십시오.
+- zca-cli 를 설치하고 Gateway(게이트웨이) 프로세스에 대해 `PATH` 에 포함되어 있는지 확인하십시오.
 
 **로그인이 유지되지 않음:**
 
 - `openclaw channels status --probe`
-- 재로그인: `openclaw channels logout --channel zalouser && openclaw channels login --channel zalouser`
+- 다시 로그인: `openclaw channels logout --channel zalouser && openclaw channels login --channel zalouser`

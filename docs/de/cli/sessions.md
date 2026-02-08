@@ -1,5 +1,5 @@
 ---
-summary: "CLI-Referenz für `openclaw sessions` (gespeicherte Sitzungen auflisten + Nutzung)"
+summary: "CLI-Referenz für `openclaw sessions` (gespeicherte Sitzungen auflisten + Verwendung)"
 read_when:
   - Sie möchten gespeicherte Sitzungen auflisten und aktuelle Aktivitäten sehen
 title: "Sitzungen"
@@ -9,12 +9,12 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:49Z
+  generated_at: 2026-02-08T09:35:43Z
 ---
 
 # `openclaw sessions`
 
-Listet gespeicherte Konversationssitzungen auf.
+Listet gespeicherte Unterhaltungssitzungen auf.
 
 ```bash
 openclaw sessions

@@ -2,7 +2,7 @@
 summary: "Tài liệu tham chiếu CLI cho `openclaw approvals` (phê duyệt exec cho gateway hoặc máy chủ node)"
 read_when:
   - Bạn muốn chỉnh sửa phê duyệt exec từ CLI
-  - Bạn cần quản lý danh sách cho phép trên máy chủ gateway hoặc node
+  - Bạn cần quản lý danh sách cho phép trên gateway hoặc máy chủ node
 title: "approvals"
 x-i18n:
   source_path: cli/approvals.md
@@ -10,7 +10,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:15Z
+  generated_at: 2026-02-08T09:38:11Z
 ---
 
 # `openclaw approvals`
@@ -51,7 +51,7 @@ openclaw approvals allowlist remove "~/Projects/**/bin/rg"
 
 ## Ghi chú
 
-- `--node` sử dụng cùng bộ phân giải như `openclaw nodes` (id, tên, ip, hoặc tiền tố id).
-- `--agent` mặc định là `"*"`, áp dụng cho tất cả tác tử.
-- Máy chủ node phải quảng bá `system.execApprovals.get/set` (ứng dụng macOS hoặc máy chủ node không giao diện).
-- Các tệp phê duyệt được lưu theo từng máy chủ tại `~/.openclaw/exec-approvals.json`.
+- `--node` dùng cùng bộ phân giải như `openclaw nodes` (id, name, ip, hoặc tiền tố id).
+- `--agent` mặc định là `"*"`, áp dụng cho tất cả các tác tử.
+- Máy chủ node phải quảng bá `system.execApprovals.get/set` (ứng dụng macOS hoặc máy chủ node headless).
+- Tệp phê duyệt được lưu theo từng máy chủ tại `~/.openclaw/exec-approvals.json`.

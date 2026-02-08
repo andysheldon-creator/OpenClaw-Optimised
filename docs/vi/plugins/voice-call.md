@@ -1,7 +1,7 @@
 ---
-summary: "Plugin Voice Call: gọi ra + gọi vào qua Twilio/Telnyx/Plivo (cài đặt plugin + cấu hình + CLI)"
+summary: "Plugin Voice Call: cuộc gọi đi + đến qua Twilio/Telnyx/Plivo (cài plugin + cấu hình + CLI)"
 read_when:
-  - Bạn muốn thực hiện một cuộc gọi thoại gọi ra từ OpenClaw
+  - Bạn muốn thực hiện một cuộc gọi thoại đi từ OpenClaw
   - Bạn đang cấu hình hoặc phát triển plugin voice-call
 title: "Plugin Voice Call"
 x-i18n:
@@ -10,13 +10,13 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:08:06Z
+  generated_at: 2026-02-08T09:39:54Z
 ---
 
 # Voice Call (plugin)
 
-Gọi thoại cho OpenClaw thông qua một plugin. Hỗ trợ thông báo gọi ra và
-các cuộc hội thoại nhiều lượt với chính sách gọi vào.
+Cuộc gọi thoại cho OpenClaw thông qua một plugin. Hỗ trợ thông báo cuộc gọi đi và
+các cuộc hội thoại nhiều lượt với chính sách cuộc gọi đến.
 
 Các nhà cung cấp hiện tại:
 
@@ -27,16 +27,16 @@ Các nhà cung cấp hiện tại:
 
 Mô hình tư duy nhanh:
 
-- Cài đặt plugin
+- Cài plugin
 - Khởi động lại Gateway
-- Cấu hình trong `plugins.entries.voice-call.config`
-- Sử dụng `openclaw voicecall ...` hoặc công cụ `voice_call`
+- Cấu hình dưới `plugins.entries.voice-call.config`
+- Dùng `openclaw voicecall ...` hoặc công cụ `voice_call`
 
 ## Nơi chạy (local vs remote)
 
 Plugin Voice Call chạy **bên trong tiến trình Gateway**.
 
-Nếu bạn dùng Gateway từ xa, hãy cài đặt/cấu hình plugin trên **máy đang chạy Gateway**, sau đó khởi động lại Gateway để nạp plugin.
+Nếu bạn dùng Gateway từ xa, hãy cài/cấu hình plugin trên **máy chạy Gateway**, sau đó khởi động lại Gateway để tải plugin.
 
 ## Cài đặt
 
@@ -46,7 +46,7 @@ Nếu bạn dùng Gateway từ xa, hãy cài đặt/cấu hình plugin trên **m
 openclaw plugins install @openclaw/voice-call
 ```
 
-Sau đó khởi động lại Gateway.
+Khởi động lại Gateway sau đó.
 
 ### Tùy chọn B: cài từ thư mục local (dev, không sao chép)
 
@@ -55,11 +55,11 @@ openclaw plugins install ./extensions/voice-call
 cd ./extensions/voice-call && pnpm install
 ```
 
-Sau đó khởi động lại Gateway.
+Khởi động lại Gateway sau đó.
 
 ## Cấu hình
 
-Thiết lập cấu hình trong `plugins.entries.voice-call.config`:
+Đặt cấu hình dưới `plugins.entries.voice-call.config`:
 
 ```json5
 {
@@ -116,26 +116,26 @@ Thiết lập cấu hình trong `plugins.entries.voice-call.config`:
 
 Ghi chú:
 
-- Twilio/Telnyx yêu cầu một URL webhook **có thể truy cập công khai**.
-- Plivo yêu cầu một URL webhook **có thể truy cập công khai**.
+- Twilio/Telnyx yêu cầu URL webhook **có thể truy cập công khai**.
+- Plivo yêu cầu URL webhook **có thể truy cập công khai**.
 - `mock` là nhà cung cấp dev local (không gọi mạng).
-- `skipSignatureVerification` chỉ dùng cho kiểm thử local.
-- Nếu dùng ngrok gói miễn phí, đặt `publicUrl` thành URL ngrok chính xác; việc xác minh chữ ký luôn được áp dụng.
-- `tunnel.allowNgrokFreeTierLoopbackBypass: true` cho phép webhook Twilio có chữ ký không hợp lệ **chỉ khi** `tunnel.provider="ngrok"` và `serve.bind` là loopback (ngrok local agent). Chỉ dùng cho dev local.
+- `skipSignatureVerification` chỉ dành cho kiểm thử local.
+- Nếu bạn dùng ngrok gói miễn phí, đặt `publicUrl` thành đúng URL ngrok; việc xác minh chữ ký luôn được áp dụng.
+- `tunnel.allowNgrokFreeTierLoopbackBypass: true` cho phép webhook Twilio với chữ ký không hợp lệ **chỉ khi** `tunnel.provider="ngrok"` và `serve.bind` là loopback (agent ngrok local). Chỉ dùng cho dev local.
 - URL ngrok gói miễn phí có thể thay đổi hoặc thêm hành vi trung gian; nếu `publicUrl` bị lệch, chữ ký Twilio sẽ thất bại. Với production, ưu tiên domain ổn định hoặc Tailscale funnel.
 
 ## Bảo mật Webhook
 
-Khi có proxy hoặc tunnel đứng trước Gateway, plugin sẽ tái tạo
-URL công khai để xác minh chữ ký. Các tùy chọn này kiểm soát những header
-được chuyển tiếp nào được tin cậy.
+Khi có proxy hoặc đường hầm đứng trước Gateway, plugin sẽ tái tạo
+URL công khai để xác minh chữ ký. Các tùy chọn này kiểm soát việc tin cậy
+các header được chuyển tiếp.
 
 `webhookSecurity.allowedHosts` cho phép danh sách host từ các header chuyển tiếp.
 
 `webhookSecurity.trustForwardingHeaders` tin cậy các header chuyển tiếp mà không cần danh sách cho phép.
 
-`webhookSecurity.trustedProxyIPs` chỉ tin cậy các header chuyển tiếp khi IP từ xa của request
-khớp với danh sách.
+`webhookSecurity.trustedProxyIPs` chỉ tin cậy các header chuyển tiếp khi IP remote của
+request khớp với danh sách.
 
 Ví dụ với một host công khai ổn định:
 
@@ -159,8 +159,8 @@ Ví dụ với một host công khai ổn định:
 ## TTS cho cuộc gọi
 
 Voice Call sử dụng cấu hình `messages.tts` cốt lõi (OpenAI hoặc ElevenLabs) để
-stream giọng nói trong cuộc gọi. Bạn có thể ghi đè trong cấu hình plugin với
-**cùng cấu trúc** — nó sẽ deep‑merge với `messages.tts`.
+phát giọng nói streaming trong cuộc gọi. Bạn có thể ghi đè dưới cấu hình plugin
+với **cùng cấu trúc** — nó được deep‑merge với `messages.tts`.
 
 ```json5
 {
@@ -176,8 +176,8 @@ stream giọng nói trong cuộc gọi. Bạn có thể ghi đè trong cấu hì
 
 Ghi chú:
 
-- **Edge TTS bị bỏ qua cho cuộc gọi thoại** (âm thanh viễn thông cần PCM; đầu ra Edge không đáng tin cậy).
-- TTS cốt lõi được dùng khi bật Twilio media streaming; nếu không, cuộc gọi sẽ dùng giọng nói gốc của nhà cung cấp.
+- **Edge TTS bị bỏ qua cho cuộc gọi thoại** (âm thanh điện thoại cần PCM; đầu ra Edge không ổn định).
+- TTS cốt lõi được dùng khi bật Twilio media streaming; nếu không, cuộc gọi sẽ dùng giọng nói native của nhà cung cấp.
 
 ### Thêm ví dụ
 
@@ -238,9 +238,9 @@ Chỉ ghi đè model OpenAI cho cuộc gọi (ví dụ deep‑merge):
 }
 ```
 
-## Cuộc gọi vào
+## Cuộc gọi đến
 
-Chính sách gọi vào mặc định là `disabled`. Để bật cuộc gọi vào, đặt:
+Chính sách cuộc gọi đến mặc định là `disabled`. Để bật cuộc gọi đến, đặt:
 
 ```json5
 {
@@ -250,7 +250,7 @@ Chính sách gọi vào mặc định là `disabled`. Để bật cuộc gọi v
 }
 ```
 
-Phản hồi tự động sử dụng hệ thống agent. Tinh chỉnh với:
+Tự động phản hồi sử dụng hệ thống agent. Tinh chỉnh bằng:
 
 - `responseModel`
 - `responseSystemPrompt`
@@ -268,7 +268,7 @@ openclaw voicecall tail
 openclaw voicecall expose --mode funnel
 ```
 
-## Agent tool
+## Công cụ agent
 
 Tên công cụ: `voice_call`
 
@@ -280,9 +280,9 @@ Hành động:
 - `end_call` (callId)
 - `get_status` (callId)
 
-Repo này đi kèm một tài liệu skill tương ứng tại `skills/voice-call/SKILL.md`.
+Repo này cung cấp tài liệu skill tương ứng tại `skills/voice-call/SKILL.md`.
 
-## Gateway RPC
+## RPC của Gateway
 
 - `voicecall.initiate` (`to?`, `message`, `mode?`)
 - `voicecall.continue` (`callId`, `message`)

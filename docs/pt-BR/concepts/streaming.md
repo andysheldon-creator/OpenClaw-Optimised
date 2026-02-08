@@ -1,9 +1,9 @@
 ---
 summary: "Comportamento de streaming + chunking (respostas em blocos, streaming de rascunho, limites)"
 read_when:
-  - Explicar como o streaming ou o chunking funcionam nos canais
-  - Alterar o streaming de blocos ou o comportamento de chunking por canal
-  - Depurar respostas em bloco duplicadas/antecipadas ou streaming de rascunho
+  - Explicando como o streaming ou chunking funciona nos canais
+  - Alterando o streaming em blocos ou o comportamento de chunking do canal
+  - Depurando respostas em bloco duplicadas/antecipadas ou streaming de rascunho
 title: "Streaming e Chunking"
 x-i18n:
   source_path: concepts/streaming.md
@@ -11,21 +11,21 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:56:09Z
+  generated_at: 2026-02-08T09:30:48Z
 ---
 
 # Streaming + chunking
 
 O OpenClaw tem duas camadas separadas de “streaming”:
 
-- **Streaming de blocos (canais):** emite **blocos** concluídos à medida que o assistente escreve. Essas são mensagens normais do canal (não deltas de tokens).
-- **Streaming tipo token (apenas Telegram):** atualiza um **balão de rascunho** com texto parcial enquanto gera; a mensagem final é enviada no final.
+- **Streaming em blocos (canais):** emite **blocos** concluídos conforme o assistente escreve. São mensagens normais do canal (não deltas de tokens).
+- **Streaming tipo token (apenas Telegram):** atualiza uma **bolha de rascunho** com texto parcial enquanto gera; a mensagem final é enviada ao final.
 
-Atualmente **não há streaming real de tokens** para mensagens de canais externos. O streaming de rascunho do Telegram é a única superfície de streaming parcial.
+Não há **streaming real de tokens** para mensagens externas de canais hoje. O streaming de rascunho do Telegram é a única superfície de streaming parcial.
 
-## Streaming de blocos (mensagens do canal)
+## Streaming em blocos (mensagens do canal)
 
-O streaming de blocos envia a saída do assistente em chunks grossos à medida que ficam disponíveis.
+O streaming em blocos envia a saída do assistente em chunks grosseiros conforme ficam disponíveis.
 
 ```
 Model output
@@ -41,56 +41,56 @@ Legenda:
 
 - `text_delta/events`: eventos de stream do modelo (podem ser esparsos para modelos sem streaming).
 - `chunker`: `EmbeddedBlockChunker` aplicando limites mínimo/máximo + preferência de quebra.
-- `channel send`: mensagens de saída reais (respostas em bloco).
+- `channel send`: mensagens de saída reais (respostas em blocos).
 
 **Controles:**
 
-- `agents.defaults.blockStreamingDefault`: `"on"`/`"off"` (padrão desligado).
+- `agents.defaults.blockStreamingDefault`: `"on"`/`"off"` (desativado por padrão).
 - Substituições por canal: `*.blockStreaming` (e variantes por conta) para forçar `"on"`/`"off"` por canal.
 - `agents.defaults.blockStreamingBreak`: `"text_end"` ou `"message_end"`.
 - `agents.defaults.blockStreamingChunk`: `{ minChars, maxChars, breakPreference? }`.
-- `agents.defaults.blockStreamingCoalesce`: `{ minChars?, maxChars?, idleMs? }` (mesclar blocos em streaming antes de enviar).
-- Limite rígido do canal: `*.textChunkLimit` (ex.: `channels.whatsapp.textChunkLimit`).
+- `agents.defaults.blockStreamingCoalesce`: `{ minChars?, maxChars?, idleMs? }` (mesclar blocos transmitidos antes do envio).
+- Limite rígido do canal: `*.textChunkLimit` (por exemplo, `channels.whatsapp.textChunkLimit`).
 - Modo de chunking do canal: `*.chunkMode` (`length` padrão, `newline` divide em linhas em branco (limites de parágrafo) antes do chunking por comprimento).
 - Limite flexível do Discord: `channels.discord.maxLinesPerMessage` (padrão 17) divide respostas altas para evitar recorte na UI.
 
 **Semântica de limites:**
 
-- `text_end`: transmitir blocos assim que o chunker emitir; descarregar a cada `text_end`.
-- `message_end`: esperar até a mensagem do assistente terminar e então descarregar a saída em buffer.
+- `text_end`: transmite blocos assim que o chunker emite; descarrega a cada `text_end`.
+- `message_end`: aguarda até a mensagem do assistente terminar e então descarrega a saída em buffer.
 
-`message_end` ainda usa o chunker se o texto em buffer exceder `maxChars`, então pode emitir múltiplos chunks no final.
+`message_end` ainda usa o chunker se o texto em buffer exceder `maxChars`, então pode emitir múltiplos chunks ao final.
 
 ## Algoritmo de chunking (limites baixo/alto)
 
 O chunking de blocos é implementado por `EmbeddedBlockChunker`:
 
 - **Limite baixo:** não emitir até o buffer >= `minChars` (a menos que forçado).
-- **Limite alto:** preferir divisões antes de `maxChars`; se forçado, dividir em `maxChars`.
+- **Limite alto:** preferir quebras antes de `maxChars`; se forçado, dividir em `maxChars`.
 - **Preferência de quebra:** `paragraph` → `newline` → `sentence` → `whitespace` → quebra rígida.
-- **Cercas de código:** nunca dividir dentro das cercas; quando forçado em `maxChars`, fechar + reabrir a cerca para manter o Markdown válido.
+- **Cercas de código:** nunca dividir dentro de cercas; quando forçado em `maxChars`, fechar + reabrir a cerca para manter o Markdown válido.
 
 `maxChars` é limitado ao `textChunkLimit` do canal, então você não pode exceder os limites por canal.
 
-## Coalescência (mesclar blocos em streaming)
+## Coalescência (mesclar blocos transmitidos)
 
-Quando o streaming de blocos está habilitado, o OpenClaw pode **mesclar chunks de blocos consecutivos**
+Quando o streaming em blocos está ativado, o OpenClaw pode **mesclar chunks de blocos consecutivos**
 antes de enviá-los. Isso reduz “spam de linha única” enquanto ainda fornece
 saída progressiva.
 
-- A coalescência espera por **intervalos de ociosidade** (`idleMs`) antes de descarregar.
-- Os buffers são limitados por `maxChars` e serão descarregados se excederem esse valor.
-- `minChars` evita o envio de fragmentos minúsculos até que texto suficiente se acumule
+- A coalescência aguarda **intervalos ociosos** (`idleMs`) antes de descarregar.
+- Os buffers são limitados por `maxChars` e serão descarregados se excederem isso.
+- `minChars` impede o envio de fragmentos minúsculos até que texto suficiente se acumule
   (a descarga final sempre envia o texto restante).
 - O conector é derivado de `blockStreamingChunk.breakPreference`
   (`paragraph` → `\n\n`, `newline` → `\n`, `sentence` → espaço).
-- Substituições por canal estão disponíveis via `*.blockStreamingCoalesce` (incluindo configs por conta).
-- O `minChars` padrão de coalescência é aumentado para 1500 para Signal/Slack/Discord, salvo substituição.
+- Substituições por canal estão disponíveis via `*.blockStreamingCoalesce` (incluindo configurações por conta).
+- O `minChars` de coalescência padrão é aumentado para 1500 para Signal/Slack/Discord, a menos que seja substituído.
 
-## Ritmo semelhante ao humano entre blocos
+## Ritmo humano entre blocos
 
-Quando o streaming de blocos está habilitado, você pode adicionar uma **pausa aleatória**
-entre respostas em bloco (após o primeiro bloco). Isso faz com que respostas com múltiplos balões pareçam
+Quando o streaming em blocos está ativado, você pode adicionar uma **pausa aleatória**
+entre respostas em bloco (após o primeiro bloco). Isso faz respostas com múltiplas bolhas parecerem
 mais naturais.
 
 - Configuração: `agents.defaults.humanDelay` (substituir por agente via `agents.list[].humanDelay`).
@@ -103,30 +103,30 @@ Isso mapeia para:
 
 - **Transmitir chunks:** `blockStreamingDefault: "on"` + `blockStreamingBreak: "text_end"` (emitir conforme avança). Canais não Telegram também precisam de `*.blockStreaming: true`.
 - **Transmitir tudo no final:** `blockStreamingBreak: "message_end"` (descarregar uma vez, possivelmente em múltiplos chunks se for muito longo).
-- **Sem streaming de blocos:** `blockStreamingDefault: "off"` (apenas resposta final).
+- **Sem streaming em blocos:** `blockStreamingDefault: "off"` (apenas resposta final).
 
-**Nota do canal:** Para canais não Telegram, o streaming de blocos fica **desligado a menos que**
+**Nota do canal:** Para canais não Telegram, o streaming em blocos fica **desativado a menos que**
 `*.blockStreaming` seja explicitamente definido como `true`. O Telegram pode transmitir rascunhos
 (`channels.telegram.streamMode`) sem respostas em bloco.
 
-Lembrete de localização de configuração: os padrões de `blockStreaming*` ficam em
+Lembrete de local da configuração: os padrões de `blockStreaming*` ficam em
 `agents.defaults`, não na configuração raiz.
 
 ## Streaming de rascunho do Telegram (tipo token)
 
 O Telegram é o único canal com streaming de rascunho:
 
-- Usa a Bot API `sendMessageDraft` em **chats privados com tópicos**.
+- Usa a API de Bot `sendMessageDraft` em **chats privados com tópicos**.
 - `channels.telegram.streamMode: "partial" | "block" | "off"`.
-  - `partial`: atualizações de rascunho com o texto de stream mais recente.
-  - `block`: atualizações de rascunho em blocos com chunking (mesmas regras do chunker).
+  - `partial`: atualizações do rascunho com o texto de stream mais recente.
+  - `block`: atualizações do rascunho em blocos chunked (mesmas regras do chunker).
   - `off`: sem streaming de rascunho.
 - Configuração de chunk do rascunho (apenas para `streamMode: "block"`): `channels.telegram.draftChunk` (padrões: `minChars: 200`, `maxChars: 800`).
-- O streaming de rascunho é separado do streaming de blocos; respostas em bloco ficam desligadas por padrão e só são habilitadas por `*.blockStreaming: true` em canais não Telegram.
+- O streaming de rascunho é separado do streaming em blocos; respostas em bloco ficam desativadas por padrão e só são ativadas por `*.blockStreaming: true` em canais não Telegram.
 - A resposta final ainda é uma mensagem normal.
-- `/reasoning stream` escreve o raciocínio no balão de rascunho (apenas Telegram).
+- `/reasoning stream` grava o raciocínio na bolha de rascunho (apenas Telegram).
 
-Quando o streaming de rascunho está ativo, o OpenClaw desativa o streaming de blocos para essa resposta para evitar streaming duplo.
+Quando o streaming de rascunho está ativo, o OpenClaw desativa o streaming em blocos para aquela resposta para evitar streaming duplo.
 
 ```
 Telegram (private + topics)
@@ -138,5 +138,5 @@ Telegram (private + topics)
 
 Legenda:
 
-- `sendMessageDraft`: balão de rascunho do Telegram (não é uma mensagem real).
-- `final reply`: envio de mensagem normal do Telegram.
+- `sendMessageDraft`: bolha de rascunho do Telegram (não é uma mensagem real).
+- `final reply`: envio normal de mensagem do Telegram.

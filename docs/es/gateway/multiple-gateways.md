@@ -1,35 +1,35 @@
 ---
-summary: "Ejecute multiples Gateways de OpenClaw en un solo host (aislamiento, puertos y perfiles)"
+summary: "Ejecutar múltiples Gateways de OpenClaw en un solo host (aislamiento, puertos y perfiles)"
 read_when:
-  - Ejecuta mas de un Gateway en la misma maquina
-  - Necesita configuracion/estado/puertos aislados por Gateway
-title: "Multiples Gateways"
+  - Ejecutar más de un Gateway en la misma máquina
+  - Necesita configuración/estado/puertos aislados por Gateway
+title: "Múltiples Gateways"
 x-i18n:
   source_path: gateway/multiple-gateways.md
   source_hash: 09b5035d4e5fb97c
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:58:56Z
+  generated_at: 2026-02-08T09:33:29Z
 ---
 
-# Multiples Gateways (mismo host)
+# Múltiples Gateways (mismo host)
 
-La mayoria de las configuraciones deberian usar un solo Gateway porque un unico Gateway puede manejar multiples conexiones de mensajeria y agentes. Si necesita un aislamiento mas fuerte o redundancia (por ejemplo, un bot de rescate), ejecute Gateways separados con perfiles/puertos aislados.
+La mayoría de las configuraciones deberían usar un solo Gateway porque un único Gateway puede manejar múltiples conexiones de mensajería y agentes. Si necesita un aislamiento o redundancia más fuertes (p. ej., un bot de rescate), ejecute Gateways separados con perfiles/puertos aislados.
 
-## Lista de verificacion de aislamiento (obligatoria)
+## Lista de verificación de aislamiento (obligatoria)
 
-- `OPENCLAW_CONFIG_PATH` — archivo de configuracion por instancia
-- `OPENCLAW_STATE_DIR` — sesiones, credenciales y caches por instancia
-- `agents.defaults.workspace` — raiz del espacio de trabajo por instancia
-- `gateway.port` (o `--port`) — unico por instancia
+- `OPENCLAW_CONFIG_PATH` — archivo de configuración por instancia
+- `OPENCLAW_STATE_DIR` — sesiones, credenciales y cachés por instancia
+- `agents.defaults.workspace` — raíz del espacio de trabajo por instancia
+- `gateway.port` (o `--port`) — único por instancia
 - Los puertos derivados (navegador/canvas) no deben superponerse
 
-Si estos se comparten, encontrara condiciones de carrera de configuracion y conflictos de puertos.
+Si estos se comparten, encontrará carreras de configuración y conflictos de puertos.
 
 ## Recomendado: perfiles (`--profile`)
 
-Los perfiles delimitan automaticamente `OPENCLAW_STATE_DIR` + `OPENCLAW_CONFIG_PATH` y agregan un sufijo a los nombres de los servicios.
+Los perfiles delimitan automáticamente `OPENCLAW_STATE_DIR` + `OPENCLAW_CONFIG_PATH` y agregan un sufijo a los nombres de los servicios.
 
 ```bash
 # main
@@ -48,20 +48,20 @@ openclaw --profile main gateway install
 openclaw --profile rescue gateway install
 ```
 
-## Guia de bot de rescate
+## Guía de bot de rescate
 
-Ejecute un segundo Gateway en el mismo host con su propio:
+Ejecute un segundo Gateway en el mismo host con sus propios:
 
-- perfil/configuracion
+- perfil/configuración
 - directorio de estado
 - espacio de trabajo
-- puerto base (mas puertos derivados)
+- puerto base (más puertos derivados)
 
-Esto mantiene al bot de rescate aislado del bot principal para que pueda depurar o aplicar cambios de configuracion si el bot primario esta inactivo.
+Esto mantiene el bot de rescate aislado del bot principal para que pueda depurar o aplicar cambios de configuración si el bot principal está caído.
 
-Espaciado de puertos: deje al menos 20 puertos entre los puertos base para que los puertos derivados de navegador/canvas/CDP nunca colisionen.
+Separación de puertos: deje al menos 20 puertos entre los puertos base para que los puertos derivados de navegador/canvas/CDP nunca colisionen.
 
-### Como instalar (bot de rescate)
+### Cómo instalar (bot de rescate)
 
 ```bash
 # Main bot (existing or fresh, without --profile param)
@@ -87,15 +87,15 @@ Puerto base = `gateway.port` (o `OPENCLAW_GATEWAY_PORT` / `--port`).
 
 - puerto del servicio de control del navegador = base + 2 (solo loopback)
 - `canvasHost.port = base + 4`
-- Los puertos CDP del perfil del navegador se asignan automaticamente desde `browser.controlPort + 9 .. + 108`
+- Los puertos CDP del perfil del navegador se asignan automáticamente desde `browser.controlPort + 9 .. + 108`
 
-Si sobrescribe cualquiera de estos en la configuracion o variables de entorno, debe mantenerlos unicos por instancia.
+Si sobrescribe cualquiera de estos en la configuración o en variables de entorno, debe mantenerlos únicos por instancia.
 
-## Notas de navegador/CDP (trampa comun)
+## Notas sobre Navegador/CDP (error común)
 
-- **No** fije `browser.cdpUrl` a los mismos valores en multiples instancias.
-- Cada instancia necesita su propio puerto de control del navegador y rango CDP (derivado de su puerto del gateway).
-- Si necesita puertos CDP explicitos, configure `browser.profiles.<name>.cdpPort` por instancia.
+- **No** fije `browser.cdpUrl` a los mismos valores en múltiples instancias.
+- Cada instancia necesita su propio puerto de control del navegador y su propio rango CDP (derivado de su puerto del Gateway).
+- Si necesita puertos CDP explícitos, configure `browser.profiles.<name>.cdpPort` por instancia.
 - Chrome remoto: use `browser.profiles.<name>.cdpUrl` (por perfil, por instancia).
 
 ## Ejemplo manual de variables de entorno
@@ -110,7 +110,7 @@ OPENCLAW_STATE_DIR=~/.openclaw-rescue \
 openclaw gateway --port 19001
 ```
 
-## Comprobaciones rapidas
+## Comprobaciones rápidas
 
 ```bash
 openclaw --profile main status

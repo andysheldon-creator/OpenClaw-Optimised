@@ -1,47 +1,47 @@
 ---
-summary: "Como audios/notas de voz de entrada sao baixados, transcritos e injetados nas respostas"
+summary: "Como áudios/notas de voz de entrada são baixados, transcritos e injetados nas respostas"
 read_when:
-  - Alterar transcricao de audio ou manipulacao de midia
-title: "Audio e Notas de Voz"
+  - Ao alterar a transcrição de áudio ou o tratamento de mídia
+title: "Áudio e Notas de Voz"
 x-i18n:
   source_path: nodes/audio.md
   source_hash: b926c47989ab0d1e
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:56:46Z
+  generated_at: 2026-02-08T09:31:20Z
 ---
 
-# Audio / Notas de Voz — 2026-01-17
+# Áudio / Notas de Voz — 2026-01-17
 
 ## O que funciona
 
-- **Compreensao de midia (audio)**: Se a compreensao de audio estiver habilitada (ou detectada automaticamente), o OpenClaw:
-  1. Localiza o primeiro anexo de audio (caminho local ou URL) e faz o download se necessario.
+- **Compreensão de mídia (áudio)**: Se a compreensão de áudio estiver habilitada (ou detectada automaticamente), o OpenClaw:
+  1. Localiza o primeiro anexo de áudio (caminho local ou URL) e faz o download se necessário.
   2. Aplica `maxBytes` antes de enviar para cada entrada de modelo.
-  3. Executa a primeira entrada de modelo elegivel em ordem (provedor ou CLI).
-  4. Se falhar ou pular (tamanho/timeout), tenta a proxima entrada.
+  3. Executa a primeira entrada de modelo elegível em ordem (provedor ou CLI).
+  4. Se falhar ou pular (tamanho/timeout), tenta a próxima entrada.
   5. Em caso de sucesso, substitui `Body` por um bloco `[Audio]` e define `{{Transcript}}`.
-- **Analise de comandos**: Quando a transcricao tem sucesso, `CommandBody`/`RawBody` sao definidos para a transcricao, para que comandos de barra continuem funcionando.
-- **Logs detalhados**: Em `--verbose`, registramos quando a transcricao e executada e quando ela substitui o corpo.
+- **Análise de comandos**: Quando a transcrição é bem-sucedida, `CommandBody`/`RawBody` são definidos como a transcrição para que os comandos de barra continuem funcionando.
+- **Logs detalhados**: Em `--verbose`, registramos quando a transcrição é executada e quando ela substitui o corpo.
 
-## Deteccao automatica (padrao)
+## Detecção automática (padrão)
 
-Se voce **nao configurar modelos** e `tools.media.audio.enabled` **nao** estiver definido como `false`,
-o OpenClaw detecta automaticamente nesta ordem e para na primeira opcao funcional:
+Se você **não configurar modelos** e `tools.media.audio.enabled` **não** estiver definido como `false`,
+o OpenClaw faz a detecção automática nesta ordem e para na primeira opção que funcionar:
 
 1. **CLIs locais** (se instaladas)
    - `sherpa-onnx-offline` (requer `SHERPA_ONNX_MODEL_DIR` com encoder/decoder/joiner/tokens)
-   - `whisper-cli` (de `whisper-cpp`; usa `WHISPER_CPP_MODEL` ou o modelo tiny empacotado)
-   - `whisper` (CLI em Python; baixa modelos automaticamente)
+   - `whisper-cli` (de `whisper-cpp`; usa `WHISPER_CPP_MODEL` ou o modelo tiny incluído)
+   - `whisper` (CLI em Python; baixa os modelos automaticamente)
 2. **Gemini CLI** (`gemini`) usando `read_many_files`
 3. **Chaves de provedor** (OpenAI → Groq → Deepgram → Google)
 
-Para desativar a deteccao automatica, defina `tools.media.audio.enabled: false`.
+Para desativar a detecção automática, defina `tools.media.audio.enabled: false`.
 Para personalizar, defina `tools.media.audio.models`.
-Observacao: A deteccao de binarios e feita por melhor esforco no macOS/Linux/Windows; garanta que a CLI esteja no `PATH` (expandimos `~`), ou defina um modelo de CLI explicito com o caminho completo do comando.
+Nota: A detecção de binários é best-effort em macOS/Linux/Windows; garanta que a CLI esteja em `PATH` (expandimos `~`), ou defina um modelo de CLI explícito com o caminho completo do comando.
 
-## Exemplos de configuracao
+## Exemplos de configuração
 
 ### Provedor + fallback de CLI (OpenAI + Whisper CLI)
 
@@ -101,21 +101,21 @@ Observacao: A deteccao de binarios e feita por melhor esforco no macOS/Linux/Win
 }
 ```
 
-## Observacoes e limites
+## Notas e limites
 
-- A autenticacao do provedor segue a ordem padrao de autenticacao de modelos (perfis de auth, variaveis de ambiente, `models.providers.*.apiKey`).
-- O Deepgram utiliza `DEEPGRAM_API_KEY` quando `provider: "deepgram"` e usado.
-- Detalhes de configuracao do Deepgram: [Deepgram (transcricao de audio)](/providers/deepgram).
-- Provedores de audio podem substituir `baseUrl`, `headers` e `providerOptions` via `tools.media.audio`.
-- O limite de tamanho padrao e 20MB (`tools.media.audio.maxBytes`). Audios acima do limite sao ignorados para aquele modelo e a proxima entrada e tentada.
-- O `maxChars` padrao para audio esta **nao definido** (transcricao completa). Defina `tools.media.audio.maxChars` ou por entrada `maxChars` para reduzir a saida.
-- O padrao automatico da OpenAI e `gpt-4o-mini-transcribe`; defina `model: "gpt-4o-transcribe"` para maior precisao.
-- Use `tools.media.audio.attachments` para processar varias notas de voz (`mode: "all"` + `maxAttachments`).
-- A transcricao fica disponivel para templates como `{{Transcript}}`.
-- A saida stdout da CLI e limitada (5MB); mantenha a saida da CLI concisa.
+- A autenticação do provedor segue a ordem padrão de autenticação do modelo (perfis de autenticação, variáveis de ambiente, `models.providers.*.apiKey`).
+- O Deepgram usa `DEEPGRAM_API_KEY` quando `provider: "deepgram"` é utilizado.
+- Detalhes de configuração do Deepgram: [Deepgram (transcrição de áudio)](/providers/deepgram).
+- Provedores de áudio podem sobrescrever `baseUrl`, `headers` e `providerOptions` via `tools.media.audio`.
+- O limite de tamanho padrão é 20MB (`tools.media.audio.maxBytes`). Áudio acima do tamanho é ignorado para aquele modelo e a próxima entrada é tentada.
+- O `maxChars` padrão para áudio é **não definido** (transcrição completa). Defina `tools.media.audio.maxChars` ou `maxChars` por entrada para reduzir a saída.
+- O padrão automático da OpenAI é `gpt-4o-mini-transcribe`; defina `model: "gpt-4o-transcribe"` para maior precisão.
+- Use `tools.media.audio.attachments` para processar várias notas de voz (`mode: "all"` + `maxAttachments`).
+- A transcrição fica disponível para templates como `{{Transcript}}`.
+- A saída stdout da CLI é limitada (5MB); mantenha a saída da CLI concisa.
 
 ## Armadilhas
 
-- Regras de escopo usam o primeiro match como vencedor. `chatType` e normalizado para `direct`, `group` ou `room`.
-- Garanta que sua CLI encerre com codigo 0 e imprima texto simples; JSON precisa ser ajustado via `jq -r .text`.
-- Mantenha timeouts razoaveis (`timeoutSeconds`, padrao 60s) para evitar bloquear a fila de respostas.
+- As regras de escopo usam “primeira correspondência vence”. `chatType` é normalizado para `direct`, `group` ou `room`.
+- Garanta que sua CLI finalize com código 0 e imprima texto simples; JSON precisa ser ajustado via `jq -r .text`.
+- Mantenha timeouts razoáveis (`timeoutSeconds`, padrão 60s) para evitar bloquear a fila de respostas.

@@ -1,36 +1,36 @@
 ---
-summary: "Endurecimento da allowlist do Telegram: normalizacao de prefixo + espacos em branco"
+summary: "Endurecimento da allowlist do Telegram: prefixo + normalização de espaços em branco"
 read_when:
-  - Revisando alteracoes historicas da allowlist do Telegram
+  - Ao revisar mudanças históricas na allowlist do Telegram
 title: "Endurecimento da Allowlist do Telegram"
 x-i18n:
   source_path: experiments/plans/group-policy-hardening.md
-  source_hash: a2eca5fcc8537694
+  source_hash: 70569968857d4084
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:56:06Z
+  generated_at: 2026-02-08T09:30:44Z
 ---
 
 # Endurecimento da Allowlist do Telegram
 
 **Data**: 2026-01-05  
-**Status**: Concluido  
+**Status**: Concluído  
 **PR**: #216
 
 ## Resumo
 
-As allowlists do Telegram agora aceitam os prefixos `telegram:` e `tg:` sem diferenciar maiusculas/minusculas e toleram
-espacos em branco acidentais. Isso alinha as verificacoes de allowlist de entrada com a normalizacao de envio de saida.
+As allowlists do Telegram agora aceitam os prefixos `telegram:` e `tg:` sem diferenciar maiúsculas de minúsculas e toleram
+espaços em branco acidentais. Isso alinha as verificações de allowlist de entrada com a normalização de envio de saída.
 
 ## O que mudou
 
-- Os prefixos `telegram:` e `tg:` sao tratados da mesma forma (sem diferenciar maiusculas/minusculas).
-- As entradas da allowlist sao aparadas; entradas vazias sao ignoradas.
+- Os prefixos `telegram:` e `tg:` são tratados da mesma forma (sem diferenciar maiúsculas de minúsculas).
+- As entradas da allowlist são aparadas; entradas vazias são ignoradas.
 
 ## Exemplos
 
-Todos estes sao aceitos para o mesmo ID:
+Todos estes são aceitos para o mesmo ID:
 
 - `telegram:123456`
 - `TG:123456`
@@ -38,10 +38,10 @@ Todos estes sao aceitos para o mesmo ID:
 
 ## Por que isso importa
 
-Copiar/colar de logs ou IDs de chat frequentemente inclui prefixos e espacos em branco. A normalizacao evita
-falsos negativos ao decidir se deve responder em Mensagens diretas ou grupos.
+Copiar/colar a partir de logs ou IDs de chat geralmente inclui prefixos e espaços em branco. A normalização evita
+falsos negativos ao decidir se deve responder em DMs ou grupos.
 
 ## Documentos relacionados
 
-- [Group Chats](/concepts/groups)
+- [Group Chats](/channels/groups)
 - [Telegram Provider](/channels/telegram)

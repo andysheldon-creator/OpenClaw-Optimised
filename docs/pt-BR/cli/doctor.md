@@ -1,8 +1,8 @@
 ---
-summary: "Referencia da CLI para `openclaw doctor` (verificacoes de saude + reparos guiados)"
+summary: "Referência da CLI para `openclaw doctor` (verificações de saúde + reparos guiados)"
 read_when:
-  - Voce tem problemas de conectividade/autenticacao e quer correcoes guiadas
-  - Voce atualizou e quer uma verificacao de sanidade
+  - Você tem problemas de conectividade/autenticação e quer correções guiadas
+  - Você atualizou e quer uma verificação de sanidade
 title: "doctor"
 x-i18n:
   source_path: cli/doctor.md
@@ -10,17 +10,17 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:34Z
+  generated_at: 2026-02-08T09:30:20Z
 ---
 
 # `openclaw doctor`
 
-Verificacoes de saude + correcoes rapidas para o Gateway e os canais.
+Verificações de saúde + correções rápidas para o gateway e os canais.
 
 Relacionado:
 
-- Solucao de problemas: [Troubleshooting](/gateway/troubleshooting)
-- Auditoria de seguranca: [Security](/gateway/security)
+- Solução de problemas: [Troubleshooting](/gateway/troubleshooting)
+- Auditoria de segurança: [Security](/gateway/security)
 
 ## Exemplos
 
@@ -32,12 +32,12 @@ openclaw doctor --deep
 
 Notas:
 
-- Prompts interativos (como correcoes de keychain/OAuth) so sao executados quando o stdin e um TTY e `--non-interactive` **nao** esta definido. Execucoes headless (cron, Telegram, sem terminal) ignoram os prompts.
-- `--fix` (alias para `--repair`) grava um backup em `~/.openclaw/openclaw.json.bak` e remove chaves de configuracao desconhecidas, listando cada remocao.
+- Prompts interativos (como correções de keychain/OAuth) só são executados quando o stdin é um TTY e `--non-interactive` **não** está definido. Execuções sem interface (cron, Telegram, sem terminal) ignorarão os prompts.
+- `--fix` (alias de `--repair`) grava um backup em `~/.openclaw/openclaw.json.bak` e remove chaves de configuração desconhecidas, listando cada remoção.
 
-## macOS: substituicoes de env `launchctl`
+## macOS: substituições por variáveis de ambiente `launchctl`
 
-Se voce executou anteriormente `launchctl setenv OPENCLAW_GATEWAY_TOKEN ...` (ou `...PASSWORD`), esse valor substitui seu arquivo de configuracao e pode causar erros persistentes de “nao autorizado”.
+Se você executou anteriormente `launchctl setenv OPENCLAW_GATEWAY_TOKEN ...` (ou `...PASSWORD`), esse valor substitui seu arquivo de configuração e pode causar erros persistentes de “não autorizado”.
 
 ```bash
 launchctl getenv OPENCLAW_GATEWAY_TOKEN

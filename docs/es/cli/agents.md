@@ -1,7 +1,7 @@
 ---
 summary: "Referencia de la CLI para `openclaw agents` (listar/agregar/eliminar/establecer identidad)"
 read_when:
-  - Quiere múltiples agentes aislados (espacios de trabajo + enrutamiento + autenticación)
+  - Desea múltiples agentes aislados (espacios de trabajo + enrutamiento + autenticación)
 title: "agentes"
 x-i18n:
   source_path: cli/agents.md
@@ -9,12 +9,12 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:58:09Z
+  generated_at: 2026-02-08T09:32:53Z
 ---
 
 # `openclaw agents`
 
-Administre agentes aislados (espacios de trabajo + autenticación + enrutamiento).
+Gestionar agentes aislados (espacios de trabajo + autenticación + enrutamiento).
 
 Relacionado:
 
@@ -38,7 +38,7 @@ Cada espacio de trabajo de agente puede incluir un `IDENTITY.md` en la raíz del
 - Ruta de ejemplo: `~/.openclaw/workspace/IDENTITY.md`
 - `set-identity --from-identity` lee desde la raíz del espacio de trabajo (o un `--identity-file` explícito)
 
-Las rutas de los avatares se resuelven de forma relativa a la raíz del espacio de trabajo.
+Las rutas de avatar se resuelven de forma relativa a la raíz del espacio de trabajo.
 
 ## Establecer identidad
 

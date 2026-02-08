@@ -1,9 +1,9 @@
 ---
-summary: "Quy trinh huong dan chay lan dau cho OpenClaw (ung dung macOS)"
+summary: "Luồng hướng dẫn ban đầu khi chạy lần đầu cho OpenClaw (ứng dụng macOS)"
 read_when:
-  - Thiet ke tro ly huong dan ban dau tren macOS
-  - Trien khai xac thuc hoac thiet lap danh tinh
-title: "Onboarding (Ung dung macOS)"
+  - Thiết kế trợ lý hướng dẫn ban đầu trên macOS
+  - Triển khai xác thực hoặc thiết lập danh tính
+title: "Hướng dẫn ban đầu (Ứng dụng macOS)"
 sidebarTitle: "Onboarding: macOS App"
 x-i18n:
   source_path: start/onboarding.md
@@ -11,77 +11,77 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:08:32Z
+  generated_at: 2026-02-08T09:40:21Z
 ---
 
-# Onboarding (Ung dung macOS)
+# Hướng dẫn ban đầu (Ứng dụng macOS)
 
-Tai lieu nay mo ta luong huong dan chay lan dau **hien tai**. Muc tieu la mang den
-trai nghiem “ngay 0” muot ma: chon noi Gateway chay, ket noi xac thuc, chay trinh huong dan,
-va de tac tu tu khoi tao.
+Tài liệu này mô tả luồng hướng dẫn ban đầu khi chạy lần đầu **hiện tại**. Mục tiêu là
+mang lại trải nghiệm “ngày 0” mượt mà: chọn nơi Gateway chạy, kết nối xác thực, chạy
+trình hướng dẫn, và để tác tử tự khởi tạo.
 
 <Steps>
-<Step title="Chap thuan canh bao macOS">
+<Step title="Phê duyệt cảnh báo macOS">
 <Frame>
 <img src="/assets/macos-onboarding/01-macos-warning.jpeg" alt="" />
 </Frame>
 </Step>
-<Step title="Chap thuan tim mang cuc bo">
+<Step title="Phê duyệt tìm mạng cục bộ">
 <Frame>
 <img src="/assets/macos-onboarding/02-local-networks.jpeg" alt="" />
 </Frame>
 </Step>
-<Step title="Chao mung va thong bao bao mat">
-<Frame caption="Doc thong bao bao mat duoc hien thi va quyet dinh tuong ung">
+<Step title="Chào mừng và thông báo bảo mật">
+<Frame caption="Đọc thông báo bảo mật được hiển thị và quyết định cho phù hợp">
 <img src="/assets/macos-onboarding/03-security-notice.png" alt="" />
 </Frame>
 </Step>
-<Step title="Local hay Remote">
+<Step title="Cục bộ hay Từ xa">
 <Frame>
 <img src="/assets/macos-onboarding/04-choose-gateway.png" alt="" />
 </Frame>
 
-**Gateway** chay o dau?
+**Gateway** chạy ở đâu?
 
-- **May Mac nay (Chi local):** huong dan co the chay cac luong OAuth va ghi thong tin xac thuc
-  cuc bo.
-- **Remote (qua SSH/Tailnet):** huong dan **khong** chay OAuth cuc bo;
-  thong tin xac thuc phai ton tai tren may chu gateway.
-- **Cau hinh sau:** bo qua thiet lap va de ung dung chua duoc cau hinh.
+- **Máy này (chỉ cục bộ):** hướng dẫn ban đầu có thể chạy các luồng OAuth và ghi thông tin xác thực
+  cục bộ.
+- **Từ xa (qua SSH/Tailnet):** hướng dẫn ban đầu **không** chạy OAuth cục bộ;
+  thông tin xác thực phải tồn tại trên máy chủ gateway.
+- **Cấu hình sau:** bỏ qua thiết lập và để ứng dụng ở trạng thái chưa cấu hình.
 
 <Tip>
-**Meo xac thuc Gateway:**
-- Trinh huong dan hien tao **token** ke ca cho loopback, vi vay cac client WS cuc bo phai xac thuc.
-- Neu tat xac thuc, bat ky tien trinh cuc bo nao cung co the ket noi; chi dung tren cac may hoan toan dang tin cay.
-- Dung **token** cho truy cap nhieu may hoac khi bind khong phai loopback.
+**Mẹo xác thực Gateway:**
+- Trình hướng dẫn hiện tạo **token** ngay cả cho local loopback, vì vậy các client WS cục bộ phải xác thực.
+- Nếu bạn tắt xác thực, mọi tiến trình cục bộ đều có thể kết nối; chỉ dùng cách này trên các máy hoàn toàn đáng tin cậy.
+- Dùng **token** cho truy cập nhiều máy hoặc các bind không phải loopback.
 </Tip>
 </Step>
-<Step title="Quyen">
-<Frame caption="Chon cac quyen ban muon cap cho OpenClaw">
+<Step title="Quyền">
+<Frame caption="Chọn các quyền bạn muốn cấp cho OpenClaw">
 <img src="/assets/macos-onboarding/05-permissions.png" alt="" />
 </Frame>
 
-Huong dan yeu cau cac quyen TCC can thiet cho:
+Hướng dẫn ban đầu yêu cầu các quyền TCC cần thiết cho:
 
-- Tu dong hoa (AppleScript)
-- Thong bao
-- Kha nang truy cap
-- Ghi man hinh
+- Tự động hóa (AppleScript)
+- Thông báo
+- Trợ năng
+- Ghi màn hình
 - Micro
-- Nhan dang giong noi
+- Nhận dạng giọng nói
 - Camera
-- Vi tri
+- Vị trí
 
 </Step>
 <Step title="CLI">
-  <Info>Buoc nay la tuy chon</Info>
-  Ung dung co the cai dat CLI toan cuc `openclaw` qua npm/pnpm de cac
-  quy trinh lam viec trong terminal va tac vu launchd hoat dong san sang.
+  <Info>Bước này là tùy chọn</Info>
+  Ứng dụng có thể cài đặt CLI `openclaw` toàn cục qua npm/pnpm để các
+  quy trình làm việc trên terminal và các tác vụ launchd hoạt động ngay.
 </Step>
-<Step title="Onboarding Chat (phien rieng)">
-  Sau khi thiet lap, ung dung mo mot phien chat onboarding rieng de tac tu
-  tu gioi thieu va huong dan cac buoc tiep theo. Cach nay giu huong dan lan dau tach biet
-  khoi cuoc tro chuyen thong thuong cua ban. Xem [Bootstrapping](/start/bootstrapping) de biet
-  dieu gi xay ra tren may chu gateway trong lan chay tac tu dau tien.
+<Step title="Trò chuyện hướng dẫn ban đầu (phiên riêng)">
+  Sau khi thiết lập, ứng dụng mở một phiên trò chuyện hướng dẫn ban đầu chuyên biệt để tác tử
+  tự giới thiệu và hướng dẫn các bước tiếp theo. Cách này giữ phần hướng dẫn lần chạy đầu
+  tách biệt khỏi cuộc trò chuyện thông thường của bạn. Xem [Bootstrapping](/start/bootstrapping) để biết
+  điều gì diễn ra trên máy chủ gateway trong lần chạy tác tử đầu tiên.
 </Step>
 </Steps>

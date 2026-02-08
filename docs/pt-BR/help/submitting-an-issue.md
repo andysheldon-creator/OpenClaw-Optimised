@@ -1,32 +1,32 @@
 ---
-summary: "Abrindo issues e relatórios de bugs com alto sinal"
-title: "Enviando uma Issue"
+summary: "Abertura de issues e relatórios de bugs de alto sinal"
+title: "Enviando um Issue"
 x-i18n:
   source_path: help/submitting-an-issue.md
   source_hash: bcb33f05647e9f0d
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:15:17Z
+  generated_at: 2026-02-08T09:31:07Z
 ---
 
-## Enviando uma Issue
+## Enviando um Issue
 
 Issues claras e concisas aceleram o diagnóstico e as correções. Inclua o seguinte para bugs, regressões ou lacunas de funcionalidade:
 
 ### O que incluir
 
 - [ ] Título: área e sintoma
-- [ ] Passos mínimos para reproduzir
+- [ ] Passos mínimos para reprodução
 - [ ] Esperado vs. atual
 - [ ] Impacto e severidade
 - [ ] Ambiente: SO, runtime, versões, configuração
 - [ ] Evidências: logs com dados sensíveis removidos, capturas de tela (sem PII)
-- [ ] Escopo: novo, regressão ou de longa data
-- [ ] Palavra-código: lobster-biscuit na sua issue
-- [ ] Pesquisou no codebase e no GitHub por issue existente
-- [ ] Confirmou que não foi corrigido/endereço recentemente (esp. segurança)
-- [ ] Alegações sustentadas por evidência ou reprodução
+- [ ] Escopo: novo, regressão ou existente há muito tempo
+- [ ] Palavra‑código: lobster-biscuit no seu issue
+- [ ] Código e GitHub pesquisados por issue existente
+- [ ] Confirmado que não foi corrigido/endereçado recentemente (especialmente segurança)
+- [ ] Afirmações sustentadas por evidências ou reprodução
 
 Seja breve. Concisão > gramática perfeita.
 
@@ -38,9 +38,9 @@ Validação (executar/corrigir antes do PR):
 - `pnpm test`
 - Se for código de protocolo: `pnpm protocol:check`
 
-### Templates
+### Modelos
 
-#### Relatório de bug
+#### Relato de bug
 
 ```md
 - [ ] Minimal repro
@@ -68,7 +68,7 @@ Validação (executar/corrigir antes do PR):
 ### Workarounds
 ```
 
-#### Issue de segurança
+#### Problema de segurança
 
 ```md
 ### Summary
@@ -84,9 +84,9 @@ Validação (executar/corrigir antes do PR):
 ### Evidence (redacted)
 ```
 
-_Evite segredos/detalhes de exploração em público. Para issues sensíveis, minimize os detalhes e solicite divulgação privada._
+_Evite segredos/detalhes de exploração em público. Para questões sensíveis, minimize os detalhes e solicite divulgação privada._
 
-#### Relatório de regressão
+#### Relato de regressão
 
 ```md
 ### Summary
@@ -156,4 +156,4 @@ _Evite segredos/detalhes de exploração em público. Para issues sensíveis, mi
 
 ### Enviando um PR de correção
 
-Issue antes do PR é opcional. Inclua os detalhes no PR se pular essa etapa. Mantenha o PR focado, informe o número da issue, adicione testes ou explique a ausência, documente mudanças de comportamento/riscos, inclua logs/capturas de tela com dados sensíveis removidos como prova e execute a validação adequada antes de enviar.
+Issue antes do PR é opcional. Inclua os detalhes no PR se pular essa etapa. Mantenha o PR focado, informe o número do issue, adicione testes ou explique a ausência, documente mudanças de comportamento/riscos, inclua logs/capturas de tela com dados sensíveis removidos como prova e execute a validação adequada antes de enviar.

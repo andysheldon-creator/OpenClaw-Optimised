@@ -10,14 +10,14 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:16Z
+  generated_at: 2026-02-08T09:29:49Z
 ---
 
 # Gmail Pub/Sub -> OpenClaw
 
 Objetivo: monitoramento do Gmail -> push do Pub/Sub -> `gog gmail watch serve` -> webhook do OpenClaw.
 
-## Prereqs
+## Pré-requisitos
 
 - `gcloud` instalado e com login efetuado ([guia de instalação](https://docs.cloud.google.com/sdk/docs/install-sdk)).
 - `gog` (gogcli) instalado e autorizado para a conta do Gmail ([gogcli.sh](https://gogcli.sh/)).
@@ -26,7 +26,7 @@ Objetivo: monitoramento do Gmail -> push do Pub/Sub -> `gog gmail watch serve` -
   Outros serviços de túnel podem funcionar, mas são DIY/não suportados e exigem configuração manual.
   No momento, o Tailscale é o que oferecemos suporte.
 
-Exemplo de configuração de hook (habilite o mapeamento predefinido do Gmail):
+Exemplo de configuração do hook (habilita o mapeamento predefinido do Gmail):
 
 ```json5
 {
@@ -66,14 +66,14 @@ que defina `deliver` + opcional `channel`/`to`:
 }
 ```
 
-Se voce quiser um canal fixo, defina `channel` + `to`. Caso contrario, `channel: "last"`
-usa a ultima rota de entrega (retorna para WhatsApp).
+Se você quiser um canal fixo, defina `channel` + `to`. Caso contrário, `channel: "last"`
+usa a última rota de entrega (retorna para o WhatsApp).
 
-Para forcar um modelo mais barato para execucoes do Gmail, defina `model` no mapeamento
-(`provider/model` ou alias). Se voce aplicar `agents.defaults.models`, inclua isso la.
+Para forçar um modelo mais barato para execuções do Gmail, defina `model` no mapeamento
+(`provider/model` ou alias). Se você aplicar `agents.defaults.models`, inclua-o ali.
 
-Para definir um modelo padrao e nivel de raciocinio especificamente para hooks do Gmail, adicione
-`hooks.gmail.model` / `hooks.gmail.thinking` na sua configuracao:
+Para definir um modelo padrão e nível de pensamento especificamente para hooks do Gmail, adicione
+`hooks.gmail.model` / `hooks.gmail.thinking` na sua configuração:
 
 ```json5
 {
@@ -88,58 +88,58 @@ Para definir um modelo padrao e nivel de raciocinio especificamente para hooks d
 
 Notas:
 
-- `model`/`thinking` por hook no mapeamento ainda substitui esses padroes.
-- Ordem de fallback: `hooks.gmail.model` → `agents.defaults.model.fallbacks` → primario (auth/limite de taxa/timeouts).
-- Se `agents.defaults.models` estiver definido, o modelo do Gmail deve estar na allowlist.
-- O conteudo do hook do Gmail e envolvido por limites de seguranca de conteudo externo por padrao.
+- `model`/`thinking` por hook no mapeamento ainda substitui esses padrões.
+- Ordem de fallback: `hooks.gmail.model` → `agents.defaults.model.fallbacks` → primário (autenticação/limite de taxa/timeouts).
+- Se `agents.defaults.models` estiver definido, o modelo do Gmail deve estar na lista de permissões.
+- O conteúdo do hook do Gmail é envolvido por limites de segurança de conteúdo externo por padrão.
   Para desativar (perigoso), defina `hooks.gmail.allowUnsafeExternalContent: true`.
 
-Para personalizar ainda mais o tratamento do payload, adicione `hooks.mappings` ou um modulo de transformacao JS/TS
+Para personalizar ainda mais o tratamento do payload, adicione `hooks.mappings` ou um módulo de transformação JS/TS
 em `hooks.transformsDir` (veja [Webhooks](/automation/webhook)).
 
 ## Assistente (recomendado)
 
-Use o helper do OpenClaw para conectar tudo (instala dependencias no macOS via brew):
+Use o helper do OpenClaw para conectar tudo (instala dependências no macOS via brew):
 
 ```bash
 openclaw webhooks gmail setup \
   --account openclaw@gmail.com
 ```
 
-Padroes:
+Padrões:
 
-- Usa o Tailscale Funnel para o endpoint publico de push.
-- Grava a configuracao `hooks.gmail` para `openclaw webhooks gmail run`.
+- Usa o Tailscale Funnel para o endpoint público de push.
+- Grava a configuração `hooks.gmail` para `openclaw webhooks gmail run`.
 - Habilita o preset de hook do Gmail (`hooks.presets: ["gmail"]`).
 
-Nota de caminho: quando `tailscale.mode` esta habilitado, o OpenClaw define automaticamente
-`hooks.gmail.serve.path` como `/` e mantem o caminho publico em
-`hooks.gmail.tailscale.path` (padrao `/gmail-pubsub`) porque o Tailscale
+Nota sobre caminho: quando `tailscale.mode` está habilitado, o OpenClaw define automaticamente
+`hooks.gmail.serve.path` como `/` e mantém o caminho público em
+`hooks.gmail.tailscale.path` (padrão `/gmail-pubsub`) porque o Tailscale
 remove o prefixo set-path antes de fazer o proxy.
-Se voce precisar que o backend receba o caminho com prefixo, defina
+Se você precisar que o backend receba o caminho com prefixo, defina
 `hooks.gmail.tailscale.target` (ou `--tailscale-target`) para uma URL completa como
-`http://127.0.0.1:8788/gmail-pubsub` e combine com `hooks.gmail.serve.path`.
+`http://127.0.0.1:8788/gmail-pubsub` e corresponda `hooks.gmail.serve.path`.
 
 Quer um endpoint personalizado? Use `--push-endpoint <url>` ou `--tailscale off`.
 
 Nota de plataforma: no macOS o assistente instala `gcloud`, `gogcli` e `tailscale`
-via Homebrew; no Linux instale-os manualmente antes.
+via Homebrew; no Linux, instale-os manualmente antes.
 
-Inicializacao automatica do Gateway (recomendado):
+Inicialização automática do Gateway (recomendado):
 
-- Quando `hooks.enabled=true` e `hooks.gmail.account` estao definidos, o Gateway inicia
-  `gog gmail watch serve` na inicializacao e renova automaticamente o watch.
-- Defina `OPENCLAW_SKIP_GMAIL_WATCHER=1` para optar por nao usar (util se voce executa o daemon manualmente).
-- Nao execute o daemon manual ao mesmo tempo, ou voce tera
+- Quando `hooks.enabled=true` e `hooks.gmail.account` estão definidos, o Gateway inicia
+  `gog gmail watch serve` na inicialização e renova automaticamente o watch.
+- Defina `OPENCLAW_SKIP_GMAIL_WATCHER=1` para optar por não usar (útil se você executa o daemon por conta própria).
+- Não execute o daemon manual ao mesmo tempo, ou você enfrentará
   `listen tcp 127.0.0.1:8788: bind: address already in use`.
 
-Daemon manual (inicia `gog gmail watch serve` + renovacao automatica):
+Daemon manual (inicia `gog gmail watch serve` + renovação automática):
 
 ```bash
 openclaw webhooks gmail run
 ```
 
-## Configuracao unica
+## Configuração única
 
 1. Selecione o projeto do GCP **que possui o cliente OAuth** usado por `gog`.
 
@@ -148,7 +148,7 @@ gcloud auth login
 gcloud config set project <project-id>
 ```
 
-Nota: o watch do Gmail exige que o topico do Pub/Sub esteja no mesmo projeto que o cliente OAuth.
+Nota: o watch do Gmail exige que o tópico do Pub/Sub esteja no mesmo projeto que o cliente OAuth.
 
 2. Habilite as APIs:
 
@@ -156,7 +156,7 @@ Nota: o watch do Gmail exige que o topico do Pub/Sub esteja no mesmo projeto que
 gcloud services enable gmail.googleapis.com pubsub.googleapis.com
 ```
 
-3. Crie um topico:
+3. Crie um tópico:
 
 ```bash
 gcloud pubsub topics create gog-gmail-watch
@@ -179,11 +179,11 @@ gog gmail watch start \
   --topic projects/<project-id>/topics/gog-gmail-watch
 ```
 
-Salve o `history_id` da saida (para depuracao).
+Salve o `history_id` da saída (para depuração).
 
 ## Executar o handler de push
 
-Exemplo local (autenticacao por token compartilhado):
+Exemplo local (autenticação por token compartilhado):
 
 ```bash
 gog gmail watch serve \
@@ -201,21 +201,21 @@ gog gmail watch serve \
 Notas:
 
 - `--token` protege o endpoint de push (`x-gog-token` ou `?token=`).
-- `--hook-url` aponta para o OpenClaw `/hooks/gmail` (mapeado; execucao isolada + resumo para o principal).
+- `--hook-url` aponta para o OpenClaw `/hooks/gmail` (mapeado; execução isolada + resumo para o principal).
 - `--include-body` e `--max-bytes` controlam o trecho do corpo enviado ao OpenClaw.
 
 Recomendado: `openclaw webhooks gmail run` envolve o mesmo fluxo e renova automaticamente o watch.
 
-## Expor o handler (avancado, nao suportado)
+## Expor o handler (avançado, não suportado)
 
-Se voce precisar de um tunel que nao seja Tailscale, conecte manualmente e use a URL publica na
-inscricao de push (nao suportado, sem protecoes):
+Se você precisar de um túnel que não seja Tailscale, conecte manualmente e use a URL pública na
+assinatura de push (não suportado, sem proteções):
 
 ```bash
 cloudflared tunnel --url http://127.0.0.1:8788 --no-autoupdate
 ```
 
-Use a URL gerada como o endpoint de push:
+Use a URL gerada como endpoint de push:
 
 ```bash
 gcloud pubsub subscriptions create gog-gmail-watch-push \
@@ -223,7 +223,7 @@ gcloud pubsub subscriptions create gog-gmail-watch-push \
   --push-endpoint "https://<public-url>/gmail-pubsub?token=<shared>"
 ```
 
-Producao: use um endpoint HTTPS estavel e configure OIDC JWT do Pub/Sub, depois execute:
+Produção: use um endpoint HTTPS estável e configure OIDC JWT do Pub/Sub, depois execute:
 
 ```bash
 gog gmail watch serve --verify-oidc --oidc-email <svc@...>
@@ -241,17 +241,17 @@ gog gmail send \
   --body "ping"
 ```
 
-Verifique o estado do watch e o historico:
+Verifique o estado do watch e o histórico:
 
 ```bash
 gog gmail watch status --account openclaw@gmail.com
 gog gmail history --account openclaw@gmail.com --since <historyId>
 ```
 
-## Solucao de problemas
+## Solução de problemas
 
-- `Invalid topicName`: incompatibilidade de projeto (topico nao esta no projeto do cliente OAuth).
-- `User not authorized`: falta `roles/pubsub.publisher` no topico.
+- `Invalid topicName`: incompatibilidade de projeto (tópico não está no projeto do cliente OAuth).
+- `User not authorized`: falta de `roles/pubsub.publisher` no tópico.
 - Mensagens vazias: o push do Gmail fornece apenas `historyId`; busque via `gog gmail history`.
 
 ## Limpeza

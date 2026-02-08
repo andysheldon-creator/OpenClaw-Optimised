@@ -1,8 +1,8 @@
 ---
-summary: "CLI-Referenz fuer `openclaw dns` (Hilfsprogramme fuer die standortuebergreifende Erkennung)"
+summary: "CLI-Referenz für `openclaw dns` (Hilfen für Weitbereichs-Discovery)"
 read_when:
-  - Sie moechten standortuebergreifende Erkennung (DNS-SD) ueber Tailscale + CoreDNS
-  - Sie richten Split-DNS fuer eine benutzerdefinierte Erkennungsdomain ein (Beispiel: openclaw.internal)
+  - Sie möchten Weitbereichs-Discovery (DNS-SD) über Tailscale + CoreDNS nutzen
+  - Sie richten Split-DNS für eine benutzerdefinierte Discovery-Domain ein (Beispiel: openclaw.internal)
 title: "dns"
 x-i18n:
   source_path: cli/dns.md
@@ -10,17 +10,17 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:40Z
+  generated_at: 2026-02-08T09:35:37Z
 ---
 
 # `openclaw dns`
 
-DNS-Hilfsprogramme fuer die standortuebergreifende Erkennung (Tailscale + CoreDNS). Aktuell auf macOS + Homebrew CoreDNS fokussiert.
+DNS-Hilfen für Weitbereichs-Discovery (Tailscale + CoreDNS). Derzeit mit Fokus auf macOS + Homebrew CoreDNS.
 
 Verwandt:
 
-- Gateway-Erkennung: [Erkennung](/gateway/discovery)
-- Konfiguration der standortuebergreifenden Erkennung: [Konfiguration](/gateway/configuration)
+- Gateway-Discovery: [Discovery (Erkennung)](/gateway/discovery)
+- Konfiguration für Weitbereichs-Discovery: [Konfiguration](/gateway/configuration)
 
 ## Einrichtung
 

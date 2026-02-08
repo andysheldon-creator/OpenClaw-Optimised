@@ -1,25 +1,25 @@
 ---
-summary: "Umfrageversand über Gateway + CLI"
+summary: „Versand von Umfragen über Gateway + CLI“
 read_when:
   - Hinzufügen oder Ändern der Umfrageunterstützung
-  - Fehlerbehebung beim Versand von Umfragen über CLI oder Gateway
-title: "Umfragen"
+  - Debugging von Umfrageversendungen über die CLI oder das Gateway
+title: „Umfragen“
 x-i18n:
   source_path: automation/poll.md
   source_hash: 760339865d27ec40
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:13Z
+  generated_at: 2026-02-08T09:35:03Z
 ---
 
 # Umfragen
 
 ## Unterstützte Kanäle
 
-- WhatsApp (Web-Kanal)
+- WhatsApp (Webkanal)
 - Discord
-- MS Teams (Adaptive Cards)
+- Microsoft Teams (Adaptive Cards)
 
 ## CLI
 
@@ -44,8 +44,8 @@ openclaw message poll --channel msteams --target conversation:19:abc@thread.tacv
 Optionen:
 
 - `--channel`: `whatsapp` (Standard), `discord` oder `msteams`
-- `--poll-multi`: Auswahl mehrerer Optionen zulassen
-- `--poll-duration-hours`: Nur Discord (Standard: 24, wenn nicht angegeben)
+- `--poll-multi`: Auswahl mehrerer Optionen erlauben
+- `--poll-duration-hours`: Nur Discord (Standardwert 24, wenn nicht angegeben)
 
 ## Gateway RPC
 
@@ -64,10 +64,10 @@ Parameter:
 ## Kanalunterschiede
 
 - WhatsApp: 2–12 Optionen, `maxSelections` muss innerhalb der Optionsanzahl liegen, ignoriert `durationHours`.
-- Discord: 2–10 Optionen, `durationHours` wird auf 1–768 Stunden begrenzt (Standard: 24). `maxSelections > 1` aktiviert Mehrfachauswahl; Discord unterstützt keine strikte Auswahlanzahl.
-- MS Teams: Adaptive-Card-Umfragen (von OpenClaw verwaltet). Keine native Umfrage-API; `durationHours` wird ignoriert.
+- Discord: 2–10 Optionen, `durationHours` auf 1–768 Stunden begrenzt (Standard 24). `maxSelections > 1` aktiviert Mehrfachauswahl; Discord unterstützt keine strikte Auswahlanzahl.
+- Microsoft Teams: Adaptive-Card-Umfragen (von OpenClaw verwaltet). Keine native Umfrage-API; `durationHours` wird ignoriert.
 
-## Agent-Werkzeug (Message)
+## Agent-Werkzeug (Nachricht)
 
 Verwenden Sie das Werkzeug `message` mit der Aktion `poll` (`to`, `pollQuestion`, `pollOption`, optional `pollMulti`, `pollDurationHours`, `channel`).
 

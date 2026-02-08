@@ -1,9 +1,9 @@
 ---
 summary: "OpenClaw deklarativ mit Nix installieren"
 read_when:
-  - Sie moechten reproduzierbare, rueckrollfaehige Installationen
+  - Sie möchten reproduzierbare, rollback-fähige Installationen
   - Sie verwenden bereits Nix/NixOS/Home Manager
-  - Sie moechten, dass alles gepinnt und deklarativ verwaltet wird
+  - Sie möchten alles fest gepinnt und deklarativ verwalten
 title: "Nix"
 x-i18n:
   source_path: install/nix.md
@@ -11,16 +11,16 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:04:45Z
+  generated_at: 2026-02-08T09:36:35Z
 ---
 
 # Nix-Installation
 
-Der empfohlene Weg, OpenClaw mit Nix auszufuehren, ist **[nix-openclaw](https://github.com/openclaw/nix-openclaw)** — ein Home-Manager-Modul mit allem Nötigen.
+Die empfohlene Methode, OpenClaw mit Nix auszuführen, ist **[nix-openclaw](https://github.com/openclaw/nix-openclaw)** — ein Home-Manager-Modul mit Batterien inklusive.
 
 ## Schnellstart
 
-Fuegen Sie dies in Ihren KI-Agenten ein (Claude, Cursor usw.):
+Fügen Sie dies in Ihren KI-Agenten (Claude, Cursor usw.) ein:
 
 ```text
 I want to set up nix-openclaw on my Mac.
@@ -37,14 +37,14 @@ What I need you to do:
 Reference the nix-openclaw README for module options.
 ```
 
-> **📦 Vollstaendige Anleitung: [github.com/openclaw/nix-openclaw](https://github.com/openclaw/nix-openclaw)**
+> **📦 Vollständige Anleitung: [github.com/openclaw/nix-openclaw](https://github.com/openclaw/nix-openclaw)**
 >
-> Das Repository nix-openclaw ist die maßgebliche Quelle fuer die Nix-Installation. Diese Seite ist nur eine kurze Uebersicht.
+> Das Repository nix-openclaw ist die maßgebliche Quelle für die Nix-Installation. Diese Seite bietet lediglich einen kurzen Überblick.
 
 ## Was Sie erhalten
 
-- Gateway + macOS-App + Werkzeuge (whisper, spotify, cameras) — alles gepinnt
-- Launchd-Dienst, der Neustarts uebersteht
+- Gateway + macOS-App + Werkzeuge (whisper, spotify, cameras) — alles fest gepinnt
+- Launchd-Dienst, der Neustarts übersteht
 - Plugin-System mit deklarativer Konfiguration
 - Sofortiger Rollback: `home-manager switch --rollback`
 
@@ -54,15 +54,15 @@ Reference the nix-openclaw README for module options.
 
 Wenn `OPENCLAW_NIX_MODE=1` gesetzt ist (automatisch mit nix-openclaw):
 
-OpenClaw unterstuetzt einen **Nix-Modus**, der die Konfiguration deterministisch macht und Auto-Installationsablaeufe deaktiviert.
-Aktivieren Sie ihn, indem Sie exportieren:
+OpenClaw unterstützt einen **Nix-Modus**, der die Konfiguration deterministisch macht und Auto-Installationsabläufe deaktiviert.
+Aktivieren Sie ihn durch Exportieren von:
 
 ```bash
 OPENCLAW_NIX_MODE=1
 ```
 
-Unter macOS erbt die GUI-App Shell-Umgebungsvariablen nicht automatisch. Sie koennen
-den Nix-Modus auch ueber defaults aktivieren:
+Unter macOS übernimmt die GUI-App Shell-Umgebungsvariablen nicht automatisch. Sie können
+den Nix-Modus auch über defaults aktivieren:
 
 ```bash
 defaults write bot.molt.mac openclaw.nixMode -bool true
@@ -70,19 +70,19 @@ defaults write bot.molt.mac openclaw.nixMode -bool true
 
 ### Konfigurations- und Statuspfade
 
-OpenClaw liest JSON5-Konfiguration aus `OPENCLAW_CONFIG_PATH` und speichert veraenderliche Daten in `OPENCLAW_STATE_DIR`.
+OpenClaw liest JSON5-Konfiguration aus `OPENCLAW_CONFIG_PATH` und speichert veränderliche Daten in `OPENCLAW_STATE_DIR`.
 
 - `OPENCLAW_STATE_DIR` (Standard: `~/.openclaw`)
 - `OPENCLAW_CONFIG_PATH` (Standard: `$OPENCLAW_STATE_DIR/openclaw.json`)
 
-Bei der Ausfuehrung unter Nix setzen Sie diese explizit auf von Nix verwaltete Speicherorte, damit Laufzeitstatus und Konfiguration
-aus dem unveraenderlichen Store herausgehalten werden.
+Beim Betrieb unter Nix setzen Sie diese explizit auf von Nix verwaltete Speicherorte, damit Laufzeitzustand und Konfiguration
+außerhalb des unveränderlichen Stores bleiben.
 
 ### Laufzeitverhalten im Nix-Modus
 
-- Auto-Installation und Selbstmutation sind deaktiviert
-- Fehlende Abhaengigkeiten liefern Nix-spezifische Hinweise zur Behebung
-- Die UI zeigt ein schreibgeschuetztes Nix-Modus-Banner an, wenn vorhanden
+- Auto-Installation und Selbstmutationsabläufe sind deaktiviert
+- Fehlende Abhängigkeiten zeigen Nix-spezifische Hinweise zur Behebung an
+- Die UI zeigt bei Vorhandensein ein schreibgeschütztes Nix-Modus-Banner an
 
 ## Packaging-Hinweis (macOS)
 
@@ -92,12 +92,12 @@ Der macOS-Packaging-Ablauf erwartet eine stabile Info.plist-Vorlage unter:
 apps/macos/Sources/OpenClaw/Resources/Info.plist
 ```
 
-[`scripts/package-mac-app.sh`](https://github.com/openclaw/openclaw/blob/main/scripts/package-mac-app.sh) kopiert diese Vorlage in das App-Bundle und patched dynamische Felder
-(Bundle-ID, Version/Build, Git-SHA, Sparkle-Schluessel). Dadurch bleibt die plist deterministisch fuer SwiftPM-
-Packaging und Nix-Builds (die nicht auf eine vollstaendige Xcode-Toolchain angewiesen sind).
+[`scripts/package-mac-app.sh`](https://github.com/openclaw/openclaw/blob/main/scripts/package-mac-app.sh) kopiert diese Vorlage in das App-Bundle und patcht dynamische Felder
+(Bundle-ID, Version/Build, Git-SHA, Sparkle-Schlüssel). Dadurch bleibt die plist für SwiftPM-Packaging
+und Nix-Builds (die nicht auf eine vollständige Xcode-Toolchain angewiesen sind) deterministisch.
 
 ## Verwandt
 
-- [nix-openclaw](https://github.com/openclaw/nix-openclaw) — vollstaendige Einrichtungsanleitung
+- [nix-openclaw](https://github.com/openclaw/nix-openclaw) — vollständige Einrichtungsanleitung
 - [Wizard](/start/wizard) — CLI-Einrichtung ohne Nix
 - [Docker](/install/docker) — containerisierte Einrichtung

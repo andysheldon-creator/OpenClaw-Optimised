@@ -1,51 +1,51 @@
 ---
-summary: "Chinh sach thu lai cho cac cuoc goi nha cung cap dau ra"
+summary: "Chính sách retry cho các cuộc gọi nhà cung cấp outbound"
 read_when:
-  - Cap nhat hanh vi thu lai hoac mac dinh cua nha cung cap
-  - Xu ly su co loi gui cua nha cung cap hoac gioi han toc do
-title: "Chinh sach thu lai"
+  - Cập nhật hành vi hoặc mặc định retry của nhà cung cấp
+  - Gỡ lỗi lỗi gửi hoặc giới hạn tốc độ của nhà cung cấp
+title: "Chính sách Retry"
 x-i18n:
   source_path: concepts/retry.md
   source_hash: 55bb261ff567f46c
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:45Z
+  generated_at: 2026-02-08T09:38:33Z
 ---
 
-# Chinh sach thu lai
+# Chính sách retry
 
-## Muc tieu
+## Mục tiêu
 
-- Thu lai theo tung yeu cau HTTP, khong theo luong nhieu buoc.
-- Bao toan thu tu bang cach chi thu lai buoc hien tai.
-- Tranh trung lap cac thao tac khong co tinh idempotent.
+- Retry theo từng yêu cầu HTTP, không theo luồng nhiều bước.
+- Giữ thứ tự bằng cách chỉ retry bước hiện tại.
+- Tránh nhân bản các thao tác không idempotent.
 
-## Mac dinh
+## Mặc định
 
-- So lan thu: 3
-- Gioi han do tre toi da: 30000 ms
-- Jitter: 0.1 (10 phan tram)
-- Mac dinh theo nha cung cap:
-  - Telegram do tre toi thieu: 400 ms
-  - Discord do tre toi thieu: 500 ms
+- Số lần thử: 3
+- Giới hạn độ trễ tối đa: 30000 ms
+- Jitter: 0.1 (10 phần trăm)
+- Mặc định theo nhà cung cấp:
+  - Telegram độ trễ tối thiểu: 400 ms
+  - Discord độ trễ tối thiểu: 500 ms
 
-## Hanh vi
+## Hành vi
 
 ### Discord
 
-- Chi thu lai khi gap loi gioi han toc do (HTTP 429).
-- Su dung `retry_after` khi co san, neu khong thi su dung backoff theo ham mu.
+- Chỉ retry khi có lỗi giới hạn tốc độ (HTTP 429).
+- Sử dụng `retry_after` khi có, nếu không thì dùng exponential backoff.
 
 ### Telegram
 
-- Thu lai khi gap loi tam thoi (429, timeout, connect/reset/closed, tam thoi khong kha dung).
-- Su dung `retry_after` khi co san, neu khong thi su dung backoff theo ham mu.
-- Loi phan tich Markdown khong duoc thu lai; se chuyen sang van ban thuong.
+- Retry khi gặp lỗi tạm thời (429, timeout, connect/reset/closed, tạm thời không khả dụng).
+- Sử dụng `retry_after` khi có, nếu không thì dùng exponential backoff.
+- Lỗi phân tích Markdown sẽ không được retry; sẽ fallback sang văn bản thuần.
 
-## Cau hinh
+## Cấu hình
 
-Thiet lap chinh sach thu lai theo tung nha cung cap trong `~/.openclaw/openclaw.json`:
+Thiết lập chính sách retry theo từng nhà cung cấp trong `~/.openclaw/openclaw.json`:
 
 ```json5
 {
@@ -70,7 +70,7 @@ Thiet lap chinh sach thu lai theo tung nha cung cap trong `~/.openclaw/openclaw.
 }
 ```
 
-## Ghi chu
+## Ghi chú
 
-- Thu lai ap dung theo tung yeu cau (gui tin nhan, tai len media, reaction, poll, sticker).
-- Cac luong tong hop khong thu lai cac buoc da hoan thanh.
+- Retry áp dụng theo từng yêu cầu (gửi tin nhắn, tải lên media, reaction, poll, sticker).
+- Các luồng tổng hợp sẽ không retry những bước đã hoàn thành.

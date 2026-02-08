@@ -10,15 +10,15 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:54:48Z
+  generated_at: 2026-02-08T09:29:22Z
 ---
 
 # apply_patch 工具
 
-使用結構化的修補格式來套用檔案變更。這非常適合多檔案
-或多個 hunk 的編輯情境，因為單一的 `edit` 呼叫會相當脆弱。
+使用結構化的修補格式套用檔案變更。這非常適合多檔案
+或多個區塊（hunk）的編輯情境，因為單一的 `edit` 呼叫會顯得脆弱。
 
-此工具接受單一的 `input` 字串，用來包裝一個或多個檔案操作：
+此工具接受單一的 `input` 字串，該字串包裝一或多個檔案操作：
 
 ```
 *** Begin Patch
@@ -35,16 +35,15 @@ x-i18n:
 
 ## 參數
 
-- `input`（必要）：完整的修補內容，包含 `*** Begin Patch` 與 `*** End Patch`。
+- `input`（必填）：包含 `*** Begin Patch` 與 `*** End Patch` 的完整修補內容。
 
 ## 注意事項
 
 - 路徑會相對於工作區根目錄解析。
-- 在 `*** Update File:` hunk 中使用 `*** Move to:` 來重新命名檔案。
-- 在需要時，`*** End of File` 會標記僅於 EOF 的插入。
-- 為實驗性功能，預設停用。請使用 `tools.exec.applyPatch.enabled` 啟用。
-- 僅限 OpenAI（包含 OpenAI Codex）。可選擇透過模型以
-  `tools.exec.applyPatch.allowModels` 進行控管。
+- 在 `*** Update File:` 區塊（hunk）中使用 `*** Move to:` 以重新命名檔案。
+- 在需要時，`*** End of File` 會標示僅於 EOF 的插入。
+- 屬於實驗性功能，預設為停用。請使用 `tools.exec.applyPatch.enabled` 啟用。
+- 僅限 OpenAI（包含 OpenAI Codex）。可選擇透過模型以 `tools.exec.applyPatch.allowModels` 進行控管。
 - 設定僅位於 `tools.exec` 之下。
 
 ## 範例

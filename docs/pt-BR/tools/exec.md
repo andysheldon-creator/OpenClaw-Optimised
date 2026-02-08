@@ -10,55 +10,55 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:57:47Z
+  generated_at: 2026-02-08T09:32:19Z
 ---
 
 # Ferramenta Exec
 
-Execute comandos de shell no workspace. Oferece suporte a execução em primeiro plano + segundo plano via `process`.
-Se `process` não for permitido, `exec` é executado de forma síncrona e ignora `yieldMs`/`background`.
-As sessões em segundo plano são delimitadas por agente; `process` vê apenas sessões do mesmo agente.
+Execute comandos de shell no workspace. Suporta execução em primeiro plano + segundo plano via `process`.
+Se `process` não for permitido, `exec` executa de forma síncrona e ignora `yieldMs`/`background`.
+As sessões em segundo plano são delimitadas por agente; `process` só vê sessões do mesmo agente.
 
 ## Parâmetros
 
 - `command` (obrigatório)
 - `workdir` (padrão: cwd)
 - `env` (substituições chave/valor)
-- `yieldMs` (padrão 10000): ir automaticamente para segundo plano após atraso
-- `background` (bool): ir imediatamente para segundo plano
-- `timeout` (segundos, padrão 1800): encerrar ao expirar
-- `pty` (bool): executar em um pseudo-terminal quando disponível (CLIs somente TTY, agentes de codificação, UIs de terminal)
+- `yieldMs` (padrão 10000): coloca automaticamente em segundo plano após atraso
+- `background` (bool): segundo plano imediatamente
+- `timeout` (segundos, padrão 1800): encerra ao expirar
+- `pty` (bool): executa em um pseudo-terminal quando disponível (CLIs somente TTY, agentes de código, UIs de terminal)
 - `host` (`sandbox | gateway | node`): onde executar
 - `security` (`deny | allowlist | full`): modo de aplicação para `gateway`/`node`
 - `ask` (`off | on-miss | always`): prompts de aprovação para `gateway`/`node`
 - `node` (string): id/nome do nó para `host=node`
-- `elevated` (bool): solicitar modo elevado (host do gateway); `security=full` só é forçado quando elevado resolve para `full`
+- `elevated` (bool): solicita modo elevado (host do Gateway); `security=full` só é forçado quando o elevado resolve para `full`
 
 Notas:
 
-- `host` usa `sandbox` por padrão.
-- `elevated` é ignorado quando o sandboxing está desligado (o exec já roda no host).
-- As aprovações de `gateway`/`node` são controladas por `~/.openclaw/exec-approvals.json`.
+- `host` tem como padrão `sandbox`.
+- `elevated` é ignorado quando o sandboxing está desativado (exec já roda no host).
+- As aprovações `gateway`/`node` são controladas por `~/.openclaw/exec-approvals.json`.
 - `node` requer um nó pareado (aplicativo complementar ou host de nó headless).
-- Se houver vários nós disponíveis, defina `exec.node` ou `tools.exec.node` para selecionar um.
+- Se vários nós estiverem disponíveis, defina `exec.node` ou `tools.exec.node` para selecionar um.
 - Em hosts não Windows, o exec usa `SHELL` quando definido; se `SHELL` for `fish`, ele prefere `bash` (ou `sh`)
-  de `PATH` para evitar scripts incompatíveis com fish, e então faz fallback para `SHELL` se nenhum existir.
+  de `PATH` para evitar scripts incompatíveis com fish, depois faz fallback para `SHELL` se nenhum existir.
 - A execução no host (`gateway`/`node`) rejeita `env.PATH` e substituições de loader (`LD_*`/`DYLD_*`) para
   evitar sequestro de binários ou código injetado.
-- Importante: o sandboxing está **desligado por padrão**. Se o sandboxing estiver desligado, `host=sandbox` executa diretamente no
+- Importante: o sandboxing está **desativado por padrão**. Se o sandboxing estiver desativado, `host=sandbox` executa diretamente no
   host do gateway (sem contêiner) e **não requer aprovações**. Para exigir aprovações, execute com
-  `host=gateway` e configure aprovações de exec (ou habilite o sandboxing).
+  `host=gateway` e configure as aprovações do exec (ou habilite o sandboxing).
 
-## Configuracao
+## Configuração
 
-- `tools.exec.notifyOnExit` (padrão: true): quando true, sessões de exec em segundo plano enfileiram um evento do sistema e solicitam um heartbeat na saída.
-- `tools.exec.approvalRunningNoticeMs` (padrão: 10000): emite um único aviso “em execução” quando um exec com aprovação obrigatória roda por mais tempo que isso (0 desativa).
+- `tools.exec.notifyOnExit` (padrão: true): quando true, sessões de exec em segundo plano enfileiram um evento de sistema e solicitam um heartbeat ao sair.
+- `tools.exec.approvalRunningNoticeMs` (padrão: 10000): emite um único aviso “em execução” quando um exec com aprovação demora mais que isso (0 desativa).
 - `tools.exec.host` (padrão: `sandbox`)
 - `tools.exec.security` (padrão: `deny` para sandbox, `allowlist` para gateway + nó quando não definido)
 - `tools.exec.ask` (padrão: `on-miss`)
 - `tools.exec.node` (padrão: não definido)
-- `tools.exec.pathPrepend`: lista de diretórios a serem prefixados em `PATH` para execuções de exec.
-- `tools.exec.safeBins`: binários seguros somente de stdin que podem rodar sem entradas explícitas na allowlist.
+- `tools.exec.pathPrepend`: lista de diretórios a serem adicionados antes de `PATH` para execuções do exec.
+- `tools.exec.safeBins`: binários seguros somente stdin que podem rodar sem entradas explícitas na allowlist.
 
 Exemplo:
 
@@ -74,18 +74,18 @@ Exemplo:
 
 ### Manipulação de PATH
 
-- `host=gateway`: mescla o `PATH` do seu shell de login no ambiente de exec. Substituições de `env.PATH` são
+- `host=gateway`: mescla seu `PATH` do shell de login no ambiente do exec. Substituições de `env.PATH` são
   rejeitadas para execução no host. O daemon em si ainda roda com um `PATH` mínimo:
   - macOS: `/opt/homebrew/bin`, `/usr/local/bin`, `/usr/bin`, `/bin`
   - Linux: `/usr/local/bin`, `/usr/bin`, `/bin`
 - `host=sandbox`: executa `sh -lc` (shell de login) dentro do contêiner, então `/etc/profile` pode redefinir `PATH`.
-  O OpenClaw prefixa `env.PATH` após o sourcing do perfil via uma variável de ambiente interna (sem interpolação de shell);
+  O OpenClaw adiciona `env.PATH` antes após o carregamento de perfil via uma variável de ambiente interna (sem interpolação de shell);
   `tools.exec.pathPrepend` também se aplica aqui.
-- `host=node`: apenas substituições de env não bloqueadas que você passa são enviadas ao nó. Substituições de `env.PATH` são
-  rejeitadas para execução no host. Hosts de nó headless aceitam `PATH` apenas quando ele prefixa o PATH do host do nó
-  (sem substituição). Nós macOS descartam completamente substituições de `PATH`.
+- `host=node`: somente substituições de env não bloqueadas que você passar são enviadas ao nó. Substituições de `env.PATH` são
+  rejeitadas para execução no host. Hosts de nó headless aceitam `PATH` apenas quando ele adiciona antes o PATH do host do nó
+  (sem substituição). Nós macOS descartam totalmente substituições de `PATH`.
 
-Vinculação de nó por agente (use o índice da lista de agentes na configuracao):
+Vinculação de nó por agente (use o índice da lista de agentes na configuração):
 
 ```bash
 openclaw config get agents.list
@@ -105,29 +105,29 @@ Exemplo:
 /exec host=gateway security=allowlist ask=on-miss node=mac-1
 ```
 
-## Modelo de autorizacao
+## Modelo de autorização
 
 `/exec` só é respeitado para **remetentes autorizados** (allowlists de canal/pareamento mais `commands.useAccessGroups`).
-Ele atualiza **apenas o estado da sessão** e não grava configuracao. Para desativar o exec de forma rígida, negue-o via política
-da ferramenta (`tools.deny: ["exec"]` ou por agente). As aprovações do host ainda se aplicam, a menos que você defina explicitamente
+Ele atualiza **apenas o estado da sessão** e não grava configuração. Para desativar o exec de forma definitiva, negue-o via
+política de ferramentas (`tools.deny: ["exec"]` ou por agente). Aprovações no host ainda se aplicam, a menos que você defina explicitamente
 `security=full` e `ask=off`.
 
-## Aprovações de exec (aplicativo complementar / host do nó)
+## Aprovações do Exec (aplicativo complementar / host do nó)
 
-Agentes em sandbox podem exigir aprovação por solicitação antes que `exec` execute no host do gateway ou do nó.
-Veja [Exec approvals](/tools/exec-approvals) para a política, a allowlist e o fluxo de UI.
+Agentes em sandbox podem exigir aprovação por solicitação antes que `exec` execute no gateway ou no host do nó.
+Veja [Exec approvals](/tools/exec-approvals) para a política, allowlist e fluxo de UI.
 
 Quando aprovações são exigidas, a ferramenta exec retorna imediatamente com
 `status: "approval-pending"` e um id de aprovação. Após aprovado (ou negado / expirado),
-o Gateway emite eventos do sistema (`Exec finished` / `Exec denied`). Se o comando ainda estiver
+o Gateway emite eventos de sistema (`Exec finished` / `Exec denied`). Se o comando ainda estiver
 em execução após `tools.exec.approvalRunningNoticeMs`, um único aviso `Exec running` é emitido.
 
 ## Allowlist + bins seguros
 
 A aplicação da allowlist corresponde **apenas a caminhos de binários resolvidos** (sem correspondência por basename). Quando
-`security=allowlist`, comandos de shell são automaticamente permitidos apenas se cada segmento do pipeline estiver
+`security=allowlist`, comandos de shell são auto-permitidos somente se cada segmento do pipeline estiver
 na allowlist ou for um bin seguro. Encadeamento (`;`, `&&`, `||`) e redirecionamentos são rejeitados no
-modo allowlist.
+modo de allowlist.
 
 ## Exemplos
 
@@ -137,7 +137,7 @@ Primeiro plano:
 { "tool": "exec", "command": "ls -la" }
 ```
 
-Segundo plano + consulta:
+Segundo plano + polling:
 
 ```json
 {"tool":"exec","command":"npm run build","yieldMs":1000}
@@ -152,7 +152,7 @@ Enviar teclas (estilo tmux):
 {"tool":"process","action":"send-keys","sessionId":"<id>","keys":["Up","Up","Enter"]}
 ```
 
-Enviar (apenas enviar CR):
+Enviar (somente CR):
 
 ```json
 { "tool": "process", "action": "submit", "sessionId": "<id>" }
@@ -166,8 +166,8 @@ Colar (delimitado por padrão):
 
 ## apply_patch (experimental)
 
-`apply_patch` é uma subferramenta de `exec` para edições estruturadas em vários arquivos.
-Habilite-a explicitamente:
+`apply_patch` é um subtool de `exec` para edições estruturadas em vários arquivos.
+Habilite explicitamente:
 
 ```json5
 {
@@ -182,5 +182,5 @@ Habilite-a explicitamente:
 Notas:
 
 - Disponível apenas para modelos OpenAI/OpenAI Codex.
-- A política da ferramenta ainda se aplica; `allow: ["exec"]` permite implicitamente `apply_patch`.
-- A configuracao fica em `tools.exec.applyPatch`.
+- A política de ferramentas ainda se aplica; `allow: ["exec"]` permite implicitamente `apply_patch`.
+- A configuração fica em `tools.exec.applyPatch`.

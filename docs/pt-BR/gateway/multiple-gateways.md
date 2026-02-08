@@ -1,35 +1,35 @@
 ---
 summary: "Execute vários Gateways do OpenClaw em um único host (isolamento, portas e perfis)"
 read_when:
-  - Executar mais de um Gateway na mesma máquina
-  - Você precisa de config/estado/portas isolados por Gateway
-title: "Vários Gateways"
+  - Executando mais de um Gateway na mesma máquina
+  - Você precisa de configuração/estado/portas isolados por Gateway
+title: "Múltiplos Gateways"
 x-i18n:
   source_path: gateway/multiple-gateways.md
   source_hash: 09b5035d4e5fb97c
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:56:16Z
+  generated_at: 2026-02-08T09:30:53Z
 ---
 
-# Vários Gateways (mesmo host)
+# Múltiplos Gateways (mesmo host)
 
-A maioria das configurações deve usar um único Gateway, pois um único Gateway pode lidar com várias conexões de mensagens e agentes. Se você precisar de isolamento mais forte ou redundância (por exemplo, um bot de resgate), execute Gateways separados com perfis/portas isolados.
+A maioria das configurações deve usar um único Gateway, porque um único Gateway pode lidar com várias conexões de mensagens e agentes. Se você precisar de isolamento ou redundância mais fortes (por exemplo, um bot de resgate), execute Gateways separados com perfis/portas isolados.
 
 ## Checklist de isolamento (obrigatório)
 
-- `OPENCLAW_CONFIG_PATH` — arquivo de config por instância
+- `OPENCLAW_CONFIG_PATH` — arquivo de configuração por instância
 - `OPENCLAW_STATE_DIR` — sessões, credenciais e caches por instância
 - `agents.defaults.workspace` — raiz do workspace por instância
-- `gateway.port` (ou `--port`) — exclusivo por instância
+- `gateway.port` (ou `--port`) — único por instância
 - Portas derivadas (browser/canvas) não devem se sobrepor
 
-Se estes forem compartilhados, você enfrentará disputas de configuração e conflitos de porta.
+Se qualquer um desses for compartilhado, você enfrentará condições de corrida de configuração e conflitos de portas.
 
 ## Recomendado: perfis (`--profile`)
 
-Os perfis delimitam automaticamente `OPENCLAW_STATE_DIR` + `OPENCLAW_CONFIG_PATH` e adicionam sufixos aos nomes dos serviços.
+Os perfis fazem o escopo automático de `OPENCLAW_STATE_DIR` + `OPENCLAW_CONFIG_PATH` e adicionam sufixos aos nomes dos serviços.
 
 ```bash
 # main
@@ -48,16 +48,16 @@ openclaw --profile main gateway install
 openclaw --profile rescue gateway install
 ```
 
-## Guia de bot de resgate
+## Guia do bot de resgate
 
-Execute um segundo Gateway no mesmo host com seus próprios:
+Execute um segundo Gateway no mesmo host com o seu próprio:
 
-- perfil/config
+- perfil/configuração
 - diretório de estado
 - workspace
 - porta base (mais portas derivadas)
 
-Isso mantém o bot de resgate isolado do bot principal para que ele possa depurar ou aplicar mudanças de configuração se o bot principal estiver fora do ar.
+Isso mantém o bot de resgate isolado do bot principal, para que ele possa depurar ou aplicar alterações de configuração se o bot principal estiver fora do ar.
 
 Espaçamento de portas: deixe pelo menos 20 portas entre as portas base para que as portas derivadas de browser/canvas/CDP nunca colidam.
 
@@ -85,20 +85,20 @@ openclaw --profile rescue gateway install
 
 Porta base = `gateway.port` (ou `OPENCLAW_GATEWAY_PORT` / `--port`).
 
-- porta do serviço de controle do browser = base + 2 (apenas loopback)
+- porta do serviço de controle do browser = base + 2 (somente local loopback)
 - `canvasHost.port = base + 4`
 - As portas CDP do perfil do browser são alocadas automaticamente a partir de `browser.controlPort + 9 .. + 108`
 
-Se você sobrescrever qualquer uma delas na config ou em variáveis de ambiente, deve mantê-las exclusivas por instância.
+Se você sobrescrever qualquer uma delas na configuração ou em variáveis de ambiente, deve mantê-las únicas por instância.
 
-## Observações sobre Browser/CDP (armadilha comum)
+## Notas de Browser/CDP (armadilha comum)
 
 - **Não** fixe `browser.cdpUrl` nos mesmos valores em várias instâncias.
 - Cada instância precisa de sua própria porta de controle do browser e intervalo de CDP (derivado da porta do gateway).
 - Se você precisar de portas CDP explícitas, defina `browser.profiles.<name>.cdpPort` por instância.
 - Chrome remoto: use `browser.profiles.<name>.cdpUrl` (por perfil, por instância).
 
-## Exemplo manual de env
+## Exemplo manual com env
 
 ```bash
 OPENCLAW_CONFIG_PATH=~/.openclaw/main.json \

@@ -1,10 +1,10 @@
 ---
-summary: "Chay OpenClaw Gateway 24/7 tren VPS Hetzner gia re (Docker) voi trang thai ben vung va cac nhi phan duoc dong san"
+summary: "Chạy OpenClaw Gateway 24/7 trên VPS Hetzner giá rẻ (Docker) với trạng thái bền vững và các binary được đóng gói sẵn"
 read_when:
-  - Ban muon OpenClaw chay 24/7 tren VPS dam may (khong phai laptop)
-  - Ban muon mot Gateway luon bat, cap do san xuat tren VPS rieng
-  - Ban muon toan quyen kiem soat viec luu tru, nhi phan va hanh vi khoi dong lai
-  - Ban dang chay OpenClaw trong Docker tren Hetzner hoac nha cung cap tuong tu
+  - Bạn muốn OpenClaw chạy 24/7 trên một VPS đám mây (không phải laptop của bạn)
+  - Bạn muốn một Gateway luôn bật, đạt chuẩn production trên VPS riêng của bạn
+  - Bạn muốn toàn quyền kiểm soát việc lưu trữ lâu dài, các binary và hành vi khởi động lại
+  - Bạn đang chạy OpenClaw trong Docker trên Hetzner hoặc nhà cung cấp tương tự
 title: "Hetzner"
 x-i18n:
   source_path: install/hetzner.md
@@ -12,81 +12,81 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:44Z
+  generated_at: 2026-02-08T09:39:27Z
 ---
 
-# OpenClaw tren Hetzner (Docker, Huong dan VPS san xuat)
+# OpenClaw trên Hetzner (Docker, Hướng dẫn VPS production)
 
-## Muc tieu
+## Mục tiêu
 
-Chay mot OpenClaw Gateway ben vung tren VPS Hetzner su dung Docker, voi trang thai ben vung, nhi phan duoc dong san va hanh vi khoi dong lai an toan.
+Chạy một OpenClaw Gateway bền vững trên VPS Hetzner bằng Docker, với trạng thái được lưu lâu dài, các binary được đóng gói sẵn và hành vi khởi động lại an toàn.
 
-Neu ban muon “OpenClaw 24/7 voi ~5$”, day la cau hinh don gian va dang tin cay nhat.
-Gia Hetzner co the thay doi; hay chon VPS Debian/Ubuntu nho nhat va nang cap neu gap OOM.
+Nếu bạn muốn “OpenClaw 24/7 với ~$5”, đây là thiết lập đơn giản và đáng tin cậy nhất.  
+Giá Hetzner có thể thay đổi; hãy chọn VPS Debian/Ubuntu nhỏ nhất và nâng cấp nếu gặp lỗi OOM.
 
-## Chung ta dang lam gi (noi don gian)?
+## Chúng ta đang làm gì (nói đơn giản)?
 
-- Thue mot may chu Linux nho (VPS Hetzner)
-- Cai Docker (moi truong chay ung dung tach biet)
-- Khoi dong OpenClaw Gateway trong Docker
-- Luu ben vung `~/.openclaw` + `~/.openclaw/workspace` tren host (ton tai qua cac lan khoi dong/xay dung lai)
-- Truy cap Control UI tu laptop qua SSH tunnel
+- Thuê một máy chủ Linux nhỏ (VPS Hetzner)
+- Cài Docker (môi trường chạy ứng dụng tách biệt)
+- Khởi động OpenClaw Gateway trong Docker
+- Lưu `~/.openclaw` + `~/.openclaw/workspace` trên máy chủ (tồn tại qua các lần restart/rebuild)
+- Truy cập Control UI từ laptop của bạn qua đường hầm SSH
 
-Gateway co the duoc truy cap qua:
+Gateway có thể được truy cập qua:
 
-- Chuyen tiep cong SSH tu laptop
-- Mo cong truc tiep neu ban tu quan ly firewall va token
+- Chuyển tiếp cổng SSH từ laptop của bạn
+- Mở cổng trực tiếp nếu bạn tự quản lý firewall và token
 
-Huong dan nay gia dinh Ubuntu hoac Debian tren Hetzner.  
-Neu ban dung VPS Linux khac, hay anh xa goi tuong ung.
-Voi luong Docker tong quat, xem [Docker](/install/docker).
+Hướng dẫn này giả định bạn dùng Ubuntu hoặc Debian trên Hetzner.  
+Nếu bạn dùng VPS Linux khác, hãy ánh xạ các gói tương ứng.  
+Với luồng Docker chung, xem [Docker](/install/docker).
 
 ---
 
-## Duong nhanh (nguoi van hanh co kinh nghiem)
+## Lộ trình nhanh (người vận hành có kinh nghiệm)
 
-1. Tao VPS Hetzner
-2. Cai Docker
-3. Clone kho luu tru OpenClaw
-4. Tao cac thu muc host luu ben vung
-5. Cau hinh `.env` va `docker-compose.yml`
-6. Dong san cac nhi phan can thiet vao image
+1. Tạo VPS Hetzner
+2. Cài Docker
+3. Clone repository OpenClaw
+4. Tạo các thư mục host lưu trữ lâu dài
+5. Cấu hình `.env` và `docker-compose.yml`
+6. Đóng gói các binary cần thiết vào image
 7. `docker compose up -d`
-8. Xac minh luu ben vung va truy cap Gateway
+8. Xác minh tính bền vững và truy cập Gateway
 
 ---
 
-## Ban can gi
+## Những gì bạn cần
 
-- VPS Hetzner co quyen root
-- Truy cap SSH tu laptop
-- Thoai mai co ban voi SSH + copy/paste
-- ~20 phut
-- Docker va Docker Compose
-- Thong tin xac thuc mo hinh
-- Thong tin nha cung cap tuy chon
+- VPS Hetzner với quyền root
+- Truy cập SSH từ laptop của bạn
+- Thoải mái cơ bản với SSH + copy/paste
+- ~20 phút
+- Docker và Docker Compose
+- Thông tin xác thực mô hình
+- Thông tin xác thực nhà cung cấp (tùy chọn)
   - WhatsApp QR
   - Telegram bot token
   - Gmail OAuth
 
 ---
 
-## 1) Tao VPS
+## 1) Tạo VPS
 
-Tao mot VPS Ubuntu hoac Debian tren Hetzner.
+Tạo một VPS Ubuntu hoặc Debian trên Hetzner.
 
-Ket noi voi quyen root:
+Kết nối với quyền root:
 
 ```bash
 ssh root@YOUR_VPS_IP
 ```
 
-Huong dan nay gia dinh VPS co tinh trang thai.
-Khong coi no la ha tang co the bo di.
+Hướng dẫn này giả định VPS là có trạng thái (stateful).  
+Không nên coi nó là hạ tầng dùng xong bỏ.
 
 ---
 
-## 2) Cai Docker (tren VPS)
+## 2) Cài Docker (trên VPS)
 
 ```bash
 apt-get update
@@ -94,7 +94,7 @@ apt-get install -y git curl ca-certificates
 curl -fsSL https://get.docker.com | sh
 ```
 
-Xac minh:
+Xác minh:
 
 ```bash
 docker --version
@@ -103,21 +103,21 @@ docker compose version
 
 ---
 
-## 3) Clone kho luu tru OpenClaw
+## 3) Clone repository OpenClaw
 
 ```bash
 git clone https://github.com/openclaw/openclaw.git
 cd openclaw
 ```
 
-Huong dan nay gia dinh ban se xay dung mot image tuy chinh de dam bao luu ben vung nhi phan.
+Hướng dẫn này giả định bạn sẽ build một image tùy chỉnh để đảm bảo binary được lưu bền vững.
 
 ---
 
-## 4) Tao cac thu muc host luu ben vung
+## 4) Tạo các thư mục host lưu trữ lâu dài
 
-Container Docker la tam thoi.
-Tat ca trang thai lau dai phai nam tren host.
+Docker container là tạm thời.  
+Mọi trạng thái tồn tại lâu dài phải nằm trên host.
 
 ```bash
 mkdir -p /root/.openclaw
@@ -130,9 +130,9 @@ chown -R 1000:1000 /root/.openclaw/workspace
 
 ---
 
-## 5) Cau hinh bien moi truong
+## 5) Cấu hình biến môi trường
 
-Tao `.env` tai thu muc goc cua kho.
+Tạo `.env` ở thư mục gốc của repository.
 
 ```bash
 OPENCLAW_IMAGE=openclaw:latest
@@ -147,19 +147,19 @@ GOG_KEYRING_PASSWORD=change-me-now
 XDG_CONFIG_HOME=/home/node/.openclaw
 ```
 
-Tao cac bi mat manh:
+Tạo các secret mạnh:
 
 ```bash
 openssl rand -hex 32
 ```
 
-**Khong commit tep nay.**
+**Không commit file này.**
 
 ---
 
-## 6) Cau hinh Docker Compose
+## 6) Cấu hình Docker Compose
 
-Tao hoac cap nhat `docker-compose.yml`.
+Tạo hoặc cập nhật `docker-compose.yml`.
 
 ```yaml
 services:
@@ -204,29 +204,29 @@ services:
 
 ---
 
-## 7) Dong san cac nhi phan can thiet vao image (quan trong)
+## 7) Đóng gói các binary cần thiết vào image (quan trọng)
 
-Cai dat nhi phan ben trong container dang chay la mot cai bay.
-Bat cu thu gi cai luc runtime se bi mat khi khoi dong lai.
+Cài binary bên trong container đang chạy là một cái bẫy.  
+Bất cứ thứ gì cài ở runtime sẽ bị mất khi restart.
 
-Tat ca cac nhi phan ben ngoai ma Skills can phai duoc cai tai thoi diem build image.
+Tất cả các binary bên ngoài mà Skills cần phải được cài ở bước build image.
 
-Vi du duoi day chi minh hoa ba nhi phan pho bien:
+Ví dụ dưới đây chỉ minh họa ba binary phổ biến:
 
-- `gog` cho truy cap Gmail
+- `gog` cho truy cập Gmail
 - `goplaces` cho Google Places
 - `wacli` cho WhatsApp
 
-Day chi la vi du, khong phai danh sach day du.
-Ban co the cai nhieu nhi phan tuy y theo cung mot mau.
+Đây chỉ là ví dụ, không phải danh sách đầy đủ.  
+Bạn có thể cài bao nhiêu binary tùy ý theo cùng một mẫu.
 
-Neu sau nay ban them Skills moi phu thuoc vao nhi phan bo sung, ban phai:
+Nếu sau này bạn thêm Skills mới phụ thuộc vào các binary khác, bạn phải:
 
-1. Cap nhat Dockerfile
-2. Build lai image
-3. Khoi dong lai cac container
+1. Cập nhật Dockerfile
+2. Rebuild image
+3. Restart container
 
-**Vi du Dockerfile**
+**Ví dụ Dockerfile**
 
 ```dockerfile
 FROM node:22-bookworm
@@ -267,14 +267,14 @@ CMD ["node","dist/index.js"]
 
 ---
 
-## 8) Build va khoi dong
+## 8) Build và khởi chạy
 
 ```bash
 docker compose build
 docker compose up -d openclaw-gateway
 ```
 
-Xac minh nhi phan:
+Xác minh các binary:
 
 ```bash
 docker compose exec openclaw-gateway which gog
@@ -282,7 +282,7 @@ docker compose exec openclaw-gateway which goplaces
 docker compose exec openclaw-gateway which wacli
 ```
 
-Ket qua mong doi:
+Đầu ra mong đợi:
 
 ```
 /usr/local/bin/gog
@@ -292,46 +292,46 @@ Ket qua mong doi:
 
 ---
 
-## 9) Xac minh Gateway
+## 9) Xác minh Gateway
 
 ```bash
 docker compose logs -f openclaw-gateway
 ```
 
-Thanh cong:
+Thành công:
 
 ```
 [gateway] listening on ws://0.0.0.0:18789
 ```
 
-Tu laptop cua ban:
+Từ laptop của bạn:
 
 ```bash
 ssh -N -L 18789:127.0.0.1:18789 root@YOUR_VPS_IP
 ```
 
-Mo:
+Mở:
 
 `http://127.0.0.1:18789/`
 
-Dan token gateway cua ban.
+Dán gateway token của bạn.
 
 ---
 
-## Cac thanh phan duoc luu o dau (nguon chan ly)
+## Những gì được lưu ở đâu (nguồn sự thật)
 
-OpenClaw chay trong Docker, nhung Docker khong phai la nguon chan ly.
-Tat ca trang thai lau dai phai ton tai qua cac lan khoi dong, xay dung lai va reboot.
+OpenClaw chạy trong Docker, nhưng Docker không phải là nguồn sự thật.  
+Mọi trạng thái tồn tại lâu dài phải sống sót qua restart, rebuild và reboot.
 
-| Thanh phan                | Vi tri                            | Co che luu ben vung    | Ghi chu                        |
-| ------------------------- | --------------------------------- | ---------------------- | ------------------------------ |
-| Cau hinh Gateway          | `/home/node/.openclaw/`           | Gan volume host        | Bao gom `openclaw.json`, token |
-| Ho so xac thuc mo hinh    | `/home/node/.openclaw/`           | Gan volume host        | OAuth token, API key           |
-| Cau hinh Skill            | `/home/node/.openclaw/skills/`    | Gan volume host        | Trang thai cap Skill           |
-| Khong gian lam viec agent | `/home/node/.openclaw/workspace/` | Gan volume host        | Ma va hien vat agent           |
-| Phien WhatsApp            | `/home/node/.openclaw/`           | Gan volume host        | Giu dang nhap QR               |
-| Keyring Gmail             | `/home/node/.openclaw/`           | Volume host + mat khau | Yeu cau `GOG_KEYRING_PASSWORD` |
-| Nhi phan ben ngoai        | `/usr/local/bin/`                 | Docker image           | Phai dong san khi build        |
-| Node runtime              | He thong tep container            | Docker image           | Duoc build lai moi lan         |
-| Goi he dieu hanh          | He thong tep container            | Docker image           | Khong cai luc runtime          |
-| Docker container          | Tam thoi                          | Co the khoi dong lai   | An toan de huy                 |
+| Thành phần             | Vị trí                            | Cơ chế lưu trữ         | Ghi chú                        |
+| ---------------------- | --------------------------------- | ---------------------- | ------------------------------ |
+| Cấu hình Gateway       | `/home/node/.openclaw/`           | Gắn volume host        | Bao gồm `openclaw.json`, token |
+| Hồ sơ xác thực mô hình | `/home/node/.openclaw/`           | Gắn volume host        | OAuth token, khóa API          |
+| Cấu hình Skill         | `/home/node/.openclaw/skills/`    | Gắn volume host        | Trạng thái cấp Skill           |
+| Workspace agent        | `/home/node/.openclaw/workspace/` | Gắn volume host        | Mã và artifact của agent       |
+| Phiên WhatsApp         | `/home/node/.openclaw/`           | Gắn volume host        | Giữ đăng nhập QR               |
+| Keyring Gmail          | `/home/node/.openclaw/`           | Volume host + mật khẩu | Yêu cầu `GOG_KEYRING_PASSWORD` |
+| Binary bên ngoài       | `/usr/local/bin/`                 | Docker image           | Phải được đóng gói khi build   |
+| Runtime Node           | Hệ thống file container           | Docker image           | Rebuild mỗi lần build image    |
+| Gói OS                 | Hệ thống file container           | Docker image           | Không cài ở runtime            |
+| Docker container       | Tạm thời                          | Có thể restart         | An toàn để xóa                 |

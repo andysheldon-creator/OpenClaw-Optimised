@@ -1,9 +1,9 @@
 ---
-summary: "cron と heartbeat のスケジューリングおよび配信をトラブルシューティングします"
+summary: "cron と Heartbeat のスケジューリングおよび配信に関するトラブルシューティング"
 read_when:
   - Cron が実行されなかった
   - Cron は実行されたがメッセージが配信されなかった
-  - Heartbeat が無音、またはスキップされているように見える
+  - Heartbeat が無音またはスキップされているように見える
 title: "オートメーションのトラブルシューティング"
 x-i18n:
   source_path: automation/troubleshooting.md
@@ -11,12 +11,12 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:14:46Z
+  generated_at: 2026-02-08T09:20:48Z
 ---
 
 # オートメーションのトラブルシューティング
 
-スケジューラおよび配信の問題については、このページを使用してください（`cron` + `heartbeat`）。
+スケジューラーおよび配信に関する問題には、このページを使用してください（`cron` + `heartbeat`）。
 
 ## コマンドラダー
 
@@ -45,17 +45,17 @@ openclaw cron runs --id <jobId> --limit 20
 openclaw logs --follow
 ```
 
-正常な出力は次のようになります。
+良好な出力の例：
 
 - `cron status` が有効で、将来の `nextWakeAtMs` が報告されている。
-- ジョブが有効で、有効なスケジュールおよびタイムゾーンを持っている。
+- ジョブが有効で、有効なスケジュール／タイムゾーンを持っている。
 - `cron runs` に `ok`、または明示的なスキップ理由が表示されている。
 
-よくあるシグネチャ:
+一般的なシグネチャ：
 
-- `cron: scheduler disabled; jobs will not run automatically` → 設定または環境変数で cron が無効になっている。
-- `cron: timer tick failed` → スケジューラの tick がクラッシュした。周辺のスタックやログのコンテキストを確認してください。
-- 実行出力に `reason: not-due` → `--force` なしで手動実行が呼ばれ、ジョブの実行時刻がまだ到来していない。
+- `cron: scheduler disabled; jobs will not run automatically` → 設定／環境変数で cron が無効。
+- `cron: timer tick failed` → スケジューラーのティックがクラッシュ。周辺のスタック／ログコンテキストを確認してください。
+- 実行出力に `reason: not-due` → `--force` なしで手動実行が呼ばれ、ジョブがまだ実行時刻に達していない。
 
 ## Cron は起動したが配信されない
 
@@ -66,17 +66,17 @@ openclaw channels status --probe
 openclaw logs --follow
 ```
 
-正常な出力は次のようになります。
+良好な出力の例：
 
 - 実行ステータスが `ok`。
-- 分離されたジョブ向けに配信モード／ターゲットが設定されている。
-- チャンネルのプローブが、対象チャンネルが接続されていると報告している。
+- 分離ジョブ向けに配信モード／ターゲットが設定されている。
+- チャンネルプローブがターゲットチャンネルの接続を報告している。
 
-よくあるシグネチャ:
+一般的なシグネチャ：
 
-- 実行は成功したが配信モードが `none` → 外部メッセージは期待されません。
-- 配信ターゲットが欠落または無効（`channel`/`to`）→ 内部的には成功しても、外部送信はスキップされる場合があります。
-- チャンネル認証エラー（`unauthorized`, `missing_scope`, `Forbidden`）→ チャンネルの資格情報または権限により配信がブロックされています。
+- 実行は成功したが、配信モードが `none` → 外部メッセージは期待されない。
+- 配信ターゲットが欠落／無効（`channel`/`to`）→ 内部的には成功しても、外部送信はスキップされる場合がある。
+- チャンネル認証エラー（`unauthorized`、`missing_scope`、`Forbidden`）→ チャンネルの資格情報／権限により配信がブロックされている。
 
 ## Heartbeat が抑制またはスキップされる
 
@@ -87,19 +87,19 @@ openclaw config get agents.defaults.heartbeat
 openclaw channels status --probe
 ```
 
-正常な出力は次のようになります。
+良好な出力の例：
 
 - Heartbeat が有効で、ゼロ以外の間隔が設定されている。
-- 最後の heartbeat 結果が `ran`（またはスキップ理由が理解できる状態）。
+- 最後の Heartbeat の結果が `ran`（またはスキップ理由が理解できる）。
 
-よくあるシグネチャ:
+一般的なシグネチャ：
 
 - `heartbeat skipped` と `reason=quiet-hours` → `activeHours` の外。
-- `requests-in-flight` → メインレーンがビジーで、heartbeat が延期された。
+- `requests-in-flight` → メインレーンがビジーで、Heartbeat が延期された。
 - `empty-heartbeat-file` → `HEARTBEAT.md` は存在するが、実行可能な内容がない。
-- `alerts-disabled` → 可視性設定により、外向きの heartbeat メッセージが抑制されている。
+- `alerts-disabled` → 可視性設定により、外向きの Heartbeat メッセージが抑制されている。
 
-## タイムゾーンと activeHours の注意点
+## タイムゾーンと activeHours の落とし穴
 
 ```bash
 openclaw config get agents.defaults.heartbeat.activeHours
@@ -109,19 +109,19 @@ openclaw cron list
 openclaw logs --follow
 ```
 
-クイックルール:
+クイックルール：
 
-- `Config path not found: agents.defaults.userTimezone` はキーが未設定であることを意味します。この場合、heartbeat はホストのタイムゾーン（または設定されていれば `activeHours.timezone`）にフォールバックします。
+- `Config path not found: agents.defaults.userTimezone` はキーが未設定であることを意味し、Heartbeat はホストのタイムゾーン（または設定されていれば `activeHours.timezone`）にフォールバックします。
 - `--tz` のない Cron は、ゲートウェイ ホストのタイムゾーンを使用します。
-- Heartbeat の `activeHours` は、設定されたタイムゾーン解決（`user`, `local`、または明示的な IANA tz）を使用します。
-- タイムゾーンなしの ISO タイムスタンプは、cron の `at` スケジュールでは UTC として扱われます。
+- Heartbeat の `activeHours` は、設定されたタイムゾーン解決（`user`、`local`、または明示的な IANA tz）を使用します。
+- タイムゾーンなしの ISO タイムスタンプは、Cron の `at` スケジュールでは UTC として扱われます。
 
-よくあるシグネチャ:
+一般的なシグネチャ：
 
-- ホストのタイムゾーン変更後、ジョブが誤った壁時計時刻で実行される。
-- `activeHours.timezone` が誤っているため、日中は常に heartbeat がスキップされる。
+- ホストのタイムゾーン変更後、ジョブが誤った実時間で実行される。
+- `activeHours.timezone` が誤っているため、日中は常に Heartbeat がスキップされる。
 
-関連情報:
+関連：
 
 - [/automation/cron-jobs](/automation/cron-jobs)
 - [/gateway/heartbeat](/gateway/heartbeat)

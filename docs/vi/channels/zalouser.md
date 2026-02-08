@@ -1,45 +1,45 @@
 ---
-summary: "Hỗ trợ tài khoản Zalo cá nhân qua zca-cli (đăng nhập QR), khả năng và cấu hình"
+summary: "Hỗ trợ tài khoản Zalo cá nhân thông qua zca-cli (đăng nhập QR), khả năng và cấu hình"
 read_when:
-  - Thiết lập Zalo Cá Nhân cho OpenClaw
-  - Gỡ lỗi đăng nhập hoặc luồng tin nhắn Zalo Cá Nhân
-title: "Zalo Cá Nhân"
+  - Thiết lập Zalo Personal cho OpenClaw
+  - Gỡ lỗi đăng nhập hoặc luồng tin nhắn Zalo Personal
+title: "Zalo Personal"
 x-i18n:
   source_path: channels/zalouser.md
-  source_hash: 2a249728d556e5cc
+  source_hash: ede847ebe6272256
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:17Z
+  generated_at: 2026-02-08T09:38:12Z
 ---
 
-# Zalo Cá Nhân (không chính thức)
+# Zalo Personal (không chính thức)
 
-Trạng thái: thử nghiệm. Tích hợp này tự động hóa một **tài khoản Zalo cá nhân** qua `zca-cli`.
+Trạng thái: thử nghiệm. Tích hợp này tự động hóa **tài khoản Zalo cá nhân** thông qua `zca-cli`.
 
-> **Cảnh báo:** Đây là tích hợp không chính thức và có thể dẫn đến việc tài khoản bị hạn chế/khóa. Tự chịu rủi ro khi sử dụng.
+> **Cảnh báo:** Đây là tích hợp không chính thức và có thể dẫn đến việc tài khoản bị đình chỉ/cấm. Tự chịu rủi ro khi sử dụng.
 
 ## Plugin bắt buộc
 
-Zalo Cá Nhân được phát hành dưới dạng plugin và không đi kèm với bản cài đặt lõi.
+Zalo Personal được phân phối dưới dạng plugin và không đi kèm trong bản cài đặt lõi.
 
-- Cài qua CLI: `openclaw plugins install @openclaw/zalouser`
-- Hoặc từ mã nguồn: `openclaw plugins install ./extensions/zalouser`
-- Chi tiết: [Plugins](/plugin)
+- Cài đặt qua CLI: `openclaw plugins install @openclaw/zalouser`
+- Hoặc từ bản checkout mã nguồn: `openclaw plugins install ./extensions/zalouser`
+- Chi tiết: [Plugins](/tools/plugin)
 
 ## Điều kiện tiên quyết: zca-cli
 
 Máy Gateway phải có sẵn binary `zca` trong `PATH`.
 
 - Kiểm tra: `zca --version`
-- Nếu thiếu, cài zca-cli (xem `extensions/zalouser/README.md` hoặc tài liệu zca-cli thượng nguồn).
+- Nếu thiếu, cài đặt zca-cli (xem `extensions/zalouser/README.md` hoặc tài liệu zca-cli thượng nguồn).
 
 ## Thiết lập nhanh (cho người mới)
 
-1. Cài plugin (xem ở trên).
+1. Cài đặt plugin (xem ở trên).
 2. Đăng nhập (QR, trên máy Gateway):
    - `openclaw channels login --channel zalouser`
-   - Quét mã QR trong terminal bằng ứng dụng Zalo trên di động.
+   - Quét mã QR trong terminal bằng ứng dụng Zalo trên điện thoại.
 3. Bật kênh:
 
 ```json5
@@ -53,22 +53,22 @@ Máy Gateway phải có sẵn binary `zca` trong `PATH`.
 }
 ```
 
-4. Khởi động lại Gateway (hoặc hoàn tất onboarding).
-5. Truy cập Tin nhắn trực tiếp mặc định theo cơ chế ghép cặp; chấp thuận mã ghép cặp khi liên hệ lần đầu.
+4. Khởi động lại Gateway (hoặc hoàn tất hướng dẫn ban đầu).
+5. Quyền truy cập DM mặc định là ghép cặp; phê duyệt mã ghép cặp khi liên hệ lần đầu.
 
 ## Nó là gì
 
-- Dùng `zca listen` để nhận tin nhắn đến.
-- Dùng `zca msg ...` để gửi phản hồi (văn bản/media/liên kết).
-- Thiết kế cho các trường hợp dùng **tài khoản cá nhân** khi Zalo Bot API không khả dụng.
+- Sử dụng `zca listen` để nhận tin nhắn đến.
+- Sử dụng `zca msg ...` để gửi phản hồi (văn bản/media/liên kết).
+- Được thiết kế cho các trường hợp dùng “tài khoản cá nhân” khi Zalo Bot API không khả dụng.
 
 ## Đặt tên
 
-ID kênh là `zalouser` để làm rõ đây là tự động hóa **tài khoản người dùng Zalo cá nhân** (không chính thức). Chúng tôi giữ `zalo` cho khả năng tích hợp API Zalo chính thức trong tương lai.
+ID kênh là `zalouser` để làm rõ rằng đây là tự động hóa **tài khoản người dùng Zalo cá nhân** (không chính thức). Chúng tôi giữ `zalo` cho khả năng tích hợp API Zalo chính thức trong tương lai.
 
 ## Tìm ID (danh bạ)
 
-Dùng CLI danh bạ để khám phá người dùng/nhóm và ID của họ:
+Dùng CLI danh bạ để khám phá người/nhóm và ID của họ:
 
 ```bash
 openclaw directory self --channel zalouser
@@ -78,13 +78,13 @@ openclaw directory groups list --channel zalouser --query "work"
 
 ## Giới hạn
 
-- Văn bản gửi đi được chia khối ~2000 ký tự (giới hạn của client Zalo).
+- Văn bản gửi đi được chia nhỏ khoảng ~2000 ký tự (giới hạn của client Zalo).
 - Streaming bị chặn theo mặc định.
 
-## Kiểm soát truy cập (Tin nhắn trực tiếp)
+## Kiểm soát truy cập (DM)
 
 `channels.zalouser.dmPolicy` hỗ trợ: `pairing | allowlist | open | disabled` (mặc định: `pairing`).
-`channels.zalouser.allowFrom` chấp nhận ID người dùng hoặc tên. Trình hướng dẫn sẽ phân giải tên sang ID qua `zca friend find` khi có.
+`channels.zalouser.allowFrom` chấp nhận ID người dùng hoặc tên. Trình hướng dẫn sẽ phân giải tên thành ID qua `zca friend find` khi khả dụng.
 
 Phê duyệt qua:
 
@@ -93,13 +93,13 @@ Phê duyệt qua:
 
 ## Truy cập nhóm (tùy chọn)
 
-- Mặc định: `channels.zalouser.groupPolicy = "open"` (cho phép nhóm). Dùng `channels.defaults.groupPolicy` để ghi đè mặc định khi chưa đặt.
+- Mặc định: `channels.zalouser.groupPolicy = "open"` (cho phép nhóm). Dùng `channels.defaults.groupPolicy` để ghi đè mặc định khi chưa được đặt.
 - Giới hạn theo danh sách cho phép với:
   - `channels.zalouser.groupPolicy = "allowlist"`
-  - `channels.zalouser.groups` (khóa là ID nhóm hoặc tên)
+  - `channels.zalouser.groups` (khóa là ID hoặc tên nhóm)
 - Chặn tất cả nhóm: `channels.zalouser.groupPolicy = "disabled"`.
-- Trình hướng dẫn cấu hình có thể hỏi danh sách cho phép nhóm.
-- Khi khởi động, OpenClaw phân giải tên nhóm/người dùng trong danh sách cho phép sang ID và ghi log ánh xạ; các mục không phân giải được sẽ giữ nguyên như đã nhập.
+- Trình cấu hình có thể nhắc nhập danh sách cho phép nhóm.
+- Khi khởi động, OpenClaw phân giải tên nhóm/người trong danh sách cho phép sang ID và ghi log ánh xạ; các mục không phân giải được sẽ giữ nguyên như đã nhập.
 
 Ví dụ:
 
@@ -119,7 +119,7 @@ Ví dụ:
 
 ## Đa tài khoản
 
-Tài khoản ánh xạ tới các hồ sơ zca. Ví dụ:
+Tài khoản ánh xạ tới các profile zca. Ví dụ:
 
 ```json5
 {
@@ -139,7 +139,7 @@ Tài khoản ánh xạ tới các hồ sơ zca. Ví dụ:
 
 **Không tìm thấy `zca`:**
 
-- Cài zca-cli và đảm bảo nó nằm trong `PATH` cho tiến trình Gateway.
+- Cài đặt zca-cli và đảm bảo nó nằm trong `PATH` cho tiến trình Gateway.
 
 **Đăng nhập không được lưu:**
 

@@ -1,8 +1,8 @@
 ---
 summary: "Verwenden Sie OpenCode Zen (kuratierte Modelle) mit OpenClaw"
 read_when:
-  - Sie moechten OpenCode Zen fuer den Modellzugriff verwenden
-  - Sie moechten eine kuratierte Liste codingfreundlicher Modelle
+  - Sie möchten OpenCode Zen für den Modellzugriff
+  - Sie möchten eine kuratierte Liste codingfreundlicher Modelle
 title: "OpenCode Zen"
 x-i18n:
   source_path: providers/opencode.md
@@ -10,13 +10,13 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:14Z
+  generated_at: 2026-02-08T09:37:04Z
 ---
 
 # OpenCode Zen
 
-OpenCode Zen ist eine **kuratierte Liste von Modellen**, die vom OpenCode-Team fuer Coding-Agents empfohlen werden.
-Es ist ein optionaler, gehosteter Modellzugriff, der einen API-Schluessel verwendet und den Anbieter `opencode` nutzt.
+OpenCode Zen ist eine **kuratierte Liste von Modellen**, die vom OpenCode-Team für Coding-Agents empfohlen werden.
+Es ist ein optionaler, gehosteter Modellzugriffspfad, der einen API-Schlüssel und den Anbieter `opencode` verwendet.
 Zen befindet sich derzeit in der Beta-Phase.
 
 ## CLI-Einrichtung
@@ -38,6 +38,6 @@ openclaw onboard --opencode-zen-api-key "$OPENCODE_API_KEY"
 
 ## Hinweise
 
-- `OPENCODE_ZEN_API_KEY` wird ebenfalls unterstuetzt.
-- Sie melden sich bei Zen an, fuegen Abrechnungsdetails hinzu und kopieren Ihren API-Schluessel.
-- OpenCode Zen rechnet pro Anfrage ab; pruefen Sie das OpenCode-Dashboard fuer Details.
+- `OPENCODE_ZEN_API_KEY` wird ebenfalls unterstützt.
+- Sie melden sich bei Zen an, fügen Abrechnungsdetails hinzu und kopieren Ihren API-Schlüssel.
+- OpenCode Zen rechnet pro Anfrage ab; prüfen Sie das OpenCode-Dashboard für Details.

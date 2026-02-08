@@ -1,69 +1,69 @@
 ---
-summary: "Xac thuc cau hinh nghiem ngat + migration chi qua doctor"
+summary: "Xác thực cấu hình nghiêm ngặt + migration chỉ qua doctor"
 read_when:
-  - Thiet ke hoac trien khai hanh vi xac thuc cau hinh
-  - Lam viec voi migration cau hinh hoac quy trinh doctor
-  - Xu ly schema cau hinh plugin hoac dieu kien tai plugin
-title: "Xac Thuc Cau Hinh Nghiem Ngat"
+  - Thiết kế hoặc triển khai hành vi xác thực cấu hình
+  - Làm việc với migration cấu hình hoặc quy trình doctor
+  - Xử lý schema cấu hình plugin hoặc kiểm soát việc tải plugin
+title: "Xác thực cấu hình nghiêm ngặt"
 x-i18n:
   source_path: refactor/strict-config.md
   source_hash: 5bc7174a67d2234e
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:08:20Z
+  generated_at: 2026-02-08T09:40:03Z
 ---
 
-# Xac thuc cau hinh nghiem ngat (migration chi qua doctor)
+# Xác thực cấu hình nghiêm ngặt (migration chỉ qua doctor)
 
-## Muc tieu
+## Mục tiêu
 
-- **Tu choi moi khoa cau hinh khong xac dinh o moi noi** (goc + long).
-- **Tu choi cau hinh plugin khong co schema**; khong tai plugin do.
-- **Loai bo tu dong migration cu khi tai**; migration chi chay qua doctor.
-- **Tu dong chay doctor (dry-run) khi khoi dong**; neu khong hop le, chan cac lenh khong phai chan doan.
+- **Từ chối mọi khóa cấu hình không xác định ở mọi nơi** (gốc + lồng nhau).
+- **Từ chối cấu hình plugin nếu không có schema**; không tải plugin đó.
+- **Loại bỏ auto-migration kế thừa khi tải**; migration chỉ chạy qua doctor.
+- **Tự động chạy doctor (dry-run) khi khởi động**; nếu không hợp lệ, chặn các lệnh không mang tính chẩn đoán.
 
-## Khong phai muc tieu
+## Không nằm trong mục tiêu
 
-- Tuong thich nguoc khi tai (khoa cu khong tu dong migrate).
-- Am tham loai bo cac khoa khong duoc nhan dien.
+- Tương thích ngược khi tải (các khóa kế thừa không tự động migrate).
+- Âm thầm loại bỏ các khóa không được nhận diện.
 
-## Quy tac xac thuc nghiem ngat
+## Quy tắc xác thực nghiêm ngặt
 
-- Cau hinh phai khop chinh xac voi schema o moi cap.
-- Khoa khong xac dinh la loi xac thuc (khong cho phep passthrough o goc hay long).
-- `plugins.entries.<id>.config` phai duoc xac thuc boi schema cua plugin.
-  - Neu plugin thieu schema, **tu choi tai plugin** va hien thi loi ro rang.
-- Cac khoa `channels.<id>` khong xac dinh la loi tru khi manifest plugin khai bao channel id.
-- Manifest plugin (`openclaw.plugin.json`) la bat buoc cho tat ca plugin.
+- Cấu hình phải khớp chính xác với schema ở mọi cấp.
+- Các khóa không xác định là lỗi xác thực (không cho phép passthrough ở gốc hay lồng nhau).
+- `plugins.entries.<id>.config` phải được xác thực bởi schema của plugin.
+  - Nếu plugin không có schema, **từ chối tải plugin** và hiển thị lỗi rõ ràng.
+- Các khóa `channels.<id>` không xác định là lỗi trừ khi manifest plugin khai báo channel id.
+- Manifest plugin (`openclaw.plugin.json`) là bắt buộc cho tất cả plugin.
 
-## Thuc thi schema plugin
+## Thực thi schema plugin
 
-- Moi plugin cung cap mot JSON Schema nghiem ngat cho cau hinh (nhung truc tiep trong manifest).
-- Luong tai plugin:
-  1. Giai quyet manifest + schema cua plugin (`openclaw.plugin.json`).
-  2. Xac thuc cau hinh theo schema.
-  3. Neu thieu schema hoac cau hinh khong hop le: chan tai plugin, ghi nhan loi.
-- Thong bao loi bao gom:
+- Mỗi plugin cung cấp một JSON Schema nghiêm ngặt cho cấu hình của nó (nhúng trong manifest).
+- Luồng tải plugin:
+  1. Phân giải manifest + schema của plugin (`openclaw.plugin.json`).
+  2. Xác thực cấu hình theo schema.
+  3. Nếu thiếu schema hoặc cấu hình không hợp lệ: chặn tải plugin, ghi nhận lỗi.
+- Thông báo lỗi bao gồm:
   - Plugin id
-  - Ly do (thieu schema / cau hinh khong hop le)
-  - Duong dan (path) xac thuc that bai
-- Plugin bi vo hieu hoa van giu cau hinh, nhung Doctor + log hien thi canh bao.
+  - Lý do (thiếu schema / cấu hình không hợp lệ)
+  - Đường dẫn (path) không vượt qua xác thực
+- Plugin bị vô hiệu hóa vẫn giữ cấu hình, nhưng Doctor + log sẽ hiển thị cảnh báo.
 
-## Luong Doctor
+## Luồng Doctor
 
-- Doctor chay **moi lan** cau hinh duoc tai (mac dinh la dry-run).
-- Neu cau hinh khong hop le:
-  - In tom tat + cac loi co the hanh dong.
-  - Huong dan: `openclaw doctor --fix`.
+- Doctor chạy **mọi lần** cấu hình được tải (mặc định là dry-run).
+- Nếu cấu hình không hợp lệ:
+  - In ra bản tóm tắt + lỗi có thể hành động.
+  - Hướng dẫn: `openclaw doctor --fix`.
 - `openclaw doctor --fix`:
-  - Ap dung migration.
-  - Loai bo cac khoa khong xac dinh.
-  - Ghi cau hinh da cap nhat.
+  - Áp dụng migration.
+  - Loại bỏ các khóa không xác định.
+  - Ghi cấu hình đã cập nhật.
 
-## Chan lenh (khi cau hinh khong hop le)
+## Kiểm soát lệnh (khi cấu hình không hợp lệ)
 
-Duoc phep (chi chan doan):
+Được phép (chỉ chẩn đoán):
 
 - `openclaw doctor`
 - `openclaw logs`
@@ -72,29 +72,29 @@ Duoc phep (chi chan doan):
 - `openclaw status`
 - `openclaw gateway status`
 
-Tat ca cac lenh khac phai that bai ngay voi: “Cau hinh khong hop le. Chay `openclaw doctor --fix`.”
+Mọi lệnh khác phải thất bại cứng với: “Config invalid. Run `openclaw doctor --fix`.”
 
-## Dinh dang UX loi
+## Định dạng UX lỗi
 
-- Mot tieu de tom tat duy nhat.
-- Cac phan nhom:
-  - Khoa khong xac dinh (day du duong dan)
-  - Khoa cu / can migration
-  - Loi tai plugin (plugin id + ly do + duong dan)
+- Một tiêu đề tóm tắt duy nhất.
+- Các phần được nhóm:
+  - Khóa không xác định (đường dẫn đầy đủ)
+  - Khóa kế thừa / cần migration
+  - Lỗi tải plugin (plugin id + lý do + đường dẫn)
 
-## Diem cham trien khai
+## Điểm chạm triển khai
 
-- `src/config/zod-schema.ts`: loai bo passthrough o goc; object nghiem ngat o moi noi.
-- `src/config/zod-schema.providers.ts`: dam bao schema kenh nghiem ngat.
-- `src/config/validation.ts`: that bai khi co khoa khong xac dinh; khong ap dung migration cu.
-- `src/config/io.ts`: loai bo tu dong migration cu; luon chay doctor dry-run.
-- `src/config/legacy*.ts`: chuyen viec su dung sang chi doctor.
-- `src/plugins/*`: them schema registry + gating.
-- Chan lenh CLI trong `src/cli`.
+- `src/config/zod-schema.ts`: loại bỏ passthrough ở gốc; object nghiêm ngặt ở mọi nơi.
+- `src/config/zod-schema.providers.ts`: đảm bảo schema kênh nghiêm ngặt.
+- `src/config/validation.ts`: thất bại khi gặp khóa không xác định; không áp dụng migration kế thừa.
+- `src/config/io.ts`: loại bỏ auto-migration kế thừa; luôn chạy doctor dry-run.
+- `src/config/legacy*.ts`: chuyển việc sử dụng sang doctor בלבד.
+- `src/plugins/*`: thêm registry schema + kiểm soát.
+- Kiểm soát lệnh CLI trong `src/cli`.
 
-## Kiem thu
+## Kiểm thử
 
-- Tu choi khoa khong xac dinh (goc + long).
-- Plugin thieu schema → chan tai plugin voi loi ro rang.
-- Cau hinh khong hop le → chan khoi dong Gateway ngoai tru cac lenh chan doan.
-- Doctor tu dong dry-run; `doctor --fix` ghi cau hinh da duoc chinh sua.
+- Từ chối khóa không xác định (gốc + lồng nhau).
+- Plugin thiếu schema → chặn tải plugin với lỗi rõ ràng.
+- Cấu hình không hợp lệ → chặn khởi động gateway ngoại trừ các lệnh chẩn đoán.
+- Doctor dry-run tự động; `doctor --fix` ghi cấu hình đã được sửa.

@@ -1,69 +1,69 @@
 ---
-summary: "Validacao estrita de configuracao + migracoes apenas pelo doctor"
+summary: "Validação estrita de configuração + migrações apenas via Doctor"
 read_when:
-  - Ao projetar ou implementar comportamento de validacao de configuracao
-  - Ao trabalhar em migracoes de configuracao ou fluxos do doctor
-  - Ao lidar com esquemas de configuracao de plugins ou bloqueio de carregamento de plugins
-title: "Validacao Estrita de Configuracao"
+  - Ao projetar ou implementar comportamento de validação de configuração
+  - Ao trabalhar em migrações de configuração ou fluxos do Doctor
+  - Ao lidar com esquemas de configuração de plugins ou bloqueio de carregamento de plugins
+title: "Validação estrita de configuração"
 x-i18n:
   source_path: refactor/strict-config.md
   source_hash: 5bc7174a67d2234e
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:57:15Z
+  generated_at: 2026-02-08T09:31:50Z
 ---
 
-# Validacao estrita de configuracao (migracoes apenas pelo doctor)
+# Validação estrita de configuração (migrações apenas via Doctor)
 
 ## Objetivos
 
-- **Rejeitar chaves de configuracao desconhecidas em todos os lugares** (raiz + aninhadas).
-- **Rejeitar configuracao de plugin sem um esquema**; nao carregar esse plugin.
-- **Remover auto-migracao legada no carregamento**; migracoes rodam apenas via doctor.
-- **Executar o doctor automaticamente (dry-run) na inicializacao**; se invalida, bloquear comandos nao diagnosticos.
+- **Rejeitar chaves de configuração desconhecidas em todos os lugares** (raiz + aninhadas).
+- **Rejeitar configuração de plugin sem um esquema**; não carregar esse plugin.
+- **Remover auto-migração legada no carregamento**; migrações rodam apenas via Doctor.
+- **Executar automaticamente o Doctor (dry-run) na inicialização**; se inválido, bloquear comandos não diagnósticos.
 
-## Nao objetivos
+## Não objetivos
 
-- Compatibilidade retroativa no carregamento (chaves legadas nao sao auto-migradas).
-- Remocao silenciosa de chaves nao reconhecidas.
+- Compatibilidade retroativa no carregamento (chaves legadas não são auto-migradas).
+- Remoção silenciosa de chaves não reconhecidas.
 
-## Regras de validacao estrita
+## Regras de validação estrita
 
-- A configuracao deve corresponder exatamente ao esquema em todos os niveis.
-- Chaves desconhecidas sao erros de validacao (sem passthrough na raiz ou aninhado).
+- A configuração deve corresponder exatamente ao esquema em todos os níveis.
+- Chaves desconhecidas são erros de validação (sem passthrough na raiz ou em níveis aninhados).
 - `plugins.entries.<id>.config` deve ser validado pelo esquema do plugin.
-  - Se um plugin nao tiver um esquema, **rejeitar o carregamento do plugin** e exibir um erro claro.
-- Chaves `channels.<id>` desconhecidas sao erros, a menos que um manifesto de plugin declare o id do canal.
-- Manifestos de plugin (`openclaw.plugin.json`) sao obrigatorios para todos os plugins.
+  - Se um plugin não tiver um esquema, **rejeitar o carregamento do plugin** e apresentar um erro claro.
+- Chaves `channels.<id>` desconhecidas são erros, a menos que um manifesto de plugin declare o id do canal.
+- Manifestos de plugin (`openclaw.plugin.json`) são obrigatórios para todos os plugins.
 
-## Aplicacao de esquemas de plugin
+## Aplicação de esquema de plugin
 
-- Cada plugin fornece um JSON Schema estrito para sua configuracao (inline no manifesto).
+- Cada plugin fornece um JSON Schema estrito para sua configuração (inline no manifesto).
 - Fluxo de carregamento do plugin:
   1. Resolver manifesto do plugin + esquema (`openclaw.plugin.json`).
-  2. Validar a configuracao contra o esquema.
-  3. Se o esquema estiver ausente ou a configuracao for invalida: bloquear o carregamento do plugin e registrar o erro.
+  2. Validar a configuração contra o esquema.
+  3. Se faltar esquema ou a configuração for inválida: bloquear o carregamento do plugin e registrar o erro.
 - A mensagem de erro inclui:
-  - Id do plugin
-  - Motivo (esquema ausente / configuracao invalida)
-  - Caminho(s) que falharam na validacao
-- Plugins desativados mantem sua configuracao, mas o Doctor + logs exibem um aviso.
+  - ID do plugin
+  - Motivo (esquema ausente / configuração inválida)
+  - Caminho(s) que falharam na validação
+- Plugins desativados mantêm sua configuração, mas o Doctor + logs exibem um aviso.
 
 ## Fluxo do Doctor
 
-- O Doctor roda **toda vez** que a configuracao e carregada (dry-run por padrao).
-- Se a configuracao for invalida:
-  - Imprimir um resumo + erros acionaveis.
+- O Doctor roda **toda vez** que a configuração é carregada (dry-run por padrão).
+- Se a configuração for inválida:
+  - Imprimir um resumo + erros acionáveis.
   - Instruir: `openclaw doctor --fix`.
 - `openclaw doctor --fix`:
-  - Aplica migracoes.
+  - Aplica migrações.
   - Remove chaves desconhecidas.
-  - Grava a configuracao atualizada.
+  - Grava a configuração atualizada.
 
-## Bloqueio de comandos (quando a configuracao e invalida)
+## Bloqueio de comandos (quando a configuração é inválida)
 
-Permitidos (apenas diagnosticos):
+Permitidos (apenas diagnósticos):
 
 - `openclaw doctor`
 - `openclaw logs`
@@ -72,29 +72,29 @@ Permitidos (apenas diagnosticos):
 - `openclaw status`
 - `openclaw gateway status`
 
-Todo o resto deve falhar de forma definitiva com: “Configuracao invalida. Execute `openclaw doctor --fix`.”
+Todo o restante deve falhar de forma rígida com: “Configuração inválida. Execute `openclaw doctor --fix`.”
 
 ## Formato de UX de erro
 
-- Um unico cabecalho de resumo.
-- Secoes agrupadas:
+- Um único cabeçalho de resumo.
+- Seções agrupadas:
   - Chaves desconhecidas (caminhos completos)
-  - Chaves legadas / migracoes necessarias
-  - Falhas no carregamento de plugins (id do plugin + motivo + caminho)
+  - Chaves legadas / migrações necessárias
+  - Falhas de carregamento de plugins (id do plugin + motivo + caminho)
 
-## Pontos de implementacao
+## Pontos de implementação
 
 - `src/config/zod-schema.ts`: remover passthrough na raiz; objetos estritos em todos os lugares.
 - `src/config/zod-schema.providers.ts`: garantir esquemas de canal estritos.
-- `src/config/validation.ts`: falhar em chaves desconhecidas; nao aplicar migracoes legadas.
-- `src/config/io.ts`: remover auto-migracoes legadas; sempre executar doctor em dry-run.
-- `src/config/legacy*.ts`: mover o uso apenas para o doctor.
+- `src/config/validation.ts`: falhar em chaves desconhecidas; não aplicar migrações legadas.
+- `src/config/io.ts`: remover auto-migrações legadas; sempre executar Doctor em dry-run.
+- `src/config/legacy*.ts`: mover o uso para apenas Doctor.
 - `src/plugins/*`: adicionar registro de esquemas + bloqueio.
 - Bloqueio de comandos da CLI em `src/cli`.
 
 ## Testes
 
-- Rejeicao de chaves desconhecidas (raiz + aninhadas).
+- Rejeição de chave desconhecida (raiz + aninhadas).
 - Plugin sem esquema → carregamento do plugin bloqueado com erro claro.
-- Configuracao invalida → inicializacao do Gateway bloqueada, exceto comandos diagnosticos.
-- Doctor em dry-run automatico; `doctor --fix` grava a configuracao corrigida.
+- Configuração inválida → inicialização do gateway bloqueada, exceto comandos de diagnóstico.
+- Doctor em dry-run automático; `doctor --fix` grava a configuração corrigida.

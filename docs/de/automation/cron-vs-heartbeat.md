@@ -11,44 +11,44 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:26Z
+  generated_at: 2026-02-08T09:35:15Z
 ---
 
-# Cron vs. Heartbeat: Wann welches eingesetzt werden sollte
+# Cron vs. Heartbeat: Wann Sie was verwenden sollten
 
-Sowohl Heartbeats als auch Cron-Jobs ermöglichen es Ihnen, Aufgaben nach einem Zeitplan auszuführen. Dieser Leitfaden hilft Ihnen, den richtigen Mechanismus für Ihren Anwendungsfall zu wählen.
+Sowohl Heartbeats als auch Cron-Jobs ermöglichen es Ihnen, Aufgaben nach einem Zeitplan auszuführen. Dieser Leitfaden hilft Ihnen, den richtigen Mechanismus für Ihren Anwendungsfall auszuwählen.
 
 ## Schnellentscheidungshilfe
 
-| Anwendungsfall                               | Empfohlen           | Warum                                             |
-| -------------------------------------------- | ------------------- | ------------------------------------------------- |
-| Posteingang alle 30 Min prüfen               | Heartbeat           | Bündelt mit anderen Prüfungen, kontextbewusst     |
-| Täglichen Bericht punktgenau um 9 Uhr senden | Cron (isoliert)     | Exaktes Timing erforderlich                       |
-| Kalender auf kommende Termine überwachen     | Heartbeat           | Natürliche Lösung für periodische Aufmerksamkeit  |
-| Wöchentliche Tiefenanalyse ausführen         | Cron (isoliert)     | Eigenständige Aufgabe, kann anderes Modell nutzen |
-| Mich in 20 Minuten erinnern                  | Cron (main, `--at`) | Einmalig mit präzisem Timing                      |
-| Hintergrund‑Gesundheitscheck eines Projekts  | Heartbeat           | Nutzt bestehenden Zyklus mit                      |
+| Anwendungsfall                                | Empfohlen           | Warum                                             |
+| --------------------------------------------- | ------------------- | ------------------------------------------------- |
+| Posteingang alle 30 Min prüfen                | Heartbeat           | Bündelt mit anderen Prüfungen, kontextbewusst     |
+| Täglichen Bericht exakt um 9 Uhr senden       | Cron (isoliert)     | Exaktes Timing erforderlich                       |
+| Kalender auf bevorstehende Termine überwachen | Heartbeat           | Natürliche Lösung für periodische Aufmerksamkeit  |
+| Wöchentliche Tiefenanalyse ausführen          | Cron (isoliert)     | Eigenständige Aufgabe, kann anderes Modell nutzen |
+| Erinnere mich in 20 Minuten                   | Cron (main, `--at`) | Einmalig mit präzisem Timing                      |
+| Hintergrund-Check zur Projektgesundheit       | Heartbeat           | Nutzt bestehenden Zyklus mit                      |
 
 ## Heartbeat: Periodische Aufmerksamkeit
 
-Heartbeats laufen in der **Hauptsitzung** in einem regelmäßigen Intervall (Standard: 30 Min). Sie sind dafür ausgelegt, dass der Agent Dinge überprüft und alles Wichtige hervorhebt.
+Heartbeats laufen in der **Hauptsitzung** in einem regelmäßigen Intervall (Standard: 30 Min). Sie sind dafür gedacht, dass der Agent Dinge überprüft und alles Wichtige hervorhebt.
 
-### Wann Heartbeat verwenden
+### Wann Sie Heartbeat verwenden sollten
 
-- **Mehrere periodische Prüfungen**: Statt 5 separater Cron-Jobs, die Posteingang, Kalender, Wetter, Benachrichtigungen und Projektstatus prüfen, kann ein einzelner Heartbeat all dies bündeln.
-- **Kontextbewusste Entscheidungen**: Der Agent hat den vollständigen Kontext der Hauptsitzung und kann intelligente Entscheidungen darüber treffen, was dringend ist und was warten kann.
-- **Gesprächskontinuität**: Heartbeat‑Läufe teilen sich dieselbe Sitzung, sodass sich der Agent an aktuelle Gespräche erinnert und natürlich nachfassen kann.
-- **Überwachung mit geringem Overhead**: Ein Heartbeat ersetzt viele kleine Polling‑Aufgaben.
+- **Mehrere periodische Prüfungen**: Statt 5 separater Cron-Jobs für Posteingang, Kalender, Wetter, Benachrichtigungen und Projektstatus kann ein einzelner Heartbeat all dies bündeln.
+- **Kontextbewusste Entscheidungen**: Der Agent hat den vollständigen Kontext der Hauptsitzung und kann intelligent entscheiden, was dringend ist und was warten kann.
+- **Konversationelle Kontinuität**: Heartbeat-Läufe teilen dieselbe Sitzung, sodass sich der Agent an kürzliche Gespräche erinnert und natürlich nachfassen kann.
+- **Überwachung mit geringem Overhead**: Ein Heartbeat ersetzt viele kleine Polling-Aufgaben.
 
 ### Vorteile von Heartbeat
 
-- **Bündelt mehrere Prüfungen**: Ein Agent‑Turn kann Posteingang, Kalender und Benachrichtigungen gemeinsam überprüfen.
-- **Reduziert API‑Aufrufe**: Ein einzelner Heartbeat ist günstiger als 5 isolierte Cron-Jobs.
+- **Bündelt mehrere Prüfungen**: Ein Agenten-Zug kann Posteingang, Kalender und Benachrichtigungen gemeinsam prüfen.
+- **Reduziert API-Aufrufe**: Ein einzelner Heartbeat ist günstiger als 5 isolierte Cron-Jobs.
 - **Kontextbewusst**: Der Agent weiß, woran Sie gearbeitet haben, und kann entsprechend priorisieren.
 - **Intelligente Unterdrückung**: Wenn nichts Aufmerksamkeit erfordert, antwortet der Agent mit `HEARTBEAT_OK` und es wird keine Nachricht zugestellt.
-- **Natürliches Timing**: Driftet leicht abhängig von der Queue‑Last, was für die meisten Überwachungen ausreichend ist.
+- **Natürliches Timing**: Verschiebt sich leicht je nach Warteschlangenlast, was für die meisten Überwachungen ausreichend ist.
 
-### Heartbeat‑Beispiel: HEARTBEAT.md‑Checkliste
+### Heartbeat-Beispiel: HEARTBEAT.md-Checkliste
 
 ```md
 # Heartbeat checklist
@@ -59,7 +59,7 @@ Heartbeats laufen in der **Hauptsitzung** in einem regelmäßigen Intervall (Sta
 - If idle for 8+ hours, send a brief check-in
 ```
 
-Der Agent liest dies bei jedem Heartbeat und verarbeitet alle Punkte in einem Turn.
+Der Agent liest dies bei jedem Heartbeat und erledigt alle Punkte in einem Zug.
 
 ### Heartbeat konfigurieren
 
@@ -77,32 +77,32 @@ Der Agent liest dies bei jedem Heartbeat und verarbeitet alle Punkte in einem Tu
 }
 ```
 
-Siehe [Heartbeat](/gateway/heartbeat) fuer alle Details zur Konfiguration.
+Siehe [Heartbeat](/gateway/heartbeat) für die vollständige Konfiguration.
 
 ## Cron: Präzise Zeitplanung
 
 Cron-Jobs laufen zu **exakten Zeiten** und können in isolierten Sitzungen ausgeführt werden, ohne den Hauptkontext zu beeinflussen.
 
-### Wann Cron verwenden
+### Wann Sie Cron verwenden sollten
 
-- **Exaktes Timing erforderlich**: „Sende dies jeden Montag um 9:00 Uhr“ (nicht „irgendwann gegen 9“).
-- **Eigenständige Aufgaben**: Aufgaben, die keinen Gesprächskontext benötigen.
-- **Anderes Modell/Denken**: Schwere Analysen, die ein leistungsstärkeres Modell rechtfertigen.
+- **Exaktes Timing erforderlich**: „Sende dies jeden Montag um 9:00 Uhr“ (nicht „irgendwann um 9“).
+- **Eigenständige Aufgaben**: Aufgaben, die keinen konversationellen Kontext benötigen.
+- **Anderes Modell/Denken**: Aufwendige Analysen, die ein leistungsfähigeres Modell rechtfertigen.
 - **Einmalige Erinnerungen**: „Erinnere mich in 20 Minuten“ mit `--at`.
-- **Laute/häufige Aufgaben**: Aufgaben, die den Verlauf der Hauptsitzung überladen würden.
+- **Lautstarke/häufige Aufgaben**: Aufgaben, die den Verlauf der Hauptsitzung überladen würden.
 - **Externe Trigger**: Aufgaben, die unabhängig davon laufen sollen, ob der Agent sonst aktiv ist.
 
 ### Vorteile von Cron
 
-- **Exaktes Timing**: 5‑Feld‑Cron‑Ausdrücke mit Zeitzonenunterstützung.
-- **Sitzungsisolation**: Läuft in `cron:<jobId>` ohne den Hauptverlauf zu verschmutzen.
-- **Modell‑Overrides**: Verwenden Sie pro Job ein günstigeres oder leistungsstärkeres Modell.
-- **Auslieferungskontrolle**: Isolierte Jobs verwenden standardmäßig `announce` (Zusammenfassung); wählen Sie bei Bedarf `none`.
-- **Sofortige Auslieferung**: Der Ankündigungsmodus postet direkt, ohne auf den Heartbeat zu warten.
-- **Kein Agent‑Kontext erforderlich**: Läuft auch, wenn die Hauptsitzung inaktiv oder komprimiert ist.
-- **One‑Shot‑Unterstützung**: `--at` für präzise zukünftige Zeitstempel.
+- **Exaktes Timing**: 5-Feld-Cron-Ausdrücke mit Zeitzonenunterstützung.
+- **Sitzungsisolation**: Läuft in `cron:<jobId>`, ohne den Hauptverlauf zu verschmutzen.
+- **Modellüberschreibungen**: Verwenden Sie pro Job ein günstigeres oder leistungsfähigeres Modell.
+- **Zustellkontrolle**: Isolierte Jobs verwenden standardmäßig `announce` (Zusammenfassung); wählen Sie bei Bedarf `none`.
+- **Sofortige Zustellung**: Der Ankündigungsmodus postet direkt, ohne auf den Heartbeat zu warten.
+- **Kein Agentenkontext nötig**: Läuft auch, wenn die Hauptsitzung inaktiv oder komprimiert ist.
+- **Einmalige Ausführung**: `--at` für präzise zukünftige Zeitstempel.
 
-### Cron‑Beispiel: Tägliches Morgenbriefing
+### Cron-Beispiel: Tägliches Morgenbriefing
 
 ```bash
 openclaw cron add \
@@ -117,9 +117,9 @@ openclaw cron add \
   --to "+15551234567"
 ```
 
-Dies läuft exakt um 7:00 Uhr New‑York‑Zeit, nutzt Opus für Qualität und kündigt eine Zusammenfassung direkt auf WhatsApp an.
+Dies läuft exakt um 7:00 Uhr New Yorker Zeit, nutzt Opus für Qualität und kündigt eine Zusammenfassung direkt auf WhatsApp an.
 
-### Cron‑Beispiel: Einmalige Erinnerung
+### Cron-Beispiel: Einmalige Erinnerung
 
 ```bash
 openclaw cron add \
@@ -131,9 +131,9 @@ openclaw cron add \
   --delete-after-run
 ```
 
-Siehe [Cron jobs](/automation/cron-jobs) für die vollständige CLI‑Referenz.
+Siehe [Cron jobs](/automation/cron-jobs) für die vollständige CLI-Referenz.
 
-## Entscheidungs‑Flussdiagramm
+## Entscheidungsflussdiagramm
 
 ```
 Does the task need to run at an EXACT time?
@@ -159,12 +159,12 @@ Does it need a different model or thinking level?
 
 ## Kombination beider Ansätze
 
-Das effizienteste Setup nutzt **beides**:
+Die effizienteste Einrichtung nutzt **beide**:
 
-1. **Heartbeat** übernimmt die routinemäßige Überwachung (Posteingang, Kalender, Benachrichtigungen) in einem gebündelten Turn alle 30 Minuten.
+1. **Heartbeat** übernimmt die routinemäßige Überwachung (Posteingang, Kalender, Benachrichtigungen) in einem gebündelten Zug alle 30 Minuten.
 2. **Cron** übernimmt präzise Zeitpläne (tägliche Berichte, wöchentliche Reviews) und einmalige Erinnerungen.
 
-### Beispiel: Effizientes Automatisierungs‑Setup
+### Beispiel: Effiziente Automatisierungseinrichtung
 
 **HEARTBEAT.md** (alle 30 Min geprüft):
 
@@ -192,26 +192,26 @@ openclaw cron add --name "Call back" --at "2h" --session main --system-event "Ca
 
 ## Lobster: Deterministische Workflows mit Freigaben
 
-Lobster ist die Workflow‑Runtime für **mehrstufige Werkzeug‑Pipelines**, die eine deterministische Ausführung und explizite Freigaben benötigen.
-Verwenden Sie es, wenn die Aufgabe mehr als einen einzelnen Agent‑Turn umfasst und Sie einen wiederaufnehmbaren Workflow mit menschlichen Checkpoints wünschen.
+Lobster ist die Workflow-Laufzeit für **mehrstufige Tool-Pipelines**, die deterministische Ausführung und explizite Freigaben benötigen.
+Verwenden Sie es, wenn die Aufgabe mehr als einen einzelnen Agenten-Zug umfasst und Sie einen wiederaufnehmbaren Workflow mit menschlichen Kontrollpunkten wünschen.
 
 ### Wann Lobster passt
 
-- **Mehrstufige Automatisierung**: Sie benötigen eine feste Pipeline von Werkzeugaufrufen, keinen einmaligen Prompt.
-- **Freigabe‑Gates**: Nebenwirkungen sollen pausieren, bis Sie freigeben, und dann fortgesetzt werden.
-- **Wiederaufnehmbare Läufe**: Fortsetzen eines pausierten Workflows, ohne frühere Schritte erneut auszuführen.
+- **Mehrstufige Automatisierung**: Sie benötigen eine feste Pipeline von Tool-Aufrufen, keinen einmaligen Prompt.
+- **Freigabe-Gates**: Nebenwirkungen sollen pausieren, bis Sie freigeben, und dann fortgesetzt werden.
+- **Wiederaufnehmbare Läufe**: Setzen Sie einen pausierten Workflow fort, ohne frühere Schritte erneut auszuführen.
 
 ### Zusammenspiel mit Heartbeat und Cron
 
 - **Heartbeat/Cron** entscheiden, _wann_ ein Lauf stattfindet.
-- **Lobster** definiert, _welche Schritte_ passieren, sobald der Lauf startet.
+- **Lobster** definiert, _welche Schritte_ stattfinden, sobald der Lauf startet.
 
-Für geplante Workflows verwenden Sie Cron oder Heartbeat, um einen Agent‑Turn auszulösen, der Lobster aufruft.
-Für ad‑hoc‑Workflows rufen Sie Lobster direkt auf.
+Für geplante Workflows verwenden Sie Cron oder Heartbeat, um einen Agenten-Zug auszulösen, der Lobster aufruft.
+Für ad-hoc-Workflows rufen Sie Lobster direkt auf.
 
 ### Operative Hinweise (aus dem Code)
 
-- Lobster läuft als **lokaler Subprozess** (`lobster` CLI) im Tool‑Modus und gibt einen **JSON‑Umschlag** zurück.
+- Lobster läuft als **lokaler Subprozess** (`lobster` CLI) im Tool-Modus und gibt einen **JSON-Umschlag** zurück.
 - Wenn das Tool `needs_approval` zurückgibt, setzen Sie mit `resumeToken` und dem Flag `approve` fort.
 - Das Tool ist ein **optionales Plugin**; aktivieren Sie es additiv über `tools.alsoAllow: ["lobster"]` (empfohlen).
 - Wenn Sie `lobsterPath` übergeben, muss es ein **absoluter Pfad** sein.
@@ -227,16 +227,16 @@ Sowohl Heartbeat als auch Cron können mit der Hauptsitzung interagieren, jedoch
 | Sitzung | Main                                  | Main (über Systemereignis)  | `cron:<jobId>`                        |
 | Verlauf | Geteilt                               | Geteilt                     | Bei jedem Lauf neu                    |
 | Kontext | Vollständig                           | Vollständig                 | Keiner (startet sauber)               |
-| Modell  | Hauptsitzungs‑Modell                  | Hauptsitzungs‑Modell        | Kann überschrieben werden             |
-| Ausgabe | Zugestellt, wenn nicht `HEARTBEAT_OK` | Heartbeat‑Prompt + Ereignis | Zusammenfassung ankündigen (Standard) |
+| Modell  | Modell der Hauptsitzung               | Modell der Hauptsitzung     | Kann überschrieben werden             |
+| Ausgabe | Zugestellt, wenn nicht `HEARTBEAT_OK` | Heartbeat-Prompt + Ereignis | Zusammenfassung ankündigen (Standard) |
 
-### Wann Cron in der Hauptsitzung verwenden
+### Wann Sie Cron in der Hauptsitzung verwenden sollten
 
-Verwenden Sie `--session main` mit `--system-event`, wenn Sie möchten:
+Verwenden Sie `--session main` mit `--system-event`, wenn Sie Folgendes möchten:
 
-- Dass die Erinnerung/das Ereignis im Kontext der Hauptsitzung erscheint
-- Dass der Agent es während des nächsten Heartbeats mit vollem Kontext verarbeitet
-- Keinen separaten isolierten Lauf
+- Die Erinnerung/das Ereignis soll im Kontext der Hauptsitzung erscheinen
+- Der Agent soll es beim nächsten Heartbeat mit vollem Kontext verarbeiten
+- Kein separater isolierter Lauf
 
 ```bash
 openclaw cron add \
@@ -247,14 +247,14 @@ openclaw cron add \
   --wake now
 ```
 
-### Wann isolierten Cron verwenden
+### Wann Sie isolierten Cron verwenden sollten
 
-Verwenden Sie `--session isolated`, wenn Sie möchten:
+Verwenden Sie `--session isolated`, wenn Sie Folgendes möchten:
 
-- Einen sauberen Start ohne vorherigen Kontext
-- Andere Modell‑ oder Denk‑Einstellungen
-- Zusammenfassungen direkt an einen Kanal ankündigen
-- Einen Verlauf, der die Hauptsitzung nicht überlädt
+- Ein unbeschriebenes Blatt ohne vorherigen Kontext
+- Andere Modell- oder Denk-Einstellungen
+- Zusammenfassungen direkt in einem Kanal ankündigen
+- Verlauf, der die Hauptsitzung nicht überlädt
 
 ```bash
 openclaw cron add \
@@ -269,21 +269,21 @@ openclaw cron add \
 
 ## Kostenüberlegungen
 
-| Mechanismus     | Kostenprofil                                                      |
-| --------------- | ----------------------------------------------------------------- |
-| Heartbeat       | Ein Turn alle N Minuten; skaliert mit der Größe von HEARTBEAT.md  |
-| Cron (main)     | Fügt Ereignis zum nächsten Heartbeat hinzu (kein isolierter Turn) |
-| Cron (isoliert) | Voller Agent‑Turn pro Job; kann günstigeres Modell nutzen         |
+| Mechanismus     | Kostenprofil                                                     |
+| --------------- | ---------------------------------------------------------------- |
+| Heartbeat       | Ein Zug alle N Minuten; skaliert mit der Größe von HEARTBEAT.md  |
+| Cron (main)     | Fügt Ereignis zum nächsten Heartbeat hinzu (kein isolierter Zug) |
+| Cron (isoliert) | Voller Agenten-Zug pro Job; kann günstigeres Modell nutzen       |
 
 **Tipps**:
 
-- Halten Sie `HEARTBEAT.md` klein, um den Token‑Overhead zu minimieren.
+- Halten Sie `HEARTBEAT.md` klein, um den Token-Overhead zu minimieren.
 - Bündeln Sie ähnliche Prüfungen in Heartbeat statt in mehreren Cron-Jobs.
-- Verwenden Sie `target: "none"` bei Heartbeat, wenn Sie nur interne Verarbeitung möchten.
+- Verwenden Sie `target: "none"` bei Heartbeat, wenn Sie nur interne Verarbeitung wünschen.
 - Nutzen Sie isolierten Cron mit einem günstigeren Modell für Routineaufgaben.
 
-## Verwandtes
+## Verwandt
 
-- [Heartbeat](/gateway/heartbeat) – vollständige Heartbeat‑Konfiguration
-- [Cron jobs](/automation/cron-jobs) – vollständige Cron‑CLI‑ und API‑Referenz
-- [System](/cli/system) – Systemereignisse + Heartbeat‑Steuerungen
+- [Heartbeat](/gateway/heartbeat) – vollständige Heartbeat-Konfiguration
+- [Cron jobs](/automation/cron-jobs) – vollständige Cron-CLI- und API-Referenz
+- [System](/cli/system) – Systemereignisse + Heartbeat-Steuerung

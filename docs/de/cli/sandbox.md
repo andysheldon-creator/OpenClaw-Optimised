@@ -1,6 +1,6 @@
 ---
 title: Sandbox-CLI
-summary: „Sandbox-Container verwalten und effektive Sandbox-Richtlinien prüfen“
+summary: „Sandbox-Container verwalten und die effektive Sandbox-Richtlinie prüfen“
 read_when: „Sie verwalten Sandbox-Container oder debuggen das Verhalten von Sandbox-/Tool-Richtlinien.“
 status: active
 x-i18n:
@@ -9,22 +9,22 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:47Z
+  generated_at: 2026-02-08T09:35:42Z
 ---
 
-# Sandbox CLI
+# Sandbox-CLI
 
-Verwalten Sie Docker-basierte Sandbox-Container für die isolierte Agent-Ausführung.
+Verwalten Sie Docker-basierte Sandbox-Container für die isolierte Ausführung von Agenten.
 
-## Overview
+## Überblick
 
 OpenClaw kann Agenten aus Sicherheitsgründen in isolierten Docker-Containern ausführen. Die `sandbox`-Befehle helfen Ihnen, diese Container zu verwalten, insbesondere nach Updates oder Konfigurationsänderungen.
 
-## Commands
+## Befehle
 
 ### `openclaw sandbox explain`
 
-Prüfen Sie den **effektiven** Sandbox-Modus/-Scope/-Workspace-Zugriff, die Sandbox-Tool-Richtlinie sowie erhöhte Gates (mit Fix-it-Konfigurationsschlüsselpfaden).
+Prüfen Sie den **effektiven** Sandbox-Modus/-Geltungsbereich/-Arbeitsbereichszugriff, die Sandbox-Werkzeugrichtlinie sowie erhöhte Gates (mit Fix-it-Konfigurationsschlüsselpfaden).
 
 ```bash
 openclaw sandbox explain
@@ -43,12 +43,12 @@ openclaw sandbox list --browser  # List only browser containers
 openclaw sandbox list --json     # JSON output
 ```
 
-**Die Ausgabe umfasst:**
+**Die Ausgabe enthält:**
 
-- Containername und Status (running/stopped)
+- Containername und -status (running/stopped)
 - Docker-Image und ob es der Konfiguration entspricht
 - Alter (Zeit seit Erstellung)
-- Idle-Zeit (Zeit seit letzter Nutzung)
+- Leerlaufzeit (Zeit seit letzter Nutzung)
 - Zugeordnete Sitzung/Agent
 
 ### `openclaw sandbox recreate`
@@ -73,7 +73,7 @@ openclaw sandbox recreate --all --force        # Skip confirmation
 
 **Wichtig:** Container werden automatisch neu erstellt, wenn der Agent das nächste Mal verwendet wird.
 
-## Use Cases
+## Anwendungsfälle
 
 ### Nach dem Aktualisieren von Docker-Images
 
@@ -113,21 +113,21 @@ openclaw sandbox recreate --agent family
 openclaw sandbox recreate --agent alfred
 ```
 
-## Why is this needed?
+## Warum ist das erforderlich?
 
 **Problem:** Wenn Sie Sandbox-Docker-Images oder die Konfiguration aktualisieren:
 
 - Bestehende Container laufen mit alten Einstellungen weiter
-- Container werden erst nach 24 h Inaktivität bereinigt
-- Regelmäßig verwendete Agenten behalten alte Container unbegrenzt bei
+- Container werden erst nach 24 Stunden Inaktivität bereinigt
+- Regelmäßig genutzte Agenten halten alte Container unbegrenzt am Laufen
 
-**Lösung:** Verwenden Sie `openclaw sandbox recreate`, um das Entfernen alter Container zu erzwingen. Sie werden automatisch mit den aktuellen Einstellungen neu erstellt, sobald sie wieder benötigt werden.
+**Lösung:** Verwenden Sie `openclaw sandbox recreate`, um das Entfernen alter Container zu erzwingen. Sie werden bei Bedarf automatisch mit den aktuellen Einstellungen neu erstellt.
 
-Tipp: Bevorzugen Sie `openclaw sandbox recreate` gegenüber manuellem `docker rm`. Es nutzt die Container-Benennung des Gateway und vermeidet Abweichungen, wenn sich Scope-/Sitzungsschlüssel ändern.
+Tipp: Bevorzugen Sie `openclaw sandbox recreate` gegenüber manuellen `docker rm`. Es verwendet die Container-Benennung des Gateway und vermeidet Abweichungen, wenn sich Scope-/Sitzungsschlüssel ändern.
 
-## Configuration
+## Konfiguration
 
-Sandbox-Einstellungen befinden sich in `~/.openclaw/openclaw.json` unter `agents.defaults.sandbox` (Agent-spezifische Überschreibungen kommen in `agents.list[].sandbox`):
+Sandbox-Einstellungen befinden sich in `~/.openclaw/openclaw.json` unter `agents.defaults.sandbox` (agentenspezifische Überschreibungen kommen in `agents.list[].sandbox`):
 
 ```jsonc
 {
@@ -151,8 +151,8 @@ Sandbox-Einstellungen befinden sich in `~/.openclaw/openclaw.json` unter `agents
 }
 ```
 
-## See Also
+## Siehe auch
 
-- [Sandbox Documentation](/gateway/sandboxing)
-- [Agent Configuration](/concepts/agent-workspace)
-- [Doctor Command](/gateway/doctor) – Sandbox-Einrichtung prüfen
+- [Sandbox-Dokumentation](/gateway/sandboxing)
+- [Agenten-Konfiguration](/concepts/agent-workspace)
+- [Doctor-Befehl](/gateway/doctor) – Sandbox-Setup prüfen

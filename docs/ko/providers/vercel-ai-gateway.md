@@ -10,15 +10,15 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:37:19Z
+  generated_at: 2026-02-08T09:25:57Z
 ---
 
 # Vercel AI Gateway
 
-[Vercel AI Gateway](https://vercel.com/ai-gateway) 는 단일 엔드포인트를 통해 수백 개의 모델에 접근할 수 있는 통합 API 를 제공합니다.
+[Vercel AI Gateway](https://vercel.com/ai-gateway)는 단일 엔드포인트를 통해 수백 개의 모델에 접근할 수 있는 통합 API 를 제공합니다.
 
-- 프로바이더: `vercel-ai-gateway`
-- 인증: `AI_GATEWAY_API_KEY`
+- Provider: `vercel-ai-gateway`
+- Auth: `AI_GATEWAY_API_KEY`
 - API: Anthropic Messages 호환
 
 ## 빠른 시작

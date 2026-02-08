@@ -1,22 +1,22 @@
 ---
-summary: "Mehrdatei-Patches mit dem apply_patch-Werkzeug anwenden"
+summary: „Mehrdatei-Patches mit dem Werkzeug apply_patch anwenden“
 read_when:
-  - Sie benötigen strukturierte Dateiänderungen über mehrere Dateien hinweg
-  - Sie möchten patchbasierte Änderungen dokumentieren oder debuggen
-title: "apply_patch-Werkzeug"
+  - Sie benötigen strukturierte Dateibearbeitungen über mehrere Dateien hinweg
+  - Sie möchten patchbasierte Bearbeitungen dokumentieren oder debuggen
+title: „apply_patch-Werkzeug“
 x-i18n:
   source_path: tools/apply-patch.md
   source_hash: 8cec2b4ee3afa910
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:39Z
+  generated_at: 2026-02-08T09:37:26Z
 ---
 
-# apply_patch tool
+# apply_patch-Werkzeug
 
-Wenden Sie Dateiänderungen mit einem strukturierten Patch-Format an. Dies ist ideal für Mehrdatei-
-oder Mehr-Hunk-Änderungen, bei denen ein einzelner `edit`-Aufruf fragil wäre.
+Wenden Sie Dateiänderungen mit einem strukturierten Patch-Format an. Dies ist ideal für Änderungen über mehrere Dateien
+oder mehrere Hunks hinweg, bei denen ein einzelner `edit`-Aufruf fragil wäre.
 
 Das Werkzeug akzeptiert eine einzelne `input`-Zeichenkette, die eine oder mehrere Dateioperationen kapselt:
 
@@ -39,12 +39,12 @@ Das Werkzeug akzeptiert eine einzelne `input`-Zeichenkette, die eine oder mehrer
 
 ## Hinweise
 
-- Pfade werden relativ zum Workspace-Stammverzeichnis aufgelöst.
+- Pfade werden relativ zum Workspace-Stamm aufgelöst.
 - Verwenden Sie `*** Move to:` innerhalb eines `*** Update File:`-Hunks, um Dateien umzubenennen.
-- `*** End of File` kennzeichnet bei Bedarf eine reine EOF-Einfügung.
+- `*** End of File` kennzeichnet bei Bedarf ein reines EOF-Insertion.
 - Experimentell und standardmäßig deaktiviert. Aktivieren Sie es mit `tools.exec.applyPatch.enabled`.
-- Nur für OpenAI (einschließlich OpenAI Codex). Optional per Modell über
-  `tools.exec.applyPatch.allowModels` einschränken.
+- Nur für OpenAI (einschließlich OpenAI Codex). Optional nach Modell steuerbar über
+  `tools.exec.applyPatch.allowModels`.
 - Die Konfiguration befindet sich ausschließlich unter `tools.exec`.
 
 ## Beispiel

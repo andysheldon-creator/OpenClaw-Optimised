@@ -1,9 +1,9 @@
 ---
-summary: "Cai dat OpenClaw theo kieu khai bao voi Nix"
+summary: "Cài đặt OpenClaw theo cách khai báo với Nix"
 read_when:
-  - Ban muon cai dat co the tai lap va hoan tac
-  - Ban da dung Nix/NixOS/Home Manager
-  - Ban muon moi thu duoc gan phien ban va quan ly theo kieu khai bao
+  - Bạn muốn cài đặt có thể tái tạo và quay lui
+  - Bạn đã sử dụng Nix/NixOS/Home Manager
+  - Bạn muốn mọi thứ được ghim phiên bản và quản lý theo cách khai báo
 title: "Nix"
 x-i18n:
   source_path: install/nix.md
@@ -11,16 +11,16 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:39Z
+  generated_at: 2026-02-08T09:39:22Z
 ---
 
-# Cai dat Nix
+# Cài đặt Nix
 
-Cach duoc khuyen nghi de chay OpenClaw voi Nix la thong qua **[nix-openclaw](https://github.com/openclaw/nix-openclaw)** — mot module Home Manager day du pin.
+Cách được khuyến nghị để chạy OpenClaw với Nix là thông qua **[nix-openclaw](https://github.com/openclaw/nix-openclaw)** — một module Home Manager đầy đủ pin kèm sẵn.
 
-## Khoi Dong Nhanh
+## Khởi động nhanh
 
-Dan doan nay vao tac tu AI cua ban (Claude, Cursor, v.v.):
+Dán đoạn này cho tác tử AI của bạn (Claude, Cursor, v.v.):
 
 ```text
 I want to set up nix-openclaw on my Mac.
@@ -37,67 +37,67 @@ What I need you to do:
 Reference the nix-openclaw README for module options.
 ```
 
-> **📦 Huong dan day du: [github.com/openclaw/nix-openclaw](https://github.com/openclaw/nix-openclaw)**
+> **📦 Hướng dẫn đầy đủ: [github.com/openclaw/nix-openclaw](https://github.com/openclaw/nix-openclaw)**
 >
-> Repo nix-openclaw la nguon chinh xac nhat cho viec cai dat Nix. Trang nay chi la tong quan nhanh.
+> Repo nix-openclaw là nguồn tham chiếu chính cho việc cài đặt Nix. Trang này chỉ là bản tổng quan nhanh.
 
-## Ban nhan duoc gi
+## Những gì bạn nhận được
 
-- Gateway + ung dung macOS + cong cu (whisper, spotify, cameras) — tat ca deu duoc gan phien ban
-- Dich vu Launchd ton tai qua cac lan khoi dong lai
-- He thong plugin voi cau hinh khai bao
-- Hoan tac tuc thi: `home-manager switch --rollback`
+- Gateway + ứng dụng macOS + công cụ (whisper, spotify, cameras) — tất cả đều được ghim phiên bản
+- Dịch vụ Launchd tồn tại qua các lần khởi động lại
+- Hệ thống plugin với cấu hình khai báo
+- Quay lui tức thì: `home-manager switch --rollback`
 
 ---
 
-## Hanh vi thoi gian chay trong che do Nix
+## Hành vi runtime ở chế độ Nix
 
-Khi `OPENCLAW_NIX_MODE=1` duoc thiet lap (tu dong voi nix-openclaw):
+Khi `OPENCLAW_NIX_MODE=1` được thiết lập (tự động với nix-openclaw):
 
-OpenClaw ho tro **che do Nix** giup cau hinh xac dinh va tat cac luong tu dong cai dat.
-Bat che do nay bang cach xuat:
+OpenClaw hỗ trợ **chế độ Nix** giúp cấu hình mang tính quyết định và vô hiệu hóa các luồng tự cài đặt.
+Bật bằng cách export:
 
 ```bash
 OPENCLAW_NIX_MODE=1
 ```
 
-Tren macOS, ung dung GUI khong tu dong ke thua bien moi truong cua shell. Ban cung
-co the bat che do Nix thong qua defaults:
+Trên macOS, ứng dụng GUI không tự động kế thừa biến môi trường của shell. Bạn cũng có thể
+bật chế độ Nix thông qua defaults:
 
 ```bash
 defaults write bot.molt.mac openclaw.nixMode -bool true
 ```
 
-### Duong dan cau hinh + trang thai
+### Đường dẫn cấu hình + trạng thái
 
-OpenClaw doc cau hinh JSON5 tu `OPENCLAW_CONFIG_PATH` va luu du lieu co the thay doi trong `OPENCLAW_STATE_DIR`.
+OpenClaw đọc cấu hình JSON5 từ `OPENCLAW_CONFIG_PATH` và lưu dữ liệu có thể thay đổi trong `OPENCLAW_STATE_DIR`.
 
-- `OPENCLAW_STATE_DIR` (mac dinh: `~/.openclaw`)
-- `OPENCLAW_CONFIG_PATH` (mac dinh: `$OPENCLAW_STATE_DIR/openclaw.json`)
+- `OPENCLAW_STATE_DIR` (mặc định: `~/.openclaw`)
+- `OPENCLAW_CONFIG_PATH` (mặc định: `$OPENCLAW_STATE_DIR/openclaw.json`)
 
-Khi chay duoi Nix, hay thiet lap ro rang cac gia tri nay toi cac vi tri do Nix quan ly de trang thai thoi gian chay va cau hinh
-khong nam trong kho bat bien.
+Khi chạy dưới Nix, hãy thiết lập rõ ràng các giá trị này tới các vị trí do Nix quản lý để trạng thái runtime và cấu hình
+không nằm trong kho bất biến.
 
-### Hanh vi thoi gian chay trong che do Nix
+### Hành vi runtime trong chế độ Nix
 
-- Tat cac luong tu dong cai dat va tu bien doi
-- Phu thuoc thieu se hien thi thong bao khac phuc rieng cho Nix
-- UI hien thi bang thong bao che do Nix chi doc khi co
+- Các luồng tự cài đặt và tự thay đổi bị vô hiệu hóa
+- Phụ thuộc bị thiếu sẽ hiển thị thông báo khắc phục dành riêng cho Nix
+- UI hiển thị banner chế độ Nix chỉ đọc khi có
 
-## Ghi chu dong goi (macOS)
+## Ghi chú đóng gói (macOS)
 
-Quy trinh dong goi macOS mong doi mot mau Info.plist on dinh tai:
+Quy trình đóng gói macOS yêu cầu một template Info.plist ổn định tại:
 
 ```
 apps/macos/Sources/OpenClaw/Resources/Info.plist
 ```
 
-[`scripts/package-mac-app.sh`](https://github.com/openclaw/openclaw/blob/main/scripts/package-mac-app.sh) sao chep mau nay vao goi ung dung va vá cac truong dong
-(bundle ID, phien ban/build, Git SHA, khoa Sparkle). Dieu nay giu plist co tinh xac dinh cho
-dong goi SwiftPM va cac ban dung Nix (khong phu thuoc vao bo cong cu Xcode day du).
+[`scripts/package-mac-app.sh`](https://github.com/openclaw/openclaw/blob/main/scripts/package-mac-app.sh) sao chép template này vào bundle của ứng dụng và vá các trường động
+(bundle ID, version/build, Git SHA, khóa Sparkle). Điều này giúp plist mang tính quyết định cho
+đóng gói SwiftPM và các bản dựng Nix (không dựa vào bộ công cụ Xcode đầy đủ).
 
-## Lien quan
+## Liên quan
 
-- [nix-openclaw](https://github.com/openclaw/nix-openclaw) — huong dan thiet lap day du
-- [Wizard](/start/wizard) — thiet lap CLI khong dung Nix
-- [Docker](/install/docker) — thiet lap dang container
+- [nix-openclaw](https://github.com/openclaw/nix-openclaw) — hướng dẫn thiết lập đầy đủ
+- [Wizard](/start/wizard) — thiết lập CLI không dùng Nix
+- [Docker](/install/docker) — thiết lập dạng container

@@ -8,12 +8,12 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:53:29Z
+  generated_at: 2026-02-08T09:28:06Z
 ---
 
 # 使用遠端 Gateway 閘道器執行 OpenClaw.app
 
-OpenClaw.app 使用 SSH 通道來連線至遠端 Gateway 閘道器。本指南將說明如何進行設定。
+OpenClaw.app 會使用 SSH 通道連線至遠端 Gateway 閘道器。本指南將說明如何完成設定。
 
 ## 概覽
 
@@ -41,7 +41,7 @@ OpenClaw.app 使用 SSH 通道來連線至遠端 Gateway 閘道器。本指南�
 
 ### 步驟 1：新增 SSH 設定
 
-編輯 `~/.ssh/config` 並加入：
+編輯 `~/.ssh/config` 並新增：
 
 ```ssh
 Host remote-gateway
@@ -125,7 +125,7 @@ launchctl bootstrap gui/$UID ~/Library/LaunchAgents/bot.molt.ssh-tunnel.plist
 - 若發生當機會自動重新啟動
 - 在背景持續執行
 
-舊版注意事項：如有殘留的 `com.openclaw.ssh-tunnel` LaunchAgent，請將其移除。
+舊版注意事項：若存在，請移除任何殘留的 `com.openclaw.ssh-tunnel` LaunchAgent。
 
 ---
 
@@ -157,8 +157,8 @@ launchctl bootout gui/$UID/bot.molt.ssh-tunnel
 | 元件                                 | 功能說明                                  |
 | ------------------------------------ | ----------------------------------------- |
 | `LocalForward 18789 127.0.0.1:18789` | 將本機連接埠 18789 轉送至遠端連接埠 18789 |
-| `ssh -N`                             | 不執行遠端指令的 SSH（僅進行連接埠轉送）  |
+| `ssh -N`                             | SSH 不執行遠端指令（僅進行連接埠轉送）    |
 | `KeepAlive`                          | 若通道當機會自動重新啟動                  |
 | `RunAtLoad`                          | 在代理程式載入時啟動通道                  |
 
-OpenClaw.app 會連線至用戶端機器上的 `ws://127.0.0.1:18789`。SSH 通道會將該連線轉送到遠端機器上執行 Gateway 閘道器的 18789 連接埠。
+OpenClaw.app 會在你的用戶端機器上連線至 `ws://127.0.0.1:18789`。SSH 通道會將該連線轉送至遠端機器上執行中之 Gateway 閘道器的 18789 連接埠。

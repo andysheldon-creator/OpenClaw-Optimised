@@ -1,21 +1,21 @@
 ---
-summary: "Referencia del CLI para `openclaw message` (envío + acciones de canal)"
+summary: "Referencia de la CLI para `openclaw message` (envío + acciones de canal)"
 read_when:
-  - Al agregar o modificar acciones del CLI de mensajes
-  - Al cambiar el comportamiento del canal de salida
-title: "mensaje"
+  - Al agregar o modificar acciones de la CLI de mensajes
+  - Al cambiar el comportamiento de salida de los canales
+title: "message"
 x-i18n:
   source_path: cli/message.md
-  source_hash: 35159baf1ef71362
+  source_hash: 7781b44b3998d271
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:58:30Z
+  generated_at: 2026-02-08T09:33:08Z
 ---
 
 # `openclaw message`
 
-Comando único de salida para enviar mensajes y acciones de canal
+Comando único de salida para enviar mensajes y realizar acciones de canal
 (Discord/Google Chat/Slack/Mattermost (plugin)/Telegram/WhatsApp/Signal/iMessage/MS Teams).
 
 ## Uso
@@ -27,7 +27,7 @@ openclaw message <subcommand> [flags]
 Selección de canal:
 
 - `--channel` requerido si hay más de un canal configurado.
-- Si hay exactamente un canal configurado, se convierte en el valor predeterminado.
+- Si hay exactamente un canal configurado, se convierte en el predeterminado.
 - Valores: `whatsapp|telegram|discord|googlechat|slack|mattermost|signal|imessage|msteams` (Mattermost requiere plugin)
 
 Formatos de destino (`--target`):
@@ -37,21 +37,21 @@ Formatos de destino (`--target`):
 - Discord: `channel:<id>` o `user:<id>` (o mención `<@id>`; los id numéricos sin formato se tratan como canales)
 - Google Chat: `spaces/<spaceId>` o `users/<userId>`
 - Slack: `channel:<id>` o `user:<id>` (se acepta el id de canal sin formato)
-- Mattermost (plugin): `channel:<id>`, `user:<id>` o `@username` (los id sin formato se tratan como canales)
+- Mattermost (plugin): `channel:<id>`, `user:<id>` o `@username` (los id simples se tratan como canales)
 - Signal: `+E.164`, `group:<id>`, `signal:+E.164`, `signal:group:<id>` o `username:<name>`/`u:<name>`
 - iMessage: identificador, `chat_id:<id>`, `chat_guid:<guid>` o `chat_identifier:<id>`
 - MS Teams: id de conversación (`19:...@thread.tacv2`) o `conversation:<id>` o `user:<aad-object-id>`
 
 Búsqueda por nombre:
 
-- Para proveedores compatibles (Discord/Slack/etc), nombres de canal como `Help` o `#help` se resuelven mediante la caché del directorio.
-- Si no hay coincidencia en la caché, OpenClaw intentará una búsqueda en vivo del directorio cuando el proveedor lo admita.
+- Para proveedores compatibles (Discord/Slack/etc), los nombres de canal como `Help` o `#help` se resuelven mediante la caché del directorio.
+- En caso de fallo de caché, OpenClaw intentará una búsqueda en vivo del directorio cuando el proveedor lo admita.
 
-## Indicadores comunes
+## Flags comunes
 
 - `--channel <name>`
 - `--account <id>`
-- `--target <dest>` (canal o usuario de destino para enviar/sondear/leer/etc)
+- `--target <dest>` (canal o usuario de destino para send/poll/read/etc)
 - `--targets <name>` (repetir; solo difusión)
 - `--json`
 - `--dry-run`
@@ -63,7 +63,7 @@ Búsqueda por nombre:
 
 - `send`
   - Canales: WhatsApp/Telegram/Discord/Google Chat/Slack/Mattermost (plugin)/Signal/iMessage/MS Teams
-  - Requerido: `--target`, además de `--message` o `--media`
+  - Requerido: `--target`, más `--message` o `--media`
   - Opcional: `--media`, `--reply-to`, `--thread-id`, `--gif-playback`
   - Solo Telegram: `--buttons` (requiere `channels.telegram.capabilities.inlineButtons` para permitirlo)
   - Solo Telegram: `--thread-id` (id de tema del foro)
@@ -80,9 +80,9 @@ Búsqueda por nombre:
   - Canales: Discord/Google Chat/Slack/Telegram/WhatsApp/Signal
   - Requerido: `--message-id`, `--target`
   - Opcional: `--emoji`, `--remove`, `--participant`, `--from-me`, `--target-author`, `--target-author-uuid`
-  - Nota: `--remove` requiere `--emoji` (omita `--emoji` para borrar sus propias reacciones cuando sea compatible; vea /tools/reactions)
+  - Nota: `--remove` requiere `--emoji` (omita `--emoji` para limpiar sus propias reacciones cuando esté admitido; ver /tools/reactions)
   - Solo WhatsApp: `--participant`, `--from-me`
-  - Reacciones en grupos de Signal: `--target-author` o `--target-author-uuid` requerido
+  - Reacciones en grupos de Signal: se requiere `--target-author` o `--target-author-uuid`
 
 - `reactions`
   - Canales: Discord/Google Chat/Slack
@@ -124,8 +124,8 @@ Búsqueda por nombre:
 
 - `thread create`
   - Canales: Discord
-  - Requerido: `--thread-name`, `--target` (id de canal)
-  - Opcional: `--message-id`, `--auto-archive-min`
+  - Requerido: `--thread-name`, `--target` (id del canal)
+  - Opcional: `--message-id`, `--message`, `--auto-archive-min`
 
 - `thread list`
   - Canales: Discord
@@ -141,7 +141,7 @@ Búsqueda por nombre:
 
 - `emoji list`
   - Discord: `--guild-id`
-  - Slack: sin indicadores adicionales
+  - Slack: sin flags adicionales
 
 - `emoji upload`
   - Canales: Discord
@@ -176,7 +176,7 @@ Búsqueda por nombre:
 
 ### Moderación (Discord)
 
-- `timeout`: `--guild-id`, `--user-id` (opcional `--duration-min` o `--until`; omita ambos para borrar el tiempo de espera)
+- `timeout`: `--guild-id`, `--user-id` (opcional `--duration-min` o `--until`; omita ambos para limpiar el tiempo de espera)
 - `kick`: `--guild-id`, `--user-id` (+ `--reason`)
 - `ban`: `--guild-id`, `--user-id` (+ `--delete-days`, `--reason`)
   - `timeout` también admite `--reason`

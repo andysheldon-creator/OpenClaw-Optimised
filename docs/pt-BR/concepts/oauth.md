@@ -1,10 +1,10 @@
 ---
 summary: "OAuth no OpenClaw: troca de tokens, armazenamento e padrões de múltiplas contas"
 read_when:
-  - Voce quer entender o OAuth do OpenClaw de ponta a ponta
-  - Voce encontrou problemas de invalidação de token / logout
-  - Voce quer fluxos setup-token ou de autenticação OAuth
-  - Voce quer múltiplas contas ou roteamento por perfil
+  - Você quer entender o OAuth no OpenClaw de ponta a ponta
+  - Você encontrou problemas de invalidação de token / logout
+  - Você quer fluxos de setup-token ou autenticação OAuth
+  - Você quer múltiplas contas ou roteamento por perfil
 title: "OAuth"
 x-i18n:
   source_path: concepts/oauth.md
@@ -12,32 +12,32 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:57Z
+  generated_at: 2026-02-08T09:30:38Z
 ---
 
 # OAuth
 
-O OpenClaw oferece suporte a “autenticação por assinatura” via OAuth para provedores que a disponibilizam (notavelmente **OpenAI Codex (ChatGPT OAuth)**). Para assinaturas da Anthropic, use o fluxo **setup-token**. Esta página explica:
+O OpenClaw oferece suporte a **“subscription auth”** via OAuth para provedores que o oferecem (notavelmente **OpenAI Codex (ChatGPT OAuth)**). Para assinaturas da Anthropic, use o fluxo **setup-token**. Esta página explica:
 
 - como funciona a **troca de tokens** OAuth (PKCE)
 - onde os tokens são **armazenados** (e por quê)
 - como lidar com **múltiplas contas** (perfis + substituições por sessão)
 
-O OpenClaw também oferece suporte a **plugins de provedores** que incluem seus próprios fluxos de OAuth ou de chave de API. Execute-os via:
+O OpenClaw também oferece suporte a **plugins de provedor** que incluem seus próprios fluxos de OAuth ou de chave de API. Execute-os via:
 
 ```bash
 openclaw models auth login --provider <id>
 ```
 
-## O token sink (por que ele existe)
+## O sumidouro de tokens (por que ele existe)
 
-Provedores OAuth geralmente geram um **novo refresh token** durante fluxos de login/atualização. Alguns provedores (ou clientes OAuth) podem invalidar refresh tokens mais antigos quando um novo é emitido para o mesmo usuário/app.
+Provedores OAuth comumente geram um **novo refresh token** durante fluxos de login/atualização. Alguns provedores (ou clientes OAuth) podem invalidar refresh tokens antigos quando um novo é emitido para o mesmo usuário/app.
 
 Sintoma prático:
 
-- voce faz login via OpenClaw _e_ via Claude Code / Codex CLI → um deles acaba sendo “deslogado” aleatoriamente depois
+- você faz login via OpenClaw _e_ via Claude Code / Codex CLI → um deles acaba sendo “desconectado” aleatoriamente depois
 
-Para reduzir isso, o OpenClaw trata `auth-profiles.json` como um **token sink**:
+Para reduzir isso, o OpenClaw trata `auth-profiles.json` como um **sumidouro de tokens**:
 
 - o runtime lê credenciais de **um único lugar**
 - podemos manter múltiplos perfis e roteá-los de forma determinística
@@ -53,9 +53,9 @@ Arquivo legado apenas para importação (ainda suportado, mas não é o armazena
 
 - `~/.openclaw/credentials/oauth.json` (importado para `auth-profiles.json` no primeiro uso)
 
-Todos os itens acima também respeitam `$OPENCLAW_STATE_DIR` (override do diretório de estado). Referência completa: [/gateway/configuration](/gateway/configuration#auth-storage-oauth--api-keys)
+Tudo acima também respeita `$OPENCLAW_STATE_DIR` (substituição do diretório de estado). Referência completa: [/gateway/configuration](/gateway/configuration#auth-storage-oauth--api-keys)
 
-## Anthropic setup-token (autenticação por assinatura)
+## setup-token da Anthropic (subscription auth)
 
 Execute `claude setup-token` em qualquer máquina e depois cole no OpenClaw:
 
@@ -63,7 +63,7 @@ Execute `claude setup-token` em qualquer máquina e depois cole no OpenClaw:
 openclaw models auth setup-token --provider anthropic
 ```
 
-Se voce gerou o token em outro lugar, cole manualmente:
+Se você gerou o token em outro lugar, cole manualmente:
 
 ```bash
 openclaw models auth paste-token --provider anthropic
@@ -77,7 +77,7 @@ openclaw models status
 
 ## Troca OAuth (como o login funciona)
 
-Os fluxos interativos de login do OpenClaw são implementados em `@mariozechner/pi-ai` e conectados aos assistentes/comandos.
+Os fluxos interativos de login do OpenClaw são implementados em `@mariozechner/pi-ai` e integrados aos assistentes/comandos.
 
 ### Anthropic (Claude Pro/Max) setup-token
 
@@ -93,25 +93,25 @@ O caminho no assistente é `openclaw onboard` → escolha de autenticação `set
 
 Formato do fluxo (PKCE):
 
-1. gere verificador/desafio PKCE + `state` aleatório
-2. abra `https://auth.openai.com/oauth/authorize?...`
-3. tente capturar o callback em `http://127.0.0.1:1455/auth/callback`
-4. se o callback não conseguir se vincular (ou voce estiver remoto/headless), cole a URL/código de redirecionamento
-5. troque em `https://auth.openai.com/oauth/token`
-6. extraia `accountId` do access token e armazene `{ access, refresh, expires, accountId }`
+1. gerar verificador/desafio PKCE + `state` aleatório
+2. abrir `https://auth.openai.com/oauth/authorize?...`
+3. tentar capturar o callback em `http://127.0.0.1:1455/auth/callback`
+4. se o callback não conseguir vincular (ou você estiver remoto/headless), colar a URL/código de redirecionamento
+5. trocar em `https://auth.openai.com/oauth/token`
+6. extrair `accountId` do token de acesso e armazenar `{ access, refresh, expires, accountId }`
 
 O caminho no assistente é `openclaw onboard` → escolha de autenticação `openai-codex`.
 
-## Refresh + expiração
+## Atualização + expiração
 
-Os perfis armazenam um timestamp `expires`.
+Os perfis armazenam um carimbo de data/hora `expires`.
 
 Em runtime:
 
-- se `expires` estiver no futuro → use o access token armazenado
-- se estiver expirado → faça refresh (sob um lock de arquivo) e sobrescreva as credenciais armazenadas
+- se `expires` estiver no futuro → usar o token de acesso armazenado
+- se estiver expirado → atualizar (sob um bloqueio de arquivo) e sobrescrever as credenciais armazenadas
 
-O fluxo de refresh é automático; em geral voce não precisa gerenciar tokens manualmente.
+O fluxo de atualização é automático; geralmente você não precisa gerenciar tokens manualmente.
 
 ## Múltiplas contas (perfis) + roteamento
 
@@ -119,14 +119,14 @@ Dois padrões:
 
 ### 1) Preferido: agentes separados
 
-Se voce quer que “pessoal” e “trabalho” nunca interajam, use agentes isolados (sessões + credenciais + workspace separados):
+Se você quer que “pessoal” e “trabalho” nunca interajam, use agentes isolados (sessões + credenciais + workspace separados):
 
 ```bash
 openclaw agents add work
 openclaw agents add personal
 ```
 
-Em seguida, configure a autenticação por agente (assistente) e direcione os chats para o agente correto.
+Depois, configure a autenticação por agente (assistente) e direcione os chats para o agente correto.
 
 ### 2) Avançado: múltiplos perfis em um agente
 
@@ -145,7 +145,7 @@ Como ver quais IDs de perfil existem:
 
 - `openclaw channels list --json` (mostra `auth[]`)
 
-Docs relacionados:
+Documentos relacionados:
 
 - [/concepts/model-failover](/concepts/model-failover) (regras de rotação + cooldown)
 - [/tools/slash-commands](/tools/slash-commands) (superfície de comandos)

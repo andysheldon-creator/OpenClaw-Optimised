@@ -1,8 +1,8 @@
 ---
-summary: 「用於工作流程的僅限 JSON LLM 任務（選用外掛工具）」
+summary: 「用於工作流程的僅 JSON LLM 任務（可選外掛工具）」
 read_when:
-  - 當你想在工作流程中加入僅限 JSON 的 LLM 步驟
-  - 當你需要可進行結構驗證的 LLM 輸出以供自動化
+  - 你想在工作流程中加入僅 JSON 的 LLM 步驟
+  - 你需要可進行結構描述驗證的 LLM 輸出以利自動化
 title: 「LLM 任務」
 x-i18n:
   source_path: tools/llm-task.md
@@ -10,14 +10,14 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:54:54Z
+  generated_at: 2026-02-08T09:29:29Z
 ---
 
 # LLM 任務
 
-`llm-task` 是一個 **選用外掛工具**，可執行僅限 JSON 的 LLM 任務，並回傳結構化輸出（可選擇是否依 JSON Schema 驗證）。
+`llm-task` 是一個 **可選的外掛工具**，可執行僅 JSON 的 LLM 任務，並回傳結構化輸出（可選擇依 JSON Schema 驗證）。
 
-這非常適合像 Lobster 這樣的工作流程引擎：你可以加入單一 LLM 步驟，而不必為每個工作流程撰寫自訂的 OpenClaw 程式碼。
+這非常適合像 Lobster 這類的工作流程引擎：你可以加入單一的 LLM 步驟，而不必為每個工作流程撰寫自訂的 OpenClaw 程式碼。
 
 ## 啟用外掛
 
@@ -33,7 +33,7 @@ x-i18n:
 }
 ```
 
-2. 將工具加入允許清單（它以 `optional: true` 註冊）：
+2. 將工具加入允許清單（它已註冊為 `optional: true`）：
 
 ```json
 {
@@ -48,7 +48,7 @@ x-i18n:
 }
 ```
 
-## 設定（選用）
+## 設定（可選）
 
 ```json
 {
@@ -70,7 +70,7 @@ x-i18n:
 }
 ```
 
-`allowedModels` 是 `provider/model` 字串的允許清單。若有設定，任何不在清單中的請求都會被拒絕。
+`allowedModels` 是一個 `provider/model` 字串的允許清單。若有設定，任何不在清單內的請求都會被拒絕。
 
 ## 工具參數
 
@@ -86,7 +86,7 @@ x-i18n:
 
 ## 輸出
 
-回傳包含已解析 JSON 的 `details.json`（若有提供，會依 `schema` 進行驗證）。
+回傳 `details.json`，其中包含已解析的 JSON（若提供 `schema`，則會進行驗證）。
 
 ## 範例：Lobster 工作流程步驟
 
@@ -111,7 +111,7 @@ openclaw.invoke --tool llm-task --action json --args-json '{
 
 ## 安全性注意事項
 
-- 此工具 **僅限 JSON**，並指示模型只輸出 JSON（不含程式碼區塊、不含說明文字）。
-- 本次執行不會向模型公開任何工具。
-- 除非你使用 `schema` 進行驗證，否則請將輸出視為不受信任。
-- 在任何具副作用的步驟（send、post、exec）之前放置核准流程。
+- 此工具為 **僅 JSON**，並指示模型只輸出 JSON（不含程式碼圍欄、不含說明文字）。
+- 本次執行不會向模型暴露任何工具。
+- 除非你使用 `schema` 進行驗證，否則請將輸出視為不可信。
+- 在任何具有副作用的步驟（傳送、張貼、執行）之前加入核准流程。

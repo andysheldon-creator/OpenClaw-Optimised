@@ -1,24 +1,24 @@
 ---
-summary: "Enrutamiento multiagente: agentes aislados, cuentas de canal y vinculaciones"
-title: Enrutamiento Multiagente
+summary: "Enrutamiento multiagente: agentes aislados, cuentas de canal y enlaces"
+title: Enrutamiento multiagente
 read_when: "Quiere múltiples agentes aislados (espacios de trabajo + autenticación) en un solo proceso de Gateway."
 status: active
 x-i18n:
   source_path: concepts/multi-agent.md
-  source_hash: 49b3ba55d8a7f0b3
+  source_hash: aa2b77f4707628ca
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:58:42Z
+  generated_at: 2026-02-08T09:33:22Z
 ---
 
-# Enrutamiento Multiagente
+# Enrutamiento multiagente
 
-Objetivo: múltiples agentes _aislados_ (espacio de trabajo separado + `agentDir` + sesiones), además de múltiples cuentas de canal (p. ej., dos WhatsApps) en un Gateway en ejecución. El tráfico entrante se enruta a un agente mediante vinculaciones.
+Objetivo: múltiples agentes _aislados_ (espacio de trabajo + `agentDir` + sesiones), además de múltiples cuentas de canal (p. ej., dos WhatsApp) en un Gateway en ejecución. El tráfico entrante se enruta a un agente mediante enlaces.
 
 ## ¿Qué es “un agente”?
 
-Un **agente** es un cerebro completamente delimitado con su propio:
+Un **agente** es un cerebro con alcance completo y propio, con:
 
 - **Espacio de trabajo** (archivos, AGENTS.md/SOUL.md/USER.md, notas locales, reglas de persona).
 - **Directorio de estado** (`agentDir`) para perfiles de autenticación, registro de modelos y configuración por agente.
@@ -35,12 +35,12 @@ entre agentes (provoca colisiones de autenticación/sesión). Si desea compartir
 copie `auth-profiles.json` en el `agentDir` del otro agente.
 
 Las Skills son por agente mediante la carpeta `skills/` de cada espacio de trabajo, con Skills compartidas
-disponibles desde `~/.openclaw/skills`. Consulte [Skills: per-agent vs shared](/tools/skills#per-agent-vs-shared-skills).
+disponibles desde `~/.openclaw/skills`. Consulte [Skills: por agente vs compartidas](/tools/skills#per-agent-vs-shared-skills).
 
-El Gateway puede alojar **un agente** (predeterminado) o **muchos agentes** lado a lado.
+El Gateway puede alojar **un agente** (predeterminado) o **muchos agentes** en paralelo.
 
 **Nota del espacio de trabajo:** el espacio de trabajo de cada agente es el **cwd predeterminado**, no un
-sandbox estricto. Las rutas relativas se resuelven dentro del espacio de trabajo, pero las rutas absolutas pueden
+sandbox rígido. Las rutas relativas se resuelven dentro del espacio de trabajo, pero las rutas absolutas pueden
 alcanzar otras ubicaciones del host a menos que el sandboxing esté habilitado. Consulte
 [Sandboxing](/gateway/sandboxing).
 
@@ -58,8 +58,8 @@ Si no hace nada, OpenClaw ejecuta un solo agente:
 
 - `agentId` tiene como valor predeterminado **`main`**.
 - Las sesiones se indexan como `agent:main:<mainKey>`.
-- El espacio de trabajo predeterminado es `~/.openclaw/workspace` (o `~/.openclaw/workspace-<profile>` cuando se establece `OPENCLAW_PROFILE`).
-- El estado predeterminado es `~/.openclaw/agents/main/agent`.
+- El espacio de trabajo tiene como valor predeterminado `~/.openclaw/workspace` (o `~/.openclaw/workspace-<profile>` cuando se establece `OPENCLAW_PROFILE`).
+- El estado tiene como valor predeterminado `~/.openclaw/agents/main/agent`.
 
 ## Asistente de agentes
 
@@ -79,17 +79,17 @@ openclaw agents list --bindings
 
 ## Múltiples agentes = múltiples personas, múltiples personalidades
 
-Con **múltiples agentes**, cada `agentId` se convierte en una **persona completamente aislada**:
+Con **múltiples agentes**, cada `agentId` se convierte en una **persona totalmente aislada**:
 
-- **Diferentes números de teléfono/cuentas** (por `accountId` de canal).
+- **Diferentes números/cuentas telefónicas** (por canal `accountId`).
 - **Diferentes personalidades** (archivos del espacio de trabajo por agente como `AGENTS.md` y `SOUL.md`).
 - **Autenticación + sesiones separadas** (sin interferencias a menos que se habilite explícitamente).
 
-Esto permite que **múltiples personas** compartan un servidor de Gateway manteniendo aislados sus “cerebros” de IA y datos.
+Esto permite que **múltiples personas** compartan un servidor de Gateway manteniendo sus “cerebros” de IA y datos aislados.
 
-## Un número de WhatsApp, múltiples personas (división de Mensajes directos)
+## Un número de WhatsApp, múltiples personas (división de DM)
 
-Puede enrutar **diferentes Mensajes directos de WhatsApp** a distintos agentes manteniéndose en **una sola cuenta de WhatsApp**. Haga la coincidencia por E.164 del remitente (como `+15551234567`) con `peer.kind: "dm"`. Las respuestas siguen saliendo del mismo número de WhatsApp (sin identidad de remitente por agente).
+Puede enrutar **diferentes DM de WhatsApp** a diferentes agentes manteniéndose en **una sola cuenta de WhatsApp**. Haga la coincidencia por E.164 del remitente (como `+15551234567`) con `peer.kind: "dm"`. Las respuestas siguen saliendo del mismo número de WhatsApp (sin identidad de remitente por agente).
 
 Detalle importante: los chats directos colapsan en la **clave de sesión principal** del agente, por lo que el aislamiento real requiere **un agente por persona**.
 
@@ -118,34 +118,34 @@ Ejemplo:
 
 Notas:
 
-- El control de acceso de Mensajes directos es **global por cuenta de WhatsApp** (emparejamiento/lista de permitidos), no por agente.
-- Para grupos compartidos, vincule el grupo a un agente o use [Broadcast groups](/broadcast-groups).
+- El control de acceso a DM es **global por cuenta de WhatsApp** (emparejamiento/lista de permitidos), no por agente.
+- Para grupos compartidos, vincule el grupo a un agente o use [Grupos de difusión](/channels/broadcast-groups).
 
 ## Reglas de enrutamiento (cómo los mensajes eligen un agente)
 
-Las vinculaciones son **determinísticas** y **la más específica gana**:
+Los enlaces son **deterministas** y **gana el más específico**:
 
-1. Coincidencia de `peer` (ID exacto de Mensaje directo/grupo/canal)
+1. Coincidencia `peer` (DM/grupo/id de canal exacto)
 2. `guildId` (Discord)
 3. `teamId` (Slack)
-4. Coincidencia de `accountId` para un canal
+4. Coincidencia `accountId` para un canal
 5. Coincidencia a nivel de canal (`accountId: "*"`)
-6. Repliegue al agente predeterminado (`agents.list[].default`, de lo contrario la primera entrada de la lista; predeterminado: `main`)
+6. Repliegue al agente predeterminado (`agents.list[].default`; de lo contrario, la primera entrada de la lista; predeterminado: `main`)
 
 ## Múltiples cuentas / números de teléfono
 
 Los canales que admiten **múltiples cuentas** (p. ej., WhatsApp) usan `accountId` para identificar
-cada inicio de sesión. Cada `accountId` puede enrutarse a un agente diferente, de modo que un servidor puede alojar
+cada inicio de sesión. Cada `accountId` puede enrutar a un agente diferente, de modo que un servidor puede alojar
 múltiples números de teléfono sin mezclar sesiones.
 
 ## Conceptos
 
 - `agentId`: un “cerebro” (espacio de trabajo, autenticación por agente, almacén de sesiones por agente).
 - `accountId`: una instancia de cuenta de canal (p. ej., cuenta de WhatsApp `"personal"` vs `"biz"`).
-- `binding`: enruta mensajes entrantes a un `agentId` por `(channel, accountId, peer)` y, opcionalmente, IDs de guild/equipo.
+- `binding`: enruta mensajes entrantes a un `agentId` por `(channel, accountId, peer)` y, opcionalmente, IDs de gremio/equipo.
 - Los chats directos colapsan en `agent:<agentId>:<mainKey>` (principal por agente; `session.mainKey`).
 
-## Ejemplo: dos WhatsApps → dos agentes
+## Ejemplo: dos WhatsApp → dos agentes
 
 `~/.openclaw/openclaw.json` (JSON5):
 
@@ -212,7 +212,7 @@ múltiples números de teléfono sin mezclar sesiones.
 
 ## Ejemplo: chat diario de WhatsApp + trabajo profundo en Telegram
 
-Divida por canal: enrute WhatsApp a un agente rápido para el día a día y Telegram a un agente Opus.
+Dividir por canal: enrute WhatsApp a un agente rápido para el día a día y Telegram a un agente Opus.
 
 ```json5
 {
@@ -241,12 +241,12 @@ Divida por canal: enrute WhatsApp a un agente rápido para el día a día y Tele
 
 Notas:
 
-- Si tiene múltiples cuentas para un canal, agregue `accountId` a la vinculación (por ejemplo `{ channel: "whatsapp", accountId: "personal" }`).
-- Para enrutar un solo Mensaje directo/grupo a Opus manteniendo el resto en chat, agregue una vinculación de `match.peer` para ese par; las coincidencias por par siempre ganan sobre las reglas a nivel de canal.
+- Si tiene múltiples cuentas para un canal, agregue `accountId` al enlace (por ejemplo, `{ channel: "whatsapp", accountId: "personal" }`).
+- Para enrutar un solo DM/grupo a Opus manteniendo el resto en chat, agregue un enlace `match.peer` para ese par; las coincidencias por par siempre ganan sobre las reglas de todo el canal.
 
 ## Ejemplo: mismo canal, un par a Opus
 
-Mantenga WhatsApp en el agente rápido, pero enrute un Mensaje directo a Opus:
+Mantenga WhatsApp en el agente rápido, pero enrute un DM a Opus:
 
 ```json5
 {
@@ -273,7 +273,7 @@ Mantenga WhatsApp en el agente rápido, pero enrute un Mensaje directo a Opus:
 }
 ```
 
-Las vinculaciones por par siempre ganan, así que manténgalas por encima de la regla a nivel de canal.
+Los enlaces por par siempre ganan, así que manténgalos por encima de la regla a nivel de canal.
 
 ## Agente familiar vinculado a un grupo de WhatsApp
 
@@ -325,10 +325,10 @@ y una política de herramientas más estricta:
 
 Notas:
 
-- Las listas de permitir/denegar de herramientas son **tools**, no Skills. Si una Skill necesita ejecutar un
-  binario, asegúrese de que `exec` esté permitido y de que el binario exista en el sandbox.
+- Las listas de permitir/denegar de herramientas son **herramientas**, no Skills. Si una Skill necesita ejecutar un
+  binario, asegúrese de que `exec` esté permitido y que el binario exista en el sandbox.
 - Para un control más estricto, establezca `agents.list[].groupChat.mentionPatterns` y mantenga
-  habilitadas las listas de permitidos de grupo para el canal.
+  habilitadas las listas de permitidos de grupos para el canal.
 
 ## Sandbox y configuración de herramientas por agente
 
@@ -373,11 +373,11 @@ Las anulaciones `sandbox.docker.*` por agente se ignoran cuando el alcance resue
 **Beneficios:**
 
 - **Aislamiento de seguridad**: restrinja herramientas para agentes no confiables
-- **Control de recursos**: ponga en sandbox agentes específicos mientras mantiene otros en el host
-- **Políticas flexibles**: permisos diferentes por agente
+- **Control de recursos**: aplique sandbox a agentes específicos mientras mantiene otros en el host
+- **Políticas flexibles**: diferentes permisos por agente
 
 Nota: `tools.elevated` es **global** y se basa en el remitente; no es configurable por agente.
 Si necesita límites por agente, use `agents.list[].tools` para denegar `exec`.
-Para segmentación por grupos, use `agents.list[].groupChat.mentionPatterns` para que las @menciones se asignen limpiamente al agente previsto.
+Para la segmentación por grupos, use `agents.list[].groupChat.mentionPatterns` para que las @menciones se asignen limpiamente al agente previsto.
 
-Consulte [Multi-Agent Sandbox & Tools](/multi-agent-sandbox-tools) para ver ejemplos detallados.
+Consulte [Sandbox y herramientas multiagente](/tools/multi-agent-sandbox-tools) para ver ejemplos detallados.

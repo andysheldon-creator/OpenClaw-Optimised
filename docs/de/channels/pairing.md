@@ -1,32 +1,32 @@
 ---
-summary: "Pairing-Überblick: Genehmigen, wer Ihnen Direktnachrichten senden darf + welche Knoten beitreten dürfen"
+summary: „Pairing-Überblick: genehmigen, wer Ihnen Direktnachrichten senden darf + welche Nodes dem Netzwerk beitreten können“
 read_when:
   - Einrichten der Zugriffskontrolle für Direktnachrichten
-  - Pairing eines neuen iOS-/Android-Knotens
-  - Überprüfung der OpenClaw-Sicherheitslage
-title: "Pairing"
+  - Pairing eines neuen iOS-/Android-Nodes
+  - Überprüfung der Sicherheitslage von OpenClaw
+title: „Pairing“
 x-i18n:
   source_path: channels/pairing.md
   source_hash: cc6ce9c71db6d96d
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:15:45Z
+  generated_at: 2026-02-08T09:35:18Z
 ---
 
 # Pairing
 
-„Pairing“ ist der explizite Schritt der **Genehmigung durch den Eigentümer** in OpenClaw.
+„Pairing“ ist der explizite Schritt zur **Genehmigung durch den Eigentümer** in OpenClaw.
 Er wird an zwei Stellen verwendet:
 
 1. **DM-Pairing** (wer mit dem Bot sprechen darf)
-2. **Node-Pairing** (welche Geräte/Knoten dem Gateway-Netzwerk beitreten dürfen)
+2. **Node-Pairing** (welche Geräte/Nodes dem Gateway-Netzwerk beitreten dürfen)
 
 Sicherheitskontext: [Security](/gateway/security)
 
 ## 1) DM-Pairing (eingehender Chat-Zugriff)
 
-Wenn ein Kanal mit der DM-Richtlinie `pairing` konfiguriert ist, erhalten unbekannte Absender einen Kurzcode und ihre Nachricht wird **nicht verarbeitet**, bis Sie sie genehmigen.
+Wenn ein Kanal mit der DM-Richtlinie `pairing` konfiguriert ist, erhalten unbekannte Absender einen Kurzcode und ihre Nachricht wird **nicht verarbeitet**, bis Sie genehmigen.
 
 Standard-DM-Richtlinien sind dokumentiert unter: [Security](/gateway/security)
 
@@ -50,13 +50,13 @@ Unterstützte Kanäle: `telegram`, `whatsapp`, `signal`, `imessage`, `discord`, 
 Gespeichert unter `~/.openclaw/credentials/`:
 
 - Ausstehende Anfragen: `<channel>-pairing.json`
-- Genehmigte Allowlist: `<channel>-allowFrom.json`
+- Genehmigte Allowlist-Speicher: `<channel>-allowFrom.json`
 
-Behandeln Sie diese als sensibel (sie steuern den Zugriff auf Ihren Assistenten).
+Behandeln Sie diese Daten als sensibel (sie steuern den Zugriff auf Ihren Assistenten).
 
-## 2) Node-Geräte-Pairing (iOS/Android/macOS/headless nodes)
+## 2) Node-Geräte-Pairing (iOS-/Android-/macOS-/headless Nodes)
 
-Knoten verbinden sich mit dem Gateway als **Geräte** mit `role: node`. Das Gateway
+Nodes verbinden sich als **Geräte** mit dem Gateway mit `role: node`. Das Gateway
 erstellt eine Geräte-Pairing-Anfrage, die genehmigt werden muss.
 
 ### Node-Gerät genehmigen
@@ -77,17 +77,17 @@ Gespeichert unter `~/.openclaw/devices/`:
 ### Hinweise
 
 - Die veraltete `node.pair.*`-API (CLI: `openclaw nodes pending/approve`) ist ein
-  separates, gateway-eigenes Pairing-Repository. WS-Knoten erfordern weiterhin Geräte-Pairing.
+  separates, gateway-eigenes Pairing-Repository. WS-Nodes erfordern weiterhin Geräte-Pairing.
 
 ## Verwandte Dokumente
 
-- Sicherheitsmodell + Prompt-Injection: [Security](/gateway/security)
-- Sicher aktualisieren (doctor ausführen): [Updating](/install/updating)
+- Sicherheitsmodell + Prompt Injection: [Security](/gateway/security)
+- Sicher aktualisieren (Doctor ausführen): [Updating](/install/updating)
 - Kanal-Konfigurationen:
   - Telegram: [Telegram](/channels/telegram)
   - WhatsApp: [WhatsApp](/channels/whatsapp)
   - Signal: [Signal](/channels/signal)
   - BlueBubbles (iMessage): [BlueBubbles](/channels/bluebubbles)
-  - iMessage (Legacy): [iMessage](/channels/imessage)
+  - iMessage (legacy): [iMessage](/channels/imessage)
   - Discord: [Discord](/channels/discord)
   - Slack: [Slack](/channels/slack)

@@ -1,45 +1,45 @@
 ---
-summary: "Configuracao e integracao inicial opcionais baseadas em Docker para o OpenClaw"
+summary: "Configuração e integração inicial opcionais baseadas em Docker para o OpenClaw"
 read_when:
-  - Voce quer um gateway em container em vez de instalacoes locais
-  - Voce esta validando o fluxo com Docker
+  - Você quer um gateway em contêiner em vez de instalações locais
+  - Você está validando o fluxo do Docker
 title: "Docker"
 x-i18n:
   source_path: install/docker.md
-  source_hash: 021ec5aa78e1a6eb
+  source_hash: fb8c7004b18753a2
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:57:00Z
+  generated_at: 2026-02-08T09:31:36Z
 ---
 
 # Docker (opcional)
 
-Docker é **opcional**. Use apenas se voce quiser um gateway em container ou validar o fluxo com Docker.
+Docker é **opcional**. Use apenas se você quiser um gateway em contêiner ou validar o fluxo do Docker.
 
 ## O Docker é ideal para mim?
 
-- **Sim**: voce quer um ambiente de gateway isolado e descartável ou rodar o OpenClaw em um host sem instalacoes locais.
-- **Nao**: voce esta rodando na sua propria maquina e quer apenas o loop de desenvolvimento mais rapido. Use o fluxo de instalacao normal.
-- **Nota sobre sandboxing**: o sandboxing de agente tambem usa Docker, mas **nao** exige que o gateway completo rode em Docker. Veja [Sandboxing](/gateway/sandboxing).
+- **Sim**: você quer um ambiente de gateway isolado e descartável ou executar o OpenClaw em um host sem instalações locais.
+- **Não**: você está executando na sua própria máquina e só quer o loop de desenvolvimento mais rápido. Use o fluxo de instalação normal.
+- **Nota sobre sandboxing**: o sandboxing do agente também usa Docker, mas **não** exige que o gateway completo rode em Docker. Veja [Sandboxing](/gateway/sandboxing).
 
 Este guia cobre:
 
-- Gateway em container (OpenClaw completo em Docker)
-- Sandbox de Agente por sessao (gateway no host + ferramentas de agente isoladas em Docker)
+- Gateway em contêiner (OpenClaw completo em Docker)
+- Sandbox de Agente por sessão (gateway no host + ferramentas do agente isoladas em Docker)
 
 Detalhes de sandboxing: [Sandboxing](/gateway/sandboxing)
 
 ## Requisitos
 
 - Docker Desktop (ou Docker Engine) + Docker Compose v2
-- Espaco em disco suficiente para imagens + logs
+- Espaço em disco suficiente para imagens + logs
 
-## Gateway em container (Docker Compose)
+## Gateway em contêiner (Docker Compose)
 
-### Inicio rapido (recomendado)
+### Início rápido (recomendado)
 
-A partir da raiz do repo:
+A partir da raiz do repositório:
 
 ```bash
 ./docker-setup.sh
@@ -47,30 +47,30 @@ A partir da raiz do repo:
 
 Este script:
 
-- constroi a imagem do gateway
-- executa o assistente de integracao inicial
-- imprime dicas opcionais de configuracao de provedores
+- constrói a imagem do gateway
+- executa o assistente de integração inicial
+- imprime dicas opcionais de configuração de provedores
 - inicia o gateway via Docker Compose
 - gera um token do gateway e o grava em `.env`
 
-Variaveis de ambiente opcionais:
+Variáveis de ambiente opcionais:
 
 - `OPENCLAW_DOCKER_APT_PACKAGES` — instala pacotes apt extras durante o build
 - `OPENCLAW_EXTRA_MOUNTS` — adiciona bind mounts extras do host
 - `OPENCLAW_HOME_VOLUME` — persiste `/home/node` em um volume nomeado
 
-Depois que finalizar:
+Após finalizar:
 
 - Abra `http://127.0.0.1:18789/` no seu navegador.
-- Cole o token na UI de Controle (Configuracoes → token).
-- Precisa do URL novamente? Execute `docker compose run --rm openclaw-cli dashboard --no-open`.
+- Cole o token na UI de Controle (Configurações → token).
+- Precisa da URL novamente? Execute `docker compose run --rm openclaw-cli dashboard --no-open`.
 
-Ele grava configuracao/workspace no host:
+Ele grava config/workspace no host:
 
 - `~/.openclaw/`
 - `~/.openclaw/workspace`
 
-Rodando em um VPS? Veja [Hetzner (Docker VPS)](/install/hetzner).
+Executando em um VPS? Veja [Hetzner (Docker VPS)](/install/hetzner).
 
 ### Fluxo manual (compose)
 
@@ -80,9 +80,9 @@ docker compose run --rm openclaw-cli onboard
 docker compose up -d openclaw-gateway
 ```
 
-Nota: execute `docker compose ...` a partir da raiz do repo. Se voce habilitou
+Nota: execute `docker compose ...` a partir da raiz do repositório. Se você ativou
 `OPENCLAW_EXTRA_MOUNTS` ou `OPENCLAW_HOME_VOLUME`, o script de setup grava
-`docker-compose.extra.yml`; inclua-o ao rodar o Compose em outro local:
+`docker-compose.extra.yml`; inclua-o ao executar o Compose em outro local:
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.extra.yml <command>
@@ -90,8 +90,8 @@ docker compose -f docker-compose.yml -f docker-compose.extra.yml <command>
 
 ### Token da UI de Controle + pareamento (Docker)
 
-Se voce vir “unauthorized” ou “disconnected (1008): pairing required”, busque um
-link novo do dashboard e aprove o dispositivo do navegador:
+Se você vir “unauthorized” ou “disconnected (1008): pairing required”, obtenha um
+novo link do painel e aprove o dispositivo do navegador:
 
 ```bash
 docker compose run --rm openclaw-cli dashboard --no-open
@@ -103,10 +103,10 @@ Mais detalhes: [Dashboard](/web/dashboard), [Devices](/cli/devices).
 
 ### Montagens extras (opcional)
 
-Se voce quiser montar diretorios adicionais do host nos containers, defina
+Se você quiser montar diretórios adicionais do host nos contêineres, defina
 `OPENCLAW_EXTRA_MOUNTS` antes de executar `docker-setup.sh`. Isso aceita uma
-lista separada por virgulas de bind mounts do Docker e os aplica tanto a
-`openclaw-gateway` quanto a `openclaw-cli` gerando `docker-compose.extra.yml`.
+lista separada por vírgulas de bind mounts do Docker e aplica a ambos
+`openclaw-gateway` e `openclaw-cli` gerando `docker-compose.extra.yml`.
 
 Exemplo:
 
@@ -117,17 +117,17 @@ export OPENCLAW_EXTRA_MOUNTS="$HOME/.codex:/home/node/.codex:ro,$HOME/github:/ho
 
 Notas:
 
-- Os caminhos devem ser compartilhados com o Docker Desktop no macOS/Windows.
-- Se voce editar `OPENCLAW_EXTRA_MOUNTS`, execute novamente `docker-setup.sh` para regenerar o
+- Os caminhos devem estar compartilhados com o Docker Desktop no macOS/Windows.
+- Se você editar `OPENCLAW_EXTRA_MOUNTS`, execute novamente `docker-setup.sh` para regenerar o
   arquivo compose extra.
-- `docker-compose.extra.yml` é gerado. Nao edite manualmente.
+- `docker-compose.extra.yml` é gerado. Não edite manualmente.
 
-### Persistir todo o home do container (opcional)
+### Persistir todo o home do contêiner (opcional)
 
-Se voce quiser que `/home/node` persista entre recriacoes do container, defina um
+Se você quiser que `/home/node` persista entre recriações do contêiner, defina um
 volume nomeado via `OPENCLAW_HOME_VOLUME`. Isso cria um volume Docker e o monta em
-`/home/node`, mantendo os bind mounts padrao de configuracao/workspace. Use um
-volume nomeado aqui (nao um caminho de bind); para bind mounts, use
+`/home/node`, mantendo as montagens padrão de config/workspace. Use um
+volume nomeado aqui (não um caminho de bind); para bind mounts, use
 `OPENCLAW_EXTRA_MOUNTS`.
 
 Exemplo:
@@ -137,7 +137,7 @@ export OPENCLAW_HOME_VOLUME="openclaw_home"
 ./docker-setup.sh
 ```
 
-Voce pode combinar isso com montagens extras:
+Você pode combinar isso com montagens extras:
 
 ```bash
 export OPENCLAW_HOME_VOLUME="openclaw_home"
@@ -147,16 +147,16 @@ export OPENCLAW_EXTRA_MOUNTS="$HOME/.codex:/home/node/.codex:ro,$HOME/github:/ho
 
 Notas:
 
-- Se voce mudar `OPENCLAW_HOME_VOLUME`, execute novamente `docker-setup.sh` para regenerar o
+- Se você alterar `OPENCLAW_HOME_VOLUME`, execute novamente `docker-setup.sh` para regenerar o
   arquivo compose extra.
-- O volume nomeado persiste ate ser removido com `docker volume rm <name>`.
+- O volume nomeado persiste até ser removido com `docker volume rm <name>`.
 
 ### Instalar pacotes apt extras (opcional)
 
-Se voce precisar de pacotes de sistema dentro da imagem (por exemplo, ferramentas
-de build ou bibliotecas de midia), defina `OPENCLAW_DOCKER_APT_PACKAGES` antes de executar
-`docker-setup.sh`. Isso instala os pacotes durante o build da imagem, entao eles
-persistem mesmo que o container seja excluido.
+Se você precisar de pacotes de sistema dentro da imagem (por exemplo, ferramentas
+de build ou bibliotecas de mídia), defina `OPENCLAW_DOCKER_APT_PACKAGES` antes de executar
+`docker-setup.sh`. Isso instala os pacotes durante o build da imagem, então eles
+persistem mesmo que o contêiner seja excluído.
 
 Exemplo:
 
@@ -167,46 +167,44 @@ export OPENCLAW_DOCKER_APT_PACKAGES="ffmpeg build-essential"
 
 Notas:
 
-- Aceita uma lista separada por espacos de nomes de pacotes apt.
-- Se voce mudar `OPENCLAW_DOCKER_APT_PACKAGES`, execute novamente `docker-setup.sh` para reconstruir
+- Aceita uma lista separada por espaços de nomes de pacotes apt.
+- Se você alterar `OPENCLAW_DOCKER_APT_PACKAGES`, execute novamente `docker-setup.sh` para reconstruir
   a imagem.
 
-### Container para usuarios avancados / com todos os recursos (opt-in)
+### Contêiner para usuários avançados / com recursos completos (opt-in)
 
-A imagem Docker padrao é **security-first** e roda como o usuario nao root
-`node`. Isso mantem a superficie de ataque pequena, mas significa:
+A imagem Docker padrão é **security-first** e roda como o usuário não-root
+`node`. Isso mantém a superfície de ataque pequena, mas significa:
 
-- nenhuma instalacao de pacotes de sistema em tempo de execucao
-- nenhum Homebrew por padrao
-- nenhum navegador Chromium/Playwright incluido
+- sem instalações de pacotes de sistema em tempo de execução
+- sem Homebrew por padrão
+- sem navegadores Chromium/Playwright empacotados
 
-Se voce quiser um container com mais recursos, use estas opcoes opt-in:
+Se você quiser um contêiner com mais recursos, use estes controles opt-in:
 
-1. **Persistir `/home/node`** para que downloads de navegadores e caches de
-   ferramentas sobrevivam:
+1. **Persistir `/home/node`** para que downloads de navegadores e caches de ferramentas sobrevivam:
 
 ```bash
 export OPENCLAW_HOME_VOLUME="openclaw_home"
 ./docker-setup.sh
 ```
 
-2. **Incorporar dependencias de sistema na imagem** (repetivel + persistente):
+2. **Incorporar dependências de sistema na imagem** (repetível + persistente):
 
 ```bash
 export OPENCLAW_DOCKER_APT_PACKAGES="git curl jq"
 ./docker-setup.sh
 ```
 
-3. **Instalar navegadores do Playwright sem `npx`** (evita conflitos de
-   override do npm):
+3. **Instalar navegadores do Playwright sem `npx`** (evita conflitos de override do npm):
 
 ```bash
 docker compose run --rm openclaw-cli \
   node /app/node_modules/playwright-core/cli.js install chromium
 ```
 
-Se voce precisar que o Playwright instale dependencias de sistema, reconstrua a
-imagem com `OPENCLAW_DOCKER_APT_PACKAGES` em vez de usar `--with-deps` em runtime.
+Se você precisar que o Playwright instale dependências de sistema, reconstrua a
+imagem com `OPENCLAW_DOCKER_APT_PACKAGES` em vez de usar `--with-deps` em tempo de execução.
 
 4. **Persistir downloads de navegadores do Playwright**:
 
@@ -215,10 +213,10 @@ imagem com `OPENCLAW_DOCKER_APT_PACKAGES` em vez de usar `--with-deps` em runtim
 - Garanta que `/home/node` persista via `OPENCLAW_HOME_VOLUME`, ou monte
   `/home/node/.cache/ms-playwright` via `OPENCLAW_EXTRA_MOUNTS`.
 
-### Permissoes + EACCES
+### Permissões + EACCES
 
-A imagem roda como `node` (uid 1000). Se voce vir erros de permissao em
-`/home/node/.openclaw`, garanta que seus bind mounts do host sejam de propriedade do uid 1000.
+A imagem roda como `node` (uid 1000). Se você vir erros de permissão em
+`/home/node/.openclaw`, certifique-se de que seus bind mounts do host pertençam ao uid 1000.
 
 Exemplo (host Linux):
 
@@ -226,14 +224,12 @@ Exemplo (host Linux):
 sudo chown -R 1000:1000 /path/to/openclaw-config /path/to/openclaw-workspace
 ```
 
-Se voce optar por rodar como root por conveniencia, voce aceita o trade-off de
-seguranca.
+Se você optar por rodar como root por conveniência, você aceita a troca de segurança.
 
-### Rebuilds mais rapidos (recomendado)
+### Rebuilds mais rápidos (recomendado)
 
-Para acelerar rebuilds, organize seu Dockerfile para que camadas de dependencias
-fiquem em cache. Isso evita reexecutar `pnpm install` a menos que os lockfiles
-mudem:
+Para acelerar rebuilds, organize seu Dockerfile para que as camadas de dependências
+sejam cacheadas. Isso evita reexecutar `pnpm install` a menos que os lockfiles mudem:
 
 ```dockerfile
 FROM node:22-bookworm
@@ -263,9 +259,9 @@ ENV NODE_ENV=production
 CMD ["node","dist/index.js"]
 ```
 
-### Configuracao de canais (opcional)
+### Configuração de canais (opcional)
 
-Use o container de CLI para configurar canais e, se necessario, reinicie o gateway.
+Use o contêiner da CLI para configurar canais e, se necessário, reinicie o gateway.
 
 WhatsApp (QR):
 
@@ -289,11 +285,11 @@ Docs: [WhatsApp](/channels/whatsapp), [Telegram](/channels/telegram), [Discord](
 
 ### OpenAI Codex OAuth (Docker headless)
 
-Se voce escolher OpenAI Codex OAuth no assistente, ele abre um URL no navegador e
+Se você escolher OpenAI Codex OAuth no assistente, ele abre uma URL no navegador e
 tenta capturar um callback em `http://127.0.0.1:1455/auth/callback`. Em Docker ou
-configuracoes headless, esse callback pode mostrar um erro no navegador. Copie o
-URL completo de redirecionamento em que voce cair e cole de volta no assistente
-para concluir a autenticacao.
+configurações headless, esse callback pode mostrar um erro no navegador. Copie a
+URL completa de redirecionamento em que você cair e cole de volta no assistente
+para finalizar a autenticação.
 
 ### Health check
 
@@ -301,13 +297,13 @@ para concluir a autenticacao.
 docker compose exec openclaw-gateway node dist/index.js health --token "$OPENCLAW_GATEWAY_TOKEN"
 ```
 
-### Teste de smoke E2E (Docker)
+### Teste de fumaça E2E (Docker)
 
 ```bash
 scripts/e2e/onboard-docker.sh
 ```
 
-### Teste de smoke de importacao por QR (Docker)
+### Teste de fumaça de importação de QR (Docker)
 
 ```bash
 pnpm test:docker:qr
@@ -315,76 +311,74 @@ pnpm test:docker:qr
 
 ### Notas
 
-- O bind do Gateway usa por padrao `lan` para uso em container.
-- O CMD do Dockerfile usa `--allow-unconfigured`; configuracao montada com `gateway.mode` e
-  nao `local` ainda iniciara. Substitua o CMD para impor a verificacao.
-- O container do gateway é a fonte da verdade para sessoes (`~/.openclaw/agents/<agentId>/sessions/`).
+- O bind do Gateway usa por padrão `lan` para uso em contêiner.
+- O CMD do Dockerfile usa `--allow-unconfigured`; config montada com `gateway.mode` e não `local` ainda iniciará. Substitua o CMD para impor a verificação.
+- O contêiner do gateway é a fonte de verdade para sessões (`~/.openclaw/agents/<agentId>/sessions/`).
 
 ## Sandbox de Agente (gateway no host + ferramentas em Docker)
 
 Aprofundamento: [Sandboxing](/gateway/sandboxing)
 
-### O que ele faz
+### O que faz
 
-Quando `agents.defaults.sandbox` esta habilitado, **sessoes nao principais** executam
-ferramentas dentro de um container Docker. O gateway permanece no seu host, mas a
-execucao das ferramentas fica isolada:
+Quando `agents.defaults.sandbox` está habilitado, **sessões não-principais** executam
+ferramentas dentro de um contêiner Docker. O gateway permanece no seu host, mas a
+execução das ferramentas é isolada:
 
-- escopo: `"agent"` por padrao (um container + workspace por agente)
-- escopo: `"session"` para isolamento por sessao
+- escopo: `"agent"` por padrão (um contêiner + workspace por agente)
+- escopo: `"session"` para isolamento por sessão
 - pasta de workspace por escopo montada em `/workspace`
 - acesso opcional ao workspace do agente (`agents.defaults.sandbox.workspaceAccess`)
-- politica de ferramentas permitir/negar (negar vence)
-- midia de entrada e copiada para o workspace ativo do sandbox (`media/inbound/*`)
-  para que as ferramentas possam le-la (com `workspaceAccess: "rw"`, isso cai no workspace
-  do agente)
+- política de ferramentas allow/deny (deny vence)
+- mídia de entrada é copiada para o workspace ativo do sandbox (`media/inbound/*`)
+  para que as ferramentas possam lê-la (com `workspaceAccess: "rw"`, isso vai para o
+  workspace do agente)
 
-Aviso: `scope: "shared"` desativa o isolamento entre sessoes. Todas as sessoes
-compartilham um container e um workspace.
+Aviso: `scope: "shared"` desativa o isolamento entre sessões. Todas as sessões
+compartilham um contêiner e um workspace.
 
 ### Perfis de sandbox por agente (multi-agente)
 
-Se voce usa roteamento multi-agente, cada agente pode sobrescrever configuracoes
-de sandbox + ferramentas: `agents.list[].sandbox` e `agents.list[].tools` (alem de
-`agents.list[].tools.sandbox.tools`). Isso permite rodar niveis de acesso mistos em um gateway:
+Se você usa roteamento multi-agente, cada agente pode sobrescrever configurações
+de sandbox + ferramentas: `agents.list[].sandbox` e `agents.list[].tools` (além de
+`agents.list[].tools.sandbox.tools`). Isso permite executar níveis de acesso mistos em um único gateway:
 
 - Acesso total (agente pessoal)
-- Ferramentas somente leitura + workspace somente leitura (agente familiar/de
-  trabalho)
-- Nenhuma ferramenta de filesystem/shell (agente publico)
+- Ferramentas somente leitura + workspace somente leitura (agente familiar/de trabalho)
+- Sem ferramentas de filesystem/shell (agente público)
 
-Veja [Multi-Agent Sandbox & Tools](/multi-agent-sandbox-tools) para exemplos,
-precedencia e solucao de problemas.
+Veja [Multi-Agent Sandbox & Tools](/tools/multi-agent-sandbox-tools) para exemplos,
+precedência e solução de problemas.
 
-### Comportamento padrao
+### Comportamento padrão
 
 - Imagem: `openclaw-sandbox:bookworm-slim`
-- Um container por agente
-- Acesso ao workspace do agente: `workspaceAccess: "none"` (padrao) usa `~/.openclaw/sandboxes`
-  - `"ro"` mantem o workspace do sandbox em `/workspace` e monta o
+- Um contêiner por agente
+- Acesso ao workspace do agente: `workspaceAccess: "none"` (padrão) usa `~/.openclaw/sandboxes`
+  - `"ro"` mantém o workspace do sandbox em `/workspace` e monta o
     workspace do agente como somente leitura em `/agent` (desativa
     `write`/`edit`/`apply_patch`)
-  - `"rw"` monta o workspace do agente como leitura/escrita em
+  - `"rw"` monta o workspace do agente com leitura/escrita em
     `/workspace`
 - Auto-prune: inativo > 24h OU idade > 7d
-- Rede: `none` por padrao (faça opt-in explicito se precisar de egress)
-- Permitir por padrao: `exec`, `process`, `read`,
+- Rede: `none` por padrão (faça opt-in explícito se precisar de egress)
+- Allow padrão: `exec`, `process`, `read`,
   `write`, `edit`, `sessions_list`, `sessions_history`,
   `sessions_send`, `sessions_spawn`, `session_status`
-- Negar por padrao: `browser`, `canvas`, `nodes`,
+- Deny padrão: `browser`, `canvas`, `nodes`,
   `cron`, `discord`, `gateway`
 
 ### Habilitar sandboxing
 
-Se voce planeja instalar pacotes em `setupCommand`, observe:
+Se você planeja instalar pacotes em `setupCommand`, observe:
 
-- O padrao `docker.network` é `"none"` (sem egress).
-- `readOnlyRoot: true` bloqueia instalacoes de pacotes.
+- O `docker.network` padrão é `"none"` (sem egress).
+- `readOnlyRoot: true` bloqueia instalações de pacotes.
 - `user` deve ser root para `apt-get` (omita `user` ou
   defina `user: "0:0"`).
-  O OpenClaw recria containers automaticamente quando `setupCommand` (ou a
-  configuracao do Docker) muda, a menos que o container tenha sido **usado
-  recentemente** (nos ultimos ~5 minutos). Containers quentes registram um aviso
+  O OpenClaw recria automaticamente os contêineres quando `setupCommand` (ou a
+  configuração do Docker) muda, a menos que o contêiner tenha sido **usado
+  recentemente** (dentro de ~5 minutos). Contêineres “quentes” registram um aviso
   com o comando exato `openclaw sandbox recreate ...`.
 
 ```json5
@@ -448,7 +442,7 @@ Se voce planeja instalar pacotes em `setupCommand`, observe:
 }
 ```
 
-Os controles de hardening ficam sob `agents.defaults.sandbox.docker`:
+Controles de hardening ficam em `agents.defaults.sandbox.docker`:
 `network`, `user`, `pidsLimit`, `memory`,
 `memorySwap`, `cpus`, `ulimits`, `seccompProfile`,
 `apparmorProfile`, `dns`, `extraHosts`.
@@ -456,24 +450,24 @@ Os controles de hardening ficam sob `agents.defaults.sandbox.docker`:
 Multi-agente: sobrescreva `agents.defaults.sandbox.{docker,browser,prune}.*` por agente via `agents.list[].sandbox.{docker,browser,prune}.*`
 (ignorado quando `agents.defaults.sandbox.scope` / `agents.list[].sandbox.scope` é `"shared"`).
 
-### Construir a imagem padrao do sandbox
+### Construir a imagem padrão do sandbox
 
 ```bash
 scripts/sandbox-setup.sh
 ```
 
-Isso constroi `openclaw-sandbox:bookworm-slim` usando `Dockerfile.sandbox`.
+Isso constrói `openclaw-sandbox:bookworm-slim` usando `Dockerfile.sandbox`.
 
-### Imagem comum do sandbox (opcional)
+### Imagem comum de sandbox (opcional)
 
-Se voce quiser uma imagem de sandbox com ferramentas comuns de build (Node, Go,
+Se você quiser uma imagem de sandbox com ferramentas comuns de build (Node, Go,
 Rust, etc.), construa a imagem comum:
 
 ```bash
 scripts/sandbox-common-setup.sh
 ```
 
-Isso constroi `openclaw-sandbox-common:bookworm-slim`. Para usa-la:
+Isso constrói `openclaw-sandbox-common:bookworm-slim`. Para usá-la:
 
 ```json5
 {
@@ -487,24 +481,24 @@ Isso constroi `openclaw-sandbox-common:bookworm-slim`. Para usa-la:
 
 ### Imagem de navegador do sandbox
 
-Para rodar a ferramenta de navegador dentro do sandbox, construa a imagem de
+Para executar a ferramenta de navegador dentro do sandbox, construa a imagem de
 navegador:
 
 ```bash
 scripts/sandbox-browser-setup.sh
 ```
 
-Isso constroi `openclaw-sandbox-browser:bookworm-slim` usando
-`Dockerfile.sandbox-browser`. O container roda o Chromium com CDP habilitado e
+Isso constrói `openclaw-sandbox-browser:bookworm-slim` usando
+`Dockerfile.sandbox-browser`. O contêiner executa o Chromium com CDP habilitado e
 um observador noVNC opcional (headful via Xvfb).
 
 Notas:
 
-- Headful (Xvfb) reduz bloqueios de bot em comparacao com headless.
+- Headful (Xvfb) reduz bloqueios de bots vs headless.
 - Headless ainda pode ser usado definindo `agents.defaults.sandbox.browser.headless=true`.
-- Nao e necessario um ambiente desktop completo (GNOME); o Xvfb fornece o display.
+- Nenhum ambiente de desktop completo (GNOME) é necessário; o Xvfb fornece o display.
 
-Use a configuracao:
+Use a configuração:
 
 ```json5
 {
@@ -518,7 +512,7 @@ Use a configuracao:
 }
 ```
 
-Imagem de navegador customizada:
+Imagem de navegador personalizada:
 
 ```json5
 {
@@ -532,16 +526,16 @@ Imagem de navegador customizada:
 
 Quando habilitado, o agente recebe:
 
-- um URL de controle do navegador do sandbox (para a ferramenta `browser`)
-- um URL noVNC (se habilitado e headless=false)
+- uma URL de controle do navegador do sandbox (para a ferramenta `browser`)
+- uma URL noVNC (se habilitado e headless=false)
 
-Lembre-se: se voce usa uma allowlist de ferramentas, adicione `browser` (e
-remova de deny) ou a ferramenta continuara bloqueada.
-Regras de prune (`agents.defaults.sandbox.prune`) tambem se aplicam aos containers de navegador.
+Lembre-se: se você usar uma lista de permissões (allowlist) para ferramentas,
+adicione `browser` (e remova de deny) ou a ferramenta continuará bloqueada.
+As regras de prune (`agents.defaults.sandbox.prune`) também se aplicam a contêineres de navegador.
 
-### Imagem customizada de sandbox
+### Imagem de sandbox personalizada
 
-Construa sua propria imagem e aponte a configuracao para ela:
+Construa sua própria imagem e aponte a configuração para ela:
 
 ```bash
 docker build -t my-openclaw-sbx -f Dockerfile.sandbox .
@@ -557,42 +551,40 @@ docker build -t my-openclaw-sbx -f Dockerfile.sandbox .
 }
 ```
 
-### Politica de ferramentas (permitir/negar)
+### Política de ferramentas (allow/deny)
 
 - `deny` vence sobre `allow`.
-- Se `allow` estiver vazio: todas as ferramentas (exceto deny) estao
-  disponiveis.
-- Se `allow` nao estiver vazio: apenas as ferramentas em `allow`
-  estao disponiveis (menos deny).
+- Se `allow` estiver vazio: todas as ferramentas (exceto deny) estão disponíveis.
+- Se `allow` não estiver vazio: apenas as ferramentas em `allow` estão disponíveis (menos deny).
 
-### Estrategia de pruning
+### Estratégia de pruning
 
 Dois controles:
 
-- `prune.idleHours`: remove containers nao usados em X horas (0 = desativar)
-- `prune.maxAgeDays`: remove containers mais antigos que X dias (0 = desativar)
+- `prune.idleHours`: remover contêineres não usados em X horas (0 = desativar)
+- `prune.maxAgeDays`: remover contêineres mais antigos que X dias (0 = desativar)
 
 Exemplo:
 
-- Manter sessoes ativas mas limitar a vida util:
+- Manter sessões ativas, mas limitar a vida útil:
   `idleHours: 24`, `maxAgeDays: 7`
 - Nunca fazer prune:
   `idleHours: 0`, `maxAgeDays: 0`
 
-### Notas de seguranca
+### Notas de segurança
 
-- A barreira rigida se aplica apenas a **ferramentas** (exec/read/write/edit/apply_patch).
-- Ferramentas somente do host como browser/camera/canvas sao bloqueadas por padrao.
+- A barreira rígida se aplica apenas a **ferramentas** (exec/read/write/edit/apply_patch).
+- Ferramentas somente do host como browser/camera/canvas são bloqueadas por padrão.
 - Permitir `browser` no sandbox **quebra o isolamento** (o navegador roda no host).
 
-## Solucao de problemas
+## Solução de problemas
 
 - Imagem ausente: construa com [`scripts/sandbox-setup.sh`](https://github.com/openclaw/openclaw/blob/main/scripts/sandbox-setup.sh) ou defina `agents.defaults.sandbox.docker.image`.
-- Container nao esta rodando: ele sera criado automaticamente por sessao sob demanda.
-- Erros de permissao no sandbox: defina `docker.user` para um UID:GID que corresponda
-  a propriedade do seu workspace montado (ou faça chown da pasta do workspace).
-- Ferramentas customizadas nao encontradas: o OpenClaw executa comandos com
+- Contêiner não está em execução: ele será criado automaticamente por sessão sob demanda.
+- Erros de permissão no sandbox: defina `docker.user` para um UID:GID que corresponda à
+  propriedade do seu workspace montado (ou faça chown da pasta do workspace).
+- Ferramentas personalizadas não encontradas: o OpenClaw executa comandos com
   `sh -lc` (login shell), que carrega `/etc/profile` e pode redefinir o PATH.
-  Defina `docker.env.PATH` para prefixar os caminhos das suas ferramentas customizadas
-  (por exemplo, `/custom/bin:/usr/local/share/npm-global/bin`), ou adicione um script em `/etc/profile.d/` no seu
-  Dockerfile.
+  Defina `docker.env.PATH` para prefixar os caminhos das suas ferramentas personalizadas
+  (por exemplo, `/custom/bin:/usr/local/share/npm-global/bin`), ou adicione
+  um script em `/etc/profile.d/` no seu Dockerfile.

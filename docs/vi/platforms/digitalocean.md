@@ -10,32 +10,32 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:53Z
+  generated_at: 2026-02-08T09:39:38Z
 ---
 
 # OpenClaw trên DigitalOcean
 
 ## Mục tiêu
 
-Chạy một OpenClaw Gateway hoạt động liên tục trên DigitalOcean với **$6/tháng** (hoặc $4/tháng với gói đặt trước).
+Chạy một Gateway OpenClaw hoạt động liên tục trên DigitalOcean với **$6/tháng** (hoặc $4/tháng với giá đặt trước).
 
-Nếu bạn muốn tùy chọn $0/tháng và không ngại ARM + thiết lập phụ thuộc nhà cung cấp, hãy xem [hướng dẫn Oracle Cloud](/platforms/oracle).
+Nếu bạn muốn tùy chọn $0/tháng và không ngại ARM + thiết lập phụ thuộc nhà cung cấp, xem [hướng dẫn Oracle Cloud](/platforms/oracle).
 
 ## So sánh chi phí (2026)
 
-| Nhà cung cấp | Gói             | Cấu hình                | Giá/tháng   | Ghi chú                                      |
-| ------------ | --------------- | ----------------------- | ----------- | -------------------------------------------- |
-| Oracle Cloud | Always Free ARM | tối đa 4 OCPU, 24GB RAM | $0          | ARM, dung lượng hạn chế / quirks khi đăng ký |
-| Hetzner      | CX22            | 2 vCPU, 4GB RAM         | €3.79 (~$4) | Tùy chọn trả phí rẻ nhất                     |
-| DigitalOcean | Basic           | 1 vCPU, 1GB RAM         | $6          | UI dễ dùng, tài liệu tốt                     |
-| Vultr        | Cloud Compute   | 1 vCPU, 1GB RAM         | $6          | Nhiều khu vực                                |
-| Linode       | Nanode          | 1 vCPU, 1GB RAM         | $5          | Nay thuộc Akamai                             |
+| Nhà cung cấp | Gói             | Cấu hình                | Giá/tháng   | Ghi chú                                   |
+| ------------ | --------------- | ----------------------- | ----------- | ----------------------------------------- |
+| Oracle Cloud | Always Free ARM | tối đa 4 OCPU, 24GB RAM | $0          | ARM, dung lượng hạn chế / đăng ký rắc rối |
+| Hetzner      | CX22            | 2 vCPU, 4GB RAM         | €3.79 (~$4) | Tùy chọn trả phí rẻ nhất                  |
+| DigitalOcean | Basic           | 1 vCPU, 1GB RAM         | $6          | UI dễ dùng, tài liệu tốt                  |
+| Vultr        | Cloud Compute   | 1 vCPU, 1GB RAM         | $6          | Nhiều vị trí                              |
+| Linode       | Nanode          | 1 vCPU, 1GB RAM         | $5          | Hiện thuộc Akamai                         |
 
 **Chọn nhà cung cấp:**
 
-- DigitalOcean: UX đơn giản nhất + thiết lập dự đoán được (hướng dẫn này)
+- DigitalOcean: UX đơn giản nhất + thiết lập ổn định (hướng dẫn này)
 - Hetzner: giá/hiệu năng tốt (xem [hướng dẫn Hetzner](/install/hetzner))
-- Oracle Cloud: có thể $0/tháng, nhưng khó hơn và chỉ ARM (xem [hướng dẫn Oracle](/platforms/oracle))
+- Oracle Cloud: có thể $0/tháng, nhưng cầu kỳ hơn và chỉ ARM (xem [hướng dẫn Oracle](/platforms/oracle))
 
 ---
 
@@ -45,9 +45,9 @@ Nếu bạn muốn tùy chọn $0/tháng và không ngại ARM + thiết lập p
 - Cặp khóa SSH (hoặc sẵn sàng dùng xác thực mật khẩu)
 - ~20 phút
 
-## 1) Tạo một Droplet
+## 1) Tạo Droplet
 
-1. Đăng nhập vào [DigitalOcean](https://cloud.digitalocean.com/)
+1. Đăng nhập [DigitalOcean](https://cloud.digitalocean.com/)
 2. Nhấp **Create → Droplets**
 3. Chọn:
    - **Region:** Gần bạn nhất (hoặc người dùng của bạn)
@@ -80,15 +80,15 @@ curl -fsSL https://openclaw.ai/install.sh | bash
 openclaw --version
 ```
 
-## 4) Chạy onboarding
+## 4) Chạy Hướng dẫn ban đầu
 
 ```bash
 openclaw onboard --install-daemon
 ```
 
-Trình wizard sẽ hướng dẫn bạn:
+Trình hướng dẫn sẽ dẫn bạn qua:
 
-- Xác thực mô hình (API key hoặc OAuth)
+- Xác thực mô hình (khóa API hoặc OAuth)
 - Thiết lập kênh (Telegram, WhatsApp, Discord, v.v.)
 - Token Gateway (tự động tạo)
 - Cài đặt daemon (systemd)
@@ -106,11 +106,11 @@ systemctl --user status openclaw-gateway.service
 journalctl --user -u openclaw-gateway.service -f
 ```
 
-## 6) Truy cập Dashboard
+## 6) Truy cập Bảng điều khiển
 
-Gateway mặc định chỉ bind vào loopback. Để truy cập Control UI:
+Gateway mặc định chỉ bind vào local loopback. Để truy cập Control UI:
 
-**Tùy chọn A: SSH Tunnel (khuyến nghị)**
+**Tùy chọn A: Đường hầm SSH (khuyến nghị)**
 
 ```bash
 # From your local machine
@@ -135,10 +135,10 @@ Mở: `https://<magicdns>/`
 
 Ghi chú:
 
-- Serve giữ Gateway chỉ ở loopback và xác thực qua header danh tính Tailscale.
+- Serve giữ Gateway ở chế độ chỉ loopback và xác thực qua header danh tính Tailscale.
 - Để yêu cầu token/mật khẩu thay thế, đặt `gateway.auth.allowTailscale: false` hoặc dùng `gateway.auth.mode: "password"`.
 
-**Tùy chọn C: Bind vào tailnet (không dùng Serve)**
+**Tùy chọn C: Bind tailnet (không Serve)**
 
 ```bash
 openclaw config set gateway.bind tailnet
@@ -167,9 +167,9 @@ Xem [Channels](/channels) cho các nhà cung cấp khác.
 
 ---
 
-## Tối ưu cho 1GB RAM
+## Tối ưu cho RAM 1GB
 
-Droplet $6 chỉ có 1GB RAM. Để chạy mượt:
+Droplet $6 chỉ có 1GB RAM. Để hệ thống chạy mượt:
 
 ### Thêm swap (khuyến nghị)
 
@@ -183,12 +183,12 @@ echo '/swapfile none swap sw 0 0' >> /etc/fstab
 
 ### Dùng mô hình nhẹ hơn
 
-Nếu bạn gặp OOM, cân nhắc:
+Nếu gặp OOM, cân nhắc:
 
-- Dùng mô hình qua API (Claude, GPT) thay vì mô hình local
+- Dùng mô hình qua API (Claude, GPT) thay vì mô hình cục bộ
 - Đặt `agents.defaults.model.primary` sang mô hình nhỏ hơn
 
-### Giám sát bộ nhớ
+### Theo dõi bộ nhớ
 
 ```bash
 free -h
@@ -199,12 +199,12 @@ htop
 
 ## Tính bền vững
 
-Toàn bộ trạng thái nằm ở:
+Toàn bộ trạng thái nằm tại:
 
 - `~/.openclaw/` — cấu hình, thông tin xác thực, dữ liệu phiên
 - `~/.openclaw/workspace/` — workspace (SOUL.md, bộ nhớ, v.v.)
 
-Chúng tồn tại qua các lần reboot. Hãy sao lưu định kỳ:
+Các mục này vẫn tồn tại sau khi khởi động lại. Hãy sao lưu định kỳ:
 
 ```bash
 tar -czvf openclaw-backup.tar.gz ~/.openclaw ~/.openclaw/workspace
@@ -212,23 +212,23 @@ tar -czvf openclaw-backup.tar.gz ~/.openclaw ~/.openclaw/workspace
 
 ---
 
-## Lựa chọn Oracle Cloud Free
+## Lựa chọn miễn phí Oracle Cloud
 
 Oracle Cloud cung cấp các instance ARM **Always Free** mạnh hơn đáng kể so với mọi tùy chọn trả phí ở đây — với $0/tháng.
 
-| Bạn nhận được          | Cấu hình                    |
-| ---------------------- | --------------------------- |
-| **4 OCPUs**            | ARM Ampere A1               |
-| **24GB RAM**           | Quá đủ                      |
-| **200GB lưu trữ**      | Block volume                |
-| **Miễn phí vĩnh viễn** | Không tính phí thẻ tín dụng |
+| Những gì bạn nhận      | Cấu hình              |
+| ---------------------- | --------------------- |
+| **4 OCPUs**            | ARM Ampere A1         |
+| **24GB RAM**           | Dư sức dùng           |
+| **200GB storage**      | Block volume          |
+| **Miễn phí vĩnh viễn** | Không bị tính phí thẻ |
 
 **Lưu ý:**
 
-- Đăng ký có thể khó (thử lại nếu thất bại)
-- Kiến trúc ARM — hầu hết mọi thứ hoạt động, nhưng một số binary cần bản build ARM
+- Đăng ký có thể hơi khó (thử lại nếu thất bại)
+- Kiến trúc ARM — hầu hết đều chạy tốt, nhưng một số binary cần bản build ARM
 
-Để xem hướng dẫn thiết lập đầy đủ, xem [Oracle Cloud](/platforms/oracle). Để biết mẹo đăng ký và xử lý sự cố trong quá trình ghi danh, xem [hướng dẫn cộng đồng](https://gist.github.com/rssnyder/51e3cfedd730e7dd5f4a816143b25dbd).
+Để xem hướng dẫn thiết lập đầy đủ, xem [Oracle Cloud](/platforms/oracle). Để biết mẹo đăng ký và xử lý sự cố quy trình ghi danh, xem [hướng dẫn cộng đồng](https://gist.github.com/rssnyder/51e3cfedd730e7dd5f4a816143b25dbd).
 
 ---
 
@@ -266,4 +266,4 @@ free -h
 - [Hướng dẫn Hetzner](/install/hetzner) — rẻ hơn, mạnh hơn
 - [Cài đặt Docker](/install/docker) — thiết lập dạng container
 - [Tailscale](/gateway/tailscale) — truy cập từ xa an toàn
-- [Configuration](/gateway/configuration) — tham chiếu cấu hình đầy đủ
+- [Cấu hình](/gateway/configuration) — tham chiếu cấu hình đầy đủ

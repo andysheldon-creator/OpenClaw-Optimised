@@ -7,34 +7,34 @@ read_when:
 title: "Contexto"
 x-i18n:
   source_path: concepts/context.md
-  source_hash: b32867b9b93254fd
+  source_hash: e6f42f515380ce12
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:58:34Z
+  generated_at: 2026-02-08T09:33:12Z
 ---
 
 # Contexto
 
-“El **contexto**” es **todo lo que OpenClaw envía al modelo para una ejecución**. Está limitado por la **ventana de contexto** del modelo (límite de tokens).
+El “contexto” es **todo lo que OpenClaw envía al modelo para una ejecución**. Está limitado por la **ventana de contexto** del modelo (límite de tokens).
 
 Modelo mental para principiantes:
 
-- **System prompt** (construido por OpenClaw): reglas, herramientas, lista de Skills, hora/entorno de ejecución y archivos del espacio de trabajo inyectados.
-- **Historial de conversación**: sus mensajes + los mensajes del asistente para esta sesión.
+- **System prompt** (construido por OpenClaw): reglas, herramientas, lista de Skills, tiempo/entorno de ejecución y archivos del espacio de trabajo inyectados.
+- **Historial de la conversación**: sus mensajes + los mensajes del asistente para esta sesión.
 - **Llamadas/resultados de herramientas + adjuntos**: salida de comandos, lecturas de archivos, imágenes/audio, etc.
 
 El contexto _no es lo mismo_ que la “memoria”: la memoria puede almacenarse en disco y recargarse más tarde; el contexto es lo que está dentro de la ventana actual del modelo.
 
-## Inicio rapido (inspeccionar contexto)
+## Inicio rápido (inspeccionar el contexto)
 
-- `/status` → vista rápida de “¿qué tan llena está mi ventana?” + ajustes de la sesión.
+- `/status` → vista rápida de “¿qué tan llena está mi ventana?” + configuración de la sesión.
 - `/context list` → qué se inyecta + tamaños aproximados (por archivo + totales).
-- `/context detail` → desglose más profundo: tamaños por archivo, por esquema de herramienta, por entrada de skill y tamaño del system prompt.
+- `/context detail` → desglose más profundo: tamaños por archivo, por esquema de herramienta, por entrada de Skill y tamaño del system prompt.
 - `/usage tokens` → añade un pie de uso por respuesta a las respuestas normales.
 - `/compact` → resume el historial antiguo en una entrada compacta para liberar espacio de la ventana.
 
-Vea también: [Comandos slash](/tools/slash-commands), [Uso de tokens y costos](/token-use), [Compactación](/concepts/compaction).
+Vea también: [Slash commands](/tools/slash-commands), [Uso de tokens y costos](/reference/token-use), [Compactación](/concepts/compaction).
 
 ## Ejemplo de salida
 
@@ -88,22 +88,22 @@ Top tools (schema size):
 Todo lo que recibe el modelo cuenta, incluyendo:
 
 - System prompt (todas las secciones).
-- Historial de conversación.
+- Historial de la conversación.
 - Llamadas a herramientas + resultados de herramientas.
 - Adjuntos/transcripciones (imágenes/audio/archivos).
 - Resúmenes de compactación y artefactos de poda.
-- “Envoltorios” del proveedor o encabezados ocultos (no visibles, pero cuentan).
+- “Envolturas” del proveedor o encabezados ocultos (no visibles, pero cuentan).
 
 ## Cómo OpenClaw construye el system prompt
 
 El system prompt es **propiedad de OpenClaw** y se reconstruye en cada ejecución. Incluye:
 
-- Lista de herramientas + descripciones cortas.
+- Lista de herramientas + descripciones breves.
 - Lista de Skills (solo metadatos; ver más abajo).
 - Ubicación del espacio de trabajo.
-- Hora (UTC + hora del usuario convertida si está configurado).
-- Metadatos de ejecución (host/OS/modelo/pensamiento).
-- Archivos bootstrap del espacio de trabajo inyectados bajo **Project Context**.
+- Hora (UTC + hora del usuario convertida si está configurada).
+- Metadatos de ejecución (host/SO/modelo/razonamiento).
+- Archivos de arranque del espacio de trabajo inyectados bajo **Project Context**.
 
 Desglose completo: [System Prompt](/concepts/system-prompt).
 
@@ -119,50 +119,50 @@ De forma predeterminada, OpenClaw inyecta un conjunto fijo de archivos del espac
 - `HEARTBEAT.md`
 - `BOOTSTRAP.md` (solo en la primera ejecución)
 
-Los archivos grandes se truncan por archivo usando `agents.defaults.bootstrapMaxChars` (valor predeterminado `20000` caracteres). `/context` muestra los tamaños **sin procesar vs inyectados** y si ocurrió truncamiento.
+Los archivos grandes se truncan por archivo usando `agents.defaults.bootstrapMaxChars` (valor predeterminado: `20000` caracteres). `/context` muestra los tamaños **sin procesar vs inyectados** y si ocurrió truncamiento.
 
 ## Skills: qué se inyecta vs lo que se carga bajo demanda
 
-El system prompt incluye una **lista compacta de skills** (nombre + descripción + ubicación). Esta lista tiene una sobrecarga real.
+El system prompt incluye una **lista compacta de Skills** (nombre + descripción + ubicación). Esta lista tiene una sobrecarga real.
 
-Las instrucciones de las skills _no_ se incluyen de forma predeterminada. Se espera que el modelo `read` el `SKILL.md` de la skill **solo cuando sea necesario**.
+Las instrucciones de las Skills _no_ se incluyen de forma predeterminada. Se espera que el modelo `read` el `SKILL.md` de la Skill **solo cuando sea necesario**.
 
 ## Herramientas: hay dos costos
 
-Las herramientas afectan el contexto de dos maneras:
+Las herramientas afectan al contexto de dos maneras:
 
 1. **Texto de la lista de herramientas** en el system prompt (lo que usted ve como “Tooling”).
-2. **Esquemas de herramientas** (JSON). Estos se envían al modelo para que pueda llamar herramientas. Cuentan para el contexto aunque no los vea como texto plano.
+2. **Esquemas de herramientas** (JSON). Estos se envían al modelo para que pueda llamar a las herramientas. Cuentan para el contexto aunque no los vea como texto plano.
 
 `/context detail` desglosa los esquemas de herramientas más grandes para que pueda ver qué domina.
 
 ## Comandos, directivas y “atajos en línea”
 
-Los comandos slash los maneja el Gateway. Hay algunos comportamientos diferentes:
+Los slash commands los maneja el Gateway. Hay algunos comportamientos distintos:
 
 - **Comandos independientes**: un mensaje que es solo `/...` se ejecuta como comando.
 - **Directivas**: `/think`, `/verbose`, `/reasoning`, `/elevated`, `/model`, `/queue` se eliminan antes de que el modelo vea el mensaje.
-  - Los mensajes solo con directivas conservan los ajustes de la sesión.
+  - Los mensajes que solo contienen directivas mantienen la configuración de la sesión.
   - Las directivas en línea dentro de un mensaje normal actúan como pistas por mensaje.
-- **Atajos en línea** (solo remitentes en lista permitida): ciertos tokens `/...` dentro de un mensaje normal pueden ejecutarse de inmediato (ejemplo: “hey /status”), y se eliminan antes de que el modelo vea el texto restante.
+- **Atajos en línea** (solo remitentes en la lista de permitidos): ciertos tokens `/...` dentro de un mensaje normal pueden ejecutarse de inmediato (ejemplo: “hey /status”) y se eliminan antes de que el modelo vea el texto restante.
 
-Detalles: [Comandos slash](/tools/slash-commands).
+Detalles: [Slash commands](/tools/slash-commands).
 
 ## Sesiones, compactación y poda (qué persiste)
 
 Lo que persiste entre mensajes depende del mecanismo:
 
-- **Historial normal** persiste en la transcripción de la sesión hasta que se compacte o se pode por política.
+- **Historial normal** persiste en la transcripción de la sesión hasta que la política lo compacte o pode.
 - **Compactación** persiste un resumen en la transcripción y mantiene intactos los mensajes recientes.
 - **Poda** elimina resultados antiguos de herramientas del prompt _en memoria_ para una ejecución, pero no reescribe la transcripción.
 
-Documentación: [Sesion](/concepts/session), [Compactacion](/concepts/compaction), [Poda de sesion](/concepts/session-pruning).
+Documentación: [Session](/concepts/session), [Compaction](/concepts/compaction), [Session pruning](/concepts/session-pruning).
 
 ## Qué `/context` realmente informa
 
-`/context` prefiere el informe más reciente del system prompt **construido para la ejecución** cuando está disponible:
+`/context` prefiere el informe más reciente del system prompt **construido en la ejecución** cuando está disponible:
 
-- `System prompt (run)` = capturado de la última ejecución incrustada (con capacidad de herramientas) y persistido en el almacén de la sesión.
+- `System prompt (run)` = capturado de la última ejecución incrustada (con capacidad de herramientas) y persistido en el almacén de sesiones.
 - `System prompt (estimate)` = calculado al vuelo cuando no existe un informe de ejecución (o cuando se ejecuta mediante un backend de CLI que no genera el informe).
 
-En cualquier caso, informa tamaños y principales contribuyentes; **no** vuelca el system prompt completo ni los esquemas de herramientas.
+En cualquier caso, informa tamaños y los principales contribuyentes; **no** vuelca el system prompt completo ni los esquemas de herramientas.

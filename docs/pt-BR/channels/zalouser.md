@@ -1,46 +1,46 @@
 ---
-summary: "Suporte a conta pessoal do Zalo via zca-cli (login por QR), capacidades e configuracao"
+summary: "Suporte a conta pessoal do Zalo via zca-cli (login por QR), capacidades e configuração"
 read_when:
-  - Configurando Zalo Pessoal para o OpenClaw
-  - Depurando login ou fluxo de mensagens do Zalo Pessoal
-title: "Zalo Pessoal"
+  - Configurando o Zalo Personal para o OpenClaw
+  - Depurando login ou fluxo de mensagens do Zalo Personal
+title: "Zalo Personal"
 x-i18n:
   source_path: channels/zalouser.md
-  source_hash: 2a249728d556e5cc
+  source_hash: ede847ebe6272256
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:29Z
+  generated_at: 2026-02-08T09:30:09Z
 ---
 
-# Zalo Pessoal (nao oficial)
+# Zalo Personal (não oficial)
 
-Status: experimental. Esta integracao automatiza uma **conta pessoal do Zalo** via `zca-cli`.
+Status: experimental. Esta integração automatiza uma **conta pessoal do Zalo** via `zca-cli`.
 
-> **Aviso:** Esta e uma integracao nao oficial e pode resultar em suspensao/banimento da conta. Use por sua conta e risco.
+> **Aviso:** Esta é uma integração não oficial e pode resultar em suspensão/banimento da conta. Use por sua conta e risco.
 
-## Plugin necessario
+## Plugin necessário
 
-O Zalo Pessoal e entregue como um plugin e nao vem incluido na instalacao principal.
+O Zalo Personal é distribuído como um plugin e não vem incluído na instalação principal.
 
-- Instale via CLI: `openclaw plugins install @openclaw/zalouser`
-- Ou a partir de um checkout do codigo-fonte: `openclaw plugins install ./extensions/zalouser`
-- Detalhes: [Plugins](/plugin)
+- Instalar via CLI: `openclaw plugins install @openclaw/zalouser`
+- Ou a partir de um checkout do código-fonte: `openclaw plugins install ./extensions/zalouser`
+- Detalhes: [Plugins](/tools/plugin)
 
-## Pre-requisito: zca-cli
+## Pré-requisito: zca-cli
 
-A maquina do Gateway deve ter o binario `zca` disponivel em `PATH`.
+A máquina do Gateway deve ter o binário `zca` disponível em `PATH`.
 
-- Verifique: `zca --version`
-- Se estiver ausente, instale o zca-cli (veja `extensions/zalouser/README.md` ou a documentacao upstream do zca-cli).
+- Verificar: `zca --version`
+- Se estiver ausente, instale o zca-cli (veja `extensions/zalouser/README.md` ou a documentação oficial do zca-cli).
 
-## Configuracao rapida (iniciante)
+## Configuração rápida (iniciante)
 
 1. Instale o plugin (veja acima).
-2. Faça login (QR, na maquina do Gateway):
+2. Faça login (QR, na máquina do Gateway):
    - `openclaw channels login --channel zalouser`
-   - Escaneie o codigo QR no terminal com o aplicativo movel do Zalo.
-3. Habilite o canal:
+   - Escaneie o código QR no terminal com o aplicativo móvel do Zalo.
+3. Ative o canal:
 
 ```json5
 {
@@ -53,22 +53,22 @@ A maquina do Gateway deve ter o binario `zca` disponivel em `PATH`.
 }
 ```
 
-4. Reinicie o Gateway (ou finalize a integracao inicial).
-5. O acesso por Mensagem direta (DM) padrao e por pareamento; aprove o codigo de pareamento no primeiro contato.
+4. Reinicie o Gateway (ou finalize a integração inicial).
+5. O acesso por DM usa pareamento por padrão; aprove o código de pareamento no primeiro contato.
 
-## O que e
+## O que é
 
 - Usa `zca listen` para receber mensagens de entrada.
-- Usa `zca msg ...` para enviar respostas (texto/midia/link).
-- Projetado para casos de uso de “conta pessoal” onde a Zalo Bot API nao esta disponivel.
+- Usa `zca msg ...` para enviar respostas (texto/mídia/link).
+- Projetado para casos de uso de “conta pessoal”, onde a API oficial de Bot do Zalo não está disponível.
 
-## Nomeacao
+## Nomenclatura
 
-O id do canal e `zalouser` para deixar explicito que isto automatiza uma **conta pessoal de usuario do Zalo** (nao oficial). Mantemos `zalo` reservado para uma possivel futura integracao oficial com a API do Zalo.
+O id do canal é `zalouser` para deixar explícito que isso automatiza uma **conta de usuário pessoal do Zalo** (não oficial). Mantemos `zalo` reservado para uma possível integração futura com a API oficial do Zalo.
 
-## Encontrando IDs (diretorio)
+## Encontrando IDs (diretório)
 
-Use a CLI de diretorio para descobrir contatos/grupos e seus IDs:
+Use a CLI de diretório para descobrir contatos/grupos e seus IDs:
 
 ```bash
 openclaw directory self --channel zalouser
@@ -78,13 +78,13 @@ openclaw directory groups list --channel zalouser --query "work"
 
 ## Limites
 
-- Texto de saida e dividido em blocos de ~2000 caracteres (limites do cliente do Zalo).
-- Streaming e bloqueado por padrao.
+- O texto de saída é dividido em blocos de ~2000 caracteres (limites do cliente do Zalo).
+- O streaming é bloqueado por padrão.
 
 ## Controle de acesso (DMs)
 
-`channels.zalouser.dmPolicy` suporta: `pairing | allowlist | open | disabled` (padrao: `pairing`).
-`channels.zalouser.allowFrom` aceita IDs de usuario ou nomes. O assistente resolve nomes para IDs via `zca friend find` quando disponivel.
+`channels.zalouser.dmPolicy` oferece suporte a: `pairing | allowlist | open | disabled` (padrão: `pairing`).
+`channels.zalouser.allowFrom` aceita IDs de usuário ou nomes. O assistente resolve nomes para IDs via `zca friend find` quando disponível.
 
 Aprove via:
 
@@ -93,13 +93,13 @@ Aprove via:
 
 ## Acesso a grupos (opcional)
 
-- Padrao: `channels.zalouser.groupPolicy = "open"` (grupos permitidos). Use `channels.defaults.groupPolicy` para sobrescrever o padrao quando nao definido.
-- Restrinja a uma lista de permissao com:
+- Padrão: `channels.zalouser.groupPolicy = "open"` (grupos permitidos). Use `channels.defaults.groupPolicy` para sobrescrever o padrão quando não estiver definido.
+- Restrinja a uma lista de permissões com:
   - `channels.zalouser.groupPolicy = "allowlist"`
-  - `channels.zalouser.groups` (as chaves sao IDs ou nomes de grupos)
-- Bloqueie todos os grupos: `channels.zalouser.groupPolicy = "disabled"`.
-- O assistente de configuracao pode solicitar listas de permissao de grupos.
-- Na inicializacao, o OpenClaw resolve nomes de grupos/usuarios nas listas de permissao para IDs e registra o mapeamento; entradas nao resolvidas sao mantidas como digitadas.
+  - `channels.zalouser.groups` (as chaves são IDs ou nomes de grupos)
+- Bloquear todos os grupos: `channels.zalouser.groupPolicy = "disabled"`.
+- O assistente de configuração pode solicitar listas de permissões de grupos.
+- Na inicialização, o OpenClaw resolve nomes de grupos/usuários nas listas de permissões para IDs e registra o mapeamento; entradas não resolvidas são mantidas como digitadas.
 
 Exemplo:
 
@@ -117,7 +117,7 @@ Exemplo:
 }
 ```
 
-## Multiplas contas
+## Multi-conta
 
 As contas mapeiam para perfis do zca. Exemplo:
 
@@ -135,13 +135,13 @@ As contas mapeiam para perfis do zca. Exemplo:
 }
 ```
 
-## Solucao de problemas
+## Solução de problemas
 
-**`zca` nao encontrado:**
+**`zca` não encontrado:**
 
-- Instale o zca-cli e garanta que ele esteja no `PATH` para o processo do Gateway.
+- Instale o zca-cli e garanta que ele esteja em `PATH` para o processo do Gateway.
 
-**O login nao persiste:**
+**O login não persiste:**
 
 - `openclaw channels status --probe`
-- Refaça o login: `openclaw channels logout --channel zalouser && openclaw channels login --channel zalouser`
+- Faça login novamente: `openclaw channels logout --channel zalouser && openclaw channels login --channel zalouser`

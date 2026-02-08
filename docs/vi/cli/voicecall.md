@@ -1,8 +1,8 @@
 ---
-summary: "Tham chiếu CLI cho `openclaw voicecall` (bề mặt lệnh của plugin voice-call)"
+summary: "Tài liệu tham chiếu CLI cho `openclaw voicecall` (bề mặt lệnh của plugin voice-call)"
 read_when:
   - Bạn dùng plugin voice-call và muốn các điểm vào CLI
-  - Bạn muốn ví dụ nhanh cho `voicecall call|continue|status|tail|expose`
+  - Bạn muốn các ví dụ nhanh cho `voicecall call|continue|status|tail|expose`
 title: "voicecall"
 x-i18n:
   source_path: cli/voicecall.md
@@ -10,7 +10,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:32Z
+  generated_at: 2026-02-08T09:38:30Z
 ---
 
 # `openclaw voicecall`
@@ -21,7 +21,7 @@ Tài liệu chính:
 
 - Plugin voice-call: [Voice Call](/plugins/voice-call)
 
-## Các lệnh phổ biến
+## Lệnh phổ biến
 
 ```bash
 openclaw voicecall status --call-id <id>

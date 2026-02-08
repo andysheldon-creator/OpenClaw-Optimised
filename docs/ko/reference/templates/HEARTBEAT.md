@@ -1,5 +1,5 @@
 ---
-summary: "HEARTBEAT.md 용 워크스페이스 템플릿"
+summary: "HEARTBEAT.md 를 위한 워크스페이스 템플릿"
 read_when:
   - 워크스페이스를 수동으로 부트스트랩할 때
 x-i18n:
@@ -8,11 +8,11 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:37:24Z
+  generated_at: 2026-02-08T09:26:07Z
 ---
 
 # HEARTBEAT.md
 
-# 하트비트 API 호출을 건너뛰려면 이 파일을 비워 두십시오(또는 주석만 포함하십시오).
+# heartbeat API 호출을 건너뛰려면 이 파일을 비워 두십시오 (또는 주석만 포함하십시오).
 
 # 에이전트가 주기적으로 무언가를 확인하도록 하려면 아래에 작업을 추가하십시오.

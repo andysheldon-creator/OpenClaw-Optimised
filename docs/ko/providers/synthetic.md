@@ -10,7 +10,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:37:23Z
+  generated_at: 2026-02-08T09:26:02Z
 ---
 
 # Synthetic
@@ -18,7 +18,7 @@ x-i18n:
 Synthetic 는 Anthropic 호환 엔드포인트를 제공합니다. OpenClaw 는 이를
 `synthetic` 프로바이더로 등록하고 Anthropic Messages API 를 사용합니다.
 
-## 빠른 설정
+## 빠른 시작
 
 1. `SYNTHETIC_API_KEY` 를 설정합니다 (또는 아래의 마법사를 실행합니다).
 2. 온보딩을 실행합니다:
@@ -69,7 +69,7 @@ synthetic/hf:MiniMaxAI/MiniMax-M2.1
 ```
 
 참고: OpenClaw 의 Anthropic 클라이언트는 기본 URL 에 `/v1` 를 추가하므로,
-`https://api.synthetic.new/anthropic` 를 사용해야 합니다 (`/anthropic/v1` 아님). Synthetic 가
+`https://api.synthetic.new/anthropic` 를 사용하십시오 (`/anthropic/v1` 아님). Synthetic 가
 기본 URL 을 변경하는 경우 `models.providers.synthetic.baseUrl` 를 재정의하십시오.
 
 ## 모델 카탈로그
@@ -101,6 +101,6 @@ synthetic/hf:MiniMaxAI/MiniMax-M2.1
 ## 참고 사항
 
 - 모델 참조는 `synthetic/<modelId>` 를 사용합니다.
-- 모델 허용 목록 (`agents.defaults.models`) 을 활성화하는 경우, 사용할 모든 모델을
-  추가해야 합니다.
-- 프로바이더 규칙에 대한 자세한 내용은 [Model providers](/concepts/model-providers) 를 참고하십시오.
+- 모델 허용 목록 (`agents.defaults.models`) 을 활성화하는 경우,
+  사용하려는 모든 모델을 추가하십시오.
+- 프로바이더 규칙은 [Model providers](/concepts/model-providers) 를 참고하십시오.

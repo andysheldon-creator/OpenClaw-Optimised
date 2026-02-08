@@ -1,27 +1,27 @@
 ---
-summary: "Tai lieu tham chieu CLI cho `openclaw logs` (theo doi nhat ky Gateway qua RPC)"
+summary: "Tài liệu tham chiếu CLI cho `openclaw logs` (theo dõi log Gateway qua RPC)"
 read_when:
-  - Ban can theo doi nhat ky Gateway tu xa (khong can SSH)
-  - Ban muon cac dong nhat ky JSON de phuc vu cong cu
-title: "nhat ky"
+  - Bạn cần theo dõi log Gateway từ xa (không cần SSH)
+  - Bạn muốn các dòng log JSON cho công cụ
+title: "nhật ký"
 x-i18n:
   source_path: cli/logs.md
   source_hash: 911a57f0f3b78412
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:28Z
+  generated_at: 2026-02-08T09:38:21Z
 ---
 
 # `openclaw logs`
 
-Theo doi nhat ky tep Gateway qua RPC (hoat dong o che do tu xa).
+Theo dõi các file log của Gateway qua RPC (hoạt động ở chế độ từ xa).
 
-Lien quan:
+Liên quan:
 
-- Tong quan ghi log: [Logging](/logging)
+- Tổng quan về logging: [Logging](/logging)
 
-## Vi du
+## Ví dụ
 
 ```bash
 openclaw logs

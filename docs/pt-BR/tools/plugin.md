@@ -1,8 +1,8 @@
 ---
-summary: "Plugins/extensoes do OpenClaw: descoberta, configuracao e seguranca"
+summary: "Plugins/extensões do OpenClaw: descoberta, configuração e segurança"
 read_when:
-  - Adicionando ou modificando plugins/extensoes
-  - Documentando regras de instalacao ou carregamento de plugins
+  - Ao adicionar ou modificar plugins/extensões
+  - Ao documentar regras de instalação ou carregamento de plugins
 title: "Plugins"
 x-i18n:
   source_path: tools/plugin.md
@@ -10,23 +10,23 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:15:50Z
+  generated_at: 2026-02-08T09:32:44Z
 ---
 
 # Plugins (Extensões)
 
-## Inicio rapido (novo em plugins?)
+## Início rápido (novo em plugins?)
 
-Um plugin é apenas um **pequeno modulo de codigo** que estende o OpenClaw com
-recursos extras (comandos, ferramentas e Gateway RPC).
+Um plugin é apenas um **pequeno módulo de código** que estende o OpenClaw com
+recursos extras (comandos, ferramentas e RPC do Gateway).
 
-Na maioria das vezes, voce usara plugins quando quiser um recurso que ainda nao
-esta incorporado ao OpenClaw principal (ou quando quiser manter recursos opcionais
-fora da sua instalacao principal).
+Na maioria das vezes, você usará plugins quando quiser um recurso que ainda não
+está embutido no OpenClaw principal (ou quando quiser manter recursos opcionais
+fora da sua instalação principal).
 
-Caminho rapido:
+Caminho rápido:
 
-1. Veja o que ja esta carregado:
+1. Veja o que já está carregado:
 
 ```bash
 openclaw plugins list
@@ -38,45 +38,45 @@ openclaw plugins list
 openclaw plugins install @openclaw/voice-call
 ```
 
-3. Reinicie o Gateway e, em seguida, configure em `plugins.entries.<id>.config`.
+3. Reinicie o Gateway e depois configure em `plugins.entries.<id>.config`.
 
 Veja [Voice Call](/plugins/voice-call) para um exemplo concreto de plugin.
 
-## Plugins disponiveis (oficiais)
+## Plugins disponíveis (oficiais)
 
-- Microsoft Teams é somente via plugin a partir de 2026.1.15; instale `@openclaw/msteams` se voce usa Teams.
-- Memory (Core) — plugin de busca de memoria integrado (ativado por padrao via `plugins.slots.memory`)
-- Memory (LanceDB) — plugin de memoria de longo prazo integrado (auto-recall/capture; defina `plugins.slots.memory = "memory-lancedb"`)
+- Microsoft Teams é apenas via plugin a partir de 2026.1.15; instale `@openclaw/msteams` se você usa Teams.
+- Memory (Core) — plugin de busca de memória empacotado (habilitado por padrão via `plugins.slots.memory`)
+- Memory (LanceDB) — plugin de memória de longo prazo empacotado (auto-recall/capture; defina `plugins.slots.memory = "memory-lancedb"`)
 - [Voice Call](/plugins/voice-call) — `@openclaw/voice-call`
 - [Zalo Personal](/plugins/zalouser) — `@openclaw/zalouser`
 - [Matrix](/channels/matrix) — `@openclaw/matrix`
 - [Nostr](/channels/nostr) — `@openclaw/nostr`
 - [Zalo](/channels/zalo) — `@openclaw/zalo`
 - [Microsoft Teams](/channels/msteams) — `@openclaw/msteams`
-- Google Antigravity OAuth (auth de provedor) — integrado como `google-antigravity-auth` (desativado por padrao)
-- Gemini CLI OAuth (auth de provedor) — integrado como `google-gemini-cli-auth` (desativado por padrao)
-- Qwen OAuth (auth de provedor) — integrado como `qwen-portal-auth` (desativado por padrao)
-- Copilot Proxy (auth de provedor) — ponte local do VS Code Copilot Proxy; distinto do login de dispositivo `github-copilot` integrado (integrado, desativado por padrao)
+- Google Antigravity OAuth (autenticação de provedor) — empacotado como `google-antigravity-auth` (desabilitado por padrão)
+- Gemini CLI OAuth (autenticação de provedor) — empacotado como `google-gemini-cli-auth` (desabilitado por padrão)
+- Qwen OAuth (autenticação de provedor) — empacotado como `qwen-portal-auth` (desabilitado por padrão)
+- Copilot Proxy (autenticação de provedor) — ponte local do VS Code Copilot Proxy; distinto do login de dispositivo embutido `github-copilot` (empacotado, desabilitado por padrão)
 
-Plugins do OpenClaw sao **modulos TypeScript** carregados em tempo de execucao via jiti. **A validacao de configuracao nao executa codigo do plugin**; ela usa o manifesto do plugin e o JSON Schema. Veja [Plugin manifest](/plugins/manifest).
+Os plugins do OpenClaw são **módulos TypeScript** carregados em tempo de execução via jiti. **A validação de configuração não executa código do plugin**; ela usa o manifesto do plugin e o JSON Schema. Veja [Plugin manifest](/plugins/manifest).
 
-Plugins podem registrar:
+Os plugins podem registrar:
 
-- Metodos Gateway RPC
+- Métodos de RPC do Gateway
 - Handlers HTTP do Gateway
 - Ferramentas de agente
-- Comandos CLI
-- Servicos em segundo plano
-- Validacao de configuracao opcional
-- **Skills** (listando diretorios `skills` no manifesto do plugin)
-- **Comandos de resposta automatica** (executam sem invocar o agente de IA)
+- Comandos de CLI
+- Serviços em segundo plano
+- Validação opcional de configuração
+- **Skills** (listando diretórios `skills` no manifesto do plugin)
+- **Comandos de resposta automática** (executam sem invocar o agente de IA)
 
-Plugins sao executados **no mesmo processo** do Gateway, portanto trate-os como codigo confiavel.
-Guia de autoria de ferramentas: [Plugin agent tools](/plugins/agent-tools).
+Os plugins rodam **no mesmo processo** do Gateway, portanto trate-os como código confiável.
+Guia de criação de ferramentas: [Plugin agent tools](/plugins/agent-tools).
 
-## Auxiliares de runtime
+## Ajudantes de runtime
 
-Plugins podem acessar auxiliares principais selecionados via `api.runtime`. Para TTS de telefonia:
+Os plugins podem acessar ajudantes principais selecionados via `api.runtime`. Para TTS de telefonia:
 
 ```ts
 const result = await api.runtime.tts.textToSpeechTelephony({
@@ -87,46 +87,46 @@ const result = await api.runtime.tts.textToSpeechTelephony({
 
 Notas:
 
-- Usa a configuracao principal `messages.tts` (OpenAI ou ElevenLabs).
-- Retorna buffer de audio PCM + taxa de amostragem. Plugins devem reamostrar/codificar para os provedores.
-- Edge TTS nao e suportado para telefonia.
+- Usa a configuração principal `messages.tts` (OpenAI ou ElevenLabs).
+- Retorna buffer de áudio PCM + taxa de amostragem. Os plugins devem reamostrar/codificar para os provedores.
+- Edge TTS não é suportado para telefonia.
 
-## Descoberta e precedencia
+## Descoberta e precedência
 
 O OpenClaw varre, em ordem:
 
-1. Caminhos de configuracao
+1. Caminhos de configuração
 
-- `plugins.load.paths` (arquivo ou diretorio)
+- `plugins.load.paths` (arquivo ou diretório)
 
-2. Extensoes do workspace
+2. Extensões do workspace
 
 - `<workspace>/.openclaw/extensions/*.ts`
 - `<workspace>/.openclaw/extensions/*/index.ts`
 
-3. Extensoes globais
+3. Extensões globais
 
 - `~/.openclaw/extensions/*.ts`
 - `~/.openclaw/extensions/*/index.ts`
 
-4. Extensoes integradas (enviadas com o OpenClaw, **desativadas por padrao**)
+4. Extensões empacotadas (enviadas com o OpenClaw, **desabilitadas por padrão**)
 
 - `<openclaw>/extensions/*`
 
-Plugins integrados devem ser ativados explicitamente via `plugins.entries.<id>.enabled`
-ou `openclaw plugins enable <id>`. Plugins instalados sao ativados por padrao,
-mas podem ser desativados da mesma forma.
+Plugins empacotados devem ser habilitados explicitamente via `plugins.entries.<id>.enabled`
+ou `openclaw plugins enable <id>`. Plugins instalados são habilitados por padrão,
+mas podem ser desabilitados da mesma forma.
 
 Cada plugin deve incluir um arquivo `openclaw.plugin.json` em sua raiz. Se um caminho
-apontar para um arquivo, a raiz do plugin e o diretorio do arquivo e deve conter o
-manifesto.
+apontar para um arquivo, a raiz do plugin é o diretório do arquivo e deve conter
+o manifesto.
 
-Se varios plugins resolverem para o mesmo id, a primeira correspondencia na ordem
-acima vence e as copias de menor precedencia sao ignoradas.
+Se vários plugins resolverem para o mesmo id, a primeira correspondência na ordem acima
+vence e as cópias de menor precedência são ignoradas.
 
-### Pacotes agrupados
+### Pacotes de pacotes
 
-Um diretorio de plugin pode incluir um `package.json` com `openclaw.extensions`:
+Um diretório de plugin pode incluir um `package.json` com `openclaw.extensions`:
 
 ```json
 {
@@ -137,16 +137,16 @@ Um diretorio de plugin pode incluir um `package.json` com `openclaw.extensions`:
 }
 ```
 
-Cada entrada se torna um plugin. Se o pacote listar varias extensoes, o id do plugin
+Cada entrada se torna um plugin. Se o pacote listar várias extensões, o id do plugin
 se torna `name/<fileBase>`.
 
-Se o seu plugin importar dependencias npm, instale-as nesse diretorio para que
-`node_modules` esteja disponivel (`npm install` / `pnpm install`).
+Se o seu plugin importar dependências npm, instale-as nesse diretório para que
+`node_modules` esteja disponível (`npm install` / `pnpm install`).
 
-### Metadados do catalogo de canais
+### Metadados do catálogo de canais
 
-Plugins de canal podem anunciar metadados de integracao inicial via `openclaw.channel` e
-dicas de instalacao via `openclaw.install`. Isso mantem o catalogo principal sem dados.
+Plugins de canal podem anunciar metadados de integração inicial via `openclaw.channel` e
+dicas de instalação via `openclaw.install`. Isso mantém o catálogo principal livre de dados.
 
 Exemplo:
 
@@ -174,28 +174,28 @@ Exemplo:
 }
 ```
 
-O OpenClaw tambem pode mesclar **catalogos de canais externos** (por exemplo, uma exportacao
-de registro MPM). Coloque um arquivo JSON em um dos seguintes locais:
+O OpenClaw também pode mesclar **catálogos de canais externos** (por exemplo, uma exportação
+de registro MPM). Coloque um arquivo JSON em um dos seguintes caminhos:
 
 - `~/.openclaw/mpm/plugins.json`
 - `~/.openclaw/mpm/catalog.json`
 - `~/.openclaw/plugins/catalog.json`
 
 Ou aponte `OPENCLAW_PLUGIN_CATALOG_PATHS` (ou `OPENCLAW_MPM_CATALOG_PATHS`) para
-um ou mais arquivos JSON (delimitados por virgula/ponto e virgula/`PATH`). Cada arquivo deve
+um ou mais arquivos JSON (delimitados por vírgula/ponto e vírgula/`PATH`). Cada arquivo deve
 conter `{ "entries": [ { "name": "@scope/pkg", "openclaw": { "channel": {...}, "install": {...} } } ] }`.
 
 ## IDs de plugin
 
-IDs de plugin padrao:
+IDs de plugin padrão:
 
-- Pacotes agrupados: `package.json` `name`
-- Arquivo independente: nome base do arquivo (`~/.../voice-call.ts` → `voice-call`)
+- Pacotes de pacotes: `package.json` `name`
+- Arquivo standalone: nome base do arquivo (`~/.../voice-call.ts` → `voice-call`)
 
-Se um plugin exportar `id`, o OpenClaw o utiliza, mas emite um aviso quando nao corresponde ao
+Se um plugin exportar `id`, o OpenClaw o usa, mas avisa quando não corresponde ao
 id configurado.
 
-## Configuracao
+## Configuração
 
 ```json5
 {
@@ -213,27 +213,27 @@ id configurado.
 
 Campos:
 
-- `enabled`: alternador mestre (padrao: true)
-- `allow`: allowlist (opcional)
-- `deny`: denylist (opcional; deny tem prioridade)
-- `load.paths`: arquivos/diretorios extras de plugin
-- `entries.<id>`: alternadores e configuracao por plugin
+- `enabled`: alternância mestre (padrão: true)
+- `allow`: lista de permissões (opcional)
+- `deny`: lista de negação (opcional; a negação vence)
+- `load.paths`: arquivos/diretórios extras de plugin
+- `entries.<id>`: alternâncias por plugin + configuração
 
-Alteracoes de configuracao **exigem reinicio do gateway**.
+Alterações de configuração **exigem reinício do gateway**.
 
-Regras de validacao (rigidas):
+Regras de validação (estritas):
 
-- IDs de plugin desconhecidos em `entries`, `allow`, `deny` ou `slots` sao **erros**.
-- Chaves `channels.<id>` desconhecidas sao **erros** a menos que um manifesto de plugin declare
+- IDs de plugin desconhecidos em `entries`, `allow`, `deny` ou `slots` são **erros**.
+- Chaves `channels.<id>` desconhecidas são **erros**, a menos que um manifesto de plugin declare
   o id do canal.
-- A configuracao do plugin e validada usando o JSON Schema incorporado em
+- A configuração do plugin é validada usando o JSON Schema incorporado em
   `openclaw.plugin.json` (`configSchema`).
-- Se um plugin estiver desativado, sua configuracao e preservada e um **aviso** e emitido.
+- Se um plugin estiver desabilitado, sua configuração é preservada e um **aviso** é emitido.
 
 ## Slots de plugin (categorias exclusivas)
 
-Algumas categorias de plugin sao **exclusivas** (apenas uma ativa por vez). Use
-`plugins.slots` para selecionar qual plugin possui o slot:
+Algumas categorias de plugin são **exclusivas** (apenas uma ativa por vez). Use
+`plugins.slots` para selecionar qual plugin é dono do slot:
 
 ```json5
 {
@@ -245,21 +245,21 @@ Algumas categorias de plugin sao **exclusivas** (apenas uma ativa por vez). Use
 }
 ```
 
-Se varios plugins declararem `kind: "memory"`, apenas o selecionado e carregado. Os demais
-sao desativados com diagnosticos.
+Se vários plugins declararem `kind: "memory"`, apenas o selecionado carrega. Os outros
+são desabilitados com diagnósticos.
 
-## UI de controle (schema + rotulos)
+## UI de controle (schema + rótulos)
 
-A UI de Controle usa `config.schema` (JSON Schema + `uiHints`) para renderizar formularios melhores.
+A UI de Controle usa `config.schema` (JSON Schema + `uiHints`) para renderizar formulários melhores.
 
-O OpenClaw aumenta `uiHints` em tempo de execucao com base nos plugins descobertos:
+O OpenClaw amplia `uiHints` em tempo de execução com base nos plugins descobertos:
 
-- Adiciona rotulos por plugin para `plugins.entries.<id>` / `.enabled` / `.config`
-- Mescla dicas opcionais de campos de configuracao fornecidas pelo plugin em:
+- Adiciona rótulos por plugin para `plugins.entries.<id>` / `.enabled` / `.config`
+- Mescla dicas opcionais de campos de configuração fornecidas pelo plugin em:
   `plugins.entries.<id>.config.<field>`
 
-Se voce quiser que os campos de configuracao do seu plugin exibam bons rotulos/placeholders (e marquem segredos como sensiveis),
-forneca `uiHints` junto ao seu JSON Schema no manifesto do plugin.
+Se você quiser que os campos de configuração do seu plugin exibam bons rótulos/placeholders
+(e marquem segredos como sensíveis), forneça `uiHints` junto com seu JSON Schema no manifesto do plugin.
 
 Exemplo:
 
@@ -299,21 +299,21 @@ openclaw plugins disable <id>
 openclaw plugins doctor
 ```
 
-`plugins update` funciona apenas para instalacoes npm rastreadas em `plugins.installs`.
+`plugins update` funciona apenas para instalações npm rastreadas em `plugins.installs`.
 
-Plugins tambem podem registrar seus proprios comandos de nivel superior (exemplo: `openclaw voicecall`).
+Os plugins também podem registrar seus próprios comandos de nível superior (exemplo: `openclaw voicecall`).
 
-## API de plugin (visao geral)
+## API de Plugin (visão geral)
 
-Plugins exportam:
+Os plugins exportam um de:
 
-- Uma funcao: `(api) => { ... }`
+- Uma função: `(api) => { ... }`
 - Um objeto: `{ id, name, configSchema, register(api) { ... } }`
 
 ## Hooks de plugin
 
-Plugins podem incluir hooks e registra-los em tempo de execucao. Isso permite que um plugin
-agrupe automacao orientada a eventos sem uma instalacao separada de pacote de hooks.
+Os plugins podem incluir hooks e registrá-los em tempo de execução. Isso permite que um plugin
+empacote automação orientada a eventos sem uma instalação separada de pacote de hooks.
 
 ### Exemplo
 
@@ -327,18 +327,18 @@ export default function register(api) {
 
 Notas:
 
-- Diretorios de hooks seguem a estrutura normal de hooks (`HOOK.md` + `handler.ts`).
-- Regras de elegibilidade de hooks ainda se aplicam (SO/bins/env/requisitos de configuracao).
+- Diretórios de hooks seguem a estrutura normal de hooks (`HOOK.md` + `handler.ts`).
+- As regras de elegibilidade de hooks ainda se aplicam (requisitos de SO/bins/env/config).
 - Hooks gerenciados por plugin aparecem em `openclaw hooks list` com `plugin:<id>`.
-- Voce nao pode ativar/desativar hooks gerenciados por plugin via `openclaw hooks`; ative/desative o plugin em vez disso.
+- Você não pode habilitar/desabilitar hooks gerenciados por plugin via `openclaw hooks`; habilite/desabilite o plugin em vez disso.
 
-## Plugins de provedor (auth de modelo)
+## Plugins de provedor (autenticação de modelo)
 
-Plugins podem registrar fluxos de **auth de provedor de modelo** para que os usuarios possam executar OAuth ou
-configuracao de chave de API dentro do OpenClaw (sem scripts externos).
+Os plugins podem registrar fluxos de **autenticação de provedor de modelo** para que os usuários
+possam executar OAuth ou configuração de chave de API dentro do OpenClaw (sem scripts externos).
 
 Registre um provedor via `api.registerProvider(...)`. Cada provedor expõe um
-ou mais metodos de auth (OAuth, chave de API, codigo de dispositivo, etc.). Esses metodos alimentam:
+ou mais métodos de autenticação (OAuth, chave de API, código de dispositivo etc.). Esses métodos alimentam:
 
 - `openclaw models auth login --provider <id> [--method <id>]`
 
@@ -378,16 +378,16 @@ api.registerProvider({
 
 Notas:
 
-- `run` recebe um `ProviderAuthContext` com auxiliares `prompter`, `runtime`,
+- `run` recebe um `ProviderAuthContext` com ajudantes `prompter`, `runtime`,
   `openUrl` e `oauth.createVpsAwareHandlers`.
-- Retorne `configPatch` quando precisar adicionar modelos padrao ou configuracao do provedor.
-- Retorne `defaultModel` para que `--set-default` possa atualizar os padroes do agente.
+- Retorne `configPatch` quando você precisar adicionar modelos padrão ou configuração do provedor.
+- Retorne `defaultModel` para que `--set-default` possa atualizar os padrões do agente.
 
 ### Registrar um canal de mensagens
 
-Plugins podem registrar **plugins de canal** que se comportam como canais integrados
-(WhatsApp, Telegram, etc.). A configuracao do canal fica em `channels.<id>` e e
-validada pelo codigo do seu plugin de canal.
+Os plugins podem registrar **plugins de canal** que se comportam como canais embutidos
+(WhatsApp, Telegram etc.). A configuração do canal fica em `channels.<id>` e é
+validada pelo código do seu plugin de canal.
 
 ```ts
 const myChannel = {
@@ -421,46 +421,46 @@ export default function (api) {
 
 Notas:
 
-- Coloque a configuracao em `channels.<id>` (nao em `plugins.entries`).
-- `meta.label` e usado para rotulos em listas de CLI/UI.
-- `meta.aliases` adiciona ids alternativos para normalizacao e entradas de CLI.
-- `meta.preferOver` lista ids de canal para pular auto-ativacao quando ambos estiverem configurados.
-- `meta.detailLabel` e `meta.systemImage` permitem que UIs mostrem rotulos/icones de canal mais ricos.
+- Coloque a configuração em `channels.<id>` (não em `plugins.entries`).
+- `meta.label` é usado para rótulos em listas da CLI/UI.
+- `meta.aliases` adiciona ids alternativos para normalização e entradas da CLI.
+- `meta.preferOver` lista ids de canal para pular auto-habilitação quando ambos estiverem configurados.
+- `meta.detailLabel` e `meta.systemImage` permitem que UIs mostrem rótulos/ícones de canal mais ricos.
 
 ### Escrever um novo canal de mensagens (passo a passo)
 
-Use isso quando voce quiser uma **nova superficie de chat** (um “canal de mensagens”), nao um provedor de modelo.
-A documentacao de provedor de modelo fica em `/providers/*`.
+Use isto quando quiser uma **nova superfície de chat** (um “canal de mensagens”), não um provedor de modelo.
+A documentação de provedores de modelo fica em `/providers/*`.
 
-1. Escolha um id + formato de configuracao
+1. Escolha um id + formato de configuração
 
-- Toda a configuracao de canal fica em `channels.<id>`.
-- Prefira `channels.<id>.accounts.<accountId>` para configuracoes multi-conta.
+- Toda a configuração de canal fica em `channels.<id>`.
+- Prefira `channels.<id>.accounts.<accountId>` para configurações multi‑conta.
 
 2. Defina os metadados do canal
 
-- `meta.label`, `meta.selectionLabel`, `meta.docsPath`, `meta.blurb` controlam listas de CLI/UI.
-- `meta.docsPath` deve apontar para uma pagina de docs como `/channels/<id>`.
-- `meta.preferOver` permite que um plugin substitua outro canal (a auto-ativacao o prefere).
-- `meta.detailLabel` e `meta.systemImage` sao usados por UIs para texto/icones de detalhe.
+- `meta.label`, `meta.selectionLabel`, `meta.docsPath`, `meta.blurb` controlam listas da CLI/UI.
+- `meta.docsPath` deve apontar para uma página de docs como `/channels/<id>`.
+- `meta.preferOver` permite que um plugin substitua outro canal (a auto-habilitação o prefere).
+- `meta.detailLabel` e `meta.systemImage` são usados pelas UIs para texto/ícones de detalhe.
 
-3. Implemente os adaptadores obrigatorios
+3. Implemente os adaptadores obrigatórios
 
 - `config.listAccountIds` + `config.resolveAccount`
-- `capabilities` (tipos de chat, midia, threads, etc.)
-- `outbound.deliveryMode` + `outbound.sendText` (para envio basico)
+- `capabilities` (tipos de chat, mídia, threads etc.)
+- `outbound.deliveryMode` + `outbound.sendText` (para envio básico)
 
-4. Adicione adaptadores opcionais conforme necessario
+4. Adicione adaptadores opcionais conforme necessário
 
-- `setup` (assistente), `security` (politica de DM), `status` (saude/diagnosticos)
-- `gateway` (iniciar/parar/login), `mentions`, `threading`, `streaming`
-- `actions` (acoes de mensagem), `commands` (comportamento de comando nativo)
+- `setup` (assistente), `security` (política de DM), `status` (saúde/diagnósticos)
+- `gateway` (start/stop/login), `mentions`, `threading`, `streaming`
+- `actions` (ações de mensagem), `commands` (comportamento de comando nativo)
 
 5. Registre o canal no seu plugin
 
 - `api.registerChannel({ plugin })`
 
-Exemplo minimo de configuracao:
+Exemplo mínimo de configuração:
 
 ```json5
 {
@@ -474,7 +474,7 @@ Exemplo minimo de configuracao:
 }
 ```
 
-Plugin de canal minimo (somente saida):
+Plugin mínimo de canal (apenas saída):
 
 ```ts
 const plugin = {
@@ -509,14 +509,14 @@ export default function (api) {
 }
 ```
 
-Carregue o plugin (diretorio de extensoes ou `plugins.load.paths`), reinicie o gateway,
-depois configure `channels.<id>` na sua configuracao.
+Carregue o plugin (diretório de extensões ou `plugins.load.paths`), reinicie o gateway,
+depois configure `channels.<id>` na sua configuração.
 
 ### Ferramentas de agente
 
 Veja o guia dedicado: [Plugin agent tools](/plugins/agent-tools).
 
-### Registrar um metodo Gateway RPC
+### Registrar um método de RPC do gateway
 
 ```ts
 export default function (api) {
@@ -526,7 +526,7 @@ export default function (api) {
 }
 ```
 
-### Registrar comandos CLI
+### Registrar comandos de CLI
 
 ```ts
 export default function (api) {
@@ -541,11 +541,11 @@ export default function (api) {
 }
 ```
 
-### Registrar comandos de resposta automatica
+### Registrar comandos de resposta automática
 
-Plugins podem registrar comandos personalizados de barra que executam **sem invocar o
-agente de IA**. Isso e util para comandos de alternancia, verificacoes de status ou acoes rapidas
-que nao precisam de processamento de LLM.
+Os plugins podem registrar comandos personalizados de barra que executam **sem invocar o
+agente de IA**. Isso é útil para comandos de alternância, verificações de status ou ações rápidas
+que não precisam de processamento por LLM.
 
 ```ts
 export default function (api) {
@@ -559,24 +559,24 @@ export default function (api) {
 }
 ```
 
-Contexto do manipulador de comandos:
+Contexto do manipulador de comando:
 
-- `senderId`: O ID do remetente (se disponivel)
+- `senderId`: O ID do remetente (se disponível)
 - `channel`: O canal onde o comando foi enviado
-- `isAuthorizedSender`: Se o remetente e um usuario autorizado
-- `args`: Argumentos passados apos o comando (se `acceptsArgs: true`)
+- `isAuthorizedSender`: Se o remetente é um usuário autorizado
+- `args`: Argumentos passados após o comando (se `acceptsArgs: true`)
 - `commandBody`: O texto completo do comando
-- `config`: A configuracao atual do OpenClaw
+- `config`: A configuração atual do OpenClaw
 
-Opcoes de comando:
+Opções de comando:
 
-- `name`: Nome do comando (sem o prefixo `/`)
-- `description`: Texto de ajuda exibido nas listas de comandos
-- `acceptsArgs`: Se o comando aceita argumentos (padrao: false). Se false e argumentos forem fornecidos, o comando nao correspondera e a mensagem passara para outros handlers
-- `requireAuth`: Se requer remetente autorizado (padrao: true)
-- `handler`: Funcao que retorna `{ text: string }` (pode ser async)
+- `name`: Nome do comando (sem o `/` inicial)
+- `description`: Texto de ajuda mostrado em listas de comandos
+- `acceptsArgs`: Se o comando aceita argumentos (padrão: false). Se false e argumentos forem fornecidos, o comando não corresponderá e a mensagem seguirá para outros manipuladores
+- `requireAuth`: Se deve exigir remetente autorizado (padrão: true)
+- `handler`: Função que retorna `{ text: string }` (pode ser async)
 
-Exemplo com autorizacao e argumentos:
+Exemplo com autorização e argumentos:
 
 ```ts
 api.registerCommand({
@@ -594,14 +594,14 @@ api.registerCommand({
 
 Notas:
 
-- Comandos de plugin sao processados **antes** dos comandos integrados e do agente de IA
-- Comandos sao registrados globalmente e funcionam em todos os canais
-- Nomes de comando nao diferenciam maiusculas/minusculas (`/MyStatus` corresponde a `/mystatus`)
-- Nomes de comando devem comecar com uma letra e conter apenas letras, numeros, hifens e underscores
-- Nomes de comando reservados (como `help`, `status`, `reset`, etc.) nao podem ser sobrescritos por plugins
-- Registro duplicado de comandos entre plugins falhara com um erro de diagnostico
+- Comandos de plugin são processados **antes** dos comandos embutidos e do agente de IA
+- Os comandos são registrados globalmente e funcionam em todos os canais
+- Nomes de comando não diferenciam maiúsculas/minúsculas (`/MyStatus` corresponde a `/mystatus`)
+- Os nomes dos comandos devem começar com uma letra e conter apenas letras, números, hífens e sublinhados
+- Nomes de comando reservados (como `help`, `status`, `reset`, etc.) não podem ser sobrescritos por plugins
+- Registro duplicado de comandos entre plugins falhará com um erro de diagnóstico
 
-### Registrar servicos em segundo plano
+### Registrar serviços em segundo plano
 
 ```ts
 export default function (api) {
@@ -613,57 +613,57 @@ export default function (api) {
 }
 ```
 
-## Convencoes de nomenclatura
+## Convenções de nomenclatura
 
-- Metodos do Gateway: `pluginId.action` (exemplo: `voicecall.status`)
+- Métodos do Gateway: `pluginId.action` (exemplo: `voicecall.status`)
 - Ferramentas: `snake_case` (exemplo: `voice_call`)
-- Comandos CLI: kebab ou camel, mas evite conflitos com comandos principais
+- Comandos de CLI: kebab ou camel, mas evite conflito com comandos principais
 
 ## Skills
 
-Plugins podem incluir uma skill no repositorio (`skills/<name>/SKILL.md`).
-Ative-a com `plugins.entries.<id>.enabled` (ou outros gates de configuracao) e garanta
+Os plugins podem incluir uma skill no repositório (`skills/<name>/SKILL.md`).
+Habilite-a com `plugins.entries.<id>.enabled` (ou outros controles de configuração) e garanta
 que ela esteja presente nos locais de skills do workspace/gerenciados.
 
-## Distribuicao (npm)
+## Distribuição (npm)
 
 Empacotamento recomendado:
 
-- Pacote principal: `openclaw` (este repositorio)
+- Pacote principal: `openclaw` (este repositório)
 - Plugins: pacotes npm separados sob `@openclaw/*` (exemplo: `@openclaw/voice-call`)
 
-Contrato de publicacao:
+Contrato de publicação:
 
 - O `package.json` do plugin deve incluir `openclaw.extensions` com um ou mais arquivos de entrada.
-- Arquivos de entrada podem ser `.js` ou `.ts` (jiti carrega TS em tempo de execucao).
-- `openclaw plugins install <npm-spec>` usa `npm pack`, extrai em `~/.openclaw/extensions/<id>/` e o ativa na configuracao.
-- Estabilidade da chave de configuracao: pacotes com escopo sao normalizados para o id **sem escopo** para `plugins.entries.*`.
+- Os arquivos de entrada podem ser `.js` ou `.ts` (jiti carrega TS em tempo de execução).
+- `openclaw plugins install <npm-spec>` usa `npm pack`, extrai em `~/.openclaw/extensions/<id>/` e o habilita na configuração.
+- Estabilidade da chave de configuração: pacotes com escopo são normalizados para o id **sem escopo** em `plugins.entries.*`.
 
-## Exemplo de plugin: Voice Call
+## Plugin de exemplo: Voice Call
 
-Este repositorio inclui um plugin de chamada de voz (Twilio ou fallback de log):
+Este repositório inclui um plugin de chamada de voz (Twilio ou fallback de log):
 
-- Codigo-fonte: `extensions/voice-call`
+- Código-fonte: `extensions/voice-call`
 - Skill: `skills/voice-call`
 - CLI: `openclaw voicecall start|status`
 - Ferramenta: `voice_call`
 - RPC: `voicecall.start`, `voicecall.status`
-- Configuracao (twilio): `provider: "twilio"` + `twilio.accountSid/authToken/from` (opcional `statusCallbackUrl`, `twimlUrl`)
-- Configuracao (dev): `provider: "log"` (sem rede)
+- Configuração (twilio): `provider: "twilio"` + `twilio.accountSid/authToken/from` (opcional `statusCallbackUrl`, `twimlUrl`)
+- Configuração (dev): `provider: "log"` (sem rede)
 
-Veja [Voice Call](/plugins/voice-call) e `extensions/voice-call/README.md` para configuracao e uso.
+Veja [Voice Call](/plugins/voice-call) e `extensions/voice-call/README.md` para configuração e uso.
 
-## Notas de seguranca
+## Notas de segurança
 
-Plugins sao executados no mesmo processo do Gateway. Trate-os como codigo confiavel:
+Os plugins rodam no mesmo processo do Gateway. Trate-os como código confiável:
 
-- Instale apenas plugins em que voce confia.
-- Prefira allowlists `plugins.allow`.
-- Reinicie o Gateway apos alteracoes.
+- Instale apenas plugins em que você confia.
+- Prefira listas de permissões `plugins.allow`.
+- Reinicie o Gateway após alterações.
 
 ## Testando plugins
 
-Plugins podem (e devem) incluir testes:
+Os plugins podem (e devem) incluir testes:
 
-- Plugins no repositorio podem manter testes Vitest em `src/**` (exemplo: `src/plugins/voice-call.plugin.test.ts`).
-- Plugins publicados separadamente devem executar seu proprio CI (lint/build/test) e validar que `openclaw.extensions` aponta para o entrypoint construido (`dist/index.js`).
+- Plugins no repositório podem manter testes Vitest em `src/**` (exemplo: `src/plugins/voice-call.plugin.test.ts`).
+- Plugins publicados separadamente devem executar sua própria CI (lint/build/test) e validar que `openclaw.extensions` aponta para o entrypoint compilado (`dist/index.js`).

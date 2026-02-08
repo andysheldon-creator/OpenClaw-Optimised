@@ -1,36 +1,36 @@
 ---
-summary: "Onde o OpenClaw carrega variaveis de ambiente e a ordem de precedencia"
+summary: "Onde o OpenClaw carrega variáveis de ambiente e a ordem de precedência"
 read_when:
-  - Voce precisa saber quais variaveis de ambiente sao carregadas e em que ordem
-  - Voce esta depurando chaves de API ausentes no Gateway
-  - Voce esta documentando autenticacao de provedores ou ambientes de implantacao
-title: "Variaveis de ambiente"
+  - Você precisa saber quais variáveis de ambiente são carregadas e em que ordem
+  - Você está depurando chaves de API ausentes no Gateway
+  - Você está documentando autenticação de provedores ou ambientes de implantação
+title: "Variáveis de ambiente"
 x-i18n:
   source_path: help/environment.md
   source_hash: b49ae50e5d306612
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:15:13Z
+  generated_at: 2026-02-08T09:31:00Z
 ---
 
-# Variaveis de ambiente
+# Variáveis de ambiente
 
-O OpenClaw carrega variaveis de ambiente de varias fontes. A regra é **nunca substituir valores existentes**.
+O OpenClaw obtém variáveis de ambiente de múltiplas fontes. A regra é **nunca sobrescrever valores existentes**.
 
-## Precedencia (mais alta → mais baixa)
+## Precedência (mais alta → mais baixa)
 
-1. **Ambiente do processo** (o que o processo do Gateway ja recebe do shell/daemon pai).
-2. **`.env` no diretorio de trabalho atual** (padrao do dotenv; nao substitui).
-3. **`.env` global** em `~/.openclaw/.env` (tambem conhecido como `$OPENCLAW_STATE_DIR/.env`; nao substitui).
-4. **Bloco de configuracao `env`** em `~/.openclaw/openclaw.json` (aplicado apenas se estiver ausente).
-5. **Importacao opcional do shell de login** (`env.shellEnv.enabled` ou `OPENCLAW_LOAD_SHELL_ENV=1`), aplicada apenas para chaves esperadas ausentes.
+1. **Ambiente do processo** (o que o processo do Gateway já possui do shell/daemon pai).
+2. **`.env` no diretório de trabalho atual** (padrão do dotenv; não sobrescreve).
+3. **`.env` global** em `~/.openclaw/.env` (também conhecido como `$OPENCLAW_STATE_DIR/.env`; não sobrescreve).
+4. **Bloco de Configuração `env`** em `~/.openclaw/openclaw.json` (aplicado apenas se estiver ausente).
+5. **Importação opcional do shell de login** (`env.shellEnv.enabled` ou `OPENCLAW_LOAD_SHELL_ENV=1`), aplicada apenas para chaves esperadas ausentes.
 
-Se o arquivo de configuracao estiver totalmente ausente, a etapa 4 é ignorada; a importacao do shell ainda é executada se estiver habilitada.
+Se o arquivo de configuração estiver totalmente ausente, a etapa 4 é ignorada; a importação do shell ainda é executada se estiver habilitada.
 
-## Bloco de configuracao `env`
+## Bloco de Configuração `env`
 
-Duas formas equivalentes de definir variaveis de ambiente inline (ambas nao substituem):
+Duas formas equivalentes de definir variáveis de ambiente inline (ambas não sobrescrevem):
 
 ```json5
 {
@@ -43,7 +43,7 @@ Duas formas equivalentes de definir variaveis de ambiente inline (ambas nao subs
 }
 ```
 
-## Importacao de variaveis de ambiente do shell
+## Importação de env do shell
 
 `env.shellEnv` executa seu shell de login e importa apenas chaves esperadas **ausentes**:
 
@@ -58,14 +58,14 @@ Duas formas equivalentes de definir variaveis de ambiente inline (ambas nao subs
 }
 ```
 
-Equivalentes em variaveis de ambiente:
+Equivalentes em variáveis de ambiente:
 
 - `OPENCLAW_LOAD_SHELL_ENV=1`
 - `OPENCLAW_SHELL_ENV_TIMEOUT_MS=15000`
 
-## Substituicao de variaveis de ambiente na configuracao
+## Substituição de variáveis de ambiente na configuração
 
-Voce pode referenciar variaveis de ambiente diretamente em valores de string da configuracao usando a sintaxe `${VAR_NAME}`:
+Você pode referenciar variáveis de ambiente diretamente em valores de string da configuração usando a sintaxe `${VAR_NAME}`:
 
 ```json5
 {
@@ -79,10 +79,10 @@ Voce pode referenciar variaveis de ambiente diretamente em valores de string da 
 }
 ```
 
-Veja [Configuracao: Substituicao de variaveis de ambiente](/gateway/configuration#env-var-substitution-in-config) para mais detalhes.
+Veja [Configuração: Substituição de variáveis de ambiente](/gateway/configuration#env-var-substitution-in-config) para todos os detalhes.
 
-## Relacionado
+## Relacionados
 
-- [Configuracao do Gateway](/gateway/configuration)
-- [Perguntas frequentes: variaveis de ambiente e carregamento de .env](/help/faq#env-vars-and-env-loading)
-- [Visao geral de modelos](/concepts/models)
+- [Configuração do Gateway](/gateway/configuration)
+- [Perguntas frequentes: variáveis de ambiente e carregamento de .env](/help/faq#env-vars-and-env-loading)
+- [Visão geral de modelos](/concepts/models)

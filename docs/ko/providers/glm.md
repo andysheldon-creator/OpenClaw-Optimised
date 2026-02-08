@@ -10,7 +10,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:40:15Z
+  generated_at: 2026-02-08T09:25:53Z
 ---
 
 # GLM 모델
@@ -35,6 +35,6 @@ openclaw onboard --auth-choice zai-api-key
 
 ## 참고 사항
 
-- GLM 버전과 가용성은 변경될 수 있으므로 최신 정보는 Z.AI 문서를 확인하십시오.
+- GLM 버전과 제공 여부는 변경될 수 있으므로 최신 정보는 Z.AI 문서를 확인하십시오.
 - 예시 모델 ID 로는 `glm-4.7` 및 `glm-4.6` 가 있습니다.
-- 프로바이더에 대한 자세한 내용은 [/providers/zai](/providers/zai) 를 참고하십시오.
+- 프로바이더 세부 정보는 [/providers/zai](/providers/zai) 를 참조하십시오.

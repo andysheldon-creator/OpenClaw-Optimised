@@ -1,41 +1,43 @@
 ---
-summary: "Cron jobs + đánh thức cho bộ lập lịch Gateway"
+summary: "Cron jobs + cơ chế đánh thức cho bộ lập lịch Gateway"
 read_when:
-  - Lập lịch các tác vụ nền hoặc đánh thức
+  - Lập lịch các tác vụ nền hoặc wakeup
   - Kết nối tự động hóa cần chạy cùng hoặc song song với heartbeat
   - Quyết định giữa heartbeat và cron cho các tác vụ theo lịch
 title: "Cron Jobs"
 x-i18n:
   source_path: automation/cron-jobs.md
-  source_hash: 523721a7da2c4e27
+  source_hash: d2f7bd6c542034b1
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:22Z
+  generated_at: 2026-02-08T09:38:15Z
 ---
 
 # Cron jobs (bộ lập lịch Gateway)
 
-> **Cron hay Heartbeat?** Xem [Cron vs Heartbeat](/automation/cron-vs-heartbeat) để được hướng dẫn khi nào nên dùng mỗi loại.
+> **Cron hay Heartbeat?** Xem [Cron vs Heartbeat](/automation/cron-vs-heartbeat) để được hướng dẫn khi nào nên dùng từng loại.
 
 Cron là bộ lập lịch tích hợp sẵn của Gateway. Nó lưu trữ các job, đánh thức tác tử
-đúng thời điểm và có thể tùy chọn gửi kết quả trở lại một cuộc trò chuyện.
+đúng thời điểm và có thể tùy chọn gửi đầu ra trở lại một cuộc trò chuyện.
 
-Nếu bạn muốn _“chạy việc này mỗi sáng”_ hoặc _“chọc tác tử sau 20 phút”_,
-cron là cơ chế phù hợp.
+Nếu bạn muốn _“chạy việc này mỗi sáng”_ hoặc _“nhắc tác tử sau 20 phút”_,
+thì cron là cơ chế phù hợp.
+
+Xử lý sự cố: [/automation/troubleshooting](/automation/troubleshooting)
 
 ## TL;DR
 
-- Cron chạy **bên trong Gateway** (không chạy bên trong model).
+- Cron chạy **bên trong Gateway** (không chạy trong mô hình).
 - Job được lưu bền vững dưới `~/.openclaw/cron/` nên việc khởi động lại không làm mất lịch.
 - Hai kiểu thực thi:
-  - **Phiên chính**: xếp hàng một sự kiện hệ thống, rồi chạy ở heartbeat kế tiếp.
-  - **Cô lập**: chạy một lượt tác tử riêng trong `cron:<jobId>`, có phân phối (mặc định là announce hoặc không).
-- Wakeup là hạng nhất: một job có thể yêu cầu “đánh thức ngay” so với “heartbeat kế tiếp”.
+  - **Phiên chính**: xếp hàng một system event, sau đó chạy ở heartbeat tiếp theo.
+  - **Cô lập**: chạy một lượt tác tử riêng trong `cron:<jobId>`, kèm cơ chế gửi kết quả (mặc định là announce hoặc không gửi).
+- Wakeup là hạng nhất: job có thể yêu cầu “đánh thức ngay” thay vì “heartbeat tiếp theo”.
 
-## Quick start (thực hành ngay)
+## Khởi động nhanh (có thể hành động ngay)
 
-Tạo một lời nhắc một lần, xác nhận nó tồn tại và chạy ngay lập tức:
+Tạo một lời nhắc một lần, xác minh nó tồn tại và chạy ngay lập tức:
 
 ```bash
 openclaw cron add \
@@ -47,11 +49,11 @@ openclaw cron add \
   --delete-after-run
 
 openclaw cron list
-openclaw cron run <job-id> --force
+openclaw cron run <job-id>
 openclaw cron runs --id <job-id>
 ```
 
-Lập lịch một job cô lập lặp lại với phân phối:
+Lên lịch một job cô lập định kỳ có gửi kết quả:
 
 ```bash
 openclaw cron add \
@@ -65,36 +67,36 @@ openclaw cron add \
   --to "channel:C1234567890"
 ```
 
-## Tương đương gọi công cụ (Gateway cron tool)
+## Tương đương tool-call (Gateway cron tool)
 
-Để xem các dạng JSON chuẩn và ví dụ, xem [JSON schema for tool calls](/automation/cron-jobs#json-schema-for-tool-calls).
+Để xem các dạng JSON chuẩn và ví dụ, xem [JSON schema cho tool calls](/automation/cron-jobs#json-schema-for-tool-calls).
 
-## Nơi lưu trữ cron jobs
+## Nơi cron jobs được lưu trữ
 
-Cron job được lưu bền vững trên máy chủ Gateway tại `~/.openclaw/cron/jobs.json` theo mặc định.
-Gateway nạp tệp vào bộ nhớ và ghi lại khi có thay đổi, vì vậy chỉnh sửa thủ công
-chỉ an toàn khi Gateway đã dừng. Ưu tiên dùng `openclaw cron add/edit` hoặc API gọi công cụ cron
-để thay đổi.
+Cron jobs được lưu trên máy chủ gateway tại `~/.openclaw/cron/jobs.json` theo mặc định.
+Gateway tải file này vào bộ nhớ và ghi lại khi có thay đổi, vì vậy việc chỉnh sửa thủ công
+chỉ an toàn khi Gateway đã dừng. Nên dùng `openclaw cron add/edit` hoặc API tool call cron
+để thực hiện thay đổi.
 
-## Tổng quan dễ hiểu cho người mới
+## Tổng quan thân thiện cho người mới
 
-Hãy nghĩ một cron job gồm: **khi nào** chạy + **chạy cái gì**.
+Hãy nghĩ cron job là: **khi nào** chạy + **chạy cái gì**.
 
 1. **Chọn lịch**
-   - Lời nhắc một lần → `schedule.kind = "at"` (CLI: `--at`)
+   - Nhắc một lần → `schedule.kind = "at"` (CLI: `--at`)
    - Job lặp lại → `schedule.kind = "every"` hoặc `schedule.kind = "cron"`
-   - Nếu dấu thời gian ISO thiếu múi giờ, nó được coi là **UTC**.
+   - Nếu timestamp ISO của bạn không có múi giờ, nó sẽ được coi là **UTC**.
 
 2. **Chọn nơi chạy**
-   - `sessionTarget: "main"` → chạy trong heartbeat kế tiếp với ngữ cảnh chính.
+   - `sessionTarget: "main"` → chạy trong heartbeat tiếp theo với ngữ cảnh phiên chính.
    - `sessionTarget: "isolated"` → chạy một lượt tác tử riêng trong `cron:<jobId>`.
 
 3. **Chọn payload**
    - Phiên chính → `payload.kind = "systemEvent"`
    - Phiên cô lập → `payload.kind = "agentTurn"`
 
-Tùy chọn: job một lần (`schedule.kind = "at"`) sẽ xóa sau khi thành công theo mặc định. Đặt
-`deleteAfterRun: false` để giữ lại (chúng sẽ bị vô hiệu hóa sau khi thành công).
+Tùy chọn: các job một lần (`schedule.kind = "at"`) mặc định sẽ tự xóa sau khi chạy thành công. Đặt
+`deleteAfterRun: false` để giữ lại (chúng sẽ bị vô hiệu hóa sau khi chạy thành công).
 
 ## Khái niệm
 
@@ -104,36 +106,36 @@ Một cron job là một bản ghi được lưu với:
 
 - một **lịch** (khi nào chạy),
 - một **payload** (chạy gì),
-- **chế độ phân phối** tùy chọn (announce hoặc none).
+- **chế độ gửi kết quả** tùy chọn (announce hoặc none).
 - **ràng buộc tác tử** tùy chọn (`agentId`): chạy job dưới một tác tử cụ thể; nếu
-  thiếu hoặc không xác định, Gateway sẽ dùng tác tử mặc định.
+  thiếu hoặc không xác định, gateway sẽ dùng tác tử mặc định.
 
 Job được định danh bằng `jobId` ổn định (dùng bởi CLI/API Gateway).
-Trong các gọi công cụ của tác tử, `jobId` là chuẩn; `id` cũ vẫn được chấp nhận để tương thích.
-Job một lần tự động xóa sau khi thành công theo mặc định; đặt `deleteAfterRun: false` để giữ lại.
+Trong agent tool calls, `jobId` là chuẩn; khóa cũ `id` vẫn được chấp nhận để tương thích.
+Các job một lần mặc định tự xóa sau khi thành công; đặt `deleteAfterRun: false` để giữ lại.
 
 ### Lịch
 
 Cron hỗ trợ ba loại lịch:
 
-- `at`: dấu thời gian một lần qua `schedule.at` (ISO 8601).
+- `at`: timestamp một lần qua `schedule.at` (ISO 8601).
 - `every`: khoảng thời gian cố định (ms).
 - `cron`: biểu thức cron 5 trường với múi giờ IANA tùy chọn.
 
-Biểu thức cron dùng `croner`. Nếu bỏ qua múi giờ, múi giờ cục bộ của máy chủ Gateway
-sẽ được dùng.
+Biểu thức cron dùng `croner`. Nếu không chỉ định múi giờ, sẽ dùng
+múi giờ cục bộ của máy chủ Gateway.
 
 ### Thực thi phiên chính vs cô lập
 
-#### Job phiên chính (sự kiện hệ thống)
+#### Job phiên chính (system events)
 
-Job phiên chính xếp hàng một sự kiện hệ thống và có thể đánh thức trình chạy heartbeat.
+Job phiên chính xếp hàng một system event và có thể đánh thức trình chạy heartbeat.
 Chúng phải dùng `payload.kind = "systemEvent"`.
 
-- `wakeMode: "next-heartbeat"` (mặc định): sự kiện chờ đến heartbeat theo lịch kế tiếp.
-- `wakeMode: "now"`: sự kiện kích hoạt chạy heartbeat ngay lập tức.
+- `wakeMode: "now"` (mặc định): sự kiện kích hoạt một heartbeat ngay lập tức.
+- `wakeMode: "next-heartbeat"`: sự kiện chờ đến heartbeat theo lịch tiếp theo.
 
-Phù hợp nhất khi bạn muốn prompt heartbeat chuẩn + ngữ cảnh phiên chính.
+Đây là lựa chọn phù hợp khi bạn muốn dùng prompt heartbeat bình thường + ngữ cảnh phiên chính.
 Xem [Heartbeat](/gateway/heartbeat).
 
 #### Job cô lập (phiên cron riêng)
@@ -142,104 +144,103 @@ Job cô lập chạy một lượt tác tử riêng trong phiên `cron:<jobId>`.
 
 Hành vi chính:
 
-- Prompt được thêm tiền tố `[cron:<jobId> <job name>]` để dễ truy vết.
-- Mỗi lần chạy bắt đầu một **session id mới** (không mang theo hội thoại trước).
-- Hành vi mặc định: nếu bỏ qua `delivery`, job cô lập sẽ announce một bản tóm tắt (`delivery.mode = "announce"`).
-- `delivery.mode` (chỉ cô lập) quyết định điều gì xảy ra:
-  - `announce`: phân phối bản tóm tắt tới kênh đích và đăng một tóm tắt ngắn lên phiên chính.
-  - `none`: chỉ nội bộ (không phân phối, không tóm tắt phiên chính).
+- Prompt được tiền tố `[cron:<jobId> <job name>]` để dễ truy vết.
+- Mỗi lần chạy bắt đầu với **session id mới** (không mang theo hội thoại trước).
+- Hành vi mặc định: nếu `delivery` bị bỏ qua, job cô lập sẽ announce một bản tóm tắt (`delivery.mode = "announce"`).
+- `delivery.mode` (chỉ cho cô lập) quyết định điều gì xảy ra:
+  - `announce`: gửi bản tóm tắt tới kênh đích và đăng một bản tóm tắt ngắn vào phiên chính.
+  - `none`: chỉ nội bộ (không gửi, không có tóm tắt phiên chính).
 - `wakeMode` kiểm soát thời điểm đăng tóm tắt phiên chính:
   - `now`: heartbeat ngay lập tức.
-  - `next-heartbeat`: chờ heartbeat theo lịch kế tiếp.
+  - `next-heartbeat`: chờ heartbeat theo lịch tiếp theo.
 
-Dùng job cô lập cho các tác vụ ồn ào, tần suất cao, hoặc “việc nền” không nên làm
-spam lịch sử chat chính.
+Hãy dùng job cô lập cho các tác vụ ồn ào, tần suất cao hoặc “việc nền”
+không nên làm spam lịch sử chat chính.
 
 ### Dạng payload (chạy gì)
 
 Hỗ trợ hai loại payload:
 
-- `systemEvent`: chỉ phiên chính, đi qua prompt heartbeat.
+- `systemEvent`: chỉ phiên chính, được định tuyến qua prompt heartbeat.
 - `agentTurn`: chỉ phiên cô lập, chạy một lượt tác tử riêng.
 
 Các trường `agentTurn` chung:
 
-- `message`: văn bản prompt bắt buộc.
+- `message`: prompt văn bản bắt buộc.
 - `model` / `thinking`: ghi đè tùy chọn (xem bên dưới).
 - `timeoutSeconds`: ghi đè timeout tùy chọn.
 
-Cấu hình phân phối (chỉ job cô lập):
+Cấu hình gửi kết quả (chỉ job cô lập):
 
 - `delivery.mode`: `none` | `announce`.
 - `delivery.channel`: `last` hoặc một kênh cụ thể.
-- `delivery.to`: đích cụ thể theo kênh (id điện thoại/chat/kênh).
-- `delivery.bestEffort`: tránh làm job thất bại nếu phân phối announce thất bại.
+- `delivery.to`: đích cụ thể theo kênh (phone/chat/channel id).
+- `delivery.bestEffort`: tránh làm job thất bại nếu gửi announce thất bại.
 
-Phân phối announce sẽ chặn việc gửi công cụ nhắn tin trong lượt chạy; dùng `delivery.channel`/`delivery.to`
-để nhắm trực tiếp tới chat. Khi `delivery.mode = "none"`, sẽ không đăng tóm tắt lên phiên chính.
+Announce delivery sẽ chặn việc gửi qua công cụ nhắn tin trong lượt chạy; hãy dùng `delivery.channel`/`delivery.to`
+để nhắm trực tiếp vào chat. Khi `delivery.mode = "none"`, sẽ không đăng tóm tắt vào phiên chính.
 
-Nếu bỏ qua `delivery` cho job cô lập, OpenClaw mặc định là `announce`.
+Nếu `delivery` bị bỏ qua cho job cô lập, OpenClaw mặc định dùng `announce`.
 
-#### Luồng phân phối announce
+#### Luồng announce delivery
 
-Khi `delivery.mode = "announce"`, cron phân phối trực tiếp qua các adapter kênh đầu ra.
-Tác tử chính không được khởi tạo để soạn hoặc chuyển tiếp thông điệp.
+Khi `delivery.mode = "announce"`, cron gửi trực tiếp qua các adapter kênh outbound.
+Tác tử chính sẽ không được khởi chạy để soạn hoặc chuyển tiếp thông điệp.
 
 Chi tiết hành vi:
 
-- Nội dung: phân phối dùng payload đầu ra (văn bản/media) của lượt chạy cô lập với chia nhỏ và
+- Nội dung: việc gửi dùng payload outbound (text/media) của lượt chạy cô lập với phân mảnh và
   định dạng kênh bình thường.
-- Phản hồi chỉ-heartbeat (`HEARTBEAT_OK` không có nội dung thực) sẽ không được phân phối.
-- Nếu lượt chạy cô lập đã gửi một thông điệp tới cùng đích qua công cụ nhắn tin, việc phân phối
-  sẽ bị bỏ qua để tránh trùng lặp.
-- Đích phân phối thiếu hoặc không hợp lệ sẽ làm job thất bại trừ khi `delivery.bestEffort = true`.
-- Một bản tóm tắt ngắn được đăng lên phiên chính chỉ khi `delivery.mode = "announce"`.
+- Phản hồi chỉ-heartbeat (`HEARTBEAT_OK` không có nội dung thực) sẽ không được gửi.
+- Nếu lượt chạy cô lập đã gửi tin nhắn tới cùng đích bằng message tool, việc gửi sẽ bị bỏ qua để tránh trùng lặp.
+- Đích gửi thiếu hoặc không hợp lệ sẽ làm job thất bại trừ khi `delivery.bestEffort = true`.
+- Một bản tóm tắt ngắn chỉ được đăng vào phiên chính khi `delivery.mode = "announce"`.
 - Tóm tắt phiên chính tuân theo `wakeMode`: `now` kích hoạt heartbeat ngay và
-  `next-heartbeat` chờ heartbeat theo lịch kế tiếp.
+  `next-heartbeat` chờ heartbeat theo lịch tiếp theo.
 
-### Ghi đè model và mức thinking
+### Ghi đè mô hình và mức thinking
 
-Job cô lập (`agentTurn`) có thể ghi đè model và mức thinking:
+Job cô lập (`agentTurn`) có thể ghi đè mô hình và mức thinking:
 
-- `model`: Chuỗi provider/model (ví dụ: `anthropic/claude-sonnet-4-20250514`) hoặc alias (ví dụ: `opus`)
-- `thinking`: Mức thinking (`off`, `minimal`, `low`, `medium`, `high`, `xhigh`; chỉ cho GPT-5.2 + Codex)
+- `model`: chuỗi provider/mô hình (ví dụ `anthropic/claude-sonnet-4-20250514`) hoặc alias (ví dụ `opus`)
+- `thinking`: mức thinking (`off`, `minimal`, `low`, `medium`, `high`, `xhigh`; chỉ cho GPT-5.2 + Codex)
 
-Lưu ý: Bạn cũng có thể đặt `model` cho job phiên chính, nhưng điều đó thay đổi model
-dùng chung của phiên chính. Chúng tôi khuyến nghị chỉ ghi đè model cho job cô lập để tránh
-thay đổi ngữ cảnh không mong muốn.
+Lưu ý: Bạn cũng có thể đặt `model` cho job phiên chính, nhưng điều đó sẽ thay đổi mô hình
+dùng chung của phiên chính. Chúng tôi khuyến nghị chỉ ghi đè mô hình cho job cô lập để tránh
+thay đổi ngữ cảnh ngoài ý muốn.
 
 Thứ tự ưu tiên phân giải:
 
-1. Ghi đè trong payload job (cao nhất)
-2. Mặc định theo hook (ví dụ: `hooks.gmail.model`)
-3. Mặc định cấu hình tác tử
+1. Ghi đè trong payload của job (cao nhất)
+2. Mặc định theo hook (ví dụ `hooks.gmail.model`)
+3. Mặc định trong cấu hình tác tử
 
-### Phân phối (kênh + đích)
+### Gửi kết quả (kênh + đích)
 
-Job cô lập có thể phân phối đầu ra tới một kênh qua cấu hình cấp cao `delivery`:
+Job cô lập có thể gửi đầu ra tới một kênh qua cấu hình top-level `delivery`:
 
-- `delivery.mode`: `announce` (phân phối tóm tắt) hoặc `none`.
+- `delivery.mode`: `announce` (gửi bản tóm tắt) hoặc `none`.
 - `delivery.channel`: `whatsapp` / `telegram` / `discord` / `slack` / `mattermost` (plugin) / `signal` / `imessage` / `last`.
 - `delivery.to`: đích người nhận theo kênh.
 
-Cấu hình phân phối chỉ hợp lệ cho job cô lập (`sessionTarget: "isolated"`).
+Cấu hình gửi chỉ hợp lệ cho job cô lập (`sessionTarget: "isolated"`).
 
-Nếu bỏ qua `delivery.channel` hoặc `delivery.to`, cron có thể quay về “last route”
+Nếu `delivery.channel` hoặc `delivery.to` bị bỏ qua, cron có thể quay về “last route”
 của phiên chính (nơi cuối cùng tác tử đã trả lời).
 
-Nhắc lại định dạng đích:
+Nhắc định dạng đích:
 
-- Đích Slack/Discord/Mattermost (plugin) nên dùng tiền tố rõ ràng (ví dụ: `channel:<id>`, `user:<id>`) để tránh mơ hồ.
-- Chủ đề Telegram nên dùng dạng `:topic:` (xem bên dưới).
+- Đích Slack/Discord/Mattermost (plugin) nên dùng tiền tố rõ ràng (ví dụ `channel:<id>`, `user:<id>`) để tránh mơ hồ.
+- Topic Telegram nên dùng dạng `:topic:` (xem bên dưới).
 
-#### Đích phân phối Telegram (chủ đề / luồng diễn đàn)
+#### Đích gửi Telegram (topics / forum threads)
 
-Telegram hỗ trợ chủ đề diễn đàn qua `message_thread_id`. Với phân phối cron, bạn có thể mã hóa
-chủ đề/luồng vào trường `to`:
+Telegram hỗ trợ forum topics qua `message_thread_id`. Với cron delivery, bạn có thể mã hóa
+topic/thread vào trường `to`:
 
 - `-1001234567890` (chỉ chat id)
-- `-1001234567890:topic:123` (ưu tiên: dấu chủ đề tường minh)
-- `-1001234567890:123` (viết gọn: hậu tố số)
+- `-1001234567890:topic:123` (khuyến nghị: marker topic tường minh)
+- `-1001234567890:123` (viết tắt: hậu tố số)
 
 Các đích có tiền tố như `telegram:...` / `telegram:group:...` cũng được chấp nhận:
 
@@ -247,13 +248,13 @@ Các đích có tiền tố như `telegram:...` / `telegram:group:...` cũng đ�
 
 ## JSON schema cho tool calls
 
-Dùng các dạng này khi gọi trực tiếp công cụ Gateway `cron.*` (gọi công cụ của tác tử hoặc RPC).
-Cờ CLI chấp nhận khoảng thời gian dạng người đọc như `20m`, nhưng tool call nên dùng chuỗi ISO 8601
-cho `schedule.at` và mili giây cho `schedule.everyMs`.
+Dùng các dạng này khi gọi trực tiếp Gateway `cron.*` tools (agent tool calls hoặc RPC).
+Cờ CLI chấp nhận thời lượng dạng người đọc như `20m`, nhưng tool calls nên dùng chuỗi ISO 8601
+cho `schedule.at` và mili-giây cho `schedule.everyMs`.
 
 ### Tham số cron.add
 
-Job một lần, phiên chính (sự kiện hệ thống):
+Job một lần, phiên chính (system event):
 
 ```json
 {
@@ -266,7 +267,7 @@ Job một lần, phiên chính (sự kiện hệ thống):
 }
 ```
 
-Job lặp lại, cô lập với phân phối:
+Job định kỳ, cô lập có gửi kết quả:
 
 ```json
 {
@@ -289,13 +290,13 @@ Job lặp lại, cô lập với phân phối:
 
 Ghi chú:
 
-- `schedule.kind`: `at` (`at`), `every` (`everyMs`), hoặc `cron` (`expr`, tùy chọn `tz`).
-- `schedule.at` chấp nhận ISO 8601 (múi giờ tùy chọn; coi là UTC khi bỏ qua).
-- `everyMs` là mili giây.
-- `sessionTarget` phải là `"main"` hoặc `"isolated"` và phải khớp `payload.kind`.
+- `schedule.kind`: `at` (`at`), `every` (`everyMs`), hoặc `cron` (`expr`, `tz` tùy chọn).
+- `schedule.at` chấp nhận ISO 8601 (múi giờ tùy chọn; nếu bỏ qua sẽ coi là UTC).
+- `everyMs` là mili-giây.
+- `sessionTarget` phải là `"main"` hoặc `"isolated"` và phải khớp với `payload.kind`.
 - Trường tùy chọn: `agentId`, `description`, `enabled`, `deleteAfterRun` (mặc định true cho `at`),
   `delivery`.
-- `wakeMode` mặc định là `"next-heartbeat"` khi bỏ qua.
+- `wakeMode` mặc định là `"now"` khi bị bỏ qua.
 
 ### Tham số cron.update
 
@@ -327,7 +328,7 @@ Ghi chú:
 ## Lưu trữ & lịch sử
 
 - Kho job: `~/.openclaw/cron/jobs.json` (JSON do Gateway quản lý).
-- Lịch sử chạy: `~/.openclaw/cron/runs/<jobId>.jsonl` (JSONL, tự động dọn).
+- Lịch sử chạy: `~/.openclaw/cron/runs/<jobId>.jsonl` (JSONL, tự dọn dẹp).
 - Ghi đè đường dẫn lưu trữ: `cron.store` trong cấu hình.
 
 ## Cấu hình
@@ -344,12 +345,12 @@ Ghi chú:
 
 Vô hiệu hóa cron hoàn toàn:
 
-- `cron.enabled: false` (cấu hình)
+- `cron.enabled: false` (config)
 - `OPENCLAW_SKIP_CRON=1` (env)
 
-## CLI quickstart
+## CLI khởi động nhanh
 
-Lời nhắc một lần (ISO UTC, tự xóa sau khi thành công):
+Nhắc một lần (ISO UTC, tự xóa sau khi thành công):
 
 ```bash
 openclaw cron add \
@@ -361,7 +362,7 @@ openclaw cron add \
   --delete-after-run
 ```
 
-Lời nhắc một lần (phiên chính, đánh thức ngay):
+Nhắc một lần (phiên chính, đánh thức ngay):
 
 ```bash
 openclaw cron add \
@@ -372,7 +373,7 @@ openclaw cron add \
   --wake now
 ```
 
-Job cô lập lặp lại (announce tới WhatsApp):
+Job cô lập định kỳ (announce tới WhatsApp):
 
 ```bash
 openclaw cron add \
@@ -386,7 +387,7 @@ openclaw cron add \
   --to "+15551234567"
 ```
 
-Job cô lập lặp lại (phân phối tới một chủ đề Telegram):
+Job cô lập định kỳ (gửi tới một topic Telegram):
 
 ```bash
 openclaw cron add \
@@ -400,7 +401,7 @@ openclaw cron add \
   --to "-1001234567890:topic:123"
 ```
 
-Job cô lập với ghi đè model và thinking:
+Job cô lập với ghi đè mô hình và thinking:
 
 ```bash
 openclaw cron add \
@@ -427,10 +428,11 @@ openclaw cron edit <jobId> --agent ops
 openclaw cron edit <jobId> --clear-agent
 ```
 
-Chạy thủ công (debug):
+Chạy thủ công (force là mặc định, dùng `--due` để chỉ chạy khi đến hạn):
 
 ```bash
-openclaw cron run <jobId> --force
+openclaw cron run <jobId>
+openclaw cron run <jobId> --due
 ```
 
 Chỉnh sửa một job hiện có (patch các trường):
@@ -448,7 +450,7 @@ Lịch sử chạy:
 openclaw cron runs --id <jobId> --limit 50
 ```
 
-Sự kiện hệ thống ngay lập tức không cần tạo job:
+System event ngay lập tức mà không tạo job:
 
 ```bash
 openclaw system event --mode now --text "Next heartbeat: check battery."
@@ -458,18 +460,25 @@ openclaw system event --mode now --text "Next heartbeat: check battery."
 
 - `cron.list`, `cron.status`, `cron.add`, `cron.update`, `cron.remove`
 - `cron.run` (force hoặc due), `cron.runs`
-  Với sự kiện hệ thống ngay lập tức không cần job, dùng [`openclaw system event`](/cli/system).
+  Với system event tức thì không có job, dùng [`openclaw system event`](/cli/system).
 
-## Troubleshooting
+## Xử lý sự cố
 
 ### “Không có gì chạy”
 
-- Kiểm tra cron đã bật: `cron.enabled` và `OPENCLAW_SKIP_CRON`.
+- Kiểm tra cron đã bật chưa: `cron.enabled` và `OPENCLAW_SKIP_CRON`.
 - Kiểm tra Gateway đang chạy liên tục (cron chạy bên trong tiến trình Gateway).
 - Với lịch `cron`: xác nhận múi giờ (`--tz`) so với múi giờ máy chủ.
 
-### Telegram phân phối sai chỗ
+### Một job định kỳ liên tục bị trì hoãn sau khi lỗi
 
-- Với chủ đề diễn đàn, dùng `-100…:topic:<id>` để rõ ràng và không mơ hồ.
-- Nếu bạn thấy tiền tố `telegram:...` trong log hoặc các đích “last route” đã lưu, đó là bình thường;
-  phân phối cron chấp nhận chúng và vẫn phân tích đúng ID chủ đề.
+- OpenClaw áp dụng backoff retry theo hàm mũ cho job định kỳ sau các lỗi liên tiếp:
+  30s, 1m, 5m, 15m, rồi 60m giữa các lần thử lại.
+- Backoff tự reset sau lần chạy thành công tiếp theo.
+- Job một lần (`at`) sẽ bị vô hiệu hóa sau một lần chạy kết thúc (`ok`, `error`, hoặc `skipped`) và không thử lại.
+
+### Telegram gửi nhầm chỗ
+
+- Với forum topics, hãy dùng `-100…:topic:<id>` để rõ ràng và không mơ hồ.
+- Nếu bạn thấy tiền tố `telegram:...` trong log hoặc trong đích “last route” đã lưu, đó là bình thường;
+  cron delivery chấp nhận chúng và vẫn phân tích đúng topic ID.

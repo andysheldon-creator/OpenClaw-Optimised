@@ -1,34 +1,34 @@
 ---
-summary: „Hochwertige Issues und Fehlerberichte einreichen“
-title: „Einreichen eines Issues“
+summary: "Aussagekräftige Issues und Bug-Reports einreichen"
+title: "Ein Issue einreichen"
 x-i18n:
   source_path: help/submitting-an-issue.md
   source_hash: bcb33f05647e9f0d
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:15:50Z
+  generated_at: 2026-02-08T09:36:24Z
 ---
 
-## Einreichen eines Issues
+## Ein Issue einreichen
 
-Klare, prägnante Issues beschleunigen Diagnose und Behebung. Fügen Sie für Bugs, Regressionen oder Funktionslücken Folgendes bei:
+Klare, prägnante Issues beschleunigen Diagnose und Behebung. Fügen Sie für Bugs, Regressionen oder Funktionslücken Folgendes hinzu:
 
 ### Was enthalten sein sollte
 
 - [ ] Titel: Bereich & Symptom
 - [ ] Minimale Reproduktionsschritte
-- [ ] Erwartetes vs. tatsächliches Verhalten
+- [ ] Erwartet vs. tatsächlich
 - [ ] Auswirkung & Schweregrad
-- [ ] Umgebung: Betriebssystem, Runtime, Versionen, Konfiguration
-- [ ] Belege: redigierte Logs, Screenshots (keine personenbezogenen Daten)
+- [ ] Umgebung: OS, Runtime, Versionen, Konfiguration
+- [ ] Belege: bereinigte Logs, Screenshots (keine PII)
 - [ ] Umfang: neu, Regression oder seit Langem bestehend
 - [ ] Codewort: lobster-biscuit im Issue
 - [ ] Codebasis & GitHub nach bestehendem Issue durchsucht
-- [ ] Bestätigt, dass nicht kürzlich behoben/angegangen (insb. Sicherheit)
+- [ ] Bestätigt, dass es nicht kürzlich behoben/angesprochen wurde (insb. Sicherheit)
 - [ ] Behauptungen durch Belege oder Repro untermauert
 
-Seien Sie kurz. Knappheit > perfekte Grammatik.
+Seien Sie kurz. Prägnanz > perfekte Grammatik.
 
 Validierung (vor PR ausführen/beheben):
 
@@ -36,7 +36,7 @@ Validierung (vor PR ausführen/beheben):
 - `pnpm check`
 - `pnpm build`
 - `pnpm test`
-- Bei Protokollcode: `pnpm protocol:check`
+- Bei Protokoll-Code: `pnpm protocol:check`
 
 ### Vorlagen
 
@@ -84,7 +84,7 @@ Validierung (vor PR ausführen/beheben):
 ### Evidence (redacted)
 ```
 
-_Vermeiden Sie Geheimnisse/Exploit-Details in der Öffentlichkeit. Bei sensiblen Themen Details minimieren und eine private Offenlegung anfordern._
+_Vermeiden Sie Geheimnisse/Exploit-Details in der Öffentlichkeit. Bei sensiblen Themen Details minimieren und um private Offenlegung bitten._
 
 #### Regressionsbericht
 
@@ -154,6 +154,6 @@ _Vermeiden Sie Geheimnisse/Exploit-Details in der Öffentlichkeit. Bei sensiblen
 ### Impact
 ```
 
-### Einreichen eines Fix-PR
+### Ein Fix-PR einreichen
 
-Ein Issue vor dem PR ist optional. Fügen Sie Details im PR hinzu, wenn Sie es überspringen. Halten Sie den PR fokussiert, vermerken Sie die Issue-Nummer, fügen Sie Tests hinzu oder erklären Sie deren Fehlen, dokumentieren Sie Verhaltensänderungen/Risiken, legen Sie redigierte Logs/Screenshots als Nachweis bei und führen Sie vor dem Einreichen die entsprechende Validierung aus.
+Ein Issue vor dem PR ist optional. Wenn Sie es überspringen, fügen Sie die Details im PR hinzu. Halten Sie den PR fokussiert, nennen Sie die Issue-Nummer, fügen Sie Tests hinzu oder erklären Sie deren Fehlen, dokumentieren Sie Verhaltensänderungen/Risiken, fügen Sie bereinigte Logs/Screenshots als Nachweis bei und führen Sie vor dem Einreichen die korrekte Validierung aus.

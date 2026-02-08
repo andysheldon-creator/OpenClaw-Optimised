@@ -1,8 +1,8 @@
 ---
 summary: "OpenClaw en DigitalOcean (opción simple de VPS de pago)"
 read_when:
-  - Configurando OpenClaw en DigitalOcean
-  - Buscando hosting VPS económico para OpenClaw
+  - Configuración de OpenClaw en DigitalOcean
+  - Buscando alojamiento VPS económico para OpenClaw
 title: "DigitalOcean"
 x-i18n:
   source_path: platforms/digitalocean.md
@@ -10,14 +10,14 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:59:28Z
+  generated_at: 2026-02-08T09:34:06Z
 ---
 
 # OpenClaw en DigitalOcean
 
 ## Objetivo
 
-Ejecutar un Gateway de OpenClaw persistente en DigitalOcean por **$6/mes** (o $4/mes con precios reservados).
+Ejecutar un Gateway persistente de OpenClaw en DigitalOcean por **$6/mes** (o $4/mes con precios reservados).
 
 Si desea una opción de $0/mes y no le importa ARM + una configuración específica del proveedor, consulte la [guía de Oracle Cloud](/platforms/oracle).
 
@@ -31,7 +31,7 @@ Si desea una opción de $0/mes y no le importa ARM + una configuración específ
 | Vultr        | Cloud Compute   | 1 vCPU, 1GB RAM        | $6          | Muchas ubicaciones                                   |
 | Linode       | Nanode          | 1 vCPU, 1GB RAM        | $5          | Ahora parte de Akamai                                |
 
-**Elegir un proveedor:**
+**Elección de proveedor:**
 
 - DigitalOcean: UX más simple + configuración predecible (esta guía)
 - Hetzner: buena relación precio/rendimiento (ver [guía de Hetzner](/install/hetzner))
@@ -42,7 +42,7 @@ Si desea una opción de $0/mes y no le importa ARM + una configuración específ
 ## Requisitos previos
 
 - Cuenta de DigitalOcean ([registro con $200 de crédito gratis](https://m.do.co/c/signup))
-- Par de claves SSH (o disposición a usar autenticación por contraseña)
+- Par de claves SSH (o disposición para usar autenticación por contraseña)
 - ~20 minutos
 
 ## 1) Crear un Droplet
@@ -57,7 +57,7 @@ Si desea una opción de $0/mes y no le importa ARM + una configuración específ
 4. Haga clic en **Create Droplet**
 5. Anote la dirección IP
 
-## 2) Conectarse por SSH
+## 2) Conectarse vía SSH
 
 ```bash
 ssh root@YOUR_DROPLET_IP
@@ -80,7 +80,7 @@ curl -fsSL https://openclaw.ai/install.sh | bash
 openclaw --version
 ```
 
-## 4) Ejecutar la incorporacion
+## 4) Ejecutar el onboarding
 
 ```bash
 openclaw onboard --install-daemon
@@ -106,9 +106,9 @@ systemctl --user status openclaw-gateway.service
 journalctl --user -u openclaw-gateway.service -f
 ```
 
-## 6) Acceder al Panel
+## 6) Acceder al panel
 
-El Gateway se vincula a loopback por defecto. Para acceder a la UI de Control:
+El Gateway se enlaza a loopback de forma predeterminada. Para acceder a la UI de control:
 
 **Opción A: Túnel SSH (recomendado)**
 
@@ -138,7 +138,7 @@ Notas:
 - Serve mantiene el Gateway solo en loopback y autentica mediante encabezados de identidad de Tailscale.
 - Para requerir token/contraseña en su lugar, configure `gateway.auth.allowTailscale: false` o use `gateway.auth.mode: "password"`.
 
-**Opción C: Enlace al tailnet (sin Serve)**
+**Opción C: Enlace a tailnet (sin Serve)**
 
 ```bash
 openclaw config set gateway.bind tailnet
@@ -163,13 +163,13 @@ openclaw channels login whatsapp
 # Scan QR code
 ```
 
-Vea [Canales](/channels) para otros proveedores.
+Consulte [Canales](/channels) para otros proveedores.
 
 ---
 
 ## Optimizaciones para 1GB de RAM
 
-El droplet de $6 solo tiene 1GB de RAM. Para mantener todo funcionando sin problemas:
+El droplet de $6 solo tiene 1GB de RAM. Para que todo funcione sin problemas:
 
 ### Agregar swap (recomendado)
 
@@ -181,9 +181,9 @@ swapon /swapfile
 echo '/swapfile none swap sw 0 0' >> /etc/fstab
 ```
 
-### Usar un modelo más liviano
+### Usar un modelo más ligero
 
-Si está encontrando OOMs, considere:
+Si está encontrando OOM, considere:
 
 - Usar modelos basados en API (Claude, GPT) en lugar de modelos locales
 - Configurar `agents.defaults.model.primary` a un modelo más pequeño
@@ -201,7 +201,7 @@ htop
 
 Todo el estado vive en:
 
-- `~/.openclaw/` — configuración, credenciales, datos de sesion
+- `~/.openclaw/` — configuración, credenciales, datos de sesión
 - `~/.openclaw/workspace/` — espacio de trabajo (SOUL.md, memoria, etc.)
 
 Estos sobreviven a reinicios. Respáldelos periódicamente:
@@ -225,14 +225,14 @@ Oracle Cloud ofrece instancias ARM **Always Free** que son significativamente m�
 
 **Advertencias:**
 
-- El registro puede ser delicado (intente nuevamente si falla)
-- Arquitectura ARM — la mayoría de las cosas funcionan, pero algunos binarios necesitan builds ARM
+- El registro puede ser delicado (reintente si falla)
+- Arquitectura ARM — la mayoría de las cosas funcionan, pero algunos binarios requieren compilaciones ARM
 
-Para la guía de configuración completa, vea [Oracle Cloud](/platforms/oracle). Para consejos de registro y solucion de problemas del proceso de inscripción, vea esta [guía de la comunidad](https://gist.github.com/rssnyder/51e3cfedd730e7dd5f4a816143b25dbd).
+Para la guía completa de configuración, consulte [Oracle Cloud](/platforms/oracle). Para consejos de registro y solución de problemas del proceso de inscripción, vea esta [guía de la comunidad](https://gist.github.com/rssnyder/51e3cfedd730e7dd5f4a816143b25dbd).
 
 ---
 
-## Solucion de problemas
+## Solución de problemas
 
 ### El Gateway no inicia
 

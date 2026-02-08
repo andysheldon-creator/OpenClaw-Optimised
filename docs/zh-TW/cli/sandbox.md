@@ -1,7 +1,7 @@
 ---
-title: Sandbox CLI
-summary: "管理沙箱容器並檢視有效的沙箱政策"
-read_when: "當你正在管理沙箱容器或除錯沙箱／工具政策行為時。"
+title: 沙箱 CLI
+summary: 「管理沙箱容器並檢視有效的沙箱政策」
+read_when: 「當你正在管理沙箱容器或除錯沙箱／工具政策行為時。」
 status: active
 x-i18n:
   source_path: cli/sandbox.md
@@ -9,22 +9,22 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:52:44Z
+  generated_at: 2026-02-08T09:27:26Z
 ---
 
-# Sandbox CLI
+# 沙箱 CLI
 
 管理以 Docker 為基礎的沙箱容器，用於隔離的代理程式執行。
 
 ## 概覽
 
-OpenClaw 可在隔離的 Docker 容器中執行代理程式以提升安全性。`sandbox` 指令可協助你管理這些容器，特別是在更新或設定變更之後。
+OpenClaw 可以在隔離的 Docker 容器中執行代理程式以提升安全性。`sandbox` 指令可協助你管理這些容器，特別是在更新或設定變更之後。
 
 ## 指令
 
 ### `openclaw sandbox explain`
 
-檢視「有效的」沙箱模式／範圍／工作區存取、沙箱工具政策，以及提升權限的閘道（含修復用的設定金鑰路徑）。
+檢視「有效的」沙箱模式／範圍／工作區存取、沙箱工具政策，以及提升的閘門（含修正設定的金鑰路徑）。
 
 ```bash
 openclaw sandbox explain
@@ -47,13 +47,13 @@ openclaw sandbox list --json     # JSON output
 
 - 容器名稱與狀態（執行中／已停止）
 - Docker 映像與是否符合設定
-- 使用時間（自建立以來的時間）
+- 存在時間（自建立以來的時間）
 - 閒置時間（自上次使用以來的時間）
 - 關聯的工作階段／代理程式
 
 ### `openclaw sandbox recreate`
 
-移除沙箱容器，以強制依更新後的映像／設定重新建立。
+移除沙箱容器以強制使用更新後的映像／設定重新建立。
 
 ```bash
 openclaw sandbox recreate --all                # Recreate all containers
@@ -66,12 +66,12 @@ openclaw sandbox recreate --all --force        # Skip confirmation
 **選項：**
 
 - `--all`：重新建立所有沙箱容器
-- `--session <key>`：重新建立指定工作階段的容器
-- `--agent <id>`：重新建立指定代理程式的容器
+- `--session <key>`：重新建立特定工作階段的容器
+- `--agent <id>`：重新建立特定代理程式的容器
 - `--browser`：僅重新建立瀏覽器容器
 - `--force`：略過確認提示
 
-**重要：** 當代理程式下次使用時，容器會自動重新建立。
+**重要事項：** 當代理程式下次使用時，容器會自動重新建立。
 
 ## 使用情境
 
@@ -113,21 +113,21 @@ openclaw sandbox recreate --agent family
 openclaw sandbox recreate --agent alfred
 ```
 
-## 為什麼需要這個？
+## 為什麼需要這樣做？
 
 **問題：** 當你更新沙箱 Docker 映像或設定時：
 
-- 既有容器會以舊設定持續執行
-- 容器只會在 24 小時無活動後被清理
-- 經常使用的代理程式會讓舊容器無限期持續執行
+- 既有容器會持續以舊設定執行
+- 容器僅會在 24 小時未使用後才被清除
+- 經常使用的代理程式會無限期地維持舊容器在執行
 
-**解決方案：** 使用 `openclaw sandbox recreate` 強制移除舊容器。當下次需要時，它們會以目前設定自動重新建立。
+**解決方案：** 使用 `openclaw sandbox recreate` 強制移除舊容器。它們會在下次需要時，以目前設定自動重新建立。
 
-提示：優先使用 `openclaw sandbox recreate`，而非手動 `docker rm`。它會使用 Gateway 閘道器 的容器命名方式，並避免在範圍／工作階段金鑰變更時發生不一致。
+提示：優先使用 `openclaw sandbox recreate`，而非手動 `docker rm`。它會使用 Gateway 閘道器的容器命名，並在範圍／工作階段金鑰變更時避免不相符。
 
 ## 設定
 
-沙箱設定位於 `~/.openclaw/openclaw.json` 之下的 `agents.defaults.sandbox`（各代理程式的覆寫設定位於 `agents.list[].sandbox`）：
+沙箱設定位於 `~/.openclaw/openclaw.json` 的 `agents.defaults.sandbox` 之下（每個代理程式的覆寫設定位於 `agents.list[].sandbox`）：
 
 ```jsonc
 {
@@ -153,6 +153,6 @@ openclaw sandbox recreate --agent alfred
 
 ## 另請參閱
 
-- [Sandbox 文件](/gateway/sandboxing)
-- [代理程式設定](/concepts/agent-workspace)
-- [Doctor 指令](/gateway/doctor) - 檢查沙箱設定
+- [Sandbox Documentation](/gateway/sandboxing)
+- [Agent Configuration](/concepts/agent-workspace)
+- [Doctor Command](/gateway/doctor) - 檢查沙箱設定

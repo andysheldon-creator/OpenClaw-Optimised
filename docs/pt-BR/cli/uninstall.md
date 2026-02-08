@@ -1,8 +1,8 @@
 ---
-summary: "Referencia da CLI para `openclaw uninstall` (remover o servico do Gateway + dados locais)"
+summary: "Referência da CLI para `openclaw uninstall` (remover o serviço do Gateway + dados locais)"
 read_when:
-  - Voce quer remover o servico do Gateway e/ou o estado local
-  - Voce quer primeiro fazer um dry-run
+  - Você quer remover o serviço do Gateway e/ou o estado local
+  - Você quer fazer um dry-run primeiro
 title: "desinstalar"
 x-i18n:
   source_path: cli/uninstall.md
@@ -10,12 +10,12 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:42Z
+  generated_at: 2026-02-08T09:30:25Z
 ---
 
 # `openclaw uninstall`
 
-Desinstala o servico do Gateway + dados locais (a CLI permanece).
+Desinstala o serviço do Gateway + dados locais (a CLI permanece).
 
 ```bash
 openclaw uninstall

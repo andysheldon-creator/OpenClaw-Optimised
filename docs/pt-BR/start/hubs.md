@@ -1,39 +1,39 @@
 ---
-summary: "Hubs que vinculam a todos os docs do OpenClaw"
+summary: "Hubs que vinculam a todos os documentos do OpenClaw"
 read_when:
   - Você quer um mapa completo da documentação
-title: "Hubs de Docs"
+title: "Hubs de documentos"
 x-i18n:
   source_path: start/hubs.md
-  source_hash: a2e3aa07d6c8c2dc
+  source_hash: 027cb7937ba63866
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:57:32Z
+  generated_at: 2026-02-08T09:32:12Z
 ---
 
-# Hubs de docs
+# Hubs de documentos
 
 <Note>
-Se você é novo no OpenClaw, comece por [Primeiros Passos](/start/getting-started).
+Se você é novo no OpenClaw, comece por [Primeiros passos](/start/getting-started).
 </Note>
 
-Use estes hubs para descobrir todas as páginas, incluindo aprofundamentos e docs de referência que não aparecem na navegação à esquerda.
+Use estes hubs para descobrir todas as páginas, incluindo análises aprofundadas e documentos de referência que não aparecem na navegação lateral.
 
-## Comece por aqui
+## Comece aqui
 
 - [Índice](/)
-- [Primeiros Passos](/start/getting-started)
+- [Primeiros passos](/start/getting-started)
 - [Início rápido](/start/quickstart)
-- [Integração Inicial](/start/onboarding)
+- [Integração inicial](/start/onboarding)
 - [Assistente](/start/wizard)
 - [Configuração](/start/setup)
 - [Painel (Gateway local)](http://127.0.0.1:18789/)
 - [Ajuda](/help)
-- [Diretório de documentação](/start/docs-directory)
+- [Diretório de documentos](/start/docs-directory)
 - [Configuração](/gateway/configuration)
 - [Exemplos de configuração](/gateway/configuration-examples)
-- [Assistente do OpenClaw](/start/openclaw)
+- [Assistente OpenClaw](/start/openclaw)
 - [Vitrine](/start/showcase)
 - [Lore](/start/lore)
 
@@ -42,7 +42,7 @@ Use estes hubs para descobrir todas as páginas, incluindo aprofundamentos e doc
 - [Docker](/install/docker)
 - [Nix](/install/nix)
 - [Atualização / rollback](/install/updating)
-- [Fluxo de trabalho Bun (experimental)](/install/bun)
+- [Fluxo de trabalho com Bun (experimental)](/install/bun)
 
 ## Conceitos centrais
 
@@ -68,13 +68,13 @@ Use estes hubs para descobrir todas as páginas, incluindo aprofundamentos e doc
 - [Presença](/concepts/presence)
 - [Descoberta + transportes](/gateway/discovery)
 - [Bonjour](/gateway/bonjour)
-- [Roteamento de canais](/concepts/channel-routing)
-- [Grupos](/concepts/groups)
-- [Mensagens de grupo](/concepts/group-messages)
+- [Roteamento de canais](/channels/channel-routing)
+- [Grupos](/channels/groups)
+- [Mensagens de grupo](/channels/group-messages)
 - [Failover de modelo](/concepts/model-failover)
 - [OAuth](/concepts/oauth)
 
-## Provedores + ingressão
+## Provedores + ingestão
 
 - [Hub de canais de chat](/channels)
 - [Hub de provedores de modelo](/providers/models)
@@ -121,12 +121,12 @@ Use estes hubs para descobrir todas as páginas, incluindo aprofundamentos e doc
 - [Modo elevado](/tools/elevated)
 - [Tarefas Cron](/automation/cron-jobs)
 - [Cron vs Heartbeat](/automation/cron-vs-heartbeat)
-- [Pensamento + verboso](/tools/thinking)
+- [Thinking + verbose](/tools/thinking)
 - [Modelos](/concepts/models)
 - [Subagentes](/tools/subagents)
-- [CLI de envio do agente](/tools/agent-send)
-- [UI de terminal](/tui)
-- [Controle do navegador](/tools/browser)
+- [CLI de envio de agente](/tools/agent-send)
+- [UI de terminal](/web/tui)
+- [Controle de navegador](/tools/browser)
 - [Navegador (solução de problemas no Linux)](/tools/browser-linux-troubleshooting)
 - [Enquetes](/automation/poll)
 
@@ -150,14 +150,14 @@ Use estes hubs para descobrir todas as páginas, incluindo aprofundamentos e doc
 - [Linux](/platforms/linux)
 - [Superfícies web](/web)
 
-## App complementar do macOS (avançado)
+## Aplicativo complementar do macOS (avançado)
 
 - [Configuração de desenvolvimento no macOS](/platforms/mac/dev-setup)
-- [Barra de menu do macOS](/platforms/mac/menu-bar)
+- [Barra de menus do macOS](/platforms/mac/menu-bar)
 - [Ativação por voz no macOS](/platforms/mac/voicewake)
-- [Overlay de voz no macOS](/platforms/mac/voice-overlay)
+- [Sobreposição de voz no macOS](/platforms/mac/voice-overlay)
 - [WebChat no macOS](/platforms/mac/webchat)
-- [Canvas no macOS](/platforms/mac/canvas)
+- [Canvas do macOS](/platforms/mac/canvas)
 - [Processo filho no macOS](/platforms/mac/child-process)
 - [Saúde no macOS](/platforms/mac/health)
 - [Ícone do macOS](/platforms/mac/icon)
@@ -165,25 +165,25 @@ Use estes hubs para descobrir todas as páginas, incluindo aprofundamentos e doc
 - [Permissões no macOS](/platforms/mac/permissions)
 - [Remoto no macOS](/platforms/mac/remote)
 - [Assinatura no macOS](/platforms/mac/signing)
-- [Release no macOS](/platforms/mac/release)
+- [Lançamento no macOS](/platforms/mac/release)
 - [Gateway no macOS (launchd)](/platforms/mac/bundled-gateway)
 - [XPC no macOS](/platforms/mac/xpc)
 - [Skills no macOS](/platforms/mac/skills)
 - [Peekaboo no macOS](/platforms/mac/peekaboo)
 
-## Workspace + templates
+## Workspace + modelos
 
 - [Skills](/tools/skills)
 - [ClawHub](/tools/clawhub)
 - [Configuração de Skills](/tools/skills-config)
 - [AGENTS padrão](/reference/AGENTS.default)
-- [Templates: AGENTS](/reference/templates/AGENTS)
-- [Templates: BOOTSTRAP](/reference/templates/BOOTSTRAP)
-- [Templates: HEARTBEAT](/reference/templates/HEARTBEAT)
-- [Templates: IDENTITY](/reference/templates/IDENTITY)
-- [Templates: SOUL](/reference/templates/SOUL)
-- [Templates: TOOLS](/reference/templates/TOOLS)
-- [Templates: USER](/reference/templates/USER)
+- [Modelos: AGENTS](/reference/templates/AGENTS)
+- [Modelos: BOOTSTRAP](/reference/templates/BOOTSTRAP)
+- [Modelos: HEARTBEAT](/reference/templates/HEARTBEAT)
+- [Modelos: IDENTITY](/reference/templates/IDENTITY)
+- [Modelos: SOUL](/reference/templates/SOUL)
+- [Modelos: TOOLS](/reference/templates/TOOLS)
+- [Modelos: USER](/reference/templates/USER)
 
 ## Experimentos (exploratórios)
 
@@ -197,8 +197,8 @@ Use estes hubs para descobrir todas as páginas, incluindo aprofundamentos e doc
 
 - [Créditos](/reference/credits)
 
-## Testes + release
+## Testes + lançamento
 
 - [Testes](/reference/test)
-- [Checklist de release](/reference/RELEASING)
+- [Checklist de lançamento](/reference/RELEASING)
 - [Modelos de dispositivos](/reference/device-models)

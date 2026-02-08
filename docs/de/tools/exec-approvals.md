@@ -1,45 +1,45 @@
 ---
-summary: "Exec-Genehmigungen, Allowlists und Sandbox-Escape-Prompts"
+summary: „Exec-Freigaben, Allowlists und Sandbox-Escape-Prompts“
 read_when:
-  - Konfigurieren von Exec-Genehmigungen oder Allowlists
-  - Implementieren der Exec-Genehmigungs-UX in der macOS-App
-  - Überprüfen von Sandbox-Escape-Prompts und deren Auswirkungen
-title: "Exec-Genehmigungen"
+  - Konfigurieren von Exec-Freigaben oder Allowlists
+  - Implementierung der Exec-Freigabe-UX in der macOS-App
+  - Überprüfung von Sandbox-Escape-Prompts und deren Auswirkungen
+title: „Exec-Freigaben“
 x-i18n:
   source_path: tools/exec-approvals.md
-  source_hash: 97736427752eb905
+  source_hash: 66630b5d79671dd4
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:56Z
+  generated_at: 2026-02-08T09:37:51Z
 ---
 
-# Exec-Genehmigungen
+# Exec-Freigaben
 
-Exec-Genehmigungen sind die **Begleit-App-/Node-Host-Schutzmaßnahme**, mit der ein in einer Sandbox befindlicher Agent
-Befehle auf einem realen Host ausführen darf (`gateway` oder `node`). Stellen Sie es sich wie eine Sicherheitsverriegelung vor:
-Befehle sind nur erlaubt, wenn Richtlinie + Allowlist + (optionale) Benutzerfreigabe übereinstimmen.
-Exec-Genehmigungen gelten **zusätzlich** zur Tool-Richtlinie und zur erhöhten Freigabe (es sei denn, „elevated“ ist auf `full` gesetzt, wodurch Genehmigungen übersprungen werden).
-Die wirksame Richtlinie ist die **strengere** aus `tools.exec.*` und den Standardwerten der Genehmigungen; wenn ein Genehmigungsfeld fehlt, wird der Wert `tools.exec` verwendet.
+Exec-Freigaben sind die **Companion-App-/Node-Host-Schutzmaßnahme**, um einem in einer Sandbox laufenden Agenten das Ausführen von
+Befehlen auf einem echten Host zu erlauben (`gateway` oder `node`). Stellen Sie sich dies wie eine Sicherheitsverriegelung vor:
+Befehle werden nur zugelassen, wenn Richtlinie + Allowlist + (optionale) Benutzerfreigabe übereinstimmen.
+Exec-Freigaben gelten **zusätzlich** zur Tool-Richtlinie und zum Elevated-Gating (außer wenn Elevated auf `full` gesetzt ist, wodurch Freigaben übersprungen werden).
+Die wirksame Richtlinie ist die **strengere** aus `tools.exec.*` und den Standardwerten der Freigaben; wenn ein Freigabefeld ausgelassen wird, wird der Wert `tools.exec` verwendet.
 
-Wenn die UI der Begleit-App **nicht verfügbar** ist, wird jede Anfrage, die eine Abfrage erfordert,
+Wenn die Companion-App-UI **nicht verfügbar** ist, wird jede Anfrage, die eine Abfrage erfordert,
 durch den **Ask-Fallback** aufgelöst (Standard: verweigern).
 
 ## Geltungsbereich
 
-Exec-Genehmigungen werden lokal auf dem Ausführungs-Host erzwungen:
+Exec-Freigaben werden lokal auf dem Ausführungshost durchgesetzt:
 
 - **Gateway-Host** → `openclaw`-Prozess auf der Gateway-Maschine
-- **Node-Host** → Node-Runner (macOS-Begleit-App oder headless Node-Host)
+- **Node-Host** → Node-Runner (macOS-Companion-App oder Headless-Node-Host)
 
 macOS-Aufteilung:
 
-- **Node-Host-Dienst** leitet `system.run` über lokales IPC an die **macOS-App** weiter.
-- **macOS-App** erzwingt Genehmigungen + führt den Befehl im UI-Kontext aus.
+- **Node-Host-Service** leitet `system.run` über lokales IPC an die **macOS-App** weiter.
+- **macOS-App** setzt Freigaben durch und führt den Befehl im UI-Kontext aus.
 
 ## Einstellungen und Speicherung
 
-Genehmigungen liegen in einer lokalen JSON-Datei auf dem Ausführungs-Host:
+Freigaben liegen in einer lokalen JSON-Datei auf dem Ausführungshost:
 
 `~/.openclaw/exec-approvals.json`
 
@@ -78,13 +78,13 @@ Beispielschema:
 }
 ```
 
-## Richtlinien-Parameter
+## Richtlinienoptionen
 
 ### Sicherheit (`exec.security`)
 
 - **deny**: alle Host-Exec-Anfragen blockieren.
 - **allowlist**: nur allowlistete Befehle zulassen.
-- **full**: alles zulassen (entspricht elevated).
+- **full**: alles zulassen (entspricht Elevated).
 
 ### Ask (`exec.ask`)
 
@@ -102,18 +102,18 @@ Wenn eine Abfrage erforderlich ist, aber keine UI erreichbar ist, entscheidet de
 
 ## Allowlist (pro Agent)
 
-Allowlists sind **pro Agent**. Wenn mehrere Agenten existieren, wechseln Sie in der macOS-App,
-welchen Agenten Sie bearbeiten. Muster sind **groß-/kleinschreibungsunabhängige Glob-Matches**.
-Muster sollten zu **Binärpfaden** auflösen (Einträge nur mit Basisnamen werden ignoriert).
+Allowlists sind **pro Agent**. Wenn mehrere Agenten existieren, wechseln Sie in der
+macOS-App den Agenten, den Sie bearbeiten. Muster sind **groß-/kleinschreibungsunabhängige Glob-Matches**.
+Muster sollten zu **Binärpfaden** aufgelöst werden (Einträge nur mit Basename werden ignoriert).
 Legacy-`agents.default`-Einträge werden beim Laden zu `agents.main` migriert.
 
 Beispiele:
 
-- `~/Projects/**/bin/bird`
+- `~/Projects/**/bin/peekaboo`
 - `~/.local/bin/*`
 - `/opt/homebrew/bin/rg`
 
-Jeder Allowlist-Eintrag verfolgt:
+Jeder Allowlist-Eintrag erfasst:
 
 - **id** stabile UUID für die UI-Identität (optional)
 - **last used** Zeitstempel
@@ -122,47 +122,47 @@ Jeder Allowlist-Eintrag verfolgt:
 
 ## Auto-Allow für Skill-CLIs
 
-Wenn **Auto-allow skill CLIs** aktiviert ist, werden von bekannten Skills referenzierte
-ausführbare Dateien auf Nodes (macOS-Node oder headless Node-Host) als allowlistet behandelt. Dies verwendet
-`skills.bins` über die Gateway-RPC, um die Skill-Bin-Liste abzurufen. Deaktivieren Sie dies, wenn Sie strikte manuelle Allowlists wünschen.
+Wenn **Auto-Allow für Skill-CLIs** aktiviert ist, werden von bekannten Skills referenzierte
+ausführbare Dateien auf Nodes (macOS-Node oder Headless-Node-Host) als allowlistet behandelt. Dies verwendet
+`skills.bins` über Gateway-RPC, um die Skill-Bin-Liste abzurufen. Deaktivieren Sie dies, wenn Sie strikte manuelle Allowlists wünschen.
 
-## Safe Bins (nur stdin)
+## Sichere Bins (nur stdin)
 
-`tools.exec.safeBins` definiert eine kleine Liste von **stdin-only**-Binaries (z. B. `jq`),
-die im Allowlist-Modus **ohne** explizite Allowlist-Einträge ausgeführt werden können. Safe Bins lehnen
-positionsabhängige Dateiargumente und pfadähnliche Tokens ab, sodass sie nur auf dem eingehenden Stream arbeiten können.
+`tools.exec.safeBins` definiert eine kleine Liste von **stdin-only**-Binärdateien (z. B. `jq`),
+die im Allowlist-Modus **ohne** explizite Allowlist-Einträge ausgeführt werden dürfen. Sichere Bins verwerfen
+positionale Dateiargumente und pfadähnliche Token, sodass sie nur auf dem eingehenden Stream arbeiten können.
 Shell-Verkettungen und Umleitungen werden im Allowlist-Modus nicht automatisch erlaubt.
 
 Shell-Verkettung (`&&`, `||`, `;`) ist erlaubt, wenn jedes Top-Level-Segment die Allowlist erfüllt
-(einschließlich Safe Bins oder Skill-Auto-Allow). Umleitungen bleiben im Allowlist-Modus nicht unterstützt.
-Command Substitution (`$()` / Backticks) wird während der Allowlist-Analyse abgelehnt, auch innerhalb
+(einschließlich sicherer Bins oder Skill-Auto-Allow). Umleitungen bleiben im Allowlist-Modus nicht unterstützt.
+Befehlsersetzung (`$()` / Backticks) wird während der Allowlist-Analyse abgelehnt, auch innerhalb
 doppelter Anführungszeichen; verwenden Sie einfache Anführungszeichen, wenn Sie wörtlichen `$()`-Text benötigen.
 
-Standard-Safe-Bins: `jq`, `grep`, `cut`, `sort`, `uniq`, `head`, `tail`, `tr`, `wc`.
+Standardmäßige sichere Bins: `jq`, `grep`, `cut`, `sort`, `uniq`, `head`, `tail`, `tr`, `wc`.
 
-## Bearbeitung in der Control UI
+## Bearbeitung über die Control UI
 
-Verwenden Sie die Karte **Control UI → Nodes → Exec-Genehmigungen**, um Standardwerte, pro‑Agent‑Überschreibungen
-und Allowlists zu bearbeiten. Wählen Sie einen Geltungsbereich (Standards oder einen Agenten), passen Sie die Richtlinie an,
-fügen Sie Allowlist-Muster hinzu oder entfernen Sie sie und klicken Sie dann auf **Save**. Die UI zeigt **last used**‑Metadaten
-pro Muster an, damit Sie die Liste übersichtlich halten können.
+Verwenden Sie die Karte **Control UI → Nodes → Exec-Freigaben**, um Standardwerte, agentenspezifische
+Überschreibungen und Allowlists zu bearbeiten. Wählen Sie einen Geltungsbereich (Standardwerte oder einen Agenten),
+passen Sie die Richtlinie an, fügen Sie Allowlist-Muster hinzu oder entfernen Sie sie und klicken Sie dann auf **Save**.
+Die UI zeigt **last used**-Metadaten pro Muster an, damit Sie die Liste übersichtlich halten können.
 
-Der Zielselektor wählt **Gateway** (lokale Genehmigungen) oder einen **Node**. Nodes
-müssen `system.execApprovals.get/set` ankündigen (macOS-App oder headless Node-Host).
-Wenn ein Node Exec-Genehmigungen noch nicht ankündigt, bearbeiten Sie dessen lokale
+Der Zielselektor wählt **Gateway** (lokale Freigaben) oder einen **Node**. Nodes
+müssen `system.execApprovals.get/set` bewerben (macOS-App oder Headless-Node-Host).
+Wenn ein Node noch keine Exec-Freigaben bewirbt, bearbeiten Sie dessen lokale
 `~/.openclaw/exec-approvals.json` direkt.
 
 CLI: `openclaw approvals` unterstützt die Bearbeitung von Gateway oder Node (siehe [Approvals CLI](/cli/approvals)).
 
-## Genehmigungsablauf
+## Freigabeablauf
 
 Wenn eine Abfrage erforderlich ist, sendet das Gateway `exec.approval.requested` an Operator-Clients.
-Die Control UI und die macOS-App lösen dies über `exec.approval.resolve` auf; anschließend leitet das Gateway die
-genehmigte Anfrage an den Node-Host weiter.
+Die Control UI und die macOS-App lösen dies über `exec.approval.resolve` auf, anschließend leitet das Gateway die
+freigegebene Anfrage an den Node-Host weiter.
 
-Wenn Genehmigungen erforderlich sind, gibt das Exec-Tool sofort mit einer Genehmigungs-ID zurück. Verwenden Sie diese ID,
-um spätere Systemereignisse zu korrelieren (`Exec finished` / `Exec denied`). Geht vor dem
-Timeout keine Entscheidung ein, wird die Anfrage als Genehmigungs-Timeout behandelt und als Ablehnungsgrund angezeigt.
+Wenn Freigaben erforderlich sind, gibt das Exec-Tool sofort mit einer Freigabe-ID zurück. Verwenden Sie diese ID, um
+spätere Systemereignisse zu korrelieren (`Exec finished` / `Exec denied`). Trifft vor Ablauf des
+Timeouts keine Entscheidung ein, wird die Anfrage als Freigabe-Timeout behandelt und als Ablehnungsgrund angezeigt.
 
 Der Bestätigungsdialog enthält:
 
@@ -170,18 +170,18 @@ Der Bestätigungsdialog enthält:
 - cwd
 - Agent-ID
 - aufgelöster Pfad der ausführbaren Datei
-- Host- + Richtlinienmetadaten
+- Host- und Richtlinienmetadaten
 
 Aktionen:
 
-- **Einmal zulassen** → jetzt ausführen
-- **Immer zulassen** → zur Allowlist hinzufügen + ausführen
-- **Verweigern** → blockieren
+- **Allow once** → jetzt ausführen
+- **Always allow** → zur Allowlist hinzufügen + ausführen
+- **Deny** → blockieren
 
-## Weiterleitung von Genehmigungen an Chat-Kanäle
+## Weiterleitung von Freigaben an Chat-Kanäle
 
-Sie können Exec-Genehmigungsabfragen an jeden Chat-Kanal (einschließlich Plugin-Kanälen) weiterleiten und sie mit
-`/approve` genehmigen. Dies verwendet die normale Outbound-Delivery-Pipeline.
+Sie können Exec-Freigabe-Prompts an jeden Chat-Kanal (einschließlich Plugin-Kanälen) weiterleiten und
+sie mit `/approve` freigeben. Dies verwendet die normale Outbound-Delivery-Pipeline.
 
 Konfiguration:
 
@@ -227,24 +227,24 @@ Sicherheitshinweise:
 
 ## Systemereignisse
 
-Der Exec-Lebenszyklus wird als Systemmeldungen angezeigt:
+Der Exec-Lebenszyklus wird als Systemmeldungen ausgegeben:
 
-- `Exec running` (nur wenn der Befehl den Hinweis-Schwellenwert für „läuft“ überschreitet)
+- `Exec running` (nur wenn der Befehl die Laufzeit-Benachrichtigungsschwelle überschreitet)
 - `Exec finished`
 - `Exec denied`
 
-Diese werden in der Sitzung des Agenten gepostet, nachdem der Node das Ereignis meldet.
-Gateway-Host-Exec-Genehmigungen senden dieselben Lebenszyklusereignisse, wenn der Befehl beendet ist (und optional, wenn er länger als der Schwellenwert läuft).
-Durch Genehmigungen gesteuerte Execs verwenden die Genehmigungs-ID als `runId` in diesen Meldungen zur einfachen Korrelation.
+Diese werden in der Sitzung des Agenten gepostet, nachdem der Node das Ereignis gemeldet hat.
+Exec-Freigaben auf dem Gateway-Host geben dieselben Lebenszyklusereignisse aus, wenn der Befehl beendet ist (und optional, wenn er länger als die Schwelle läuft).
+Freigabe-gebundene Execs verwenden die Freigabe-ID als `runId` in diesen Meldungen zur einfachen Korrelation.
 
 ## Auswirkungen
 
 - **full** ist mächtig; bevorzugen Sie nach Möglichkeit Allowlists.
-- **ask** hält Sie eingebunden und erlaubt dennoch schnelle Genehmigungen.
-- Pro-Agent-Allowlists verhindern, dass Genehmigungen eines Agenten in andere durchsickern.
-- Genehmigungen gelten nur für Host-Exec-Anfragen von **autorisierten Absendern**. Nicht autorisierte Absender können kein `/exec` auslösen.
-- `/exec security=full` ist eine sitzungsweite Komfortfunktion für autorisierte Operatoren und überspringt Genehmigungen bewusst.
-  Um Host-Exec hart zu blockieren, setzen Sie die Genehmigungssicherheit auf `deny` oder verweigern Sie das `exec`-Tool über die Tool-Richtlinie.
+- **ask** hält Sie eingebunden und ermöglicht dennoch schnelle Freigaben.
+- Pro-Agent-Allowlists verhindern, dass Freigaben eines Agenten auf andere übergreifen.
+- Freigaben gelten nur für Host-Exec-Anfragen von **autorisierten Absendern**. Nicht autorisierte Absender können `/exec` nicht ausführen.
+- `/exec security=full` ist eine sitzungsweite Komfortfunktion für autorisierte Operatoren und überspringt Freigaben bewusst.
+  Um Host-Exec hart zu blockieren, setzen Sie die Freigabe-Sicherheit auf `deny` oder verweigern Sie das Werkzeug `exec` über die Tool-Richtlinie.
 
 Verwandt:
 

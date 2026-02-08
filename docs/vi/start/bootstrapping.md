@@ -1,10 +1,10 @@
 ---
-summary: "Nghi thức khoi dong ban dau cho tac tu, gieo thiet lap khong gian lam viec va cac tep nhan dang"
+summary: "Nghi thức khởi tạo tác tử gieo mầm không gian làm việc và các tệp danh tính"
 read_when:
-  - Hieu dieu gi xay ra trong lan chay tac tu dau tien
-  - Giai thich cac tep khoi dong ban dau nam o dau
-  - Xu ly su co thiet lap nhan dang trong onboarding
-title: "Khoi Dong Ban Dau Tac Tu"
+  - Hiểu điều gì xảy ra ở lần chạy tác tử đầu tiên
+  - Giải thích nơi các tệp khởi tạo nằm ở đâu
+  - Gỡ lỗi thiết lập danh tính trong quá trình hướng dẫn ban đầu
+title: "Khởi tạo tác tử"
 sidebarTitle: "Bootstrapping"
 x-i18n:
   source_path: start/bootstrapping.md
@@ -12,35 +12,37 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:08:25Z
+  generated_at: 2026-02-08T09:40:09Z
 ---
 
-# Khoi Dong Ban Dau Tac Tu
+# Khởi tạo tác tử
 
-Khoi dong ban dau la nghi thuc **lan chay dau tien** chuan bi khong gian lam viec cho tac tu va
-thu thap thong tin nhan dang. No xay ra sau onboarding, khi tac tu khoi dong lan dau tien.
+Bootstrapping là nghi thức **chạy lần đầu** chuẩn bị không gian làm việc của tác tử và
+thu thập thông tin danh tính. Nó diễn ra sau onboarding, khi tác tử khởi động
+lần đầu tiên.
 
-## Khoi dong ban dau lam gi
+## Bootstrapping làm gì
 
-Trong lan chay tac tu dau tien, OpenClaw tien hanh khoi dong ban dau khong gian lam viec (mac dinh
+Ở lần chạy tác tử đầu tiên, OpenClaw khởi tạo không gian làm việc (mặc định
 `~/.openclaw/workspace`):
 
-- Tao cac tep `AGENTS.md`, `BOOTSTRAP.md`, `IDENTITY.md`, `USER.md`.
-- Chay mot nghi thuc Hoi & Dap ngan (tung cau hoi mot).
-- Ghi nhan dang + tuy chon vao `IDENTITY.md`, `USER.md`, `SOUL.md`.
-- Xoa `BOOTSTRAP.md` khi hoan tat de chi chay mot lan.
+- Gieo mầm `AGENTS.md`, `BOOTSTRAP.md`, `IDENTITY.md`, `USER.md`.
+- Chạy một nghi thức hỏi & đáp ngắn (mỗi lần một câu hỏi).
+- Ghi danh tính + tùy chọn vào `IDENTITY.md`, `USER.md`, `SOUL.md`.
+- Xóa `BOOTSTRAP.md` khi hoàn tất để đảm bảo chỉ chạy một lần.
 
-## No chay o dau
+## Nơi nó chạy
 
-Khoi dong ban dau luon chay tren **gateway host**. Neu ung dung macOS ket noi toi mot Gateway tu xa,
-khong gian lam viec va cac tep khoi dong ban dau nam tren may tu xa do.
+Bootstrapping luôn chạy trên **máy chủ gateway**. Nếu ứng dụng macOS kết nối tới
+một Gateway từ xa, không gian làm việc và các tệp bootstrapping sẽ nằm trên máy
+từ xa đó.
 
 <Note>
-Khi Gateway chay tren mot may khac, hay chinh sua cac tep khong gian lam viec tren gateway host
-(vi du, `user@gateway-host:~/.openclaw/workspace`).
+Khi Gateway chạy trên một máy khác, hãy chỉnh sửa các tệp không gian làm việc trên
+máy chủ gateway (ví dụ: `user@gateway-host:~/.openclaw/workspace`).
 </Note>
 
-## Tai lieu lien quan
+## Tài liệu liên quan
 
-- Onboarding ung dung macOS: [Onboarding](/start/onboarding)
-- Bo cuc khong gian lam viec: [Agent workspace](/concepts/agent-workspace)
+- Onboarding ứng dụng macOS: [Onboarding](/start/onboarding)
+- Bố cục không gian làm việc: [Agent workspace](/concepts/agent-workspace)

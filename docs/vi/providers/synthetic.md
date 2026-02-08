@@ -1,7 +1,7 @@
 ---
 summary: "Sử dụng API tương thích Anthropic của Synthetic trong OpenClaw"
 read_when:
-  - Bạn muốn dùng Synthetic làm nhà cung cấp mô hình
+  - Bạn muốn sử dụng Synthetic làm nhà cung cấp mô hình
   - Bạn cần thiết lập khóa API hoặc base URL của Synthetic
 title: "Synthetic"
 x-i18n:
@@ -10,18 +10,18 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:08:10Z
+  generated_at: 2026-02-08T09:40:00Z
 ---
 
 # Synthetic
 
-Synthetic cung cấp các endpoint tương thích Anthropic. OpenClaw đăng ký nó là
-nhà cung cấp `synthetic` và sử dụng Anthropic Messages API.
+Synthetic cung cấp các endpoint tương thích Anthropic. OpenClaw đăng ký nó là nhà cung cấp
+`synthetic` và sử dụng Anthropic Messages API.
 
-## Khoi dong nhanh
+## Thiết lập nhanh
 
 1. Đặt `SYNTHETIC_API_KEY` (hoặc chạy trình hướng dẫn bên dưới).
-2. Chạy huong dan ban dau:
+2. Chạy hướng dẫn ban đầu:
 
 ```bash
 openclaw onboard --auth-choice synthetic-api-key
@@ -68,13 +68,13 @@ synthetic/hf:MiniMaxAI/MiniMax-M2.1
 }
 ```
 
-Lưu ý: Ứng dụng khách Anthropic của OpenClaw thêm `/v1` vào base URL, vì vậy hãy dùng
+Lưu ý: Ứng dụng khách Anthropic của OpenClaw sẽ thêm `/v1` vào base URL, vì vậy hãy dùng
 `https://api.synthetic.new/anthropic` (không phải `/anthropic/v1`). Nếu Synthetic thay đổi
-base URL của họ, hãy ghi đè `models.providers.synthetic.baseUrl`.
+base URL, hãy ghi đè `models.providers.synthetic.baseUrl`.
 
 ## Danh mục mô hình
 
-Tất cả các mô hình bên dưới đều dùng chi phí `0` (đầu vào/đầu ra/bộ nhớ đệm).
+Tất cả các mô hình dưới đây đều dùng chi phí `0` (input/output/cache).
 
 | Model ID                                               | Cửa sổ ngữ cảnh | Số token tối đa | Lập luận | Đầu vào      |
 | ------------------------------------------------------ | --------------- | --------------- | -------- | ------------ |
@@ -103,4 +103,4 @@ Tất cả các mô hình bên dưới đều dùng chi phí `0` (đầu vào/đ
 - Tham chiếu mô hình dùng `synthetic/<modelId>`.
 - Nếu bạn bật danh sách cho phép mô hình (`agents.defaults.models`), hãy thêm mọi mô hình bạn
   dự định sử dụng.
-- Xem [Model providers](/concepts/model-providers) để biết quy tắc của nhà cung cấp.
+- Xem [Model providers](/concepts/model-providers) để biết các quy tắc của nhà cung cấp.

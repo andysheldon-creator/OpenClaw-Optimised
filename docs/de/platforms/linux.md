@@ -1,28 +1,28 @@
 ---
-summary: "Linux-Unterstützung + Status der Begleit-App"
+summary: „Linux-Unterstützung + Status der Companion-App“
 read_when:
-  - Sie suchen nach dem Status der Linux-Begleit-App
-  - Sie planen Plattformabdeckung oder Beiträge
-title: "Linux-App"
+  - Status der Linux-Companion-App gesucht wird
+  - Plattformabdeckung oder Beiträge geplant werden
+title: „Linux-App“
 x-i18n:
   source_path: platforms/linux.md
   source_hash: 93b8250cd1267004
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:00Z
+  generated_at: 2026-02-08T09:36:47Z
 ---
 
 # Linux-App
 
 Der Gateway wird unter Linux vollständig unterstützt. **Node ist die empfohlene Laufzeitumgebung**.
-Bun wird für den Gateway nicht empfohlen (WhatsApp/Telegram-Bugs).
+Bun wird für den Gateway nicht empfohlen (WhatsApp-/Telegram-Bugs).
 
-Native Linux-Begleit-Apps sind geplant. Beiträge sind willkommen, wenn Sie beim Aufbau helfen möchten.
+Native Linux-Companion-Apps sind geplant. Beiträge sind willkommen, wenn Sie beim Aufbau einer solchen App helfen möchten.
 
-## Einsteiger-Schnellpfad (VPS)
+## Schneller Einstieg für Anfänger (VPS)
 
-1. Installieren Sie Node 22+
+1. Node 22+ installieren
 2. `npm i -g openclaw@latest`
 3. `openclaw onboard --install-daemon`
 4. Von Ihrem Laptop aus: `ssh -N -L 18789:127.0.0.1:18789 <user>@<host>`
@@ -41,7 +41,7 @@ Schritt-für-Schritt-VPS-Anleitung: [exe.dev](/install/exe-dev)
 - [Gateway-Runbook](/gateway)
 - [Konfiguration](/gateway/configuration)
 
-## Gateway-Service-Installation (CLI)
+## Gateway-Service installieren (CLI)
 
 Verwenden Sie eine der folgenden Optionen:
 
@@ -61,7 +61,7 @@ Oder:
 openclaw configure
 ```
 
-Wählen Sie bei der Aufforderung **Gateway service** aus.
+Wählen Sie **Gateway service**, wenn Sie dazu aufgefordert werden.
 
 Reparieren/Migrieren:
 
@@ -69,9 +69,9 @@ Reparieren/Migrieren:
 openclaw doctor
 ```
 
-## Systemsteuerung (systemd user unit)
+## Systemsteuerung (systemd-User-Unit)
 
-OpenClaw installiert standardmäßig einen systemd-**user**-Service. Verwenden Sie einen **system**-Service für gemeinsam genutzte oder dauerhaft aktive Server. Das vollständige Unit-Beispiel und Hinweise finden Sie im [Gateway-Runbook](/gateway).
+OpenClaw installiert standardmäßig einen systemd-**User**-Service. Verwenden Sie einen **System**-Service für gemeinsam genutzte oder dauerhaft laufende Server. Das vollständige Unit-Beispiel und Hinweise finden Sie im [Gateway-Runbook](/gateway).
 
 Minimale Einrichtung:
 

@@ -1,21 +1,21 @@
 ---
-summary: "修復在 Linux 上用於 OpenClaw 瀏覽器控制的 Chrome/Brave/Edge/Chromium CDP 啟動問題"
-read_when: "在 Linux 上瀏覽器控制失敗，尤其是使用 snap Chromium 時"
-title: "瀏覽器疑難排解"
+summary: 「修復 Linux 上用於 OpenClaw 瀏覽器控制的 Chrome / Brave / Edge / Chromium CDP 啟動問題」
+read_when: 「在 Linux 上瀏覽器控制失敗，特別是使用 snap Chromium 時」
+title: 「瀏覽器疑難排解」
 x-i18n:
   source_path: tools/browser-linux-troubleshooting.md
   source_hash: bac2301022511a0b
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:54:49Z
+  generated_at: 2026-02-08T09:29:24Z
 ---
 
 # 瀏覽器疑難排解（Linux）
 
 ## 問題：「Failed to start Chrome CDP on port 18800」
 
-OpenClaw 的瀏覽器控制伺服器在啟動 Chrome/Brave/Edge/Chromium 時失敗，並出現錯誤：
+OpenClaw 的瀏覽器控制伺服器在啟動 Chrome / Brave / Edge / Chromium 時失敗，並顯示錯誤：
 
 ```
 {"error":"Error: Failed to start Chrome CDP on port 18800 for profile \"openclaw\"."}
@@ -23,9 +23,9 @@ OpenClaw 的瀏覽器控制伺服器在啟動 Chrome/Brave/Edge/Chromium 時失�
 
 ### 根本原因
 
-在 Ubuntu（以及許多 Linux 發行版）上，預設的 Chromium 安裝是 **snap 套件**。Snap 的 AppArmor 限制會干擾 OpenClaw 啟動與監控瀏覽器處理程序的方式。
+在 Ubuntu（以及許多 Linux 發行版）上，預設的 Chromium 安裝是 **snap 套件**。Snap 的 AppArmor 侷限會干擾 OpenClaw 啟動與監控瀏覽器處理程序的方式。
 
-`apt install chromium` 指令會安裝一個重新導向至 snap 的存根套件：
+`apt install chromium` 指令會安裝一個重新導向到 snap 的 stub 套件：
 
 ```
 Note, selecting 'chromium-browser' instead of 'chromium'
@@ -57,7 +57,7 @@ sudo apt --fix-broken install -y  # if there are dependency errors
 }
 ```
 
-### 解決方案 2：以僅附加模式使用 Snap Chromium
+### 解決方案 2：搭配「僅附加」模式使用 Snap Chromium
 
 如果你必須使用 snap Chromium，請將 OpenClaw 設定為附加到手動啟動的瀏覽器：
 
@@ -119,21 +119,21 @@ curl -s http://127.0.0.1:18791/tabs
 
 ### 設定參考
 
-| Option                   | Description                                                     | Default                                            |
-| ------------------------ | --------------------------------------------------------------- | -------------------------------------------------- |
-| `browser.enabled`        | 啟用瀏覽器控制                                                  | `true`                                             |
-| `browser.executablePath` | Chromium 系列瀏覽器的可執行檔路徑（Chrome/Brave/Edge/Chromium） | 自動偵測（優先使用以 Chromium 為基礎的預設瀏覽器） |
-| `browser.headless`       | 無 GUI 執行                                                     | `false`                                            |
-| `browser.noSandbox`      | 新增 `--no-sandbox` 旗標（某些 Linux 設定需要）                 | `false`                                            |
-| `browser.attachOnly`     | 不啟動瀏覽器，僅附加到既有實例                                  | `false`                                            |
-| `browser.cdpPort`        | Chrome DevTools Protocol 連接埠                                 | `18800`                                            |
+| 選項                     | 說明                                                                | 預設值                                         |
+| ------------------------ | ------------------------------------------------------------------- | ---------------------------------------------- |
+| `browser.enabled`        | 啟用瀏覽器控制                                                      | `true`                                         |
+| `browser.executablePath` | Chromium 系列瀏覽器二進位檔路徑（Chrome / Brave / Edge / Chromium） | 自動偵測（偏好 Chromium 系列的系統預設瀏覽器） |
+| `browser.headless`       | 以無 GUI 模式執行                                                   | `false`                                        |
+| `browser.noSandbox`      | 新增 `--no-sandbox` 旗標（某些 Linux 環境需要）                     | `false`                                        |
+| `browser.attachOnly`     | 不啟動瀏覽器，只附加到既有實例                                      | `false`                                        |
+| `browser.cdpPort`        | Chrome DevTools Protocol 連接埠                                     | `18800`                                        |
 
-### 問題：「Chrome extension relay 正在執行，但沒有任何分頁連線」
+### 問題：「Chrome extension relay is running, but no tab is connected」
 
-你正在使用 `chrome` 設定檔（extension relay）。它需要 OpenClaw
-瀏覽器擴充功能附加到一個正在運作的分頁。
+你正在使用 `chrome` 設定檔（extension relay）。它預期 OpenClaw
+瀏覽器擴充功能會附加到一個正在運作的分頁。
 
-修復選項：
+修正方式：
 
 1. **使用受管理的瀏覽器：** `openclaw browser start --browser-profile openclaw`
    （或設定 `browser.defaultProfile: "openclaw"`）。
@@ -142,5 +142,5 @@ curl -s http://127.0.0.1:18791/tabs
 
 注意事項：
 
-- `chrome` 設定檔在可行時會使用你的 **系統預設 Chromium 瀏覽器**。
-- 本機 `openclaw` 設定檔會自動指派 `cdpPort`/`cdpUrl`；僅在遠端 CDP 時才需要設定這些。
+- `chrome` 設定檔在可能的情況下會使用你的 **系統預設 Chromium 瀏覽器**。
+- 本機 `openclaw` 設定檔會自動指派 `cdpPort` / `cdpUrl`；只有在遠端 CDP 時才需要設定這些選項。

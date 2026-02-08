@@ -1,8 +1,8 @@
 ---
 summary: "Plugin de Chamada de Voz: chamadas de saída + entrada via Twilio/Telnyx/Plivo (instalação do plugin + configuração + CLI)"
 read_when:
-  - Você quer realizar uma chamada de voz de saída a partir do OpenClaw
-  - Você está configurando ou desenvolvendo o plugin voice-call
+  - Você quer fazer uma chamada de voz de saída a partir do OpenClaw
+  - Você está configurando ou desenvolvendo o plugin de voice-call
 title: "Plugin de Chamada de Voz"
 x-i18n:
   source_path: plugins/voice-call.md
@@ -10,37 +10,37 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:57:06Z
+  generated_at: 2026-02-08T09:31:40Z
 ---
 
 # Chamada de Voz (plugin)
 
-Chamadas de voz para o OpenClaw via um plugin. Suporta notificações de saída e
-conversas de vários turnos com políticas de entrada.
+Chamadas de voz para o OpenClaw por meio de um plugin. Suporta notificações de saída e
+conversas de múltiplos turnos com políticas de entrada.
 
 Provedores atuais:
 
 - `twilio` (Programmable Voice + Media Streams)
 - `telnyx` (Call Control v2)
-- `plivo` (Voice API + XML transfer + GetInput speech)
+- `plivo` (Voice API + transferência XML + fala GetInput)
 - `mock` (dev/sem rede)
 
 Modelo mental rápido:
 
-- Instalar o plugin
-- Reiniciar o Gateway
-- Configurar em `plugins.entries.voice-call.config`
-- Usar `openclaw voicecall ...` ou a ferramenta `voice_call`
+- Instale o plugin
+- Reinicie o Gateway
+- Configure em `plugins.entries.voice-call.config`
+- Use `openclaw voicecall ...` ou a ferramenta `voice_call`
 
 ## Onde ele roda (local vs remoto)
 
 O plugin de Chamada de Voz roda **dentro do processo do Gateway**.
 
-Se você usar um Gateway remoto, instale/configure o plugin na **máquina que executa o Gateway** e, em seguida, reinicie o Gateway para carregá-lo.
+Se você usar um Gateway remoto, instale/configure o plugin na **máquina que executa o Gateway**, depois reinicie o Gateway para carregá-lo.
 
 ## Instalação
 
-### Opção A: instalar via npm (recomendado)
+### Opção A: instalar a partir do npm (recomendado)
 
 ```bash
 openclaw plugins install @openclaw/voice-call
@@ -116,26 +116,26 @@ Defina a configuração em `plugins.entries.voice-call.config`:
 
 Notas:
 
-- Twilio/Telnyx exigem um URL de webhook **publicamente acessível**.
-- Plivo exige um URL de webhook **publicamente acessível**.
+- Twilio/Telnyx exigem uma URL de webhook **publicamente acessível**.
+- Plivo exige uma URL de webhook **publicamente acessível**.
 - `mock` é um provedor local de dev (sem chamadas de rede).
 - `skipSignatureVerification` é apenas para testes locais.
-- Se você usar o plano gratuito do ngrok, defina `publicUrl` para o URL exato do ngrok; a verificação de assinatura é sempre aplicada.
+- Se você usar o plano gratuito do ngrok, defina `publicUrl` para a URL exata do ngrok; a verificação de assinatura é sempre aplicada.
 - `tunnel.allowNgrokFreeTierLoopbackBypass: true` permite webhooks do Twilio com assinaturas inválidas **somente** quando `tunnel.provider="ngrok"` e `serve.bind` é loopback (agente local do ngrok). Use apenas para dev local.
-- URLs do plano gratuito do ngrok podem mudar ou adicionar comportamento intermediário; se `publicUrl` divergir, as assinaturas do Twilio falharão. Para produção, prefira um domínio estável ou um funnel do Tailscale.
+- URLs do plano gratuito do ngrok podem mudar ou adicionar comportamento intermediário; se `publicUrl` variar, as assinaturas do Twilio falharão. Para produção, prefira um domínio estável ou um funnel do Tailscale.
 
 ## Segurança de Webhook
 
-Quando um proxy ou túnel fica à frente do Gateway, o plugin reconstrói o
-URL público para verificação de assinatura. Essas opções controlam quais cabeçalhos
-encaminhados são confiáveis.
+Quando um proxy ou túnel fica na frente do Gateway, o plugin reconstrói a
+URL pública para verificação de assinatura. Essas opções controlam quais
+headers encaminhados são confiáveis.
 
-`webhookSecurity.allowedHosts` cria uma allowlist de hosts a partir de cabeçalhos de encaminhamento.
+`webhookSecurity.allowedHosts` cria uma lista de permissões de hosts a partir dos headers de encaminhamento.
 
-`webhookSecurity.trustForwardingHeaders` confia em cabeçalhos encaminhados sem uma allowlist.
+`webhookSecurity.trustForwardingHeaders` confia nos headers encaminhados sem uma lista de permissões.
 
-`webhookSecurity.trustedProxyIPs` confia em cabeçalhos encaminhados apenas quando o IP remoto da
-requisição corresponde à lista.
+`webhookSecurity.trustedProxyIPs` só confia nos headers encaminhados quando o IP remoto da requisição
+corresponde à lista.
 
 Exemplo com um host público estável:
 
@@ -158,8 +158,8 @@ Exemplo com um host público estável:
 
 ## TTS para chamadas
 
-A Chamada de Voz usa a configuração central de `messages.tts` (OpenAI ou ElevenLabs) para
-streaming de fala em chamadas. Você pode sobrescrevê-la na configuração do plugin com o
+Chamada de Voz usa a configuração principal de `messages.tts` (OpenAI ou ElevenLabs) para
+streaming de fala nas chamadas. Você pode sobrescrevê-la na configuração do plugin com o
 **mesmo formato** — ela é mesclada em profundidade com `messages.tts`.
 
 ```json5
@@ -176,12 +176,12 @@ streaming de fala em chamadas. Você pode sobrescrevê-la na configuração do p
 
 Notas:
 
-- **Edge TTS é ignorado para chamadas de voz** (áudio de telefonia precisa de PCM; a saída do Edge é pouco confiável).
-- O TTS central é usado quando o streaming de mídia do Twilio está habilitado; caso contrário, as chamadas recorrem às vozes nativas do provedor.
+- **O Edge TTS é ignorado para chamadas de voz** (o áudio de telefonia precisa de PCM; a saída do Edge é pouco confiável).
+- O TTS principal é usado quando o streaming de mídia do Twilio está habilitado; caso contrário, as chamadas recorrem às vozes nativas do provedor.
 
 ### Mais exemplos
 
-Usar apenas o TTS central (sem sobrescrever):
+Usar apenas o TTS principal (sem sobrescrever):
 
 ```json5
 {
@@ -194,7 +194,7 @@ Usar apenas o TTS central (sem sobrescrever):
 }
 ```
 
-Sobrescrever para ElevenLabs apenas para chamadas (manter o padrão central em outros lugares):
+Sobrescrever para ElevenLabs apenas para chamadas (manter o padrão principal em outros lugares):
 
 ```json5
 {
@@ -217,7 +217,7 @@ Sobrescrever para ElevenLabs apenas para chamadas (manter o padrão central em o
 }
 ```
 
-Sobrescrever apenas o modelo OpenAI para chamadas (exemplo de deep‑merge):
+Sobrescrever apenas o modelo OpenAI para chamadas (exemplo de mesclagem profunda):
 
 ```json5
 {
@@ -268,7 +268,7 @@ openclaw voicecall tail
 openclaw voicecall expose --mode funnel
 ```
 
-## Ferramenta do agente
+## Ferramenta de agente
 
 Nome da ferramenta: `voice_call`
 

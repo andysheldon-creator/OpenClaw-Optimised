@@ -10,7 +10,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:56:45Z
+  generated_at: 2026-02-08T09:31:21Z
 ---
 
 # Migrando o OpenClaw para uma nova maquina
@@ -20,9 +20,9 @@ Este guia migra um Gateway do OpenClaw de uma maquina para outra **sem refazer a
 A migracao e simples conceitualmente:
 
 - Copiar o **diretorio de estado** (`$OPENCLAW_STATE_DIR`, padrao: `~/.openclaw/`) — isso inclui configuracao, autenticacao, sessoes e estado dos canais.
-- Copiar o seu **workspace** (`~/.openclaw/workspace/` por padrao) — isso inclui seus arquivos de agente (memoria, prompts, etc.).
+- Copiar seu **workspace** (`~/.openclaw/workspace/` por padrao) — isso inclui seus arquivos de agente (memoria, prompts, etc.).
 
-Mas ha armadilhas comuns envolvendo **perfis**, **permissoes** e **copias parciais**.
+Mas existem armadilhas comuns relacionadas a **perfis**, **permissoes** e **copias parciais**.
 
 ## Antes de comecar (o que voce esta migrando)
 
@@ -30,9 +30,9 @@ Mas ha armadilhas comuns envolvendo **perfis**, **permissoes** e **copias parcia
 
 A maioria das instalacoes usa o padrao:
 
-- **Dir de estado:** `~/.openclaw/`
+- **Diretorio de estado:** `~/.openclaw/`
 
-Mas ele pode ser diferente se voce usar:
+Mas ele pode ser diferente se voce usa:
 
 - `--profile <name>` (geralmente se torna `~/.openclaw-<profile>/`)
 - `OPENCLAW_STATE_DIR=/some/path`
@@ -43,7 +43,7 @@ Se voce nao tiver certeza, execute na maquina **antiga**:
 openclaw status
 ```
 
-Procure mencoes a `OPENCLAW_STATE_DIR` / perfil na saida. Se voce executa varios gateways, repita para cada perfil.
+Procure por mencoes a `OPENCLAW_STATE_DIR` / perfil na saida. Se voce executa varios gateways, repita para cada perfil.
 
 ### 2) Identifique seu workspace
 
@@ -54,9 +54,9 @@ Padroes comuns:
 
 Seu workspace e onde arquivos como `MEMORY.md`, `USER.md` e `memory/*.md` ficam.
 
-### 3) Entenda o que voce ira preservar
+### 3) Entenda o que voce vai preservar
 
-Se voce copiar **ambos** o dir de estado e o workspace, voce mantem:
+Se voce copiar **ambos** o diretorio de estado e o workspace, voce mantem:
 
 - Configuracao do Gateway (`openclaw.json`)
 - Perfis de autenticacao / chaves de API / tokens OAuth
@@ -72,17 +72,17 @@ Se voce copiar **apenas** o workspace (por exemplo, via Git), voce **nao** prese
 
 Esses ficam em `$OPENCLAW_STATE_DIR`.
 
-## Etapas de migracao (recomendado)
+## Passos de migracao (recomendado)
 
-### Etapa 0 — Faca um backup (maquina antiga)
+### Passo 0 — Faca um backup (maquina antiga)
 
-Na maquina **antiga**, pare o gateway primeiro para que os arquivos nao mudem durante a copia:
+Na maquina **antiga**, pare o gateway primeiro para que os arquivos nao mudem no meio da copia:
 
 ```bash
 openclaw gateway stop
 ```
 
-(Opcional, mas recomendado) compacte o dir de estado e o workspace:
+(Opcional, mas recomendado) arquive o diretorio de estado e o workspace:
 
 ```bash
 # Adjust paths if you use a profile or custom locations
@@ -92,17 +92,17 @@ tar -czf openclaw-state.tgz .openclaw
 tar -czf openclaw-workspace.tgz .openclaw/workspace
 ```
 
-Se voce tiver varios perfis/dirs de estado (por exemplo, `~/.openclaw-main`, `~/.openclaw-work`), compacte cada um.
+Se voce tiver varios perfis/diretorios de estado (ex.: `~/.openclaw-main`, `~/.openclaw-work`), arquive cada um.
 
-### Etapa 1 — Instale o OpenClaw na nova maquina
+### Passo 1 — Instale o OpenClaw na nova maquina
 
 Na maquina **nova**, instale a CLI (e o Node, se necessario):
 
 - Veja: [Install](/install)
 
-Nesta etapa, tudo bem se a integracao inicial criar um `~/.openclaw/` novo — voce ira sobrescreve-lo na proxima etapa.
+Nesta etapa, tudo bem se a integracao inicial criar um `~/.openclaw/` novo — voce vai sobrescreve-lo no proximo passo.
 
-### Etapa 2 — Copie o dir de estado + workspace para a nova maquina
+### Passo 2 — Copie o diretorio de estado + workspace para a nova maquina
 
 Copie **ambos**:
 
@@ -113,14 +113,14 @@ Abordagens comuns:
 
 - `scp` os tarballs e extrair
 - `rsync -a` via SSH
-- unidade externa
+- drive externo
 
-Apos copiar, garanta:
+Apos copiar, garanta que:
 
-- Diretorios ocultos foram incluidos (por exemplo, `.openclaw/`)
+- Diretorios ocultos foram incluidos (ex.: `.openclaw/`)
 - A propriedade dos arquivos esta correta para o usuario que executa o gateway
 
-### Etapa 3 — Execute o Doctor (migracoes + reparo de servicos)
+### Passo 3 — Execute o Doctor (migracoes + reparo de servicos)
 
 Na maquina **nova**:
 
@@ -128,7 +128,7 @@ Na maquina **nova**:
 openclaw doctor
 ```
 
-Doctor e o comando “seguro e sem surpresas”. Ele repara servicos, aplica migracoes de configuracao e alerta sobre incompatibilidades.
+O Doctor e o comando “seguro e entediante”. Ele repara servicos, aplica migracoes de configuracao e alerta sobre incompatibilidades.
 
 Em seguida:
 
@@ -139,15 +139,15 @@ openclaw status
 
 ## Armadilhas comuns (e como evita-las)
 
-### Armadilha: incompatibilidade de perfil / dir de estado
+### Armadilha: incompatibilidade de perfil / diretorio de estado
 
-Se voce executava o gateway antigo com um perfil (ou `OPENCLAW_STATE_DIR`), e o gateway novo usa um diferente, voce vera sintomas como:
+Se voce executava o gateway antigo com um perfil (ou `OPENCLAW_STATE_DIR`), e o novo gateway usa um diferente, voce vera sintomas como:
 
-- mudancas de configuracao nao surtindo efeito
-- canais ausentes / desconectados
+- alteracoes de configuracao que nao entram em vigor
+- canais ausentes / deslogados
 - historico de sessoes vazio
 
-Correcao: execute o gateway/servico usando o **mesmo** perfil/dir de estado que voce migrou e, depois, execute novamente:
+Correcao: execute o gateway/servico usando o **mesmo** perfil/diretorio de estado que voce migrou e, em seguida, execute novamente:
 
 ```bash
 openclaw doctor
@@ -160,20 +160,20 @@ openclaw doctor
 - `$OPENCLAW_STATE_DIR/credentials/`
 - `$OPENCLAW_STATE_DIR/agents/<agentId>/...`
 
-Sempre migre a pasta inteira `$OPENCLAW_STATE_DIR`.
+Sempre migre a pasta `$OPENCLAW_STATE_DIR` inteira.
 
 ### Armadilha: permissoes / propriedade
 
-Se voce copiou como root ou mudou de usuarios, o gateway pode falhar ao ler credenciais/sessoes.
+Se voce copiou como root ou trocou de usuario, o gateway pode falhar ao ler credenciais/sessoes.
 
-Correcao: garanta que o dir de estado + workspace pertencem ao usuario que executa o gateway.
+Correcao: garanta que o diretorio de estado + workspace pertencem ao usuario que executa o gateway.
 
 ### Armadilha: migrar entre modos remoto/local
 
-- Se sua UI (WebUI/TUI) aponta para um gateway **remoto**, o host remoto e dono do armazenamento de sessoes + workspace.
-- Migrar seu laptop nao movera o estado do gateway remoto.
+- Se sua UI (WebUI/TUI) aponta para um gateway **remoto**, o host remoto possui o armazenamento de sessoes + workspace.
+- Migrar seu laptop nao vai mover o estado do gateway remoto.
 
-Se voce estiver em modo remoto, migre o **host do gateway**.
+Se voce estiver em modo remoto, migre o **host do Gateway**.
 
 ### Armadilha: segredos em backups
 
@@ -181,19 +181,19 @@ Se voce estiver em modo remoto, migre o **host do gateway**.
 
 - armazene de forma criptografada
 - evite compartilhar por canais inseguros
-- rotacione chaves se suspeitar de exposicao
+- gire as chaves se suspeitar de exposicao
 
 ## Checklist de verificacao
 
-Na maquina nova, confirme:
+Na nova maquina, confirme:
 
 - `openclaw status` mostra o gateway em execucao
-- Seus canais ainda estao conectados (por exemplo, o WhatsApp nao exige novo pareamento)
-- O painel abre e mostra sessoes existentes
+- Seus canais ainda estao conectados (ex.: o WhatsApp nao exige novo pareamento)
+- O dashboard abre e mostra sessoes existentes
 - Seus arquivos de workspace (memoria, configuracoes) estao presentes
 
-## Relacionados
+## Relacionado
 
 - [Doctor](/gateway/doctor)
-- [Solucao de problemas do Gateway](/gateway/troubleshooting)
+- [Solução de problemas do Gateway](/gateway/troubleshooting)
 - [Onde o OpenClaw armazena seus dados?](/help/faq#where-does-openclaw-store-its-data)

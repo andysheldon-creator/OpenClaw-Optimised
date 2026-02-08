@@ -1,129 +1,129 @@
 ---
-summary: "Ke hoach: Them endpoint OpenResponses /v1/responses va loai bo chat completions mot cach gon gang"
+summary: "Kế hoạch: Thêm endpoint OpenResponses /v1/responses và ngừng Chat Completions một cách gọn gàng"
 owner: "openclaw"
 status: "draft"
 last_updated: "2026-01-19"
-title: "Ke hoach Gateway OpenResponses"
+title: "Kế hoạch Gateway OpenResponses"
 x-i18n:
   source_path: experiments/plans/openresponses-gateway.md
   source_hash: 71a22c48397507d1
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:19Z
+  generated_at: 2026-02-08T09:39:00Z
 ---
 
-# Ke hoach Tich hop Gateway OpenResponses
+# Kế hoạch tích hợp Gateway OpenResponses
 
-## Bo canh
+## Bối cảnh
 
-Gateway OpenClaw hien dang cung cap mot endpoint Chat Completions tuong thich OpenAI o muc toi thieu tai
+Gateway OpenClaw hiện đang cung cấp một endpoint Chat Completions tương thích OpenAI ở mức tối thiểu tại
 `/v1/chat/completions` (xem [OpenAI Chat Completions](/gateway/openai-http-api)).
 
-Open Responses la mot tieu chuan suy luan mo dua tren OpenAI Responses API. No duoc thiet ke
-cho cac quy trinh agentic va su dung dau vao dua tren item cung voi cac su kien streaming ngu nghia. Dac ta
-OpenResponses dinh nghia `/v1/responses`, khong phai `/v1/chat/completions`.
+Open Responses là một tiêu chuẩn suy luận mở dựa trên OpenAI Responses API. Nó được thiết kế
+cho các quy trình agentic và sử dụng đầu vào dựa trên item cùng với các sự kiện streaming ngữ nghĩa. Đặc tả OpenResponses
+định nghĩa `/v1/responses`, không phải `/v1/chat/completions`.
 
-## Muc tieu
+## Mục tiêu
 
-- Them mot endpoint `/v1/responses` tuan thu ngu nghia OpenResponses.
-- Giu Chat Completions nhu mot lop tuong thich de dang tat va cuoi cung loai bo.
-- Chuan hoa viec xac thuc va phan tich bang cac schema tach biet, co the tai su dung.
+- Thêm một endpoint `/v1/responses` tuân thủ ngữ nghĩa OpenResponses.
+- Giữ Chat Completions như một lớp tương thích, dễ tắt và có thể loại bỏ dần về sau.
+- Chuẩn hóa việc kiểm tra hợp lệ và phân tích với các schema tách biệt, có thể tái sử dụng.
 
-## Khong phai muc tieu
+## Không phải mục tiêu
 
-- Dat day du tinh nang OpenResponses ngay lan dau (hinh anh, tep, cong cu duoc host).
-- Thay the logic thuc thi agent noi bo hoac dieu phoi cong cu.
-- Thay doi hanh vi `/v1/chat/completions` hien tai trong giai doan dau.
+- Đạt đầy đủ tính năng OpenResponses trong lần triển khai đầu tiên (hình ảnh, tệp, công cụ lưu trữ).
+- Thay thế logic thực thi tác tử nội bộ hoặc điều phối công cụ.
+- Thay đổi hành vi `/v1/chat/completions` hiện có trong giai đoạn đầu.
 
-## Tom tat nghien cuu
+## Tóm tắt nghiên cứu
 
-Nguon: OpenResponses OpenAPI, trang dac ta OpenResponses, va bai viet blog cua Hugging Face.
+Nguồn: OpenResponses OpenAPI, trang đặc tả OpenResponses và bài blog của Hugging Face.
 
-Cac diem chinh rut ra:
+Các điểm chính rút ra:
 
-- `POST /v1/responses` chap nhan cac truong `CreateResponseBody` nhu `model`, `input` (chuoi hoac
-  `ItemParam[]`), `instructions`, `tools`, `tool_choice`, `stream`, `max_output_tokens`, va
+- `POST /v1/responses` chấp nhận các trường `CreateResponseBody` như `model`, `input` (chuỗi hoặc
+  `ItemParam[]`), `instructions`, `tools`, `tool_choice`, `stream`, `max_output_tokens`, và
   `max_tool_calls`.
-- `ItemParam` la mot discriminated union gom:
-  - cac item `message` voi cac vai tro `system`, `developer`, `user`, `assistant`
-  - `function_call` va `function_call_output`
+- `ItemParam` là một union phân biệt gồm:
+  - các item `message` với vai trò `system`, `developer`, `user`, `assistant`
+  - `function_call` và `function_call_output`
   - `reasoning`
   - `item_reference`
-- Phan hoi thanh cong tra ve mot `ResponseResource` voi cac item `object: "response"`, `status`, va
+- Phản hồi thành công trả về một `ResponseResource` với các item `object: "response"`, `status`, và
   `output`.
-- Streaming su dung cac su kien ngu nghia nhu:
+- Streaming sử dụng các sự kiện ngữ nghĩa như:
   - `response.created`, `response.in_progress`, `response.completed`, `response.failed`
   - `response.output_item.added`, `response.output_item.done`
   - `response.content_part.added`, `response.content_part.done`
   - `response.output_text.delta`, `response.output_text.done`
-- Dac ta yeu cau:
+- Đặc tả yêu cầu:
   - `Content-Type: text/event-stream`
-  - `event:` phai khop voi truong JSON `type`
-  - su kien ket thuc phai la gia tri literal `[DONE]`
-- Cac item ly luan co the lo `content`, `encrypted_content`, va `summary`.
-- Vi du cua HF bao gom `OpenResponses-Version: latest` trong request (header tuy chon).
+  - `event:` phải khớp với trường JSON `type`
+  - sự kiện kết thúc phải là literal `[DONE]`
+- Các item suy luận có thể lộ ra `content`, `encrypted_content`, và `summary`.
+- Ví dụ từ HF bao gồm `OpenResponses-Version: latest` trong request (header tùy chọn).
 
-## Kien truc de xuat
+## Kiến trúc đề xuất
 
-- Them `src/gateway/open-responses.schema.ts` chi chua cac schema Zod (khong import gateway).
-- Them `src/gateway/openresponses-http.ts` (hoac `open-responses-http.ts`) cho `/v1/responses`.
-- Giu `src/gateway/openai-http.ts` nguyen ven nhu mot bo chuyen doi tuong thich ke thua.
-- Them cau hinh `gateway.http.endpoints.responses.enabled` (mac dinh `false`).
-- Giu `gateway.http.endpoints.chatCompletions.enabled` doc lap; cho phep bat/tat rieng tung endpoint.
-- Phat canh bao khi khoi dong neu Chat Completions duoc bat de bao hieu trang thai ke thua.
+- Thêm `src/gateway/open-responses.schema.ts` chỉ chứa các schema Zod (không import gateway).
+- Thêm `src/gateway/openresponses-http.ts` (hoặc `open-responses-http.ts`) cho `/v1/responses`.
+- Giữ `src/gateway/openai-http.ts` nguyên vẹn như một adapter tương thích cũ.
+- Thêm cấu hình `gateway.http.endpoints.responses.enabled` (mặc định `false`).
+- Giữ `gateway.http.endpoints.chatCompletions.enabled` độc lập; cho phép bật/tắt từng endpoint riêng biệt.
+- Phát cảnh báo khi khởi động nếu Chat Completions được bật để báo hiệu trạng thái legacy.
 
-## Lo trinh loai bo Chat Completions
+## Lộ trình ngừng Chat Completions
 
-- Duy tri ranh gioi module nghiem ngat: khong dung chung kieu schema giua responses va chat completions.
-- Bien Chat Completions thanh tuy chon qua cau hinh de co the tat ma khong can thay doi ma.
-- Cap nhat tai lieu de gan nhan Chat Completions la ke thua khi `/v1/responses` on dinh.
-- Buoc tuy chon trong tuong lai: anh xa request Chat Completions sang trinh xu ly Responses de don gian hoa
-  lo trinh loai bo.
+- Duy trì ranh giới module nghiêm ngặt: không dùng chung loại schema giữa responses và chat completions.
+- Đặt Chat Completions ở chế độ opt-in bằng cấu hình để có thể tắt mà không cần thay đổi mã.
+- Cập nhật tài liệu để gắn nhãn Chat Completions là legacy khi `/v1/responses` ổn định.
+- Bước tùy chọn trong tương lai: ánh xạ request Chat Completions sang handler Responses để đơn giản hóa
+  lộ trình loại bỏ.
 
-## Tap ho tro Giai doan 1
+## Tập con hỗ trợ Giai đoạn 1
 
-- Chap nhan `input` duoi dang chuoi hoac `ItemParam[]` voi cac vai tro thong diep va `function_call_output`.
-- Trich xuat thong diep system va developer vao `extraSystemPrompt`.
-- Su dung `user` hoac `function_call_output` gan nhat lam thong diep hien tai cho cac lan chay agent.
-- Tu choi cac phan noi dung khong ho tro (image/file) voi `invalid_request_error`.
-- Tra ve mot thong diep assistant don le voi noi dung `output_text`.
-- Tra ve `usage` voi cac gia tri bang 0 cho den khi he thong tinh token duoc ket noi.
+- Chấp nhận `input` dưới dạng chuỗi hoặc `ItemParam[]` với vai trò thông điệp và `function_call_output`.
+- Trích xuất thông điệp system và developer vào `extraSystemPrompt`.
+- Sử dụng `user` hoặc `function_call_output` gần nhất làm thông điệp hiện tại cho các lần chạy tác tử.
+- Từ chối các phần nội dung không được hỗ trợ (hình ảnh/tệp) với `invalid_request_error`.
+- Trả về một thông điệp assistant duy nhất với nội dung `output_text`.
+- Trả về `usage` với các giá trị bằng 0 cho đến khi kết nối xong việc tính token.
 
-## Chien luoc xac thuc (Khong dung SDK)
+## Chiến lược kiểm tra hợp lệ (không dùng SDK)
 
-- Trien khai cac schema Zod cho tap con duoc ho tro cua:
+- Triển khai các schema Zod cho tập con được hỗ trợ của:
   - `CreateResponseBody`
-  - `ItemParam` + cac union phan noi dung thong diep
+  - `ItemParam` + các union phần nội dung thông điệp
   - `ResponseResource`
-  - Cac hinh dang su kien streaming duoc gateway su dung
-- Giu cac schema trong mot module duy nhat, tach biet de tranh lech va cho phep codegen trong tuong lai.
+  - Các dạng sự kiện streaming được Gateway sử dụng
+- Giữ các schema trong một module tách biệt duy nhất để tránh sai lệch và cho phép sinh mã trong tương lai.
 
-## Trien khai Streaming (Giai doan 1)
+## Triển khai streaming (Giai đoạn 1)
 
-- Cac dong SSE co ca `event:` va `data:`.
-- Trinh tu bat buoc (toi thieu kha dung):
+- Dòng SSE với cả `event:` và `data:`.
+- Trình tự bắt buộc (khả dụng tối thiểu):
   - `response.created`
   - `response.output_item.added`
   - `response.content_part.added`
-  - `response.output_text.delta` (lap lai khi can)
+  - `response.output_text.delta` (lặp lại khi cần)
   - `response.output_text.done`
   - `response.content_part.done`
   - `response.completed`
   - `[DONE]`
 
-## Ke hoach Kiem thu va Xac minh
+## Kế hoạch kiểm thử và xác minh
 
-- Them bao phu e2e cho `/v1/responses`:
-  - Yeu cau xac thuc
-  - Hinh dang phan hoi khong streaming
-  - Thu tu su kien stream va `[DONE]`
-  - Dinh tuyen session voi header va `user`
-- Giu `src/gateway/openai-http.e2e.test.ts` khong thay doi.
-- Thu cong: curl den `/v1/responses` voi `stream: true` va xac minh thu tu su kien va su kien ket thuc
-  `[DONE]`.
+- Thêm phạm vi e2e cho `/v1/responses`:
+  - Yêu cầu xác thực
+  - Dạng phản hồi không streaming
+  - Thứ tự sự kiện streaming và `[DONE]`
+  - Định tuyến phiên với header và `user`
+- Giữ `src/gateway/openai-http.e2e.test.ts` không thay đổi.
+- Thủ công: dùng curl tới `/v1/responses` với `stream: true` và xác minh thứ tự sự kiện và
+  `[DONE]` kết thúc.
 
-## Cap nhat Tai lieu (Theo sau)
+## Cập nhật tài liệu (theo sau)
 
-- Them mot trang tai lieu moi cho cach su dung va vi du `/v1/responses`.
-- Cap nhat `/gateway/openai-http-api` voi ghi chu ke thua va lien ket den `/v1/responses`.
+- Thêm một trang tài liệu mới cho cách dùng và ví dụ của `/v1/responses`.
+- Cập nhật `/gateway/openai-http-api` với ghi chú legacy và liên kết tới `/v1/responses`.

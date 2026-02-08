@@ -1,67 +1,67 @@
 ---
-summary: "Janela de contexto + compactacao: como o OpenClaw mantem sessoes dentro dos limites do modelo"
+summary: "Janela de contexto + compactação: como o OpenClaw mantém sessões dentro dos limites do modelo"
 read_when:
-  - Voce quer entender a auto-compactacao e o /compact
-  - Voce esta depurando sessoes longas que atingem limites de contexto
-title: "Compactacao"
+  - Você quer entender a compactação automática e /compact
+  - Você está depurando sessões longas que atingem limites de contexto
+title: "Compactação"
 x-i18n:
   source_path: concepts/compaction.md
   source_hash: e1d6791f2902044b
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:53Z
+  generated_at: 2026-02-08T09:30:29Z
 ---
 
-# Janela de Contexto & Compactacao
+# Janela de Contexto & Compactação
 
-Todo modelo tem uma **janela de contexto** (maximo de tokens que ele consegue ver). Chats de longa duracao acumulam mensagens e resultados de ferramentas; quando a janela fica apertada, o OpenClaw **compacta** o historico mais antigo para permanecer dentro dos limites.
+Todo modelo tem uma **janela de contexto** (máximo de tokens que ele consegue ver). Chats de longa duração acumulam mensagens e resultados de ferramentas; quando a janela fica apertada, o OpenClaw **compacta** o histórico mais antigo para permanecer dentro dos limites.
 
-## O que e compactacao
+## O que é compactação
 
-A compactacao **resume conversas mais antigas** em uma entrada de resumo compacta e mantem as mensagens recentes intactas. O resumo e armazenado no historico da sessao, de modo que solicitacoes futuras usem:
+A compactação **resume conversas mais antigas** em uma entrada de resumo compacta e mantém as mensagens recentes intactas. O resumo é armazenado no histórico da sessão, de modo que requisições futuras usam:
 
-- O resumo de compactacao
-- Mensagens recentes apos o ponto de compactacao
+- O resumo da compactação
+- Mensagens recentes após o ponto de compactação
 
-A compactacao **persiste** no historico JSONL da sessao.
+A compactação **persiste** no histórico JSONL da sessão.
 
-## Configuracao
+## Configuração
 
-Veja [Configuracao e modos de compactacao](/concepts/compaction) para as configuracoes `agents.defaults.compaction`.
+Veja [Configuração e modos de compactação](/concepts/compaction) para as configurações `agents.defaults.compaction`.
 
-## Auto-compactacao (ativada por padrao)
+## Compactação automática (ativada por padrão)
 
-Quando uma sessao se aproxima ou excede a janela de contexto do modelo, o OpenClaw aciona a auto-compactacao e pode tentar novamente a solicitacao original usando o contexto compactado.
+Quando uma sessão se aproxima ou excede a janela de contexto do modelo, o OpenClaw aciona a compactação automática e pode tentar novamente a requisição original usando o contexto compactado.
 
-Voce vera:
+Você verá:
 
 - `🧹 Auto-compaction complete` no modo verboso
 - `/status` mostrando `🧹 Compactions: <count>`
 
-Antes da compactacao, o OpenClaw pode executar um turno de **descarga silenciosa de memoria** para armazenar notas duraveis em disco. Veja [Memoria](/concepts/memory) para detalhes e configuracao.
+Antes da compactação, o OpenClaw pode executar um turno **silencioso de descarte de memória** para armazenar notas duráveis em disco. Veja [Memory](/concepts/memory) para detalhes e configuração.
 
-## Compactacao manual
+## Compactação manual
 
-Use `/compact` (opcionalmente com instrucoes) para forcar uma passagem de compactacao:
+Use `/compact` (opcionalmente com instruções) para forçar uma passagem de compactação:
 
 ```
 /compact Focus on decisions and open questions
 ```
 
-## Fonte da janela de contexto
+## Origem da janela de contexto
 
-A janela de contexto e especifica do modelo. O OpenClaw usa a definicao do modelo do catalogo de provedores configurado para determinar os limites.
+A janela de contexto é específica do modelo. O OpenClaw usa a definição do modelo do catálogo do provedor configurado para determinar os limites.
 
-## Compactacao vs poda
+## Compactação vs poda
 
-- **Compactacao**: resume e **persiste** em JSONL.
-- **Poda de sessao**: remove apenas **resultados de ferramentas** antigos, **em memoria**, por solicitacao.
+- **Compactação**: resume e **persiste** em JSONL.
+- **Poda de sessão**: remove apenas **resultados de ferramentas** antigos, **em memória**, por requisição.
 
-Veja [/concepts/session-pruning](/concepts/session-pruning) para detalhes de poda.
+Veja [/concepts/session-pruning](/concepts/session-pruning) para detalhes sobre poda.
 
 ## Dicas
 
-- Use `/compact` quando as sessoes parecerem estagnadas ou o contexto estiver inchado.
-- Saidas grandes de ferramentas ja sao truncadas; a poda pode reduzir ainda mais o acumulo de resultados de ferramentas.
-- Se voce precisa de uma folha em branco, `/new` ou `/reset` inicia um novo id de sessao.
+- Use `/compact` quando as sessões parecerem obsoletas ou o contexto estiver inchado.
+- Grandes saídas de ferramentas já são truncadas; a poda pode reduzir ainda mais o acúmulo de resultados de ferramentas.
+- Se você precisa de uma página em branco, `/new` ou `/reset` inicia um novo id de sessão.

@@ -1,14 +1,14 @@
 ---
 summary: "Configuración de Slack para modo socket o webhook HTTP"
-read_when: "Al configurar Slack o depurar el modo socket/HTTP de Slack"
+read_when: "Configurar Slack o depurar el modo socket/HTTP de Slack"
 title: "Slack"
 x-i18n:
   source_path: channels/slack.md
-  source_hash: 703b4b4333bebfef
+  source_hash: 8ab00a8a93ec31b7
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:58:31Z
+  generated_at: 2026-02-08T09:33:13Z
 ---
 
 # Slack
@@ -37,10 +37,10 @@ Configuración mínima:
 
 ### Configuración
 
-1. Cree una app de Slack (From scratch) en https://api.slack.com/apps.
-2. **Socket Mode** → activar. Luego vaya a **Basic Information** → **App-Level Tokens** → **Generate Token and Scopes** con el scope `connections:write`. Copie el **App Token** (`xapp-...`).
-3. **OAuth & Permissions** → agregue los scopes del bot (use el manifiesto de abajo). Haga clic en **Install to Workspace**. Copie el **Bot User OAuth Token** (`xoxb-...`).
-4. Opcional: **OAuth & Permissions** → agregue **User Token Scopes** (vea la lista de solo lectura más abajo). Reinstale la app y copie el **User OAuth Token** (`xoxp-...`).
+1. Cree una app de Slack (From scratch) en [https://api.slack.com/apps](https://api.slack.com/apps).
+2. **Socket Mode** → actívelo. Luego vaya a **Basic Information** → **App-Level Tokens** → **Generate Token and Scopes** con el alcance `connections:write`. Copie el **App Token** (`xapp-...`).
+3. **OAuth & Permissions** → agregue los alcances del bot (use el manifiesto de abajo). Haga clic en **Install to Workspace**. Copie el **Bot User OAuth Token** (`xoxb-...`).
+4. Opcional: **OAuth & Permissions** → agregue **User Token Scopes** (vea la lista de solo lectura abajo). Reinstale la app y copie el **User OAuth Token** (`xoxp-...`).
 5. **Event Subscriptions** → habilite eventos y suscríbase a:
    - `message.*` (incluye ediciones/eliminaciones/difusiones de hilos)
    - `app_mention`
@@ -48,22 +48,22 @@ Configuración mínima:
    - `member_joined_channel`, `member_left_channel`
    - `channel_rename`
    - `pin_added`, `pin_removed`
-6. Invite el bot a los canales que desea que lea.
-7. Slash Commands → cree `/openclaw` si usa `channels.slack.slashCommand`. Si habilita comandos nativos, agregue un slash command por cada comando integrado (con los mismos nombres que `/help`). De forma predeterminada, los nativos están desactivados para Slack a menos que configure `channels.slack.commands.native: true` (el `commands.native` global es `"auto"`, que deja Slack desactivado).
-8. App Home → habilite la **Messages Tab** para que los usuarios puedan enviar Mensajes directos al bot.
+6. Invite al bot a los canales que desea que lea.
+7. Slash Commands → cree `/openclaw` si usa `channels.slack.slashCommand`. Si habilita comandos nativos, agregue un comando slash por cada comando integrado (los mismos nombres que `/help`). De forma predeterminada, los nativos están desactivados para Slack a menos que configure `channels.slack.commands.native: true` (el valor global `commands.native` es `"auto"`, lo que deja Slack desactivado).
+8. App Home → habilite la **Messages Tab** para que los usuarios puedan enviar mensajes directos al bot.
 
-Use el manifiesto de abajo para que los scopes y eventos se mantengan sincronizados.
+Use el manifiesto de abajo para que los alcances y eventos se mantengan sincronizados.
 
-Soporte multi-cuenta: use `channels.slack.accounts` con tokens por cuenta y `name` opcional. Consulte [`gateway/configuration`](/gateway/configuration#telegramaccounts--discordaccounts--slackaccounts--signalaccounts--imessageaccounts) para el patrón compartido.
+Soporte multi‑cuenta: use `channels.slack.accounts` con tokens por cuenta y `name` opcional. Vea [`gateway/configuration`](/gateway/configuration#telegramaccounts--discordaccounts--slackaccounts--signalaccounts--imessageaccounts) para el patrón compartido.
 
-### Configuración de OpenClaw (mínima)
+### Configuración de OpenClaw (modo socket)
 
 Configure los tokens mediante variables de entorno (recomendado):
 
 - `SLACK_APP_TOKEN=xapp-...`
 - `SLACK_BOT_TOKEN=xoxb-...`
 
-O mediante configuración:
+O mediante la configuración:
 
 ```json5
 {
@@ -86,7 +86,7 @@ que usted lo habilite explícitamente. Incluso con `userTokenReadOnly: false`, e
 sigue siendo preferido para escrituras cuando está disponible.
 
 Los tokens de usuario se configuran en el archivo de configuración (no hay soporte por variables de entorno). Para
-multi-cuenta, configure `channels.slack.accounts.<id>.userToken`.
+multi‑cuenta, configure `channels.slack.accounts.<id>.userToken`.
 
 Ejemplo con tokens de bot + app + usuario:
 
@@ -121,11 +121,11 @@ Ejemplo con userTokenReadOnly configurado explícitamente (permitir escrituras c
 
 #### Uso de tokens
 
-- Operaciones de lectura (historial, lista de reacciones, lista de pines, lista de emoji, información de miembros,
+- Las operaciones de lectura (historial, lista de reacciones, lista de pines, lista de emoji, información de miembros,
   búsqueda) prefieren el token de usuario cuando está configurado; de lo contrario, el token del bot.
-- Operaciones de escritura (enviar/editar/eliminar mensajes, agregar/quitar reacciones, fijar/desfijar,
+- Las operaciones de escritura (enviar/editar/eliminar mensajes, agregar/quitar reacciones, fijar/desfijar,
   cargas de archivos) usan el token del bot de forma predeterminada. Si `userTokenReadOnly: false` y
-  no hay token del bot disponible, OpenClaw recurre al token de usuario.
+  no hay token de bot disponible, OpenClaw recurre al token de usuario.
 
 ### Contexto de historial
 
@@ -134,17 +134,17 @@ Ejemplo con userTokenReadOnly configurado explícitamente (permitir escrituras c
 
 ## Modo HTTP (Events API)
 
-Use el modo webhook HTTP cuando su Gateway sea accesible por Slack mediante HTTPS (típico en despliegues de servidor).
-El modo HTTP usa la Events API + Interactivity + Slash Commands con una URL de solicitud compartida.
+Use el modo de webhook HTTP cuando su Gateway sea accesible por Slack a través de HTTPS (típico en despliegues de servidor).
+El modo HTTP usa Events API + Interactivity + Slash Commands con una URL de solicitud compartida.
 
-### Configuración
+### Configuración (modo HTTP)
 
 1. Cree una app de Slack y **deshabilite Socket Mode** (opcional si solo usa HTTP).
 2. **Basic Information** → copie el **Signing Secret**.
 3. **OAuth & Permissions** → instale la app y copie el **Bot User OAuth Token** (`xoxb-...`).
-4. **Event Subscriptions** → habilite eventos y configure la **Request URL** a la ruta del webhook de su gateway (predeterminado `/slack/events`).
+4. **Event Subscriptions** → habilite eventos y configure la **Request URL** a la ruta del webhook del Gateway (predeterminado `/slack/events`).
 5. **Interactivity & Shortcuts** → habilite y configure la misma **Request URL**.
-6. **Slash Commands** → configure la misma **Request URL** para sus comandos.
+6. **Slash Commands** → configure la misma **Request URL** para su(s) comando(s).
 
 Ejemplo de URL de solicitud:
 `https://gateway-host/slack/events`
@@ -165,13 +165,13 @@ Ejemplo de URL de solicitud:
 }
 ```
 
-Modo HTTP multi-cuenta: configure `channels.slack.accounts.<id>.mode = "http"` y proporcione un
+Modo HTTP multi‑cuenta: configure `channels.slack.accounts.<id>.mode = "http"` y proporcione un
 `webhookPath` único por cuenta para que cada app de Slack apunte a su propia URL.
 
 ### Manifiesto (opcional)
 
 Use este manifiesto de app de Slack para crear la app rápidamente (ajuste el nombre/comando si lo desea). Incluya los
-scopes de usuario si planea configurar un token de usuario.
+alcances de usuario si planea configurar un token de usuario.
 
 ```json
 {
@@ -261,38 +261,38 @@ scopes de usuario si planea configurar un token de usuario.
 }
 ```
 
-Si habilita comandos nativos, agregue una entrada `slash_commands` por cada comando que desee exponer (que coincida con la lista `/help`). Anule con `channels.slack.commands.native`.
+Si habilita comandos nativos, agregue una entrada `slash_commands` por cada comando que quiera exponer (coincidiendo con la lista `/help`). Reemplace con `channels.slack.commands.native`.
 
-## Scopes (actuales vs opcionales)
+## Alcances (actuales vs opcionales)
 
-La Conversations API de Slack está tipificada por tipo: solo necesita los scopes para los
-tipos de conversación que realmente usa (channels, groups, im, mpim). Vea
-https://docs.slack.dev/apis/web-api/using-the-conversations-api/ para la descripción general.
+La API de Conversaciones de Slack está tipada por conversación: solo necesita los alcances para los
+tipos de conversación que realmente use (channels, groups, im, mpim). Vea
+[https://docs.slack.dev/apis/web-api/using-the-conversations-api/](https://docs.slack.dev/apis/web-api/using-the-conversations-api/) para una visión general.
 
-### Scopes del token del bot (requeridos)
+### Alcances del token del bot (requeridos)
 
-- `chat:write` (enviar/actualizar/eliminar mensajes vía `chat.postMessage`)
-  https://docs.slack.dev/reference/methods/chat.postMessage
-- `im:write` (abrir Mensajes directos vía `conversations.open` para DMs de usuario)
-  https://docs.slack.dev/reference/methods/conversations.open
+- `chat:write` (enviar/actualizar/eliminar mensajes mediante `chat.postMessage`)
+  [https://docs.slack.dev/reference/methods/chat.postMessage](https://docs.slack.dev/reference/methods/chat.postMessage)
+- `im:write` (abrir mensajes directos mediante `conversations.open` para DMs de usuario)
+  [https://docs.slack.dev/reference/methods/conversations.open](https://docs.slack.dev/reference/methods/conversations.open)
 - `channels:history`, `groups:history`, `im:history`, `mpim:history`
-  https://docs.slack.dev/reference/methods/conversations.history
+  [https://docs.slack.dev/reference/methods/conversations.history](https://docs.slack.dev/reference/methods/conversations.history)
 - `channels:read`, `groups:read`, `im:read`, `mpim:read`
-  https://docs.slack.dev/reference/methods/conversations.info
+  [https://docs.slack.dev/reference/methods/conversations.info](https://docs.slack.dev/reference/methods/conversations.info)
 - `users:read` (búsqueda de usuarios)
-  https://docs.slack.dev/reference/methods/users.info
+  [https://docs.slack.dev/reference/methods/users.info](https://docs.slack.dev/reference/methods/users.info)
 - `reactions:read`, `reactions:write` (`reactions.get` / `reactions.add`)
-  https://docs.slack.dev/reference/methods/reactions.get
-  https://docs.slack.dev/reference/methods/reactions.add
+  [https://docs.slack.dev/reference/methods/reactions.get](https://docs.slack.dev/reference/methods/reactions.get)
+  [https://docs.slack.dev/reference/methods/reactions.add](https://docs.slack.dev/reference/methods/reactions.add)
 - `pins:read`, `pins:write` (`pins.list` / `pins.add` / `pins.remove`)
-  https://docs.slack.dev/reference/scopes/pins.read
-  https://docs.slack.dev/reference/scopes/pins.write
+  [https://docs.slack.dev/reference/scopes/pins.read](https://docs.slack.dev/reference/scopes/pins.read)
+  [https://docs.slack.dev/reference/scopes/pins.write](https://docs.slack.dev/reference/scopes/pins.write)
 - `emoji:read` (`emoji.list`)
-  https://docs.slack.dev/reference/scopes/emoji.read
-- `files:write` (cargas vía `files.uploadV2`)
-  https://docs.slack.dev/messaging/working-with-files/#upload
+  [https://docs.slack.dev/reference/scopes/emoji.read](https://docs.slack.dev/reference/scopes/emoji.read)
+- `files:write` (cargas mediante `files.uploadV2`)
+  [https://docs.slack.dev/messaging/working-with-files/#upload](https://docs.slack.dev/messaging/working-with-files/#upload)
 
-### Scopes del token de usuario (opcional, solo lectura por defecto)
+### Alcances del token de usuario (opcional, solo lectura por defecto)
 
 Agregue estos en **User Token Scopes** si configura `channels.slack.userToken`.
 
@@ -304,14 +304,14 @@ Agregue estos en **User Token Scopes** si configura `channels.slack.userToken`.
 - `emoji:read`
 - `search:read`
 
-### No necesarios hoy (pero probablemente en el futuro)
+### No necesarios hoy (pero probables en el futuro)
 
-- `mpim:write` (solo si agregamos apertura de group-DM/inicio de DM vía `conversations.open`)
+- `mpim:write` (solo si agregamos apertura de DM grupal/inicio de DM mediante `conversations.open`)
 - `groups:write` (solo si agregamos gestión de canales privados: crear/renombrar/invitar/archivar)
 - `chat:write.public` (solo si queremos publicar en canales en los que el bot no está)
-  https://docs.slack.dev/reference/scopes/chat.write.public
+  [https://docs.slack.dev/reference/scopes/chat.write.public](https://docs.slack.dev/reference/scopes/chat.write.public)
 - `users:read.email` (solo si necesitamos campos de correo electrónico de `users.info`)
-  https://docs.slack.dev/changelog/2017-04-narrowing-email-access
+  [https://docs.slack.dev/changelog/2017-04-narrowing-email-access](https://docs.slack.dev/changelog/2017-04-narrowing-email-access)
 - `files:read` (solo si comenzamos a listar/leer metadatos de archivos)
 
 ## Configuración
@@ -376,25 +376,25 @@ reacción de acuse después de que el bot responda.
 
 ## Límites
 
-- El texto saliente se divide en fragmentos de `channels.slack.textChunkLimit` (predeterminado 4000).
-- División opcional por saltos de línea: configure `channels.slack.chunkMode="newline"` para dividir en líneas en blanco (límites de párrafo) antes de dividir por longitud.
+- El texto saliente se fragmenta en `channels.slack.textChunkLimit` (predeterminado 4000).
+- Fragmentación opcional por salto de línea: configure `channels.slack.chunkMode="newline"` para dividir en líneas en blanco (límites de párrafo) antes de fragmentar por longitud.
 - Las cargas de medios están limitadas por `channels.slack.mediaMaxMb` (predeterminado 20).
 
-## Encadenado de respuestas
+## Enhebrado de respuestas
 
-De forma predeterminada, OpenClaw responde en el canal principal. Use `channels.slack.replyToMode` para controlar el encadenado automático:
+De forma predeterminada, OpenClaw responde en el canal principal. Use `channels.slack.replyToMode` para controlar el enhebrado automático:
 
-| Modo    | Comportamiento                                                                                                                                                          |
-| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `off`   | **Predeterminado.** Responder en el canal principal. Solo crear hilo si el mensaje desencadenante ya estaba en un hilo.                                                 |
-| `first` | La primera respuesta va al hilo (bajo el mensaje desencadenante); las siguientes van al canal principal. Útil para mantener el contexto visible y evitar saturar hilos. |
-| `all`   | Todas las respuestas van al hilo. Mantiene las conversaciones contenidas, pero puede reducir la visibilidad.                                                            |
+| Modo    | Comportamiento                                                                                                                                                                      |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `off`   | **Predeterminado.** Responder en el canal principal. Solo enhebra si el mensaje desencadenante ya estaba en un hilo.                                                                |
+| `first` | La primera respuesta va al hilo (bajo el mensaje desencadenante), las respuestas posteriores van al canal principal. Útil para mantener el contexto visible evitando saturar hilos. |
+| `all`   | Todas las respuestas van al hilo. Mantiene las conversaciones contenidas pero puede reducir la visibilidad.                                                                         |
 
-El modo se aplica tanto a las auto-respuestas como a las llamadas de herramientas del agente (`slack sendMessage`).
+El modo se aplica tanto a las auto‑respuestas como a las llamadas de herramientas del agente (`slack sendMessage`).
 
-### Encadenado por tipo de chat
+### Enhebrado por tipo de chat
 
-Puede configurar un comportamiento de encadenado diferente por tipo de chat estableciendo `channels.slack.replyToModeByChatType`:
+Puede configurar un comportamiento de enhebrado diferente por tipo de chat configurando `channels.slack.replyToModeByChatType`:
 
 ```json5
 {
@@ -422,11 +422,11 @@ Precedencia:
 2. `replyToMode`
 3. Predeterminado del proveedor (`off`)
 
-El `channels.slack.dm.replyToMode` heredado aún se acepta como respaldo para `direct` cuando no se establece una anulación por tipo de chat.
+El legado `channels.slack.dm.replyToMode` aún se acepta como respaldo para `direct` cuando no hay una anulación por tipo de chat.
 
 Ejemplos:
 
-Encadenar solo DMs:
+Enhebrar solo DMs:
 
 ```json5
 {
@@ -439,7 +439,7 @@ Encadenar solo DMs:
 }
 ```
 
-Encadenar DMs grupales pero mantener los canales en la raíz:
+Enhebrar DMs grupales pero mantener canales en la raíz:
 
 ```json5
 {
@@ -452,7 +452,7 @@ Encadenar DMs grupales pero mantener los canales en la raíz:
 }
 ```
 
-Hacer que los canales usen hilos y mantener los DMs en la raíz:
+Hacer que los canales usen hilos y mantener DMs en la raíz:
 
 ```json5
 {
@@ -465,7 +465,7 @@ Hacer que los canales usen hilos y mantener los DMs en la raíz:
 }
 ```
 
-### Etiquetas de encadenado manual
+### Etiquetas manuales de enhebrado
 
 Para un control más fino, use estas etiquetas en las respuestas del agente:
 
@@ -476,41 +476,41 @@ Para un control más fino, use estas etiquetas en las respuestas del agente:
 
 - Los DMs comparten la sesión `main` (como WhatsApp/Telegram).
 - Los canales se asignan a sesiones `agent:<agentId>:slack:channel:<channelId>`.
-- Los slash commands usan sesiones `agent:<agentId>:slack:slash:<userId>` (prefijo configurable vía `channels.slack.slashCommand.sessionPrefix`).
+- Los slash commands usan sesiones `agent:<agentId>:slack:slash:<userId>` (prefijo configurable mediante `channels.slack.slashCommand.sessionPrefix`).
 - Si Slack no proporciona `channel_type`, OpenClaw lo infiere a partir del prefijo del ID del canal (`D`, `C`, `G`) y usa `channel` de forma predeterminada para mantener estables las claves de sesión.
-- El registro de comandos nativos usa `commands.native` (predeterminado global `"auto"` → Slack desactivado) y se puede anular por espacio de trabajo con `channels.slack.commands.native`. Los comandos de texto requieren mensajes `/...` independientes y se pueden deshabilitar con `commands.text: false`. Los slash commands de Slack se gestionan en la app de Slack y no se eliminan automáticamente. Use `commands.useAccessGroups: false` para omitir comprobaciones de grupos de acceso para comandos.
+- El registro de comandos nativos usa `commands.native` (predeterminado global `"auto"` → Slack desactivado) y puede anularse por espacio de trabajo con `channels.slack.commands.native`. Los comandos de texto requieren mensajes `/...` independientes y pueden deshabilitarse con `commands.text: false`. Los slash commands de Slack se gestionan en la app de Slack y no se eliminan automáticamente. Use `commands.useAccessGroups: false` para omitir comprobaciones de grupos de acceso para comandos.
 - Lista completa de comandos + configuración: [Slash commands](/tools/slash-commands)
 
 ## Seguridad de DMs (emparejamiento)
 
-- Predeterminado: `channels.slack.dm.policy="pairing"` — los remitentes desconocidos de DMs reciben un código de emparejamiento (expira después de 1 hora).
-- Aprobar vía: `openclaw pairing approve slack <code>`.
+- Predeterminado: `channels.slack.dm.policy="pairing"` — los remitentes de DM desconocidos reciben un código de emparejamiento (expira después de 1 hora).
+- Aprobar mediante: `openclaw pairing approve slack <code>`.
 - Para permitir a cualquiera: configure `channels.slack.dm.policy="open"` y `channels.slack.dm.allowFrom=["*"]`.
-- `channels.slack.dm.allowFrom` acepta IDs de usuario, @handles o correos electrónicos (resueltos al inicio cuando los tokens lo permiten). El asistente acepta nombres de usuario y los resuelve a IDs durante la configuración cuando los tokens lo permiten.
+- `channels.slack.dm.allowFrom` acepta IDs de usuario, @handles o correos electrónicos (resueltos al iniciar cuando los tokens lo permiten). El asistente acepta nombres de usuario y los resuelve a ids durante la configuración cuando los tokens lo permiten.
 
 ## Política de grupos
 
 - `channels.slack.groupPolicy` controla el manejo de canales (`open|disabled|allowlist`).
 - `allowlist` requiere que los canales estén listados en `channels.slack.channels`.
 - Si solo configura `SLACK_BOT_TOKEN`/`SLACK_APP_TOKEN` y nunca crea una sección `channels.slack`,
-  el tiempo de ejecución establece `groupPolicy` de forma predeterminada en `open`. Agregue `channels.slack.groupPolicy`,
-  `channels.defaults.groupPolicy`, o una lista de permitidos de canales para restringirlo.
+  el tiempo de ejecución establece `groupPolicy` en `open` de forma predeterminada. Agregue `channels.slack.groupPolicy`,
+  `channels.defaults.groupPolicy` o una lista de permitidos de canales para reforzarlo.
 - El asistente de configuración acepta nombres `#channel` y los resuelve a IDs cuando es posible
   (públicos + privados); si existen múltiples coincidencias, prefiere el canal activo.
-- Al inicio, OpenClaw resuelve nombres de canales/usuarios en listas de permitidos a IDs (cuando los tokens lo permiten)
+- Al iniciar, OpenClaw resuelve nombres de canal/usuario en listas de permitidos a IDs (cuando los tokens lo permiten)
   y registra el mapeo; las entradas no resueltas se mantienen tal como se escribieron.
 - Para permitir **ningún canal**, configure `channels.slack.groupPolicy: "disabled"` (o mantenga una lista de permitidos vacía).
 
 Opciones de canal (`channels.slack.channels.<id>` o `channels.slack.channels.<name>`):
 
 - `allow`: permitir/denegar el canal cuando `groupPolicy="allowlist"`.
-- `requireMention`: control por menciones para el canal.
+- `requireMention`: control por mención para el canal.
 - `tools`: anulaciones opcionales de política de herramientas por canal (`allow`/`deny`/`alsoAllow`).
-- `toolsBySender`: anulaciones opcionales de política de herramientas por remitente dentro del canal (las claves son IDs de remitente/@handles/correos; se admite el comodín `"*"`).
+- `toolsBySender`: anulaciones opcionales de política de herramientas por remitente dentro del canal (las claves son ids de remitente/@handles/correos; se admite el comodín `"*"`).
 - `allowBots`: permitir mensajes creados por el bot en este canal (predeterminado: false).
 - `users`: lista de permitidos de usuarios opcional por canal.
 - `skills`: filtro de skills (omitir = todas las skills, vacío = ninguna).
-- `systemPrompt`: prompt de sistema adicional para el canal (combinado con tema/propósito).
+- `systemPrompt`: prompt de sistema adicional para el canal (combinado con el tema/propósito).
 - `enabled`: configure `false` para deshabilitar el canal.
 
 ## Destinos de entrega
@@ -522,34 +522,60 @@ Opciones de canal (`channels.slack.channels.<id>` o `channels.slack.channels.<na
 
 ## Acciones de herramientas
 
-Las acciones de herramientas de Slack pueden restringirse con `channels.slack.actions.*`:
+Las acciones de herramientas de Slack pueden controlarse con `channels.slack.actions.*`:
 
-| Grupo de acción | Predeterminado | Notas                          |
-| --------------- | -------------- | ------------------------------ |
-| reactions       | enabled        | Reaccionar + listar reacciones |
-| messages        | enabled        | Leer/enviar/editar/eliminar    |
-| pins            | enabled        | Fijar/desfijar/listar          |
-| memberInfo      | enabled        | Información de miembros        |
-| emojiList       | enabled        | Lista de emoji personalizados  |
+| Grupo de acciones | Predeterminado | Notas                          |
+| ----------------- | -------------- | ------------------------------ |
+| reactions         | habilitado     | Reaccionar + listar reacciones |
+| messages          | habilitado     | Leer/enviar/editar/eliminar    |
+| pins              | habilitado     | Fijar/desfijar/listar          |
+| memberInfo        | habilitado     | Información de miembros        |
+| emojiList         | habilitado     | Lista de emoji personalizados  |
 
 ## Notas de seguridad
 
-- Las escrituras usan por defecto el token del bot para que las acciones que cambian estado queden dentro del
-  alcance de los permisos e identidad del bot de la app.
-- Configurar `userTokenReadOnly: false` permite usar el token de usuario para operaciones de escritura
-  cuando no hay un token de bot disponible, lo que significa que las acciones se ejecutan con el
+- Las escrituras usan por defecto el token del bot para que las acciones que cambian el estado queden dentro de los
+  permisos e identidad del bot de la app.
+- Configurar `userTokenReadOnly: false` permite usar el token de usuario para operaciones de
+  escritura cuando no hay token de bot disponible, lo que significa que las acciones se ejecutan con el
   acceso del usuario que instaló la app. Trate el token de usuario como altamente privilegiado y mantenga
-  estrictos los controles de acciones y las listas de permitidos.
-- Si habilita escrituras con token de usuario, asegúrese de que el token de usuario incluya los scopes de escritura
-  que espera (`chat:write`, `reactions:write`, `pins:write`,
+  estrictos los controles de acciones y listas de permitidos.
+- Si habilita escrituras con token de usuario, asegúrese de que el token de usuario incluya los alcances de escritura
+  esperados (`chat:write`, `reactions:write`, `pins:write`,
   `files:write`) o esas operaciones fallarán.
+
+## Solución de problemas
+
+Ejecute primero esta escalera:
+
+```bash
+openclaw status
+openclaw gateway status
+openclaw logs --follow
+openclaw doctor
+openclaw channels status --probe
+```
+
+Luego confirme el estado de emparejamiento de DMs si es necesario:
+
+```bash
+openclaw pairing list slack
+```
+
+Fallas comunes:
+
+- Conectado pero sin respuestas en canales: el canal está bloqueado por `groupPolicy` o no está en la lista de permitidos `channels.slack.channels`.
+- DMs ignorados: el remitente no está aprobado cuando `channels.slack.dm.policy="pairing"`.
+- Errores de API (`missing_scope`, `not_in_channel`, fallas de autenticación): los tokens de bot/app o los alcances de Slack están incompletos.
+
+Para el flujo de triaje: [/channels/troubleshooting](/channels/troubleshooting).
 
 ## Notas
 
-- El control por menciones se gestiona mediante `channels.slack.channels` (configure `requireMention` en `true`); `agents.list[].groupChat.mentionPatterns` (o `messages.groupChat.mentionPatterns`) también cuentan como menciones.
-- Anulación multi-agente: configure patrones por agente en `agents.list[].groupChat.mentionPatterns`.
+- El control por mención se gestiona mediante `channels.slack.channels` (configure `requireMention` en `true`); `agents.list[].groupChat.mentionPatterns` (o `messages.groupChat.mentionPatterns`) también cuentan como menciones.
+- Anulación multi‑agente: configure patrones por agente en `agents.list[].groupChat.mentionPatterns`.
 - Las notificaciones de reacciones siguen `channels.slack.reactionNotifications` (use `reactionAllowlist` con el modo `allowlist`).
-- Los mensajes creados por el bot se ignoran de forma predeterminada; habilítelos mediante `channels.slack.allowBots` o `channels.slack.channels.<id>.allowBots`.
-- Advertencia: Si permite respuestas a otros bots (`channels.slack.allowBots=true` o `channels.slack.channels.<id>.allowBots=true`), evite bucles de respuesta entre bots con listas de permitidos `requireMention`, `channels.slack.channels.<id>.users`, y/o barreras claras en `AGENTS.md` y `SOUL.md`.
+- Los mensajes creados por el bot se ignoran por defecto; habilite mediante `channels.slack.allowBots` o `channels.slack.channels.<id>.allowBots`.
+- Advertencia: si permite respuestas a otros bots (`channels.slack.allowBots=true` o `channels.slack.channels.<id>.allowBots=true`), evite bucles de respuestas entre bots con listas de permitidos `requireMention`, `channels.slack.channels.<id>.users` y/o eliminando guardas en `AGENTS.md` y `SOUL.md`.
 - Para la herramienta de Slack, la semántica de eliminación de reacciones está en [/tools/reactions](/tools/reactions).
-- Los archivos adjuntos se descargan al almacén de medios cuando está permitido y dentro del límite de tamaño.
+- Los adjuntos se descargan al almacén de medios cuando está permitido y por debajo del límite de tamaño.

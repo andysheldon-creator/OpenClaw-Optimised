@@ -8,11 +8,11 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:25Z
+  generated_at: 2026-02-08T09:37:13Z
 ---
 
 # HEARTBEAT.md
 
 # Halten Sie diese Datei leer (oder nur mit Kommentaren), um Heartbeat-API-Aufrufe zu überspringen.
 
-# Fügen Sie unten Aufgaben hinzu, wenn Sie möchten, dass der Agent regelmäßig etwas überprüft.
+# Fügen Sie unten Aufgaben hinzu, wenn der Agent etwas periodisch überprüfen soll.

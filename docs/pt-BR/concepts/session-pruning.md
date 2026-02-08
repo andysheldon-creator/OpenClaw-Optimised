@@ -1,87 +1,87 @@
 ---
-summary: "Poda de sessao: corte de resultados de ferramentas para reduzir o inchaço de contexto"
+summary: "Poda de sessão: corte de resultados de ferramentas para reduzir o inchaço de contexto"
 read_when:
-  - Voce quer reduzir o crescimento de contexto do LLM a partir de saidas de ferramentas
-  - Voce esta ajustando agents.defaults.contextPruning
+  - Você quer reduzir o crescimento de contexto do LLM a partir de saídas de ferramentas
+  - Você está ajustando agents.defaults.contextPruning
 x-i18n:
   source_path: concepts/session-pruning.md
   source_hash: 9b0aa2d1abea7050
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:56:03Z
+  generated_at: 2026-02-08T09:30:41Z
 ---
 
-# Session Pruning
+# Poda de sessão
 
-A poda de sessao corta **resultados antigos de ferramentas** do contexto em memoria imediatamente antes de cada chamada ao LLM. Ela **nao** reescreve o historico da sessao em disco (`*.jsonl`).
+A poda de sessão remove **resultados antigos de ferramentas** do contexto em memória imediatamente antes de cada chamada ao LLM. Ela **não** reescreve o histórico de sessão no disco (`*.jsonl`).
 
-## Quando ela roda
+## Quando ela é executada
 
-- Quando `mode: "cache-ttl"` esta habilitado e a ultima chamada Anthropic da sessao e mais antiga que `ttl`.
-- Afeta apenas as mensagens enviadas ao modelo para aquela solicitacao.
-- Ativa apenas para chamadas da API Anthropic (e modelos Anthropic do OpenRouter).
+- Quando `mode: "cache-ttl"` está habilitado e a última chamada Anthropic da sessão é mais antiga que `ttl`.
+- Afeta apenas as mensagens enviadas ao modelo para aquela solicitação.
+- Ativa apenas para chamadas à API Anthropic (e modelos Anthropic do OpenRouter).
 - Para melhores resultados, combine `ttl` com o `cacheControlTtl` do seu modelo.
-- Apos uma poda, a janela de TTL e redefinida, entao solicitacoes subsequentes mantem o cache ate que `ttl` expire novamente.
+- Após uma poda, a janela de TTL é redefinida, de modo que solicitações subsequentes mantêm o cache até `ttl` expirar novamente.
 
-## Padroes inteligentes (Anthropic)
+## Padrões inteligentes (Anthropic)
 
-- Perfis **OAuth ou setup-token**: habilite a poda `cache-ttl` e defina o heartbeat para `1h`.
-- Perfis **API key**: habilite a poda `cache-ttl`, defina o heartbeat para `30m` e padrao `cacheControlTtl` para `1h` em modelos Anthropic.
-- Se voce definir explicitamente qualquer um desses valores, o OpenClaw **nao** os sobrescreve.
+- Perfis **OAuth ou setup-token**: habilite a poda `cache-ttl` e defina o heartbeat como `1h`.
+- Perfis de **chave de API**: habilite a poda `cache-ttl`, defina o heartbeat como `30m` e defina o `cacheControlTtl` padrão como `1h` em modelos Anthropic.
+- Se você definir qualquer um desses valores explicitamente, o OpenClaw **não** os substitui.
 
 ## O que isso melhora (custo + comportamento de cache)
 
-- **Por que podar:** o cache de prompt da Anthropic so se aplica dentro do TTL. Se uma sessao fica ociosa alem do TTL, a proxima solicitacao re‑armazena em cache o prompt completo, a menos que voce o corte antes.
-- **O que fica mais barato:** a poda reduz o tamanho de **cacheWrite** para essa primeira solicitacao apos o TTL expirar.
-- **Por que a redefinicao do TTL importa:** uma vez que a poda roda, a janela de cache e redefinida, entao solicitacoes de acompanhamento podem reutilizar o prompt recem armazenado em cache em vez de re‑armazenar todo o historico novamente.
-- **O que ela nao faz:** a poda nao adiciona tokens nem “duplica” custos; ela apenas muda o que e armazenado em cache nessa primeira solicitacao pos‑TTL.
+- **Por que podar:** o cache de prompts da Anthropic só se aplica dentro do TTL. Se uma sessão fica ociosa além do TTL, a próxima solicitação recacheia o prompt completo, a menos que você o corte antes.
+- **O que fica mais barato:** a poda reduz o tamanho de **cacheWrite** para essa primeira solicitação após o TTL expirar.
+- **Por que a redefinição do TTL importa:** quando a poda é executada, a janela de cache é redefinida, então solicitações seguintes podem reutilizar o prompt recém-cacheado em vez de recachear todo o histórico novamente.
+- **O que não faz:** a poda não adiciona tokens nem “duplica” custos; ela apenas altera o que é cacheado nessa primeira solicitação pós‑TTL.
 
 ## O que pode ser podado
 
 - Apenas mensagens `toolResult`.
-- Mensagens de usuario + assistente **nunca** sao modificadas.
-- As ultimas `keepLastAssistants` mensagens do assistente sao protegidas; resultados de ferramentas apos esse ponto de corte nao sao podados.
-- Se nao houver mensagens de assistente suficientes para estabelecer o ponto de corte, a poda e ignorada.
-- Resultados de ferramentas contendo **blocos de imagem** sao ignorados (nunca cortados/limpos).
+- Mensagens de usuário + assistente **nunca** são modificadas.
+- As últimas `keepLastAssistants` mensagens do assistente são protegidas; resultados de ferramentas após esse corte não são podados.
+- Se não houver mensagens do assistente suficientes para estabelecer o corte, a poda é ignorada.
+- Resultados de ferramentas que contêm **blocos de imagem** são ignorados (nunca cortados/limpos).
 
 ## Estimativa da janela de contexto
 
-A poda usa uma janela de contexto estimada (caracteres ≈ tokens × 4). A janela base e resolvida nesta ordem:
+A poda usa uma estimativa da janela de contexto (caracteres ≈ tokens × 4). A janela base é resolvida nesta ordem:
 
-1. Substituicao `models.providers.*.models[].contextWindow`.
-2. Definicao do modelo `contextWindow` (do registro de modelos).
-3. Padrao de `200000` tokens.
+1. Substituição `models.providers.*.models[].contextWindow`.
+2. Definição do modelo `contextWindow` (do registro de modelos).
+3. Padrão de `200000` tokens.
 
-Se `agents.defaults.contextTokens` estiver definido, ele e tratado como um limite (min) da janela resolvida.
+Se `agents.defaults.contextTokens` estiver definido, ele é tratado como um limite (mín.) na janela resolvida.
 
 ## Modo
 
 ### cache-ttl
 
-- A poda so roda se a ultima chamada Anthropic for mais antiga que `ttl` (padrao `5m`).
-- Quando roda: mesmo comportamento de corte suave + limpeza forte de antes.
+- A poda só é executada se a última chamada Anthropic for mais antiga que `ttl` (padrão `5m`).
+- Quando é executada: mesmo comportamento de soft-trim + hard-clear de antes.
 
-## Poda suave vs poda forte
+## Poda suave vs. poda rígida
 
-- **Corte suave**: apenas para resultados de ferramentas superdimensionados.
-  - Mantem inicio + fim, insere `...` e acrescenta uma nota com o tamanho original.
+- **Soft-trim**: apenas para resultados de ferramentas superdimensionados.
+  - Mantém início + fim, insere `...` e anexa uma nota com o tamanho original.
   - Ignora resultados com blocos de imagem.
-- **Limpeza forte**: substitui todo o resultado da ferramenta por `hardClear.placeholder`.
+- **Hard-clear**: substitui todo o resultado da ferramenta por `hardClear.placeholder`.
 
-## Selecao de ferramentas
+## Seleção de ferramentas
 
 - `tools.allow` / `tools.deny` suportam curingas `*`.
-- A negacao prevalece.
-- A correspondencia nao diferencia maiusculas de minusculas.
-- Lista de permissao vazia => todas as ferramentas permitidas.
+- Deny tem prioridade.
+- A correspondência não diferencia maiúsculas de minúsculas.
+- Lista de permissão vazia => todas as ferramentas permitidas.
 
-## Interacao com outros limites
+## Interação com outros limites
 
-- Ferramentas integradas ja truncam a propria saida; a poda de sessao e uma camada extra que evita que chats de longa duracao acumulem saida excessiva de ferramentas no contexto do modelo.
-- A compactacao e separada: a compactacao resume e persiste; a poda e transitoria por solicitacao. Veja [/concepts/compaction](/concepts/compaction).
+- Ferramentas integradas já truncam sua própria saída; a poda de sessão é uma camada extra que impede chats de longa duração de acumularem saída excessiva de ferramentas no contexto do modelo.
+- A compactação é separada: a compactação resume e persiste, a poda é transitória por solicitação. Veja [/concepts/compaction](/concepts/compaction).
 
-## Padroes (quando habilitado)
+## Padrões (quando habilitado)
 
 - `ttl`: `"5m"`
 - `keepLastAssistants`: `3`
@@ -93,7 +93,7 @@ Se `agents.defaults.contextTokens` estiver definido, ele e tratado como um limit
 
 ## Exemplos
 
-Padrao (desligado):
+Padrão (desativado):
 
 ```json5
 {
@@ -103,7 +103,7 @@ Padrao (desligado):
 }
 ```
 
-Habilitar poda sensivel a TTL:
+Habilitar poda consciente de TTL:
 
 ```json5
 {
@@ -113,7 +113,7 @@ Habilitar poda sensivel a TTL:
 }
 ```
 
-Restringir a poda a ferramentas especificas:
+Restringir a poda a ferramentas específicas:
 
 ```json5
 {
@@ -126,4 +126,4 @@ Restringir a poda a ferramentas especificas:
 }
 ```
 
-Veja a referencia de configuracao: [Gateway Configuration](/gateway/configuration)
+Veja a referência de configuração: [Gateway Configuration](/gateway/configuration)

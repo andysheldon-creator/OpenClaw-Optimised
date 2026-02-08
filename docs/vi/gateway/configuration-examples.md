@@ -1,26 +1,26 @@
 ---
-summary: "Các ví dụ cấu hình chính xác theo schema cho các thiết lập OpenClaw phổ biến"
+summary: "Các ví dụ cấu hình chính xác theo schema cho những thiết lập OpenClaw phổ biến"
 read_when:
-  - Học cách cấu hình OpenClaw
-  - Tìm các ví dụ cấu hình
+  - Tìm hiểu cách cấu hình OpenClaw
+  - Tìm kiếm các ví dụ cấu hình
   - Thiết lập OpenClaw lần đầu
-title: "Ví dụ Cấu hình"
+title: "Ví dụ cấu hình"
 x-i18n:
   source_path: gateway/configuration-examples.md
   source_hash: 2c9cee53d56a4232
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:07Z
+  generated_at: 2026-02-08T09:38:56Z
 ---
 
-# Ví dụ Cấu hình
+# Ví dụ cấu hình
 
-Các ví dụ bên dưới phù hợp với schema cấu hình hiện tại. Để xem tài liệu tham chiếu đầy đủ và ghi chú cho từng trường, hãy xem [Configuration](/gateway/configuration).
+Các ví dụ bên dưới được căn chỉnh theo schema cấu hình hiện tại. Để tham khảo đầy đủ và ghi chú theo từng trường, xem [Configuration](/gateway/configuration).
 
-## Khoi dong nhanh
+## Khởi động nhanh
 
-### Mức tối thiểu tuyệt đối
+### Tối thiểu tuyệt đối
 
 ```json5
 {
@@ -29,9 +29,9 @@ Các ví dụ bên dưới phù hợp với schema cấu hình hiện tại. Đ�
 }
 ```
 
-Lưu vào `~/.openclaw/openclaw.json` và bạn có thể DM bot từ số đó.
+Lưu vào `~/.openclaw/openclaw.json` và bạn có thể DM cho bot từ số đó.
 
-### Bộ khởi đầu được khuyến nghị
+### Khởi đầu được khuyến nghị
 
 ```json5
 {
@@ -55,7 +55,7 @@ Lưu vào `~/.openclaw/openclaw.json` và bạn có thể DM bot từ số đó.
 
 ## Ví dụ mở rộng (các tùy chọn chính)
 
-> JSON5 cho phép dùng comment và dấu phẩy ở cuối. JSON thông thường cũng hoạt động.
+> JSON5 cho phép dùng chú thích và dấu phẩy ở cuối. JSON thông thường cũng hoạt động.
 
 ```json5
 {
@@ -430,7 +430,7 @@ Lưu vào `~/.openclaw/openclaw.json` và bạn có thể DM bot từ số đó.
 }
 ```
 
-## Các mẫu phổ biến
+## Mẫu thường gặp
 
 ### Thiết lập đa nền tảng
 
@@ -453,9 +453,9 @@ Lưu vào `~/.openclaw/openclaw.json` và bạn có thể DM bot từ số đó.
 }
 ```
 
-### Chế độ DM bảo mật (hộp thư chung / DMs nhiều người dùng)
+### Chế độ DM an toàn (hộp thư chung / DM nhiều người dùng)
 
-Nếu có hơn một người có thể DM bot của bạn (nhiều mục trong `allowFrom`, phê duyệt ghép cặp cho nhiều người, hoặc `dmPolicy: "open"`), hãy bật **chế độ DM bảo mật** để DM từ các người gửi khác nhau không dùng chung một ngữ cảnh theo mặc định:
+Nếu có hơn một người có thể DM bot của bạn (nhiều mục trong `allowFrom`, phê duyệt ghép đôi cho nhiều người, hoặc `dmPolicy: "open"`), hãy bật **chế độ DM an toàn** để DM từ các người gửi khác nhau không mặc định dùng chung một ngữ cảnh:
 
 ```json5
 {
@@ -479,7 +479,7 @@ Nếu có hơn một người có thể DM bot của bạn (nhiều mục trong 
 }
 ```
 
-### OAuth với chuyển đổi dự phòng sang API key
+### OAuth với chuyển đổi dự phòng khóa API
 
 ```json5
 {
@@ -509,7 +509,7 @@ Nếu có hơn một người có thể DM bot của bạn (nhiều mục trong 
 }
 ```
 
-### Gói thuê bao Anthropic + API key, dự phòng MiniMax
+### Thuê bao Anthropic + khóa API, dự phòng MiniMax
 
 ```json5
 {
@@ -573,7 +573,7 @@ Nếu có hơn một người có thể DM bot của bạn (nhiều mục trong 
 }
 ```
 
-### Chỉ dùng mô hình cục bộ
+### Chỉ mô hình cục bộ
 
 ```json5
 {
@@ -608,6 +608,6 @@ Nếu có hơn một người có thể DM bot của bạn (nhiều mục trong 
 ## Mẹo
 
 - Nếu bạn đặt `dmPolicy: "open"`, danh sách `allowFrom` tương ứng phải bao gồm `"*"`.
-- ID của provider khác nhau (số điện thoại, ID người dùng, ID kênh). Hãy dùng tài liệu của provider để xác nhận định dạng.
-- Các phần tùy chọn có thể thêm sau: `web`, `browser`, `ui`, `discovery`, `canvasHost`, `talk`, `signal`, `imessage`.
-- Xem [Providers](/channels/whatsapp) và [Xu ly su co](/gateway/troubleshooting) để có ghi chú thiết lập chi tiết hơn.
+- ID của nhà cung cấp khác nhau (số điện thoại, ID người dùng, ID kênh). Hãy dùng tài liệu của nhà cung cấp để xác nhận định dạng.
+- Các mục tùy chọn có thể thêm sau: `web`, `browser`, `ui`, `discovery`, `canvasHost`, `talk`, `signal`, `imessage`.
+- Xem [Providers](/channels/whatsapp) và [Troubleshooting](/gateway/troubleshooting) để biết thêm ghi chú thiết lập chi tiết.

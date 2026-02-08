@@ -1,41 +1,41 @@
 ---
-summary: "Logs do OpenClaw: arquivo de diagnostico rotativo + flags de privacidade do unified log"
+summary: "Registro do OpenClaw: arquivo de diagnóstico rotativo + flags de privacidade do registro unificado"
 read_when:
-  - Capturando logs do macOS ou investigando registro de dados privados
-  - Depurando problemas do ciclo de vida de ativacao de voz/sessao
-title: "Logs no macOS"
+  - Captura de logs do macOS ou investigação de registro de dados privados
+  - Depuração de problemas do ciclo de vida de ativação/sessão de voz
+title: "Registro no macOS"
 x-i18n:
   source_path: platforms/mac/logging.md
   source_hash: c4c201d154915e0e
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:56:54Z
+  generated_at: 2026-02-08T09:31:30Z
 ---
 
-# Logging (macOS)
+# Registro (macOS)
 
-## Arquivo de diagnostico rotativo (Painel de Debug)
+## Arquivo de diagnóstico rotativo (painel de depuração)
 
-O OpenClaw encaminha os logs do app no macOS por meio do swift-log (unified logging por padrao) e pode gravar um arquivo de log local e rotativo em disco quando voce precisa de uma captura duravel.
+O OpenClaw encaminha os logs do app no macOS pelo swift-log (registro unificado por padrão) e pode gravar um arquivo de log local e rotativo em disco quando voce precisa de uma captura durável.
 
-- Verbosidade: **Painel de Debug → Logs → App logging → Verbosity**
-- Ativar: **Painel de Debug → Logs → App logging → “Write rolling diagnostics log (JSONL)”**
-- Localizacao: `~/Library/Logs/OpenClaw/diagnostics.jsonl` (rotaciona automaticamente; arquivos antigos recebem o sufixo `.1`, `.2`, …)
-- Limpar: **Painel de Debug → Logs → App logging → “Clear”**
+- Verbosidade: **Painel de depuração → Logs → App logging → Verbosity**
+- Ativar: **Painel de depuração → Logs → App logging → “Write rolling diagnostics log (JSONL)”**
+- Localização: `~/Library/Logs/OpenClaw/diagnostics.jsonl` (rotaciona automaticamente; arquivos antigos recebem os sufixos `.1`, `.2`, …)
+- Limpar: **Painel de depuração → Logs → App logging → “Clear”**
 
 Notas:
 
-- Isso vem **desativado por padrao**. Ative apenas enquanto estiver depurando ativamente.
-- Trate o arquivo como sensivel; nao o compartilhe sem revisao.
+- Isto fica **desativado por padrão**. Ative apenas enquanto estiver depurando ativamente.
+- Trate o arquivo como sensível; não compartilhe sem revisão.
 
-## Dados privados do unified logging no macOS
+## Dados privados no registro unificado do macOS
 
-O unified logging mascara a maioria das cargas uteis, a menos que um subsistema opte por `privacy -off`. Conforme o texto do Peter sobre as [logging privacy shenanigans](https://steipete.me/posts/2025/logging-privacy-shenanigans) no macOS (2025), isso e controlado por um plist em `/Library/Preferences/Logging/Subsystems/`, indexado pelo nome do subsistema. Apenas novas entradas de log capturam a flag; portanto, ative antes de reproduzir um problema.
+O registro unificado oculta a maioria dos payloads, a menos que um subsistema opte por `privacy -off`. Conforme o texto do Peter sobre macOS [logging privacy shenanigans](https://steipete.me/posts/2025/logging-privacy-shenanigans) (2025), isso é controlado por um plist em `/Library/Preferences/Logging/Subsystems/` com chave pelo nome do subsistema. Apenas novas entradas de log aplicam a flag; portanto, ative antes de reproduzir um problema.
 
 ## Ativar para o OpenClaw (`bot.molt`)
 
-- Escreva o plist primeiro em um arquivo temporario e, em seguida, instale-o atomicamente como root:
+- Escreva o plist primeiro em um arquivo temporário e depois instale-o atomicamente como root:
 
 ```bash
 cat <<'EOF' >/tmp/bot.molt.plist
@@ -54,11 +54,11 @@ EOF
 sudo install -m 644 -o root -g wheel /tmp/bot.molt.plist /Library/Preferences/Logging/Subsystems/bot.molt.plist
 ```
 
-- Nao e necessario reiniciar; o logd percebe o arquivo rapidamente, mas apenas novas linhas de log incluirao cargas uteis privadas.
-- Visualize a saida mais rica com o helper existente, por exemplo, `./scripts/clawlog.sh --category WebChat --last 5m`.
+- Nenhuma reinicialização é necessária; o logd percebe o arquivo rapidamente, mas apenas novas linhas de log incluirão payloads privados.
+- Veja a saída mais rica com o utilitário existente, por exemplo, `./scripts/clawlog.sh --category WebChat --last 5m`.
 
-## Desativar apos a depuracao
+## Desativar após a depuração
 
-- Remova a sobrescrita: `sudo rm /Library/Preferences/Logging/Subsystems/bot.molt.plist`.
-- Opcionalmente execute `sudo log config --reload` para forcar o logd a remover a sobrescrita imediatamente.
-- Lembre-se de que essa superficie pode incluir numeros de telefone e corpos de mensagens; mantenha o plist no lugar apenas enquanto voce precisar ativamente do detalhe extra.
+- Remova a substituição: `sudo rm /Library/Preferences/Logging/Subsystems/bot.molt.plist`.
+- Opcionalmente, execute `sudo log config --reload` para forçar o logd a remover a substituição imediatamente.
+- Lembre-se de que essa superfície pode incluir números de telefone e corpos de mensagens; mantenha o plist no lugar apenas enquanto voce precisar ativamente do detalhe extra.

@@ -1,64 +1,63 @@
 ---
-summary: "Noi dung ma system prompt cua OpenClaw chua va cach no duoc lap rap"
+summary: "Những nội dung có trong system prompt của OpenClaw và cách nó được lắp ghép"
 read_when:
-  - Chinh sua van ban system prompt, danh sach cong cu, hoac cac phan thoi gian/nhip tim
-  - Thay doi hanh vi khoi tao workspace hoac tiem vao Skills
+  - Chỉnh sửa văn bản system prompt, danh sách công cụ, hoặc các phần thời gian/heartbeat
+  - Thay đổi hành vi bootstrap workspace hoặc cơ chế chèn Skills
 title: "System Prompt"
 x-i18n:
   source_path: concepts/system-prompt.md
-  source_hash: bef4b2674ba0414c
+  source_hash: 1de1b529402a5f1b
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:09Z
+  generated_at: 2026-02-08T09:38:49Z
 ---
 
 # System Prompt
 
-OpenClaw xay dung mot system prompt tuy chinh cho moi lan chay agent. Prompt nay **thuoc quyen OpenClaw** va khong su dung prompt mac dinh cua p-coding-agent.
+OpenClaw xây dựng một system prompt tùy chỉnh cho mỗi lần chạy tác tử. Prompt này **thuộc sở hữu của OpenClaw** và không sử dụng prompt mặc định của p-coding-agent.
 
-Prompt duoc OpenClaw lap rap va tiem vao moi lan chay agent.
+Prompt được OpenClaw lắp ghép và chèn vào mỗi lần chạy tác tử.
 
-## Cau truc
+## Cấu trúc
 
-Prompt duoc thiet ke gon nhe va su dung cac phan co dinh:
+Prompt được thiết kế gọn nhẹ và sử dụng các phần cố định:
 
-- **Tooling**: danh sach cong cu hien tai + mo ta ngan.
-- **Safety**: loi nhac hang rao an toan ngan gon de tranh hanh vi tim kiem quyen luc hoac vuot qua giam sat.
-- **Skills** (khi co): cho mo hinh biet cach tai huong dan skill theo yeu cau.
-- **OpenClaw Self-Update**: cach chay `config.apply` va `update.run`.
-- **Workspace**: thu muc lam viec (`agents.defaults.workspace`).
-- **Documentation**: duong dan cuc bo toi tai lieu OpenClaw (repo hoac goi npm) va khi nao nen doc.
-- **Workspace Files (injected)**: cho biet cac file bootstrap duoc dua vao ben duoi.
-- **Sandbox** (khi bat): cho biet moi truong runtime trong sandbox, cac duong dan sandbox, va viec co the thuc thi dac quyen hay khong.
-- **Current Date & Time**: thoi gian theo dia phuong nguoi dung, mui gio, va dinh dang thoi gian.
-- **Reply Tags**: cu phap the tra loi tuy chon cho cac nha cung cap ho tro.
-- **Heartbeats**: prompt nhip tim va hanh vi ack.
-- **Runtime**: host, OS, node, model, thu muc goc repo (khi phat hien), muc do suy nghi (mot dong).
-- **Reasoning**: muc do hien thi hien tai + goi y bat/tat /reasoning.
+- **Tooling**: danh sách công cụ hiện tại + mô tả ngắn.
+- **Safety**: nhắc nhở guardrail ngắn để tránh hành vi tìm kiếm quyền lực hoặc né tránh giám sát.
+- **Skills** (khi có): hướng dẫn mô hình cách tải chỉ dẫn kỹ năng theo yêu cầu.
+- **OpenClaw Self-Update**: cách chạy `config.apply` và `update.run`.
+- **Workspace**: thư mục làm việc (`agents.defaults.workspace`).
+- **Documentation**: đường dẫn cục bộ tới tài liệu OpenClaw (repo hoặc gói npm) và khi nào cần đọc.
+- **Workspace Files (injected)**: cho biết các tệp bootstrap được chèn bên dưới.
+- **Sandbox** (khi bật): cho biết runtime trong sandbox, các đường dẫn sandbox, và liệu có quyền exec nâng cao hay không.
+- **Current Date & Time**: thời gian theo địa phương của người dùng, múi giờ và định dạng thời gian.
+- **Reply Tags**: cú pháp thẻ trả lời tùy chọn cho các nhà cung cấp được hỗ trợ.
+- **Heartbeats**: prompt heartbeat và hành vi ack.
+- **Runtime**: host, OS, node, model, repo root (khi phát hiện), mức độ suy nghĩ (một dòng).
+- **Reasoning**: mức độ hiển thị hiện tại + gợi ý bật/tắt /reasoning.
 
-Cac hang rao an toan trong system prompt mang tinh huong dan. Chung dinh huong hanh vi cua mo hinh nhung khong thuc thi chinh sach. Hay su dung chinh sach cong cu, phe duyet exec, sandboxing, va danh sach cho phep kenh de thuc thi bat buoc; nguoi van hanh co the tat chung theo thiet ke.
+Các guardrail an toàn trong system prompt mang tính hướng dẫn. Chúng định hướng hành vi của mô hình nhưng không thực thi chính sách. Hãy dùng chính sách công cụ, phê duyệt exec, sandboxing và danh sách cho phép kênh để thực thi cứng; theo thiết kế, người vận hành có thể vô hiệu hóa các cơ chế này.
 
-## Cac che do prompt
+## Chế độ prompt
 
-OpenClaw co the render system prompt nho hon cho cac sub-agent. Runtime thiet lap
-`promptMode` cho moi lan chay (khong phai cau hinh cho nguoi dung):
+OpenClaw có thể tạo các system prompt nhỏ hơn cho sub-agent. Runtime đặt
+`promptMode` cho mỗi lần chạy (không phải cấu hình hướng người dùng):
 
-- `full` (mac dinh): bao gom tat ca cac phan ben tren.
-- `minimal`: dung cho sub-agent; loai bo **Skills**, **Memory Recall**, **OpenClaw
+- `full` (mặc định): bao gồm tất cả các phần ở trên.
+- `minimal`: dùng cho sub-agent; lược bỏ **Skills**, **Memory Recall**, **OpenClaw
   Self-Update**, **Model Aliases**, **User Identity**, **Reply Tags**,
-  **Messaging**, **Silent Replies**, va **Heartbeats**. Tooling, **Safety**,
-  Workspace, Sandbox, Current Date & Time (khi biet), Runtime, va ngu canh duoc tiem
-  van san sang.
-- `none`: chi tra ve dong nhan dang co ban.
+  **Messaging**, **Silent Replies** và **Heartbeats**. Tooling, **Safety**,
+  Workspace, Sandbox, Current Date & Time (khi biết), Runtime và ngữ cảnh được chèn
+  vẫn khả dụng.
+- `none`: chỉ trả về dòng nhận diện cơ bản.
 
-Khi `promptMode=minimal`, cac prompt duoc tiem bo sung se duoc gan nhan **Subagent
-Context** thay vi **Group Chat Context**.
+Khi `promptMode=minimal`, các prompt được chèn thêm sẽ được gắn nhãn **Subagent
+Context** thay vì **Group Chat Context**.
 
-## Tiem bootstrap workspace
+## Chèn bootstrap workspace
 
-Cac file bootstrap duoc cat gon va noi them duoi **Project Context** de mo hinh
-thay duoc nhan dang va ngu canh ho so ma khong can doc tuong minh:
+Các tệp bootstrap được cắt gọn và nối vào dưới **Project Context** để mô hình thấy được ngữ cảnh danh tính và hồ sơ mà không cần đọc tường minh:
 
 - `AGENTS.md`
 - `SOUL.md`
@@ -66,40 +65,39 @@ thay duoc nhan dang va ngu canh ho so ma khong can doc tuong minh:
 - `IDENTITY.md`
 - `USER.md`
 - `HEARTBEAT.md`
-- `BOOTSTRAP.md` (chi tren workspace moi toanh)
+- `BOOTSTRAP.md` (chỉ trên workspace hoàn toàn mới)
 
-Cac file lon se bi cat bot kem theo dau danh dau. Kich thuoc toi da moi file duoc
-dieu khien boi `agents.defaults.bootstrapMaxChars` (mac dinh: 20000). Cac file thieu se tiem vao
-mot dau danh dau file thieu ngan.
+Các tệp lớn sẽ bị cắt ngắn kèm theo một marker. Kích thước tối đa cho mỗi tệp được điều khiển bởi
+`agents.defaults.bootstrapMaxChars` (mặc định: 20000). Các tệp bị thiếu sẽ chèn một
+marker ngắn báo thiếu tệp.
 
-Cac hook noi bo co the chan buoc nay thong qua `agent:bootstrap` de bien doi hoac thay the
-cac file bootstrap duoc tiem (vi du hoan doi `SOUL.md` bang mot persona khac).
+Các hook nội bộ có thể chặn bước này thông qua `agent:bootstrap` để biến đổi hoặc thay thế
+các tệp bootstrap được chèn (ví dụ hoán đổi `SOUL.md` bằng một persona thay thế).
 
-De kiem tra dong gop cua moi file duoc tiem (thuan vs da tiem, cat bot, cong voi phan du schema cong cu), su dung `/context list` hoac `/context detail`. Xem [Context](/concepts/context).
+Để kiểm tra mức đóng góp của từng tệp được chèn (raw so với injected, cắt ngắn, cộng thêm overhead của schema công cụ), hãy dùng `/context list` hoặc `/context detail`. Xem [Context](/concepts/context).
 
-## Xu ly thoi gian
+## Xử lý thời gian
 
-System prompt bao gom mot phan **Current Date & Time** rieng khi biet mui gio cua
-nguoi dung. De giu prompt on dinh cho cache, hien nay no chi bao gom
-**mui gio** (khong co dong ho dong hoac dinh dang thoi gian).
+System prompt bao gồm một phần **Current Date & Time** riêng khi
+múi giờ người dùng được biết. Để giữ cache prompt ổn định, hiện nay nó chỉ bao gồm
+**múi giờ** (không có đồng hồ động hay định dạng thời gian).
 
-Su dung `session_status` khi agent can thoi gian hien tai; the trang thai
-bao gom mot dong timestamp.
+Dùng `session_status` khi tác tử cần thời gian hiện tại; thẻ trạng thái
+có kèm một dòng timestamp.
 
-Cau hinh voi:
+Cấu hình bằng:
 
 - `agents.defaults.userTimezone`
 - `agents.defaults.timeFormat` (`auto` | `12` | `24`)
 
-Xem [Date & Time](/date-time) de biet day du chi tiet hanh vi.
+Xem [Date & Time](/date-time) để biết đầy đủ chi tiết hành vi.
 
 ## Skills
 
-Khi ton tai cac skill du dieu kien, OpenClaw tiem vao mot **danh sach skill kha dung**
-gon nhe (`formatSkillsForPrompt`) bao gom **duong dan file** cho moi skill. Prompt
-huong dan mo hinh su dung `read` de tai SKILL.md tai vi tri da liet ke
-(workspace, quan ly, hoac dong goi). Neu khong co skill nao du dieu kien, phan
-Skills se bi loai bo.
+Khi có các Skills đủ điều kiện, OpenClaw chèn một **danh sách Skills khả dụng** gọn nhẹ
+(`formatSkillsForPrompt`) bao gồm **đường dẫn tệp** cho mỗi skill. Prompt hướng dẫn mô hình sử dụng `read` để tải SKILL.md tại vị trí được liệt kê
+(workspace, managed hoặc bundled). Nếu không có Skills đủ điều kiện, phần
+Skills sẽ bị lược bỏ.
 
 ```
 <available_skills>
@@ -111,13 +109,13 @@ Skills se bi loai bo.
 </available_skills>
 ```
 
-Dieu nay giu prompt co ban nho gon trong khi van cho phep su dung skill co muc tieu.
+Cách này giữ prompt nền nhỏ gọn trong khi vẫn cho phép sử dụng skill có mục tiêu.
 
 ## Documentation
 
-Khi co san, system prompt bao gom mot phan **Documentation** chi den
-thu muc tai lieu OpenClaw cuc bo (hoac `docs/` trong workspace repo hoac tai lieu
-dong goi npm) va cung ghi chu ve ban sao cong khai, repo nguon, Discord cong dong, va
-ClawHub (https://clawhub.com) de kham pha skills. Prompt huong dan mo hinh uu tien tham khao
-tai lieu cuc bo truoc cho hanh vi OpenClaw, lenh, cau hinh, hoac kien truc, va tu chay
-`openclaw status` khi co the (chi hoi nguoi dung khi thieu quyen truy cap).
+Khi có sẵn, system prompt bao gồm một phần **Documentation** trỏ tới
+thư mục tài liệu OpenClaw cục bộ (hoặc `docs/` trong workspace repo hoặc tài liệu gói npm
+được bundled) và cũng ghi chú mirror công khai, repo nguồn, cộng đồng Discord và
+ClawHub ([https://clawhub.com](https://clawhub.com)) để khám phá Skills. Prompt hướng dẫn mô hình tham khảo tài liệu cục bộ trước
+đối với hành vi, lệnh, cấu hình hoặc kiến trúc của OpenClaw, và tự chạy
+`openclaw status` khi có thể (chỉ hỏi người dùng khi không có quyền truy cập).

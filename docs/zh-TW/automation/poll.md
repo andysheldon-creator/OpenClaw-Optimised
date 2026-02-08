@@ -1,23 +1,23 @@
 ---
-summary: 「透過 Gateway 閘道器 + CLI 傳送投票」
+summary: "透過 Gateway 閘道器 + CLI 傳送投票"
 read_when:
-  - 新增或修改投票支援
-  - 從 CLI 或 Gateway 閘道器 偵錯投票傳送
-title: 「投票」
+  - 新增或修改投票支援時
+  - 從 CLI 或 Gateway 閘道器 偵錯投票傳送時
+title: "投票"
 x-i18n:
   source_path: automation/poll.md
   source_hash: 760339865d27ec40
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:52:19Z
+  generated_at: 2026-02-08T09:26:42Z
 ---
 
 # 投票
 
 ## 支援的頻道
 
-- WhatsApp（Web 頻道）
+- WhatsApp（網頁頻道）
 - Discord
 - MS Teams（Adaptive Cards）
 
@@ -44,7 +44,7 @@ openclaw message poll --channel msteams --target conversation:19:abc@thread.tacv
 選項：
 
 - `--channel`：`whatsapp`（預設）、`discord`，或 `msteams`
-- `--poll-multi`：允許選取多個選項
+- `--poll-multi`：允許選擇多個選項
 - `--poll-duration-hours`：僅限 Discord（省略時預設為 24）
 
 ## Gateway RPC
@@ -63,13 +63,13 @@ openclaw message poll --channel msteams --target conversation:19:abc@thread.tacv
 
 ## 頻道差異
 
-- WhatsApp：2–12 個選項，`maxSelections` 必須在選項數量範圍內，會忽略 `durationHours`。
-- Discord：2–10 個選項，`durationHours` 會被限制在 1–768 小時（預設 24）。`maxSelections > 1` 啟用多選；Discord 不支援嚴格的選取數量限制。
+- WhatsApp：2–12 個選項，`maxSelections` 必須在選項數量範圍內，忽略 `durationHours`。
+- Discord：2–10 個選項，`durationHours` 會限制在 1–768 小時（預設 24）。`maxSelections > 1` 啟用多選；Discord 不支援嚴格的選擇數量限制。
 - MS Teams：Adaptive Card 投票（由 OpenClaw 管理）。沒有原生投票 API；`durationHours` 會被忽略。
 
-## 代理程式工具（Message）
+## 代理程式工具（訊息）
 
 使用 `message` 工具搭配 `poll` 動作（`to`、`pollQuestion`、`pollOption`，以及選填的 `pollMulti`、`pollDurationHours`、`channel`）。
 
-注意：Discord 沒有「必須選取恰好 N 個」的模式；`pollMulti` 會對應為多選。
-Teams 投票會以 Adaptive Cards 呈現，且需要 Gateway 閘道器 保持上線，才能在 `~/.openclaw/msteams-polls.json` 中記錄投票。
+注意：Discord 沒有「必須選擇恰好 N 個」的模式；`pollMulti` 會對應為多選。
+Teams 的投票會以 Adaptive Cards 呈現，且需要 Gateway 閘道器 持續在線，才能在 `~/.openclaw/msteams-polls.json` 中記錄投票結果。

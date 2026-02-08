@@ -1,16 +1,16 @@
 ---
-summary: "안정, 베타, 개발 채널: 의미, 전환, 태깅"
+summary: "안정판, 베타, 개발 채널: 의미, 전환, 태깅"
 read_when:
-  - 안정/베타/개발 간 전환하려는 경우
-  - 사전 릴리스를 태깅하거나 퍼블리시하려는 경우
+  - 안정판/베타/개발 채널 간 전환하려는 경우
+  - 사전 릴리스를 태깅하거나 게시하는 경우
 title: "개발 채널"
 x-i18n:
   source_path: install/development-channels.md
   source_hash: 2b01219b7e705044
   provider: openai
-  model: gpt-5.2-pro
+  model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-06T05:39:45Z
+  generated_at: 2026-02-08T09:25:19Z
 ---
 
 # 개발 채널
@@ -21,9 +21,9 @@ OpenClaw 는 세 가지 업데이트 채널을 제공합니다:
 
 - **stable**: npm dist-tag `latest`.
 - **beta**: npm dist-tag `beta` (테스트 중인 빌드).
-- **dev**: `main` (git)의 이동하는 최신 헤드. npm dist-tag: `dev` (퍼블리시된 경우).
+- **dev**: `main` (git) 의 최신 헤드. npm dist-tag: `dev` (게시된 경우).
 
-저희는 빌드를 **beta** 에 배포하고 테스트한 다음, 버전 번호를 변경하지 않고 **검증된 빌드를 `latest` 로 승격**합니다 — dist-tag 는 npm 설치에 대한 단일 진실 공급원입니다.
+우리는 빌드를 **beta** 에 배포하고 테스트한 뒤, **검증된 빌드를 버전 번호를 변경하지 않고 `latest` 로 승격**합니다 — npm 설치의 단일 기준은 dist-tag 입니다.
 
 ## 채널 전환
 
@@ -35,8 +35,8 @@ openclaw update --channel beta
 openclaw update --channel dev
 ```
 
-- `stable`/`beta` 는 최신 일치 태그를 체크아웃합니다(종종 동일한 태그).
-- `dev` 는 `main` 로 전환하고 업스트림을 기준으로 리베이스합니다.
+- `stable`/`beta` 는 최신으로 일치하는 태그를 체크아웃합니다 (대개 동일한 태그).
+- `dev` 는 `main` 로 전환하고 업스트림에 리베이스합니다.
 
 npm/pnpm 전역 설치:
 
@@ -46,14 +46,15 @@ openclaw update --channel beta
 openclaw update --channel dev
 ```
 
-이는 해당 npm dist-tag (`latest`, `beta`, `dev`)를 통해 업데이트됩니다.
+이는 해당 npm dist-tag (`latest`, `beta`, `dev`) 를 통해 업데이트됩니다.
 
-`--channel` 로 채널을 **명시적으로** 전환하면, OpenClaw 는 설치 방식도 정렬합니다:
+`--channel` 로 채널을 **명시적으로** 전환하면, OpenClaw 는 설치 방식도 함께 정렬합니다:
 
-- `dev` 는 git 체크아웃을 보장하고(기본값 `~/openclaw`, `OPENCLAW_GIT_DIR` 로 재정의), 이를 업데이트한 뒤 해당 체크아웃에서 전역 CLI 를 설치합니다.
-- `stable`/`beta` 는 일치하는 dist-tag 를 사용해 npm 에서 설치합니다.
+- `dev` 는 git 체크아웃을 보장하고 (기본값 `~/openclaw`, `OPENCLAW_GIT_DIR` 로 재정의 가능),
+  이를 업데이트한 뒤 해당 체크아웃에서 전역 CLI 를 설치합니다.
+- `stable`/`beta` 는 일치하는 dist-tag 를 사용하여 npm 에서 설치합니다.
 
-팁: 안정 + 개발을 병렬로 사용하려면 두 개의 클론을 유지하고 Gateway(게이트웨이) 가 안정 버전을 가리키도록 하십시오.
+팁: 안정판 + 개발 채널을 병행해서 사용하려면 두 개의 클론을 유지하고 Gateway(게이트웨이) 를 안정판 쪽으로 지정하십시오.
 
 ## 플러그인과 채널
 
@@ -64,16 +65,16 @@ openclaw update --channel dev
 
 ## 태깅 모범 사례
 
-- git 체크아웃이 도달해야 하는 릴리스를 태그로 지정하십시오(`vYYYY.M.D` 또는 `vYYYY.M.D-<patch>`).
-- 태그는 변경 불가능하게 유지하십시오: 태그를 이동하거나 재사용하지 마십시오.
-- npm dist-tag 는 npm 설치에 대한 단일 진실 공급원으로 유지됩니다:
+- git 체크아웃이 도달하길 원하는 릴리스를 태깅하십시오 (`vYYYY.M.D` 또는 `vYYYY.M.D-<patch>`).
+- 태그는 불변으로 유지하십시오: 태그를 이동하거나 재사용하지 마십시오.
+- npm dist-tag 는 npm 설치의 기준으로 유지됩니다:
   - `latest` → stable
   - `beta` → 후보 빌드
-  - `dev` → main 스냅샷(선택 사항)
+  - `dev` → main 스냅샷 (선택 사항)
 
 ## macOS 앱 제공 여부
 
-베타 및 개발 빌드에는 macOS 앱 릴리스가 **포함되지 않을 수 있습니다**. 이는 괜찮습니다:
+베타 및 개발 빌드에는 macOS 앱 릴리스가 **포함되지 않을 수 있습니다**. 이는 문제 없습니다:
 
-- git 태그와 npm dist-tag 는 여전히 퍼블리시할 수 있습니다.
-- 릴리스 노트 또는 변경 로그에 "이 베타에는 macOS 빌드가 없음"을 명시하십시오.
+- git 태그와 npm dist-tag 는 여전히 게시할 수 있습니다.
+- 릴리스 노트 또는 변경 로그에 '이 베타에는 macOS 빌드가 없음' 을 명시하십시오.

@@ -2,7 +2,7 @@
 summary: "Modo Talk: conversaciones de voz continuas con TTS de ElevenLabs"
 read_when:
   - Implementación del modo Talk en macOS/iOS/Android
-  - Cambio del comportamiento de voz/TTS/interrupciones
+  - Cambio del comportamiento de voz/TTS/interrupción
 title: "Modo Talk"
 x-i18n:
   source_path: nodes/talk.md
@@ -10,7 +10,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:59:24Z
+  generated_at: 2026-02-08T09:34:00Z
 ---
 
 # Modo Talk
@@ -24,15 +24,15 @@ El modo Talk es un bucle continuo de conversación por voz:
 
 ## Comportamiento (macOS)
 
-- **Superposición siempre activa** mientras el modo Talk está habilitado.
+- **Overlay siempre activo** mientras el modo Talk está habilitado.
 - Transiciones de fase **Escuchando → Pensando → Hablando**.
 - En una **pausa corta** (ventana de silencio), se envía la transcripción actual.
 - Las respuestas se **escriben en WebChat** (igual que al teclear).
-- **Interrumpir al hablar** (activado por defecto): si el usuario comienza a hablar mientras el asistente está hablando, se detiene la reproducción y se registra la marca de tiempo de la interrupción para el siguiente prompt.
+- **Interrumpir al hablar** (activado por defecto): si el usuario empieza a hablar mientras el asistente está hablando, se detiene la reproducción y se anota la marca de tiempo de la interrupción para el siguiente prompt.
 
 ## Directivas de voz en las respuestas
 
-El asistente puede anteponer a su respuesta una **única línea JSON** para controlar la voz:
+El asistente puede anteponer su respuesta con **una sola línea JSON** para controlar la voz:
 
 ```json
 { "voice": "<voice-id>", "once": true }
@@ -43,7 +43,7 @@ Reglas:
 - Solo la primera línea no vacía.
 - Las claves desconocidas se ignoran.
 - `once: true` se aplica solo a la respuesta actual.
-- Sin `once`, la voz se convierte en el nuevo valor predeterminado para el modo Talk.
+- Sin `once`, la voz pasa a ser el nuevo valor predeterminado para el modo Talk.
 - La línea JSON se elimina antes de la reproducción TTS.
 
 Claves compatibles:
@@ -71,17 +71,17 @@ Claves compatibles:
 Valores predeterminados:
 
 - `interruptOnSpeech`: true
-- `voiceId`: vuelve a `ELEVENLABS_VOICE_ID` / `SAG_VOICE_ID` (o a la primera voz de ElevenLabs cuando la clave de API está disponible)
+- `voiceId`: recurre a `ELEVENLABS_VOICE_ID` / `SAG_VOICE_ID` (o a la primera voz de ElevenLabs cuando la clave de API está disponible)
 - `modelId`: por defecto `eleven_v3` cuando no se establece
-- `apiKey`: vuelve a `ELEVENLABS_API_KEY` (o al perfil de shell del gateway si está disponible)
+- `apiKey`: recurre a `ELEVENLABS_API_KEY` (o al perfil de shell del gateway si está disponible)
 - `outputFormat`: por defecto `pcm_44100` en macOS/iOS y `pcm_24000` en Android (establezca `mp3_*` para forzar streaming MP3)
 
 ## UI de macOS
 
-- Alternador en la barra de menú: **Talk**
-- Pestaña de configuración: grupo **Modo Talk** (id de voz + alternador de interrupción)
-- Superposición:
-  - **Escuchando**: la nube pulsa con el nivel del micrófono
+- Alternador en la barra de menús: **Talk**
+- Pestaña de configuración: grupo **Modo Talk** (ID de voz + alternador de interrupción)
+- Overlay:
+  - **Escuchando**: pulsos de nube con nivel de micrófono
   - **Pensando**: animación descendente
   - **Hablando**: anillos radiantes
   - Clic en la nube: detener el habla
@@ -91,7 +91,7 @@ Valores predeterminados:
 
 - Requiere permisos de Voz + Micrófono.
 - Usa `chat.send` contra la clave de sesión `main`.
-- El TTS usa la API de streaming de ElevenLabs con `ELEVENLABS_API_KEY` y reproducción incremental en macOS/iOS/Android para menor latencia.
+- El TTS utiliza la API de streaming de ElevenLabs con `ELEVENLABS_API_KEY` y reproducción incremental en macOS/iOS/Android para menor latencia.
 - `stability` para `eleven_v3` se valida a `0.0`, `0.5` o `1.0`; otros modelos aceptan `0..1`.
 - `latency_tier` se valida a `0..4` cuando se establece.
 - Android admite los formatos de salida `pcm_16000`, `pcm_22050`, `pcm_24000` y `pcm_44100` para streaming AudioTrack de baja latencia.

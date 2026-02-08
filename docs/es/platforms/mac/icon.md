@@ -1,38 +1,38 @@
 ---
-summary: "Estados y animaciones del ícono de la barra de menús para OpenClaw en macOS"
+summary: "Estados y animaciones del icono de la barra de menús para OpenClaw en macOS"
 read_when:
-  - Cambiar el comportamiento del ícono de la barra de menús
-title: "Ícono de la barra de menús"
+  - Cambiar el comportamiento del icono de la barra de menús
+title: "Icono de la barra de menús"
 x-i18n:
   source_path: platforms/mac/icon.md
   source_hash: a67a6e6bbdc2b611
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:59:29Z
+  generated_at: 2026-02-08T09:34:08Z
 ---
 
-# Estados del ícono de la barra de menús
+# Estados del icono de la barra de menús
 
 Autor: steipete · Actualizado: 2025-12-06 · Alcance: app de macOS (`apps/macos`)
 
-- **Inactivo:** Animación normal del ícono (parpadeo, leve contoneo ocasional).
-- **En pausa:** El elemento de estado usa `appearsDisabled`; sin movimiento.
-- **Disparador de voz (orejas grandes):** El detector de activación por voz llama a `AppState.triggerVoiceEars(ttl: nil)` cuando se oye la palabra de activación, manteniendo `earBoostActive=true` mientras se captura la locución. Las orejas se escalan (1.9x), obtienen orificios circulares para mejorar la legibilidad y luego descienden mediante `stopVoiceEars()` tras 1 s de silencio. Solo se activa desde el flujo de voz dentro de la app.
-- **Trabajando (agente en ejecución):** `AppState.isWorking=true` impulsa un micromovimiento de “correteo de cola/patas”: mayor movimiento de patas y un ligero desplazamiento mientras el trabajo está en curso. Actualmente se alterna alrededor de ejecuciones del agente WebChat; agregue la misma alternancia alrededor de otras tareas largas cuando las conecte.
+- **Inactivo:** Animación normal del icono (parpadeo, contoneo ocasional).
+- **Pausado:** El elemento de estado usa `appearsDisabled`; sin movimiento.
+- **Activación por voz (orejas grandes):** El detector de activación por voz llama a `AppState.triggerVoiceEars(ttl: nil)` cuando se escucha la palabra de activación, manteniendo `earBoostActive=true` mientras se captura la emisión. Las orejas se escalan (1.9x), obtienen orificios circulares para mejorar la legibilidad y luego caen mediante `stopVoiceEars()` tras 1 s de silencio. Solo se activa desde la canalización de voz dentro de la app.
+- **Trabajando (agente en ejecución):** `AppState.isWorking=true` impulsa una microanimación de “carrera de cola/patas”: mayor contoneo de las patas y un ligero desplazamiento mientras el trabajo está en curso. Actualmente se alterna alrededor de ejecuciones del agente WebChat; agregue el mismo alternado alrededor de otras tareas largas cuando las conecte.
 
 Puntos de conexión
 
-- Activación por voz: la llamada runtime/tester invoca `AppState.triggerVoiceEars(ttl: nil)` al dispararse y `stopVoiceEars()` después de 1 s de silencio para coincidir con la ventana de captura.
-- Actividad del agente: establezca `AppStateStore.shared.setWorking(true/false)` alrededor de los tramos de trabajo (ya hecho en la llamada del agente WebChat). Mantenga los tramos cortos y restablezca en bloques `defer` para evitar animaciones atascadas.
+- Activación por voz: el runtime/tester llama a `AppState.triggerVoiceEars(ttl: nil)` al activarse y a `stopVoiceEars()` después de 1 s de silencio para coincidir con la ventana de captura.
+- Actividad del agente: establezca `AppStateStore.shared.setWorking(true/false)` alrededor de los intervalos de trabajo (ya hecho en la llamada del agente WebChat). Mantenga los intervalos cortos y restablézcalos en bloques `defer` para evitar animaciones atascadas.
 
 Formas y tamaños
 
-- Ícono base dibujado en `CritterIconRenderer.makeIcon(blink:legWiggle:earWiggle:earScale:earHoles:)`.
-- La escala de orejas predeterminada es `1.0`; el refuerzo por voz establece `earScale=1.9` y alterna `earHoles=true` sin cambiar el marco general (imagen plantilla de 18×18 pt renderizada en un backing store Retina de 36×36 px).
-- El correteo usa un movimiento de patas de hasta ~1.0 con un pequeño vaivén horizontal; es aditivo a cualquier contoneo inactivo existente.
+- Icono base dibujado en `CritterIconRenderer.makeIcon(blink:legWiggle:earWiggle:earScale:earHoles:)`.
+- La escala de orejas tiene como valor predeterminado `1.0`; el refuerzo por voz establece `earScale=1.9` y alterna `earHoles=true` sin cambiar el marco general (imagen plantilla de 18×18 pt renderizada en un respaldo Retina de 36×36 px).
+- La carrera usa contoneo de patas hasta ~1.0 con un pequeño vaivén horizontal; es aditiva a cualquier contoneo inactivo existente.
 
 Notas de comportamiento
 
-- No hay alternancia externa por CLI/broker para orejas/trabajo; manténgalo interno a las señales propias de la app para evitar activaciones accidentales.
-- Mantenga TTL cortos (&lt;10 s) para que el ícono vuelva rápidamente a la línea base si un trabajo se queda colgado.
+- No hay alternador externo de CLI/broker para orejas/trabajo; manténgalo interno a las señales propias de la app para evitar aleteos accidentales.
+- Mantenga TTLs cortos (&lt;10 s) para que el icono vuelva rápidamente a la línea base si una tarea se queda colgada.

@@ -1,20 +1,20 @@
 ---
-summary: "セッションの一覧表示、履歴の取得、セッション間メッセージ送信を行うためのエージェント用セッション ツール"
+summary: "セッションの一覧表示、履歴の取得、およびセッション間メッセージ送信のためのエージェント セッション ツール"
 read_when:
-  - セッション ツールを追加または変更するとき
+  - セッション ツールの追加または変更時
 title: "セッション ツール"
 x-i18n:
   source_path: concepts/session-tool.md
   source_hash: cb6e0982ebf507bc
   provider: openai
-  model: gpt-5.2-pro
+  model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-06T05:09:15Z
+  generated_at: 2026-02-08T09:21:46Z
 ---
 
 # セッション ツール
 
-目標: エージェントがセッションを一覧表示し、履歴を取得し、別のセッションへ送信できる、小さく誤用しにくいツール セットです。
+目的：エージェントがセッションを一覧表示し、履歴を取得し、別のセッションに送信できる、小さく誤用しにくいツール セットを提供します。
 
 ## ツール名
 
@@ -25,101 +25,101 @@ x-i18n:
 
 ## キー モデル
 
-- メインのダイレクトチャット バケットは、常にリテラル キー `"main"`（現在のエージェントのメイン キーに解決されます）です。
-- グループチャットは `agent:<agentId>:<channel>:group:<id>` または `agent:<agentId>:<channel>:channel:<id>`（完全なキーを渡します）を使用します。
+- メインのダイレクト チャット バケットは、常にリテラル キー `"main"`（現在のエージェントのメイン キーに解決）です。
+- グループ チャットは `agent:<agentId>:<channel>:group:<id>` または `agent:<agentId>:<channel>:channel:<id>` を使用します（完全なキーを渡します）。
 - Cron ジョブは `cron:<job.id>` を使用します。
-- フックは明示的に設定されない限り `hook:<uuid>` を使用します。
-- ノード セッションは明示的に設定されない限り `node-<nodeId>` を使用します。
+- フックは、明示的に設定されていない限り `hook:<uuid>` を使用します。
+- ノード セッションは、明示的に設定されていない限り `node-<nodeId>` を使用します。
 
-`global` と `unknown` は予約値であり、一覧表示されることはありません。`session.scope = "global"` の場合、すべてのツールで `main` にエイリアスし、呼び出し元が `global` を見ることがないようにします。
+`global` と `unknown` は予約値であり、一覧には表示されません。`session.scope = "global"` の場合、すべてのツールで `main` にエイリアスされ、呼び出し側が `global` を目にすることはありません。
 
 ## sessions_list
 
 セッションを行の配列として一覧表示します。
 
-パラメータ:
+パラメータ：
 
-- `kinds?: string[]` フィルタ: `"main" | "group" | "cron" | "hook" | "node" | "other"` のいずれか
-- `limit?: number` 最大行数（デフォルト: サーバーデフォルト。例: 200 などにクランプ）
+- `kinds?: string[]` フィルター：`"main" | "group" | "cron" | "hook" | "node" | "other"` のいずれか
+- `limit?: number` 最大行数（デフォルト：サーバー既定、例：200 にクランプ）
 - `activeMinutes?: number` N 分以内に更新されたセッションのみ
-- `messageLimit?: number` 0 = メッセージなし（デフォルト 0）; >0 = 最後の N 件のメッセージを含める
+- `messageLimit?: number` 0 = メッセージなし（デフォルト 0）；>0 = 直近 N 件のメッセージを含める
 
-挙動:
+挙動：
 
-- `messageLimit > 0` はセッションごとに `chat.history` を取得し、最後の N 件のメッセージを含めます。
-- ツール結果は一覧出力からフィルタリングされます。ツール メッセージには `sessions_history` を使用します。
-- **サンドボックス化された** エージェント セッションで実行する場合、セッション ツールはデフォルトで **生成済みのみの可視性**（下記参照）になります。
+- `messageLimit > 0` は、セッションごとに `chat.history` を取得し、直近 N 件のメッセージを含めます。
+- ツールの結果は一覧出力から除外されます。ツール メッセージには `sessions_history` を使用してください。
+- **サンドボックス化された** エージェント セッションで実行している場合、セッション ツールは既定で **spawned-only 可視性**（下記参照）になります。
 
-行の形状（JSON）:
+行の形状（JSON）：
 
-- `key`: セッション キー（string）
-- `kind`: `main | group | cron | hook | node | other`
-- `channel`: `whatsapp | telegram | discord | signal | imessage | webchat | internal | unknown`
+- `key`：セッション キー（string）
+- `kind`：`main | group | cron | hook | node | other`
+- `channel`：`whatsapp | telegram | discord | signal | imessage | webchat | internal | unknown`
 - `displayName`（利用可能な場合のグループ表示ラベル）
 - `updatedAt`（ms）
 - `sessionId`
-- `model`, `contextTokens`, `totalTokens`
-- `thinkingLevel`, `verboseLevel`, `systemSent`, `abortedLastRun`
-- `sendPolicy`（設定されている場合のセッション上書き）
-- `lastChannel`, `lastTo`
+- `model`、`contextTokens`、`totalTokens`
+- `thinkingLevel`、`verboseLevel`、`systemSent`、`abortedLastRun`
+- `sendPolicy`（設定されている場合のセッション オーバーライド）
+- `lastChannel`、`lastTo`
 - `deliveryContext`（利用可能な場合の正規化された `{ channel, to, accountId }`）
-- `transcriptPath`（store dir + sessionId から導出されるベストエフォート パス）
+- `transcriptPath`（ストア ディレクトリ + sessionId から導出したベストエフォートのパス）
 - `messages?`（`messageLimit > 0` の場合のみ）
 
 ## sessions_history
 
 1 つのセッションのトランスクリプトを取得します。
 
-パラメータ:
+パラメータ：
 
-- `sessionKey`（必須; セッション キーまたは `sessions_list` の `sessionId` を受け付けます）
+- `sessionKey`（必須；セッション キーまたは `sessions_list` の `sessionId` を受け付けます）
 - `limit?: number` 最大メッセージ数（サーバーでクランプ）
 - `includeTools?: boolean`（デフォルト false）
 
-挙動:
+挙動：
 
-- `includeTools=false` は `role: "toolResult"` メッセージをフィルタリングします。
-- メッセージ配列を生のトランスクリプト形式で返します。
-- `sessionId` が与えられると、OpenClaw は対応するセッション キーに解決します（id が見つからない場合はエラー）。
+- `includeTools=false` は `role: "toolResult"` メッセージをフィルターします。
+- 生のトランスクリプト形式でメッセージ配列を返します。
+- `sessionId` が与えられた場合、OpenClaw は対応するセッション キーに解決します（欠落した id はエラー）。
 
 ## sessions_send
 
-別のセッションへメッセージを送信します。
+別のセッションにメッセージを送信します。
 
-パラメータ:
+パラメータ：
 
-- `sessionKey`（必須; セッション キーまたは `sessions_list` の `sessionId` を受け付けます）
+- `sessionKey`（必須；セッション キーまたは `sessions_list` の `sessionId` を受け付けます）
 - `message`（必須）
-- `timeoutSeconds?: number`（デフォルト >0; 0 = fire-and-forget）
+- `timeoutSeconds?: number`（デフォルト >0；0 = fire-and-forget）
 
-挙動:
+挙動：
 
-- `timeoutSeconds = 0`: キューに入れて `{ runId, status: "accepted" }` を返します。
-- `timeoutSeconds > 0`: 完了まで最大 N 秒待機し、その後 `{ runId, status: "ok", reply }` を返します。
-- 待機がタイムアウトした場合: `{ runId, status: "timeout", error }`。実行は継続します。後で `sessions_history` を呼び出してください。
-- 実行が失敗した場合: `{ runId, status: "error", error }`。
-- 配送の実行は一次の実行が完了した後にアナウンスされ、ベストエフォートです。`status: "ok"` はアナウンスの配送を保証しません。
-- 待機は gateway `agent.wait`（サーバー側）経由で行われるため、再接続で待機が失われません。
-- エージェント間メッセージのコンテキストが一次の実行に注入されます。
-- 一次の実行が完了した後、OpenClaw は **返信戻しループ**を実行します:
-  - ラウンド 2+ は要求元エージェントと対象エージェントの間で交互になります。
-  - ping‑pong を止めるには、正確に `REPLY_SKIP` と返信してください。
+- `timeoutSeconds = 0`：キューに入れて `{ runId, status: "accepted" }` を返します。
+- `timeoutSeconds > 0`：完了まで最大 N 秒待機し、その後 `{ runId, status: "ok", reply }` を返します。
+- 待機がタイムアウトした場合：`{ runId, status: "timeout", error }`。実行は継続され、後で `sessions_history` を呼び出してください。
+- 実行が失敗した場合：`{ runId, status: "error", error }`。
+- 配信のアナウンス実行は一次実行の完了後に行われ、ベストエフォートです。`status: "ok"` はアナウンスの配信を保証しません。
+- 待機はゲートウェイ `agent.wait`（サーバー側）経由で行われるため、再接続で待機が中断されません。
+- 一次実行には、エージェント間メッセージのコンテキストが注入されます。
+- 一次実行の完了後、OpenClaw は **reply-back ループ** を実行します：
+  - ラウンド 2 以降は、リクエスター エージェントとターゲット エージェントが交互に応答します。
+  - ping‑pong を停止するには、正確に `REPLY_SKIP` と返信してください。
   - 最大ターン数は `session.agentToAgent.maxPingPongTurns`（0–5、デフォルト 5）です。
-- ループが終了すると、OpenClaw は **エージェント間アナウンス ステップ**（対象エージェントのみ）を実行します:
-  - 黙るには、正確に `ANNOUNCE_SKIP` と返信してください。
-  - それ以外の返信は対象チャンネルに送信されます。
+- ループ終了後、OpenClaw は **エージェント間アナウンス ステップ**（ターゲット エージェントのみ）を実行します：
+  - 何も送信しない場合は、正確に `ANNOUNCE_SKIP` と返信してください。
+  - それ以外の返信は、ターゲット チャンネルに送信されます。
   - アナウンス ステップには、元のリクエスト + ラウンド 1 の返信 + 最新の ping‑pong 返信が含まれます。
 
 ## チャンネル フィールド
 
-- グループの場合、`channel` はセッション エントリに記録されているチャンネルです。
-- ダイレクトチャットの場合、`channel` は `lastChannel` からマップされます。
+- グループの場合、`channel` はセッション エントリーに記録されたチャンネルです。
+- ダイレクト チャットの場合、`channel` は `lastChannel` からマッピングされます。
 - cron/hook/node の場合、`channel` は `internal` です。
 - 欠落している場合、`channel` は `unknown` です。
 
 ## セキュリティ / 送信ポリシー
 
-チャンネル/チャット種別によるポリシーベースのブロック（セッション id ごとではありません）。
+チャンネル／チャット種別ごとのポリシー ベースのブロック（セッション id ごとではありません）。
 
 ```json
 {
@@ -137,54 +137,54 @@ x-i18n:
 }
 ```
 
-ランタイム上書き（セッション エントリごと）:
+実行時オーバーライド（セッション エントリーごと）：
 
 - `sendPolicy: "allow" | "deny"`（未設定 = 設定を継承）
-- `sessions.patch` または所有者のみの `/send on|off|inherit`（スタンドアロン メッセージ）で設定可能です。
+- `sessions.patch` またはオーナーのみの `/send on|off|inherit`（スタンドアロン メッセージ）で設定可能。
 
-適用ポイント:
+強制ポイント：
 
-- `chat.send` / `agent`（gateway）
-- 自動返信の配送ロジック
+- `chat.send` / `agent`（ゲートウェイ）
+- 自動返信の配信ロジック
 
 ## sessions_spawn
 
-隔離されたセッションでサブエージェントの実行を生成し、結果を要求元チャット チャンネルへアナウンスします。
+隔離されたセッションでサブ エージェント実行を起動し、結果をリクエスターのチャット チャンネルにアナウンスします。
 
-パラメータ:
+パラメータ：
 
 - `task`（必須）
-- `label?`（任意; ログ/UI 用）
-- `agentId?`（任意; 許可されている場合、別のエージェント id の配下で生成）
-- `model?`（任意; サブエージェント model を上書きします。不正な値はエラー）
-- `runTimeoutSeconds?`（デフォルト 0; 設定されると、N 秒後にサブエージェントの実行を中止します）
+- `label?`（任意；ログ/UI 用）
+- `agentId?`（任意；許可されていれば別のエージェント id の配下で起動）
+- `model?`（任意；サブ エージェントのモデルを上書き；無効な値はエラー）
+- `runTimeoutSeconds?`（デフォルト 0；設定時は N 秒後にサブ エージェント実行を中止）
 - `cleanup?`（`delete|keep`、デフォルト `keep`）
 
-許可リスト:
+許可リスト：
 
-- `agents.list[].subagents.allowAgents`: `agentId` 経由で許可されるエージェント id の一覧（任意を許可するには `["*"]`）。デフォルト: 要求元エージェントのみ。
+- `agents.list[].subagents.allowAgents`：`agentId`（任意を許可する場合は `["*"]`）経由で許可されるエージェント id の一覧。デフォルト：リクエスター エージェントのみ。
 
-デバイス検出:
+検出：
 
-- `sessions_spawn` に対してどのエージェント id が許可されているかを検出するには `agents_list` を使用します。
+- `agents_list` を使用して、`sessions_spawn` に対して許可されているエージェント id を検出します。
 
-挙動:
+挙動：
 
-- `deliver: false` で新しい `agent:<agentId>:subagent:<uuid>` セッションを開始します。
-- サブエージェントはデフォルトで、完全なツール セットから **セッション ツールを除いたもの**になります（`tools.subagents.tools` で設定可能）。
-- サブエージェントは `sessions_spawn` を呼び出すことは許可されません（サブエージェント → サブエージェントの生成は禁止）。
-- 常にノンブロッキング: `{ status: "accepted", runId, childSessionKey }` を直ちに返します。
-- 完了後、OpenClaw はサブエージェントの **アナウンス ステップ**を実行し、結果を要求元チャット チャンネルに投稿します。
-- アナウンス ステップ中に黙るには、正確に `ANNOUNCE_SKIP` と返信してください。
-- アナウンス返信は `Status`/`Result`/`Notes` に正規化されます。`Status` は（model のテキストではなく）ランタイムの結果に由来します。
-- サブエージェント セッションは `agents.defaults.subagents.archiveAfterMinutes` 後に自動アーカイブされます（デフォルト: 60）。
-- アナウンス返信には統計行（ランタイム、トークン、sessionKey/sessionId、トランスクリプト パス、任意のコスト）が含まれます。
+- `deliver: false` を伴う新しい `agent:<agentId>:subagent:<uuid>` セッションを開始します。
+- サブ エージェントは既定で、**セッション ツールを除く** フル ツール セットを使用します（`tools.subagents.tools` で設定可能）。
+- サブ エージェントは `sessions_spawn` を呼び出すことはできません（サブ エージェント → サブ エージェントの起動は不可）。
+- 常にノンブロッキング：即座に `{ status: "accepted", runId, childSessionKey }` を返します。
+- 完了後、OpenClaw はサブ エージェントの **アナウンス ステップ** を実行し、結果をリクエスターのチャット チャンネルに投稿します。
+- アナウンス ステップ中に何も送信しない場合は、正確に `ANNOUNCE_SKIP` と返信してください。
+- アナウンス返信は `Status`/`Result`/`Notes` に正規化されます。`Status` は実行時の結果に由来します（モデルのテキストではありません）。
+- サブ エージェント セッションは `agents.defaults.subagents.archiveAfterMinutes` 後に自動アーカイブされます（デフォルト：60）。
+- アナウンス返信には、統計行（実行時間、トークン数、sessionKey/sessionId、トランスクリプト パス、および任意のコスト）が含まれます。
 
 ## サンドボックス セッションの可視性
 
-サンドボックス化されたセッションはセッション ツールを使用できますが、デフォルトでは `sessions_spawn` 経由で生成したセッションのみが見えます。
+サンドボックス化されたセッションはセッション ツールを使用できますが、既定では `sessions_spawn` によって生成したセッションのみを参照できます。
 
-設定:
+設定：
 
 ```json5
 {

@@ -1,49 +1,49 @@
 ---
-summary: "Refactor Clawnet: hợp nhất giao thức mạng, vai trò, xác thực, phê duyệt và danh tính"
+summary: "Tái cấu trúc Clawnet: hợp nhất giao thức mạng, vai trò, xác thực, phê duyệt, định danh"
 read_when:
-  - Lập kế hoạch một giao thức mạng hợp nhất cho node + client operator
-  - Làm lại phê duyệt, ghép cặp, TLS và presence trên nhiều thiết bị
-title: "Refactor Clawnet"
+  - Lập kế hoạch một giao thức mạng thống nhất cho các node + client của operator
+  - Làm lại phê duyệt, ghép cặp, TLS và hiện diện trên các thiết bị
+title: "Tái cấu trúc Clawnet"
 x-i18n:
   source_path: refactor/clawnet.md
   source_hash: 719b219c3b326479
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:08:36Z
+  generated_at: 2026-02-08T09:40:30Z
 ---
 
-# Refactor Clawnet (hợp nhất giao thức + xác thực)
+# Tái cấu trúc Clawnet (hợp nhất giao thức + xác thực)
 
 ## Chào
 
-Chào Peter — hướng đi rất tốt; điều này mở ra UX đơn giản hơn + bảo mật mạnh hơn.
+Chào Peter — hướng đi rất đúng; điều này mở ra UX đơn giản hơn + bảo mật mạnh hơn.
 
 ## Mục đích
 
-Một tài liệu duy nhất, chặt chẽ cho:
+Một tài liệu chặt chẽ, duy nhất cho:
 
 - Trạng thái hiện tại: giao thức, luồng, ranh giới tin cậy.
-- Điểm đau: phê duyệt, định tuyến nhiều hop, trùng lặp UI.
-- Trạng thái mới đề xuất: một giao thức, vai trò có phạm vi, xác thực/ghép cặp hợp nhất, TLS pinning.
-- Mô hình danh tính: ID ổn định + slug dễ thương.
-- Kế hoạch migration, rủi ro, câu hỏi mở.
+- Điểm đau: phê duyệt, định tuyến nhiều chặng, trùng lặp UI.
+- Trạng thái mới đề xuất: một giao thức, vai trò có phạm vi, xác thực/ghép cặp hợp nhất, ghim TLS.
+- Mô hình định danh: ID ổn định + slug dễ thương.
+- Kế hoạch di trú, rủi ro, câu hỏi mở.
 
 ## Mục tiêu (từ thảo luận)
 
-- Một giao thức cho tất cả client (app mac, CLI, iOS, Android, node headless).
-- Mọi thành phần trong mạng đều được xác thực + ghép cặp.
-- Phân định vai trò rõ ràng: node vs operator.
-- Phê duyệt tập trung, được định tuyến tới nơi người dùng đang ở.
-- Mã hóa TLS + pinning tùy chọn cho mọi lưu lượng từ xa.
-- Tối thiểu hóa trùng lặp mã.
+- Một giao thức cho tất cả client (app mac, CLI, iOS, Android, node không giao diện).
+- Mọi thành phần mạng đều được xác thực + ghép cặp.
+- Rõ ràng vai trò: node vs operator.
+- Phê duyệt tập trung, được chuyển tới nơi người dùng đang ở.
+- Mã hóa TLS + ghim tùy chọn cho mọi lưu lượng từ xa.
+- Giảm thiểu trùng lặp mã.
 - Một máy chỉ xuất hiện một lần (không trùng mục UI/node).
 
 ## Không phải mục tiêu (nêu rõ)
 
 - Loại bỏ phân tách năng lực (vẫn cần nguyên tắc đặc quyền tối thiểu).
-- Mở toàn bộ control plane của gateway mà không kiểm tra scope.
-- Khiến xác thực phụ thuộc vào nhãn con người (slug không mang tính bảo mật).
+- Mở toàn bộ control plane của gateway mà không kiểm tra phạm vi.
+- Làm cho xác thực phụ thuộc vào nhãn do con người đặt (slug không dùng cho bảo mật).
 
 ---
 
@@ -53,21 +53,21 @@ Một tài liệu duy nhất, chặt chẽ cho:
 
 ### 1) Gateway WebSocket (control plane)
 
-- Bề mặt API đầy đủ: config, channels, models, sessions, agent runs, logs, nodes, v.v.
+- Bề mặt API đầy đủ: cấu hình, kênh, mô hình, phiên, chạy agent, log, node, v.v.
 - Bind mặc định: loopback. Truy cập từ xa qua SSH/Tailscale.
 - Xác thực: token/mật khẩu qua `connect`.
-- Không có TLS pinning (dựa vào loopback/tunnel).
-- Mã nguồn:
+- Không có ghim TLS (phụ thuộc loopback/đường hầm).
+- Mã:
   - `src/gateway/server/ws-connection/message-handler.ts`
   - `src/gateway/client.ts`
   - `docs/gateway/protocol.md`
 
 ### 2) Bridge (vận chuyển node)
 
-- Bề mặt allowlist hẹp, danh tính node + ghép cặp.
-- JSONL qua TCP; TLS tùy chọn + pinning fingerprint chứng chỉ.
-- TLS quảng bá fingerprint trong discovery TXT.
-- Mã nguồn:
+- Bề mặt allowlist hẹp, định danh node + ghép cặp.
+- JSONL qua TCP; TLS tùy chọn + ghim dấu vân tay chứng chỉ.
+- TLS quảng bá dấu vân tay trong TXT khám phá.
+- Mã:
   - `src/infra/bridge/server/connection.ts`
   - `src/gateway/server-bridge.ts`
   - `src/node-host/bridge-client.ts`
@@ -79,12 +79,12 @@ Một tài liệu duy nhất, chặt chẽ cho:
 - UI app macOS → Gateway WS (`GatewayConnection`).
 - Web Control UI → Gateway WS.
 - ACP → Gateway WS.
-- Điều khiển từ trình duyệt dùng HTTP control server riêng.
+- Điều khiển trên trình duyệt dùng máy chủ HTTP control riêng.
 
 ## Node hiện nay
 
-- App macOS ở chế độ node kết nối tới Gateway bridge (`MacNodeBridgeSession`).
-- App iOS/Android kết nối tới Gateway bridge.
+- App macOS ở chế độ node kết nối tới bridge của Gateway (`MacNodeBridgeSession`).
+- App iOS/Android kết nối tới bridge của Gateway.
 - Ghép cặp + token theo từng node được lưu trên gateway.
 
 ## Luồng phê duyệt hiện tại (exec)
@@ -92,26 +92,26 @@ Một tài liệu duy nhất, chặt chẽ cho:
 - Agent dùng `system.run` qua Gateway.
 - Gateway gọi node qua bridge.
 - Runtime của node quyết định phê duyệt.
-- UI prompt hiển thị bởi app mac (khi node == app mac).
+- Hộp thoại UI hiển thị bởi app mac (khi node == app mac).
 - Node trả `invoke-res` về Gateway.
-- Nhiều hop, UI gắn chặt với host của node.
+- Nhiều chặng, UI gắn với máy chủ node.
 
-## Presence + danh tính hiện nay
+## Hiện diện + định danh hiện nay
 
-- Gateway có entry presence từ client WS.
-- Node có entry presence từ bridge.
-- App mac có thể hiển thị hai entry cho cùng một máy (UI + node).
-- Danh tính node lưu trong pairing store; danh tính UI tách biệt.
+- Bản ghi hiện diện Gateway từ các client WS.
+- Bản ghi hiện diện node từ bridge.
+- App mac có thể hiển thị hai mục cho cùng một máy (UI + node).
+- Định danh node lưu trong kho ghép cặp; định danh UI tách biệt.
 
 ---
 
 # Vấn đề / điểm đau
 
-- Hai stack giao thức cần bảo trì (WS + Bridge).
-- Phê duyệt trên node từ xa: prompt xuất hiện trên host của node, không phải nơi người dùng đang ở.
-- TLS pinning chỉ có ở bridge; WS phụ thuộc vào SSH/Tailscale.
-- Trùng lặp danh tính: cùng một máy hiển thị như nhiều instance.
-- Vai trò mơ hồ: khả năng của UI + node + CLI không tách bạch rõ.
+- Hai ngăn xếp giao thức cần duy trì (WS + Bridge).
+- Phê duyệt trên node từ xa: hộp thoại xuất hiện ở máy chạy node, không phải nơi người dùng đang ở.
+- Ghim TLS chỉ có ở bridge; WS phụ thuộc SSH/Tailscale.
+- Trùng lặp định danh: cùng một máy xuất hiện như nhiều instance.
+- Vai trò mơ hồ: năng lực của UI + node + CLI chưa tách bạch rõ.
 
 ---
 
@@ -119,44 +119,44 @@ Một tài liệu duy nhất, chặt chẽ cho:
 
 ## Một giao thức, hai vai trò
 
-Một giao thức WS duy nhất với role + scope.
+Một giao thức WS duy nhất với vai trò + phạm vi.
 
-- **Role: node** (host năng lực)
-- **Role: operator** (control plane)
-- **Scope** tùy chọn cho operator:
+- **Vai trò: node** (máy chủ năng lực)
+- **Vai trò: operator** (control plane)
+- **Phạm vi** tùy chọn cho operator:
   - `operator.read` (trạng thái + xem)
   - `operator.write` (chạy agent, gửi)
-  - `operator.admin` (config, channels, models)
+  - `operator.admin` (cấu hình, kênh, mô hình)
 
 ### Hành vi theo vai trò
 
 **Node**
 
-- Có thể đăng ký capability (`caps`, `commands`, quyền).
+- Có thể đăng ký năng lực (`caps`, `commands`, quyền).
 - Có thể nhận lệnh `invoke` (`system.run`, `camera.*`, `canvas.*`, `screen.record`, v.v.).
 - Có thể gửi sự kiện: `voice.transcript`, `agent.request`, `chat.subscribe`.
 - Không thể gọi các API control plane về config/models/channels/sessions/agent.
 
 **Operator**
 
-- Toàn bộ API control plane, được chặn theo scope.
-- Nhận tất cả các phê duyệt.
+- Toàn bộ API control plane, bị chặn theo phạm vi.
+- Nhận mọi phê duyệt.
 - Không trực tiếp thực thi hành động OS; định tuyến tới node.
 
 ### Quy tắc then chốt
 
-Role là theo từng kết nối, không phải theo thiết bị. Một thiết bị có thể mở cả hai role, tách biệt.
+Vai trò là theo từng kết nối, không theo thiết bị. Một thiết bị có thể mở cả hai vai trò, tách biệt.
 
 ---
 
 # Xác thực + ghép cặp hợp nhất
 
-## Danh tính client
+## Định danh client
 
 Mỗi client cung cấp:
 
 - `deviceId` (ổn định, suy ra từ khóa thiết bị).
-- `displayName` (tên cho con người).
+- `displayName` (tên hiển thị cho con người).
 - `role` + `scope` + `caps` + `commands`.
 
 ## Luồng ghép cặp (hợp nhất)
@@ -166,57 +166,57 @@ Mỗi client cung cấp:
 - Operator nhận prompt; chấp thuận/từ chối.
 - Gateway cấp thông tin xác thực gắn với:
   - khóa công khai của thiết bị
-  - role
-  - scope
-  - capability/lệnh
-- Client lưu token, kết nối lại đã xác thực.
+  - vai trò
+  - phạm vi
+  - năng lực/lệnh
+- Client lưu token, kết nối lại với xác thực.
 
-## Xác thực gắn với thiết bị (tránh replay bearer token)
+## Xác thực gắn với thiết bị (tránh phát lại bearer token)
 
-Ưu tiên: cặp khóa thiết bị.
+Ưu tiên: cặp khóa theo thiết bị.
 
-- Thiết bị tạo keypair một lần.
+- Thiết bị tạo cặp khóa một lần.
 - `deviceId = fingerprint(publicKey)`.
 - Gateway gửi nonce; thiết bị ký; gateway xác minh.
-- Token được cấp cho khóa công khai (proof‑of‑possession), không phải chuỗi.
+- Token được cấp cho khóa công khai (bằng chứng sở hữu), không phải chuỗi.
 
 Phương án khác:
 
-- mTLS (client cert): mạnh nhất, nhưng phức tạp vận hành hơn.
-- Bearer token ngắn hạn chỉ dùng tạm (xoay vòng + thu hồi sớm).
+- mTLS (chứng chỉ client): mạnh nhất, phức tạp vận hành hơn.
+- Bearer token ngắn hạn chỉ dùng tạm thời (xoay vòng + thu hồi sớm).
 
 ## Phê duyệt im lặng (heuristic SSH)
 
-Định nghĩa chính xác để tránh điểm yếu. Ưu tiên một trong:
+Định nghĩa chính xác để tránh mắt xích yếu. Ưu tiên một trong:
 
-- **Chỉ local**: tự động ghép cặp khi client kết nối qua loopback/Unix socket.
-- **Thử thách qua SSH**: gateway phát nonce; client chứng minh SSH bằng cách lấy nonce.
-- **Cửa sổ hiện diện vật lý**: sau khi phê duyệt local trên UI host gateway, cho phép auto‑pair trong thời gian ngắn (ví dụ 10 phút).
+- **Chỉ cục bộ**: tự ghép cặp khi client kết nối qua loopback/Unix socket.
+- **Thử thách qua SSH**: gateway phát nonce; client chứng minh SSH bằng cách lấy nó.
+- **Cửa sổ hiện diện vật lý**: sau một phê duyệt cục bộ trên UI máy chủ gateway, cho phép tự ghép cặp trong thời gian ngắn (vd. 10 phút).
 
-Luôn ghi log + lưu lại auto‑approval.
+Luôn ghi log + lưu lại các phê duyệt tự động.
 
 ---
 
 # TLS ở mọi nơi (dev + prod)
 
-## Tái sử dụng TLS của bridge hiện có
+## Tái sử dụng TLS hiện có của bridge
 
-Dùng runtime TLS hiện tại + pinning fingerprint:
+Dùng runtime TLS hiện tại + ghim dấu vân tay:
 
 - `src/infra/bridge/server/tls.ts`
-- logic kiểm tra fingerprint trong `src/node-host/bridge-client.ts`
+- logic xác minh dấu vân tay trong `src/node-host/bridge-client.ts`
 
 ## Áp dụng cho WS
 
-- WS server hỗ trợ TLS với cùng cert/key + fingerprint.
-- WS client có thể pin fingerprint (tùy chọn).
-- Discovery quảng bá TLS + fingerprint cho mọi endpoint.
-  - Discovery chỉ là gợi ý định vị; không bao giờ là trust anchor.
+- Máy chủ WS hỗ trợ TLS với cùng cert/key + dấu vân tay.
+- Client WS có thể ghim dấu vân tay (tùy chọn).
+- Discovery quảng bá TLS + dấu vân tay cho mọi endpoint.
+  - Discovery chỉ là gợi ý định vị; không bao giờ là neo tin cậy.
 
 ## Lý do
 
 - Giảm phụ thuộc vào SSH/Tailscale cho tính bảo mật.
-- Kết nối di động từ xa an toàn theo mặc định.
+- Làm cho kết nối di động từ xa an toàn theo mặc định.
 
 ---
 
@@ -224,27 +224,27 @@ Dùng runtime TLS hiện tại + pinning fingerprint:
 
 ## Hiện tại
 
-Phê duyệt diễn ra trên host của node (runtime node của app mac). Prompt xuất hiện nơi node chạy.
+Phê duyệt diễn ra trên máy chủ node (runtime node của app mac). Prompt xuất hiện nơi node chạy.
 
 ## Đề xuất
 
-Phê duyệt được **host tại gateway**, UI gửi tới client operator.
+Phê duyệt được **lưu trữ tại gateway**, UI được phân phối tới các client operator.
 
 ### Luồng mới
 
-1. Gateway nhận intent `system.run` (agent).
+1. Gateway nhận ý định `system.run` (agent).
 2. Gateway tạo bản ghi phê duyệt: `approval.requested`.
 3. UI operator hiển thị prompt.
 4. Quyết định phê duyệt gửi về gateway: `approval.resolve`.
-5. Gateway gọi lệnh node nếu được duyệt.
+5. Gateway gọi lệnh node nếu được chấp thuận.
 6. Node thực thi, trả `invoke-res`.
 
-### Ngữ nghĩa phê duyệt (gia cố)
+### Ngữ nghĩa phê duyệt (tăng cường)
 
-- Phát tới tất cả operator; chỉ UI đang active hiển thị modal (các UI khác nhận toast).
-- Quyết định đầu tiên thắng; gateway từ chối các quyết định sau vì đã được xử lý.
-- Timeout mặc định: từ chối sau N giây (ví dụ 60s), ghi log lý do.
-- Việc resolve yêu cầu scope `operator.approvals`.
+- Phát tới tất cả operator; chỉ UI đang hoạt động hiển thị modal (các UI khác nhận toast).
+- Quyết định đầu tiên có hiệu lực; gateway từ chối các lần sau vì đã được xử lý.
+- Timeout mặc định: từ chối sau N giây (vd. 60s), ghi log lý do.
+- Việc xử lý yêu cầu phạm vi `operator.approvals`.
 
 ## Lợi ích
 
@@ -254,39 +254,39 @@ Phê duyệt được **host tại gateway**, UI gửi tới client operator.
 
 ---
 
-# Ví dụ phân định vai trò
+# Ví dụ làm rõ vai trò
 
 ## App iPhone
 
-- **Node role** cho: mic, camera, voice chat, vị trí, push‑to‑talk.
+- **Vai trò node** cho: mic, camera, voice chat, vị trí, push‑to‑talk.
 - **operator.read** tùy chọn cho trạng thái và xem chat.
 - **operator.write/admin** tùy chọn chỉ khi bật rõ ràng.
 
 ## App macOS
 
-- Operator role mặc định (UI điều khiển).
-- Node role khi bật “Mac node” (system.run, screen, camera).
-- Cùng deviceId cho cả hai kết nối → gộp thành một entry UI.
+- Vai trò operator theo mặc định (UI điều khiển).
+- Vai trò node khi bật “Mac node” (system.run, màn hình, camera).
+- Cùng deviceId cho cả hai kết nối → gộp thành một mục UI.
 
 ## CLI
 
-- Luôn là operator role.
-- Scope suy ra theo subcommand:
+- Luôn là vai trò operator.
+- Phạm vi suy ra theo lệnh con:
   - `status`, `logs` → read
   - `agent`, `message` → write
   - `config`, `channels` → admin
-  - approvals + pairing → `operator.approvals` / `operator.pairing`
+  - phê duyệt + ghép cặp → `operator.approvals` / `operator.pairing`
 
 ---
 
-# Danh tính + slug
+# Định danh + slug
 
 ## ID ổn định
 
 Bắt buộc cho xác thực; không bao giờ thay đổi.
 Ưu tiên:
 
-- Fingerprint của keypair (hash khóa công khai).
+- Dấu vân tay cặp khóa (hash khóa công khai).
 
 ## Slug dễ thương (chủ đề tôm hùm)
 
@@ -296,129 +296,129 @@ Chỉ là nhãn cho con người.
 - Lưu trong registry của gateway, có thể chỉnh sửa.
 - Xử lý trùng: `-2`, `-3`.
 
-## Nhóm trong UI
+## Nhóm UI
 
-Cùng `deviceId` qua các role → một dòng “Instance” duy nhất:
+Cùng `deviceId` trên các vai trò → một dòng “Instance” duy nhất:
 
-- Badge: `operator`, `node`.
-- Hiển thị capability + lần thấy gần nhất.
+- Huy hiệu: `operator`, `node`.
+- Hiển thị năng lực + lần thấy gần nhất.
 
 ---
 
-# Chiến lược migration
+# Chiến lược di trú
 
-## Phase 0: Tài liệu + căn chỉnh
+## Giai đoạn 0: Tài liệu + thống nhất
 
 - Công bố tài liệu này.
-- Kiểm kê tất cả các call giao thức + luồng phê duyệt.
+- Kiểm kê mọi lời gọi giao thức + luồng phê duyệt.
 
-## Phase 1: Thêm role/scope cho WS
+## Giai đoạn 1: Thêm vai trò/phạm vi cho WS
 
 - Mở rộng tham số `connect` với `role`, `scope`, `deviceId`.
-- Thêm chặn allowlist cho node role.
+- Thêm chặn allowlist cho vai trò node.
 
-## Phase 2: Tương thích bridge
+## Giai đoạn 2: Tương thích Bridge
 
 - Giữ bridge chạy.
 - Thêm hỗ trợ node qua WS song song.
-- Chặn tính năng sau cờ config.
+- Khóa tính năng sau cờ cấu hình.
 
-## Phase 3: Phê duyệt tập trung
+## Giai đoạn 3: Phê duyệt tập trung
 
-- Thêm sự kiện yêu cầu + resolve phê duyệt trong WS.
-- Cập nhật UI app mac để prompt + phản hồi.
-- Runtime node ngừng hiển thị UI prompt.
+- Thêm sự kiện yêu cầu phê duyệt + xử lý trong WS.
+- Cập nhật UI app mac để hiển thị prompt + phản hồi.
+- Runtime node ngừng hiển thị UI.
 
-## Phase 4: Hợp nhất TLS
+## Giai đoạn 4: Hợp nhất TLS
 
 - Thêm cấu hình TLS cho WS dùng runtime TLS của bridge.
-- Thêm pinning cho client.
+- Thêm ghim cho client.
 
-## Phase 5: Loại bỏ bridge
+## Giai đoạn 5: Ngừng bridge
 
-- Chuyển iOS/Android/mac node sang WS.
-- Giữ bridge làm fallback; loại bỏ khi ổn định.
+- Di trú iOS/Android/mac node sang WS.
+- Giữ bridge làm phương án dự phòng; loại bỏ khi ổn định.
 
-## Phase 6: Xác thực gắn thiết bị
+## Giai đoạn 6: Xác thực gắn thiết bị
 
-- Yêu cầu danh tính dựa trên khóa cho mọi kết nối không‑local.
+- Yêu cầu định danh dựa trên khóa cho mọi kết nối không cục bộ.
 - Thêm UI thu hồi + xoay vòng.
 
 ---
 
 # Ghi chú bảo mật
 
-- Role/allowlist được thực thi tại ranh giới gateway.
-- Không client nào có “full” API nếu không có operator scope.
-- Bắt buộc ghép cặp cho _mọi_ kết nối.
-- TLS + pinning giảm rủi ro MITM cho mobile.
-- Silent approval qua SSH là tiện lợi; vẫn được ghi lại + có thể thu hồi.
-- Discovery không bao giờ là trust anchor.
-- Claim capability được xác minh với allowlist phía server theo nền tảng/loại.
+- Vai trò/allowlist được thực thi tại ranh giới gateway.
+- Không client nào có API “đầy đủ” nếu không có phạm vi operator.
+- Ghép cặp bắt buộc cho _mọi_ kết nối.
+- TLS + ghim giảm rủi ro MITM cho di động.
+- Phê duyệt im lặng qua SSH là tiện ích; vẫn được ghi lại + có thể thu hồi.
+- Discovery không bao giờ là neo tin cậy.
+- Khai báo năng lực được xác minh với allowlist phía máy chủ theo nền tảng/loại.
 
-# Streaming + payload lớn (media node)
+# Streaming + payload lớn (media của node)
 
-WS control plane ổn cho thông điệp nhỏ, nhưng node còn làm:
+Control plane WS ổn cho thông điệp nhỏ, nhưng node còn làm:
 
 - clip camera
 - ghi màn hình
-- stream âm thanh
+- luồng âm thanh
 
-Phương án:
+Tùy chọn:
 
-1. WS binary frames + chunking + quy tắc backpressure.
-2. Endpoint streaming riêng (vẫn TLS + auth).
-3. Giữ bridge lâu hơn cho lệnh nặng media, migrate sau cùng.
+1. Khung nhị phân WS + chia khối + quy tắc backpressure.
+2. Endpoint streaming riêng (vẫn TLS + xác thực).
+3. Giữ bridge lâu hơn cho lệnh nặng media, di trú sau cùng.
 
 Chọn một trước khi triển khai để tránh lệch hướng.
 
-# Chính sách capability + command
+# Chính sách năng lực + lệnh
 
-- Capability/lệnh do node báo cáo được xem là **claim**.
-- Gateway thực thi allowlist theo từng nền tảng.
-- Lệnh mới cần phê duyệt operator hoặc thay đổi allowlist rõ ràng.
-- Audit thay đổi với timestamp.
+- Năng lực/lệnh do node báo cáo được coi là **khai báo**.
+- Gateway thực thi allowlist theo nền tảng.
+- Mọi lệnh mới cần phê duyệt operator hoặc thay đổi allowlist rõ ràng.
+- Audit thay đổi kèm dấu thời gian.
 
-# Audit + rate limiting
+# Audit + giới hạn tốc độ
 
-- Ghi log: yêu cầu ghép cặp, phê duyệt/từ chối, cấp/xoay vòng/thu hồi token.
+- Log: yêu cầu ghép cặp, phê duyệt/từ chối, cấp/xoay vòng/thu hồi token.
 - Giới hạn tốc độ spam ghép cặp và prompt phê duyệt.
 
 # Vệ sinh giao thức
 
 - Phiên bản giao thức + mã lỗi rõ ràng.
-- Quy tắc reconnect + heartbeat.
-- TTL presence và ngữ nghĩa last‑seen.
+- Quy tắc reconnect + chính sách heartbeat.
+- TTL hiện diện và ngữ nghĩa last‑seen.
 
 ---
 
 # Câu hỏi mở
 
-1. Một thiết bị chạy cả hai role: mô hình token
-   - Khuyến nghị token riêng cho mỗi role (node vs operator).
-   - Cùng deviceId; scope khác nhau; thu hồi rõ ràng hơn.
+1. Một thiết bị chạy cả hai vai trò: mô hình token
+   - Khuyến nghị token tách biệt theo vai trò (node vs operator).
+   - Cùng deviceId; phạm vi khác nhau; thu hồi rõ ràng hơn.
 
-2. Độ chi tiết scope operator
-   - read/write/admin + approvals + pairing (mức tối thiểu khả thi).
-   - Cân nhắc scope theo tính năng sau.
+2. Độ chi tiết phạm vi operator
+   - read/write/admin + phê duyệt + ghép cặp (tối thiểu khả thi).
+   - Cân nhắc phạm vi theo tính năng sau.
 
 3. UX xoay vòng + thu hồi token
-   - Tự động xoay khi đổi role.
-   - UI thu hồi theo deviceId + role.
+   - Tự xoay khi đổi vai trò.
+   - UI thu hồi theo deviceId + vai trò.
 
 4. Discovery
-   - Mở rộng Bonjour TXT hiện tại để gồm WS TLS fingerprint + gợi ý role.
+   - Mở rộng TXT Bonjour hiện tại để bao gồm dấu vân tay TLS của WS + gợi ý vai trò.
    - Chỉ coi là gợi ý định vị.
 
 5. Phê duyệt xuyên mạng
-   - Phát tới mọi client operator; UI active hiển thị modal.
+   - Phát tới mọi client operator; UI đang hoạt động hiển thị modal.
    - Phản hồi đầu tiên thắng; gateway đảm bảo tính nguyên tử.
 
 ---
 
 # Tóm tắt (TL;DR)
 
-- Hiện tại: WS control plane + Bridge cho node transport.
-- Vấn đề: phê duyệt + trùng lặp + hai stack.
-- Đề xuất: một giao thức WS với role + scope rõ ràng, ghép cặp hợp nhất + TLS pinning, phê duyệt host tại gateway, device ID ổn định + slug dễ thương.
-- Kết quả: UX đơn giản hơn, bảo mật mạnh hơn, ít trùng lặp, định tuyến mobile tốt hơn.
+- Hiện tại: control plane WS + vận chuyển node bằng Bridge.
+- Điểm đau: phê duyệt + trùng lặp + hai ngăn xếp.
+- Đề xuất: một giao thức WS với vai trò + phạm vi rõ ràng, ghép cặp hợp nhất + ghim TLS, phê duyệt do gateway lưu trữ, ID thiết bị ổn định + slug dễ thương.
+- Kết quả: UX đơn giản hơn, bảo mật mạnh hơn, ít trùng lặp, định tuyến di động tốt hơn.

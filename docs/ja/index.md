@@ -1,15 +1,15 @@
 ---
-summary: "OpenClaw は、あらゆる OS で動作する AI エージェント向けのマルチチャンネル Gateway（ゲートウェイ）です。"
+summary: 「OpenClaw は、あらゆる OS で動作する AI エージェント向けのマルチチャンネル ゲートウェイです。」
 read_when:
-  - OpenClaw を初めて知る方に紹介する場合
-title: "OpenClaw"
+  - OpenClaw を初めて知る人に紹介する場合
+title: 「OpenClaw」
 x-i18n:
   source_path: index.md
-  source_hash: 97a613c67efb448b
+  source_hash: 22725fdce9eafb33
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:34:09Z
+  generated_at: 2026-02-08T09:22:15Z
 ---
 
 # OpenClaw 🦞
@@ -29,41 +29,42 @@ x-i18n:
     />
 </p>
 
-> _「EXFOLIATE! EXFOLIATE!」_ — おそらく宇宙ロブスターの言葉です
+> _「EXFOLIATE! EXFOLIATE!」_ — たぶん宇宙ロブスター
 
 <p align="center">
-  <strong>WhatsApp、Telegram、Discord、iMessage などに対応する、AI エージェント向けの Any OS Gateway（ゲートウェイ）。</strong><br />
-  メッセージを送るだけで、ポケットからエージェントの応答を受け取れます。プラグインにより Mattermost なども追加できます。
+  <strong>WhatsApp、Telegram、Discord、iMessage などに対応した、AI エージェント向けの Any OS ゲートウェイ。</strong><br />
+  メッセージを送信すると、ポケットからエージェントの応答が返ってきます。プラグインで Mattermost なども追加できます。
 </p>
 
 <Columns>
   <Card title="Get Started" href="/start/getting-started" icon="rocket">
-    OpenClaw をインストールし、数分で Gateway（ゲートウェイ）を起動できます。
+    OpenClaw をインストールし、数分で Gateway（ゲートウェイ）を起動します。
   </Card>
   <Card title="Run the Wizard" href="/start/wizard" icon="sparkles">
-    `openclaw onboard` とペアリングフローによるガイド付きセットアップです。
+    `openclaw onboard` とペアリングフローによるガイド付きセットアップ。
   </Card>
   <Card title="Open the Control UI" href="/web/control-ui" icon="layout-dashboard">
-    チャット、設定、セッション用のブラウザダッシュボードを起動します。
+    チャット、設定、セッションのためのブラウザ ダッシュボードを起動します。
   </Card>
 </Columns>
 
-## OpenClaw とは？
+## What is OpenClaw?
 
-OpenClaw は **セルフホスト型 Gateway（ゲートウェイ）** であり、WhatsApp、Telegram、Discord、iMessage などのお気に入りのチャットアプリを、Pi のような AI コーディングエージェントに接続します。自身のマシン（またはサーバー）上で単一の Gateway プロセスを実行するだけで、メッセージングアプリと常時利用可能な AI アシスタントをつなぐ橋渡しとなります。
+OpenClaw は **セルフホスト型ゲートウェイ** で、WhatsApp、Telegram、Discord、iMessage などの好みのチャットアプリを、Pi のような AI コーディング エージェントに接続します。自身のマシン（またはサーバー）上で単一の Gateway プロセスを実行するだけで、メッセージング アプリと常時利用可能な AI アシスタントをつなぐ橋渡しになります。
 
-**対象ユーザーは？** どこからでもメッセージできる個人用 AI アシスタントを求めつつ、データの管理権限を手放さず、ホスト型サービスに依存したくない開発者やパワーユーザーです。
+**誰向けですか？**  
+どこからでもメッセージでやり取りできる個人用 AI アシスタントを求めつつ、データの管理権限を手放したり、ホステッド サービスに依存したりしたくない開発者やパワーユーザー向けです。
 
-**何が違うのか？**
+**何が違いますか？**
 
-- **セルフホスト**: 自分のハードウェアで、自分のルールで動作します
-- **マルチチャンネル**: 1 つの Gateway で WhatsApp、Telegram、Discord などを同時に提供します
-- **エージェントネイティブ**: ツール利用、セッション、メモリ、マルチエージェントルーティングを備えたコーディングエージェント向け設計です
-- **オープンソース**: MIT ライセンス、コミュニティ主導です
+- **Self-hosted**: 自分のハードウェア、自分のルールで実行
+- **Multi-channel**: 1 つの Gateway で WhatsApp、Telegram、Discord などを同時に提供
+- **Agent-native**: ツール利用、セッション、メモリ、マルチエージェント ルーティングを備えたコーディング エージェント向け設計
+- **Open source**: MIT ライセンス、コミュニティ主導
 
-**必要なものは？** Node 22 以上、API キー（Anthropic 推奨）、そして 5 分です。
+**何が必要ですか？** Node 22+、API キー（Anthropic 推奨）、そして 5 分です。
 
-## 仕組み
+## How it works
 
 ```mermaid
 flowchart LR
@@ -75,28 +76,28 @@ flowchart LR
   B --> G["iOS and Android nodes"]
 ```
 
-Gateway（ゲートウェイ）は、セッション、ルーティング、チャンネル接続における単一の信頼できる情報源です。
+Gateway は、セッション、ルーティング、チャンネル接続における単一の信頼できる情報源です。
 
-## 主な機能
+## Key capabilities
 
 <Columns>
   <Card title="Multi-channel gateway" icon="network">
-    単一の Gateway プロセスで WhatsApp、Telegram、Discord、iMessage に対応します。
+    単一の Gateway プロセスで WhatsApp、Telegram、Discord、iMessage を提供します。
   </Card>
   <Card title="Plugin channels" icon="plug">
     拡張パッケージで Mattermost などを追加できます。
   </Card>
   <Card title="Multi-agent routing" icon="route">
-    エージェント、ワークスペース、送信者ごとに分離されたセッションです。
+    エージェント、ワークスペース、送信者ごとに分離されたセッション。
   </Card>
   <Card title="Media support" icon="image">
-    画像、音声、ドキュメントの送受信が可能です。
+    画像、音声、ドキュメントの送受信に対応。
   </Card>
   <Card title="Web Control UI" icon="monitor">
-    チャット、設定、セッション、ノード向けのブラウザダッシュボードです。
+    チャット、設定、セッション、ノードのためのブラウザ ダッシュボード。
   </Card>
   <Card title="Mobile nodes" icon="smartphone">
-    Canvas 対応の iOS および Android ノードをペアリングできます。
+    Canvas 対応の iOS および Android ノードをペアリング。
   </Card>
 </Columns>
 
@@ -121,14 +122,14 @@ Gateway（ゲートウェイ）は、セッション、ルーティング、チ�
   </Step>
 </Steps>
 
-完全なインストール手順や開発環境のセットアップが必要ですか？ [Quick start](/start/quickstart) を参照してください。
+完全なインストール手順と開発者向けセットアップが必要ですか？ [クイックスタート](/start/quickstart) を参照してください。
 
 ## ダッシュボード
 
-Gateway の起動後、ブラウザの Control UI を開きます。
+Gateway の起動後に、ブラウザの Control UI を開きます。
 
-- ローカル既定: http://127.0.0.1:18789/
-- リモートアクセス: [Web surfaces](/web) および [Tailscale](/gateway/tailscale)
+- ローカル既定: [http://127.0.0.1:18789/](http://127.0.0.1:18789/)
+- リモート アクセス: [Web surfaces](/web) および [Tailscale](/gateway/tailscale)
 
 <p align="center">
   <img src="whatsapp-openclaw.jpg" alt="OpenClaw" width="420" />
@@ -136,10 +137,10 @@ Gateway の起動後、ブラウザの Control UI を開きます。
 
 ## 設定（任意）
 
-設定は `~/.openclaw/openclaw.json` にあります。
+設定ファイルは `~/.openclaw/openclaw.json` にあります。
 
-- **何もしない場合**、OpenClaw はバンドルされた Pi バイナリを RPC モードで使用し、送信者ごとのセッションを作成します。
-- 制限を強化したい場合は、`channels.whatsapp.allowFrom` から始め、（グループ向けには）メンションルールを設定してください。
+- **何もしない場合**、OpenClaw は RPC モードで同梱の Pi バイナリを使用し、送信者ごとのセッションを作成します。
+- 制限を強化したい場合は、`channels.whatsapp.allowFrom` から始め、（グループ向けには）メンション ルールを設定してください。
 
 例:
 
@@ -155,45 +156,45 @@ Gateway の起動後、ブラウザの Control UI を開きます。
 }
 ```
 
-## ここから始める
+## Start here
 
 <Columns>
   <Card title="Docs hubs" href="/start/hubs" icon="book-open">
     すべてのドキュメントとガイドを、ユースケース別に整理しています。
   </Card>
   <Card title="Configuration" href="/gateway/configuration" icon="settings">
-    中核となる Gateway 設定、トークン、プロバイダー設定です。
+    中核となる Gateway 設定、トークン、プロバイダー設定。
   </Card>
   <Card title="Remote access" href="/gateway/remote" icon="globe">
-    SSH と tailnet のアクセスパターンです。
+    SSH および tailnet によるアクセス パターン。
   </Card>
   <Card title="Channels" href="/channels/telegram" icon="message-square">
-    WhatsApp、Telegram、Discord など、チャンネル別のセットアップです。
+    WhatsApp、Telegram、Discord などのチャンネル別セットアップ。
   </Card>
   <Card title="Nodes" href="/nodes" icon="smartphone">
-    ペアリングと Canvas に対応した iOS および Android ノードです。
+    ペアリングと Canvas に対応した iOS および Android ノード。
   </Card>
   <Card title="Help" href="/help" icon="life-buoy">
-    一般的な対処法とトラブルシューティングの入口です。
+    一般的な対処法とトラブルシューティングの入口。
   </Card>
 </Columns>
 
-## さらに詳しく
+## Learn more
 
 <Columns>
   <Card title="Full feature list" href="/concepts/features" icon="list">
-    チャンネル、ルーティング、メディア機能の完全な一覧です。
+    チャンネル、ルーティング、メディア機能の完全な一覧。
   </Card>
   <Card title="Multi-agent routing" href="/concepts/multi-agent" icon="route">
-    ワークスペースの分離とエージェントごとのセッションです。
+    ワークスペースの分離とエージェントごとのセッション。
   </Card>
   <Card title="Security" href="/gateway/security" icon="shield">
-    トークン、許可リスト、安全制御について説明します。
+    トークン、許可リスト、安全制御。
   </Card>
   <Card title="Troubleshooting" href="/gateway/troubleshooting" icon="wrench">
-    Gateway の診断と一般的なエラーです。
+    Gateway の診断と一般的なエラー。
   </Card>
   <Card title="About and credits" href="/reference/credits" icon="info">
-    プロジェクトの起源、貢献者、ライセンスについてです。
+    プロジェクトの起源、貢献者、ライセンス。
   </Card>
 </Columns>

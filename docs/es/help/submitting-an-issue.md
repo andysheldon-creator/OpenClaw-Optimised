@@ -1,31 +1,31 @@
 ---
 summary: "Presentar issues y reportes de errores de alta señal"
-title: "Enviar un Issue"
+title: "Envío de un Issue"
 x-i18n:
   source_path: help/submitting-an-issue.md
   source_hash: bcb33f05647e9f0d
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:15:26Z
+  generated_at: 2026-02-08T09:33:40Z
 ---
 
-## Enviar un Issue
+## Envío de un Issue
 
-Los issues claros y concisos aceleran el diagnóstico y las correcciones. Incluya lo siguiente para errores, regresiones o brechas de funcionalidad:
+Los issues claros y concisos aceleran el diagnóstico y las correcciones. Incluya lo siguiente para errores, regresiones o brechas de funcionalidades:
 
 ### Qué incluir
 
 - [ ] Título: área y síntoma
 - [ ] Pasos mínimos de reproducción
-- [ ] Esperado vs real
+- [ ] Esperado vs. real
 - [ ] Impacto y severidad
 - [ ] Entorno: SO, runtime, versiones, configuración
-- [ ] Evidencia: logs con datos sensibles redactados, capturas de pantalla (sin PII)
+- [ ] Evidencia: registros redactados, capturas de pantalla (sin PII)
 - [ ] Alcance: nuevo, regresión o de larga data
 - [ ] Palabra clave: lobster-biscuit en su issue
-- [ ] Búsqueda en el código y en GitHub de un issue existente
-- [ ] Confirmado que no se corrigió/abordó recientemente (especialmente seguridad)
+- [ ] Buscó en el codebase y en GitHub un issue existente
+- [ ] Confirmó que no se haya corregido/atendido recientemente (especialmente seguridad)
 - [ ] Afirmaciones respaldadas por evidencia o reproducción
 
 Sea breve. La concisión > la gramática perfecta.
@@ -84,7 +84,7 @@ Validación (ejecutar/corregir antes del PR):
 ### Evidence (redacted)
 ```
 
-_Evite secretos/detalles de exploits en público. Para issues sensibles, minimice el detalle y solicite divulgación privada._
+_Evite secretos/detalles de explotación en público. Para issues sensibles, minimice el detalle y solicite divulgación privada._
 
 #### Reporte de regresión
 
@@ -156,4 +156,4 @@ _Evite secretos/detalles de exploits en público. Para issues sensibles, minimic
 
 ### Envío de un PR de corrección
 
-El issue antes del PR es opcional. Incluya los detalles en el PR si lo omite. Mantenga el PR enfocado, anote el número del issue, agregue pruebas o explique su ausencia, documente cambios de comportamiento/riesgos, incluya logs/capturas de pantalla redactados como prueba y ejecute la validación adecuada antes de enviar.
+El issue previo al PR es opcional. Incluya los detalles en el PR si lo omite. Mantenga el PR enfocado, indique el número del issue, agregue pruebas o explique su ausencia, documente cambios de comportamiento/riesgos, incluya registros/capturas redactados como prueba y ejecute la validación adecuada antes de enviar.

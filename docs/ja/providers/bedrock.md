@@ -2,7 +2,7 @@
 summary: "OpenClaw で Amazon Bedrock（Converse API）モデルを使用します"
 read_when:
   - OpenClaw で Amazon Bedrock モデルを使用したい場合
-  - モデル呼び出しのために AWS の認証情報やリージョン設定が必要な場合
+  - モデル呼び出しのために AWS の認証情報／リージョン設定が必要な場合
 title: "Amazon Bedrock"
 x-i18n:
   source_path: providers/bedrock.md
@@ -10,12 +10,12 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:14:46Z
+  generated_at: 2026-02-08T09:22:51Z
 ---
 
 # Amazon Bedrock
 
-OpenClaw は、pi‑ai の **Bedrock Converse** ストリーミングプロバイダーを介して **Amazon Bedrock** モデルを使用できます。Bedrock の認証は **AWS SDK のデフォルト認証情報チェーン** を使用し、API キーは不要です。
+OpenClaw は、pi‑ai の **Bedrock Converse** ストリーミングプロバイダーを介して **Amazon Bedrock** モデルを使用できます。Bedrock の認証は **AWS SDK のデフォルト認証情報チェーン** を使用し、API キーは使用しません。
 
 ## pi‑ai がサポートする内容
 
@@ -47,15 +47,16 @@ AWS 認証情報が検出されると、OpenClaw は **ストリーミング** �
 
 注記:
 
-- `enabled` は、AWS 認証情報が存在する場合、デフォルトで `true` になります。
-- `region` は、デフォルトで `AWS_REGION` または `AWS_DEFAULT_REGION`、その後 `us-east-1` になります。
+- `enabled` は、AWS 認証情報が存在する場合に `true` がデフォルトになります。
+- `region` は、`AWS_REGION` または `AWS_DEFAULT_REGION`、次に `us-east-1` がデフォルトになります。
 - `providerFilter` は Bedrock のプロバイダー名に一致します（例: `anthropic`）。
-- `refreshInterval` は秒です。キャッシュを無効化するには `0` を設定します。
-- `defaultContextWindow`（デフォルト: `32000`）および `defaultMaxTokens`（デフォルト: `4096`）は、検出されたモデルに使用されます（モデルの上限が分かっている場合は上書きしてください）。
+- `refreshInterval` は秒です。キャッシュを無効にするには `0` に設定します。
+- `defaultContextWindow`（デフォルト: `32000`）および `defaultMaxTokens`（デフォルト: `4096`）
+  は検出されたモデルに使用されます（モデルの上限が分かっている場合は上書きしてください）。
 
 ## セットアップ（手動）
 
-1. **ゲートウェイ ホスト**で AWS 認証情報が利用可能であることを確認します。
+1. **ゲートウェイ ホスト** で AWS 認証情報が利用可能であることを確認します。
 
 ```bash
 export AWS_ACCESS_KEY_ID="AKIA..."
@@ -102,9 +103,9 @@ export AWS_BEARER_TOKEN_BEDROCK="..."
 
 ## EC2 インスタンスロール
 
-IAM ロールがアタッチされた EC2 インスタンスで OpenClaw を実行する場合、AWS SDK は自動的にインスタンスメタデータサービス（IMDS）を使用して認証します。ただし、OpenClaw の認証情報検出は現在、環境変数のみを確認し、IMDS の認証情報は確認しません。
+IAM ロールを関連付けた EC2 インスタンスで OpenClaw を実行する場合、AWS SDK は認証のためにインスタンスメタデータサービス（IMDS）を自動的に使用します。ただし、OpenClaw の認証情報検出は現在、環境変数のみを確認し、IMDS の認証情報は確認しません。
 
-**回避策:** AWS 認証情報が利用可能であることを示すために `AWS_PROFILE=default` を設定します。実際の認証は、引き続き IMDS を介してインスタンスロールが使用されます。
+**回避策:** AWS 認証情報が利用可能であることを示すために `AWS_PROFILE=default` を設定します。実際の認証は引き続き IMDS 経由のインスタンスロールを使用します。
 
 ```bash
 # Add to ~/.bashrc or your shell profile
@@ -118,7 +119,7 @@ EC2 インスタンスロールに必要な **IAM 権限**:
 - `bedrock:InvokeModelWithResponseStream`
 - `bedrock:ListFoundationModels`（自動検出用）
 
-または、管理ポリシー `AmazonBedrockFullAccess` をアタッチします。
+または、管理ポリシー `AmazonBedrockFullAccess` をアタッチしてください。
 
 **クイックセットアップ:**
 
@@ -162,9 +163,11 @@ openclaw models list
 
 ## 注記
 
-- Bedrock では、AWS アカウントおよびリージョンで **モデルアクセス** を有効化する必要があります。
-- 自動検出には `bedrock:ListFoundationModels` 権限が必要です。
-- プロファイルを使用する場合は、ゲートウェイ ホストで `AWS_PROFILE` を設定します。
-- OpenClaw は、次の順序で認証情報のソースを表示します: `AWS_BEARER_TOKEN_BEDROCK`、次に `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY`、次に `AWS_PROFILE`、最後に AWS SDK のデフォルトチェーン。
-- 推論のサポートはモデルによって異なります。最新の機能については Bedrock のモデルカードを確認してください。
-- マネージドキーのフローを使用したい場合は、Bedrock の前段に OpenAI 互換プロキシを配置し、OpenAI プロバイダーとして設定することもできます。
+- Bedrock では、AWS アカウント／リージョンで **モデルアクセス** を有効にする必要があります。
+- 自動検出には `bedrock:ListFoundationModels` の権限が必要です。
+- プロファイルを使用する場合は、ゲートウェイ ホストで `AWS_PROFILE` を設定してください。
+- OpenClaw は、認証情報の取得元を次の順序で表示します: `AWS_BEARER_TOKEN_BEDROCK`、
+  次に `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY`、次に `AWS_PROFILE`、最後に
+  AWS SDK のデフォルトチェーンです。
+- 推論（Reasoning）のサポートはモデルに依存します。最新の機能については Bedrock のモデルカードを確認してください。
+- 管理されたキーのフローを希望する場合は、Bedrock の前段に OpenAI 互換プロキシを配置し、代わりに OpenAI プロバイダーとして設定することもできます。

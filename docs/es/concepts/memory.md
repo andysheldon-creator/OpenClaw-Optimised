@@ -1,21 +1,21 @@
 ---
 summary: "Cómo funciona la memoria de OpenClaw (archivos del espacio de trabajo + vaciado automático de memoria)"
 read_when:
-  - Desea el diseño de archivos de memoria y el flujo de trabajo
-  - Desea ajustar el vaciado automático de memoria previo a la compactación
+  - Quiere el diseño de archivos de memoria y el flujo de trabajo
+  - Quiere ajustar el vaciado automático de memoria previo a la compactación
 x-i18n:
   source_path: concepts/memory.md
-  source_hash: 5fe705d89fb30998
+  source_hash: e160dc678bb8fda2
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:59:05Z
+  generated_at: 2026-02-08T09:33:56Z
 ---
 
 # Memoria
 
 La memoria de OpenClaw es **Markdown plano en el espacio de trabajo del agente**. Los archivos son la
-fuente de verdad; el modelo solo “recuerda” lo que se escribe en el disco.
+fuente de la verdad; el modelo solo “recuerda” lo que se escribe en el disco.
 
 Las herramientas de búsqueda de memoria las proporciona el plugin de memoria activo (predeterminado:
 `memory-core`). Desactive los plugins de memoria con `plugins.slots.memory = "none"`.
@@ -25,13 +25,13 @@ Las herramientas de búsqueda de memoria las proporciona el plugin de memoria ac
 El diseño predeterminado del espacio de trabajo usa dos capas de memoria:
 
 - `memory/YYYY-MM-DD.md`
-  - Registro diario (solo anexar).
-  - Se lee hoy + ayer al inicio de la sesión.
+  - Registro diario (solo anexado).
+  - Lee hoy + ayer al inicio de la sesión.
 - `MEMORY.md` (opcional)
-  - Memoria curada a largo plazo.
-  - **Solo se carga en la sesión principal y privada** (nunca en contextos grupales).
+  - Memoria a largo plazo curada.
+  - **Solo se carga en la sesión principal y privada** (nunca en contextos de grupo).
 
-Estos archivos viven bajo el espacio de trabajo (`agents.defaults.workspace`, predeterminado
+Estos archivos viven bajo el espacio de trabajo (`agents.defaults.workspace`, valor predeterminado
 `~/.openclaw/workspace`). Consulte [Espacio de trabajo del agente](/concepts/agent-workspace) para el diseño completo.
 
 ## Cuándo escribir memoria
@@ -45,7 +45,7 @@ Estos archivos viven bajo el espacio de trabajo (`agents.defaults.workspace`, pr
 ## Vaciado automático de memoria (ping previo a la compactación)
 
 Cuando una sesión está **cerca de la auto-compactación**, OpenClaw activa un **turno silencioso y agéntico**
-que recuerda al modelo escribir memoria duradera **antes** de que el contexto sea compactado. Los mensajes
+que le recuerda al modelo escribir memoria duradera **antes** de que el contexto se compacte. Los mensajes
 predeterminados dicen explícitamente que el modelo _puede responder_, pero normalmente `NO_REPLY` es la
 respuesta correcta para que el usuario nunca vea este turno.
 
@@ -73,79 +73,86 @@ Detalles:
 
 - **Umbral suave**: el vaciado se activa cuando la estimación de tokens de la sesión cruza
   `contextWindow - reserveTokensFloor - softThresholdTokens`.
-- **Silencioso** por defecto: los mensajes incluyen `NO_REPLY` para que no se entregue nada.
+- **Silencioso** de forma predeterminada: los mensajes incluyen `NO_REPLY` para que no se entregue nada.
 - **Dos mensajes**: un mensaje de usuario más un mensaje del sistema agregan el recordatorio.
 - **Un vaciado por ciclo de compactación** (seguido en `sessions.json`).
 - **El espacio de trabajo debe ser escribible**: si la sesión se ejecuta en sandbox con
-  `workspaceAccess: "ro"` o `"none"`, el vaciado se omite.
+  `workspaceAccess: "ro"` o `"none"`, se omite el vaciado.
 
-Para el ciclo completo de compactación, consulte
+Para el ciclo de vida completo de la compactación, consulte
 [Gestión de sesiones + compactación](/reference/session-management-compaction).
 
 ## Búsqueda de memoria vectorial
 
-OpenClaw puede construir un pequeño índice vectorial sobre `MEMORY.md` y `memory/*.md` para que
+OpenClaw puede crear un pequeño índice vectorial sobre `MEMORY.md` y `memory/*.md` para que
 las consultas semánticas encuentren notas relacionadas incluso cuando la redacción difiere.
 
 Valores predeterminados:
 
-- Habilitada por defecto.
-- Observa cambios en los archivos de memoria (con debounce).
-- Usa embeddings remotos por defecto. Si `memorySearch.provider` no está configurado, OpenClaw selecciona automáticamente:
-  1. `local` si se configura un `memorySearch.local.modelPath` y el archivo existe.
+- Habilitado de forma predeterminada.
+- Observa cambios en los archivos de memoria (con _debounce_).
+- Usa incrustaciones remotas de forma predeterminada. Si `memorySearch.provider` no está configurado, OpenClaw selecciona automáticamente:
+  1. `local` si hay un `memorySearch.local.modelPath` configurado y el archivo existe.
   2. `openai` si se puede resolver una clave de OpenAI.
   3. `gemini` si se puede resolver una clave de Gemini.
-  4. De lo contrario, la búsqueda de memoria permanece deshabilitada hasta que se configure.
+  4. `voyage` si se puede resolver una clave de Voyage.
+  5. De lo contrario, la búsqueda de memoria permanece deshabilitada hasta configurarse.
 - El modo local usa node-llama-cpp y puede requerir `pnpm approve-builds`.
 - Usa sqlite-vec (cuando está disponible) para acelerar la búsqueda vectorial dentro de SQLite.
 
-Los embeddings remotos **requieren** una clave de API para el proveedor de embeddings. OpenClaw
-resuelve claves desde perfiles de autenticación, `models.providers.*.apiKey` o variables de entorno.
-Codex OAuth solo cubre chat/completions y **no** satisface embeddings para la búsqueda de memoria.
-Para Gemini, use `GEMINI_API_KEY` o `models.providers.google.apiKey`. Al usar un endpoint compatible con OpenAI personalizado,
+Las incrustaciones remotas **requieren** una clave de API para el proveedor de incrustaciones. OpenClaw
+resuelve las claves desde perfiles de autenticación, `models.providers.*.apiKey` o variables de entorno. Codex OAuth
+solo cubre chat/completions y **no** satisface incrustaciones para la búsqueda de memoria. Para Gemini,
+use `GEMINI_API_KEY` o `models.providers.google.apiKey`. Para Voyage, use `VOYAGE_API_KEY` o
+`models.providers.voyage.apiKey`. Al usar un endpoint compatible con OpenAI personalizado,
 configure `memorySearch.remote.apiKey` (y opcional `memorySearch.remote.headers`).
 
 ### Backend QMD (experimental)
 
-Configure `memory.backend = "qmd"` para intercambiar el indexador SQLite integrado por
-[QMD](https://github.com/tobi/qmd): un sidecar de búsqueda local-first que combina
-BM25 + vectores + re-ranking. Markdown sigue siendo la fuente de verdad; OpenClaw
+Configure `memory.backend = "qmd"` para cambiar el indexador SQLite integrado por
+[QMD](https://github.com/tobi/qmd): un _sidecar_ de búsqueda _local-first_ que combina
+BM25 + vectores + _reranking_. El Markdown sigue siendo la fuente de la verdad; OpenClaw
 invoca QMD para la recuperación. Puntos clave:
 
 **Requisitos previos**
 
-- Deshabilitado por defecto. Opte por usarlo por configuración (`memory.backend = "qmd"`).
-- Instale el CLI de QMD por separado (`bun install -g github.com/tobi/qmd` o descargue
+- Deshabilitado de forma predeterminada. Active por configuración (`memory.backend = "qmd"`).
+- Instale el CLI de QMD por separado (`bun install -g https://github.com/tobi/qmd` o descargue
   una versión) y asegúrese de que el binario `qmd` esté en el `PATH` del gateway.
 - QMD necesita una compilación de SQLite que permita extensiones (`brew install sqlite` en
   macOS).
-- QMD se ejecuta completamente en local vía Bun + `node-llama-cpp` y descarga automáticamente modelos GGUF
-  desde HuggingFace en el primer uso (no se requiere un daemon Ollama separado).
+- QMD se ejecuta completamente en local vía Bun + `node-llama-cpp` y descarga automáticamente
+  modelos GGUF desde HuggingFace en el primer uso (no se requiere un daemon de Ollama separado).
 - El gateway ejecuta QMD en un hogar XDG autocontenido bajo
   `~/.openclaw/agents/<agentId>/qmd/` configurando `XDG_CONFIG_HOME` y
   `XDG_CACHE_HOME`.
-- Compatibilidad de SO: macOS y Linux funcionan de inmediato una vez que Bun + SQLite están
-  instalados. Windows se admite mejor vía WSL2.
+- Soporte de SO: macOS y Linux funcionan listos para usar una vez que Bun + SQLite están
+  instalados. Windows se soporta mejor vía WSL2.
 
 **Cómo se ejecuta el sidecar**
 
 - El gateway escribe un hogar QMD autocontenido bajo
   `~/.openclaw/agents/<agentId>/qmd/` (configuración + caché + BD sqlite).
-- Las colecciones se reescriben desde `memory.qmd.paths` (más los archivos de memoria
-  predeterminados del espacio de trabajo) en `index.yml`, luego `qmd update` + `qmd embed` se ejecutan al iniciar y
-  en un intervalo configurable (`memory.qmd.update.interval`, predeterminado 5 m).
+- Las colecciones se crean vía `qmd collection add` a partir de `memory.qmd.paths`
+  (más los archivos de memoria predeterminados del espacio de trabajo), luego `qmd update` + `qmd embed` se ejecutan
+  al arranque y en un intervalo configurable (`memory.qmd.update.interval`,
+  valor predeterminado 5 m).
+- La actualización de arranque ahora se ejecuta en segundo plano de forma predeterminada para no
+  bloquear el inicio del chat; configure `memory.qmd.update.waitForBootSync = true` para mantener el
+  comportamiento previo de bloqueo.
 - Las búsquedas se ejecutan vía `qmd query --json`. Si QMD falla o falta el binario,
-  OpenClaw vuelve automáticamente al gestor SQLite integrado para que las herramientas de memoria
+  OpenClaw vuelve automáticamente al administrador SQLite integrado para que las herramientas de memoria
   sigan funcionando.
-- **La primera búsqueda puede ser lenta**: QMD puede descargar modelos GGUF locales (re-ranking/expansión de consulta)
+- OpenClaw no expone hoy el ajuste del tamaño de lote de incrustaciones de QMD; el comportamiento por lotes
+  lo controla el propio QMD.
+- **La primera búsqueda puede ser lenta**: QMD puede descargar modelos GGUF locales (reranker/expansión de consulta)
   en la primera ejecución de `qmd query`.
   - OpenClaw configura `XDG_CONFIG_HOME`/`XDG_CACHE_HOME` automáticamente cuando ejecuta QMD.
-  - Si desea predescargar modelos manualmente (y calentar el mismo índice que usa OpenClaw),
-    ejecute una consulta puntual con los directorios XDG del agente.
+  - Si quiere predescargar modelos manualmente (y calentar el mismo índice que usa OpenClaw),
+    ejecute una consulta única con los directorios XDG del agente.
 
-    El estado QMD de OpenClaw vive bajo su **directorio de estado** (predeterminado `~/.openclaw`).
-    Puede apuntar `qmd` exactamente al mismo índice exportando las mismas variables XDG
-    que usa OpenClaw:
+    El estado QMD de OpenClaw vive bajo su **directorio de estado** (valor predeterminado `~/.openclaw`).
+    Puede apuntar `qmd` exactamente al mismo índice exportando las mismas variables XDG que usa OpenClaw:
 
     ```bash
     # Pick the same state dir OpenClaw uses
@@ -169,27 +176,29 @@ invoca QMD para la recuperación. Puntos clave:
 **Superficie de configuración (`memory.qmd.*`)**
 
 - `command` (predeterminado `qmd`): sobrescribe la ruta del ejecutable.
-- `includeDefaultMemory` (predeterminado `true`): auto-indexa `MEMORY.md` + `memory/**/*.md`.
-- `paths[]`: agregue directorios/archivos extra (`path`, opcional `pattern`, opcional
+- `includeDefaultMemory` (predeterminado `true`): autoindexa `MEMORY.md` + `memory/**/*.md`.
+- `paths[]`: agrega directorios/archivos extra (`path`, opcional `pattern`, opcional
   estable `name`).
-- `sessions`: optar por el indexado de JSONL de sesión (`enabled`, `retentionDays`,
+- `sessions`: habilita la indexación de JSONL de sesión (`enabled`, `retentionDays`,
   `exportDir`).
-- `update`: controla la cadencia de actualización (`interval`, `debounceMs`, `onBoot`, `embedInterval`).
-- `limits`: limita la carga útil de recuerdo (`maxResults`, `maxSnippetChars`,
+- `update`: controla la cadencia de actualización y la ejecución de mantenimiento:
+  (`interval`, `debounceMs`, `onBoot`, `waitForBootSync`, `embedInterval`,
+  `commandTimeoutMs`, `updateTimeoutMs`, `embedTimeoutMs`).
+- `limits`: limita la carga útil de recuperación (`maxResults`, `maxSnippetChars`,
   `maxInjectedChars`, `timeoutMs`).
 - `scope`: mismo esquema que [`session.sendPolicy`](/gateway/configuration#session).
-  El valor predeterminado es solo DM (`deny` todo, `allow` chats directos); relájelo para mostrar resultados de QMD
-  en grupos/canales.
+  El valor predeterminado es solo DM (`deny` todos, `allow` chats directos); relájelo para mostrar
+  resultados de QMD en grupos/canales.
 - Los fragmentos obtenidos fuera del espacio de trabajo aparecen como
   `qmd/<collection>/<relative-path>` en los resultados de `memory_search`; `memory_get`
-  entiende ese prefijo y lee desde la raíz de colección QMD configurada.
+  entiende ese prefijo y lee desde la raíz de la colección QMD configurada.
 - Cuando `memory.qmd.sessions.enabled = true`, OpenClaw exporta transcripciones de sesión saneadas
   (turnos Usuario/Asistente) a una colección QMD dedicada bajo
-  `~/.openclaw/agents/<id>/qmd/sessions/`, para que `memory_search` pueda recordar conversaciones recientes
-  sin tocar el índice SQLite integrado.
-- Los fragmentos `memory_search` ahora incluyen un pie `Source: <path#line>` cuando
+  `~/.openclaw/agents/<id>/qmd/sessions/`, de modo que `memory_search` pueda recordar conversaciones
+  recientes sin tocar el índice SQLite integrado.
+- Los fragmentos de `memory_search` ahora incluyen un pie de página `Source: <path#line>` cuando
   `memory.citations` es `auto`/`on`; configure `memory.citations = "off"` para mantener
-  la metainformación de ruta interna (el agente aún recibe la ruta para
+  los metadatos de ruta internos (el agente aún recibe la ruta para
   `memory_get`, pero el texto del fragmento omite el pie y el mensaje del sistema
   advierte al agente que no lo cite).
 
@@ -218,13 +227,13 @@ memory: {
 
 - `memory.citations` aplica independientemente del backend (`auto`/`on`/`off`).
 - Cuando se ejecuta `qmd`, etiquetamos `status().backend = "qmd"` para que los diagnósticos muestren qué
-  motor sirvió los resultados. Si el subproceso de QMD sale o la salida JSON no puede
-  analizarse, el gestor de búsqueda registra una advertencia y devuelve el proveedor integrado
-  (embeddings Markdown existentes) hasta que QMD se recupere.
+  motor sirvió los resultados. Si el subproceso de QMD sale o la salida JSON no se puede
+  analizar, el administrador de búsqueda registra una advertencia y devuelve el proveedor integrado
+  (incrustaciones Markdown existentes) hasta que QMD se recupere.
 
 ### Rutas de memoria adicionales
 
-Si desea indexar archivos Markdown fuera del diseño predeterminado del espacio de trabajo, agregue
+Si quiere indexar archivos Markdown fuera del diseño predeterminado del espacio de trabajo, agregue
 rutas explícitas:
 
 ```json5
@@ -244,9 +253,9 @@ Notas:
 - Solo se indexan archivos Markdown.
 - Los enlaces simbólicos se ignoran (archivos o directorios).
 
-### Embeddings de Gemini (nativos)
+### Incrustaciones Gemini (nativas)
 
-Configure el proveedor como `gemini` para usar directamente la API de embeddings de Gemini:
+Configure el proveedor como `gemini` para usar directamente la API de incrustaciones de Gemini:
 
 ```json5
 agents: {
@@ -265,10 +274,10 @@ agents: {
 Notas:
 
 - `remote.baseUrl` es opcional (por defecto, la URL base de la API de Gemini).
-- `remote.headers` le permite agregar encabezados extra si es necesario.
+- `remote.headers` le permite agregar encabezados adicionales si es necesario.
 - Modelo predeterminado: `gemini-embedding-001`.
 
-Si desea usar un **endpoint compatible con OpenAI personalizado** (OpenRouter, vLLM o un proxy),
+Si quiere usar un **endpoint compatible con OpenAI personalizado** (OpenRouter, vLLM o un proxy),
 puede usar la configuración `remote` con el proveedor OpenAI:
 
 ```json5
@@ -293,23 +302,23 @@ Si no quiere configurar una clave de API, use `memorySearch.provider = "local"` 
 Fallbacks:
 
 - `memorySearch.fallback` puede ser `openai`, `gemini`, `local` o `none`.
-- El proveedor de respaldo solo se usa cuando falla el proveedor de embeddings primario.
+- El proveedor de fallback solo se usa cuando falla el proveedor primario de incrustaciones.
 
-Indexado por lotes (OpenAI + Gemini):
+Indexación por lotes (OpenAI + Gemini):
 
-- Habilitado por defecto para embeddings de OpenAI y Gemini. Configure `agents.defaults.memorySearch.remote.batch.enabled = false` para deshabilitar.
-- El comportamiento predeterminado espera a que el lote finalice; ajuste `remote.batch.wait`, `remote.batch.pollIntervalMs` y `remote.batch.timeoutMinutes` si es necesario.
+- Habilitada de forma predeterminada para incrustaciones de OpenAI y Gemini. Configure `agents.defaults.memorySearch.remote.batch.enabled = false` para deshabilitar.
+- El comportamiento predeterminado espera a que se complete el lote; ajuste `remote.batch.wait`, `remote.batch.pollIntervalMs` y `remote.batch.timeoutMinutes` si es necesario.
 - Configure `remote.batch.concurrency` para controlar cuántos trabajos por lotes enviamos en paralelo (predeterminado: 2).
 - El modo por lotes aplica cuando `memorySearch.provider = "openai"` o `"gemini"` y usa la clave de API correspondiente.
-- Los trabajos por lotes de Gemini usan el endpoint asíncrono de lotes de embeddings y requieren disponibilidad de la API Gemini Batch.
+- Los trabajos por lotes de Gemini usan el endpoint asíncrono de lotes de incrustaciones y requieren disponibilidad de la API Batch de Gemini.
 
 Por qué el batch de OpenAI es rápido y barato:
 
-- Para grandes backfills, OpenAI suele ser la opción más rápida que soportamos porque podemos enviar muchas solicitudes de embeddings en un solo trabajo por lotes y dejar que OpenAI las procese de forma asíncrona.
-- OpenAI ofrece precios con descuento para cargas de trabajo del Batch API, por lo que las ejecuciones de indexado grandes suelen ser más baratas que enviar las mismas solicitudes de forma sincrónica.
-- Consulte la documentación y precios del OpenAI Batch API para más detalles:
-  - https://platform.openai.com/docs/api-reference/batch
-  - https://platform.openai.com/pricing
+- Para rellenos grandes, OpenAI suele ser la opción más rápida que soportamos porque podemos enviar muchas solicitudes de incrustación en un solo trabajo por lotes y dejar que OpenAI las procese de forma asíncrona.
+- OpenAI ofrece precios con descuento para cargas de trabajo de la API Batch, por lo que las ejecuciones de indexación grandes suelen ser más baratas que enviar las mismas solicitudes de forma sincrónica.
+- Consulte los documentos y precios de la API Batch de OpenAI para más detalles:
+  - [https://platform.openai.com/docs/api-reference/batch](https://platform.openai.com/docs/api-reference/batch)
+  - [https://platform.openai.com/pricing](https://platform.openai.com/pricing)
 
 Ejemplo de configuración:
 
@@ -332,7 +341,7 @@ agents: {
 Herramientas:
 
 - `memory_search` — devuelve fragmentos con archivo + rangos de líneas.
-- `memory_get` — lee el contenido de archivos de memoria por ruta.
+- `memory_get` — lee el contenido del archivo de memoria por ruta.
 
 Modo local:
 
@@ -342,22 +351,22 @@ Modo local:
 
 ### Cómo funcionan las herramientas de memoria
 
-- `memory_search` busca semánticamente fragmentos de Markdown (~objetivo de 400 tokens, superposición de 80 tokens) desde `MEMORY.md` + `memory/**/*.md`. Devuelve texto del fragmento (limitado a ~700 caracteres), ruta del archivo, rango de líneas, puntuación, proveedor/modelo y si hicimos fallback de embeddings locales → remotos. No se devuelve la carga completa del archivo.
+- `memory_search` busca semánticamente fragmentos Markdown (~400 tokens objetivo, superposición de 80 tokens) de `MEMORY.md` + `memory/**/*.md`. Devuelve texto del fragmento (limitado a ~700 caracteres), ruta del archivo, rango de líneas, puntuación, proveedor/modelo y si hubo fallback de incrustaciones locales → remotas. No se devuelve la carga útil completa del archivo.
 - `memory_get` lee un archivo Markdown de memoria específico (relativo al espacio de trabajo), opcionalmente desde una línea inicial y por N líneas. Las rutas fuera de `MEMORY.md` / `memory/` se rechazan.
-- Ambas herramientas solo se habilitan cuando `memorySearch.enabled` se resuelve como verdadero para el agente.
+- Ambas herramientas solo están habilitadas cuando `memorySearch.enabled` se resuelve como verdadero para el agente.
 
 ### Qué se indexa (y cuándo)
 
 - Tipo de archivo: solo Markdown (`MEMORY.md`, `memory/**/*.md`).
 - Almacenamiento del índice: SQLite por agente en `~/.openclaw/memory/<agentId>.sqlite` (configurable vía `agents.defaults.memorySearch.store.path`, admite el token `{agentId}`).
-- Actualidad: un watcher en `MEMORY.md` + `memory/` marca el índice como sucio (debounce 1.5s). La sincronización se programa al inicio de la sesión, en la búsqueda o en un intervalo y se ejecuta de forma asíncrona. Las transcripciones de sesión usan umbrales delta para activar la sincronización en segundo plano.
-- Disparadores de reindexado: el índice almacena el **proveedor/modelo de embeddings + huella del endpoint + parámetros de fragmentación**. Si cualquiera de estos cambia, OpenClaw restablece y reindexa automáticamente todo el almacén.
+- Actualización: un observador en `MEMORY.md` + `memory/` marca el índice como sucio (_debounce_ 1.5s). La sincronización se programa al inicio de la sesión, en la búsqueda o en un intervalo y se ejecuta de forma asíncrona. Las transcripciones de sesión usan umbrales delta para activar la sincronización en segundo plano.
+- Disparadores de reindexación: el índice almacena el **proveedor/modelo de incrustaciones + huella del endpoint + parámetros de fragmentación**. Si cualquiera cambia, OpenClaw restablece y reindexa automáticamente todo el almacén.
 
 ### Búsqueda híbrida (BM25 + vector)
 
 Cuando está habilitada, OpenClaw combina:
 
-- **Similitud vectorial** (coincidencia semántica, la redacción puede diferir)
+- **Similitud vectorial** (coincidencia semántica; la redacción puede diferir)
 - **Relevancia de palabras clave BM25** (tokens exactos como IDs, variables de entorno, símbolos de código)
 
 Si la búsqueda de texto completo no está disponible en su plataforma, OpenClaw vuelve a la búsqueda solo vectorial.
@@ -366,27 +375,28 @@ Si la búsqueda de texto completo no está disponible en su plataforma, OpenClaw
 
 La búsqueda vectorial es excelente para “esto significa lo mismo”:
 
-- “Mac Studio gateway host” vs “la máquina que ejecuta el gateway”
-- “debounce file updates” vs “evitar indexar en cada escritura”
+- “host del Gateway Mac Studio” vs “la máquina que ejecuta el gateway”
+- “aplicar debounce a las actualizaciones de archivos” vs “evitar indexar en cada escritura”
 
-Pero puede ser débil para tokens exactos de alta señal:
+Pero puede ser débil con tokens exactos y de alta señal:
 
 - IDs (`a828e60`, `b3b9895a…`)
 - símbolos de código (`memorySearch.query.hybrid`)
 - cadenas de error (“sqlite-vec unavailable”)
 
-BM25 (texto completo) es lo opuesto: fuerte en tokens exactos, más débil en paráfrasis.
-La búsqueda híbrida es el punto medio pragmático: **usar ambas señales de recuperación** para obtener
-buenos resultados tanto para consultas de “lenguaje natural” como de “aguja en un pajar”.
+BM25 (texto completo) es lo opuesto: fuerte con tokens exactos, más débil con paráfrasis.
+La búsqueda híbrida es el punto medio pragmático: **usar ambas señales de recuperación**
+para obtener buenos resultados tanto para consultas en “lenguaje natural” como para
+consultas de “aguja en un pajar”.
 
 #### Cómo combinamos resultados (diseño actual)
 
-Bosquejo de implementación:
+Boceto de implementación:
 
-1. Recuperar un conjunto de candidatos de ambos lados:
+1. Recuperar un conjunto candidato de ambos lados:
 
-- **Vector**: top `maxResults * candidateMultiplier` por similitud de coseno.
-- **BM25**: top `maxResults * candidateMultiplier` por rango BM25 de FTS5 (más bajo es mejor).
+- **Vector**: los primeros `maxResults * candidateMultiplier` por similitud coseno.
+- **BM25**: los primeros `maxResults * candidateMultiplier` por rango BM25 de FTS5 (más bajo es mejor).
 
 2. Convertir el rango BM25 en una puntuación aproximada 0..1:
 
@@ -399,12 +409,13 @@ Bosquejo de implementación:
 Notas:
 
 - `vectorWeight` + `textWeight` se normaliza a 1.0 en la resolución de configuración, por lo que los pesos se comportan como porcentajes.
-- Si los embeddings no están disponibles (o el proveedor devuelve un vector cero), aún ejecutamos BM25 y devolvemos coincidencias por palabras clave.
-- Si FTS5 no puede crearse, mantenemos la búsqueda solo vectorial (sin fallo duro).
+- Si las incrustaciones no están disponibles (o el proveedor devuelve un vector cero), aun así ejecutamos BM25 y devolvemos coincidencias por palabras clave.
+- Si FTS5 no se puede crear, mantenemos la búsqueda solo vectorial (sin fallo duro).
 
-Esto no es “perfecto según la teoría IR”, pero es simple, rápido y tiende a mejorar recall/precision en notas reales.
-Si luego queremos algo más sofisticado, los siguientes pasos comunes son Reciprocal Rank Fusion (RRF) o normalización de puntuaciones
-(min/max o z-score) antes de mezclar.
+Esto no es “perfecto según la teoría de IR”, pero es simple, rápido y tiende a mejorar
+recall/precisión en notas reales. Si queremos ponernos más sofisticados después,
+los siguientes pasos comunes son la Fusión de Rango Recíproco (RRF) o la normalización
+de puntuaciones (mín/máx o z-score) antes de mezclar.
 
 Configuración:
 
@@ -425,9 +436,10 @@ agents: {
 }
 ```
 
-### Caché de embeddings
+### Caché de incrustaciones
 
-OpenClaw puede almacenar en caché **embeddings de fragmentos** en SQLite para que el reindexado y las actualizaciones frecuentes (especialmente transcripciones de sesión) no vuelvan a generar embeddings de texto sin cambios.
+OpenClaw puede almacenar en caché **incrustaciones de fragmentos** en SQLite para que la reindexación y las
+actualizaciones frecuentes (especialmente transcripciones de sesión) no vuelvan a incrustar texto sin cambios.
 
 Configuración:
 
@@ -462,11 +474,11 @@ agents: {
 
 Notas:
 
-- El indexado de sesiones es **opt-in** (apagado por defecto).
-- Las actualizaciones de sesión usan debounce y se **indexan de forma asíncrona** una vez que cruzan umbrales delta (best-effort).
-- `memory_search` nunca bloquea por indexado; los resultados pueden estar ligeramente desactualizados hasta que finalice la sincronización en segundo plano.
+- La indexación de sesión es **opt-in** (desactivada de forma predeterminada).
+- Las actualizaciones de sesión se _debounce_ y se **indexan de forma asíncrona** una vez que cruzan umbrales delta (mejor esfuerzo).
+- `memory_search` nunca bloquea por indexación; los resultados pueden estar ligeramente desactualizados hasta que termine la sincronización en segundo plano.
 - Los resultados siguen incluyendo solo fragmentos; `memory_get` permanece limitado a archivos de memoria.
-- El indexado de sesiones está aislado por agente (solo se indexan los registros de sesión de ese agente).
+- La indexación de sesión está aislada por agente (solo se indexan los registros de sesión de ese agente).
 - Los registros de sesión viven en disco (`~/.openclaw/agents/<agentId>/sessions/*.jsonl`). Cualquier proceso/usuario con acceso al sistema de archivos puede leerlos, así que trate el acceso al disco como el límite de confianza. Para un aislamiento más estricto, ejecute agentes bajo usuarios del SO o hosts separados.
 
 Umbrales delta (valores predeterminados mostrados):
@@ -488,9 +500,9 @@ agents: {
 
 ### Aceleración vectorial de SQLite (sqlite-vec)
 
-Cuando la extensión sqlite-vec está disponible, OpenClaw almacena embeddings en una
+Cuando la extensión sqlite-vec está disponible, OpenClaw almacena incrustaciones en una
 tabla virtual de SQLite (`vec0`) y realiza consultas de distancia vectorial en la
-base de datos. Esto mantiene la búsqueda rápida sin cargar cada embedding en JS.
+base de datos. Esto mantiene la búsqueda rápida sin cargar cada incrustación en JS.
 
 Configuración (opcional):
 
@@ -511,19 +523,19 @@ agents: {
 
 Notas:
 
-- `enabled` es verdadero por defecto; cuando se deshabilita, la búsqueda vuelve a
-  similitud de coseno en proceso sobre embeddings almacenados.
-- Si la extensión sqlite-vec falta o falla al cargar, OpenClaw registra el
+- `enabled` es verdadero por defecto; cuando se deshabilita, la búsqueda vuelve a la
+  similitud coseno en proceso sobre incrustaciones almacenadas.
+- Si la extensión sqlite-vec falta o no se puede cargar, OpenClaw registra el
   error y continúa con el fallback en JS (sin tabla vectorial).
-- `extensionPath` sobrescribe la ruta de sqlite-vec incluida (útil para compilaciones personalizadas
-  o ubicaciones de instalación no estándar).
+- `extensionPath` sobrescribe la ruta incluida de sqlite-vec (útil para compilaciones
+  personalizadas o ubicaciones de instalación no estándar).
 
-### Descarga automática de embeddings locales
+### Descarga automática de incrustaciones locales
 
-- Modelo local de embeddings predeterminado: `hf:ggml-org/embeddinggemma-300M-GGUF/embeddinggemma-300M-Q8_0.gguf` (~0.6 GB).
-- Cuando `memorySearch.provider = "local"`, `node-llama-cpp` resuelve `modelPath`; si falta el GGUF se **descarga automáticamente** a la caché (o `local.modelCacheDir` si está configurado), luego se carga. Las descargas se reanudan al reintentar.
+- Modelo de incrustación local predeterminado: `hf:ggml-org/embeddinggemma-300M-GGUF/embeddinggemma-300M-Q8_0.gguf` (~0.6 GB).
+- Cuando `memorySearch.provider = "local"`, `node-llama-cpp` resuelve `modelPath`; si el GGUF falta, se **descarga automáticamente** a la caché (o `local.modelCacheDir` si está configurado) y luego se carga. Las descargas se reanudan al reintentar.
 - Requisito de compilación nativa: ejecute `pnpm approve-builds`, elija `node-llama-cpp`, luego `pnpm rebuild node-llama-cpp`.
-- Fallback: si la configuración local falla y `memorySearch.fallback = "openai"`, cambiamos automáticamente a embeddings remotos (`openai/text-embedding-3-small` a menos que se sobrescriba) y registramos el motivo.
+- Fallback: si la configuración local falla y `memorySearch.fallback = "openai"`, cambiamos automáticamente a incrustaciones remotas (`openai/text-embedding-3-small` a menos que se sobrescriba) y registramos el motivo.
 
 ### Ejemplo de endpoint compatible con OpenAI personalizado
 
@@ -549,4 +561,4 @@ agents: {
 Notas:
 
 - `remote.*` tiene prioridad sobre `models.providers.openai.*`.
-- `remote.headers` se fusiona con los encabezados de OpenAI; el remoto gana en conflictos de claves. Omita `remote.headers` para usar los valores predeterminados de OpenAI.
+- `remote.headers` se combina con los encabezados de OpenAI; el remoto gana en conflictos de claves. Omita `remote.headers` para usar los valores predeterminados de OpenAI.

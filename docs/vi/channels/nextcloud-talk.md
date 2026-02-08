@@ -1,24 +1,24 @@
 ---
 summary: "Trạng thái hỗ trợ, khả năng và cấu hình của Nextcloud Talk"
 read_when:
-  - Làm việc với các tính năng kênh Nextcloud Talk
+  - Làm việc trên các tính năng kênh Nextcloud Talk
 title: "Nextcloud Talk"
 x-i18n:
   source_path: channels/nextcloud-talk.md
-  source_hash: 4062946ebf333903
+  source_hash: 2769144221e41391
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:12Z
+  generated_at: 2026-02-08T09:38:05Z
 ---
 
 # Nextcloud Talk (plugin)
 
-Trạng thái: được hỗ trợ qua plugin (bot webhook). Hỗ trợ tin nhắn trực tiếp, phòng, phản ứng và tin nhắn markdown.
+Trạng thái: được hỗ trợ thông qua plugin (bot webhook). Tin nhắn trực tiếp, phòng, phản ứng và tin nhắn markdown đều được hỗ trợ.
 
-## Cần plugin
+## Yêu cầu plugin
 
-Nextcloud Talk được phát hành dưới dạng plugin và không đi kèm với bản cài đặt lõi.
+Nextcloud Talk được phát hành dưới dạng plugin và không được gộp sẵn trong bản cài đặt lõi.
 
 Cài đặt qua CLI (npm registry):
 
@@ -32,23 +32,25 @@ Checkout cục bộ (khi chạy từ repo git):
 openclaw plugins install ./extensions/nextcloud-talk
 ```
 
-Nếu bạn chọn Nextcloud Talk trong quá trình cấu hình/onboarding và phát hiện có checkout git,
+Nếu bạn chọn Nextcloud Talk trong quá trình cấu hình/hướng dẫn ban đầu và phát hiện một bản checkout git,
 OpenClaw sẽ tự động đề xuất đường dẫn cài đặt cục bộ.
 
-Chi tiết: [Plugins](/plugin)
+Chi tiết: [Plugins](/tools/plugin)
 
-## Thiết lập nhanh (người mới)
+## Thiết lập nhanh (cho người mới)
 
 1. Cài đặt plugin Nextcloud Talk.
 2. Trên máy chủ Nextcloud của bạn, tạo một bot:
+
    ```bash
    ./occ talk:bot:install "OpenClaw" "<shared-secret>" "<webhook-url>" --feature reaction
    ```
+
 3. Bật bot trong cài đặt phòng mục tiêu.
 4. Cấu hình OpenClaw:
    - Config: `channels.nextcloud-talk.baseUrl` + `channels.nextcloud-talk.botSecret`
-   - Hoặc env: `NEXTCLOUD_TALK_BOT_SECRET` (chỉ tài khoản mặc định)
-5. Khởi động lại Gateway (hoặc hoàn tất onboarding).
+   - Hoặc env: `NEXTCLOUD_TALK_BOT_SECRET` (chỉ cho tài khoản mặc định)
+5. Khởi động lại gateway (hoặc hoàn tất hướng dẫn ban đầu).
 
 Cấu hình tối thiểu:
 
@@ -67,24 +69,24 @@ Cấu hình tối thiểu:
 
 ## Ghi chú
 
-- Bot không thể chủ động bắt đầu DM. Người dùng phải nhắn cho bot trước.
-- URL webhook phải có thể truy cập được từ Gateway; đặt `webhookPublicUrl` nếu ở sau proxy.
+- Bot không thể khởi tạo DM. Người dùng phải nhắn tin cho bot trước.
+- URL webhook phải truy cập được bởi Gateway; đặt `webhookPublicUrl` nếu ở sau proxy.
 - Tải lên media không được hỗ trợ bởi API bot; media được gửi dưới dạng URL.
-- Payload webhook không phân biệt DM với phòng; đặt `apiUser` + `apiPassword` để bật tra cứu loại phòng (nếu không, DM sẽ được xử lý như phòng).
+- Payload webhook không phân biệt DM và phòng; đặt `apiUser` + `apiPassword` để bật tra cứu loại phòng (nếu không, DM sẽ được xử lý như phòng).
 
 ## Kiểm soát truy cập (DM)
 
-- Mặc định: `channels.nextcloud-talk.dmPolicy = "pairing"`. Người gửi không xác định sẽ nhận mã ghép nối.
-- Phê duyệt qua:
+- Mặc định: `channels.nextcloud-talk.dmPolicy = "pairing"`. Người gửi không xác định sẽ nhận mã ghép cặp.
+- Phê duyệt thông qua:
   - `openclaw pairing list nextcloud-talk`
   - `openclaw pairing approve nextcloud-talk <CODE>`
 - DM công khai: `channels.nextcloud-talk.dmPolicy="open"` cộng với `channels.nextcloud-talk.allowFrom=["*"]`.
-- `allowFrom` chỉ khớp ID người dùng Nextcloud; tên hiển thị bị bỏ qua.
+- `allowFrom` chỉ khớp với ID người dùng Nextcloud; tên hiển thị bị bỏ qua.
 
 ## Phòng (nhóm)
 
-- Mặc định: `channels.nextcloud-talk.groupPolicy = "allowlist"` (bị chặn theo nhắc tên).
-- Cho phép danh sách phòng với `channels.nextcloud-talk.rooms`:
+- Mặc định: `channels.nextcloud-talk.groupPolicy = "allowlist"` (yêu cầu mention).
+- Cho phép phòng bằng danh sách cho phép với `channels.nextcloud-talk.rooms`:
 
 ```json5
 {
@@ -106,7 +108,7 @@ Cấu hình tối thiểu:
 | ------------------ | ------------ |
 | Tin nhắn trực tiếp | Hỗ trợ       |
 | Phòng              | Hỗ trợ       |
-| Chuỗi              | Không hỗ trợ |
+| Luồng              | Không hỗ trợ |
 | Media              | Chỉ URL      |
 | Phản ứng           | Hỗ trợ       |
 | Lệnh gốc           | Không hỗ trợ |
@@ -118,7 +120,7 @@ Cấu hình đầy đủ: [Configuration](/gateway/configuration)
 Tùy chọn nhà cung cấp:
 
 - `channels.nextcloud-talk.enabled`: bật/tắt khởi động kênh.
-- `channels.nextcloud-talk.baseUrl`: URL instance Nextcloud.
+- `channels.nextcloud-talk.baseUrl`: URL phiên bản Nextcloud.
 - `channels.nextcloud-talk.botSecret`: bí mật chia sẻ của bot.
 - `channels.nextcloud-talk.botSecretFile`: đường dẫn tệp bí mật.
 - `channels.nextcloud-talk.apiUser`: người dùng API để tra cứu phòng (phát hiện DM).
@@ -135,9 +137,9 @@ Tùy chọn nhà cung cấp:
 - `channels.nextcloud-talk.rooms`: cài đặt theo phòng và danh sách cho phép.
 - `channels.nextcloud-talk.historyLimit`: giới hạn lịch sử nhóm (0 để tắt).
 - `channels.nextcloud-talk.dmHistoryLimit`: giới hạn lịch sử DM (0 để tắt).
-- `channels.nextcloud-talk.dms`: ghi đè theo DM (historyLimit).
-- `channels.nextcloud-talk.textChunkLimit`: kích thước chia đoạn văn bản gửi ra (ký tự).
-- `channels.nextcloud-talk.chunkMode`: `length` (mặc định) hoặc `newline` để tách theo dòng trống (ranh giới đoạn) trước khi chia theo độ dài.
+- `channels.nextcloud-talk.dms`: ghi đè theo từng DM (historyLimit).
+- `channels.nextcloud-talk.textChunkLimit`: kích thước phân đoạn văn bản đầu ra (ký tự).
+- `channels.nextcloud-talk.chunkMode`: `length` (mặc định) hoặc `newline` để tách theo dòng trống (ranh giới đoạn) trước khi phân đoạn theo độ dài.
 - `channels.nextcloud-talk.blockStreaming`: tắt block streaming cho kênh này.
 - `channels.nextcloud-talk.blockStreamingCoalesce`: tinh chỉnh gộp block streaming.
 - `channels.nextcloud-talk.mediaMaxMb`: giới hạn media đầu vào (MB).

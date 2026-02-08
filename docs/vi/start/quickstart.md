@@ -1,29 +1,29 @@
 ---
-summary: "Khoi dong nhanh da duoc chuyen sang Bat Dau."
+summary: "Khởi động nhanh đã được chuyển sang Bắt đầu."
 read_when:
-  - Ban dang tim cac buoc thiet lap nhanh nhat
-  - Ban duoc dan den day tu mot lien ket cu
-title: "Khoi dong nhanh"
+  - Bạn đang tìm các bước thiết lập nhanh nhất
+  - Bạn được chuyển tới đây từ một liên kết cũ
+title: "Khởi động nhanh"
 x-i18n:
   source_path: start/quickstart.md
   source_hash: c03779abfcd92ec9
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:08:25Z
+  generated_at: 2026-02-08T09:40:09Z
 ---
 
-# Khoi dong nhanh
+# Khởi động nhanh
 
 <Info>
-Khoi dong nhanh hien da la mot phan cua [Bat Dau](/start/getting-started).
+Khởi động nhanh hiện là một phần của [Bắt đầu](/start/getting-started).
 </Info>
 
 <Columns>
-  <Card title="Bat Dau" href="/start/getting-started">
-    Cai dat OpenClaw va chay cuoc tro chuyen dau tien chi trong vai phut.
+  <Card title="Bắt đầu" href="/start/getting-started">
+    Cài đặt OpenClaw và chạy cuộc trò chuyện đầu tiên của bạn chỉ trong vài phút.
   </Card>
-  <Card title="Huong Dan Ban Dau - trinh huong dan" href="/start/wizard">
-    Tai lieu day du ve trinh huong dan CLI va cac tuy chon nang cao.
+  <Card title="Trình hướng dẫn Hướng dẫn ban đầu" href="/start/wizard">
+    Tham chiếu đầy đủ cho trình hướng dẫn CLI và các tùy chọn nâng cao.
   </Card>
 </Columns>

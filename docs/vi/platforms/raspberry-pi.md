@@ -1,5 +1,5 @@
 ---
-summary: "OpenClaw trên Raspberry Pi (thiết lập tự lưu trữ tiết kiệm)"
+summary: "OpenClaw trên Raspberry Pi (thiết lập tự host tiết kiệm)"
 read_when:
   - Thiết lập OpenClaw trên Raspberry Pi
   - Chạy OpenClaw trên thiết bị ARM
@@ -11,34 +11,34 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:08:09Z
+  generated_at: 2026-02-08T09:39:56Z
 ---
 
 # OpenClaw trên Raspberry Pi
 
 ## Mục tiêu
 
-Chạy một OpenClaw Gateway liên tục, luôn bật trên Raspberry Pi với chi phí một lần **~$35-80** (không có phí hàng tháng).
+Chạy một OpenClaw Gateway liên tục, luôn bật trên Raspberry Pi với chi phí một lần **~$35-80** (không phí hàng tháng).
 
 Phù hợp cho:
 
 - Trợ lý AI cá nhân 24/7
-- Trung tâm tự động hóa gia đình
-- Bot Telegram/WhatsApp tiêu thụ điện năng thấp, luôn sẵn sàng
+- Trung tâm tự động hóa nhà
+- Bot Telegram/WhatsApp công suất thấp, luôn sẵn sàng
 
 ## Yêu cầu phần cứng
 
-| Mẫu Pi          | RAM     | Hoạt động?  | Ghi chú                                  |
-| --------------- | ------- | ----------- | ---------------------------------------- |
-| **Pi 5**        | 4GB/8GB | ✅ Tốt nhất | Nhanh nhất, khuyến nghị                  |
-| **Pi 4**        | 4GB     | ✅ Tốt      | Lựa chọn cân bằng cho đa số người dùng   |
-| **Pi 4**        | 2GB     | ✅ Ổn       | Hoạt động, nên thêm swap                 |
-| **Pi 4**        | 1GB     | ⚠️ Hạn chế  | Có thể chạy với swap, cấu hình tối thiểu |
-| **Pi 3B+**      | 1GB     | ⚠️ Chậm     | Chạy được nhưng ì ạch                    |
-| **Pi Zero 2 W** | 512MB   | ❌          | Không khuyến nghị                        |
+| Mẫu Pi          | RAM     | Hoạt động?  | Ghi chú                            |
+| --------------- | ------- | ----------- | ---------------------------------- |
+| **Pi 5**        | 4GB/8GB | ✅ Tốt nhất | Nhanh nhất, khuyến nghị            |
+| **Pi 4**        | 4GB     | ✅ Tốt      | Điểm cân bằng cho đa số người dùng |
+| **Pi 4**        | 2GB     | ✅ Ổn       | Hoạt động, nên thêm swap           |
+| **Pi 4**        | 1GB     | ⚠️ Chật     | Có thể với swap, cấu hình tối giản |
+| **Pi 3B+**      | 1GB     | ⚠️ Chậm     | Chạy được nhưng ì ạch              |
+| **Pi Zero 2 W** | 512MB   | ❌          | Không khuyến nghị                  |
 
-**Cấu hình tối thiểu:** 1GB RAM, 1 nhân, 500MB dung lượng  
-**Khuyến nghị:** 2GB+ RAM, hệ điều hành 64-bit, thẻ SD 16GB+ (hoặc USB SSD)
+**Cấu hình tối thiểu:** 1GB RAM, 1 lõi, 500MB dung lượng  
+**Khuyến nghị:** 2GB+ RAM, OS 64-bit, thẻ SD 16GB+ (hoặc USB SSD)
 
 ## Những thứ bạn cần
 
@@ -50,17 +50,17 @@ Phù hợp cho:
 
 ## 1) Ghi hệ điều hành
 
-Dùng **Raspberry Pi OS Lite (64-bit)** — không cần giao diện desktop cho máy chủ headless.
+Sử dụng **Raspberry Pi OS Lite (64-bit)** — không cần giao diện desktop cho máy chủ headless.
 
 1. Tải [Raspberry Pi Imager](https://www.raspberrypi.com/software/)
 2. Chọn OS: **Raspberry Pi OS Lite (64-bit)**
-3. Bấm biểu tượng bánh răng (⚙️) để cấu hình trước:
+3. Nhấn biểu tượng bánh răng (⚙️) để cấu hình trước:
    - Đặt hostname: `gateway-host`
    - Bật SSH
-   - Đặt tên người dùng/mật khẩu
+   - Đặt username/password
    - Cấu hình WiFi (nếu không dùng Ethernet)
 4. Ghi vào thẻ SD / ổ USB
-5. Lắp vào và khởi động Pi
+5. Gắn và khởi động Pi
 
 ## 2) Kết nối qua SSH
 
@@ -95,7 +95,7 @@ node --version  # Should show v22.x.x
 npm --version
 ```
 
-## 5) Thêm Swap (Quan trọng với 2GB hoặc ít hơn)
+## 5) Thêm Swap (Quan trọng cho 2GB trở xuống)
 
 Swap giúp tránh lỗi hết bộ nhớ:
 
@@ -114,7 +114,7 @@ echo 'vm.swappiness=10' | sudo tee -a /etc/sysctl.conf
 sudo sysctl -p
 ```
 
-## 6) Cài OpenClaw
+## 6) Cài đặt OpenClaw
 
 ### Tùy chọn A: Cài đặt tiêu chuẩn (Khuyến nghị)
 
@@ -122,7 +122,7 @@ sudo sysctl -p
 curl -fsSL https://openclaw.ai/install.sh | bash
 ```
 
-### Tùy chọn B: Cài đặt có thể chỉnh sửa (Dành cho vọc vạch)
+### Tùy chọn B: Cài đặt hackable (Dành cho vọc vạch)
 
 ```bash
 git clone https://github.com/openclaw/openclaw.git
@@ -132,9 +132,9 @@ npm run build
 npm link
 ```
 
-Bản cài đặt có thể chỉnh sửa cho bạn truy cập trực tiếp vào log và mã nguồn — hữu ích để gỡ lỗi các vấn đề riêng của ARM.
+Cài đặt hackable cho bạn quyền truy cập trực tiếp vào log và mã nguồn — hữu ích khi gỡ lỗi các vấn đề đặc thù ARM.
 
-## 7) Chạy Onboarding
+## 7) Chạy Hướng dẫn ban đầu
 
 ```bash
 openclaw onboard --install-daemon
@@ -143,7 +143,7 @@ openclaw onboard --install-daemon
 Làm theo trình hướng dẫn:
 
 1. **Chế độ Gateway:** Local
-2. **Xác thực:** Khuyến nghị dùng API keys (OAuth có thể rắc rối trên Pi headless)
+2. **Xác thực:** Khuyến nghị khóa API (OAuth có thể khó ổn định trên Pi headless)
 3. **Kênh:** Telegram là dễ bắt đầu nhất
 4. **Daemon:** Có (systemd)
 
@@ -162,7 +162,7 @@ journalctl -u openclaw -f
 
 ## 9) Truy cập Dashboard
 
-Vì Pi là headless, hãy dùng SSH tunnel:
+Vì Pi là headless, hãy dùng đường hầm SSH:
 
 ```bash
 # From your laptop/desktop
@@ -228,21 +228,21 @@ htop
 
 ### Tương thích nhị phân
 
-Hầu hết tính năng OpenClaw hoạt động trên ARM64, nhưng một số binary bên ngoài có thể cần bản dựng cho ARM:
+Hầu hết tính năng OpenClaw hoạt động trên ARM64, nhưng một số nhị phân bên ngoài có thể cần bản build cho ARM:
 
 | Công cụ            | Trạng thái ARM64 | Ghi chú                             |
 | ------------------ | ---------------- | ----------------------------------- |
 | Node.js            | ✅               | Hoạt động rất tốt                   |
-| WhatsApp (Baileys) | ✅               | Thuần JS, không vấn đề              |
-| Telegram           | ✅               | Thuần JS, không vấn đề              |
+| WhatsApp (Baileys) | ✅               | JS thuần, không vấn đề              |
+| Telegram           | ✅               | JS thuần, không vấn đề              |
 | gog (Gmail CLI)    | ⚠️               | Kiểm tra bản phát hành cho ARM      |
 | Chromium (browser) | ✅               | `sudo apt install chromium-browser` |
 
-Nếu một skill lỗi, hãy kiểm tra xem binary của nó có bản dựng ARM hay không. Nhiều công cụ Go/Rust có; một số thì không.
+Nếu một skill bị lỗi, hãy kiểm tra xem nhị phân của nó có bản build ARM không. Nhiều công cụ Go/Rust có; một số thì không.
 
 ### 32-bit vs 64-bit
 
-**Luôn dùng hệ điều hành 64-bit.** Node.js và nhiều công cụ hiện đại yêu cầu điều này. Kiểm tra bằng:
+**Luôn dùng OS 64-bit.** Node.js và nhiều công cụ hiện đại yêu cầu điều này. Kiểm tra bằng:
 
 ```bash
 uname -m
@@ -251,9 +251,9 @@ uname -m
 
 ---
 
-## Thiết lập model khuyến nghị
+## Thiết lập mô hình khuyến nghị
 
-Vì Pi chỉ là Gateway (model chạy trên cloud), hãy dùng các model qua API:
+Vì Pi chỉ đóng vai trò Gateway (mô hình chạy trên cloud), hãy dùng các mô hình dựa trên API:
 
 ```json
 {
@@ -268,13 +268,13 @@ Vì Pi chỉ là Gateway (model chạy trên cloud), hãy dùng các model qua A
 }
 ```
 
-**Đừng cố chạy LLM cục bộ trên Pi** — ngay cả model nhỏ cũng quá chậm. Hãy để Claude/GPT xử lý phần nặng.
+**Đừng cố chạy LLM cục bộ trên Pi** — ngay cả mô hình nhỏ cũng quá chậm. Hãy để Claude/GPT xử lý phần nặng.
 
 ---
 
 ## Tự khởi động khi boot
 
-Trình onboarding đã thiết lập sẵn, nhưng để kiểm tra:
+Trình hướng dẫn ban đầu đã thiết lập, nhưng để kiểm tra:
 
 ```bash
 # Check service is enabled
@@ -305,7 +305,7 @@ free -h
 
 - Dùng USB SSD thay vì thẻ SD
 - Tắt các dịch vụ không dùng: `sudo systemctl disable cups bluetooth avahi-daemon`
-- Kiểm tra throttling CPU: `vcgencmd get_throttled` (nên trả về `0x0`)
+- Kiểm tra CPU bị throttling: `vcgencmd get_throttled` (nên trả về `0x0`)
 
 ### Dịch vụ không khởi động
 
@@ -319,17 +319,17 @@ npm run build
 sudo systemctl restart openclaw
 ```
 
-### Vấn đề binary ARM
+### Vấn đề nhị phân ARM
 
-Nếu một skill lỗi với “exec format error”:
+Nếu một skill lỗi với "exec format error":
 
-1. Kiểm tra xem binary có bản dựng ARM64 không
-2. Thử build từ source
+1. Kiểm tra xem nhị phân có bản build ARM64 không
+2. Thử build từ mã nguồn
 3. Hoặc dùng container Docker có hỗ trợ ARM
 
-### WiFi hay rớt
+### WiFi bị rớt
 
-Với Pi headless dùng WiFi:
+Đối với Pi headless dùng WiFi:
 
 ```bash
 # Disable WiFi power management
@@ -352,14 +352,14 @@ echo 'wireless-power off' | sudo tee -a /etc/network/interfaces
 | DigitalOcean   | $0              | $6/tháng           | $72/năm               |
 | Hetzner        | $0              | €3.79/tháng        | ~$50/năm              |
 
-**Điểm hòa vốn:** Một Pi tự hoàn vốn sau ~6–12 tháng so với VPS cloud.
+**Điểm hòa vốn:** Một Pi tự hoàn vốn sau ~6-12 tháng so với VPS cloud.
 
 ---
 
 ## Xem thêm
 
-- [Hướng dẫn Linux](/platforms/linux) — thiết lập Linux chung
-- [Hướng dẫn DigitalOcean](/platforms/digitalocean) — lựa chọn cloud
-- [Hướng dẫn Hetzner](/install/hetzner) — thiết lập Docker
+- [Linux guide](/platforms/linux) — thiết lập Linux chung
+- [DigitalOcean guide](/platforms/digitalocean) — lựa chọn cloud
+- [Hetzner guide](/install/hetzner) — thiết lập Docker
 - [Tailscale](/gateway/tailscale) — truy cập từ xa
 - [Nodes](/nodes) — ghép laptop/điện thoại của bạn với gateway Pi

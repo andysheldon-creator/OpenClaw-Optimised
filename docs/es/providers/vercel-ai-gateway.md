@@ -1,16 +1,16 @@
 ---
 title: "Vercel AI Gateway"
-summary: "Configuración de Vercel AI Gateway (autenticación + selección de modelos)"
+summary: "Configuración de Vercel AI Gateway (autenticación + selección de modelo)"
 read_when:
   - Quiere usar Vercel AI Gateway con OpenClaw
-  - Necesita la variable de entorno de la clave de API o la opción de autenticación por CLI
+  - Necesita la variable de entorno de la clave de API o la opción de autenticación de la CLI
 x-i18n:
   source_path: providers/vercel-ai-gateway.md
   source_hash: 2bf1687c1152c6e1
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:59:45Z
+  generated_at: 2026-02-08T09:34:21Z
 ---
 
 # Vercel AI Gateway
@@ -21,9 +21,9 @@ El [Vercel AI Gateway](https://vercel.com/ai-gateway) proporciona una API unific
 - Autenticación: `AI_GATEWAY_API_KEY`
 - API: compatible con Anthropic Messages
 
-## Inicio rapido
+## Inicio rápido
 
-1. Configure la clave de API (recomendado: almacenarla para el Gateway):
+1. Configure la clave de API (recomendado: guardarla para el Gateway):
 
 ```bash
 openclaw onboard --auth-choice ai-gateway-api-key
@@ -52,6 +52,6 @@ openclaw onboard --non-interactive \
 
 ## Nota sobre el entorno
 
-Si el Gateway se ejecuta como un daemon (launchd/systemd), asegúrese de que `AI_GATEWAY_API_KEY`
+Si el Gateway se ejecuta como un demonio (launchd/systemd), asegúrese de que `AI_GATEWAY_API_KEY`
 esté disponible para ese proceso (por ejemplo, en `~/.openclaw/.env` o mediante
 `env.shellEnv`).

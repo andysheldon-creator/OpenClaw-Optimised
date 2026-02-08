@@ -1,24 +1,24 @@
 ---
-summary: "Ueberblick ueber die GLM-Modellfamilie + Verwendung in OpenClaw"
+summary: „Überblick über die GLM-Modellfamilie + Nutzung in OpenClaw“
 read_when:
-  - Sie moechten GLM-Modelle in OpenClaw verwenden
-  - Sie benoetigen die Modellbenennungskonvention und Einrichtung
-title: "GLM-Modelle"
+  - Sie möchten GLM-Modelle in OpenClaw verwenden
+  - Sie benötigen die Modellbenennungskonvention und das Setup
+title: „GLM-Modelle“
 x-i18n:
   source_path: providers/glm.md
   source_hash: 2d7b457f033f26f2
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:08Z
+  generated_at: 2026-02-08T09:37:01Z
 ---
 
 # GLM-Modelle
 
-GLM ist eine **Modellfamilie** (kein Unternehmen), die ueber die Z.AI-Plattform verfuegbar ist. In OpenClaw werden GLM-
-Modelle ueber den Anbieter `zai` und Modell-IDs wie `zai/glm-4.7` angesprochen.
+GLM ist eine **Modellfamilie** (kein Unternehmen), die über die Z.AI-Plattform verfügbar ist. In OpenClaw werden GLM-
+Modelle über den Anbieter `zai` und Modell-IDs wie `zai/glm-4.7` angesprochen.
 
-## CLI-Einrichtung
+## CLI-Setup
 
 ```bash
 openclaw onboard --auth-choice zai-api-key
@@ -35,6 +35,6 @@ openclaw onboard --auth-choice zai-api-key
 
 ## Hinweise
 
-- GLM-Versionen und -Verfuegbarkeit koennen sich aendern; pruefen Sie die Z.AI-Dokumentation fuer den neuesten Stand.
-- Beispielhafte Modell-IDs sind unter anderem `glm-4.7` und `glm-4.6`.
-- Fuer Anbieterdetails siehe [/providers/zai](/providers/zai).
+- GLM-Versionen und -Verfügbarkeit können sich ändern; prüfen Sie die Z.AI-Dokumentation auf den neuesten Stand.
+- Beispielhafte Modell-IDs sind `glm-4.7` und `glm-4.6`.
+- Details zum Anbieter finden Sie unter [/providers/zai](/providers/zai).

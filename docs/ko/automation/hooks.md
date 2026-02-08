@@ -1,8 +1,8 @@
 ---
 summary: "Hooks: 명령과 라이프사이클 이벤트를 위한 이벤트 기반 자동화"
 read_when:
-  - /new, /reset, /stop 및 에이전트 라이프사이클 이벤트를 위한 이벤트 기반 자동화가 필요한 경우
-  - hooks 를 빌드, 설치 또는 디버그하려는 경우
+  - /new, /reset, /stop 및 에이전트 라이프사이클 이벤트를 위한 이벤트 기반 자동화가 필요할 때
+  - hooks 를 빌드, 설치 또는 디버그하고자 할 때
 title: "Hooks"
 x-i18n:
   source_path: automation/hooks.md
@@ -10,52 +10,52 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:15:11Z
+  generated_at: 2026-02-08T09:24:09Z
 ---
 
 # Hooks
 
-Hooks 는 에이전트 명령과 이벤트에 대응하여 작업을 자동화하기 위한 확장 가능한 이벤트 기반 시스템을 제공합니다. Hooks 는 디렉토리에서 자동으로 발견되며, OpenClaw 의 Skills 와 유사하게 CLI 명령을 통해 관리할 수 있습니다.
+Hooks 는 에이전트 명령과 이벤트에 대응하여 작업을 자동화하기 위한 확장 가능한 이벤트 기반 시스템을 제공합니다. Hooks 는 디렉토리에서 자동으로 발견되며, OpenClaw 에서 skills 가 동작하는 방식과 유사하게 CLI 명령으로 관리할 수 있습니다.
 
 ## 개요 파악
 
-Hooks 는 어떤 일이 발생했을 때 실행되는 작은 스크립트입니다. 두 가지 종류가 있습니다.
+Hooks 는 어떤 일이 발생할 때 실행되는 작은 스크립트입니다. 두 가지 종류가 있습니다:
 
 - **Hooks** (이 페이지): `/new`, `/reset`, `/stop` 과 같은 에이전트 이벤트나 라이프사이클 이벤트가 발생할 때 Gateway(게이트웨이) 내부에서 실행됩니다.
-- **Webhooks**: 외부 HTTP 웹훅으로, 다른 시스템이 OpenClaw 에서 작업을 트리거할 수 있게 합니다. [Webhook Hooks](/automation/webhook) 를 참고하거나 Gmail 헬퍼 명령에는 `openclaw webhooks` 을 사용하십시오.
+- **Webhooks**: 외부 HTTP 웹훅으로, 다른 시스템이 OpenClaw 에서 작업을 트리거할 수 있도록 합니다. [Webhook Hooks](/automation/webhook)을 참고하거나 Gmail 헬퍼 명령에는 `openclaw webhooks` 을 사용하십시오.
 
-Hooks 는 플러그인 내부에 번들로 포함될 수도 있습니다. [Plugins](/tools/plugin#plugin-hooks) 를 참고하십시오.
+Hooks 는 플러그인 내부에 번들로 포함될 수도 있습니다. 자세한 내용은 [Plugins](/tools/plugin#plugin-hooks)를 참고하십시오.
 
 일반적인 사용 사례:
 
-- 세션을 재설정할 때 메모리 스냅샷 저장
-- 문제 해결이나 컴플라이언스를 위해 명령의 감사 추적 유지
+- 세션을 리셋할 때 메모리 스냅샷 저장
+- 문제 해결이나 컴플라이언스를 위해 명령 감사 로그 유지
 - 세션 시작 또는 종료 시 후속 자동화 트리거
 - 이벤트 발생 시 에이전트 워크스페이스에 파일을 작성하거나 외부 API 호출
 
-작은 TypeScript 함수를 작성할 수 있다면 hook 을 작성할 수 있습니다. Hooks 는 자동으로 발견되며, CLI 를 통해 활성화 또는 비활성화합니다.
+작은 TypeScript 함수를 작성할 수 있다면 hook 을 작성할 수 있습니다. Hooks 는 자동으로 발견되며, CLI 를 통해 활성화하거나 비활성화합니다.
 
 ## 개요
 
-Hooks 시스템으로 다음을 수행할 수 있습니다.
+hooks 시스템을 통해 다음을 수행할 수 있습니다:
 
-- `/new` 가 발행될 때 세션 컨텍스트를 메모리에 저장
+- `/new` 이 실행될 때 세션 컨텍스트를 메모리에 저장
 - 감사 목적을 위해 모든 명령 로깅
-- 에이전트 라이프사이클 이벤트에서 사용자 정의 자동화 트리거
-- 코어 코드를 수정하지 않고 OpenClaw 의 동작 확장
+- 에이전트 라이프사이클 이벤트에 대한 사용자 정의 자동화 트리거
+- 코어 코드를 수정하지 않고 OpenClaw 동작 확장
 
 ## 시작하기
 
-### 번들 Hooks
+### 번들 hooks
 
-OpenClaw 는 자동으로 발견되는 네 가지 번들 hook 을 제공합니다.
+OpenClaw 에는 자동으로 발견되는 네 가지 번들 hooks 가 포함되어 있습니다:
 
-- **💾 session-memory**: `/new` 을 실행할 때 세션 컨텍스트를 에이전트 워크스페이스(기본값 `~/.openclaw/workspace/memory/`) 에 저장합니다.
+- **💾 session-memory**: `/new` 을 실행하면 세션 컨텍스트를 에이전트 워크스페이스(기본값 `~/.openclaw/workspace/memory/`)에 저장합니다.
 - **📝 command-logger**: 모든 명령 이벤트를 `~/.openclaw/logs/commands.log` 에 로깅합니다.
 - **🚀 boot-md**: 게이트웨이가 시작될 때 `BOOT.md` 을 실행합니다(내부 hooks 활성화 필요).
 - **😈 soul-evil**: 퍼지 윈도우 동안 또는 무작위 확률로 주입된 `SOUL.md` 콘텐츠를 `SOUL_EVIL.md` 로 교체합니다.
 
-사용 가능한 hooks 나열:
+사용 가능한 hooks 목록 보기:
 
 ```bash
 openclaw hooks list
@@ -73,7 +73,7 @@ hook 상태 확인:
 openclaw hooks check
 ```
 
-자세한 정보 보기:
+상세 정보 보기:
 
 ```bash
 openclaw hooks info session-memory
@@ -81,19 +81,19 @@ openclaw hooks info session-memory
 
 ### 온보딩
 
-온보딩(`openclaw onboard`) 중에 권장 hooks 를 활성화할지 묻는 프롬프트가 표시됩니다. 마법사는 적합한 hooks 를 자동으로 발견하고 선택할 수 있도록 제시합니다.
+온보딩(`openclaw onboard`) 중에는 권장 hooks 를 활성화하라는 안내를 받게 됩니다. 마법사는 적합한 hooks 를 자동으로 발견하여 선택할 수 있도록 제시합니다.
 
 ## Hook 발견
 
-Hooks 는 다음 세 디렉토리에서 자동으로 발견됩니다(우선순위 순).
+Hooks 는 다음 세 디렉토리에서 자동으로 발견됩니다(우선순위 순):
 
-1. **워크스페이스 hooks**: `<workspace>/hooks/` (에이전트별, 최상위 우선순위)
+1. **워크스페이스 hooks**: `<workspace>/hooks/` (에이전트별, 최우선)
 2. **관리형 hooks**: `~/.openclaw/hooks/` (사용자 설치, 워크스페이스 간 공유)
 3. **번들 hooks**: `<openclaw>/dist/hooks/bundled/` (OpenClaw 와 함께 제공)
 
 관리형 hook 디렉토리는 **단일 hook** 이거나 **hook 팩**(패키지 디렉토리)일 수 있습니다.
 
-각 hook 은 다음을 포함하는 하나의 디렉토리입니다.
+각 hook 은 다음을 포함하는 디렉토리입니다:
 
 ```
 my-hook/
@@ -103,13 +103,13 @@ my-hook/
 
 ## Hook 팩 (npm/아카이브)
 
-Hook 팩은 `package.json` 에서 `openclaw.hooks` 를 통해 하나 이상의 hook 을 내보내는 표준 npm 패키지입니다. 다음과 같이 설치합니다.
+Hook 팩은 표준 npm 패키지로, `package.json` 에서 `openclaw.hooks` 을 통해 하나 이상의 hook 을 내보냅니다. 설치 방법:
 
 ```bash
 openclaw hooks install <path-or-spec>
 ```
 
-예시 `package.json`:
+`package.json` 예시:
 
 ```json
 {
@@ -121,13 +121,14 @@ openclaw hooks install <path-or-spec>
 }
 ```
 
-각 항목은 `HOOK.md` 과 `handler.ts`(또는 `index.ts`) 를 포함하는 hook 디렉토리를 가리킵니다. Hook 팩은 의존성을 포함할 수 있으며, 이는 `~/.openclaw/hooks/<id>` 아래에 설치됩니다.
+각 항목은 `HOOK.md` 와 `handler.ts` (또는 `index.ts`)를 포함하는 hook 디렉토리를 가리킵니다.  
+Hook 팩은 의존성을 포함할 수 있으며, 이들은 `~/.openclaw/hooks/<id>` 아래에 설치됩니다.
 
 ## Hook 구조
 
 ### HOOK.md 형식
 
-`HOOK.md` 파일에는 YAML 프론트매터의 메타데이터와 Markdown 문서가 포함됩니다.
+`HOOK.md` 파일에는 YAML 프론트매터와 Markdown 문서가 포함됩니다:
 
 ```markdown
 ---
@@ -159,24 +160,24 @@ No configuration needed.
 
 ### 메타데이터 필드
 
-`metadata.openclaw` 객체는 다음을 지원합니다.
+`metadata.openclaw` 객체는 다음을 지원합니다:
 
-- **`emoji`**: CLI 표시용 이모지(예: `"💾"`)
+- **`emoji`**: CLI 에 표시될 이모지(예: `"💾"`)
 - **`events`**: 수신할 이벤트 배열(예: `["command:new", "command:reset"]`)
-- **`export`**: 사용할 명명된 export(기본값 `"default"`)
+- **`export`**: 사용할 named export(기본값 `"default"`)
 - **`homepage`**: 문서 URL
 - **`requires`**: 선택적 요구 사항
-  - **`bins`**: PATH 에 필요한 바이너리(예: `["git", "node"]`)
-  - **`anyBins`**: 이 중 하나 이상의 바이너리가 필요
-  - **`env`**: 필요한 환경 변수
-  - **`config`**: 필요한 설정 경로(예: `["workspace.dir"]`)
-  - **`os`**: 필요한 플랫폼(예: `["darwin", "linux"]`)
+  - **`bins`**: PATH 에 있어야 하는 필수 바이너리(예: `["git", "node"]`)
+  - **`anyBins`**: 이 중 하나 이상의 바이너리가 존재해야 함
+  - **`env`**: 필수 환경 변수
+  - **`config`**: 필수 설정 경로(예: `["workspace.dir"]`)
+  - **`os`**: 필수 플랫폼(예: `["darwin", "linux"]`)
 - **`always`**: 적합성 검사 우회(불리언)
 - **`install`**: 설치 방법(번들 hooks 의 경우: `[{"id":"bundled","kind":"bundled"}]`)
 
 ### 핸들러 구현
 
-`handler.ts` 파일은 `HookHandler` 함수를 export 합니다.
+`handler.ts` 파일은 `HookHandler` 함수를 내보냅니다:
 
 ```typescript
 import type { HookHandler } from "../../src/hooks/hooks.js";
@@ -202,7 +203,7 @@ export default myHandler;
 
 #### 이벤트 컨텍스트
 
-각 이벤트에는 다음이 포함됩니다.
+각 이벤트에는 다음이 포함됩니다:
 
 ```typescript
 {
@@ -228,12 +229,12 @@ export default myHandler;
 
 ### 명령 이벤트
 
-에이전트 명령이 발행될 때 트리거됩니다.
+에이전트 명령이 실행될 때 트리거됩니다:
 
 - **`command`**: 모든 명령 이벤트(일반 리스너)
-- **`command:new`**: `/new` 명령이 발행될 때
-- **`command:reset`**: `/reset` 명령이 발행될 때
-- **`command:stop`**: `/stop` 명령이 발행될 때
+- **`command:new`**: `/new` 명령이 실행될 때
+- **`command:reset`**: `/reset` 명령이 실행될 때
+- **`command:stop`**: `/stop` 명령이 실행될 때
 
 ### 에이전트 이벤트
 
@@ -241,15 +242,15 @@ export default myHandler;
 
 ### Gateway 이벤트
 
-게이트웨이가 시작될 때 트리거됩니다.
+게이트웨이가 시작될 때 트리거됩니다:
 
-- **`gateway:startup`**: 채널이 시작되고 hooks 가 로드된 후
+- **`gateway:startup`**: 채널이 시작되고 hooks 가 로드된 이후
 
-### 도구 결과 Hooks (플러그인 API)
+### 도구 결과 hooks (Plugin API)
 
 이 hooks 는 이벤트 스트림 리스너가 아닙니다. 플러그인이 OpenClaw 가 결과를 저장하기 전에 도구 결과를 동기적으로 조정할 수 있게 합니다.
 
-- **`tool_result_persist`**: 세션 트랜스크립트에 기록되기 전에 도구 결과를 변환합니다. 동기식이어야 하며, 업데이트된 도구 결과 페이로드를 반환하거나 그대로 유지하려면 `undefined` 을 반환합니다. [Agent Loop](/concepts/agent-loop) 를 참고하십시오.
+- **`tool_result_persist`**: 세션 트랜스크립트에 기록되기 전에 도구 결과를 변환합니다. 반드시 동기적이어야 하며, 업데이트된 도구 결과 페이로드를 반환하거나 그대로 유지하려면 `undefined` 을 반환하십시오. [Agent Loop](/concepts/agent-loop)를 참고하십시오.
 
 ### 향후 이벤트
 
@@ -265,7 +266,7 @@ export default myHandler;
 
 ### 1. 위치 선택
 
-- **워크스페이스 hooks** (`<workspace>/hooks/`): 에이전트별, 최상위 우선순위
+- **워크스페이스 hooks** (`<workspace>/hooks/`): 에이전트별, 최우선
 - **관리형 hooks** (`~/.openclaw/hooks/`): 워크스페이스 간 공유
 
 ### 2. 디렉토리 구조 생성
@@ -321,9 +322,9 @@ openclaw hooks enable my-hook
 # Send /new via your messaging channel
 ```
 
-## 설정
+## 구성
 
-### 새 설정 형식(권장)
+### 새로운 설정 형식(권장)
 
 ```json
 {
@@ -341,7 +342,7 @@ openclaw hooks enable my-hook
 
 ### Hook 별 설정
 
-Hooks 는 사용자 정의 설정을 가질 수 있습니다.
+Hooks 는 사용자 정의 설정을 가질 수 있습니다:
 
 ```json
 {
@@ -363,7 +364,7 @@ Hooks 는 사용자 정의 설정을 가질 수 있습니다.
 
 ### 추가 디렉토리
 
-추가 디렉토리에서 hooks 로드:
+추가 디렉토리에서 hooks 를 로드합니다:
 
 ```json
 {
@@ -380,7 +381,7 @@ Hooks 는 사용자 정의 설정을 가질 수 있습니다.
 
 ### 레거시 설정 형식(여전히 지원됨)
 
-이전 설정 형식은 하위 호환성을 위해 여전히 동작합니다.
+이전 설정 형식은 하위 호환성을 위해 여전히 동작합니다:
 
 ```json
 {
@@ -453,7 +454,7 @@ openclaw hooks disable command-logger
 
 ### session-memory
 
-`/new` 를 실행할 때 세션 컨텍스트를 메모리에 저장합니다.
+`/new` 을 실행할 때 세션 컨텍스트를 메모리에 저장합니다.
 
 **이벤트**: `command:new`
 
@@ -461,14 +462,14 @@ openclaw hooks disable command-logger
 
 **출력**: `<workspace>/memory/YYYY-MM-DD-slug.md` (기본값 `~/.openclaw/workspace`)
 
-**동작 내용**:
+**동작 방식**:
 
-1. 리셋 전 세션 엔트리를 사용해 올바른 트랜스크립트를 찾습니다.
+1. 리셋 이전 세션 엔트리를 사용하여 올바른 트랜스크립트를 찾습니다.
 2. 대화의 마지막 15줄을 추출합니다.
 3. LLM 을 사용해 설명적인 파일명 슬러그를 생성합니다.
-4. 세션 메타데이터를 날짜별 메모리 파일로 저장합니다.
+4. 날짜가 포함된 메모리 파일에 세션 메타데이터를 저장합니다.
 
-**예시 출력**:
+**출력 예시**:
 
 ```markdown
 # Session: 2026-01-16 14:30:00 UTC
@@ -492,7 +493,7 @@ openclaw hooks enable session-memory
 
 ### command-logger
 
-모든 명령 이벤트를 중앙 감사 파일에 로깅합니다.
+모든 명령 이벤트를 중앙 집중식 감사 파일에 로깅합니다.
 
 **이벤트**: `command`
 
@@ -500,13 +501,13 @@ openclaw hooks enable session-memory
 
 **출력**: `~/.openclaw/logs/commands.log`
 
-**동작 내용**:
+**동작 방식**:
 
-1. 이벤트 세부 정보(명령 액션, 타임스탬프, 세션 키, 발신자 ID, 소스) 캡처
-2. JSONL 형식으로 로그 파일에 추가
-3. 백그라운드에서 조용히 실행
+1. 이벤트 세부 정보(명령 동작, 타임스탬프, 세션 키, 발신자 ID, 소스)를 캡처합니다.
+2. JSONL 형식으로 로그 파일에 추가합니다.
+3. 백그라운드에서 조용히 실행됩니다.
 
-**예시 로그 항목**:
+**로그 예시**:
 
 ```jsonl
 {"timestamp":"2026-01-16T14:30:00.000Z","action":"new","sessionKey":"agent:main:main","senderId":"+1234567890","source":"telegram"}
@@ -540,7 +541,7 @@ openclaw hooks enable command-logger
 
 **문서**: [SOUL Evil Hook](/hooks/soul-evil)
 
-**출력**: 파일을 작성하지 않으며, 교체는 메모리 내에서만 발생합니다.
+**출력**: 파일은 기록되지 않으며, 교체는 메모리 내에서만 발생합니다.
 
 **활성화**:
 
@@ -570,17 +571,18 @@ openclaw hooks enable soul-evil
 
 ### boot-md
 
-게이트웨이가 시작될 때(채널 시작 이후) `BOOT.md` 를 실행합니다. 이를 실행하려면 내부 hooks 가 활성화되어 있어야 합니다.
+게이트웨이가 시작될 때(채널 시작 이후) `BOOT.md` 을 실행합니다.  
+이를 실행하려면 내부 hooks 가 활성화되어 있어야 합니다.
 
 **이벤트**: `gateway:startup`
 
 **요구 사항**: `workspace.dir` 이 설정되어 있어야 합니다.
 
-**동작 내용**:
+**동작 방식**:
 
-1. 워크스페이스에서 `BOOT.md` 를 읽습니다.
+1. 워크스페이스에서 `BOOT.md` 을 읽습니다.
 2. 에이전트 러너를 통해 지침을 실행합니다.
-3. 요청된 아웃바운드 메시지를 메시지 도구로 전송합니다.
+3. 메시지 도구를 통해 요청된 모든 아웃바운드 메시지를 전송합니다.
 
 **활성화**:
 
@@ -592,7 +594,7 @@ openclaw hooks enable boot-md
 
 ### 핸들러를 빠르게 유지
 
-Hooks 는 명령 처리 중에 실행됩니다. 가볍게 유지하십시오.
+Hooks 는 명령 처리 중에 실행됩니다. 가볍게 유지하십시오:
 
 ```typescript
 // ✓ Good - async work, returns immediately
@@ -609,7 +611,7 @@ const handler: HookHandler = async (event) => {
 
 ### 오류를 우아하게 처리
 
-위험한 작업은 항상 감싸십시오.
+위험한 작업은 항상 감싸십시오:
 
 ```typescript
 const handler: HookHandler = async (event) => {
@@ -624,7 +626,7 @@ const handler: HookHandler = async (event) => {
 
 ### 이벤트를 조기에 필터링
 
-이벤트가 관련 없으면 즉시 반환하십시오.
+이벤트가 관련이 없다면 즉시 반환하십시오:
 
 ```typescript
 const handler: HookHandler = async (event) => {
@@ -639,13 +641,13 @@ const handler: HookHandler = async (event) => {
 
 ### 구체적인 이벤트 키 사용
 
-가능하면 메타데이터에 정확한 이벤트를 지정하십시오.
+가능하면 메타데이터에 정확한 이벤트를 지정하십시오:
 
 ```yaml
 metadata: { "openclaw": { "events": ["command:new"] } } # Specific
 ```
 
-다음과 같이 하는 대신:
+다음 대신:
 
 ```yaml
 metadata: { "openclaw": { "events": ["command"] } } # General - more overhead
@@ -655,7 +657,7 @@ metadata: { "openclaw": { "events": ["command"] } } # General - more overhead
 
 ### Hook 로깅 활성화
 
-게이트웨이는 시작 시 hook 로딩을 로깅합니다.
+게이트웨이는 시작 시 hook 로딩을 로깅합니다:
 
 ```
 Registered hook: session-memory -> command:new
@@ -673,7 +675,7 @@ openclaw hooks list --verbose
 
 ### 등록 확인
 
-핸들러에서 호출 시 로그를 남기십시오.
+핸들러에서 호출 시 로그를 남기십시오:
 
 ```typescript
 const handler: HookHandler = async (event) => {
@@ -684,7 +686,7 @@ const handler: HookHandler = async (event) => {
 
 ### 적합성 검증
 
-hook 이 적합하지 않은 이유를 확인하십시오.
+hook 이 적합하지 않은 이유를 확인하십시오:
 
 ```bash
 openclaw hooks info my-hook
@@ -696,7 +698,7 @@ openclaw hooks info my-hook
 
 ### Gateway 로그
 
-hook 실행을 확인하기 위해 게이트웨이 로그를 모니터링하십시오.
+hook 실행을 확인하려면 게이트웨이 로그를 모니터링하십시오:
 
 ```bash
 # macOS
@@ -708,7 +710,7 @@ tail -f ~/.openclaw/gateway.log
 
 ### Hooks 직접 테스트
 
-핸들러를 격리된 상태로 테스트하십시오.
+핸들러를 독립적으로 테스트하십시오:
 
 ```typescript
 import { test } from "vitest";
@@ -783,7 +785,7 @@ Session reset
    # Should show: HOOK.md, handler.ts
    ```
 
-2. HOOK.md 형식 검증:
+2. HOOK.md 형식 확인:
 
    ```bash
    cat ~/.openclaw/hooks/my-hook/HOOK.md
@@ -798,13 +800,13 @@ Session reset
 
 ### Hook 이 적합하지 않음
 
-요구 사항 확인:
+요구 사항을 확인하십시오:
 
 ```bash
 openclaw hooks info my-hook
 ```
 
-누락 여부 확인:
+다음 누락 여부를 확인하십시오:
 
 - 바이너리(PATH 확인)
 - 환경 변수
@@ -822,7 +824,7 @@ openclaw hooks info my-hook
 
 2. hooks 가 다시 로드되도록 게이트웨이 프로세스를 재시작하십시오.
 
-3. 오류가 있는지 게이트웨이 로그 확인:
+3. 오류가 있는지 게이트웨이 로그를 확인하십시오:
 
    ```bash
    ./scripts/clawlog.sh | grep hook
@@ -830,7 +832,7 @@ openclaw hooks info my-hook
 
 ### 핸들러 오류
 
-TypeScript/임포트 오류 확인:
+TypeScript / import 오류를 확인하십시오:
 
 ```bash
 # Test import directly
@@ -897,7 +899,7 @@ node -e "import('./path/to/handler.ts').then(console.log)"
    }
    ```
 
-4. 검증 후 게이트웨이 프로세스 재시작:
+4. 확인 후 게이트웨이 프로세스 재시작:
 
    ```bash
    openclaw hooks list

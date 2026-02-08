@@ -1,58 +1,58 @@
 ---
-summary: "Trang thai ho tro Matrix, kha nang va cau hinh"
+summary: "Trạng thái hỗ trợ Matrix, khả năng và cấu hình"
 read_when:
-  - Lam viec voi cac tinh nang kenh Matrix
+  - Làm việc với các tính năng kênh Matrix
 title: "Matrix"
 x-i18n:
   source_path: channels/matrix.md
-  source_hash: 923ff717cf14d01c
+  source_hash: 199b954b901cbb17
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:33Z
+  generated_at: 2026-02-08T09:38:19Z
 ---
 
 # Matrix (plugin)
 
-Matrix la mot giao thuc nhan tin mo, phan tan. OpenClaw ket noi nhu mot **nguoi dung** Matrix
-tren bat ky homeserver nao, vi vay ban can mot tai khoan Matrix cho bot. Sau khi dang nhap,
-ban co the nhan tin truc tiep (DM) cho bot hoac moi bot vao cac phong (Matrix “groups”).
-Beeper cung la mot lua chon client hop le, nhung yeu cau bat E2EE.
+Matrix là một giao thức nhắn tin mở, phi tập trung. OpenClaw kết nối như một **người dùng** Matrix
+trên bất kỳ homeserver nào, vì vậy bạn cần một tài khoản Matrix cho bot. Sau khi đăng nhập,
+bạn có thể nhắn tin trực tiếp (DM) cho bot hoặc mời bot vào các phòng (Matrix “groups”).
+Beeper cũng là một lựa chọn client hợp lệ, nhưng yêu cầu phải bật E2EE.
 
-Trang thai: ho tro thong qua plugin (@vector-im/matrix-bot-sdk). Tin nhan truc tiep, phong, threads, media, reactions,
-polls (gui + poll-start duoi dang van ban), location va E2EE (co ho tro crypto).
+Trạng thái: được hỗ trợ qua plugin (@vector-im/matrix-bot-sdk). Hỗ trợ tin nhắn trực tiếp, phòng, luồng,
+media, phản ứng, thăm dò (gửi + poll-start dưới dạng văn bản), vị trí và E2EE (có hỗ trợ crypto).
 
-## Plugin bat buoc
+## Yêu cầu plugin
 
-Matrix duoc phan phoi duoi dang plugin va khong di kem voi cai dat loi.
+Matrix được phát hành dưới dạng plugin và không được gộp sẵn trong bản cài đặt lõi.
 
-Cai dat qua CLI (npm registry):
+Cài đặt qua CLI (npm registry):
 
 ```bash
 openclaw plugins install @openclaw/matrix
 ```
 
-Local checkout (khi chay tu repo git):
+Cài đặt từ bản checkout cục bộ (khi chạy từ repo git):
 
 ```bash
 openclaw plugins install ./extensions/matrix
 ```
 
-Neu ban chon Matrix trong qua trinh configure/onboarding va phat hien git checkout,
-OpenClaw se tu dong de xuat duong dan cai dat local.
+Nếu bạn chọn Matrix trong quá trình configure/onboarding và phát hiện bản checkout git,
+OpenClaw sẽ tự động đề xuất đường dẫn cài đặt cục bộ.
 
-Chi tiet: [Plugins](/plugin)
+Chi tiết: [Plugins](/tools/plugin)
 
-## Thiet lap
+## Thiết lập
 
-1. Cai dat plugin Matrix:
-   - Tu npm: `openclaw plugins install @openclaw/matrix`
-   - Tu local checkout: `openclaw plugins install ./extensions/matrix`
-2. Tao tai khoan Matrix tren mot homeserver:
-   - Xem cac lua chon hosting tai [https://matrix.org/ecosystem/hosting/](https://matrix.org/ecosystem/hosting/)
-   - Hoac tu host.
-3. Lay access token cho tai khoan bot:
-   - Su dung Matrix login API voi `curl` tai homeserver cua ban:
+1. Cài đặt plugin Matrix:
+   - Từ npm: `openclaw plugins install @openclaw/matrix`
+   - Từ bản checkout cục bộ: `openclaw plugins install ./extensions/matrix`
+2. Tạo một tài khoản Matrix trên homeserver:
+   - Xem các tùy chọn lưu trữ tại [https://matrix.org/ecosystem/hosting/](https://matrix.org/ecosystem/hosting/)
+   - Hoặc tự host.
+3. Lấy access token cho tài khoản bot:
+   - Dùng Matrix login API với `curl` tại homeserver của bạn:
 
    ```bash
    curl --request POST \
@@ -68,23 +68,23 @@ Chi tiet: [Plugins](/plugin)
    }'
    ```
 
-   - Thay `matrix.example.org` bang URL homeserver cua ban.
-   - Hoac dat `channels.matrix.userId` + `channels.matrix.password`: OpenClaw goi cung endpoint
-     dang nhap, luu access token vao `~/.openclaw/credentials/matrix/credentials.json`,
-     va tai su dung no o lan khoi dong sau.
+   - Thay `matrix.example.org` bằng URL homeserver của bạn.
+   - Hoặc đặt `channels.matrix.userId` + `channels.matrix.password`: OpenClaw gọi cùng endpoint đăng nhập,
+     lưu access token vào `~/.openclaw/credentials/matrix/credentials.json`,
+     và tái sử dụng ở lần khởi động tiếp theo.
 
-4. Cau hinh thong tin xac thuc:
-   - Env: `MATRIX_HOMESERVER`, `MATRIX_ACCESS_TOKEN` (hoac `MATRIX_USER_ID` + `MATRIX_PASSWORD`)
-   - Hoac config: `channels.matrix.*`
-   - Neu ca hai deu duoc dat, config se duoc uu tien.
-   - Khi co access token: user ID duoc lay tu dong thong qua `/whoami`.
-   - Khi dat, `channels.matrix.userId` nen la Matrix ID day du (vi du: `@bot:example.org`).
-5. Khoi dong lai Gateway (hoac hoan tat onboarding).
-6. Bat dau DM voi bot hoac moi bot vao phong tu bat ky Matrix client nao
-   (Element, Beeper, v.v.; xem https://matrix.org/ecosystem/clients/). Beeper yeu cau E2EE,
-   vi vay hay dat `channels.matrix.encryption: true` va xac minh thiet bi.
+4. Cấu hình thông tin xác thực:
+   - Env: `MATRIX_HOMESERVER`, `MATRIX_ACCESS_TOKEN` (hoặc `MATRIX_USER_ID` + `MATRIX_PASSWORD`)
+   - Hoặc config: `channels.matrix.*`
+   - Nếu cả hai cùng được đặt, config có ưu tiên cao hơn.
+   - Khi dùng access token: user ID được lấy tự động qua `/whoami`.
+   - Khi đặt, `channels.matrix.userId` phải là Matrix ID đầy đủ (ví dụ: `@bot:example.org`).
+5. Khởi động lại gateway (hoặc hoàn tất onboarding).
+6. Bắt đầu DM với bot hoặc mời bot vào một phòng từ bất kỳ Matrix client nào
+   (Element, Beeper, v.v.; xem [https://matrix.org/ecosystem/clients/](https://matrix.org/ecosystem/clients/)). Beeper yêu cầu E2EE,
+   vì vậy hãy đặt `channels.matrix.encryption: true` và xác minh thiết bị.
 
-Cau hinh toi thieu (access token, user ID tu dong lay):
+Cấu hình tối thiểu (access token, user ID tự động lấy):
 
 ```json5
 {
@@ -99,7 +99,7 @@ Cau hinh toi thieu (access token, user ID tu dong lay):
 }
 ```
 
-Cau hinh E2EE (bat ma hoa dau-cuoi):
+Cấu hình E2EE (bật mã hóa đầu-cuối):
 
 ```json5
 {
@@ -115,52 +115,52 @@ Cau hinh E2EE (bat ma hoa dau-cuoi):
 }
 ```
 
-## Ma hoa (E2EE)
+## Mã hóa (E2EE)
 
-Ma hoa dau-cuoi duoc **ho tro** thong qua Rust crypto SDK.
+Mã hóa đầu-cuối **được hỗ trợ** thông qua Rust crypto SDK.
 
-Bat bang `channels.matrix.encryption: true`:
+Bật bằng `channels.matrix.encryption: true`:
 
-- Neu module crypto tai duoc, cac phong ma hoa se tu dong duoc giai ma.
-- Media gui di se duoc ma hoa khi gui toi cac phong ma hoa.
-- O lan ket noi dau tien, OpenClaw yeu cau xac minh thiet bi tu cac phien khac cua ban.
-- Xac minh thiet bi trong mot Matrix client khac (Element, v.v.) de bat chia se khoa.
-- Neu module crypto khong the tai, E2EE se bi tat va cac phong ma hoa se khong duoc giai ma;
-  OpenClaw se ghi canh bao.
-- Neu ban gap loi thieu module crypto (vi du, `@matrix-org/matrix-sdk-crypto-nodejs-*`),
-  hay cho phep build scripts cho `@matrix-org/matrix-sdk-crypto-nodejs` va chay
-  `pnpm rebuild @matrix-org/matrix-sdk-crypto-nodejs` hoac tai binary bang
+- Nếu mô-đun crypto tải thành công, các phòng được mã hóa sẽ tự động được giải mã.
+- Media gửi đi sẽ được mã hóa khi gửi tới các phòng được mã hóa.
+- Ở lần kết nối đầu tiên, OpenClaw yêu cầu xác minh thiết bị từ các phiên khác của bạn.
+- Xác minh thiết bị trong một Matrix client khác (Element, v.v.) để bật chia sẻ khóa.
+- Nếu mô-đun crypto không thể tải, E2EE sẽ bị tắt và các phòng được mã hóa sẽ không được giải mã;
+  OpenClaw ghi log cảnh báo.
+- Nếu bạn thấy lỗi thiếu mô-đun crypto (ví dụ, `@matrix-org/matrix-sdk-crypto-nodejs-*`),
+  hãy cho phép build scripts cho `@matrix-org/matrix-sdk-crypto-nodejs` và chạy
+  `pnpm rebuild @matrix-org/matrix-sdk-crypto-nodejs` hoặc tải binary bằng
   `node node_modules/@matrix-org/matrix-sdk-crypto-nodejs/download-lib.js`.
 
-Trang thai crypto duoc luu theo tung tai khoan + access token trong
+Trạng thái crypto được lưu theo từng tài khoản + access token tại
 `~/.openclaw/matrix/accounts/<account>/<homeserver>__<user>/<token-hash>/crypto/`
-(co so du lieu SQLite). Trang thai dong bo (sync) nam canh no trong `bot-storage.json`.
-Neu access token (thiet bi) thay doi, mot store moi se duoc tao va bot can
-duoc xac minh lai cho cac phong ma hoa.
+(cơ sở dữ liệu SQLite). Trạng thái đồng bộ nằm cạnh đó tại `bot-storage.json`.
+Nếu access token (thiết bị) thay đổi, một kho lưu mới sẽ được tạo và bot phải được
+xác minh lại cho các phòng được mã hóa.
 
-**Xac minh thiet bi:**
-Khi E2EE duoc bat, bot se yeu cau xac minh tu cac phien khac cua ban khi khoi dong.
-Mo Element (hoac client khac) va chap thuan yeu cau xac minh de thiet lap tin cay.
-Sau khi xac minh, bot co the giai ma tin nhan trong cac phong ma hoa.
+**Xác minh thiết bị:**
+Khi bật E2EE, bot sẽ yêu cầu xác minh từ các phiên khác của bạn khi khởi động.
+Mở Element (hoặc client khác) và chấp thuận yêu cầu xác minh để thiết lập độ tin cậy.
+Sau khi xác minh, bot có thể giải mã tin nhắn trong các phòng được mã hóa.
 
-## Mo hinh dinh tuyen
+## Mô hình định tuyến
 
-- Phan hoi luon duoc gui lai ve Matrix.
-- DMs chia se phien chinh cua tac tu; phong anh xa toi cac phien nhom.
+- Phản hồi luôn quay lại Matrix.
+- DM dùng chung phiên chính của tác tử; phòng ánh xạ thành các phiên nhóm.
 
-## Kiem soat truy cap (DMs)
+## Kiểm soát truy cập (DM)
 
-- Mac dinh: `channels.matrix.dm.policy = "pairing"`. Nguoi gui chua biet se nhan ma ghep cap.
-- Phe duyet qua:
+- Mặc định: `channels.matrix.dm.policy = "pairing"`. Người gửi không xác định sẽ nhận mã ghép cặp.
+- Phê duyệt qua:
   - `openclaw pairing list matrix`
   - `openclaw pairing approve matrix <CODE>`
-- DMs cong khai: `channels.matrix.dm.policy="open"` cong voi `channels.matrix.dm.allowFrom=["*"]`.
-- `channels.matrix.dm.allowFrom` chap nhan Matrix user ID day du (vi du: `@user:server`). Trinh huong dan se giai ten hien thi thanh user ID khi tim kiem thu muc tim thay mot ket qua khop chinh xac duy nhat.
+- DM công khai: `channels.matrix.dm.policy="open"` cùng với `channels.matrix.dm.allowFrom=["*"]`.
+- `channels.matrix.dm.allowFrom` chấp nhận Matrix user ID đầy đủ (ví dụ: `@user:server`). Trình hướng dẫn sẽ phân giải tên hiển thị sang user ID khi tìm kiếm thư mục cho ra một kết quả khớp chính xác duy nhất.
 
-## Phong (groups)
+## Phòng (nhóm)
 
-- Mac dinh: `channels.matrix.groupPolicy = "allowlist"` (yeu cau nhac ten). Dung `channels.defaults.groupPolicy` de ghi de mac dinh khi chua dat.
-- Allowlist phong bang `channels.matrix.groups` (room ID hoac alias; ten se duoc giai thanh ID khi tim kiem thu muc tim thay mot ket qua khop chinh xac duy nhat):
+- Mặc định: `channels.matrix.groupPolicy = "allowlist"` (giới hạn theo mention). Dùng `channels.defaults.groupPolicy` để ghi đè mặc định khi chưa đặt.
+- Cho phép phòng theo danh sách cho phép bằng `channels.matrix.groups` (room ID hoặc alias; tên sẽ được phân giải sang ID khi tìm kiếm thư mục cho ra một kết quả khớp chính xác duy nhất):
 
 ```json5
 {
@@ -177,64 +177,90 @@ Sau khi xac minh, bot co the giai ma tin nhan trong cac phong ma hoa.
 }
 ```
 
-- `requireMention: false` bat tu dong tra loi trong phong do.
-- `groups."*"` co the dat mac dinh cho viec yeu cau nhac ten tren nhieu phong.
-- `groupAllowFrom` han che nhung nguoi gui co the kich hoat bot trong phong (Matrix user ID day du).
-- Allowlist `users` theo tung phong co the tiep tuc han che nguoi gui trong mot phong cu the (su dung Matrix user ID day du).
-- Trinh huong dan cau hinh se hoi ve allowlist phong (room ID, alias, hoac ten) va chi giai ten khi khop chinh xac va duy nhat.
-- Khi khoi dong, OpenClaw giai ten phong/nguoi dung trong allowlist thanh ID va ghi log anh xa; cac muc khong giai duoc se bi bo qua khi doi chieu allowlist.
-- Loi moi se tu dong duoc tham gia theo mac dinh; dieu khien bang `channels.matrix.autoJoin` va `channels.matrix.autoJoinAllowlist`.
-- De cho phep **khong co phong nao**, dat `channels.matrix.groupPolicy: "disabled"` (hoac giu allowlist rong).
-- Khoa cu: `channels.matrix.rooms` (cung cau truc voi `groups`).
+- `requireMention: false` bật tự động trả lời trong phòng đó.
+- `groups."*"` có thể đặt mặc định cho việc giới hạn theo mention trên các phòng.
+- `groupAllowFrom` hạn chế người gửi nào có thể kích hoạt bot trong phòng (Matrix user ID đầy đủ).
+- Danh sách cho phép theo từng phòng `users` có thể hạn chế thêm người gửi trong một phòng cụ thể (dùng Matrix user ID đầy đủ).
+- Trình cấu hình sẽ hỏi danh sách phòng cho phép (room ID, alias hoặc tên) và chỉ phân giải tên khi có khớp chính xác, duy nhất.
+- Khi khởi động, OpenClaw phân giải tên phòng/người dùng trong danh sách cho phép sang ID và ghi log ánh xạ; các mục không phân giải được sẽ bị bỏ qua khi so khớp danh sách cho phép.
+- Lời mời sẽ tự động tham gia theo mặc định; điều khiển bằng `channels.matrix.autoJoin` và `channels.matrix.autoJoinAllowlist`.
+- Để **không cho phép phòng nào**, đặt `channels.matrix.groupPolicy: "disabled"` (hoặc giữ danh sách cho phép trống).
+- Khóa cũ: `channels.matrix.rooms` (cùng cấu trúc với `groups`).
 
-## Threads
+## Luồng
 
-- Ho tro tra loi theo thread.
-- `channels.matrix.threadReplies` dieu khien viec phan hoi co o lai trong thread hay khong:
-  - `off`, `inbound` (mac dinh), `always`
-- `channels.matrix.replyToMode` dieu khien metadata reply-to khi khong tra loi trong thread:
-  - `off` (mac dinh), `first`, `all`
+- Hỗ trợ trả lời theo luồng.
+- `channels.matrix.threadReplies` điều khiển việc phản hồi có ở trong luồng hay không:
+  - `off`, `inbound` (mặc định), `always`
+- `channels.matrix.replyToMode` điều khiển metadata trả lời khi không trả lời trong luồng:
+  - `off` (mặc định), `first`, `all`
 
-## Kha nang
+## Khả năng
 
-| Tinh nang          | Trang thai                                                                                    |
-| ------------------ | --------------------------------------------------------------------------------------------- |
-| Tin nhan truc tiep | ✅ Ho tro                                                                                     |
-| Phong              | ✅ Ho tro                                                                                     |
-| Threads            | ✅ Ho tro                                                                                     |
-| Media              | ✅ Ho tro                                                                                     |
-| E2EE               | ✅ Ho tro (can module crypto)                                                                 |
-| Reactions          | ✅ Ho tro (gui/doc qua tools)                                                                 |
-| Polls              | ✅ Ho tro gui; poll bat dau tu ben ngoai duoc chuyen thanh van ban (bo qua phan hoi/ket thuc) |
-| Location           | ✅ Ho tro (geo URI; bo qua do cao)                                                            |
-| Lenh native        | ✅ Ho tro                                                                                     |
+| Tính năng          | Trạng thái                                                                               |
+| ------------------ | ---------------------------------------------------------------------------------------- |
+| Tin nhắn trực tiếp | ✅ Hỗ trợ                                                                                |
+| Phòng              | ✅ Hỗ trợ                                                                                |
+| Luồng              | ✅ Hỗ trợ                                                                                |
+| Media              | ✅ Hỗ trợ                                                                                |
+| E2EE               | ✅ Hỗ trợ (cần mô-đun crypto)                                                            |
+| Phản ứng           | ✅ Hỗ trợ (gửi/đọc qua công cụ)                                                          |
+| Thăm dò            | ✅ Hỗ trợ gửi; poll bắt đầu gửi vào được chuyển thành văn bản (bỏ qua phản hồi/kết thúc) |
+| Vị trí             | ✅ Hỗ trợ (URI địa lý; bỏ qua độ cao)                                                    |
+| Lệnh gốc           | ✅ Hỗ trợ                                                                                |
 
-## Tham chieu cau hinh (Matrix)
+## Xử lý sự cố
 
-Cau hinh day du: [Configuration](/gateway/configuration)
+Hãy chạy thang kiểm tra này trước:
 
-Tuy chon provider:
+```bash
+openclaw status
+openclaw gateway status
+openclaw logs --follow
+openclaw doctor
+openclaw channels status --probe
+```
 
-- `channels.matrix.enabled`: bat/tat khoi dong kenh.
+Sau đó, nếu cần, xác nhận trạng thái ghép cặp DM:
+
+```bash
+openclaw pairing list matrix
+```
+
+Các lỗi thường gặp:
+
+- Đã đăng nhập nhưng tin nhắn phòng bị bỏ qua: phòng bị chặn bởi `groupPolicy` hoặc danh sách cho phép phòng.
+- DM bị bỏ qua: người gửi đang chờ phê duyệt khi `channels.matrix.dm.policy="pairing"`.
+- Phòng mã hóa thất bại: thiếu hỗ trợ crypto hoặc cấu hình mã hóa không khớp.
+
+Luồng phân tích sự cố: [/channels/troubleshooting](/channels/troubleshooting).
+
+## Tham chiếu cấu hình (Matrix)
+
+Cấu hình đầy đủ: [Cấu hình](/gateway/configuration)
+
+Tùy chọn nhà cung cấp:
+
+- `channels.matrix.enabled`: bật/tắt khởi động kênh.
 - `channels.matrix.homeserver`: URL homeserver.
-- `channels.matrix.userId`: Matrix user ID (tuy chon khi co access token).
+- `channels.matrix.userId`: Matrix user ID (tùy chọn khi có access token).
 - `channels.matrix.accessToken`: access token.
-- `channels.matrix.password`: mat khau de dang nhap (token duoc luu).
-- `channels.matrix.deviceName`: ten hien thi cua thiet bi.
-- `channels.matrix.encryption`: bat E2EE (mac dinh: false).
-- `channels.matrix.initialSyncLimit`: gioi han dong bo ban dau.
-- `channels.matrix.threadReplies`: `off | inbound | always` (mac dinh: inbound).
-- `channels.matrix.textChunkLimit`: kich thuoc chunk van ban gui ra (ky tu).
-- `channels.matrix.chunkMode`: `length` (mac dinh) hoac `newline` de tach theo dong trong (ranh gioi doan van) truoc khi chia theo do dai.
-- `channels.matrix.dm.policy`: `pairing | allowlist | open | disabled` (mac dinh: pairing).
-- `channels.matrix.dm.allowFrom`: DM allowlist (Matrix user ID day du). `open` yeu cau `"*"`. Trinh huong dan se giai ten thanh ID khi co the.
-- `channels.matrix.groupPolicy`: `allowlist | open | disabled` (mac dinh: allowlist).
-- `channels.matrix.groupAllowFrom`: danh sach nguoi gui duoc phep cho tin nhan nhom (Matrix user ID day du).
-- `channels.matrix.allowlistOnly`: ap dung bat buoc quy tac allowlist cho DMs + phong.
-- `channels.matrix.groups`: allowlist nhom + ban do cau hinh theo phong.
-- `channels.matrix.rooms`: allowlist/cau hinh nhom kieu cu.
-- `channels.matrix.replyToMode`: che do reply-to cho threads/tags.
-- `channels.matrix.mediaMaxMb`: gioi han media vao/ra (MB).
-- `channels.matrix.autoJoin`: xu ly loi moi (`always | allowlist | off`, mac dinh: always).
-- `channels.matrix.autoJoinAllowlist`: room ID/alias duoc phep de auto-join.
-- `channels.matrix.actions`: gating tool theo hanh dong (reactions/messages/pins/memberInfo/channelInfo).
+- `channels.matrix.password`: mật khẩu đăng nhập (token được lưu).
+- `channels.matrix.deviceName`: tên hiển thị của thiết bị.
+- `channels.matrix.encryption`: bật E2EE (mặc định: false).
+- `channels.matrix.initialSyncLimit`: giới hạn đồng bộ ban đầu.
+- `channels.matrix.threadReplies`: `off | inbound | always` (mặc định: inbound).
+- `channels.matrix.textChunkLimit`: kích thước chia đoạn văn bản gửi đi (ký tự).
+- `channels.matrix.chunkMode`: `length` (mặc định) hoặc `newline` để chia theo dòng trống (ranh giới đoạn) trước khi chia theo độ dài.
+- `channels.matrix.dm.policy`: `pairing | allowlist | open | disabled` (mặc định: ghép cặp).
+- `channels.matrix.dm.allowFrom`: danh sách cho phép DM (Matrix user ID đầy đủ). `open` yêu cầu `"*"`. Trình hướng dẫn sẽ phân giải tên sang ID khi có thể.
+- `channels.matrix.groupPolicy`: `allowlist | open | disabled` (mặc định: allowlist).
+- `channels.matrix.groupAllowFrom`: người gửi được cho phép cho tin nhắn nhóm (Matrix user ID đầy đủ).
+- `channels.matrix.allowlistOnly`: ép buộc quy tắc allowlist cho DM + phòng.
+- `channels.matrix.groups`: allowlist nhóm + bản đồ cấu hình theo phòng.
+- `channels.matrix.rooms`: allowlist/cấu hình nhóm kiểu cũ.
+- `channels.matrix.replyToMode`: chế độ reply-to cho luồng/thẻ.
+- `channels.matrix.mediaMaxMb`: giới hạn media vào/ra (MB).
+- `channels.matrix.autoJoin`: xử lý lời mời (`always | allowlist | off`, mặc định: luôn).
+- `channels.matrix.autoJoinAllowlist`: room ID/alias được phép để tự động tham gia.
+- `channels.matrix.actions`: kiểm soát công cụ theo từng hành động (reactions/messages/pins/memberInfo/channelInfo).

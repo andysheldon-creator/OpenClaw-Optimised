@@ -1,8 +1,8 @@
 ---
-summary: "Referencia de CLI para `openclaw approvals` (aprovações de exec para hosts de gateway ou de node)"
+summary: "Referência da CLI para `openclaw approvals` (aprovações de execução para hosts do gateway ou de nó)"
 read_when:
-  - Voce quer editar aprovações de exec pela CLI
-  - Voce precisa gerenciar allowlists em hosts de gateway ou de node
+  - Você quer editar aprovações de execução pela CLI
+  - Você precisa gerenciar listas de permissões em hosts do gateway ou de nó
 title: "aprovações"
 x-i18n:
   source_path: cli/approvals.md
@@ -10,18 +10,18 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:29Z
+  generated_at: 2026-02-08T09:30:07Z
 ---
 
 # `openclaw approvals`
 
-Gerencie aprovações de exec para o **host local**, **host de gateway** ou um **host de node**.
-Por padrao, os comandos miram o arquivo de aprovações local em disco. Use `--gateway` para mirar o gateway ou `--node` para mirar um node especifico.
+Gerencie aprovações de execução para o **host local**, **host do gateway** ou um **host de nó**.
+Por padrão, os comandos direcionam o arquivo de aprovações local no disco. Use `--gateway` para direcionar o gateway ou `--node` para direcionar um nó específico.
 
 Relacionado:
 
-- Aprovações de exec: [Exec approvals](/tools/exec-approvals)
-- Nodes: [Nodes](/nodes)
+- Aprovações de execução: [Exec approvals](/tools/exec-approvals)
+- Nós: [Nodes](/nodes)
 
 ## Comandos comuns
 
@@ -39,7 +39,7 @@ openclaw approvals set --node <id|name|ip> --file ./exec-approvals.json
 openclaw approvals set --gateway --file ./exec-approvals.json
 ```
 
-## Ajudantes de allowlist
+## Auxiliares de lista de permissões
 
 ```bash
 openclaw approvals allowlist add "~/Projects/**/bin/rg"
@@ -52,6 +52,6 @@ openclaw approvals allowlist remove "~/Projects/**/bin/rg"
 ## Notas
 
 - `--node` usa o mesmo resolvedor que `openclaw nodes` (id, nome, ip ou prefixo de id).
-- `--agent` tem como padrao `"*"`, que se aplica a todos os agentes.
-- O host de node deve anunciar `system.execApprovals.get/set` (aplicativo macOS ou host de node headless).
-- Os arquivos de aprovações sao armazenados por host em `~/.openclaw/exec-approvals.json`.
+- `--agent` tem como padrão `"*"`, que se aplica a todos os agentes.
+- O host de nó deve anunciar `system.execApprovals.get/set` (aplicativo macOS ou host de nó headless).
+- Os arquivos de aprovações são armazenados por host em `~/.openclaw/exec-approvals.json`.

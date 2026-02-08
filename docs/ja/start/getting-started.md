@@ -1,27 +1,27 @@
 ---
-summary: "OpenClaw をインストールし、数分で最初のチャットを実行します。"
+summary: "数分で OpenClaw をインストールし、最初のチャットを実行できます。"
 read_when:
   - ゼロからの初回セットアップ
-  - 動作するチャットまでの最短ルートが必要な場合
+  - 動作するチャットへの最短ルートを求めている場合
 title: "はじめに"
 x-i18n:
   source_path: start/getting-started.md
-  source_hash: 27aeeb3d18c49538
+  source_hash: 6eeb4d38a70f2ad9
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:34:56Z
+  generated_at: 2026-02-08T09:23:11Z
 ---
 
 # はじめに
 
-目標：最小限のセットアップで、ゼロから最初に動作するチャットまで到達します。
+目的: 最小限のセットアップで、ゼロから最初の動作するチャットまで進むことです。
 
 <Info>
-最速のチャット：Control UI を開きます（チャンネルのセットアップは不要）。`openclaw dashboard` を実行して
-ブラウザーでチャットするか、`http://127.0.0.1:18789/` を
-<Tooltip headline="Gateway host" tip="OpenClaw の Gateway（ゲートウェイ）サービスが稼働しているマシン。">gateway host</Tooltip> で開きます。
-ドキュメント：[Dashboard](/web/dashboard) と [Control UI](/web/control-ui)。
+最速でチャットする方法: Control UI を開きます（チャンネル設定は不要）。`openclaw dashboard` を実行して
+ブラウザーでチャットするか、<Tooltip headline="Gateway host" tip="The machine running the OpenClaw gateway service.">ゲートウェイ ホスト</Tooltip> 上で
+`http://127.0.0.1:18789/` を開いてください。
+ドキュメント: [Dashboard](/web/dashboard) および [Control UI](/web/control-ui)。
 </Info>
 
 ## 前提条件
@@ -42,7 +42,7 @@ x-i18n:
         curl -fsSL https://openclaw.ai/install.sh | bash
         ```
       </Tab>
-      <Tab title="Windows（PowerShell）">
+      <Tab title="Windows (PowerShell)">
         ```powershell
         iwr -useb https://openclaw.ai/install.ps1 | iex
         ```
@@ -50,21 +50,21 @@ x-i18n:
     </Tabs>
 
     <Note>
-    その他のインストール方法と要件：[Install](/install)。
+    その他のインストール方法と要件: [Install](/install)。
     </Note>
 
   </Step>
-  <Step title="オンボーディングウィザードを実行">
+  <Step title="オンボーディング ウィザードを実行">
     ```bash
     openclaw onboard --install-daemon
     ```
 
-    ウィザードは、認証、Gateway（ゲートウェイ）の設定、任意のチャンネルを構成します。
+    ウィザードは、認証、ゲートウェイ設定、および任意のチャンネルを設定します。
     詳細は [Onboarding Wizard](/start/wizard) を参照してください。
 
   </Step>
-  <Step title="Gateway（ゲートウェイ）を確認">
-    サービスをインストールした場合、すでに起動しているはずです：
+  <Step title="Gateway を確認">
+    サービスをインストールしている場合、すでに実行中のはずです。
 
     ```bash
     openclaw gateway status
@@ -79,14 +79,14 @@ x-i18n:
 </Steps>
 
 <Check>
-Control UI が読み込まれれば、Gateway（ゲートウェイ）は使用可能です。
+Control UI が読み込まれれば、Gateway は使用可能な状態です。
 </Check>
 
-## 任意の確認と追加項目
+## 任意の確認事項と追加機能
 
 <AccordionGroup>
-  <Accordion title="Gateway（ゲートウェイ）をフォアグラウンドで実行">
-    クイックテストやトラブルシューティングに有用です。
+  <Accordion title="Gateway をフォアグラウンドで実行">
+    簡単なテストやトラブルシューティングに便利です。
 
     ```bash
     openclaw gateway --port 18789
@@ -94,7 +94,7 @@ Control UI が読み込まれれば、Gateway（ゲートウェイ）は使用�
 
   </Accordion>
   <Accordion title="テストメッセージを送信">
-    構成済みのチャンネルが必要です。
+    設定済みのチャンネルが必要です。
 
     ```bash
     openclaw message send --target +15555550123 --message "Hello from OpenClaw"
@@ -103,10 +103,10 @@ Control UI が読み込まれれば、Gateway（ゲートウェイ）は使用�
   </Accordion>
 </AccordionGroup>
 
-## さらに深く
+## さらに詳しく
 
 <Columns>
-  <Card title="オンボーディングウィザード（詳細）" href="/start/wizard">
+  <Card title="オンボーディング ウィザード（詳細）" href="/start/wizard">
     CLI ウィザードの完全なリファレンスと高度なオプション。
   </Card>
   <Card title="macOS アプリのオンボーディング" href="/start/onboarding">
@@ -116,12 +116,12 @@ Control UI が読み込まれれば、Gateway（ゲートウェイ）は使用�
 
 ## 得られるもの
 
-- 稼働中の Gateway（ゲートウェイ）
-- 構成済みの認証
+- 実行中の Gateway
+- 設定済みの認証
 - Control UI へのアクセス、または接続されたチャンネル
 
 ## 次のステップ
 
-- ダイレクトメッセージの安全性と承認：[Pairing](/start/pairing)
-- さらにチャンネルを接続：[Channels](/channels)
-- 高度なワークフローとソースからのセットアップ：[Setup](/start/setup)
+- DM の安全性と承認: [Pairing](/channels/pairing)
+- さらにチャンネルを接続: [Channels](/channels)
+- 高度なワークフローおよびソースからの実行: [Setup](/start/setup)

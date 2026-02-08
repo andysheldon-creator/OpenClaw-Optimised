@@ -1,23 +1,24 @@
 ---
-summary: "ワークフロー向けの JSON 専用 LLM タスク（オプションのプラグインツール）"
+summary: "ワークフロー向けの JSON のみの LLM タスク（オプションのプラグインツール）"
 read_when:
-  - ワークフロー内に JSON 専用の LLM ステップが必要な場合
+  - ワークフロー内に JSON のみの LLM ステップが必要な場合
   - 自動化のためにスキーマ検証された LLM 出力が必要な場合
 title: "LLM タスク"
 x-i18n:
   source_path: tools/llm-task.md
   source_hash: b7aa78f179cb0f63
   provider: openai
-  model: gpt-5.2-pro
+  model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-06T05:11:46Z
+  generated_at: 2026-02-08T09:23:25Z
 ---
 
 # LLM タスク
 
-`llm-task` は、JSON 専用の LLM タスクを実行して構造化出力を返す（必要に応じて JSON Schema に対して検証する）**オプションのプラグインツール**です。
+`llm-task` は、JSON のみの LLM タスクを実行し、
+構造化された出力（オプションで JSON Schema による検証）を返す **オプションのプラグインツール** です。
 
-これは Lobster のようなワークフローエンジンに最適です。各ワークフローごとにカスタムの OpenClaw コードを書かなくても、単一の LLM ステップを追加できます。
+Lobster のようなワークフローエンジンに最適で、各ワークフローごとにカスタムの OpenClaw コードを書かずに、単一の LLM ステップを追加できます。
 
 ## プラグインを有効化する
 
@@ -70,9 +71,9 @@ x-i18n:
 }
 ```
 
-`allowedModels` は `provider/model` 文字列の許可リストです。設定されている場合、リスト外のリクエストは拒否されます。
+`allowedModels` は、`provider/model` 文字列の許可リストです。設定されている場合、リスト外のリクエストは拒否されます。
 
-## ツールパラメータ
+## ツールのパラメータ
 
 - `prompt`（string、必須）
 - `input`（any、任意）
@@ -86,9 +87,9 @@ x-i18n:
 
 ## 出力
 
-解析済みの JSON を含む `details.json` を返します（提供された場合は `schema` に対して検証します）。
+解析された JSON を含む `details.json` を返します（指定されている場合は `schema` に対して検証されます）。
 
-## 例: Lobster ワークフローステップ
+## 例：Lobster のワークフローステップ
 
 ```lobster
 openclaw.invoke --tool llm-task --action json --args-json '{
@@ -111,7 +112,7 @@ openclaw.invoke --tool llm-task --action json --args-json '{
 
 ## 安全性に関する注意
 
-- このツールは **JSON 専用**であり、モデルに JSON のみ（コードフェンスなし、コメントなし）を出力するよう指示します。
+- 本ツールは **JSON のみ** であり、モデルに対して JSON のみを出力するよう指示します（コードフェンスや解説は出力しません）。
 - この実行では、モデルに対してツールは公開されません。
-- `schema` で検証しない限り、出力は信頼できないものとして扱ってください。
-- 影響を伴うステップ（送信、投稿、実行）の前に承認を挟んでください。
+- `schema` による検証を行わない限り、出力は信頼できないものとして扱ってください。
+- 副作用のあるステップ（送信、投稿、実行）の前には承認を配置してください。

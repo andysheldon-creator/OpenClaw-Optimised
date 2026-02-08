@@ -1,8 +1,8 @@
 ---
-summary: "OpenClaw で多数のモデルにアクセスするために、OpenRouter の統合 API を使用します"
+summary: "OpenClaw で多数のモデルにアクセスするために OpenRouter の統合 API を使用します"
 read_when:
-  - "多数の LLM に対して単一の API キーを使いたい場合"
-  - "OpenClaw で OpenRouter 経由のモデルを実行したい場合"
+  - 多数の LLM に対して単一の API キーを使いたい場合
+  - OpenClaw で OpenRouter 経由のモデルを実行したい場合
 title: "OpenRouter"
 x-i18n:
   source_path: providers/openrouter.md
@@ -10,20 +10,20 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:34:37Z
+  generated_at: 2026-02-08T09:22:51Z
 ---
 
 # OpenRouter
 
-OpenRouter は、単一のエンドポイントと API キーの背後で多数のモデルにリクエストをルーティングする **統合 API** を提供します。OpenAI 互換であるため、ベース URL を切り替えることで、ほとんどの OpenAI SDK が動作します。
+OpenRouter は、単一のエンドポイントと API キーの背後で多数のモデルへリクエストをルーティングする **統合 API** を提供します。OpenAI 互換であるため、ベース URL を切り替えるだけで、ほとんどの OpenAI SDK が動作します。
 
-## CLI セットアップ
+## CLI setup
 
 ```bash
 openclaw onboard --auth-choice apiKey --token-provider openrouter --token "$OPENROUTER_API_KEY"
 ```
 
-## 設定スニペット
+## Config snippet
 
 ```json5
 {
@@ -36,8 +36,8 @@ openclaw onboard --auth-choice apiKey --token-provider openrouter --token "$OPEN
 }
 ```
 
-## 注意事項
+## Notes
 
 - モデル参照は `openrouter/<provider>/<model>` です。
-- 追加のモデル／プロバイダーのオプションについては、[/concepts/model-providers](/concepts/model-providers) を参照してください。
-- OpenRouter は内部的に、API キーを Bearer トークンとして使用します。
+- さらに多くのモデル／プロバイダーの選択肢については、[/concepts/model-providers](/concepts/model-providers) を参照してください。
+- OpenRouter は内部的に、API キーを含む Bearer トークンを使用します。

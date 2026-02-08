@@ -1,22 +1,22 @@
 ---
-summary: 「適用於常見 OpenClaw 設定的結構準確設定範例」
+summary: "符合結構描述的常見 OpenClaw 設定範例"
 read_when:
   - 學習如何設定 OpenClaw
   - 尋找設定範例
   - 第一次設定 OpenClaw
-title: 「設定範例」
+title: "設定範例"
 x-i18n:
   source_path: gateway/configuration-examples.md
   source_hash: 2c9cee53d56a4232
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:53:14Z
+  generated_at: 2026-02-08T09:27:58Z
 ---
 
 # 設定範例
 
-以下範例皆與目前的設定結構相符。如需完整參考與各欄位說明，請參閱 [Configuration](/gateway/configuration)。
+以下範例皆與目前的設定結構描述對齊。完整參考與各欄位說明，請參閱 [Configuration](/gateway/configuration)。
 
 ## 快速開始
 
@@ -29,9 +29,9 @@ x-i18n:
 }
 ```
 
-儲存至 `~/.openclaw/openclaw.json`，即可從該號碼對機器人傳送私訊。
+儲存為 `~/.openclaw/openclaw.json`，即可從該號碼私訊機器人。
 
-### 建議的新手起始設定
+### 建議入門設定
 
 ```json5
 {
@@ -53,9 +53,9 @@ x-i18n:
 }
 ```
 
-## 擴充範例（主要選項）
+## 擴展示例（主要選項）
 
-> JSON5 允許使用註解與結尾逗號；一般 JSON 也可使用。
+> JSON5 允許使用註解與尾隨逗號；一般 JSON 也可使用。
 
 ```json5
 {
@@ -455,7 +455,7 @@ x-i18n:
 
 ### 安全私訊模式（共用收件匣／多使用者私訊）
 
-如果有多個人可以對你的機器人傳送私訊（例如在 `allowFrom` 中有多筆項目、為多人核准配對，或使用 `dmPolicy: "open"`），請啟用 **安全私訊模式**，讓不同寄件者的私訊預設不會共用同一個脈絡：
+若有多位人員可以私訊你的機器人（例如 `allowFrom` 中有多筆項目、為多人核准配對，或 `dmPolicy: "open"`），請啟用 **安全私訊模式**，避免不同寄件者的私訊預設共用同一個內容脈絡：
 
 ```json5
 {
@@ -509,7 +509,7 @@ x-i18n:
 }
 ```
 
-### Anthropic 訂閱 + API 金鑰，MiniMax 備援
+### Anthropic 訂閱＋API 金鑰，MiniMax 備援
 
 ```json5
 {
@@ -548,7 +548,7 @@ x-i18n:
 }
 ```
 
-### 工作機器人（受限存取）
+### 工作用機器人（受限存取）
 
 ```json5
 {
@@ -608,6 +608,6 @@ x-i18n:
 ## 提示
 
 - 若你設定了 `dmPolicy: "open"`，對應的 `allowFrom` 清單必須包含 `"*"`。
-- 提供者 ID 各不相同（電話號碼、使用者 ID、頻道 ID）。請參考各提供者文件以確認格式。
-- 可稍後加入的選用區段：`web`、`browser`、`ui`、`discovery`、`canvasHost`、`talk`、`signal`、`imessage`。
-- 更多設定細節請參閱 [Providers](/channels/whatsapp) 與 [Troubleshooting](/gateway/troubleshooting)。
+- 提供者 ID 的格式各異（電話號碼、使用者 ID、頻道 ID）。請參閱各提供者文件以確認格式。
+- 可於之後新增的選用區段：`web`、`browser`、`ui`、`discovery`、`canvasHost`、`talk`、`signal`、`imessage`。
+- 更深入的設定說明，請參閱 [Providers](/channels/whatsapp) 與 [Troubleshooting](/gateway/troubleshooting)。

@@ -1,7 +1,7 @@
 ---
 summary: "Chạy OpenClaw Gateway trên exe.dev (VM + proxy HTTPS) để truy cập từ xa"
 read_when:
-  - Bạn muốn một máy chủ Linux luôn bật, chi phí thấp cho Gateway
+  - Bạn muốn một máy chủ Linux luôn bật với chi phí thấp cho Gateway
   - Bạn muốn truy cập Control UI từ xa mà không cần tự vận hành VPS
 title: "exe.dev"
 x-i18n:
@@ -10,40 +10,40 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:27Z
+  generated_at: 2026-02-08T09:39:17Z
 ---
 
 # exe.dev
 
 Mục tiêu: OpenClaw Gateway chạy trên một VM exe.dev, có thể truy cập từ laptop của bạn thông qua: `https://<vm-name>.exe.xyz`
 
-Trang này giả định bạn dùng image mặc định **exeuntu** của exe.dev. Nếu bạn chọn distro khác, hãy ánh xạ các gói tương ứng.
+Trang này giả định bạn dùng image mặc định **exeuntu** của exe.dev. Nếu bạn chọn bản phân phối khác, hãy ánh xạ các gói tương ứng.
 
-## Beginner quick path
+## Lối nhanh cho người mới
 
 1. [https://exe.new/openclaw](https://exe.new/openclaw)
-2. Điền auth key/token của bạn nếu được yêu cầu
-3. Nhấp vào "Agent" bên cạnh VM của bạn và chờ...
+2. Điền khóa/token xác thực của bạn khi được yêu cầu
+3. Nhấp vào "Agent" bên cạnh VM của bạn và chờ…
 4. ???
-5. Profit
+5. Có lãi
 
-## What you need
+## Những gì bạn cần
 
 - Tài khoản exe.dev
 - Quyền truy cập `ssh exe.dev` vào máy ảo [exe.dev](https://exe.dev) (tùy chọn)
 
-## Automated Install with Shelley
+## Cài đặt tự động với Shelley
 
-Shelley, agent của [exe.dev](https://exe.dev), có thể cài đặt OpenClaw ngay lập tức bằng prompt của chúng tôi.
+Shelley, tác tử của [exe.dev](https://exe.dev), có thể cài đặt OpenClaw ngay lập tức bằng prompt của chúng tôi.
 Prompt được sử dụng như sau:
 
 ```
 Set up OpenClaw (https://docs.openclaw.ai/install) on this VM. Use the non-interactive and accept-risk flags for openclaw onboarding. Add the supplied auth or token as needed. Configure nginx to forward from the default port 18789 to the root location on the default enabled site config, making sure to enable Websocket support. Pairing is done by "openclaw devices list" and "openclaw device approve <request id>". Make sure the dashboard shows that OpenClaw's health is OK. exe.dev handles forwarding from port 8000 to port 80/443 and HTTPS for us, so the final "reachable" should be <vm-name>.exe.xyz, without port specification.
 ```
 
-## Manual installation
+## Cài đặt thủ công
 
-## 1) Create the VM
+## 1) Tạo VM
 
 Từ thiết bị của bạn:
 
@@ -57,16 +57,16 @@ Sau đó kết nối:
 ssh <vm-name>.exe.xyz
 ```
 
-Mẹo: hãy giữ VM này ở trạng thái **stateful**. OpenClaw lưu trạng thái dưới `~/.openclaw/` và `~/.openclaw/workspace/`.
+Mẹo: hãy giữ VM này ở trạng thái **stateful**. OpenClaw lưu trạng thái tại `~/.openclaw/` và `~/.openclaw/workspace/`.
 
-## 2) Install prerequisites (on the VM)
+## 2) Cài đặt các yêu cầu tiên quyết (trên VM)
 
 ```bash
 sudo apt-get update
 sudo apt-get install -y git curl jq ca-certificates openssl
 ```
 
-## 3) Install OpenClaw
+## 3) Cài đặt OpenClaw
 
 Chạy script cài đặt OpenClaw:
 
@@ -74,9 +74,9 @@ Chạy script cài đặt OpenClaw:
 curl -fsSL https://openclaw.ai/install.sh | bash
 ```
 
-## 4) Setup nginx to proxy OpenClaw to port 8000
+## 4) Thiết lập nginx để proxy OpenClaw sang cổng 8000
 
-Chỉnh sửa `/etc/nginx/sites-enabled/default` với nội dung
+Chỉnh sửa `/etc/nginx/sites-enabled/default` với
 
 ```
 server {
@@ -108,20 +108,20 @@ server {
 }
 ```
 
-## 5) Access OpenClaw and grant privileges
+## 5) Truy cập OpenClaw và cấp quyền
 
-Truy cập `https://<vm-name>.exe.xyz/` (xem output của Control UI từ quá trình onboarding). Nếu nó yêu cầu xác thực, hãy dán
-token từ `gateway.auth.token` trên VM (lấy bằng `openclaw config get gateway.auth.token`, hoặc tạo mới
-bằng `openclaw doctor --generate-gateway-token`). Phê duyệt thiết bị với `openclaw devices list` và
+Truy cập `https://<vm-name>.exe.xyz/` (xem đầu ra Control UI từ quá trình onboarding). Nếu hệ thống yêu cầu xác thực, hãy dán
+token từ `gateway.auth.token` trên VM (lấy bằng `openclaw config get gateway.auth.token`, hoặc tạo mới bằng
+`openclaw doctor --generate-gateway-token`). Phê duyệt thiết bị bằng `openclaw devices list` và
 `openclaw devices approve <requestId>`. Khi không chắc chắn, hãy dùng Shelley trực tiếp từ trình duyệt của bạn!
 
-## Remote Access
+## Truy cập từ xa
 
-Truy cập từ xa được xử lý bởi hệ thống xác thực của [exe.dev](https://exe.dev). Theo
+Truy cập từ xa được xử lý thông qua xác thực của [exe.dev](https://exe.dev). Theo
 mặc định, lưu lượng HTTP từ cổng 8000 sẽ được chuyển tiếp tới `https://<vm-name>.exe.xyz`
-kèm xác thực bằng email.
+với xác thực qua email.
 
-## Updating
+## Cập nhật
 
 ```bash
 npm i -g openclaw@latest

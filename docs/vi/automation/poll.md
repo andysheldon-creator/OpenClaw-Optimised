@@ -10,7 +10,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:56Z
+  generated_at: 2026-02-08T09:37:47Z
 ---
 
 # Poll
@@ -44,7 +44,7 @@ openclaw message poll --channel msteams --target conversation:19:abc@thread.tacv
 Tùy chọn:
 
 - `--channel`: `whatsapp` (mặc định), `discord`, hoặc `msteams`
-- `--poll-multi`: cho phép chọn nhiều phương án
+- `--poll-multi`: cho phép chọn nhiều tùy chọn
 - `--poll-duration-hours`: chỉ dành cho Discord (mặc định là 24 khi bỏ qua)
 
 ## Gateway RPC
@@ -63,14 +63,14 @@ Tham số:
 
 ## Khác biệt theo kênh
 
-- WhatsApp: 2–12 phương án, `maxSelections` phải nằm trong số lượng phương án, bỏ qua `durationHours`.
-- Discord: 2–10 phương án, `durationHours` bị giới hạn trong 1–768 giờ (mặc định 24). `maxSelections > 1` bật chọn nhiều; Discord không hỗ trợ số lượng chọn bắt buộc.
+- WhatsApp: 2–12 tùy chọn, `maxSelections` phải nằm trong số lượng tùy chọn, bỏ qua `durationHours`.
+- Discord: 2–10 tùy chọn, `durationHours` bị giới hạn trong 1–768 giờ (mặc định 24). `maxSelections > 1` bật chọn nhiều; Discord không hỗ trợ số lượng chọn cố định.
 - MS Teams: Poll bằng Adaptive Card (do OpenClaw quản lý). Không có API poll gốc; `durationHours` bị bỏ qua.
 
-## Công cụ của tác tử (Message)
+## Công cụ tác tử (Message)
 
 Sử dụng công cụ `message` với hành động `poll` (`to`, `pollQuestion`, `pollOption`, tùy chọn `pollMulti`, `pollDurationHours`, `channel`).
 
-Lưu ý: Discord không có chế độ “chọn chính xác N”; `pollMulti` ánh xạ sang chọn nhiều.
-Poll trên Teams được hiển thị dưới dạng Adaptive Cards và yêu cầu gateway luôn hoạt động
+Lưu ý: Discord không có chế độ “chọn đúng N”; `pollMulti` ánh xạ sang chọn nhiều.
+Poll trên Teams được hiển thị dưới dạng Adaptive Cards và yêu cầu gateway phải luôn trực tuyến
 để ghi nhận phiếu bầu trong `~/.openclaw/msteams-polls.json`.

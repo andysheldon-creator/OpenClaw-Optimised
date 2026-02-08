@@ -9,17 +9,17 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:33Z
+  generated_at: 2026-02-08T09:35:24Z
 ---
 
 # `openclaw agents`
 
-Verwalten Sie isolierte Agenten (Arbeitsbereiche + Authentifizierung + Routing).
+Isolierte Agenten verwalten (Arbeitsbereiche + Authentifizierung + Routing).
 
 Verwandt:
 
 - Multi-Agent-Routing: [Multi-Agent Routing](/concepts/multi-agent)
-- Agenten-Arbeitsbereich: [Agent workspace](/concepts/agent-workspace)
+- Agent-Arbeitsbereich: [Agent workspace](/concepts/agent-workspace)
 
 ## Beispiele
 
@@ -33,12 +33,12 @@ openclaw agents delete work
 
 ## Identitätsdateien
 
-Jeder Agenten-Arbeitsbereich kann eine `IDENTITY.md` im Stammverzeichnis des Arbeitsbereichs enthalten:
+Jeder Agent-Arbeitsbereich kann am Wurzelverzeichnis des Arbeitsbereichs eine `IDENTITY.md` enthalten:
 
 - Beispielpfad: `~/.openclaw/workspace/IDENTITY.md`
-- `set-identity --from-identity` liest aus dem Stammverzeichnis des Arbeitsbereichs (oder einer expliziten `--identity-file`)
+- `set-identity --from-identity` liest aus dem Wurzelverzeichnis des Arbeitsbereichs (oder aus einer expliziten `--identity-file`)
 
-Avatar-Pfade werden relativ zum Stammverzeichnis des Arbeitsbereichs aufgelöst.
+Avatar-Pfade werden relativ zum Wurzelverzeichnis des Arbeitsbereichs aufgelöst.
 
 ## Identität festlegen
 
@@ -47,7 +47,7 @@ Avatar-Pfade werden relativ zum Stammverzeichnis des Arbeitsbereichs aufgelöst.
 - `name`
 - `theme`
 - `emoji`
-- `avatar` (arbeitsbereichsrelativer Pfad, http(s)-URL oder Data-URI)
+- `avatar` (arbeitsbereichsrelativer Pfad, http(s)-URL oder Daten-URI)
 
 Laden aus `IDENTITY.md`:
 
@@ -61,7 +61,7 @@ Felder explizit überschreiben:
 openclaw agents set-identity --agent main --name "OpenClaw" --emoji "🦞" --avatar avatars/openclaw.png
 ```
 
-Konfigurationsbeispiel:
+Beispielkonfiguration:
 
 ```json5
 {

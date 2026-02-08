@@ -1,7 +1,7 @@
 ---
-summary: "CLI-Referenz fuer `openclaw agent` (einen Agenten-Zug ueber das Gateway senden)"
+summary: "CLI-Referenz für `openclaw agent` (einen Agent-Zug über das Gateway senden)"
 read_when:
-  - Sie moechten einen Agenten-Zug aus Skripten ausfuehren (optional Antwort zustellen)
+  - Sie möchten einen Agent-Zug aus Skripten ausführen (optional Antwort zustellen)
 title: "Agent"
 x-i18n:
   source_path: cli/agent.md
@@ -9,17 +9,17 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:35Z
+  generated_at: 2026-02-08T09:35:27Z
 ---
 
 # `openclaw agent`
 
-Fuehren Sie einen Agenten-Zug ueber das Gateway aus (verwenden Sie `--local` fuer eingebettete Nutzung).
-Verwenden Sie `--agent <id>`, um einen konfigurierten Agenten direkt anzusprechen.
+Führen Sie einen Agent-Zug über das Gateway aus (verwenden Sie `--local` für eingebettete Nutzung).
+Verwenden Sie `--agent <id>`, um einen konfigurierten Agent direkt anzusprechen.
 
 Verwandt:
 
-- Agent-Send-Werkzeug: [Agent send](/tools/agent-send)
+- Agent send tool: [Agent send](/tools/agent-send)
 
 ## Beispiele
 

@@ -1,27 +1,27 @@
 ---
 summary: "Exponer un endpoint HTTP /v1/chat/completions compatible con OpenAI desde el Gateway"
 read_when:
-  - Integrar herramientas que esperan OpenAI Chat Completions
-title: "OpenAI Chat Completions"
+  - Integrar herramientas que esperan Chat Completions de OpenAI
+title: "Chat Completions de OpenAI"
 x-i18n:
   source_path: gateway/openai-http-api.md
   source_hash: 6f935777f489bff9
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:58:54Z
+  generated_at: 2026-02-08T09:33:30Z
 ---
 
-# OpenAI Chat Completions (HTTP)
+# Chat Completions de OpenAI (HTTP)
 
 El Gateway de OpenClaw puede servir un pequeño endpoint de Chat Completions compatible con OpenAI.
 
-Este endpoint está **deshabilitado por defecto**. Habilítelo primero en la configuracion.
+Este endpoint está **deshabilitado por defecto**. Habilítelo primero en la configuración.
 
 - `POST /v1/chat/completions`
-- Mismo puerto que el Gateway (multiplexación WS + HTTP): `http://<gateway-host>:<port>/v1/chat/completions`
+- Mismo puerto que el Gateway (multiplex WS + HTTP): `http://<gateway-host>:<port>/v1/chat/completions`
 
-Bajo el capó, las solicitudes se ejecutan como una ejecución normal de agente del Gateway (mismo flujo de código que `openclaw agent`), por lo que el enrutamiento/permisos/configuración coinciden con su Gateway.
+Internamente, las solicitudes se ejecutan como una ejecución normal de un agente del Gateway (el mismo flujo de código que `openclaw agent`), por lo que el enrutamiento, los permisos y la configuración coinciden con su Gateway.
 
 ## Autenticación
 
@@ -36,12 +36,12 @@ Notas:
 
 ## Elección de un agente
 
-No se requieren encabezados personalizados: codifique el id del agente en el campo OpenAI `model`:
+No se requieren encabezados personalizados: codifique el id del agente en el campo `model` de OpenAI:
 
 - `model: "openclaw:<agentId>"` (ejemplo: `"openclaw:main"`, `"openclaw:beta"`)
 - `model: "agent:<agentId>"` (alias)
 
-O apunte a un agente específico de OpenClaw mediante encabezado:
+O apunte a un agente específico de OpenClaw por encabezado:
 
 - `x-openclaw-agent-id: <agentId>` (predeterminado: `main`)
 
@@ -51,7 +51,7 @@ Avanzado:
 
 ## Habilitar el endpoint
 
-Configure `gateway.http.endpoints.chatCompletions.enabled` en `true`:
+Establezca `gateway.http.endpoints.chatCompletions.enabled` en `true`:
 
 ```json5
 {
@@ -67,7 +67,7 @@ Configure `gateway.http.endpoints.chatCompletions.enabled` en `true`:
 
 ## Deshabilitar el endpoint
 
-Configure `gateway.http.endpoints.chatCompletions.enabled` en `false`:
+Establezca `gateway.http.endpoints.chatCompletions.enabled` en `false`:
 
 ```json5
 {
@@ -85,11 +85,11 @@ Configure `gateway.http.endpoints.chatCompletions.enabled` en `false`:
 
 Por defecto, el endpoint es **sin estado por solicitud** (se genera una nueva clave de sesión en cada llamada).
 
-Si la solicitud incluye una cadena OpenAI `user`, el Gateway deriva una clave de sesión estable a partir de ella, por lo que las llamadas repetidas pueden compartir una sesión de agente.
+Si la solicitud incluye una cadena `user` de OpenAI, el Gateway deriva una clave de sesión estable a partir de ella, de modo que las llamadas repetidas pueden compartir una sesión del agente.
 
 ## Streaming (SSE)
 
-Configure `stream: true` para recibir Server-Sent Events (SSE):
+Establezca `stream: true` para recibir Server-Sent Events (SSE):
 
 - `Content-Type: text/event-stream`
 - Cada línea de evento es `data: <json>`

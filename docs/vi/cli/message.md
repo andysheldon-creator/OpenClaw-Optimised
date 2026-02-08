@@ -1,21 +1,21 @@
 ---
-summary: "Tham chiếu CLI cho `openclaw message` (gửi + các hành động kênh)"
+summary: "Tài liệu tham chiếu CLI cho `openclaw message` (gửi + hành động kênh)"
 read_when:
-  - Thêm hoặc sửa đổi các hành động CLI của message
-  - Thay đổi hành vi kênh gửi ra
+  - Thêm hoặc chỉnh sửa các hành động CLI của message
+  - Thay đổi hành vi kênh gửi đi
 title: "message"
 x-i18n:
   source_path: cli/message.md
-  source_hash: 35159baf1ef71362
+  source_hash: 7781b44b3998d271
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:40Z
+  generated_at: 2026-02-08T09:38:36Z
 ---
 
 # `openclaw message`
 
-Lệnh gửi ra duy nhất để gửi tin nhắn và thực hiện các hành động kênh
+Lệnh gửi đi duy nhất để gửi tin nhắn và thực hiện các hành động kênh
 (Discord/Google Chat/Slack/Mattermost (plugin)/Telegram/WhatsApp/Signal/iMessage/MS Teams).
 
 ## Usage
@@ -26,11 +26,11 @@ openclaw message <subcommand> [flags]
 
 Chọn kênh:
 
-- `--channel` bắt buộc nếu có nhiều hơn một kênh được cấu hình.
+- `--channel` bắt buộc nếu có hơn một kênh được cấu hình.
 - Nếu chỉ có đúng một kênh được cấu hình, kênh đó sẽ trở thành mặc định.
 - Giá trị: `whatsapp|telegram|discord|googlechat|slack|mattermost|signal|imessage|msteams` (Mattermost yêu cầu plugin)
 
-Định dạng mục tiêu (`--target`):
+Định dạng đích (`--target`):
 
 - WhatsApp: E.164 hoặc JID nhóm
 - Telegram: chat id hoặc `@username`
@@ -42,17 +42,17 @@ Chọn kênh:
 - iMessage: handle, `chat_id:<id>`, `chat_guid:<guid>`, hoặc `chat_identifier:<id>`
 - MS Teams: conversation id (`19:...@thread.tacv2`) hoặc `conversation:<id>` hoặc `user:<aad-object-id>`
 
-Tra cứu tên:
+Tra cứu theo tên:
 
-- Với các nhà cung cấp được hỗ trợ (Discord/Slack/etc), tên kênh như `Help` hoặc `#help` được phân giải thông qua bộ nhớ đệm danh bạ.
-- Khi không có trong bộ nhớ đệm, OpenClaw sẽ thử tra cứu danh bạ trực tiếp khi nhà cung cấp hỗ trợ.
+- Với các nhà cung cấp được hỗ trợ (Discord/Slack/etc), tên kênh như `Help` hoặc `#help` được phân giải qua bộ nhớ đệm thư mục.
+- Khi trượt bộ nhớ đệm, OpenClaw sẽ cố gắng tra cứu thư mục trực tiếp khi nhà cung cấp hỗ trợ.
 
 ## Common flags
 
 - `--channel <name>`
 - `--account <id>`
-- `--target <dest>` (kênh hoặc người dùng mục tiêu cho send/poll/read/etc)
-- `--targets <name>` (lặp; chỉ broadcast)
+- `--target <dest>` (kênh hoặc người dùng đích cho send/poll/read/etc)
+- `--targets <name>` (lặp lại; chỉ broadcast)
 - `--json`
 - `--dry-run`
 - `--verbose`
@@ -67,12 +67,12 @@ Tra cứu tên:
   - Tùy chọn: `--media`, `--reply-to`, `--thread-id`, `--gif-playback`
   - Chỉ Telegram: `--buttons` (yêu cầu `channels.telegram.capabilities.inlineButtons` để cho phép)
   - Chỉ Telegram: `--thread-id` (id chủ đề diễn đàn)
-  - Chỉ Slack: `--thread-id` (timestamp của thread; `--reply-to` dùng cùng trường)
+  - Chỉ Slack: `--thread-id` (dấu thời gian luồng; `--reply-to` dùng cùng trường)
   - Chỉ WhatsApp: `--gif-playback`
 
 - `poll`
   - Kênh: WhatsApp/Discord/MS Teams
-  - Bắt buộc: `--target`, `--poll-question`, `--poll-option` (lặp)
+  - Bắt buộc: `--target`, `--poll-question`, `--poll-option` (lặp lại)
   - Tùy chọn: `--poll-multi`
   - Chỉ Discord: `--poll-duration-hours`, `--message`
 
@@ -82,7 +82,7 @@ Tra cứu tên:
   - Tùy chọn: `--emoji`, `--remove`, `--participant`, `--from-me`, `--target-author`, `--target-author-uuid`
   - Lưu ý: `--remove` yêu cầu `--emoji` (bỏ `--emoji` để xóa phản ứng của chính mình khi được hỗ trợ; xem /tools/reactions)
   - Chỉ WhatsApp: `--participant`, `--from-me`
-  - Phản ứng nhóm Signal: yêu cầu `--target-author` hoặc `--target-author-uuid`
+  - Phản ứng nhóm Signal: cần `--target-author` hoặc `--target-author-uuid`
 
 - `reactions`
   - Kênh: Discord/Google Chat/Slack
@@ -118,14 +118,14 @@ Tra cứu tên:
 - `search`
   - Kênh: Discord
   - Bắt buộc: `--guild-id`, `--query`
-  - Tùy chọn: `--channel-id`, `--channel-ids` (lặp), `--author-id`, `--author-ids` (lặp), `--limit`
+  - Tùy chọn: `--channel-id`, `--channel-ids` (lặp lại), `--author-id`, `--author-ids` (lặp lại), `--limit`
 
 ### Threads
 
 - `thread create`
   - Kênh: Discord
   - Bắt buộc: `--thread-name`, `--target` (id kênh)
-  - Tùy chọn: `--message-id`, `--auto-archive-min`
+  - Tùy chọn: `--message-id`, `--message`, `--auto-archive-min`
 
 - `thread list`
   - Kênh: Discord
@@ -141,18 +141,18 @@ Tra cứu tên:
 
 - `emoji list`
   - Discord: `--guild-id`
-  - Slack: không có flag bổ sung
+  - Slack: không có cờ bổ sung
 
 - `emoji upload`
   - Kênh: Discord
   - Bắt buộc: `--guild-id`, `--emoji-name`, `--media`
-  - Tùy chọn: `--role-ids` (lặp)
+  - Tùy chọn: `--role-ids` (lặp lại)
 
 ### Stickers
 
 - `sticker send`
   - Kênh: Discord
-  - Bắt buộc: `--target`, `--sticker-id` (lặp)
+  - Bắt buộc: `--target`, `--sticker-id` (lặp lại)
   - Tùy chọn: `--message`
 
 - `sticker upload`
@@ -184,20 +184,20 @@ Tra cứu tên:
 ### Broadcast
 
 - `broadcast`
-  - Kênh: bất kỳ kênh đã cấu hình; dùng `--channel all` để nhắm tới tất cả nhà cung cấp
-  - Bắt buộc: `--targets` (lặp)
+  - Kênh: bất kỳ kênh nào đã cấu hình; dùng `--channel all` để nhắm tới tất cả nhà cung cấp
+  - Bắt buộc: `--targets` (lặp lại)
   - Tùy chọn: `--message`, `--media`, `--dry-run`
 
 ## Examples
 
-Gửi phản hồi Discord:
+Gửi một phản hồi Discord:
 
 ```
 openclaw message send --channel discord \
   --target channel:123 --message "hi" --reply-to 456
 ```
 
-Tạo poll Discord:
+Tạo một cuộc thăm dò Discord:
 
 ```
 openclaw message poll --channel discord \
@@ -207,14 +207,14 @@ openclaw message poll --channel discord \
   --poll-multi --poll-duration-hours 48
 ```
 
-Gửi tin nhắn chủ động Teams:
+Gửi tin nhắn chủ động trên Teams:
 
 ```
 openclaw message send --channel msteams \
   --target conversation:19:abc@thread.tacv2 --message "hi"
 ```
 
-Tạo poll Teams:
+Tạo một cuộc thăm dò Teams:
 
 ```
 openclaw message poll --channel msteams \
@@ -223,14 +223,14 @@ openclaw message poll --channel msteams \
   --poll-option Pizza --poll-option Sushi
 ```
 
-React trong Slack:
+Thả phản ứng trong Slack:
 
 ```
 openclaw message react --channel slack \
   --target C123 --message-id 456 --emoji "✅"
 ```
 
-React trong nhóm Signal:
+Thả phản ứng trong một nhóm Signal:
 
 ```
 openclaw message react --channel signal \
@@ -238,7 +238,7 @@ openclaw message react --channel signal \
   --emoji "✅" --target-author-uuid 123e4567-e89b-12d3-a456-426614174000
 ```
 
-Gửi nút inline Telegram:
+Gửi các nút nội tuyến Telegram:
 
 ```
 openclaw message send --channel telegram --target @mychat --message "Choose:" \

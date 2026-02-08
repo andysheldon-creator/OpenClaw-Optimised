@@ -1,9 +1,9 @@
 ---
 summary: "Debugging-Werkzeuge: Watch-Modus, rohe Modell-Streams und Nachverfolgung von Reasoning-Leakage"
 read_when:
-  - Sie muessen rohe Modellausgaben auf Reasoning-Leakage untersuchen
-  - Sie moechten den Gateway im Watch-Modus waehrend der Iteration ausfuehren
-  - Sie benoetigen einen reproduzierbaren Debugging-Workflow
+  - Sie müssen rohe Modellausgaben auf Reasoning-Leakage prüfen
+  - Sie möchten den Gateway im Watch-Modus während der Iteration ausführen
+  - Sie benötigen einen wiederholbaren Debugging-Workflow
 title: "Debugging"
 x-i18n:
   source_path: help/debugging.md
@@ -11,19 +11,19 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:15:55Z
+  generated_at: 2026-02-08T09:36:29Z
 ---
 
 # Debugging
 
-Diese Seite behandelt Debugging-Hilfen fuer Streaming-Ausgaben, insbesondere wenn ein
-Anbieter Reasoning mit normalem Text vermischt.
+Diese Seite behandelt Debugging-Hilfen für Streaming-Ausgaben, insbesondere wenn
+ein Anbieter Reasoning in normalen Text mischt.
 
 ## Laufzeit-Debug-Overrides
 
 Verwenden Sie `/debug` im Chat, um **nur zur Laufzeit** Konfigurations-Overrides zu setzen (Speicher, nicht Festplatte).
-`/debug` ist standardmaessig deaktiviert; aktivieren Sie es mit `commands.debug: true`.
-Das ist praktisch, wenn Sie seltene Einstellungen umschalten muessen, ohne `openclaw.json` zu bearbeiten.
+`/debug` ist standardmäßig deaktiviert; aktivieren Sie es mit `commands.debug: true`.
+Das ist praktisch, wenn Sie seltene Einstellungen umschalten müssen, ohne `openclaw.json` zu bearbeiten.
 
 Beispiele:
 
@@ -34,11 +34,11 @@ Beispiele:
 /debug reset
 ```
 
-`/debug reset` entfernt alle Overrides und kehrt zur Konfiguration auf dem Datentraeger zurueck.
+`/debug reset` löscht alle Overrides und kehrt zur Konfiguration auf der Festplatte zurück.
 
-## Gateway-Watch-Modus
+## Gateway Watch-Modus
 
-Fuer schnelle Iteration starten Sie den Gateway unter dem Datei-Watcher:
+Für schnelle Iterationen führen Sie den Gateway unter dem Dateiwächter aus:
 
 ```bash
 pnpm gateway:watch --force
@@ -50,18 +50,18 @@ Dies entspricht:
 tsx watch src/entry.ts gateway --force
 ```
 
-Fuegen Sie beliebige Gateway-CLI-Flags nach `gateway:watch` hinzu; sie werden bei
-jedem Neustart weitergereicht.
+Fügen Sie beliebige Gateway-CLI-Flags nach `gateway:watch` hinzu; sie werden bei
+jedem Neustart durchgereicht.
 
 ## Dev-Profil + Dev-Gateway (--dev)
 
-Verwenden Sie das Dev-Profil, um den Zustand zu isolieren und eine sichere, wegwerfbare
-Debugging-Umgebung zu starten. Es gibt **zwei** `--dev`-Flags:
+Verwenden Sie das Dev-Profil, um Zustand zu isolieren und ein sicheres, wegwerfbares Setup
+für das Debugging zu starten. Es gibt **zwei** `--dev`-Flags:
 
 - **Globales `--dev` (Profil):** isoliert den Zustand unter `~/.openclaw-dev` und
-  setzt den Gateway-Port standardmaessig auf `19001` (abgeleitete Ports verschieben sich entsprechend).
+  setzt den Gateway-Port standardmäßig auf `19001` (abgeleitete Ports verschieben sich entsprechend).
 - **`gateway --dev`: weist den Gateway an, automatisch eine Standardkonfiguration +
-  einen Workspace zu erstellen**, falls fehlend (und BOOTSTRAP.md zu ueberspringen).
+  einen Workspace zu erstellen**, falls diese fehlen (und BOOTSTRAP.md zu überspringen).
 
 Empfohlener Ablauf (Dev-Profil + Dev-Bootstrap):
 
@@ -70,7 +70,7 @@ pnpm gateway:dev
 OPENCLAW_PROFILE=dev openclaw tui
 ```
 
-Falls Sie noch keine globale Installation haben, fuehren Sie die CLI ueber `pnpm openclaw ...` aus.
+Wenn Sie noch keine globale Installation haben, führen Sie die CLI über `pnpm openclaw ...` aus.
 
 Was das bewirkt:
 
@@ -81,13 +81,13 @@ Was das bewirkt:
    - `OPENCLAW_GATEWAY_PORT=19001` (Browser/Canvas verschieben sich entsprechend)
 
 2. **Dev-Bootstrap** (`gateway --dev`)
-   - Schreibt bei Bedarf eine minimale Konfiguration (`gateway.mode=local`, Bindung an Loopback).
+   - Schreibt eine minimale Konfiguration, falls sie fehlt (`gateway.mode=local`, bind loopback).
    - Setzt `agent.workspace` auf den Dev-Workspace.
    - Setzt `agent.skipBootstrap=true` (kein BOOTSTRAP.md).
-   - Seedet die Workspace-Dateien, falls fehlend:
+   - Befüllt die Workspace-Dateien, falls sie fehlen:
      `AGENTS.md`, `SOUL.md`, `TOOLS.md`, `IDENTITY.md`, `USER.md`, `HEARTBEAT.md`.
-   - Standardidentitaet: **C3‑PO** (Protocol-Droid).
-   - Ueberspringt Kanal-Anbieter im Dev-Modus (`OPENCLAW_SKIP_CHANNELS=1`).
+   - Standardidentität: **C3‑PO** (Protokoll-Droide).
+   - Überspringt Kanal-Anbieter im Dev-Modus (`OPENCLAW_SKIP_CHANNELS=1`).
 
 Reset-Ablauf (Neustart von Grund auf):
 
@@ -95,17 +95,17 @@ Reset-Ablauf (Neustart von Grund auf):
 pnpm gateway:dev:reset
 ```
 
-Hinweis: `--dev` ist ein **globales** Profil-Flag und wird von einigen Runnern verschluckt.
-Wenn Sie es explizit angeben muessen, verwenden Sie die Env-Var-Form:
+Hinweis: `--dev` ist ein **globales** Profil-Flag und wird von einigen Runnern geschluckt.
+Wenn Sie es explizit angeben müssen, verwenden Sie die Env-Variante:
 
 ```bash
 OPENCLAW_PROFILE=dev openclaw gateway --dev --reset
 ```
 
-`--reset` loescht Konfiguration, Zugangsdaten, Sitzungen und den Dev-Workspace (unter Verwendung von
-`trash`, nicht `rm`), und erstellt anschliessend das Standard-Dev-Setup neu.
+`--reset` löscht Konfiguration, Anmeldedaten, Sitzungen und den Dev-Workspace (unter Verwendung von
+`trash`, nicht `rm`), und erstellt anschließend das Standard-Dev-Setup neu.
 
-Tipp: Wenn bereits ein Nicht-Dev-Gateway laeuft (launchd/systemd), stoppen Sie ihn zuerst:
+Tipp: Wenn bereits ein Nicht-Dev-Gateway läuft (launchd/systemd), stoppen Sie ihn zuerst:
 
 ```bash
 openclaw gateway stop
@@ -115,21 +115,21 @@ openclaw gateway stop
 
 OpenClaw kann den **rohen Assistant-Stream** vor jeglicher Filterung/Formatierung protokollieren.
 Dies ist der beste Weg, um zu sehen, ob Reasoning als reine Text-Deltas ankommt
-(oder als separate Thinking-Bloecke).
+(oder als separate Thinking-Blöcke).
 
-Aktivieren Sie es ueber die CLI:
+Aktivieren Sie es per CLI:
 
 ```bash
 pnpm gateway:watch --force --raw-stream
 ```
 
-Optionale Pfad-Ueberschreibung:
+Optionale Pfadüberschreibung:
 
 ```bash
 pnpm gateway:watch --force --raw-stream --raw-stream-path ~/.openclaw/logs/raw-stream.jsonl
 ```
 
-Entsprechende Env-Vars:
+Äquivalente Umgebungsvariablen:
 
 ```bash
 OPENCLAW_RAW_STREAM=1
@@ -142,7 +142,7 @@ Standarddatei:
 
 ## Rohes Chunk-Logging (pi-mono)
 
-Um **rohe OpenAI-kompatible Chunks** zu erfassen, bevor sie in Bloecke geparst werden,
+Um **rohe OpenAI-kompatible Chunks** zu erfassen, bevor sie in Blöcke geparst werden,
 stellt pi-mono einen separaten Logger bereit:
 
 ```bash
@@ -164,6 +164,6 @@ Standarddatei:
 
 ## Sicherheitshinweise
 
-- Rohe Stream-Logs koennen vollstaendige Prompts, Werkzeugausgaben und Nutzerdaten enthalten.
-- Bewahren Sie Logs lokal auf und loeschen Sie sie nach dem Debugging.
+- Rohe Stream-Logs können vollständige Prompts, Werkzeugausgaben und Benutzerdaten enthalten.
+- Bewahren Sie Logs lokal auf und löschen Sie sie nach dem Debugging.
 - Wenn Sie Logs teilen, entfernen Sie zuvor Geheimnisse und personenbezogene Daten (PII).

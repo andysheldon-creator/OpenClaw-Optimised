@@ -1,89 +1,88 @@
 ---
-summary: "Skills: quan ly vs workspace, quy tac gating, va lien ket cau hinh/env"
+summary: "Skills: được quản lý so với workspace, quy tắc gating và kết nối config/env"
 read_when:
-  - Them hoac sua doi skills
-  - Thay doi gating skills hoac quy tac tai
+  - Thêm hoặc chỉnh sửa skills
+  - Thay đổi gating hoặc quy tắc tải skill
 title: "Skills"
 x-i18n:
   source_path: tools/skills.md
-  source_hash: 54685da5885600b3
+  source_hash: 70d7eb9e422c17a4
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:09:35Z
+  generated_at: 2026-02-08T09:40:52Z
 ---
 
 # Skills (OpenClaw)
 
-OpenClaw su dung cac thu muc skill **tuong thich [AgentSkills](https://agentskills.io)** de day tac tu cach su dung cong cu. Moi skill la mot thu muc chua `SKILL.md` voi YAML frontmatter va huong dan. OpenClaw tai **bundled skills** cung voi cac ghi de cuc bo tuy chon, va loc chung khi tai dua tren moi truong, cau hinh, va su ton tai cua nhi phan.
+OpenClaw sử dụng các thư mục skill **tương thích với [AgentSkills](https://agentskills.io)** để dạy tác tử cách dùng công cụ. Mỗi skill là một thư mục chứa `SKILL.md` với YAML frontmatter và phần hướng dẫn. OpenClaw tải **skills đi kèm** cùng với các ghi đè cục bộ tùy chọn, và lọc chúng tại thời điểm tải dựa trên môi trường, cấu hình và sự hiện diện của binary.
 
-## Vi tri va thu tu uu tien
+## Vị trí và thứ tự ưu tiên
 
-Skills duoc tai tu **ba** noi:
+Skills được tải từ **ba** nơi:
 
-1. **Bundled skills**: di kem voi ban cai dat (goi npm hoac OpenClaw.app)
+1. **Bundled skills**: đi kèm bản cài đặt (gói npm hoặc OpenClaw.app)
 2. **Managed/local skills**: `~/.openclaw/skills`
 3. **Workspace skills**: `<workspace>/skills`
 
-Neu trung ten skill, thu tu uu tien la:
+Nếu trùng tên skill, thứ tự ưu tiên là:
 
-`<workspace>/skills` (cao nhat) → `~/.openclaw/skills` → bundled skills (thap nhat)
+`<workspace>/skills` (cao nhất) → `~/.openclaw/skills` → bundled skills (thấp nhất)
 
-Ngoai ra, ban co the cau hinh them cac thu muc skill bo sung (uu tien thap nhat) thong qua
+Ngoài ra, bạn có thể cấu hình thêm các thư mục skill bổ sung (ưu tiên thấp nhất) qua
 `skills.load.extraDirs` trong `~/.openclaw/openclaw.json`.
 
-## Skills theo tung tac tu vs dung chung
+## Skills theo từng tác tử vs dùng chung
 
-Trong thiet lap **nhieu tac tu**, moi tac tu co workspace rieng. Dieu nay co nghia la:
+Trong các thiết lập **đa tác tử**, mỗi tác tử có workspace riêng. Điều đó có nghĩa là:
 
-- **Per-agent skills** nam trong `<workspace>/skills` chi cho tac tu do.
-- **Shared skills** nam trong `~/.openclaw/skills` (managed/local) va hien thi
-  cho **tat ca tac tu** tren cung mot may.
-- **Shared folders** cung co the duoc them qua `skills.load.extraDirs` (uu tien thap nhat)
-  neu ban muon mot goi skills chung duoc su dung boi nhieu tac tu.
+- **Skills theo từng tác tử** nằm trong `<workspace>/skills` và chỉ dành cho tác tử đó.
+- **Skills dùng chung** nằm trong `~/.openclaw/skills` (managed/local) và hiển thị
+  cho **tất cả tác tử** trên cùng một máy.
+- **Thư mục dùng chung** cũng có thể được thêm qua `skills.load.extraDirs` (ưu tiên thấp nhất)
+  nếu bạn muốn một gói skills chung cho nhiều tác tử.
 
-Neu cung mot ten skill ton tai o nhieu noi, thu tu uu tien thong thuong ap dung:
-workspace thang, sau do managed/local, roi bundled.
+Nếu cùng một tên skill tồn tại ở nhiều nơi, thứ tự ưu tiên thông thường áp dụng:
+workspace thắng, sau đó managed/local, rồi bundled.
 
-## Plugins + skills
+## Plugin + skills
 
-Plugins co the di kem skills rieng bang cach liet ke cac thu muc `skills` trong
-`openclaw.plugin.json` (duong dan tuong doi so voi goc plugin). Skills cua plugin duoc tai
-khi plugin duoc bat va tham gia vao cac quy tac uu tien skills thong thuong.
-Ban co the gating chung thong qua `metadata.openclaw.requires.config` tren muc cau hinh cua plugin.
-Xem [Plugins](/plugin) de biet ve kham pha/cau hinh va [Tools](/tools) ve be mat cong cu
-ma cac skills do huong dan.
+Plugin có thể đi kèm skills riêng bằng cách liệt kê các thư mục `skills` trong
+`openclaw.plugin.json` (đường dẫn tương đối so với thư mục gốc của plugin). Skills của plugin được tải
+khi plugin được bật và tham gia vào các quy tắc ưu tiên skill thông thường.
+Bạn có thể gate chúng qua `metadata.openclaw.requires.config` trên mục cấu hình của plugin.
+Xem [Plugins](/tools/plugin) để biết khám phá/cấu hình và [Tools](/tools) cho bề mặt công cụ mà các skills đó dạy.
 
-## ClawHub (cai dat + dong bo)
+## ClawHub (cài đặt + đồng bộ)
 
-ClawHub la registry skills cong khai cho OpenClaw. Duyet tai
-https://clawhub.com. Su dung no de kham pha, cai dat, cap nhat, va sao luu skills.
-Huong dan day du: [ClawHub](/tools/clawhub).
+ClawHub là registry skills công khai cho OpenClaw. Duyệt tại
+[https://clawhub.com](https://clawhub.com). Dùng để khám phá, cài đặt, cập nhật và sao lưu skills.
+Hướng dẫn đầy đủ: [ClawHub](/tools/clawhub).
 
-Cac quy trinh pho bien:
+Các luồng phổ biến:
 
-- Cai dat mot skill vao workspace cua ban:
+- Cài một skill vào workspace của bạn:
   - `clawhub install <skill-slug>`
-- Cap nhat tat ca skills da cai:
+- Cập nhật tất cả skills đã cài:
   - `clawhub update --all`
-- Dong bo (quet + cong bo cap nhat):
+- Đồng bộ (quét + xuất bản cập nhật):
   - `clawhub sync --all`
 
-Theo mac dinh, `clawhub` cai dat vao `./skills` duoi thu muc lam viec hien tai
-(hoac quay ve workspace OpenClaw da cau hinh). OpenClaw nhan dien no la
-`<workspace>/skills` o phien tiep theo.
+Theo mặc định, `clawhub` cài vào `./skills` dưới thư mục làm việc hiện tại
+(hoặc dùng workspace OpenClaw đã cấu hình). OpenClaw nhận diện
+điều đó như `<workspace>/skills` ở phiên tiếp theo.
 
-## Ghi chu bao mat
+## Ghi chú bảo mật
 
-- Xem skills ben thu ba nhu **ma khong dang tin cay**. Doc ky truoc khi bat.
-- Uu tien chay trong sandbox cho dau vao khong dang tin cay va cong cu rui ro. Xem [Sandboxing](/gateway/sandboxing).
-- `skills.entries.*.env` va `skills.entries.*.apiKey` tiem bi mat vao tien trinh **host**
-  cho luot tac tu do (khong phai sandbox). Giu bi mat ra khoi prompt va log.
-- De co mo hinh de doa va checklist rong hon, xem [Security](/gateway/security).
+- Hãy coi skills của bên thứ ba là **mã không đáng tin cậy**. Đọc kỹ trước khi bật.
+- Ưu tiên chạy trong sandbox cho các đầu vào không đáng tin cậy và công cụ rủi ro. Xem [Sandboxing](/gateway/sandboxing).
+- `skills.entries.*.env` và `skills.entries.*.apiKey` chèn bí mật vào **tiến trình host**
+  cho lượt tác tử đó (không phải sandbox). Giữ bí mật tránh khỏi prompt và log.
+- Để có mô hình đe dọa và checklist rộng hơn, xem [Security](/gateway/security).
 
-## Dinh dang (AgentSkills + tuong thich Pi)
+## Định dạng (AgentSkills + tương thích Pi)
 
-`SKILL.md` phai bao gom it nhat:
+`SKILL.md` phải bao gồm ít nhất:
 
 ```markdown
 ---
@@ -92,26 +91,26 @@ description: Generate or edit images via Gemini 3 Pro Image
 ---
 ```
 
-Ghi chu:
+Ghi chú:
 
-- Chung toi tuan theo dac ta AgentSkills ve bo cuc/y dinh.
-- Trinh phan tich duoc nhung boi tac tu tich hop ho tro chi cac khoa frontmatter **mot dong**.
-- `metadata` nen la **doi tuong JSON mot dong**.
-- Su dung `{baseDir}` trong huong dan de tham chieu duong dan thu muc skill.
-- Cac khoa frontmatter tuy chon:
-  - `homepage` — URL hien thi la “Website” trong macOS Skills UI (cung ho tro qua `metadata.openclaw.homepage`).
-  - `user-invocable` — `true|false` (mac dinh: `true`). Khi `true`, skill duoc mo ra nhu mot slash command cho nguoi dung.
-  - `disable-model-invocation` — `true|false` (mac dinh: `false`). Khi `true`, skill bi loai khoi prompt cua mo hinh (van co san qua goi tu nguoi dung).
-  - `command-dispatch` — `tool` (tuy chon). Khi dat `tool`, slash command bo qua mo hinh va dieu phoi truc tiep den cong cu.
-  - `command-tool` — ten cong cu de goi khi `command-dispatch: tool` duoc dat.
-  - `command-arg-mode` — `raw` (mac dinh). Doi voi dieu phoi cong cu, chuyen tiep chuoi tham so thuan den cong cu (khong phan tich loi).
+- Chúng tôi tuân theo đặc tả AgentSkills về bố cục/mục đích.
+- Trình phân tích dùng bởi tác tử nhúng chỉ hỗ trợ khóa frontmatter **một dòng**.
+- `metadata` nên là **đối tượng JSON một dòng**.
+- Dùng `{baseDir}` trong phần hướng dẫn để tham chiếu đường dẫn thư mục skill.
+- Các khóa frontmatter tùy chọn:
+  - `homepage` — URL hiển thị là “Website” trong UI Skills trên macOS (cũng hỗ trợ qua `metadata.openclaw.homepage`).
+  - `user-invocable` — `true|false` (mặc định: `true`). Khi `true`, skill được hiển thị như một lệnh slash cho người dùng.
+  - `disable-model-invocation` — `true|false` (mặc định: `false`). Khi `true`, skill bị loại khỏi prompt của mô hình (vẫn có thể dùng qua gọi từ người dùng).
+  - `command-dispatch` — `tool` (tùy chọn). Khi đặt là `tool`, lệnh slash bỏ qua mô hình và gửi trực tiếp tới công cụ.
+  - `command-tool` — tên công cụ được gọi khi `command-dispatch: tool` được đặt.
+  - `command-arg-mode` — `raw` (mặc định). Với điều phối công cụ, chuyển tiếp chuỗi args thô tới công cụ (không phân tích ở core).
 
-    Cong cu duoc goi voi tham so:
+    Công cụ được gọi với tham số:
     `{ command: "<raw args>", commandName: "<slash command>", skillName: "<skill name>" }`.
 
-## Gating (bo loc khi tai)
+## Gating (bộ lọc khi tải)
 
-OpenClaw **loc skills khi tai** su dung `metadata` (JSON mot dong):
+OpenClaw **lọc skills tại thời điểm tải** bằng `metadata` (JSON một dòng):
 
 ```markdown
 ---
@@ -128,30 +127,30 @@ metadata:
 ---
 ```
 
-Cac truong duoi `metadata.openclaw`:
+Các trường dưới `metadata.openclaw`:
 
-- `always: true` — luon bao gom skill (bo qua cac gate khac).
-- `emoji` — emoji tuy chon duoc su dung boi macOS Skills UI.
-- `homepage` — URL tuy chon hien thi la “Website” trong macOS Skills UI.
-- `os` — danh sach nen tang tuy chon (`darwin`, `linux`, `win32`). Neu dat, skill chi hop le tren cac OS do.
-- `requires.bins` — danh sach; moi muc phai ton tai tren `PATH`.
-- `requires.anyBins` — danh sach; it nhat mot muc phai ton tai tren `PATH`.
-- `requires.env` — danh sach; bien moi truong phai ton tai **hoac** duoc cung cap trong cau hinh.
-- `requires.config` — danh sach cac duong dan `openclaw.json` phai co gia tri dung.
-- `primaryEnv` — ten bien moi truong lien ket voi `skills.entries.<name>.apiKey`.
-- `install` — mang tuy chon cac dac ta installer duoc su dung boi macOS Skills UI (brew/node/go/uv/download).
+- `always: true` — luôn bao gồm skill (bỏ qua các gate khác).
+- `emoji` — emoji tùy chọn dùng bởi UI Skills trên macOS.
+- `homepage` — URL tùy chọn hiển thị là “Website” trong UI Skills trên macOS.
+- `os` — danh sách nền tảng tùy chọn (`darwin`, `linux`, `win32`). Nếu đặt, skill chỉ đủ điều kiện trên các OS đó.
+- `requires.bins` — danh sách; mỗi mục phải tồn tại trên `PATH`.
+- `requires.anyBins` — danh sách; ít nhất một mục phải tồn tại trên `PATH`.
+- `requires.env` — danh sách; biến môi trường phải tồn tại **hoặc** được cung cấp trong cấu hình.
+- `requires.config` — danh sách các đường dẫn `openclaw.json` phải có giá trị truthy.
+- `primaryEnv` — tên biến môi trường liên kết với `skills.entries.<name>.apiKey`.
+- `install` — mảng tùy chọn các đặc tả trình cài đặt dùng bởi UI Skills trên macOS (brew/node/go/uv/download).
 
-Luu y ve sandboxing:
+Ghi chú về sandboxing:
 
-- `requires.bins` duoc kiem tra tren **host** tai thoi diem tai skill.
-- Neu mot tac tu duoc chay trong sandbox, nhi phan cung phai ton tai **ben trong container**.
-  Cai dat no thong qua `agents.defaults.sandbox.docker.setupCommand` (hoac anh tuy chinh).
-  `setupCommand` chay mot lan sau khi container duoc tao.
-  Cai dat goi cung yeu cau egress mang, root FS co the ghi, va nguoi dung root trong sandbox.
-  Vi du: skill `summarize` (`skills/summarize/SKILL.md`) can CLI `summarize`
-  ben trong container sandbox de chay o do.
+- `requires.bins` được kiểm tra trên **host** tại thời điểm tải skill.
+- Nếu tác tử chạy trong sandbox, binary cũng phải tồn tại **bên trong container**.
+  Cài đặt nó qua `agents.defaults.sandbox.docker.setupCommand` (hoặc image tùy chỉnh).
+  `setupCommand` chạy một lần sau khi container được tạo.
+  Việc cài gói cũng yêu cầu egress mạng, FS gốc có thể ghi, và người dùng root trong sandbox.
+  Ví dụ: skill `summarize` (`skills/summarize/SKILL.md`) cần CLI `summarize`
+  trong container sandbox để chạy tại đó.
 
-Vi du installer:
+Ví dụ trình cài đặt:
 
 ```markdown
 ---
@@ -178,23 +177,23 @@ metadata:
 ---
 ```
 
-Ghi chu:
+Ghi chú:
 
-- Neu liet ke nhieu installer, gateway chon **mot** tuy chon uu tien (brew khi co, neu khong thi node).
-- Neu tat ca installer la `download`, OpenClaw liet ke tung muc de ban thay cac artifact san co.
-- Dac ta installer co the bao gom `os: ["darwin"|"linux"|"win32"]` de loc tuy chon theo nen tang.
-- Cai dat Node tuan theo `skills.install.nodeManager` trong `openclaw.json` (mac dinh: npm; tuy chon: npm/pnpm/yarn/bun).
-  Dieu nay chi anh huong den **cai dat skill**; runtime Gateway van nen la Node
-  (khong khuyen nghi Bun cho WhatsApp/Telegram).
-- Cai dat Go: neu `go` thieu va `brew` co san, gateway se cai Go qua Homebrew truoc va dat `GOBIN` thanh `bin` cua Homebrew khi co the.
-- Cai dat Download: `url` (bat buoc), `archive` (`tar.gz` | `tar.bz2` | `zip`), `extract` (mac dinh: tu dong khi phat hien archive), `stripComponents`, `targetDir` (mac dinh: `~/.openclaw/tools/<skillKey>`).
+- Nếu liệt kê nhiều trình cài đặt, gateway chọn **một** tùy chọn ưu tiên (brew khi có, nếu không thì node).
+- Nếu tất cả trình cài đặt là `download`, OpenClaw liệt kê từng mục để bạn thấy các artifact khả dụng.
+- Đặc tả trình cài đặt có thể bao gồm `os: ["darwin"|"linux"|"win32"]` để lọc tùy chọn theo nền tảng.
+- Cài đặt Node tuân theo `skills.install.nodeManager` trong `openclaw.json` (mặc định: npm; tùy chọn: npm/pnpm/yarn/bun).
+  Điều này chỉ ảnh hưởng đến **cài đặt skill**; runtime của Gateway vẫn nên là Node
+  (không khuyến nghị Bun cho WhatsApp/Telegram).
+- Cài đặt Go: nếu `go` thiếu và `brew` khả dụng, gateway cài Go qua Homebrew trước và đặt `GOBIN` thành `bin` của Homebrew khi có thể.
+- Cài đặt download: `url` (bắt buộc), `archive` (`tar.gz` | `tar.bz2` | `zip`), `extract` (mặc định: auto khi phát hiện archive), `stripComponents`, `targetDir` (mặc định: `~/.openclaw/tools/<skillKey>`).
 
-Neu khong co `metadata.openclaw`, skill luon hop le (tru khi
-bi tat trong cau hinh hoac bi chan boi `skills.allowBundled` doi voi bundled skills).
+Nếu không có `metadata.openclaw`, skill luôn đủ điều kiện (trừ khi
+bị tắt trong cấu hình hoặc bị chặn bởi `skills.allowBundled` đối với bundled skills).
 
-## Ghi de cau hinh (`~/.openclaw/openclaw.json`)
+## Ghi đè cấu hình (`~/.openclaw/openclaw.json`)
 
-Bundled/managed skills co the bat/tat va duoc cung cap gia tri env:
+Bundled/managed skills có thể được bật/tắt và cung cấp giá trị env:
 
 ```json5
 {
@@ -218,47 +217,47 @@ Bundled/managed skills co the bat/tat va duoc cung cap gia tri env:
 }
 ```
 
-Luu y: neu ten skill chua dau gach ngang, hay dat khoa trong dau ngoac kep (JSON5 cho phep khoa co dau ngoac).
+Lưu ý: nếu tên skill chứa dấu gạch nối, hãy đặt khóa trong dấu ngoặc kép (JSON5 cho phép khóa có dấu ngoặc kép).
 
-Cac khoa cau hinh mac dinh khop voi **ten skill**. Neu mot skill dinh nghia
-`metadata.openclaw.skillKey`, hay su dung khoa do duoi `skills.entries`.
+Các khóa cấu hình mặc định khớp với **tên skill**. Nếu một skill định nghĩa
+`metadata.openclaw.skillKey`, hãy dùng khóa đó dưới `skills.entries`.
 
-Quy tac:
+Quy tắc:
 
-- `enabled: false` vo hieu hoa skill ngay ca khi no duoc bundled/da cai.
-- `env`: tiem **chi khi** bien chua duoc dat san trong tien trinh.
-- `apiKey`: tien ich cho skills khai bao `metadata.openclaw.primaryEnv`.
-- `config`: tui tuy chon cho cac truong tuy bien theo tung skill; cac khoa tuy bien phai nam o day.
-- `allowBundled`: allowlist tuy chon chi cho **bundled** skills. Neu dat, chi
-  cac bundled skills trong danh sach moi hop le (managed/workspace khong bi anh huong).
+- `enabled: false` tắt skill ngay cả khi nó được bundle/cài đặt.
+- `env`: chỉ chèn **nếu** biến chưa được đặt trong tiến trình.
+- `apiKey`: tiện ích cho các skills khai báo `metadata.openclaw.primaryEnv`.
+- `config`: túi tùy chọn cho các trường tùy chỉnh theo từng skill; các khóa tùy chỉnh phải nằm ở đây.
+- `allowBundled`: allowlist tùy chọn chỉ cho **bundled** skills. Nếu đặt, chỉ
+  các bundled skills trong danh sách đủ điều kiện (managed/workspace không bị ảnh hưởng).
 
-## Tiem moi truong (moi lan chay tac tu)
+## Chèn môi trường (theo mỗi lần chạy tác tử)
 
-Khi mot lan chay tac tu bat dau, OpenClaw:
+Khi một lần chạy tác tử bắt đầu, OpenClaw:
 
-1. Doc metadata cua skill.
-2. Ap dung `skills.entries.<key>.env` hoac `skills.entries.<key>.apiKey` vao
+1. Đọc metadata của skill.
+2. Áp dụng mọi `skills.entries.<key>.env` hoặc `skills.entries.<key>.apiKey` vào
    `process.env`.
-3. Xay dung system prompt voi cac skills **hop le**.
-4. Khoi phuc moi truong ban dau sau khi lan chay ket thuc.
+3. Xây dựng system prompt với các skills **đủ điều kiện**.
+4. Khôi phục môi trường ban đầu sau khi lần chạy kết thúc.
 
-Dieu nay **chi ap dung cho lan chay tac tu**, khong phai moi truong shell toan cuc.
+Điều này **chỉ phạm vi cho lần chạy tác tử**, không phải môi trường shell toàn cục.
 
-## Anh chup phien (hieu nang)
+## Snapshot phiên (hiệu năng)
 
-OpenClaw chup nhanh danh sach skills hop le **khi phien bat dau** va tai su dung danh sach do cho cac luot tiep theo trong cung phien. Thay doi ve skills hoac cau hinh se co hieu luc o phien moi tiep theo.
+OpenClaw chụp snapshot danh sách skills đủ điều kiện **khi một phiên bắt đầu** và tái sử dụng danh sách đó cho các lượt tiếp theo trong cùng phiên. Thay đổi về skills hoặc cấu hình sẽ có hiệu lực ở phiên mới tiếp theo.
 
-Skills cung co the lam moi giua phien khi skills watcher duoc bat hoac khi mot nut tu xa hop le moi xuat hien (xem ben duoi). Hay hieu day la **hot reload**: danh sach duoc lam moi se duoc ap dung o luot tac tu tiep theo.
+Skills cũng có thể làm mới giữa phiên khi skills watcher được bật hoặc khi một node từ xa đủ điều kiện mới xuất hiện (xem bên dưới). Hãy coi đây là **hot reload**: danh sách đã làm mới được áp dụng ở lượt tác tử tiếp theo.
 
-## Nut macOS tu xa (Gateway Linux)
+## Node macOS từ xa (Gateway Linux)
 
-Neu Gateway dang chay tren Linux nhung mot **nut macOS** duoc ket noi **voi `system.run` duoc cho phep** (bao mat phe duyet Exec khong dat `deny`), OpenClaw co the coi cac skills chi danh cho macOS la hop le khi cac nhi phan can thiet ton tai tren nut do. Tac tu nen thuc thi cac skills do thong qua cong cu `nodes` (thuong la `nodes.run`).
+Nếu Gateway chạy trên Linux nhưng có **node macOS** được kết nối **với `system.run` được cho phép** (bảo mật phê duyệt Exec không đặt là `deny`), OpenClaw có thể coi các skills chỉ dành cho macOS là đủ điều kiện khi các binary cần thiết tồn tại trên node đó. Tác tử nên thực thi các skills này qua công cụ `nodes` (thường là `nodes.run`).
 
-Dieu nay dua vao viec nut bao cao kha nang ho tro lenh va viec do tim bin thong qua `system.run`. Neu nut macOS mat ket noi sau do, cac skills van hien thi; viec goi co the that bai cho den khi nut ket noi lai.
+Điều này dựa vào việc node báo cáo khả năng hỗ trợ lệnh và vào việc dò bin qua `system.run`. Nếu node macOS sau đó offline, các skills vẫn hiển thị; việc gọi có thể thất bại cho đến khi node kết nối lại.
 
-## Skills watcher (tu dong lam moi)
+## Skills watcher (tự động làm mới)
 
-Theo mac dinh, OpenClaw theo doi cac thu muc skill va cap nhat anh chup skills khi cac tep `SKILL.md` thay doi. Cau hinh muc nay duoi `skills.load`:
+Theo mặc định, OpenClaw theo dõi các thư mục skill và tăng snapshot skills khi các tệp `SKILL.md` thay đổi. Cấu hình điều này dưới `skills.load`:
 
 ```json5
 {
@@ -271,37 +270,37 @@ Theo mac dinh, OpenClaw theo doi cac thu muc skill va cap nhat anh chup skills k
 }
 ```
 
-## Tac dong token (danh sach skills)
+## Tác động token (danh sách skills)
 
-Khi skills hop le, OpenClaw tiem mot danh sach XML gon nhe cac skills co san vao system prompt (qua `formatSkillsForPrompt` trong `pi-coding-agent`). Chi phi la xac dinh:
+Khi skills đủ điều kiện, OpenClaw chèn một danh sách XML gọn nhẹ các skills khả dụng vào system prompt (qua `formatSkillsForPrompt` trong `pi-coding-agent`). Chi phí là xác định:
 
-- **Chi phi co ban (chi khi ≥1 skill):** 195 ky tu.
-- **Moi skill:** 97 ky tu + do dai cua cac gia tri `<name>`, `<description>`, va `<location>` sau khi XML-escape.
+- **Chi phí cơ bản (chỉ khi ≥1 skill):** 195 ký tự.
+- **Mỗi skill:** 97 ký tự + độ dài của các giá trị `<name>`, `<description>` và `<location>` sau khi escape XML.
 
-Cong thuc (ky tu):
+Công thức (ký tự):
 
 ```
 total = 195 + Σ (97 + len(name_escaped) + len(description_escaped) + len(location_escaped))
 ```
 
-Ghi chu:
+Ghi chú:
 
-- XML escaping mo rong `& < > " '` thanh cac thuc the (`&amp;`, `&lt;`, v.v.), lam tang do dai.
-- So token thay doi theo tokenizer cua mo hinh. Uoc tinh kieu OpenAI la ~4 ky tu/token, vi vay **97 ky tu ≈ 24 token** cho moi skill cong voi do dai truong thuc te cua ban.
+- Escape XML mở rộng `& < > " '` thành các entity (`&amp;`, `&lt;`, v.v.), làm tăng độ dài.
+- Số token thay đổi theo tokenizer của mô hình. Ước tính kiểu OpenAI là ~4 ký tự/token, vì vậy **97 ký tự ≈ 24 token** cho mỗi skill cộng với độ dài thực tế của các trường.
 
-## Vong doi managed skills
+## Vòng đời managed skills
 
-OpenClaw cung cap mot bo ky nang co ban nhu **bundled skills** nhu mot phan cua ban cai dat
-(goi npm hoac OpenClaw.app). `~/.openclaw/skills` ton tai cho cac ghi de cuc bo
-(vi du, co dinh/va va mot skill ma khong can thay doi ban bundled).
-Workspace skills thuoc so huu nguoi dung va ghi de ca hai khi trung ten.
+OpenClaw phát hành một bộ skills cơ bản dưới dạng **bundled skills** như một phần của
+bản cài đặt (gói npm hoặc OpenClaw.app). `~/.openclaw/skills` tồn tại cho các
+ghi đè cục bộ (ví dụ: ghim/ vá một skill mà không thay đổi bản bundled).
+Workspace skills thuộc sở hữu người dùng và ghi đè cả hai khi trùng tên.
 
-## Tham chieu cau hinh
+## Tham chiếu cấu hình
 
-Xem [Skills config](/tools/skills-config) de biet day du so do cau hinh.
+Xem [Skills config](/tools/skills-config) để biết schema cấu hình đầy đủ.
 
-## Dang tim them skills?
+## Tìm thêm skills?
 
-Duyet https://clawhub.com.
+Duyệt [https://clawhub.com](https://clawhub.com).
 
 ---

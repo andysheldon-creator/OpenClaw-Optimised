@@ -1,153 +1,153 @@
 ---
-summary: "Ciclo de vida do loop do agente, streams e semântica de espera"
+summary: "Ciclo de vida do agent loop, streams e semântica de espera"
 read_when:
-  - Voce precisa de um passo a passo exato do loop do agente ou dos eventos do ciclo de vida
-title: "Loop do Agente"
+  - Você precisa de um passo a passo exato do agent loop ou dos eventos do ciclo de vida
+title: "Agent Loop"
 x-i18n:
   source_path: concepts/agent-loop.md
-  source_hash: 0775b96eb3451e13
+  source_hash: e2c14fb74bd42caa
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:56:00Z
+  generated_at: 2026-02-08T09:30:40Z
 ---
 
-# Loop do Agente (OpenClaw)
+# Agent Loop (OpenClaw)
 
-Um loop agentico é a execucao completa “real” de um agente: entrada → montagem de contexto → inferencia do modelo →
-execucao de ferramentas → respostas em streaming → persistencia. Ele é o caminho autoritativo que transforma uma mensagem
-em acoes e uma resposta final, mantendo o estado da sessao consistente.
+Um loop agêntico é a execução “real” completa de um agente: ingestão → montagem de contexto → inferência do modelo →
+execução de ferramentas → respostas em streaming → persistência. É o caminho autoritativo que transforma uma mensagem
+em ações e uma resposta final, mantendo o estado da sessão consistente.
 
-No OpenClaw, um loop é uma unica execucao serializada por sessao que emite eventos de ciclo de vida e de stream
-conforme o modelo pensa, chama ferramentas e transmite a saida. Este documento explica como esse loop autentico
+No OpenClaw, um loop é uma única execução serializada por sessão que emite eventos de ciclo de vida e de stream
+conforme o modelo pensa, chama ferramentas e transmite a saída. Este documento explica como esse loop autêntico
 é conectado de ponta a ponta.
 
 ## Pontos de entrada
 
-- Gateway RPC: `agent` e `agent.wait`.
+- RPC do Gateway: `agent` e `agent.wait`.
 - CLI: comando `agent`.
 
-## Como funciona (visao de alto nivel)
+## Como funciona (alto nível)
 
-1. O RPC `agent` valida parametros, resolve a sessao (sessionKey/sessionId), persiste metadados da sessao e retorna `{ runId, acceptedAt }` imediatamente.
-2. `agentCommand` executa o agente:
-   - resolve o modelo + padroes de thinking/verbose
+1. O RPC `agent` valida parâmetros, resolve a sessão (sessionKey/sessionId), persiste metadados da sessão e retorna `{ runId, acceptedAt }` imediatamente.
+2. O `agentCommand` executa o agente:
+   - resolve o modelo + padrões de thinking/verbose
    - carrega o snapshot de Skills
-   - chama `runEmbeddedPiAgent` (runtime pi-agent-core)
-   - emite **fim/erro de ciclo de vida** se o loop incorporado nao emitir um
-3. `runEmbeddedPiAgent`:
-   - serializa execucoes via filas por sessao + filas globais
-   - resolve o modelo + perfil de autenticacao e constroi a sessao do pi
-   - assina eventos do pi e faz streaming de deltas do assistente/ferramenta
-   - aplica timeout -> aborta a execucao se excedido
+   - chama `runEmbeddedPiAgent` (runtime do pi-agent-core)
+   - emite **lifecycle end/error** se o loop incorporado não emitir um
+3. O `runEmbeddedPiAgent`:
+   - serializa execuções via filas por sessão + globais
+   - resolve o modelo + perfil de autenticação e constrói a sessão do pi
+   - assina eventos do pi e transmite deltas do assistente/ferramentas
+   - impõe timeout -> aborta a execução se excedido
    - retorna payloads + metadados de uso
-4. `subscribeEmbeddedPiSession` faz a ponte dos eventos do pi-agent-core para o stream `agent` do OpenClaw:
+4. O `subscribeEmbeddedPiSession` faz a ponte dos eventos do pi-agent-core para o stream `agent` do OpenClaw:
    - eventos de ferramenta => `stream: "tool"`
    - deltas do assistente => `stream: "assistant"`
    - eventos de ciclo de vida => `stream: "lifecycle"` (`phase: "start" | "end" | "error"`)
-5. `agent.wait` usa `waitForAgentJob`:
-   - espera por **fim/erro de ciclo de vida** para `runId`
+5. O `agent.wait` usa `waitForAgentJob`:
+   - aguarda **lifecycle end/error** para `runId`
    - retorna `{ status: ok|error|timeout, startedAt, endedAt, error? }`
 
-## Enfileiramento + concorrencia
+## Enfileiramento + concorrência
 
-- As execucoes sao serializadas por chave de sessao (faixa da sessao) e opcionalmente por uma faixa global.
-- Isso evita corridas de ferramentas/sessao e mantem o historico da sessao consistente.
-- Canais de mensageria podem escolher modos de fila (collect/steer/followup) que alimentam esse sistema de faixas.
+- As execuções são serializadas por chave de sessão (faixa de sessão) e opcionalmente por uma faixa global.
+- Isso evita corridas de ferramenta/sessão e mantém o histórico da sessão consistente.
+- Canais de mensagens podem escolher modos de fila (collect/steer/followup) que alimentam esse sistema de faixas.
   Veja [Command Queue](/concepts/queue).
 
-## Preparacao de sessao + workspace
+## Preparação de sessão + workspace
 
-- O workspace é resolvido e criado; execucoes em sandbox podem redirecionar para uma raiz de workspace em sandbox.
-- Skills sao carregadas (ou reutilizadas de um snapshot) e injetadas no ambiente e no prompt.
-- Arquivos de bootstrap/contexto sao resolvidos e injetados no relatorio do prompt do sistema.
-- Um lock de escrita da sessao é adquirido; `SessionManager` é aberto e preparado antes do streaming.
+- O workspace é resolvido e criado; execuções em sandbox podem redirecionar para uma raiz de workspace em sandbox.
+- Skills são carregadas (ou reutilizadas a partir de um snapshot) e injetadas no env e no prompt.
+- Arquivos de bootstrap/contexto são resolvidos e injetados no relatório do prompt do sistema.
+- Um bloqueio de escrita da sessão é adquirido; `SessionManager` é aberto e preparado antes do streaming.
 
 ## Montagem do prompt + prompt do sistema
 
-- O prompt do sistema é construido a partir do prompt base do OpenClaw, prompt de Skills, contexto de bootstrap e sobrescritas por execucao.
-- Limites especificos do modelo e tokens de reserva para compactacao sao aplicados.
-- Veja [System prompt](/concepts/system-prompt) para o que o modelo ve.
+- O prompt do sistema é construído a partir do prompt base do OpenClaw, prompt de Skills, contexto de bootstrap e substituições por execução.
+- Limites específicos do modelo e tokens de reserva para compactação são aplicados.
+- Veja [System prompt](/concepts/system-prompt) para o que o modelo vê.
 
-## Pontos de hook (onde voce pode interceptar)
+## Pontos de hook (onde você pode interceptar)
 
 O OpenClaw possui dois sistemas de hooks:
 
 - **Hooks internos** (hooks do Gateway): scripts orientados a eventos para comandos e eventos de ciclo de vida.
-- **Hooks de plugin**: pontos de extensao dentro do ciclo de vida do agente/ferramenta e do pipeline do gateway.
+- **Hooks de plugin**: pontos de extensão dentro do ciclo de vida do agente/ferramenta e do pipeline do gateway.
 
 ### Hooks internos (hooks do Gateway)
 
-- **`agent:bootstrap`**: executa durante a construcao dos arquivos de bootstrap antes que o prompt do sistema seja finalizado.
-  Use isto para adicionar/remover arquivos de contexto de bootstrap.
+- **`agent:bootstrap`**: executa durante a construção dos arquivos de bootstrap antes do prompt do sistema ser finalizado.
+  Use isso para adicionar/remover arquivos de contexto de bootstrap.
 - **Hooks de comando**: `/new`, `/reset`, `/stop` e outros eventos de comando (veja o doc de Hooks).
 
-Veja [Hooks](/hooks) para configuracao e exemplos.
+Veja [Hooks](/automation/hooks) para configuração e exemplos.
 
 ### Hooks de plugin (ciclo de vida do agente + gateway)
 
-Eles executam dentro do loop do agente ou do pipeline do gateway:
+Eles executam dentro do agent loop ou do pipeline do gateway:
 
-- **`before_agent_start`**: injeta contexto ou sobrescreve o prompt do sistema antes do inicio da execucao.
-- **`agent_end`**: inspeciona a lista final de mensagens e os metadados da execucao apos a conclusao.
-- **`before_compaction` / `after_compaction`**: observa ou anota ciclos de compactacao.
-- **`before_tool_call` / `after_tool_call`**: intercepta parametros/resultados de ferramentas.
-- **`tool_result_persist`**: transforma sincronicamente resultados de ferramentas antes de serem gravados na transcricao da sessao.
-- **`message_received` / `message_sending` / `message_sent`**: hooks de mensagens de entrada + saida.
-- **`session_start` / `session_end`**: limites do ciclo de vida da sessao.
+- **`before_agent_start`**: injeta contexto ou sobrescreve o prompt do sistema antes do início da execução.
+- **`agent_end`**: inspeciona a lista final de mensagens e metadados da execução após a conclusão.
+- **`before_compaction` / `after_compaction`**: observa ou anota ciclos de compactação.
+- **`before_tool_call` / `after_tool_call`**: intercepta parâmetros/resultados de ferramentas.
+- **`tool_result_persist`**: transforma sincronicamente resultados de ferramentas antes de serem gravados no transcript da sessão.
+- **`message_received` / `message_sending` / `message_sent`**: hooks de mensagens de entrada + saída.
+- **`session_start` / `session_end`**: limites do ciclo de vida da sessão.
 - **`gateway_start` / `gateway_stop`**: eventos do ciclo de vida do gateway.
 
-Veja [Plugins](/plugin#plugin-hooks) para a API de hooks e detalhes de registro.
+Veja [Plugins](/tools/plugin#plugin-hooks) para a API de hooks e detalhes de registro.
 
 ## Streaming + respostas parciais
 
-- Deltas do assistente sao transmitidos do pi-agent-core e emitidos como eventos `assistant`.
-- Streaming por blocos pode emitir respostas parciais em `text_end` ou `message_end`.
-- Streaming de raciocinio pode ser emitido como um stream separado ou como respostas em bloco.
-- Veja [Streaming](/concepts/streaming) para comportamento de fragmentacao e respostas em bloco.
+- Deltas do assistente são transmitidos a partir do pi-agent-core e emitidos como eventos `assistant`.
+- O streaming em blocos pode emitir respostas parciais em `text_end` ou `message_end`.
+- O streaming de raciocínio pode ser emitido como um stream separado ou como respostas em bloco.
+- Veja [Streaming](/concepts/streaming) para comportamento de fragmentação e respostas em bloco.
 
-## Execucao de ferramentas + ferramentas de mensageria
+## Execução de ferramentas + ferramentas de mensagens
 
-- Eventos de inicio/atualizacao/fim de ferramentas sao emitidos no stream `tool`.
-- Resultados de ferramentas sao higienizados quanto a tamanho e payloads de imagem antes de registrar/emitir.
-- Envios de ferramentas de mensageria sao rastreados para suprimir confirmacoes duplicadas do assistente.
+- Eventos de início/atualização/fim de ferramentas são emitidos no stream `tool`.
+- Resultados de ferramentas são sanitizados quanto a tamanho e payloads de imagem antes de registrar/emitir.
+- Envios por ferramentas de mensagens são rastreados para suprimir confirmações duplicadas do assistente.
 
-## Modelagem de resposta + supressao
+## Modelagem de resposta + supressão
 
-- Payloads finais sao montados a partir de:
-  - texto do assistente (e raciocinio opcional)
+- Payloads finais são montados a partir de:
+  - texto do assistente (e raciocínio opcional)
   - resumos inline de ferramentas (quando verbose + permitido)
   - texto de erro do assistente quando o modelo falha
-- `NO_REPLY` é tratado como um token silencioso e filtrado dos payloads de saida.
-- Duplicatas de ferramentas de mensageria sao removidas da lista final de payloads.
-- Se nenhum payload renderizavel permanecer e uma ferramenta falhar, uma resposta de erro de ferramenta fallback é emitida
-  (a menos que uma ferramenta de mensageria ja tenha enviado uma resposta visivel ao usuario).
+- `NO_REPLY` é tratado como um token silencioso e filtrado dos payloads de saída.
+- Duplicatas de ferramentas de mensagens são removidas da lista final de payloads.
+- Se nenhum payload renderizável permanecer e uma ferramenta falhar, uma resposta de erro de ferramenta de fallback é emitida
+  (a menos que uma ferramenta de mensagens já tenha enviado uma resposta visível ao usuário).
 
-## Compactacao + tentativas
+## Compactação + tentativas
 
-- Auto-compactacao emite eventos de stream `compaction` e pode disparar uma nova tentativa.
-- Na nova tentativa, buffers em memoria e resumos de ferramentas sao redefinidos para evitar saida duplicada.
-- Veja [Compaction](/concepts/compaction) para o pipeline de compactacao.
+- A compactação automática emite eventos de stream `compaction` e pode disparar uma nova tentativa.
+- Na nova tentativa, buffers em memória e resumos de ferramentas são redefinidos para evitar saída duplicada.
+- Veja [Compaction](/concepts/compaction) para o pipeline de compactação.
 
 ## Streams de eventos (hoje)
 
 - `lifecycle`: emitido por `subscribeEmbeddedPiSession` (e como fallback por `agentCommand`)
-- `assistant`: deltas em streaming do pi-agent-core
-- `tool`: eventos de ferramentas em streaming do pi-agent-core
+- `assistant`: deltas transmitidos do pi-agent-core
+- `tool`: eventos de ferramentas transmitidos do pi-agent-core
 
 ## Tratamento de canais de chat
 
-- Deltas do assistente sao armazenados em mensagens de chat `delta`.
-- Um chat `final` é emitido em **fim/erro de ciclo de vida**.
+- Deltas do assistente são armazenados em mensagens de chat `delta`.
+- Uma mensagem de chat `final` é emitida em **lifecycle end/error**.
 
 ## Timeouts
 
-- Padrao de `agent.wait`: 30s (apenas a espera). O parametro `timeoutMs` sobrescreve.
-- Runtime do agente: padrao de `agents.defaults.timeoutSeconds` 600s; aplicado no timer de aborto `runEmbeddedPiAgent`.
+- Padrão de `agent.wait`: 30s (apenas a espera). O parâmetro `timeoutMs` substitui.
+- Runtime do agente: padrão de `agents.defaults.timeoutSeconds` 600s; imposto no temporizador de aborto `runEmbeddedPiAgent`.
 
-## Onde as coisas podem terminar mais cedo
+## Onde as coisas podem terminar cedo
 
 - Timeout do agente (aborto)
 - AbortSignal (cancelamento)
-- Desconexao do Gateway ou timeout de RPC
-- Timeout de `agent.wait` (apenas espera, nao interrompe o agente)
+- Desconexão do Gateway ou timeout de RPC
+- Timeout de `agent.wait` (apenas espera, não interrompe o agente)

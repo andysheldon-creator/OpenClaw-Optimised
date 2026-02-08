@@ -2,7 +2,7 @@
 summary: "Use o OAuth do Qwen (camada gratuita) no OpenClaw"
 read_when:
   - Você quer usar o Qwen com o OpenClaw
-  - Você quer acesso OAuth de camada gratuita ao Qwen Coder
+  - Você quer acesso OAuth gratuito ao Qwen Coder
 title: "Qwen"
 x-i18n:
   source_path: providers/qwen.md
@@ -10,13 +10,13 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:57:06Z
+  generated_at: 2026-02-08T09:31:41Z
 ---
 
 # Qwen
 
 O Qwen oferece um fluxo OAuth de camada gratuita para os modelos Qwen Coder e Qwen Vision
-(2.000 solicitações/dia, sujeito aos limites de taxa do Qwen).
+(2.000 requisições/dia, sujeito aos limites de taxa do Qwen).
 
 ## Habilitar o plugin
 
@@ -33,14 +33,14 @@ openclaw models auth login --provider qwen-portal --set-default
 ```
 
 Isso executa o fluxo OAuth de código de dispositivo do Qwen e grava uma entrada de provedor no seu
-`models.json` (além de um alias `qwen` para alternância rápida).
+`models.json` (além de um alias `qwen` para troca rápida).
 
 ## IDs de modelo
 
 - `qwen-portal/coder-model`
 - `qwen-portal/vision-model`
 
-Alterne modelos com:
+Alterne os modelos com:
 
 ```bash
 openclaw models set qwen-portal/coder-model
@@ -48,13 +48,13 @@ openclaw models set qwen-portal/coder-model
 
 ## Reutilizar login do Qwen Code CLI
 
-Se você já fez login com o Qwen Code CLI, o OpenClaw sincronizará as credenciais
+Se você já fez login com o Qwen Code CLI, o OpenClaw irá sincronizar as credenciais
 de `~/.qwen/oauth_creds.json` quando carregar o armazenamento de autenticação. Você ainda precisa de uma
 entrada `models.providers.qwen-portal` (use o comando de login acima para criar uma).
 
-## Observações
+## Notas
 
-- Os tokens são atualizados automaticamente; execute novamente o comando de login se a atualização falhar ou se o acesso for revogado.
+- Os tokens são renovados automaticamente; execute novamente o comando de login se a renovação falhar ou se o acesso for revogado.
 - URL base padrão: `https://portal.qwen.ai/v1` (substitua com
   `models.providers.qwen-portal.baseUrl` se o Qwen fornecer um endpoint diferente).
-- Consulte [Model providers](/concepts/model-providers) para regras válidas para todo o provedor.
+- Veja [Model providers](/concepts/model-providers) para regras aplicáveis a todos os provedores.

@@ -1,48 +1,48 @@
 ---
-summary: "Plano de refatoracao: roteamento do exec host, aprovacoes de node e runner headless"
+summary: "Plano de refatoração: roteamento do host de exec, aprovações de nó e runner headless"
 read_when:
-  - Ao projetar o roteamento de exec host ou aprovacoes de exec
-  - Ao implementar runner de node + IPC de UI
-  - Ao adicionar modos de seguranca de exec host e comandos de barra
-title: "Refatoracao do Exec Host"
+  - Ao projetar roteamento do host de exec ou aprovações de exec
+  - Ao implementar runner de nó + IPC de UI
+  - Ao adicionar modos de segurança do host de exec e comandos slash
+title: "Refatoração do Host de Exec"
 x-i18n:
   source_path: refactor/exec-host.md
   source_hash: 53a9059cbeb1f3f1
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:57:31Z
+  generated_at: 2026-02-08T09:32:02Z
 ---
 
-# Plano de refatoracao do exec host
+# Plano de refatoração do host de exec
 
 ## Objetivos
 
-- Adicionar `exec.host` + `exec.security` para rotear a execucao entre **sandbox**, **gateway** e **node**.
-- Manter os padroes **seguros**: nenhuma execucao entre hosts a menos que explicitamente habilitada.
-- Dividir a execucao em um **servico de runner headless** com UI opcional (app macOS) via IPC local.
-- Fornecer politica **por agente**, allowlist, modo de pergunta e vinculacao de node.
-- Suportar **modos de pergunta** que funcionem _com_ ou _sem_ allowlists.
-- Multiplataforma: socket Unix + autenticacao por token (paridade macOS/Linux/Windows).
+- Adicionar `exec.host` + `exec.security` para rotear a execução entre **sandbox**, **gateway** e **node**.
+- Manter padrões **seguros**: nenhuma execução entre hosts sem habilitação explícita.
+- Separar a execução em um **serviço runner headless** com UI opcional (app macOS) via IPC local.
+- Fornecer política **por agente**, lista de permissões, modo de pergunta e vínculo de nó.
+- Oferecer suporte a **modos de pergunta** que funcionem _com_ ou _sem_ listas de permissões.
+- Multiplataforma: socket Unix + autenticação por token (paridade macOS/Linux/Windows).
 
-## Nao objetivos
+## Não objetivos
 
-- Nenhuma migracao de allowlist legado ou suporte a schema legado.
-- Nenhum PTY/streaming para exec em node (apenas saida agregada).
-- Nenhuma nova camada de rede alem da Bridge + Gateway existentes.
+- Nenhuma migração de lista de permissões legada ou suporte a esquema legado.
+- Sem PTY/streaming para exec em nó (apenas saída agregada).
+- Nenhuma nova camada de rede além da Bridge + Gateway existentes.
 
-## Decisoes (travadas)
+## Decisões (bloqueadas)
 
-- **Chaves de config:** `exec.host` + `exec.security` (override por agente permitido).
-- **Elevacao:** manter `/elevated` como alias para acesso total do gateway.
-- **Padrao de pergunta:** `on-miss`.
-- **Armazenamento de aprovacoes:** `~/.openclaw/exec-approvals.json` (JSON, sem migracao legada).
-- **Runner:** servico de sistema headless; o app de UI hospeda um socket Unix para aprovacoes.
-- **Identidade do node:** usar o `nodeId` existente.
-- **Autenticacao do socket:** socket Unix + token (multiplataforma); dividir depois se necessario.
-- **Estado do host de node:** `~/.openclaw/node.json` (id do node + token de pareamento).
-- **Exec host no macOS:** executar `system.run` dentro do app macOS; o servico de host de node encaminha requisicoes via IPC local.
-- **Sem helper XPC:** manter socket Unix + token + verificacoes de peer.
+- **Chaves de configuração:** `exec.host` + `exec.security` (override por agente permitido).
+- **Elevação:** manter `/elevated` como um alias para acesso total ao gateway.
+- **Padrão de pergunta:** `on-miss`.
+- **Armazenamento de aprovações:** `~/.openclaw/exec-approvals.json` (JSON, sem migração legada).
+- **Runner:** serviço de sistema headless; o app de UI hospeda um socket Unix para aprovações.
+- **Identidade do nó:** usar o `nodeId` existente.
+- **Autenticação de socket:** socket Unix + token (multiplataforma); dividir depois se necessário.
+- **Estado do host de nó:** `~/.openclaw/node.json` (id do nó + token de pareamento).
+- **Host de exec no macOS:** executar `system.run` dentro do app macOS; o serviço host do nó encaminha solicitações via IPC local.
+- **Sem helper XPC:** manter socket Unix + token + verificações de par.
 
 ## Conceitos-chave
 
@@ -50,53 +50,53 @@ x-i18n:
 
 - `sandbox`: Docker exec (comportamento atual).
 - `gateway`: exec no host do gateway.
-- `node`: exec no runner de node via Bridge (`system.run`).
+- `node`: exec no runner de nó via Bridge (`system.run`).
 
-### Modo de seguranca
+### Modo de segurança
 
 - `deny`: sempre bloquear.
-- `allowlist`: permitir apenas correspondencias.
+- `allowlist`: permitir apenas correspondências.
 - `full`: permitir tudo (equivalente a elevado).
 
 ### Modo de pergunta
 
 - `off`: nunca perguntar.
-- `on-miss`: perguntar apenas quando a allowlist nao corresponder.
+- `on-miss`: perguntar apenas quando a lista de permissões não corresponder.
 - `always`: perguntar sempre.
 
-Perguntar e **independente** da allowlist; a allowlist pode ser usada com `always` ou `on-miss`.
+Perguntar é **independente** da lista de permissões; a lista pode ser usada com `always` ou `on-miss`.
 
-### Resolucao de politica (por execucao)
+### Resolução de política (por exec)
 
-1. Resolver `exec.host` (parametro da ferramenta → override do agente → padrao global).
-2. Resolver `exec.security` e `exec.ask` (mesma precedencia).
-3. Se o host for `sandbox`, prosseguir com execucao local em sandbox.
-4. Se o host for `gateway` ou `node`, aplicar politica de seguranca + pergunta naquele host.
+1. Resolver `exec.host` (parâmetro da ferramenta → override do agente → padrão global).
+2. Resolver `exec.security` e `exec.ask` (mesma precedência).
+3. Se o host for `sandbox`, prosseguir com exec local em sandbox.
+4. Se o host for `gateway` ou `node`, aplicar a política de segurança + pergunta nesse host.
 
-## Seguranca padrao
+## Segurança padrão
 
-- Padrao `exec.host = sandbox`.
-- Padrao `exec.security = deny` para `gateway` e `node`.
-- Padrao `exec.ask = on-miss` (relevante apenas se a seguranca permitir).
-- Se nenhuma vinculacao de node estiver definida, **o agente pode direcionar qualquer node**, mas apenas se a politica permitir.
+- Padrão `exec.host = sandbox`.
+- Padrão `exec.security = deny` para `gateway` e `node`.
+- Padrão `exec.ask = on-miss` (relevante apenas se a segurança permitir).
+- Se nenhum vínculo de nó estiver definido, **o agente pode direcionar para qualquer nó**, mas apenas se a política permitir.
 
-## Superficie de configuracao
+## Superfície de configuração
 
-### Parametros da ferramenta
+### Parâmetros da ferramenta
 
 - `exec.host` (opcional): `sandbox | gateway | node`.
 - `exec.security` (opcional): `deny | allowlist | full`.
 - `exec.ask` (opcional): `off | on-miss | always`.
-- `exec.node` (opcional): id/nome do node a usar quando `host=node`.
+- `exec.node` (opcional): id/nome do nó a usar quando `host=node`.
 
-### Chaves de config (global)
+### Chaves de configuração (global)
 
 - `tools.exec.host`
 - `tools.exec.security`
 - `tools.exec.ask`
-- `tools.exec.node` (vinculacao padrao de node)
+- `tools.exec.node` (vínculo padrão de nó)
 
-### Chaves de config (por agente)
+### Chaves de configuração (por agente)
 
 - `agents.list[].tools.exec.host`
 - `agents.list[].tools.exec.security`
@@ -105,20 +105,20 @@ Perguntar e **independente** da allowlist; a allowlist pode ser usada com `alway
 
 ### Alias
 
-- `/elevated on` = definir `tools.exec.host=gateway`, `tools.exec.security=full` para a sessao do agente.
-- `/elevated off` = restaurar as configuracoes de execucao anteriores para a sessao do agente.
+- `/elevated on` = definir `tools.exec.host=gateway`, `tools.exec.security=full` para a sessão do agente.
+- `/elevated off` = restaurar configurações anteriores de exec para a sessão do agente.
 
-## Armazenamento de aprovacoes (JSON)
+## Armazenamento de aprovações (JSON)
 
 Caminho: `~/.openclaw/exec-approvals.json`
 
-Proposito:
+Finalidade:
 
-- Politica local + allowlists para o **host de execucao** (gateway ou runner de node).
-- Fallback de pergunta quando nenhuma UI estiver disponivel.
+- Política local + listas de permissões para o **host de execução** (gateway ou runner de nó).
+- Fallback de pergunta quando nenhuma UI estiver disponível.
 - Credenciais de IPC para clientes de UI.
 
-Schema proposto (v1):
+Esquema proposto (v1):
 
 ```json
 {
@@ -151,41 +151,41 @@ Schema proposto (v1):
 
 Notas:
 
-- Nenhum formato de allowlist legado.
-- `askFallback` aplica-se apenas quando `ask` e requerido e nenhuma UI esta acessivel.
-- Permissoes de arquivo: `0600`.
+- Nenhum formato de lista de permissões legado.
+- `askFallback` aplica-se apenas quando `ask` é exigido e nenhuma UI está acessível.
+- Permissões de arquivo: `0600`.
 
-## Servico de runner (headless)
+## Serviço runner (headless)
 
-### Papel
+### Função
 
 - Aplicar `exec.security` + `exec.ask` localmente.
-- Executar comandos do sistema e retornar a saida.
+- Executar comandos do sistema e retornar a saída.
 - Emitir eventos da Bridge para o ciclo de vida do exec (opcional, mas recomendado).
 
-### Ciclo de vida do servico
+### Ciclo de vida do serviço
 
-- Launchd/daemon no macOS; servico de sistema no Linux/Windows.
-- O JSON de aprovacoes e local ao host de execucao.
+- Launchd/daemon no macOS; serviço de sistema no Linux/Windows.
+- O JSON de aprovações é local ao host de execução.
 - A UI hospeda um socket Unix local; runners conectam sob demanda.
 
-## Integracao de UI (app macOS)
+## Integração de UI (app macOS)
 
 ### IPC
 
 - Socket Unix em `~/.openclaw/exec-approvals.sock` (0600).
 - Token armazenado em `exec-approvals.json` (0600).
-- Verificacoes de peer: apenas mesmo UID.
-- Desafio/resposta: nonce + HMAC(token, hash-da-requisicao) para prevenir replay.
-- TTL curto (ex.: 10s) + payload maximo + rate limit.
+- Verificações de par: apenas mesmo UID.
+- Desafio/resposta: nonce + HMAC(token, hash-da-solicitação) para evitar replay.
+- TTL curto (ex.: 10s) + payload máximo + limite de taxa.
 
-### Fluxo de pergunta (exec host do app macOS)
+### Fluxo de pergunta (host de exec do app macOS)
 
-1. O servico de node recebe `system.run` do gateway.
-2. O servico de node conecta ao socket local e envia o prompt/requisicao de execucao.
-3. O app valida peer + token + HMAC + TTL, entao mostra o dialogo se necessario.
-4. O app executa o comando no contexto da UI e retorna a saida.
-5. O servico de node retorna a saida ao gateway.
+1. O serviço de nó recebe `system.run` do gateway.
+2. O serviço de nó conecta-se ao socket local e envia o prompt/solicitação de exec.
+3. O app valida par + token + HMAC + TTL e então mostra o diálogo se necessário.
+4. O app executa o comando no contexto da UI e retorna a saída.
+5. O serviço de nó retorna a saída ao gateway.
 
 Se a UI estiver ausente:
 
@@ -200,124 +200,124 @@ Agent -> Gateway -> Bridge -> Node Service (TS)
                      Mac App (UI + TCC + system.run)
 ```
 
-## Identidade + vinculacao de node
+## Identidade + vínculo de nó
 
 - Usar o `nodeId` existente do pareamento da Bridge.
-- Modelo de vinculacao:
-  - `tools.exec.node` restringe o agente a um node especifico.
-  - Se nao definido, o agente pode escolher qualquer node (a politica ainda aplica os padroes).
-- Resolucao de selecao de node:
-  - `nodeId` correspondencia exata
+- Modelo de vínculo:
+  - `tools.exec.node` restringe o agente a um nó específico.
+  - Se não definido, o agente pode escolher qualquer nó (a política ainda aplica os padrões).
+- Resolução de seleção de nó:
+  - `nodeId` correspondência exata
   - `displayName` (normalizado)
   - `remoteIp`
-  - `nodeId` prefixo (>= 6 caracteres)
+  - prefixo `nodeId` (>= 6 caracteres)
 
-## Eventos
+## Eventing
 
-### Quem ve eventos
+### Quem vê os eventos
 
-- Eventos do sistema sao **por sessao** e mostrados ao agente no proximo prompt.
-- Armazenados no gateway em uma fila em memoria (`enqueueSystemEvent`).
+- Eventos do sistema são **por sessão** e mostrados ao agente no próximo prompt.
+- Armazenados no gateway em uma fila em memória (`enqueueSystemEvent`).
 
 ### Texto do evento
 
 - `Exec started (node=<id>, id=<runId>)`
-- `Exec finished (node=<id>, id=<runId>, code=<code>)` + cauda de saida opcional
+- `Exec finished (node=<id>, id=<runId>, code=<code>)` + cauda opcional da saída
 - `Exec denied (node=<id>, id=<runId>, <reason>)`
 
 ### Transporte
 
-Opcao A (recomendada):
+Opção A (recomendada):
 
 - O runner envia frames da Bridge `event` `exec.started` / `exec.finished`.
-- O gateway `handleBridgeEvent` mapeia isso para `enqueueSystemEvent`.
+- O Gateway `handleBridgeEvent` mapeia isso para `enqueueSystemEvent`.
 
-Opcao B:
+Opção B:
 
-- A ferramenta `exec` do gateway lida diretamente com o ciclo de vida (apenas sincrono).
+- A ferramenta do Gateway `exec` lida diretamente com o ciclo de vida (apenas síncrono).
 
-## Fluxos de execucao
+## Fluxos de exec
 
 ### Host sandbox
 
-- Comportamento existente de `exec` (Docker ou host quando fora de sandbox).
-- PTY suportado apenas no modo sem sandbox.
+- Comportamento existente `exec` (Docker ou host quando fora de sandbox).
+- PTY suportado apenas no modo não sandbox.
 
-### Host gateway
+### Host do Gateway
 
-- O processo do gateway executa na propria maquina.
-- Aplica `exec-approvals.json` local (seguranca/pergunta/allowlist).
+- O processo do Gateway executa em sua própria máquina.
+- Aplica `exec-approvals.json` local (segurança/pergunta/lista de permissões).
 
-### Host node
+### Host de nó
 
-- O gateway chama `node.invoke` com `system.run`.
-- O runner aplica aprovacoes locais.
+- O Gateway chama `node.invoke` com `system.run`.
+- O runner aplica aprovações locais.
 - O runner retorna stdout/stderr agregados.
-- Eventos opcionais da Bridge para inicio/fim/negacao.
+- Eventos opcionais da Bridge para início/fim/negação.
 
-## Limites de saida
+## Limites de saída
 
-- Limitar stdout+stderr combinados a **200k**; manter **cauda de 20k** para eventos.
+- Limitar stdout+stderr combinados em **200k**; manter **cauda de 20k** para eventos.
 - Truncar com um sufixo claro (ex.: `"… (truncated)"`).
 
-## Comandos de barra
+## Comandos slash
 
 - `/exec host=<sandbox|gateway|node> security=<deny|allowlist|full> ask=<off|on-miss|always> node=<id>`
-- Overrides por agente, por sessao; nao persistentes a menos que salvos via config.
-- `/elevated on|off|ask|full` permanece um atalho para `host=gateway security=full` (com `full` pulando aprovacoes).
+- Overrides por agente e por sessão; não persistentes a menos que salvos via configuração.
+- `/elevated on|off|ask|full` permanece um atalho para `host=gateway security=full` (com `full` pulando aprovações).
 
-## Historia multiplataforma
+## História multiplataforma
 
-- O servico de runner e o alvo de execucao portavel.
-- A UI e opcional; se ausente, aplica-se `askFallback`.
-- Windows/Linux suportam o mesmo JSON de aprovacoes + protocolo de socket.
+- O serviço runner é o alvo portátil de execução.
+- A UI é opcional; se ausente, aplica-se `askFallback`.
+- Windows/Linux suportam o mesmo JSON de aprovações + protocolo de socket.
 
-## Fases de implementacao
+## Fases de implementação
 
-### Fase 1: config + roteamento de execucao
+### Fase 1: configuração + roteamento de exec
 
-- Adicionar schema de config para `exec.host`, `exec.security`, `exec.ask`, `exec.node`.
+- Adicionar esquema de configuração para `exec.host`, `exec.security`, `exec.ask`, `exec.node`.
 - Atualizar o encanamento da ferramenta para respeitar `exec.host`.
-- Adicionar o comando de barra `/exec` e manter o alias `/elevated`.
+- Adicionar o comando slash `/exec` e manter o alias `/elevated`.
 
-### Fase 2: armazenamento de aprovacoes + aplicacao no gateway
+### Fase 2: armazenamento de aprovações + aplicação no gateway
 
-- Implementar leitor/gravador de `exec-approvals.json`.
-- Aplicar allowlist + modos de pergunta para o host `gateway`.
-- Adicionar limites de saida.
+- Implementar leitor/escritor de `exec-approvals.json`.
+- Aplicar lista de permissões + modos de pergunta para o host `gateway`.
+- Adicionar limites de saída.
 
-### Fase 3: aplicacao no runner de node
+### Fase 3: aplicação no runner de nó
 
-- Atualizar o runner de node para aplicar allowlist + pergunta.
-- Adicionar ponte de prompt por socket Unix para a UI do app macOS.
+- Atualizar o runner de nó para aplicar lista de permissões + pergunta.
+- Adicionar ponte de prompt via socket Unix para a UI do app macOS.
 - Conectar `askFallback`.
 
 ### Fase 4: eventos
 
-- Adicionar eventos da Bridge do node → gateway para o ciclo de vida do exec.
-- Mapear para `enqueueSystemEvent` para prompts do agente.
+- Adicionar eventos da Bridge de nó → gateway para o ciclo de vida do exec.
+- Mapear para `enqueueSystemEvent` nos prompts do agente.
 
 ### Fase 5: polimento da UI
 
-- App Mac: editor de allowlist, seletor por agente, UI de politica de pergunta.
-- Controles de vinculacao de node (opcional).
+- App Mac: editor de lista de permissões, seletor por agente, UI de política de pergunta.
+- Controles de vínculo de nó (opcional).
 
 ## Plano de testes
 
-- Testes unitarios: correspondencia de allowlist (glob + sem diferenca de maiusculas/minusculas).
-- Testes unitarios: precedencia de resolucao de politica (parametro da ferramenta → override do agente → global).
-- Testes de integracao: fluxos de negar/permitir/perguntar do runner de node.
-- Testes de eventos da Bridge: evento de node → roteamento de evento do sistema.
+- Testes unitários: correspondência de lista de permissões (glob + case-insensitive).
+- Testes unitários: precedência de resolução de política (parâmetro da ferramenta → override do agente → global).
+- Testes de integração: fluxos de negar/permitir/perguntar do runner de nó.
+- Testes de eventos da Bridge: evento de nó → roteamento de evento de sistema.
 
 ## Riscos em aberto
 
 - Indisponibilidade da UI: garantir que `askFallback` seja respeitado.
-- Comandos de longa duracao: depender de timeout + limites de saida.
-- Ambiguidade multi-node: erro a menos que haja vinculacao de node ou parametro de node explicito.
+- Comandos de longa duração: confiar em timeout + limites de saída.
+- Ambiguidade multi-nó: erro a menos que haja vínculo de nó ou parâmetro explícito de nó.
 
 ## Documentos relacionados
 
-- [Ferramenta exec](/tools/exec)
-- [Aprovacoes de exec](/tools/exec-approvals)
+- [Exec tool](/tools/exec)
+- [Exec approvals](/tools/exec-approvals)
 - [Nodes](/nodes)
-- [Modo elevado](/tools/elevated)
+- [Elevated mode](/tools/elevated)

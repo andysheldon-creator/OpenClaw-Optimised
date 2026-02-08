@@ -1,35 +1,35 @@
 ---
-summary: "Configurar Moonshot K2 vs Kimi Coding (provedores + chaves separadas)"
+summary: "Configurar Moonshot K2 vs Kimi Coding (provedores e chaves separados)"
 read_when:
-  - Voce quer configurar Moonshot K2 (Moonshot Open Platform) vs Kimi Coding
-  - Voce precisa entender endpoints, chaves e referencias de modelo separados
-  - Voce quer configuracao de copiar/colar para qualquer provedor
+  - Você quer configurar Moonshot K2 (Moonshot Open Platform) vs Kimi Coding
+  - Você precisa entender endpoints, chaves e referências de modelo separados
+  - Você quer configuração de copiar/colar para qualquer provedor
 title: "Moonshot AI"
 x-i18n:
   source_path: providers/moonshot.md
-  source_hash: 73b8b691b923ce3d
+  source_hash: 9e4a6192faa21b88
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:57:05Z
+  generated_at: 2026-02-08T09:31:40Z
 ---
 
 # Moonshot AI (Kimi)
 
-Moonshot fornece a API Kimi com endpoints compatíveis com OpenAI. Configure o
-provedor e defina o modelo padrao como `moonshot/kimi-k2.5`, ou use
+A Moonshot fornece a API Kimi com endpoints compatíveis com OpenAI. Configure o
+provedor e defina o modelo padrão como `moonshot/kimi-k2.5`, ou use
 Kimi Coding com `kimi-coding/k2p5`.
 
 IDs atuais dos modelos Kimi K2:
 
-{/_ moonshot-kimi-k2-ids:start _/ && null}
+{/_moonshot-kimi-k2-ids:start_/ && null}
 
 - `kimi-k2.5`
 - `kimi-k2-0905-preview`
 - `kimi-k2-turbo-preview`
 - `kimi-k2-thinking`
 - `kimi-k2-thinking-turbo`
-  {/_ moonshot-kimi-k2-ids:end _/ && null}
+  {/_moonshot-kimi-k2-ids:end_/ && null}
 
 ```bash
 openclaw onboard --auth-choice moonshot-api-key
@@ -41,9 +41,9 @@ Kimi Coding:
 openclaw onboard --auth-choice kimi-code-api-key
 ```
 
-Nota: Moonshot e Kimi Coding sao provedores separados. As chaves nao sao intercambiaveis, os endpoints diferem e as referencias de modelo diferem (Moonshot usa `moonshot/...`, Kimi Coding usa `kimi-coding/...`).
+Nota: Moonshot e Kimi Coding são provedores separados. As chaves não são intercambiáveis, os endpoints diferem e as referências de modelo diferem (Moonshot usa `moonshot/...`, Kimi Coding usa `kimi-coding/...`).
 
-## Trecho de configuracao (API Moonshot)
+## Trecho de configuração (API Moonshot)
 
 ```json5
 {
@@ -142,8 +142,8 @@ Nota: Moonshot e Kimi Coding sao provedores separados. As chaves nao sao interca
 
 ## Notas
 
-- As referencias de modelo do Moonshot usam `moonshot/<modelId>`. As referencias de modelo do Kimi Coding usam `kimi-coding/<modelId>`.
-- Substitua os metadados de precos e contexto em `models.providers` se necessario.
-- Se o Moonshot publicar limites de contexto diferentes para um modelo, ajuste
-  `contextWindow` conforme necessario.
+- As referências de modelo da Moonshot usam `moonshot/<modelId>`. As referências de modelo do Kimi Coding usam `kimi-coding/<modelId>`.
+- Substitua metadados de preço e de contexto em `models.providers` se necessário.
+- Se a Moonshot publicar limites de contexto diferentes para um modelo, ajuste
+  `contextWindow` conforme necessário.
 - Use `https://api.moonshot.ai/v1` para o endpoint internacional e `https://api.moonshot.cn/v1` para o endpoint da China.

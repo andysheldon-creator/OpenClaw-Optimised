@@ -1,7 +1,7 @@
 ---
-summary: "CLI-Referenz für `openclaw devices` (Geräte-Kopplung + Token-Rotation/-Widerruf)"
+summary: "CLI-Referenz für `openclaw devices` (Geräte-Pairing + Token-Rotation/-Widerruf)"
 read_when:
-  - Sie genehmigen Anfragen zur Geräte-Kopplung
+  - Sie genehmigen Geräte-Pairing-Anfragen
   - Sie müssen Geräte-Tokens rotieren oder widerrufen
 title: "Geräte"
 x-i18n:
@@ -10,18 +10,18 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:41Z
+  generated_at: 2026-02-08T09:35:37Z
 ---
 
 # `openclaw devices`
 
-Verwalten Sie Anfragen zur Geräte-Kopplung und gerätebezogene Tokens.
+Verwalten Sie Geräte-Pairing-Anfragen und gerätebezogene Tokens.
 
-## Commands
+## Befehle
 
 ### `openclaw devices list`
 
-Listet ausstehende Kopplungsanfragen und gekoppelte Geräte auf.
+Listet ausstehende Pairing-Anfragen und gekoppelte Geräte auf.
 
 ```
 openclaw devices list
@@ -30,7 +30,7 @@ openclaw devices list --json
 
 ### `openclaw devices approve <requestId>`
 
-Genehmigt eine ausstehende Anfrage zur Geräte-Kopplung.
+Genehmigt eine ausstehende Geräte-Pairing-Anfrage.
 
 ```
 openclaw devices approve <requestId>
@@ -38,7 +38,7 @@ openclaw devices approve <requestId>
 
 ### `openclaw devices reject <requestId>`
 
-Lehnt eine ausstehende Anfrage zur Geräte-Kopplung ab.
+Lehnt eine ausstehende Geräte-Pairing-Anfrage ab.
 
 ```
 openclaw devices reject <requestId>
@@ -60,18 +60,18 @@ Widerruft ein Geräte-Token für eine bestimmte Rolle.
 openclaw devices revoke --device <deviceId> --role node
 ```
 
-## Common options
+## Gemeinsame Optionen
 
 - `--url <url>`: Gateway-WebSocket-URL (standardmäßig `gateway.remote.url`, wenn konfiguriert).
 - `--token <token>`: Gateway-Token (falls erforderlich).
 - `--password <password>`: Gateway-Passwort (Passwortauthentifizierung).
 - `--timeout <ms>`: RPC-Timeout.
-- `--json`: JSON-Ausgabe (empfohlen für Skripting).
+- `--json`: JSON-Ausgabe (für Skripting empfohlen).
 
-Hinweis: Wenn Sie `--url` setzen, greift die CLI nicht auf Konfigurations- oder Umgebungs-Anmeldeinformationen zurück.
-Übergeben Sie `--token` oder `--password` explizit. Fehlende explizite Anmeldeinformationen sind ein Fehler.
+Hinweis: Wenn Sie `--url` setzen, greift die CLI nicht auf Konfigurations- oder Umgebungsanmeldedaten zurück.
+Übergeben Sie `--token` oder `--password` explizit. Fehlende explizite Anmeldedaten sind ein Fehler.
 
-## Notes
+## Hinweise
 
 - Die Token-Rotation gibt ein neues Token zurück (sensibel). Behandeln Sie es wie ein Geheimnis.
 - Diese Befehle erfordern den Scope `operator.pairing` (oder `operator.admin`).

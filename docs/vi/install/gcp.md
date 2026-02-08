@@ -2,73 +2,73 @@
 summary: "Chạy OpenClaw Gateway 24/7 trên VM GCP Compute Engine (Docker) với trạng thái bền vững"
 read_when:
   - Bạn muốn OpenClaw chạy 24/7 trên GCP
-  - Bạn muốn một Gateway luôn hoạt động, cấp độ production trên VM của riêng bạn
-  - Bạn muốn toàn quyền kiểm soát tính bền vững, các binary và hành vi khởi động lại
+  - Bạn muốn một Gateway luôn bật, đạt chuẩn production trên VM riêng
+  - Bạn muốn toàn quyền kiểm soát lưu trữ, nhị phân và hành vi khởi động lại
 title: "GCP"
 x-i18n:
   source_path: install/gcp.md
-  source_hash: abb236dd421505d3
+  source_hash: 173d89358506c73c
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:42Z
+  generated_at: 2026-02-08T09:39:30Z
 ---
 
-# OpenClaw trên GCP Compute Engine (Docker, Hướng dẫn VPS Production)
+# OpenClaw trên GCP Compute Engine (Docker, Hướng dẫn VPS production)
 
 ## Mục tiêu
 
-Chạy một OpenClaw Gateway bền vững trên VM GCP Compute Engine bằng Docker, với trạng thái lâu dài, các binary được đóng gói sẵn và hành vi khởi động lại an toàn.
+Chạy một OpenClaw Gateway bền vững trên VM GCP Compute Engine bằng Docker, với trạng thái lưu trữ lâu dài, nhị phân được bake sẵn và hành vi khởi động lại an toàn.
 
 Nếu bạn muốn “OpenClaw 24/7 với ~$5-12/tháng”, đây là một thiết lập đáng tin cậy trên Google Cloud.  
-Chi phí thay đổi theo loại máy và khu vực; hãy chọn VM nhỏ nhất đáp ứng được tải của bạn và nâng cấp nếu gặp OOM.
+Chi phí thay đổi theo loại máy và khu vực; hãy chọn VM nhỏ nhất phù hợp với khối lượng công việc và nâng cấp nếu gặp OOM.
 
-## Chúng ta đang làm gì (nói đơn giản)?
+## Chúng ta đang làm gì (giải thích đơn giản)?
 
-- Tạo một dự án GCP và bật billing
+- Tạo một dự án GCP và bật thanh toán
 - Tạo một VM Compute Engine
 - Cài Docker (môi trường chạy ứng dụng tách biệt)
-- Khởi động OpenClaw Gateway trong Docker
-- Lưu trữ bền vững `~/.openclaw` + `~/.openclaw/workspace` trên host (tồn tại qua các lần khởi động lại/xây dựng lại)
-- Truy cập Control UI từ laptop của bạn qua SSH tunnel
+- Khởi chạy OpenClaw Gateway trong Docker
+- Lưu `~/.openclaw` + `~/.openclaw/workspace` trên host (tồn tại qua restart/rebuild)
+- Truy cập Control UI từ laptop qua đường hầm SSH
 
 Gateway có thể được truy cập qua:
 
-- Chuyển tiếp cổng SSH từ laptop của bạn
+- Chuyển tiếp cổng SSH từ laptop
 - Mở cổng trực tiếp nếu bạn tự quản lý firewall và token
 
 Hướng dẫn này dùng Debian trên GCP Compute Engine.  
-Ubuntu cũng hoạt động; hãy ánh xạ các gói tương ứng.  
-Đối với luồng Docker chung, xem [Docker](/install/docker).
+Ubuntu cũng hoạt động; chỉ cần ánh xạ gói tương ứng.  
+Với luồng Docker chung, xem [Docker](/install/docker).
 
 ---
 
-## Lộ trình nhanh (cho người đã có kinh nghiệm)
+## Lối nhanh (cho người đã có kinh nghiệm)
 
 1. Tạo dự án GCP + bật Compute Engine API
 2. Tạo VM Compute Engine (e2-small, Debian 12, 20GB)
 3. SSH vào VM
 4. Cài Docker
 5. Clone repository OpenClaw
-6. Tạo các thư mục bền vững trên host
+6. Tạo các thư mục host bền vững
 7. Cấu hình `.env` và `docker-compose.yml`
-8. Đóng gói các binary cần thiết, build và khởi chạy
+8. Bake nhị phân cần thiết, build và khởi chạy
 
 ---
 
 ## Những gì bạn cần
 
-- Tài khoản GCP (free tier đủ điều kiện cho e2-micro)
+- Tài khoản GCP (free tier dùng được cho e2-micro)
 - gcloud CLI đã cài (hoặc dùng Cloud Console)
-- Quyền SSH từ laptop của bạn
-- Biết cơ bản về SSH + copy/paste
+- Quyền SSH từ laptop
+- Thoải mái cơ bản với SSH + copy/paste
 - ~20–30 phút
 - Docker và Docker Compose
-- Thông tin xác thực model
+- Thông tin xác thực mô hình
 - Thông tin xác thực nhà cung cấp (tùy chọn)
-  - WhatsApp QR
-  - Telegram bot token
-  - Gmail OAuth
+  - QR WhatsApp
+  - Token bot Telegram
+  - OAuth Gmail
 
 ---
 
@@ -76,7 +76,7 @@ Ubuntu cũng hoạt động; hãy ánh xạ các gói tương ứng.
 
 **Tùy chọn A: gcloud CLI** (khuyến nghị cho tự động hóa)
 
-Cài từ https://cloud.google.com/sdk/docs/install
+Cài đặt từ [https://cloud.google.com/sdk/docs/install](https://cloud.google.com/sdk/docs/install)
 
 Khởi tạo và xác thực:
 
@@ -87,7 +87,7 @@ gcloud auth login
 
 **Tùy chọn B: Cloud Console**
 
-Tất cả các bước đều có thể thực hiện qua giao diện web tại https://console.cloud.google.com
+Tất cả các bước có thể thực hiện qua web UI tại [https://console.cloud.google.com](https://console.cloud.google.com)
 
 ---
 
@@ -100,7 +100,7 @@ gcloud projects create my-openclaw-project --name="OpenClaw Gateway"
 gcloud config set project my-openclaw-project
 ```
 
-Bật billing tại https://console.cloud.google.com/billing (bắt buộc cho Compute Engine).
+Bật thanh toán tại [https://console.cloud.google.com/billing](https://console.cloud.google.com/billing) (bắt buộc cho Compute Engine).
 
 Bật Compute Engine API:
 
@@ -112,14 +112,14 @@ gcloud services enable compute.googleapis.com
 
 1. Vào IAM & Admin > Create Project
 2. Đặt tên và tạo
-3. Bật billing cho dự án
+3. Bật thanh toán cho dự án
 4. Vào APIs & Services > Enable APIs > tìm “Compute Engine API” > Enable
 
 ---
 
 ## 3) Tạo VM
 
-**Loại máy:**
+**Các loại máy:**
 
 | Type     | Specs                     | Cost                   | Notes                  |
 | -------- | ------------------------- | ---------------------- | ---------------------- |
@@ -140,7 +140,7 @@ gcloud compute instances create openclaw-gateway \
 **Console:**
 
 1. Vào Compute Engine > VM instances > Create instance
-2. Tên: `openclaw-gateway`
+2. Name: `openclaw-gateway`
 3. Region: `us-central1`, Zone: `us-central1-a`
 4. Machine type: `e2-small`
 5. Boot disk: Debian 12, 20GB
@@ -158,9 +158,9 @@ gcloud compute ssh openclaw-gateway --zone=us-central1-a
 
 **Console:**
 
-Nhấn nút “SSH” cạnh VM của bạn trong bảng điều khiển Compute Engine.
+Nhấn nút “SSH” bên cạnh VM trong bảng điều khiển Compute Engine.
 
-Lưu ý: Việc đồng bộ SSH key có thể mất 1–2 phút sau khi tạo VM. Nếu bị từ chối kết nối, hãy chờ và thử lại.
+Lưu ý: Việc đồng bộ SSH key có thể mất 1–2 phút sau khi tạo VM. Nếu bị từ chối kết nối, hãy đợi và thử lại.
 
 ---
 
@@ -201,14 +201,14 @@ git clone https://github.com/openclaw/openclaw.git
 cd openclaw
 ```
 
-Hướng dẫn này giả định bạn sẽ build một image tùy chỉnh để đảm bảo tính bền vững của các binary.
+Hướng dẫn này giả định bạn sẽ build image tùy chỉnh để đảm bảo nhị phân được lưu bền vững.
 
 ---
 
-## 7) Tạo các thư mục bền vững trên host
+## 7) Tạo các thư mục host bền vững
 
 Container Docker là tạm thời.  
-Mọi trạng thái tồn tại lâu dài phải nằm trên host.
+Mọi trạng thái dài hạn phải nằm trên host.
 
 ```bash
 mkdir -p ~/.openclaw
@@ -291,26 +291,26 @@ services:
 
 ---
 
-## 10) Đóng gói các binary cần thiết vào image (quan trọng)
+## 10) Bake nhị phân cần thiết vào image (quan trọng)
 
-Cài binary bên trong container đang chạy là một cái bẫy.  
-Bất cứ thứ gì cài lúc runtime sẽ bị mất khi khởi động lại.
+Cài nhị phân bên trong container đang chạy là một cái bẫy.  
+Mọi thứ cài ở runtime sẽ bị mất khi restart.
 
-Tất cả các binary bên ngoài mà Skills yêu cầu phải được cài tại thời điểm build image.
+Tất cả nhị phân bên ngoài mà Skills cần phải được cài ở thời điểm build image.
 
-Các ví dụ dưới đây chỉ minh họa ba binary phổ biến:
+Các ví dụ dưới đây chỉ minh họa ba nhị phân phổ biến:
 
-- `gog` cho truy cập Gmail
+- `gog` để truy cập Gmail
 - `goplaces` cho Google Places
 - `wacli` cho WhatsApp
 
 Đây chỉ là ví dụ, không phải danh sách đầy đủ.  
-Bạn có thể cài bao nhiêu binary tùy ý theo cùng một mẫu.
+Bạn có thể cài bao nhiêu nhị phân tùy ý theo cùng một mẫu.
 
-Nếu sau này bạn thêm Skills mới phụ thuộc vào các binary bổ sung, bạn phải:
+Nếu sau này bạn thêm Skills mới phụ thuộc vào nhị phân khác, bạn phải:
 
 1. Cập nhật Dockerfile
-2. Rebuild image
+2. Build lại image
 3. Khởi động lại container
 
 **Ví dụ Dockerfile**
@@ -361,7 +361,7 @@ docker compose build
 docker compose up -d openclaw-gateway
 ```
 
-Kiểm tra các binary:
+Kiểm tra nhị phân:
 
 ```bash
 docker compose exec openclaw-gateway which gog
@@ -369,7 +369,7 @@ docker compose exec openclaw-gateway which goplaces
 docker compose exec openclaw-gateway which wacli
 ```
 
-Kết quả mong đợi:
+Đầu ra mong đợi:
 
 ```
 /usr/local/bin/gog
@@ -395,7 +395,7 @@ Thành công:
 
 ## 13) Truy cập từ laptop của bạn
 
-Tạo SSH tunnel để chuyển tiếp cổng Gateway:
+Tạo đường hầm SSH để chuyển tiếp cổng Gateway:
 
 ```bash
 gcloud compute ssh openclaw-gateway --zone=us-central1-a -- -L 18789:127.0.0.1:18789
@@ -409,23 +409,23 @@ Dán gateway token của bạn.
 
 ---
 
-## Những gì được lưu ở đâu (nguồn chân lý)
+## Dữ liệu nào được lưu ở đâu (nguồn chân lý)
 
 OpenClaw chạy trong Docker, nhưng Docker không phải là nguồn chân lý.  
-Mọi trạng thái tồn tại lâu dài phải sống sót qua khởi động lại, build lại và reboot.
+Mọi trạng thái dài hạn phải tồn tại qua restart, rebuild và reboot.
 
-| Thành phần           | Vị trí                            | Cơ chế lưu trữ bền vững | Ghi chú                        |
-| -------------------- | --------------------------------- | ----------------------- | ------------------------------ |
-| Cấu hình Gateway     | `/home/node/.openclaw/`           | Gắn volume host         | Bao gồm `openclaw.json`, token |
-| Hồ sơ xác thực model | `/home/node/.openclaw/`           | Gắn volume host         | OAuth token, API key           |
-| Cấu hình Skill       | `/home/node/.openclaw/skills/`    | Gắn volume host         | Trạng thái cấp Skill           |
-| Workspace agent      | `/home/node/.openclaw/workspace/` | Gắn volume host         | Code và artifact của agent     |
-| Phiên WhatsApp       | `/home/node/.openclaw/`           | Gắn volume host         | Giữ đăng nhập QR               |
-| Keyring Gmail        | `/home/node/.openclaw/`           | Volume host + mật khẩu  | Yêu cầu `GOG_KEYRING_PASSWORD` |
-| Binary bên ngoài     | `/usr/local/bin/`                 | Docker image            | Phải được đóng gói lúc build   |
-| Node runtime         | Filesystem container              | Docker image            | Rebuild mỗi lần build image    |
-| Gói hệ điều hành     | Filesystem container              | Docker image            | Không cài lúc runtime          |
-| Docker container     | Tạm thời                          | Có thể restart          | An toàn khi xóa                |
+| Thành phần             | Vị trí                            | Cơ chế lưu bền vững    | Ghi chú                        |
+| ---------------------- | --------------------------------- | ---------------------- | ------------------------------ |
+| Cấu hình Gateway       | `/home/node/.openclaw/`           | Gắn volume host        | Bao gồm `openclaw.json`, token |
+| Hồ sơ xác thực mô hình | `/home/node/.openclaw/`           | Gắn volume host        | Token OAuth, khóa API          |
+| Cấu hình Skill         | `/home/node/.openclaw/skills/`    | Gắn volume host        | Trạng thái theo Skill          |
+| Workspace tác tử       | `/home/node/.openclaw/workspace/` | Gắn volume host        | Mã và artifact của tác tử      |
+| Phiên WhatsApp         | `/home/node/.openclaw/`           | Gắn volume host        | Giữ đăng nhập QR               |
+| Keyring Gmail          | `/home/node/.openclaw/`           | Volume host + mật khẩu | Cần `GOG_KEYRING_PASSWORD`     |
+| Nhị phân bên ngoài     | `/usr/local/bin/`                 | Docker image           | Phải bake khi build            |
+| Runtime Node           | Hệ thống file container           | Docker image           | Build lại mỗi lần build image  |
+| Gói hệ điều hành       | Hệ thống file container           | Docker image           | Không cài ở runtime            |
+| Container Docker       | Tạm thời                          | Có thể restart         | An toàn khi xóa                |
 
 ---
 
@@ -446,7 +446,7 @@ docker compose up -d
 
 **SSH connection refused**
 
-Việc đồng bộ SSH key có thể mất 1–2 phút sau khi tạo VM. Hãy chờ và thử lại.
+Việc đồng bộ SSH key có thể mất 1–2 phút sau khi tạo VM. Hãy đợi và thử lại.
 
 **Vấn đề OS Login**
 
@@ -477,11 +477,11 @@ gcloud compute instances start openclaw-gateway --zone=us-central1-a
 
 ---
 
-## Service accounts (thực hành bảo mật tốt nhất)
+## Service accounts (thực hành bảo mật tốt)
 
 Với mục đích cá nhân, tài khoản người dùng mặc định của bạn là đủ.
 
-Đối với tự động hóa hoặc pipeline CI/CD, hãy tạo một service account riêng với quyền tối thiểu:
+Với tự động hóa hoặc pipeline CI/CD, hãy tạo một service account riêng với quyền tối thiểu:
 
 1. Tạo service account:
 
@@ -491,6 +491,7 @@ Với mục đích cá nhân, tài khoản người dùng mặc định của b�
    ```
 
 2. Cấp vai trò Compute Instance Admin (hoặc vai trò tùy chỉnh hẹp hơn):
+
    ```bash
    gcloud projects add-iam-policy-binding my-openclaw-project \
      --member="serviceAccount:openclaw-deploy@my-openclaw-project.iam.gserviceaccount.com" \
@@ -499,7 +500,7 @@ Với mục đích cá nhân, tài khoản người dùng mặc định của b�
 
 Tránh dùng vai trò Owner cho tự động hóa. Áp dụng nguyên tắc đặc quyền tối thiểu.
 
-Xem https://cloud.google.com/iam/docs/understanding-roles để biết chi tiết về vai trò IAM.
+Xem [https://cloud.google.com/iam/docs/understanding-roles](https://cloud.google.com/iam/docs/understanding-roles) để biết chi tiết về vai trò IAM.
 
 ---
 

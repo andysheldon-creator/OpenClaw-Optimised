@@ -1,39 +1,39 @@
 ---
-summary: "Tong quan nha cung cap mo hinh kem cau hinh mau + luong CLI"
+summary: "Tổng quan nhà cung cấp mô hình với cấu hình mẫu + luồng CLI"
 read_when:
-  - Ban can tai lieu tham chieu thiet lap mo hinh theo tung nha cung cap
-  - Ban muon cau hinh mau hoac lenh CLI huong dan ban dau cho cac nha cung cap mo hinh
-title: "Nha cung cap mo hinh"
+  - Bạn cần tài liệu tham chiếu thiết lập mô hình theo từng nhà cung cấp
+  - Bạn muốn xem cấu hình mẫu hoặc các lệnh CLI hướng dẫn ban đầu cho nhà cung cấp mô hình
+title: "Nhà cung cấp mô hình"
 x-i18n:
   source_path: concepts/model-providers.md
-  source_hash: 003efe22aaa37e8e
+  source_hash: b086e62236225de6
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:56Z
+  generated_at: 2026-02-08T09:38:44Z
 ---
 
-# Nha cung cap mo hinh
+# Nhà cung cấp mô hình
 
-Trang nay bao gom **cac nha cung cap LLM/mo hinh** (khong phai cac kenh chat nhu WhatsApp/Telegram).
-De biet quy tac chon mo hinh, xem [/concepts/models](/concepts/models).
+Trang này bao quát **các nhà cung cấp LLM/mô hình** (không phải các kênh chat như WhatsApp/Telegram).
+Để biết quy tắc chọn mô hình, xem [/concepts/models](/concepts/models).
 
-## Quy tac nhanh
+## Quy tắc nhanh
 
-- Tham chieu mo hinh su dung `provider/model` (vi du: `opencode/claude-opus-4-6`).
-- Neu ban dat `agents.defaults.models`, no se tro thanh danh sach cho phep.
-- Tro giup CLI: `openclaw onboard`, `openclaw models list`, `openclaw models set <provider/model>`.
+- Tham chiếu mô hình dùng `provider/model` (ví dụ: `opencode/claude-opus-4-6`).
+- Nếu bạn đặt `agents.defaults.models`, nó sẽ trở thành danh sách cho phép.
+- Trợ giúp CLI: `openclaw onboard`, `openclaw models list`, `openclaw models set <provider/model>`.
 
-## Nha cung cap tich hop san (pi-ai catalog)
+## Nhà cung cấp tích hợp sẵn (danh mục pi‑ai)
 
-OpenClaw di kem pi‑ai catalog. Cac nha cung cap nay **khong**
-yeu cau cau hinh `models.providers`; chi can thiet lap xac thuc + chon mo hinh.
+OpenClaw đi kèm danh mục pi‑ai. Các nhà cung cấp này **không**
+yêu cầu cấu hình `models.providers`; chỉ cần thiết lập xác thực + chọn mô hình.
 
 ### OpenAI
 
-- Nha cung cap: `openai`
-- Xac thuc: `OPENAI_API_KEY`
-- Mo hinh vi du: `openai/gpt-5.1-codex`
+- Nhà cung cấp: `openai`
+- Xác thực: `OPENAI_API_KEY`
+- Ví dụ mô hình: `openai/gpt-5.1-codex`
 - CLI: `openclaw onboard --auth-choice openai-api-key`
 
 ```json5
@@ -44,10 +44,10 @@ yeu cau cau hinh `models.providers`; chi can thiet lap xac thuc + chon mo hinh.
 
 ### Anthropic
 
-- Nha cung cap: `anthropic`
-- Xac thuc: `ANTHROPIC_API_KEY` hoac `claude setup-token`
-- Mo hinh vi du: `anthropic/claude-opus-4-6`
-- CLI: `openclaw onboard --auth-choice token` (dan setup-token) hoac `openclaw models auth paste-token --provider anthropic`
+- Nhà cung cấp: `anthropic`
+- Xác thực: `ANTHROPIC_API_KEY` hoặc `claude setup-token`
+- Ví dụ mô hình: `anthropic/claude-opus-4-6`
+- CLI: `openclaw onboard --auth-choice token` (dán setup-token) hoặc `openclaw models auth paste-token --provider anthropic`
 
 ```json5
 {
@@ -57,10 +57,10 @@ yeu cau cau hinh `models.providers`; chi can thiet lap xac thuc + chon mo hinh.
 
 ### OpenAI Code (Codex)
 
-- Nha cung cap: `openai-codex`
-- Xac thuc: OAuth (ChatGPT)
-- Mo hinh vi du: `openai-codex/gpt-5.3-codex`
-- CLI: `openclaw onboard --auth-choice openai-codex` hoac `openclaw models auth login --provider openai-codex`
+- Nhà cung cấp: `openai-codex`
+- Xác thực: OAuth (ChatGPT)
+- Ví dụ mô hình: `openai-codex/gpt-5.3-codex`
+- CLI: `openclaw onboard --auth-choice openai-codex` hoặc `openclaw models auth login --provider openai-codex`
 
 ```json5
 {
@@ -70,9 +70,9 @@ yeu cau cau hinh `models.providers`; chi can thiet lap xac thuc + chon mo hinh.
 
 ### OpenCode Zen
 
-- Nha cung cap: `opencode`
-- Xac thuc: `OPENCODE_API_KEY` (hoac `OPENCODE_ZEN_API_KEY`)
-- Mo hinh vi du: `opencode/claude-opus-4-6`
+- Nhà cung cấp: `opencode`
+- Xác thực: `OPENCODE_API_KEY` (hoặc `OPENCODE_ZEN_API_KEY`)
+- Ví dụ mô hình: `opencode/claude-opus-4-6`
 - CLI: `openclaw onboard --auth-choice opencode-zen`
 
 ```json5
@@ -81,76 +81,76 @@ yeu cau cau hinh `models.providers`; chi can thiet lap xac thuc + chon mo hinh.
 }
 ```
 
-### Google Gemini (API key)
+### Google Gemini (khóa API)
 
-- Nha cung cap: `google`
-- Xac thuc: `GEMINI_API_KEY`
-- Mo hinh vi du: `google/gemini-3-pro-preview`
+- Nhà cung cấp: `google`
+- Xác thực: `GEMINI_API_KEY`
+- Ví dụ mô hình: `google/gemini-3-pro-preview`
 - CLI: `openclaw onboard --auth-choice gemini-api-key`
 
-### Google Vertex, Antigravity, va Gemini CLI
+### Google Vertex, Antigravity và Gemini CLI
 
-- Nha cung cap: `google-vertex`, `google-antigravity`, `google-gemini-cli`
-- Xac thuc: Vertex su dung gcloud ADC; Antigravity/Gemini CLI su dung cac luong xac thuc rieng
-- OAuth Antigravity duoc phat hanh duoi dang plugin dong goi (`google-antigravity-auth`, mac dinh tat).
-  - Bat: `openclaw plugins enable google-antigravity-auth`
-  - Dang nhap: `openclaw models auth login --provider google-antigravity --set-default`
-- OAuth Gemini CLI duoc phat hanh duoi dang plugin dong goi (`google-gemini-cli-auth`, mac dinh tat).
-  - Bat: `openclaw plugins enable google-gemini-cli-auth`
-  - Dang nhap: `openclaw models auth login --provider google-gemini-cli --set-default`
-  - Luu y: ban **khong** dan client id hoac secret vao `openclaw.json`. Luong dang nhap CLI
-    luu token trong cac ho so xac thuc tren may chu Gateway.
+- Nhà cung cấp: `google-vertex`, `google-antigravity`, `google-gemini-cli`
+- Xác thực: Vertex dùng gcloud ADC; Antigravity/Gemini CLI dùng các luồng xác thực tương ứng
+- OAuth Antigravity được phát hành như một plugin đóng gói (`google-antigravity-auth`, mặc định tắt).
+  - Bật: `openclaw plugins enable google-antigravity-auth`
+  - Đăng nhập: `openclaw models auth login --provider google-antigravity --set-default`
+- OAuth Gemini CLI được phát hành như một plugin đóng gói (`google-gemini-cli-auth`, mặc định tắt).
+  - Bật: `openclaw plugins enable google-gemini-cli-auth`
+  - Đăng nhập: `openclaw models auth login --provider google-gemini-cli --set-default`
+  - Lưu ý: bạn **không** dán client id hoặc secret vào `openclaw.json`. Luồng đăng nhập CLI
+    lưu token trong các hồ sơ xác thực trên máy chủ gateway.
 
 ### Z.AI (GLM)
 
-- Nha cung cap: `zai`
-- Xac thuc: `ZAI_API_KEY`
-- Mo hinh vi du: `zai/glm-4.7`
+- Nhà cung cấp: `zai`
+- Xác thực: `ZAI_API_KEY`
+- Ví dụ mô hình: `zai/glm-4.7`
 - CLI: `openclaw onboard --auth-choice zai-api-key`
-  - Ten goi khac: `z.ai/*` va `z-ai/*` se chuan hoa thanh `zai/*`
+  - Bí danh: `z.ai/*` và `z-ai/*` được chuẩn hóa thành `zai/*`
 
 ### Vercel AI Gateway
 
-- Nha cung cap: `vercel-ai-gateway`
-- Xac thuc: `AI_GATEWAY_API_KEY`
-- Mo hinh vi du: `vercel-ai-gateway/anthropic/claude-opus-4.6`
+- Nhà cung cấp: `vercel-ai-gateway`
+- Xác thực: `AI_GATEWAY_API_KEY`
+- Ví dụ mô hình: `vercel-ai-gateway/anthropic/claude-opus-4.6`
 - CLI: `openclaw onboard --auth-choice ai-gateway-api-key`
 
-### Cac nha cung cap tich hop san khac
+### Các nhà cung cấp tích hợp sẵn khác
 
 - OpenRouter: `openrouter` (`OPENROUTER_API_KEY`)
-- Mo hinh vi du: `openrouter/anthropic/claude-sonnet-4-5`
+- Ví dụ mô hình: `openrouter/anthropic/claude-sonnet-4-5`
 - xAI: `xai` (`XAI_API_KEY`)
 - Groq: `groq` (`GROQ_API_KEY`)
 - Cerebras: `cerebras` (`CEREBRAS_API_KEY`)
-  - Cac mo hinh GLM tren Cerebras su dung id `zai-glm-4.7` va `zai-glm-4.6`.
-  - Base URL tuong thich OpenAI: `https://api.cerebras.ai/v1`.
+  - Các mô hình GLM trên Cerebras dùng id `zai-glm-4.7` và `zai-glm-4.6`.
+  - Base URL tương thích OpenAI: `https://api.cerebras.ai/v1`.
 - Mistral: `mistral` (`MISTRAL_API_KEY`)
 - GitHub Copilot: `github-copilot` (`COPILOT_GITHUB_TOKEN` / `GH_TOKEN` / `GITHUB_TOKEN`)
 
-## Nha cung cap qua `models.providers` (URL tuy chinh/base)
+## Nhà cung cấp qua `models.providers` (URL tùy chỉnh/cơ sở)
 
-Su dung `models.providers` (hoac `models.json`) de them cac nha cung cap **tuy chinh** hoac
-proxy tuong thich OpenAI/Anthropic.
+Dùng `models.providers` (hoặc `models.json`) để thêm **nhà cung cấp tùy chỉnh** hoặc
+các proxy tương thích OpenAI/Anthropic.
 
 ### Moonshot AI (Kimi)
 
-Moonshot su dung endpoint tuong thich OpenAI, vi vay cau hinh no nhu mot nha cung cap tuy chinh:
+Moonshot dùng các endpoint tương thích OpenAI, vì vậy hãy cấu hình như một nhà cung cấp tùy chỉnh:
 
-- Nha cung cap: `moonshot`
-- Xac thuc: `MOONSHOT_API_KEY`
-- Mo hinh vi du: `moonshot/kimi-k2.5`
+- Nhà cung cấp: `moonshot`
+- Xác thực: `MOONSHOT_API_KEY`
+- Ví dụ mô hình: `moonshot/kimi-k2.5`
 
-Cac id mo hinh Kimi K2:
+ID mô hình Kimi K2:
 
-{/_ moonshot-kimi-k2-model-refs:start _/ && null}
+{/_moonshot-kimi-k2-model-refs:start_/ && null}
 
 - `moonshot/kimi-k2.5`
 - `moonshot/kimi-k2-0905-preview`
 - `moonshot/kimi-k2-turbo-preview`
 - `moonshot/kimi-k2-thinking`
 - `moonshot/kimi-k2-thinking-turbo`
-  {/_ moonshot-kimi-k2-model-refs:end _/ && null}
+  {/_moonshot-kimi-k2-model-refs:end_/ && null}
 
 ```json5
 {
@@ -173,11 +173,11 @@ Cac id mo hinh Kimi K2:
 
 ### Kimi Coding
 
-Kimi Coding su dung endpoint tuong thich Anthropic cua Moonshot AI:
+Kimi Coding dùng endpoint tương thích Anthropic của Moonshot AI:
 
-- Nha cung cap: `kimi-coding`
-- Xac thuc: `KIMI_API_KEY`
-- Mo hinh vi du: `kimi-coding/k2p5`
+- Nhà cung cấp: `kimi-coding`
+- Xác thực: `KIMI_API_KEY`
+- Ví dụ mô hình: `kimi-coding/k2p5`
 
 ```json5
 {
@@ -188,30 +188,30 @@ Kimi Coding su dung endpoint tuong thich Anthropic cua Moonshot AI:
 }
 ```
 
-### Qwen OAuth (mien phi)
+### Qwen OAuth (gói miễn phí)
 
-Qwen cung cap truy cap OAuth toi Qwen Coder + Vision thong qua luong device-code.
-Bat plugin dong goi, sau do dang nhap:
+Qwen cung cấp quyền truy cập OAuth tới Qwen Coder + Vision qua luồng device-code.
+Bật plugin đóng gói, sau đó đăng nhập:
 
 ```bash
 openclaw plugins enable qwen-portal-auth
 openclaw models auth login --provider qwen-portal --set-default
 ```
 
-Tham chieu mo hinh:
+Tham chiếu mô hình:
 
 - `qwen-portal/coder-model`
 - `qwen-portal/vision-model`
 
-Xem [/providers/qwen](/providers/qwen) de biet chi tiet thiet lap va luu y.
+Xem [/providers/qwen](/providers/qwen) để biết chi tiết thiết lập và lưu ý.
 
 ### Synthetic
 
-Synthetic cung cap cac mo hinh tuong thich Anthropic phia sau nha cung cap `synthetic`:
+Synthetic cung cấp các mô hình tương thích Anthropic phía sau nhà cung cấp `synthetic`:
 
-- Nha cung cap: `synthetic`
-- Xac thuc: `SYNTHETIC_API_KEY`
-- Mo hinh vi du: `synthetic/hf:MiniMaxAI/MiniMax-M2.1`
+- Nhà cung cấp: `synthetic`
+- Xác thực: `SYNTHETIC_API_KEY`
+- Ví dụ mô hình: `synthetic/hf:MiniMaxAI/MiniMax-M2.1`
 - CLI: `openclaw onboard --auth-choice synthetic-api-key`
 
 ```json5
@@ -235,21 +235,21 @@ Synthetic cung cap cac mo hinh tuong thich Anthropic phia sau nha cung cap `synt
 
 ### MiniMax
 
-MiniMax duoc cau hinh qua `models.providers` vi no su dung endpoint tuy chinh:
+MiniMax được cấu hình qua `models.providers` vì nó dùng các endpoint tùy chỉnh:
 
-- MiniMax (tuong thich Anthropic): `--auth-choice minimax-api`
-- Xac thuc: `MINIMAX_API_KEY`
+- MiniMax (tương thích Anthropic): `--auth-choice minimax-api`
+- Xác thực: `MINIMAX_API_KEY`
 
-Xem [/providers/minimax](/providers/minimax) de biet chi tiet thiet lap, tuy chon mo hinh, va cac doan cau hinh mau.
+Xem [/providers/minimax](/providers/minimax) để biết chi tiết thiết lập, tùy chọn mô hình và các đoạn cấu hình.
 
 ### Ollama
 
-Ollama la mot runtime LLM cuc bo cung cap API tuong thich OpenAI:
+Ollama là một runtime LLM cục bộ cung cấp API tương thích OpenAI:
 
-- Nha cung cap: `ollama`
-- Xac thuc: Khong can (may chu cuc bo)
-- Mo hinh vi du: `ollama/llama3.3`
-- Cai dat: https://ollama.ai
+- Nhà cung cấp: `ollama`
+- Xác thực: Không cần (máy chủ cục bộ)
+- Ví dụ mô hình: `ollama/llama3.3`
+- Cài đặt: [https://ollama.ai](https://ollama.ai)
 
 ```bash
 # Install Ollama, then pull a model:
@@ -264,11 +264,11 @@ ollama pull llama3.3
 }
 ```
 
-Ollama duoc tu dong phat hien khi chay cuc bo tai `http://127.0.0.1:11434/v1`. Xem [/providers/ollama](/providers/ollama) de biet khuyen nghi mo hinh va cau hinh tuy chinh.
+Ollama được tự động phát hiện khi chạy cục bộ tại `http://127.0.0.1:11434/v1`. Xem [/providers/ollama](/providers/ollama) để biết khuyến nghị mô hình và cấu hình tùy chỉnh.
 
-### Proxy cuc bo (LM Studio, vLLM, LiteLLM, v.v.)
+### Proxy cục bộ (LM Studio, vLLM, LiteLLM, v.v.)
 
-Vi du (tuong thich OpenAI):
+Ví dụ (tương thích OpenAI):
 
 ```json5
 {
@@ -301,18 +301,18 @@ Vi du (tuong thich OpenAI):
 }
 ```
 
-Luu y:
+Ghi chú:
 
-- Doi voi nha cung cap tuy chinh, `reasoning`, `input`, `cost`, `contextWindow`, va `maxTokens` la tuy chon.
-  Khi bo qua, OpenClaw mac dinh:
+- Với các nhà cung cấp tùy chỉnh, `reasoning`, `input`, `cost`, `contextWindow` và `maxTokens` là tùy chọn.
+  Khi bỏ qua, OpenClaw mặc định:
   - `reasoning: false`
   - `input: ["text"]`
   - `cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }`
   - `contextWindow: 200000`
   - `maxTokens: 8192`
-- Khuyen nghi: dat gia tri cu the phu hop voi gioi han proxy/mo hinh cua ban.
+- Khuyến nghị: đặt giá trị tường minh phù hợp với giới hạn proxy/mô hình của bạn.
 
-## Vi du CLI
+## Ví dụ CLI
 
 ```bash
 openclaw onboard --auth-choice opencode-zen
@@ -320,4 +320,4 @@ openclaw models set opencode/claude-opus-4-6
 openclaw models list
 ```
 
-Xem them: [/gateway/configuration](/gateway/configuration) de biet cac vi du cau hinh day du.
+Xem thêm: [/gateway/configuration](/gateway/configuration) để biết các ví dụ cấu hình đầy đủ.

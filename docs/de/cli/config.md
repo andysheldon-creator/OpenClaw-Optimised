@@ -1,21 +1,21 @@
 ---
-summary: "CLI-Referenz für `openclaw config` (Konfigurationswerte abrufen/setzen/entfernen)"
+summary: "CLI-Referenz für `openclaw config` (Config-Werte abrufen/setzen/entfernen)"
 read_when:
-  - Sie Konfiguration nicht-interaktiv lesen oder bearbeiten möchten
-title: "Konfiguration"
+  - Sie Konfigurationen nicht interaktiv lesen oder bearbeiten möchten
+title: "config"
 x-i18n:
   source_path: cli/config.md
   source_hash: d60a35f5330f22bc
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:36Z
+  generated_at: 2026-02-08T09:35:33Z
 ---
 
 # `openclaw config`
 
-Konfigurationshelfer: Werte per Pfad abrufen/setzen/entfernen. Ohne Unterbefehl ausführen, um den Konfigurationsassistenten zu öffnen
-(dasselbe wie `openclaw configure`).
+Konfigurationshilfen: Werte nach Pfad abrufen/setzen/entfernen. Ohne Unterbefehl ausführen, um
+den Konfigurationsassistenten zu öffnen (gleich wie `openclaw configure`).
 
 ## Beispiele
 
@@ -36,7 +36,7 @@ openclaw config get agents.defaults.workspace
 openclaw config get agents.list[0].id
 ```
 
-Verwenden Sie den Agent-Listenindex, um einen bestimmten Agent anzusprechen:
+Verwenden Sie den Agentenlistenindex, um einen bestimmten Agenten anzusprechen:
 
 ```bash
 openclaw config get agents.list

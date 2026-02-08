@@ -1,20 +1,20 @@
 ---
-summary: "Strikte Konfigurationsvalidierung + nur-Doctor-Migrationen"
+summary: „Strikte Konfigurationsvalidierung + ausschließlich Doctor-Migrationen“
 read_when:
-  - Beim Entwerfen oder Implementieren von Konfigurationsvalidierungsverhalten
-  - Beim Arbeiten an Konfigurationsmigrationen oder Doctor-Workflows
-  - Beim Umgang mit Plugin-Konfigurationsschemata oder Plugin-Lade-Gating
-title: "Strikte Konfigurationsvalidierung"
+  - Entwurf oder Implementierung von Verhalten zur Konfigurationsvalidierung
+  - Arbeit an Konfigurationsmigrationen oder Doctor-Workflows
+  - Umgang mit Plugin-Konfigurationsschemata oder dem Gating beim Plugin-Laden
+title: „Strikte Konfigurationsvalidierung“
 x-i18n:
   source_path: refactor/strict-config.md
   source_hash: 5bc7174a67d2234e
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:21Z
+  generated_at: 2026-02-08T09:37:13Z
 ---
 
-# Strikte Konfigurationsvalidierung (nur-Doctor-Migrationen)
+# Strikte Konfigurationsvalidierung (Doctor-only-Migrationen)
 
 ## Ziele
 
@@ -28,31 +28,31 @@ x-i18n:
 - Abwärtskompatibilität beim Laden (Legacy-Schlüssel werden nicht automatisch migriert).
 - Stilles Verwerfen nicht erkannter Schlüssel.
 
-## Strikte Validierungsregeln
+## Regeln für strikte Validierung
 
 - Die Konfiguration muss auf jeder Ebene exakt dem Schema entsprechen.
-- Unbekannte Schlüssel sind Validierungsfehler (keine Durchleitung auf Root- oder verschachtelter Ebene).
+- Unbekannte Schlüssel sind Validierungsfehler (kein Passthrough auf Root- oder verschachtelter Ebene).
 - `plugins.entries.<id>.config` muss durch das Schema des Plugins validiert werden.
   - Fehlt einem Plugin ein Schema, **Plugin-Laden ablehnen** und einen klaren Fehler anzeigen.
-- Unbekannte `channels.<id>`-Schlüssel sind Fehler, sofern kein Plugin-Manifest die Kanal-ID deklariert.
+- Unbekannte `channels.<id>`-Schlüssel sind Fehler, es sei denn, ein Plugin-Manifest deklariert die Kanal-ID.
 - Plugin-Manifeste (`openclaw.plugin.json`) sind für alle Plugins erforderlich.
 
 ## Durchsetzung von Plugin-Schemata
 
 - Jedes Plugin stellt ein striktes JSON-Schema für seine Konfiguration bereit (inline im Manifest).
-- Plugin-Ladeablauf:
+- Ablauf beim Laden von Plugins:
   1. Plugin-Manifest + Schema auflösen (`openclaw.plugin.json`).
   2. Konfiguration gegen das Schema validieren.
-  3. Bei fehlendem Schema oder ungültiger Konfiguration: Plugin-Laden blockieren, Fehler erfassen.
+  3. Bei fehlendem Schema oder ungültiger Konfiguration: Plugin-Laden blockieren, Fehler protokollieren.
 - Die Fehlermeldung enthält:
   - Plugin-ID
   - Grund (fehlendes Schema / ungültige Konfiguration)
   - Pfad(e), bei denen die Validierung fehlgeschlagen ist
-- Deaktivierte Plugins behalten ihre Konfiguration, aber Doctor + Logs zeigen eine Warnung an.
+- Deaktivierte Plugins behalten ihre Konfiguration, aber Doctor + Logs geben eine Warnung aus.
 
 ## Doctor-Ablauf
 
-- Doctor wird **jedes Mal** ausgeführt, wenn die Konfiguration geladen wird (standardmäßig Dry-Run).
+- Doctor wird **bei jedem** Laden der Konfiguration ausgeführt (standardmäßig als Dry-Run).
 - Wenn die Konfiguration ungültig ist:
   - Zusammenfassung + umsetzbare Fehler ausgeben.
   - Anweisung: `openclaw doctor --fix`.
@@ -76,19 +76,19 @@ Alles andere muss hart fehlschlagen mit: „Konfiguration ungültig. Führen Sie
 
 ## Fehler-UX-Format
 
-- Einzelne Überschrift mit Zusammenfassung.
+- Eine einzelne Überschriften-Zusammenfassung.
 - Gruppierte Abschnitte:
   - Unbekannte Schlüssel (vollständige Pfade)
-  - Legacy-Schlüssel / benötigte Migrationen
-  - Plugin-Ladefehler (Plugin-ID + Grund + Pfad)
+  - Legacy-Schlüssel / erforderliche Migrationen
+  - Fehler beim Plugin-Laden (Plugin-ID + Grund + Pfad)
 
-## Implementierungs-Berührungspunkte
+## Implementierungs-Touchpoints
 
-- `src/config/zod-schema.ts`: Root-Durchleitung entfernen; überall strikte Objekte.
-- `src/config/zod-schema.providers.ts`: Strikte Kanal-Schemata sicherstellen.
-- `src/config/validation.ts`: Bei unbekannten Schlüsseln fehlschlagen; keine Legacy-Migrationen anwenden.
-- `src/config/io.ts`: Legacy-Auto-Migrationen entfernen; Doctor-Dry-Run immer ausführen.
-- `src/config/legacy*.ts`: Nutzung ausschließlich zu Doctor verschieben.
+- `src/config/zod-schema.ts`: Root-Passthrough entfernen; überall strikte Objekte.
+- `src/config/zod-schema.providers.ts`: strikte Kanal-Schemata sicherstellen.
+- `src/config/validation.ts`: bei unbekannten Schlüsseln fehlschlagen; keine Legacy-Migrationen anwenden.
+- `src/config/io.ts`: Legacy-Auto-Migrationen entfernen; Doctor immer als Dry-Run ausführen.
+- `src/config/legacy*.ts`: Nutzung ausschließlich auf Doctor verlagern.
 - `src/plugins/*`: Schema-Registry + Gating hinzufügen.
 - CLI-Befehls-Gating in `src/cli`.
 
@@ -96,5 +96,5 @@ Alles andere muss hart fehlschlagen mit: „Konfiguration ungültig. Führen Sie
 
 - Ablehnung unbekannter Schlüssel (Root + verschachtelt).
 - Plugin ohne Schema → Plugin-Laden mit klarem Fehler blockiert.
-- Ungültige Konfiguration → Gateway-Start blockiert, außer für Diagnosebefehle.
+- Ungültige Konfiguration → Gateway-Start blockiert, außer Diagnosebefehle.
 - Doctor-Dry-Run automatisch; `doctor --fix` schreibt korrigierte Konfiguration.

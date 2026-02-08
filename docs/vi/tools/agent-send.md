@@ -1,21 +1,21 @@
 ---
-summary: "Chạy trực tiếp CLI `openclaw agent` (kèm phân phối tùy chọn)"
+summary: "Chạy trực tiếp CLI `openclaw agent` (có tùy chọn gửi kết quả)"
 read_when:
-  - Thêm hoặc chỉnh sửa entrypoint CLI của agent
-title: "Agent Send"
+  - Thêm hoặc chỉnh sửa điểm vào CLI của agent
+title: "Gửi Agent"
 x-i18n:
   source_path: tools/agent-send.md
   source_hash: a84d6a304333eebe
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:08:34Z
+  generated_at: 2026-02-08T09:40:18Z
 ---
 
 # `openclaw agent` (chạy agent trực tiếp)
 
-`openclaw agent` chạy một lượt agent duy nhất mà không cần tin nhắn chat đầu vào.
-Theo mặc định, nó **đi qua Gateway**; thêm `--local` để buộc dùng
+`openclaw agent` chạy một lượt agent đơn lẻ mà không cần tin nhắn chat đầu vào.
+Theo mặc định, lệnh đi **qua Gateway (cổng kết nối)**; thêm `--local` để buộc
 runtime nhúng trên máy hiện tại.
 
 ## Hành vi
@@ -25,15 +25,15 @@ runtime nhúng trên máy hiện tại.
   - `--to <dest>` suy ra khóa phiên (mục tiêu nhóm/kênh giữ nguyên cách ly; chat trực tiếp gộp về `main`), **hoặc**
   - `--session-id <id>` tái sử dụng một phiên hiện có theo id, **hoặc**
   - `--agent <id>` nhắm trực tiếp tới một agent đã cấu hình (dùng khóa phiên `main` của agent đó)
-- Chạy cùng runtime agent nhúng như các phản hồi đầu vào thông thường.
-- Cờ thinking/verbose được lưu lại trong kho phiên.
+- Chạy cùng runtime agent nhúng như các phản hồi đến từ inbound thông thường.
+- Các cờ thinking/verbose được lưu bền vào kho phiên.
 - Đầu ra:
   - mặc định: in văn bản trả lời (kèm các dòng `MEDIA:<url>`)
   - `--json`: in payload có cấu trúc + metadata
-- Phân phối tùy chọn trở lại một kênh với `--deliver` + `--channel` (định dạng mục tiêu khớp với `openclaw message --target`).
-- Dùng `--reply-channel`/`--reply-to`/`--reply-account` để ghi đè phân phối mà không thay đổi phiên.
+- Tùy chọn gửi lại kết quả về một kênh với `--deliver` + `--channel` (định dạng mục tiêu khớp với `openclaw message --target`).
+- Dùng `--reply-channel`/`--reply-to`/`--reply-account` để ghi đè việc gửi mà không thay đổi phiên.
 
-Nếu Gateway không truy cập được, CLI sẽ **tự động chuyển sang** chạy cục bộ nhúng.
+Nếu Gateway không thể truy cập, CLI sẽ **tự động chuyển sang** chạy cục bộ nhúng.
 
 ## Ví dụ
 
@@ -48,13 +48,13 @@ openclaw agent --agent ops --message "Generate report" --deliver --reply-channel
 
 ## Cờ
 
-- `--local`: chạy cục bộ (yêu cầu khóa API của nhà cung cấp mô hình trong shell của bạn)
+- `--local`: chạy cục bộ (yêu cầu khóa API của nhà cung cấp mô hình trong shell)
 - `--deliver`: gửi phản hồi tới kênh đã chọn
-- `--channel`: kênh phân phối (`whatsapp|telegram|discord|googlechat|slack|signal|imessage`, mặc định: `whatsapp`)
-- `--reply-to`: ghi đè mục tiêu phân phối
-- `--reply-channel`: ghi đè kênh phân phối
-- `--reply-account`: ghi đè id tài khoản phân phối
-- `--thinking <off|minimal|low|medium|high|xhigh>`: lưu mức thinking (chỉ áp dụng cho các mô hình GPT-5.2 + Codex)
-- `--verbose <on|full|off>`: lưu mức verbose
+- `--channel`: kênh gửi (`whatsapp|telegram|discord|googlechat|slack|signal|imessage`, mặc định: `whatsapp`)
+- `--reply-to`: ghi đè mục tiêu gửi
+- `--reply-channel`: ghi đè kênh gửi
+- `--reply-account`: ghi đè id tài khoản gửi
+- `--thinking <off|minimal|low|medium|high|xhigh>`: lưu bền mức thinking (chỉ cho mô hình GPT-5.2 + Codex)
+- `--verbose <on|full|off>`: lưu bền mức verbose
 - `--timeout <seconds>`: ghi đè thời gian chờ của agent
 - `--json`: xuất JSON có cấu trúc

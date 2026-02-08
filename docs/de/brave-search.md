@@ -1,27 +1,27 @@
 ---
-summary: "Einrichtung der Brave Search API fuer web_search"
+summary: "Einrichtung der Brave Search API für web_search"
 read_when:
-  - Sie moechten Brave Search fuer web_search verwenden
-  - Sie benoetigen einen BRAVE_API_KEY oder Plandetails
+  - Sie möchten Brave Search für web_search verwenden
+  - Sie benötigen einen BRAVE_API_KEY oder Plandetails
 title: "Brave Search"
 x-i18n:
   source_path: brave-search.md
-  source_hash: cdcb037b092b8a10
+  source_hash: 81cd0a13239c13f4
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:15Z
+  generated_at: 2026-02-08T09:35:04Z
 ---
 
 # Brave Search API
 
-OpenClaw verwendet Brave Search als Standardanbieter fuer `web_search`.
+OpenClaw verwendet Brave Search als Standardanbieter für `web_search`.
 
-## API-Schluessel erhalten
+## API-Schlüssel erhalten
 
-1. Erstellen Sie ein Brave-Search-API-Konto unter https://brave.com/search/api/
-2. Waehlen Sie im Dashboard den **Data for Search**-Plan und generieren Sie einen API-Schluessel.
-3. Speichern Sie den Schluessel in der Konfiguration (empfohlen) oder setzen Sie `BRAVE_API_KEY` in der Gateway-Umgebung.
+1. Erstellen Sie ein Brave Search API-Konto unter [https://brave.com/search/api/](https://brave.com/search/api/)
+2. Wählen Sie im Dashboard den Plan **Data for Search** und generieren Sie einen API-Schlüssel.
+3. Speichern Sie den Schlüssel in der Konfiguration (empfohlen) oder setzen Sie `BRAVE_API_KEY` in der Gateway-Umgebung.
 
 ## Konfigurationsbeispiel
 
@@ -42,7 +42,7 @@ OpenClaw verwendet Brave Search als Standardanbieter fuer `web_search`.
 
 ## Hinweise
 
-- Der Data-for-AI-Plan ist **nicht** kompatibel mit `web_search`.
-- Brave bietet eine kostenlose Stufe sowie kostenpflichtige Plaene; pruefen Sie das Brave-API-Portal auf aktuelle Limits.
+- Der Plan **Data for AI** ist **nicht** mit `web_search` kompatibel.
+- Brave bietet eine kostenlose Stufe sowie kostenpflichtige Pläne; prüfen Sie das Brave API-Portal für aktuelle Limits.
 
-Siehe [Web tools](/tools/web) fuer die vollstaendige web_search-Konfiguration.
+Siehe [Web tools](/tools/web) für die vollständige web_search-Konfiguration.

@@ -1,17 +1,17 @@
 ---
-summary: "Khắc phục sự cố lập lịch và gửi cron và heartbeat"
+summary: "Xử lý sự cố lập lịch và gửi cron và heartbeat"
 read_when:
   - Cron không chạy
-  - Cron chạy nhưng không có tin nhắn được gửi
+  - Cron đã chạy nhưng không có thông báo nào được gửi
   - Heartbeat có vẻ im lặng hoặc bị bỏ qua
-title: "Xử Lý Sự Cố Tự Động Hóa"
+title: "Xử lý sự cố Tự động hóa"
 x-i18n:
   source_path: automation/troubleshooting.md
   source_hash: 10eca4a59119910f
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:15:58Z
+  generated_at: 2026-02-08T09:37:52Z
 ---
 
 # Xử lý sự cố tự động hóa
@@ -51,13 +51,13 @@ openclaw logs --follow
 - Job được bật và có lịch/múi giờ hợp lệ.
 - `cron runs` hiển thị `ok` hoặc lý do bỏ qua rõ ràng.
 
-Các dấu hiệu thường gặp:
+Dấu hiệu thường gặp:
 
 - `cron: scheduler disabled; jobs will not run automatically` → cron bị tắt trong cấu hình/biến môi trường.
-- `cron: timer tick failed` → tick của bộ lập lịch bị crash; kiểm tra stack/ngữ cảnh log xung quanh.
+- `cron: timer tick failed` → nhịp bộ lập lịch bị lỗi; kiểm tra ngữ cảnh stack/log xung quanh.
 - `reason: not-due` trong đầu ra chạy → chạy thủ công được gọi mà không có `--force` và job chưa đến hạn.
 
-## Cron đã kích hoạt nhưng không có gửi
+## Cron đã chạy nhưng không có gửi
 
 ```bash
 openclaw cron runs --id <jobId> --limit 20
@@ -69,14 +69,14 @@ openclaw logs --follow
 Đầu ra tốt trông như sau:
 
 - Trạng thái chạy là `ok`.
-- Chế độ gửi/đích gửi được đặt cho các job cô lập.
-- Thăm dò kênh báo cáo kênh đích đã kết nối.
+- Chế độ/đích gửi được thiết lập cho các job cô lập.
+- Kiểm tra kênh báo cáo kênh đích đã kết nối.
 
-Các dấu hiệu thường gặp:
+Dấu hiệu thường gặp:
 
-- Chạy thành công nhưng chế độ gửi là `none` → không mong đợi có tin nhắn bên ngoài.
+- Chạy thành công nhưng chế độ gửi là `none` → không mong đợi có thông báo bên ngoài.
 - Thiếu/không hợp lệ đích gửi (`channel`/`to`) → chạy có thể thành công nội bộ nhưng bỏ qua gửi ra ngoài.
-- Lỗi xác thực kênh (`unauthorized`, `missing_scope`, `Forbidden`) → việc gửi bị chặn bởi thông tin xác thực/quyền của kênh.
+- Lỗi xác thực kênh (`unauthorized`, `missing_scope`, `Forbidden`) → gửi bị chặn bởi thông tin xác thực/quyền của kênh.
 
 ## Heartbeat bị chặn hoặc bỏ qua
 
@@ -92,14 +92,14 @@ openclaw channels status --probe
 - Heartbeat được bật với khoảng thời gian khác 0.
 - Kết quả heartbeat gần nhất là `ran` (hoặc lý do bỏ qua đã được hiểu rõ).
 
-Các dấu hiệu thường gặp:
+Dấu hiệu thường gặp:
 
 - `heartbeat skipped` với `reason=quiet-hours` → nằm ngoài `activeHours`.
 - `requests-in-flight` → luồng chính bận; heartbeat bị hoãn.
 - `empty-heartbeat-file` → `HEARTBEAT.md` tồn tại nhưng không có nội dung có thể hành động.
-- `alerts-disabled` → cài đặt hiển thị chặn việc gửi heartbeat ra ngoài.
+- `alerts-disabled` → cài đặt hiển thị chặn các thông báo heartbeat gửi ra ngoài.
 
-## Những lưu ý về timezone và activeHours
+## Những điểm dễ sai về múi giờ và activeHours
 
 ```bash
 openclaw config get agents.defaults.heartbeat.activeHours
@@ -111,14 +111,14 @@ openclaw logs --follow
 
 Quy tắc nhanh:
 
-- `Config path not found: agents.defaults.userTimezone` nghĩa là khóa chưa được đặt; heartbeat sẽ quay về múi giờ của host (hoặc `activeHours.timezone` nếu được đặt).
-- Cron không có `--tz` sẽ dùng múi giờ của host Gateway.
-- `activeHours` của heartbeat dùng cách phân giải múi giờ đã cấu hình (`user`, `local`, hoặc IANA tz tường minh).
+- `Config path not found: agents.defaults.userTimezone` nghĩa là khóa chưa được đặt; heartbeat quay về múi giờ của máy chủ (hoặc `activeHours.timezone` nếu được đặt).
+- Cron không có `--tz` sẽ dùng múi giờ của máy chủ gateway.
+- `activeHours` của heartbeat dùng phân giải múi giờ đã cấu hình (`user`, `local`, hoặc IANA tz tường minh).
 - Dấu thời gian ISO không có múi giờ được coi là UTC cho các lịch cron `at`.
 
-Các dấu hiệu thường gặp:
+Dấu hiệu thường gặp:
 
-- Job chạy sai thời điểm theo đồng hồ sau khi thay đổi múi giờ của host.
+- Job chạy sai thời điểm theo đồng hồ sau khi múi giờ máy chủ thay đổi.
 - Heartbeat luôn bị bỏ qua vào ban ngày của bạn vì `activeHours.timezone` sai.
 
 Liên quan:

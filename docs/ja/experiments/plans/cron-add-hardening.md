@@ -1,70 +1,70 @@
 ---
-summary: "cron.add の入力処理を堅牢化し、スキーマを整合させ、cron の UI/エージェントツールを改善します"
+summary: "cron.add の入力処理を強化し、スキーマを整合させ、cron の UI／エージェント向けツールを改善します"
 owner: "openclaw"
 status: "complete"
 last_updated: "2026-01-05"
-title: "Cron Add の堅牢化"
+title: "Cron Add のハードニング"
 x-i18n:
   source_path: experiments/plans/cron-add-hardening.md
   source_hash: d7e469674bd9435b
   provider: openai
-  model: gpt-5.2-pro
+  model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-06T05:19:20Z
+  generated_at: 2026-02-08T09:21:47Z
 ---
 
-# Cron Add の堅牢化とスキーマ整合
+# Cron Add のハードニング & スキーマ整合
 
-## コンテキスト
+## Context
 
-最近の Gateway（ゲートウェイ）ログでは、無効なパラメータ（`sessionTarget`、`wakeMode`、`payload` の欠落、および `schedule` の不正形式）により、`cron.add` の失敗が繰り返し発生していることが示されています。これは、少なくとも 1 つのクライアント（おそらくエージェントのツール呼び出し経路）が、ラップされた、または部分的に指定されたジョブペイロードを送信していることを示します。別途、TypeScript、Gateway（ゲートウェイ）スキーマ、CLI フラグ、UI フォーム型の間で cron プロバイダー enum に乖離があり、さらに `cron.status` について UI の不一致（Gateway（ゲートウェイ）は `jobs` を返す一方で、UI は `jobCount` を期待）が存在します。
+最近の ゲートウェイ ログでは、無効なパラメーター（`sessionTarget`、`wakeMode`、`payload` の欠落、および不正な `schedule`）により、`cron.add` の失敗が繰り返し発生しています。これは、少なくとも 1 つのクライアント（おそらく エージェント のツール呼び出し経路）が、ラップされた、または部分的に指定された ジョブ ペイロードを送信していることを示しています。別途、TypeScript の cron プロバイダー enum、ゲートウェイ のスキーマ、CLI フラグ、UI フォーム型の間に乖離があり、さらに `cron.status` に関する UI の不一致（`jobCount` を期待する一方で ゲートウェイ は `jobs` を返す）もあります。
 
-## 目標
+## Goals
 
-- 一般的なラッパーペイロードを正規化し、欠落している `kind` フィールドを推論することで、`cron.add` INVALID_REQUEST スパムを停止します。
-- Gateway（ゲートウェイ）スキーマ、cron 型、CLI ドキュメント、UI フォーム間で cron プロバイダーのリストを整合させます。
-- LLM が正しいジョブペイロードを生成できるよう、エージェントの cron ツールスキーマを明示的にします。
-- Control UI の cron ステータスのジョブ数表示を修正します。
-- 正規化およびツール挙動をカバーするテストを追加します。
+- 一般的な ラッパー ペイロードを正規化し、不足している `kind` フィールドを推論することで、`cron.add` INVALID_REQUEST のスパムを停止します。
+- ゲートウェイ のスキーマ、cron 型、CLI ドキュメント、UI フォーム全体で cron プロバイダー の一覧を整合させます。
+- LLM が正しい ジョブ ペイロードを生成できるよう、エージェント の cron ツール スキーマを明示的にします。
+- Control UI の cron ステータスにおける ジョブ 件数表示を修正します。
+- 正規化と ツール の挙動をカバーするテストを追加します。
 
-## 非目標
+## Non-goals
 
-- cron のスケジューリングセマンティクスまたはジョブ実行挙動を変更しません。
-- 新しいスケジュール種別や cron 式パースを追加しません。
-- 必要なフィールド修正を超えて、cron の UI/UX を刷新しません。
+- cron のスケジューリング セマンティクスや ジョブ 実行の挙動を変更しません。
+- 新しい スケジュール 種別や cron 式のパースを追加しません。
+- 必要な フィールド 修正を超えて、cron の UI／UX を全面的に刷新しません。
 
-## 調査結果（現状のギャップ）
+## Findings（current gaps）
 
-- Gateway（ゲートウェイ）の `CronPayloadSchema` は `signal` + `imessage` を除外している一方で、TS 型にはそれらが含まれています。
-- Control UI の CronStatus は `jobCount` を期待しますが、Gateway（ゲートウェイ）は `jobs` を返します。
-- エージェントの cron ツールスキーマは任意の `job` オブジェクトを許容しており、不正形式の入力を可能にしています。
-- Gateway（ゲートウェイ）は正規化なしで `cron.add` を厳密に検証するため、ラップされたペイロードは失敗します。
+- ゲートウェイ の `CronPayloadSchema` は `signal` + `imessage` を除外していますが、TS 型には含まれています。
+- Control UI の CronStatus は `jobCount` を期待しますが、ゲートウェイ は `jobs` を返します。
+- エージェント の cron ツール スキーマは任意の `job` オブジェクトを許可しており、不正な入力を可能にしています。
+- ゲートウェイ は 正規化 なしで `cron.add` を厳格に検証するため、ラップされた ペイロード は失敗します。
 
-## 変更点
+## What changed
 
-- `cron.add` と `cron.update` は、一般的なラッパー形状を正規化し、欠落している `kind` フィールドを推論するようになりました。
-- エージェントの cron ツールスキーマは Gateway（ゲートウェイ）スキーマに一致し、これにより無効なペイロードが減少します。
-- プロバイダー enum は Gateway（ゲートウェイ）、CLI、UI、macOS ピッカー間で整合されました。
-- Control UI は、ステータスに Gateway（ゲートウェイ）の `jobs` カウントフィールドを使用します。
+- `cron.add` と `cron.update` が一般的な ラッパー 形状を正規化し、不足している `kind` フィールドを推論するようになりました。
+- エージェント の cron ツール スキーマが ゲートウェイ のスキーマと一致し、無効な ペイロード が減少しました。
+- プロバイダー の enum が ゲートウェイ、CLI、UI、macOS ピッカー 全体で整合されました。
+- Control UI は ステータス 用に ゲートウェイ の `jobs` 件数 フィールドを使用します。
 
-## 現在の挙動
+## Current behavior
 
-- **正規化:** ラップされた `data`/`job` ペイロードはアンラップされます。安全な場合は `schedule.kind` と `payload.kind` が推論されます。
-- **デフォルト:** 欠落している場合、`wakeMode` と `sessionTarget` には安全なデフォルトが適用されます。
-- **プロバイダー:** Discord/Slack/Signal/iMessage は CLI/UI 全体で一貫して表示されるようになりました。
+- **Normalization:** ラップされた `data`/`job` ペイロードは アンラップ され、安全な場合は `schedule.kind` と `payload.kind` が推論されます。
+- **Defaults:** 不足している場合、`wakeMode` と `sessionTarget` に安全な デフォルト が適用されます。
+- **Providers:** Discord/Slack/Signal/iMessage が CLI/UI 全体で一貫して表示されるようになりました。
 
-正規化された形状と例については、[Cron jobs](/automation/cron-jobs) を参照してください。
+正規化された 形状 と 例 については、[Cron jobs](/automation/cron-jobs) を参照してください。
 
-## 検証
+## Verification
 
-- Gateway（ゲートウェイ）ログを監視し、`cron.add` INVALID_REQUEST エラーの減少を確認します。
-- Control UI の cron ステータスが、更新後にジョブ数を表示することを確認します。
+- ゲートウェイ ログを監視し、`cron.add` INVALID_REQUEST エラーが減少していることを確認します。
+- Control UI の cron ステータスが、更新後に ジョブ 件数を表示することを確認します。
 
-## 任意のフォローアップ
+## Optional Follow-ups
 
-- Control UI の手動スモーク: プロバイダーごとに cron ジョブを追加し、ステータスのジョブ数を検証します。
+- Control UI の 手動 スモーク テスト：プロバイダー ごとに cron ジョブ を 1 つ追加し、ステータス の ジョブ 件数を確認します。
 
-## 未解決の質問
+## Open Questions
 
-- `cron.add` は、クライアントから明示的な `state` を受け付けるべきでしょうか（現在はスキーマで不許可）？
-- `webchat` を明示的な配信プロバイダーとして許可すべきでしょうか（現在は配信解決でフィルタリングされています）？
+- `cron.add` は、クライアント からの 明示的な `state` を受け付けるべきでしょうか（現在は スキーマ により不許可ですか）？
+- `webchat` を 明示的な 配送 プロバイダー として許可すべきでしょうか（現在は 配送 解決 で フィルタリング されています）？

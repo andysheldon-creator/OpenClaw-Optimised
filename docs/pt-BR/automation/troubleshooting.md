@@ -1,22 +1,22 @@
 ---
 summary: "Solucione problemas de agendamento e entrega de cron e heartbeat"
 read_when:
-  - O cron não executou
-  - O cron executou, mas nenhuma mensagem foi entregue
-  - O heartbeat parece silencioso ou ignorado
-title: "Solucao de problemas de automacao"
+  - Cron não foi executado
+  - Cron foi executado, mas nenhuma mensagem foi entregue
+  - Heartbeat parece silencioso ou ignorado
+title: "Solução de problemas de automação"
 x-i18n:
   source_path: automation/troubleshooting.md
   source_hash: 10eca4a59119910f
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:15:11Z
+  generated_at: 2026-02-08T09:29:46Z
 ---
 
-# Solucao de problemas de automacao
+# Solução de problemas de automação
 
-Use esta pagina para problemas de agendamento e entrega (`cron` + `heartbeat`).
+Use esta página para problemas de agendamento e entrega (`cron` + `heartbeat`).
 
 ## Escada de comandos
 
@@ -28,7 +28,7 @@ openclaw doctor
 openclaw channels status --probe
 ```
 
-Em seguida, execute as verificacoes de automacao:
+Em seguida, execute as verificações de automação:
 
 ```bash
 openclaw cron status
@@ -36,7 +36,7 @@ openclaw cron list
 openclaw system heartbeat last
 ```
 
-## Cron nao dispara
+## Cron não dispara
 
 ```bash
 openclaw cron status
@@ -45,19 +45,19 @@ openclaw cron runs --id <jobId> --limit 20
 openclaw logs --follow
 ```
 
-Uma boa saida se parece com:
+Uma boa saída se parece com:
 
-- `cron status` indica ativado e um `nextWakeAtMs` futuro.
-- O job esta ativado e possui um agendamento/fuso horario valido.
-- `cron runs` mostra `ok` ou um motivo explicito de ignorar.
+- `cron status` reporta habilitado e um `nextWakeAtMs` futuro.
+- O job está habilitado e tem um agendamento/fuso horário válido.
+- `cron runs` mostra `ok` ou um motivo explícito de pulo.
 
 Assinaturas comuns:
 
-- `cron: scheduler disabled; jobs will not run automatically` → cron desativado na configuracao/variaveis de ambiente.
-- `cron: timer tick failed` → o tick do agendador falhou; inspecione o contexto de pilha/log ao redor.
-- `reason: not-due` na saida de execucao → execucao manual chamada sem `--force` e o job ainda nao estava devido.
+- `cron: scheduler disabled; jobs will not run automatically` → cron desabilitado na configuração/variáveis de ambiente.
+- `cron: timer tick failed` → tick do agendador falhou; inspecione o contexto de pilha/logs ao redor.
+- `reason: not-due` na saída de execução → execução manual chamada sem `--force` e o job ainda não estava devido.
 
-## Cron disparou, mas nao houve entrega
+## Cron disparou, mas não houve entrega
 
 ```bash
 openclaw cron runs --id <jobId> --limit 20
@@ -66,17 +66,17 @@ openclaw channels status --probe
 openclaw logs --follow
 ```
 
-Uma boa saida se parece com:
+Uma boa saída se parece com:
 
-- O status da execucao e `ok`.
-- O modo/target de entrega estao definidos para jobs isolados.
-- A sondagem do canal informa que o canal de destino esta conectado.
+- O status da execução é `ok`.
+- O modo/alvo de entrega estão definidos para jobs isolados.
+- A sonda do canal reporta o canal de destino conectado.
 
 Assinaturas comuns:
 
-- A execucao foi bem-sucedida, mas o modo de entrega e `none` → nenhuma mensagem externa e esperada.
-- Destino de entrega ausente/invalido (`channel`/`to`) → a execucao pode ter sucesso internamente, mas ignorar a saida externa.
-- Erros de autenticacao do canal (`unauthorized`, `missing_scope`, `Forbidden`) → entrega bloqueada por credenciais/permissoes do canal.
+- A execução teve sucesso, mas o modo de entrega é `none` → nenhuma mensagem externa é esperada.
+- Alvo de entrega ausente/inválido (`channel`/`to`) → a execução pode ter sucesso internamente, mas pular a saída.
+- Erros de autenticação do canal (`unauthorized`, `missing_scope`, `Forbidden`) → entrega bloqueada por credenciais/permissões do canal.
 
 ## Heartbeat suprimido ou ignorado
 
@@ -87,19 +87,19 @@ openclaw config get agents.defaults.heartbeat
 openclaw channels status --probe
 ```
 
-Uma boa saida se parece com:
+Uma boa saída se parece com:
 
-- Heartbeat ativado com intervalo diferente de zero.
-- O ultimo resultado de heartbeat e `ran` (ou o motivo de ignorar e compreendido).
+- Heartbeat habilitado com intervalo diferente de zero.
+- O último resultado de heartbeat é `ran` (ou o motivo do pulo é compreendido).
 
 Assinaturas comuns:
 
 - `heartbeat skipped` com `reason=quiet-hours` → fora de `activeHours`.
-- `requests-in-flight` → a via principal esta ocupada; heartbeat adiado.
-- `empty-heartbeat-file` → `HEARTBEAT.md` existe, mas nao tem conteudo acionavel.
-- `alerts-disabled` → configuracoes de visibilidade suprimem mensagens de heartbeat de saida.
+- `requests-in-flight` → pista principal ocupada; heartbeat adiado.
+- `empty-heartbeat-file` → `HEARTBEAT.md` existe, mas não tem conteúdo acionável.
+- `alerts-disabled` → configurações de visibilidade suprimem mensagens de heartbeat de saída.
 
-## Armadilhas de fuso horario e activeHours
+## Pegadinhas de fuso horário e activeHours
 
 ```bash
 openclaw config get agents.defaults.heartbeat.activeHours
@@ -109,17 +109,17 @@ openclaw cron list
 openclaw logs --follow
 ```
 
-Regras rapidas:
+Regras rápidas:
 
-- `Config path not found: agents.defaults.userTimezone` significa que a chave nao esta definida; o heartbeat recorre ao fuso horario do host (ou `activeHours.timezone` se definido).
-- Cron sem `--tz` usa o fuso horario do host do gateway.
-- Heartbeat `activeHours` usa a resolucao de fuso horario configurada (`user`, `local` ou IANA tz explicito).
-- Timestamps ISO sem fuso horario sao tratados como UTC para agendamentos de cron `at`.
+- `Config path not found: agents.defaults.userTimezone` significa que a chave não está definida; o heartbeat recorre ao fuso horário do host (ou `activeHours.timezone` se definido).
+- Cron sem `--tz` usa o fuso horário do host do gateway.
+- O `activeHours` do heartbeat usa a resolução de fuso horário configurada (`user`, `local` ou IANA explícito).
+- Timestamps ISO sem fuso horário são tratados como UTC para agendamentos de cron `at`.
 
 Assinaturas comuns:
 
-- Jobs executam no horario de relogio errado apos mudancas no fuso horario do host.
-- Heartbeat sempre ignorado durante o seu horario diurno porque `activeHours.timezone` esta errado.
+- Jobs executam no horário de relógio errado após mudanças no fuso horário do host.
+- Heartbeat sempre ignorado durante o seu período diurno porque `activeHours.timezone` está errado.
 
 Relacionado:
 

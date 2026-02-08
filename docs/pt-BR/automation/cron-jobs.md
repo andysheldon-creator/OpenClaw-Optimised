@@ -1,41 +1,43 @@
 ---
-summary: "Cron jobs + wakeups para o agendador do Gateway"
+summary: "Cron jobs + wakeups para o scheduler do Gateway"
 read_when:
-  - Agendar jobs em segundo plano ou wakeups
-  - Conectar automacoes que devem rodar com ou junto aos heartbeats
+  - Agendamento de jobs em segundo plano ou wakeups
+  - Conectar automações que devem rodar com ou junto aos heartbeats
   - Decidir entre heartbeat e cron para tarefas agendadas
 title: "Cron Jobs"
 x-i18n:
   source_path: automation/cron-jobs.md
-  source_hash: 523721a7da2c4e27
+  source_hash: d2f7bd6c542034b1
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:30Z
+  generated_at: 2026-02-08T09:30:08Z
 ---
 
-# Cron jobs (agendador do Gateway)
+# Cron jobs (scheduler do Gateway)
 
-> **Cron vs Heartbeat?** Veja [Cron vs Heartbeat](/automation/cron-vs-heartbeat) para orientacao sobre quando usar cada um.
+> **Cron vs Heartbeat?** Veja [Cron vs Heartbeat](/automation/cron-vs-heartbeat) para orientações sobre quando usar cada um.
 
-Cron e o agendador integrado do Gateway. Ele persiste jobs, acorda o agente
-no momento certo e pode, opcionalmente, entregar a saida de volta para um chat.
+Cron é o scheduler integrado do Gateway. Ele persiste jobs, acorda o agente no
+momento certo e pode, opcionalmente, entregar a saída de volta a um chat.
 
-Se voce quer _“rodar isso toda manha”_ ou _“cutucar o agente em 20 minutos”_,
-cron e o mecanismo.
+Se você quer _“executar isso toda manhã”_ ou _“cutucar o agente em 20 minutos”_,
+cron é o mecanismo.
+
+Solução de problemas: [/automation/troubleshooting](/automation/troubleshooting)
 
 ## TL;DR
 
-- Cron roda **dentro do Gateway** (nao dentro do modelo).
-- Jobs persistem em `~/.openclaw/cron/` para que reinicios nao percam agendas.
-- Dois estilos de execucao:
-  - **Sessao principal**: enfileira um evento de sistema e entao roda no proximo heartbeat.
-  - **Isolado**: roda um turno dedicado do agente em `cron:<jobId>`, com entrega (anuncio por padrao ou nenhuma).
-- Wakeups sao de primeira classe: um job pode solicitar “acordar agora” vs “proximo heartbeat”.
+- Cron roda **dentro do Gateway** (não dentro do modelo).
+- Jobs persistem em `~/.openclaw/cron/` para que reinícios não percam agendas.
+- Dois estilos de execução:
+  - **Sessão principal**: enfileira um evento de sistema e executa no próximo heartbeat.
+  - **Isolado**: executa um turno dedicado do agente em `cron:<jobId>`, com entrega (anunciar por padrão ou nenhuma).
+- Wakeups são de primeira classe: um job pode solicitar “acordar agora” vs “próximo heartbeat”.
 
-## Inicio rapido (acionavel)
+## Início rápido (prático)
 
-Crie um lembrete de uma unica execucao, verifique que ele existe e execute-o imediatamente:
+Crie um lembrete pontual, verifique que ele existe e execute imediatamente:
 
 ```bash
 openclaw cron add \
@@ -47,7 +49,7 @@ openclaw cron add \
   --delete-after-run
 
 openclaw cron list
-openclaw cron run <job-id> --force
+openclaw cron run <job-id>
 openclaw cron runs --id <job-id>
 ```
 
@@ -67,193 +69,193 @@ openclaw cron add \
 
 ## Equivalentes de tool-call (ferramenta cron do Gateway)
 
-Para os formatos JSON canonicos e exemplos, veja [Esquema JSON para tool calls](/automation/cron-jobs#json-schema-for-tool-calls).
+Para os formatos JSON canônicos e exemplos, veja [Esquema JSON para tool calls](/automation/cron-jobs#json-schema-for-tool-calls).
 
-## Onde os cron jobs sao armazenados
+## Onde os cron jobs são armazenados
 
-Os cron jobs sao persistidos no host do Gateway em `~/.openclaw/cron/jobs.json` por padrao.
-O Gateway carrega o arquivo na memoria e grava de volta quando ha mudancas, entao edicoes manuais
-so sao seguras quando o Gateway esta parado. Prefira `openclaw cron add/edit` ou a API de tool call
-do cron para mudancas.
+Cron jobs são persistidos no host do Gateway em `~/.openclaw/cron/jobs.json` por padrão.
+O Gateway carrega o arquivo na memória e o grava de volta quando há alterações, então edições manuais
+só são seguras quando o Gateway está parado. Prefira `openclaw cron add/edit` ou a API de tool call
+do cron para alterações.
 
-## Visao geral amigavel para iniciantes
+## Visão geral para iniciantes
 
-Pense em um cron job como: **quando** rodar + **o que** fazer.
+Pense em um cron job como: **quando** executar + **o que** fazer.
 
-1. **Escolha um agendamento**
-   - Lembrete de uma unica execucao → `schedule.kind = "at"` (CLI: `--at`)
+1. **Escolha uma agenda**
+   - Lembrete pontual → `schedule.kind = "at"` (CLI: `--at`)
    - Job recorrente → `schedule.kind = "every"` ou `schedule.kind = "cron"`
-   - Se o timestamp ISO omitir um fuso horario, ele e tratado como **UTC**.
+   - Se seu timestamp ISO omitir fuso horário, ele é tratado como **UTC**.
 
 2. **Escolha onde ele roda**
-   - `sessionTarget: "main"` → roda durante o proximo heartbeat com o contexto principal.
-   - `sessionTarget: "isolated"` → roda um turno dedicado do agente em `cron:<jobId>`.
+   - `sessionTarget: "main"` → executa durante o próximo heartbeat com o contexto principal.
+   - `sessionTarget: "isolated"` → executa um turno dedicado do agente em `cron:<jobId>`.
 
 3. **Escolha o payload**
-   - Sessao principal → `payload.kind = "systemEvent"`
-   - Sessao isolada → `payload.kind = "agentTurn"`
+   - Sessão principal → `payload.kind = "systemEvent"`
+   - Sessão isolada → `payload.kind = "agentTurn"`
 
-Opcional: jobs de uma unica execucao (`schedule.kind = "at"`) sao excluidos apos sucesso por padrao. Defina
-`deleteAfterRun: false` para mante-los (eles serao desativados apos sucesso).
+Opcional: jobs pontuais (`schedule.kind = "at"`) são excluídos após sucesso por padrão. Defina
+`deleteAfterRun: false` para mantê-los (eles serão desativados após o sucesso).
 
 ## Conceitos
 
 ### Jobs
 
-Um cron job e um registro armazenado com:
+Um cron job é um registro armazenado com:
 
-- um **agendamento** (quando deve rodar),
+- uma **agenda** (quando deve executar),
 - um **payload** (o que deve fazer),
-- **modo de entrega** opcional (anuncio ou nenhum).
-- **vinculacao de agente** opcional (`agentId`): roda o job sob um agente especifico; se
-  ausente ou desconhecido, o gateway recorre ao agente padrao.
+- **modo de entrega** opcional (anunciar ou nenhum).
+- **vinculação de agente** opcional (`agentId`): executa o job sob um agente específico; se
+  ausente ou desconhecido, o gateway recorre ao agente padrão.
 
-Jobs sao identificados por um `jobId` estavel (usado por CLI/APIs do Gateway).
-Em tool calls do agente, `jobId` e canonico; o legado `id` e aceito por compatibilidade.
-Jobs de uma unica execucao sao excluidos automaticamente apos sucesso por padrao; defina `deleteAfterRun: false` para mante-los.
+Jobs são identificados por um `jobId` estável (usado por CLI/APIs do Gateway).
+Em tool calls do agente, `jobId` é canônico; o legado `id` é aceito por compatibilidade.
+Jobs pontuais se autoexcluem após sucesso por padrão; defina `deleteAfterRun: false` para mantê-los.
 
-### Agendamentos
+### Agendas
 
-Cron suporta tres tipos de agendamento:
+Cron suporta três tipos de agenda:
 
-- `at`: timestamp de uma unica execucao via `schedule.at` (ISO 8601).
+- `at`: timestamp pontual via `schedule.at` (ISO 8601).
 - `every`: intervalo fixo (ms).
-- `cron`: expressao cron de 5 campos com fuso horario IANA opcional.
+- `cron`: expressão cron de 5 campos com fuso horário IANA opcional.
 
-Expressoes cron usam `croner`. Se um fuso horario for omitido, o fuso horario local
-do host do Gateway e usado.
+Expressões cron usam `croner`. Se um fuso horário for omitido, o fuso horário local
+do host do Gateway é usado.
 
-### Execucao principal vs isolada
+### Execução principal vs isolada
 
-#### Jobs da sessao principal (eventos de sistema)
+#### Jobs da sessão principal (eventos de sistema)
 
 Jobs principais enfileiram um evento de sistema e opcionalmente acordam o executor de heartbeat.
 Eles devem usar `payload.kind = "systemEvent"`.
 
-- `wakeMode: "next-heartbeat"` (padrao): o evento espera pelo proximo heartbeat agendado.
-- `wakeMode: "now"`: o evento dispara uma execucao imediata do heartbeat.
+- `wakeMode: "now"` (padrão): o evento dispara uma execução imediata de heartbeat.
+- `wakeMode: "next-heartbeat"`: o evento aguarda o próximo heartbeat agendado.
 
-Este e o melhor ajuste quando voce quer o prompt normal do heartbeat + contexto da sessao principal.
+Este é o melhor encaixe quando você quer o prompt normal de heartbeat + contexto da sessão principal.
 Veja [Heartbeat](/gateway/heartbeat).
 
-#### Jobs isolados (sessoes cron dedicadas)
+#### Jobs isolados (sessões cron dedicadas)
 
-Jobs isolados rodam um turno dedicado do agente na sessao `cron:<jobId>`.
+Jobs isolados executam um turno dedicado do agente na sessão `cron:<jobId>`.
 
-Comportamentos chave:
+Comportamentos-chave:
 
-- O prompt e prefixado com `[cron:<jobId> <job name>]` para rastreabilidade.
-- Cada execucao inicia um **id de sessao novo** (sem reaproveitar conversa anterior).
-- Comportamento padrao: se `delivery` for omitido, jobs isolados anunciam um resumo (`delivery.mode = "announce"`).
+- O prompt é prefixado com `[cron:<jobId> <job name>]` para rastreabilidade.
+- Cada execução inicia um **id de sessão novo** (sem reaproveitar conversa anterior).
+- Comportamento padrão: se `delivery` for omitido, jobs isolados anunciam um resumo (`delivery.mode = "announce"`).
 - `delivery.mode` (apenas isolado) escolhe o que acontece:
-  - `announce`: entrega um resumo ao canal de destino e posta um breve resumo na sessao principal.
-  - `none`: apenas interno (sem entrega, sem resumo na sessao principal).
-- `wakeMode` controla quando o resumo da sessao principal e postado:
+  - `announce`: entrega um resumo ao canal alvo e publica um breve resumo na sessão principal.
+  - `none`: apenas interno (sem entrega, sem resumo na sessão principal).
+- `wakeMode` controla quando o resumo da sessão principal é publicado:
   - `now`: heartbeat imediato.
-  - `next-heartbeat`: aguarda o proximo heartbeat agendado.
+  - `next-heartbeat`: aguarda o próximo heartbeat agendado.
 
-Use jobs isolados para tarefas ruidosas, frequentes ou “afazeres de segundo plano” que nao devem
-poluir o historico do chat principal.
+Use jobs isolados para tarefas ruidosas, frequentes ou “tarefas de fundo” que não devem
+poluir o histórico do chat principal.
 
-### Formatos de payload (o que roda)
+### Formatos de payload (o que executa)
 
-Dois tipos de payload sao suportados:
+Dois tipos de payload são suportados:
 
-- `systemEvent`: apenas sessao principal, roteado pelo prompt de heartbeat.
-- `agentTurn`: apenas sessao isolada, roda um turno dedicado do agente.
+- `systemEvent`: apenas sessão principal, roteado pelo prompt de heartbeat.
+- `agentTurn`: apenas sessão isolada, executa um turno dedicado do agente.
 
 Campos comuns de `agentTurn`:
 
-- `message`: texto do prompt (obrigatorio).
-- `model` / `thinking`: sobrescritas opcionais (veja abaixo).
-- `timeoutSeconds`: sobrescrita opcional de timeout.
+- `message`: prompt de texto obrigatório.
+- `model` / `thinking`: substituições opcionais (veja abaixo).
+- `timeoutSeconds`: substituição opcional de timeout.
 
-Configuracao de entrega (apenas jobs isolados):
+Configuração de entrega (apenas jobs isolados):
 
 - `delivery.mode`: `none` | `announce`.
-- `delivery.channel`: `last` ou um canal especifico.
-- `delivery.to`: alvo especifico do canal (telefone/chat/id do canal).
-- `delivery.bestEffort`: evitar falhar o job se a entrega por anuncio falhar.
+- `delivery.channel`: `last` ou um canal específico.
+- `delivery.to`: alvo específico do canal (telefone/chat/id do canal).
+- `delivery.bestEffort`: evita falhar o job se a entrega de anúncio falhar.
 
-A entrega por anuncio suprime envios via ferramentas de mensagens durante a execucao; use `delivery.channel`/`delivery.to`
-para direcionar ao chat em vez disso. Quando `delivery.mode = "none"`, nenhum resumo e postado na sessao principal.
+A entrega por anúncio suprime envios via ferramentas de mensagens durante a execução; use `delivery.channel`/`delivery.to`
+para direcionar o chat. Quando `delivery.mode = "none"`, nenhum resumo é publicado na sessão principal.
 
-Se `delivery` for omitido para jobs isolados, o OpenClaw usa `announce` por padrao.
+Se `delivery` for omitido para jobs isolados, o OpenClaw usa por padrão `announce`.
 
-#### Fluxo de entrega por anuncio
+#### Fluxo de entrega por anúncio
 
-Quando `delivery.mode = "announce"`, o cron entrega diretamente via adaptadores de canal de saida.
-O agente principal nao e iniciado para criar ou encaminhar a mensagem.
+Quando `delivery.mode = "announce"`, o cron entrega diretamente via adaptadores de canal de saída.
+O agente principal não é iniciado para elaborar ou encaminhar a mensagem.
 
 Detalhes de comportamento:
 
-- Conteudo: a entrega usa os payloads de saida da execucao isolada (texto/midia) com
-  fragmentacao normal e formatacao do canal.
-- Respostas apenas de heartbeat (`HEARTBEAT_OK` sem conteudo real) nao sao entregues.
-- Se a execucao isolada ja enviou uma mensagem ao mesmo alvo via ferramenta de mensagem, a entrega e
+- Conteúdo: a entrega usa os payloads de saída da execução isolada (texto/mídia) com fragmentação normal e
+  formatação do canal.
+- Respostas apenas de heartbeat (`HEARTBEAT_OK` sem conteúdo real) não são entregues.
+- Se a execução isolada já enviou uma mensagem ao mesmo alvo via ferramenta de mensagem, a entrega é
   ignorada para evitar duplicatas.
-- Alvos de entrega ausentes ou invalidos falham o job, a menos que `delivery.bestEffort = true`.
-- Um breve resumo e postado na sessao principal apenas quando `delivery.mode = "announce"`.
-- O resumo da sessao principal respeita `wakeMode`: `now` dispara um heartbeat imediato e
-  `next-heartbeat` aguarda o proximo heartbeat agendado.
+- Alvos de entrega ausentes ou inválidos falham o job, a menos que `delivery.bestEffort = true`.
+- Um resumo curto é publicado na sessão principal somente quando `delivery.mode = "announce"`.
+- O resumo da sessão principal respeita `wakeMode`: `now` dispara um heartbeat imediato e
+  `next-heartbeat` aguarda o próximo heartbeat agendado.
 
-### Sobrescritas de modelo e pensamento
+### Substituições de modelo e thinking
 
-Jobs isolados (`agentTurn`) podem sobrescrever o modelo e o nivel de pensamento:
+Jobs isolados (`agentTurn`) podem substituir o modelo e o nível de thinking:
 
-- `model`: string provedor/modelo (por exemplo, `anthropic/claude-sonnet-4-20250514`) ou alias (por exemplo, `opus`)
-- `thinking`: nivel de pensamento (`off`, `minimal`, `low`, `medium`, `high`, `xhigh`; apenas modelos GPT-5.2 + Codex)
+- `model`: string de provedor/modelo (ex.: `anthropic/claude-sonnet-4-20250514`) ou alias (ex.: `opus`)
+- `thinking`: nível de thinking (`off`, `minimal`, `low`, `medium`, `high`, `xhigh`; apenas modelos GPT-5.2 + Codex)
 
-Nota: Voce pode definir `model` em jobs da sessao principal tambem, mas isso muda o modelo
-compartilhado da sessao principal. Recomendamos sobrescritas de modelo apenas para jobs isolados
-para evitar mudancas inesperadas de contexto.
+Nota: Você pode definir `model` em jobs da sessão principal também, mas isso altera o modelo compartilhado da
+sessão principal. Recomendamos substituições de modelo apenas para jobs isolados para evitar
+mudanças inesperadas de contexto.
 
-Prioridade de resolucao:
+Prioridade de resolução:
 
-1. Sobrescrita no payload do job (mais alta)
-2. Padroes especificos do hook (por exemplo, `hooks.gmail.model`)
-3. Padrao da configuracao do agente
+1. Substituição no payload do job (mais alta)
+2. Padrões específicos do hook (ex.: `hooks.gmail.model`)
+3. Padrão da configuração do agente
 
 ### Entrega (canal + alvo)
 
-Jobs isolados podem entregar saida a um canal via a configuracao de nivel superior `delivery`:
+Jobs isolados podem entregar a saída a um canal via a configuração de nível superior `delivery`:
 
 - `delivery.mode`: `announce` (entregar um resumo) ou `none`.
 - `delivery.channel`: `whatsapp` / `telegram` / `discord` / `slack` / `mattermost` (plugin) / `signal` / `imessage` / `last`.
-- `delivery.to`: alvo do destinatario especifico do canal.
+- `delivery.to`: alvo de destinatário específico do canal.
 
-A configuracao de entrega e valida apenas para jobs isolados (`sessionTarget: "isolated"`).
+A configuração de entrega é válida apenas para jobs isolados (`sessionTarget: "isolated"`).
 
-Se `delivery.channel` ou `delivery.to` for omitido, o cron pode recorrer a “ultima rota”
-da sessao principal (o ultimo lugar onde o agente respondeu).
+Se `delivery.channel` ou `delivery.to` for omitido, o cron pode recorrer à “última rota” da sessão principal
+(o último local onde o agente respondeu).
 
 Lembretes de formato de alvo:
 
-- Alvos Slack/Discord/Mattermost (plugin) devem usar prefixos explicitos (por exemplo, `channel:<id>`, `user:<id>`) para evitar ambiguidade.
-- Topicos do Telegram devem usar o formato `:topic:` (veja abaixo).
+- Alvos de Slack/Discord/Mattermost (plugin) devem usar prefixos explícitos (ex.: `channel:<id>`, `user:<id>`) para evitar ambiguidade.
+- Tópicos do Telegram devem usar o formato `:topic:` (veja abaixo).
 
-#### Alvos de entrega do Telegram (topicos / threads de forum)
+#### Alvos de entrega do Telegram (tópicos / threads de fórum)
 
-O Telegram suporta topicos de forum via `message_thread_id`. Para entrega por cron, voce pode codificar
-o topico/thread no campo `to`:
+O Telegram suporta tópicos de fórum via `message_thread_id`. Para entrega por cron, você pode codificar
+o tópico/thread no campo `to`:
 
 - `-1001234567890` (apenas id do chat)
-- `-1001234567890:topic:123` (preferido: marcador explicito de topico)
-- `-1001234567890:123` (atalho: sufixo numerico)
+- `-1001234567890:topic:123` (preferido: marcador explícito de tópico)
+- `-1001234567890:123` (atalho: sufixo numérico)
 
-Alvos com prefixo como `telegram:...` / `telegram:group:...` tambem sao aceitos:
+Alvos prefixados como `telegram:...` / `telegram:group:...` também são aceitos:
 
 - `telegram:group:-1001234567890:topic:123`
 
 ## Esquema JSON para tool calls
 
 Use estes formatos ao chamar diretamente as ferramentas `cron.*` do Gateway (tool calls do agente ou RPC).
-Flags de CLI aceitam duracoes humanas como `20m`, mas tool calls devem usar uma string ISO 8601
+As flags da CLI aceitam durações humanas como `20m`, mas tool calls devem usar uma string ISO 8601
 para `schedule.at` e milissegundos para `schedule.everyMs`.
 
-### Parametros de cron.add
+### Parâmetros de cron.add
 
-Job de uma unica execucao, sessao principal (evento de sistema):
+Job pontual, sessão principal (evento de sistema):
 
 ```json
 {
@@ -289,15 +291,15 @@ Job recorrente, isolado com entrega:
 
 Notas:
 
-- `schedule.kind`: `at` (`at`), `every` (`everyMs`), ou `cron` (`expr`, `tz` opcional).
-- `schedule.at` aceita ISO 8601 (fuso horario opcional; tratado como UTC quando omitido).
-- `everyMs` e em milissegundos.
+- `schedule.kind`: `at` (`at`), `every` (`everyMs`), ou `cron` (`expr`, opcional `tz`).
+- `schedule.at` aceita ISO 8601 (fuso horário opcional; tratado como UTC quando omitido).
+- `everyMs` é em milissegundos.
 - `sessionTarget` deve ser `"main"` ou `"isolated"` e deve corresponder a `payload.kind`.
-- Campos opcionais: `agentId`, `description`, `enabled`, `deleteAfterRun` (padrao true para `at`),
+- Campos opcionais: `agentId`, `description`, `enabled`, `deleteAfterRun` (padrão true para `at`),
   `delivery`.
-- `wakeMode` usa `"next-heartbeat"` por padrao quando omitido.
+- `wakeMode` usa por padrão `"now"` quando omitido.
 
-### Parametros de cron.update
+### Parâmetros de cron.update
 
 ```json
 {
@@ -311,10 +313,10 @@ Notas:
 
 Notas:
 
-- `jobId` e canonico; `id` e aceito por compatibilidade.
-- Use `agentId: null` no patch para limpar uma vinculacao de agente.
+- `jobId` é canônico; `id` é aceito por compatibilidade.
+- Use `agentId: null` no patch para limpar uma vinculação de agente.
 
-### Parametros de cron.run e cron.remove
+### Parâmetros de cron.run e cron.remove
 
 ```json
 { "jobId": "job-123", "mode": "force" }
@@ -324,13 +326,13 @@ Notas:
 { "jobId": "job-123" }
 ```
 
-## Armazenamento e historico
+## Armazenamento e histórico
 
 - Armazenamento de jobs: `~/.openclaw/cron/jobs.json` (JSON gerenciado pelo Gateway).
-- Historico de execucoes: `~/.openclaw/cron/runs/<jobId>.jsonl` (JSONL, com limpeza automatica).
-- Sobrescrever caminho de armazenamento: `cron.store` na configuracao.
+- Histórico de execuções: `~/.openclaw/cron/runs/<jobId>.jsonl` (JSONL, auto-podado).
+- Substituir o caminho de armazenamento: `cron.store` na configuração.
 
-## Configuracao
+## Configuração
 
 ```json5
 {
@@ -347,9 +349,9 @@ Desativar o cron completamente:
 - `cron.enabled: false` (config)
 - `OPENCLAW_SKIP_CRON=1` (env)
 
-## Inicio rapido de CLI
+## Início rápido da CLI
 
-Lembrete de uma unica execucao (ISO UTC, auto-exclui apos sucesso):
+Lembrete pontual (ISO UTC, autoexclusão após sucesso):
 
 ```bash
 openclaw cron add \
@@ -361,7 +363,7 @@ openclaw cron add \
   --delete-after-run
 ```
 
-Lembrete de uma unica execucao (sessao principal, acordar imediatamente):
+Lembrete pontual (sessão principal, acordar imediatamente):
 
 ```bash
 openclaw cron add \
@@ -386,7 +388,7 @@ openclaw cron add \
   --to "+15551234567"
 ```
 
-Job isolado recorrente (entregar a um topico do Telegram):
+Job isolado recorrente (entregar a um tópico do Telegram):
 
 ```bash
 openclaw cron add \
@@ -400,7 +402,7 @@ openclaw cron add \
   --to "-1001234567890:topic:123"
 ```
 
-Job isolado com sobrescrita de modelo e pensamento:
+Job isolado com substituição de modelo e thinking:
 
 ```bash
 openclaw cron add \
@@ -416,7 +418,7 @@ openclaw cron add \
   --to "+15551234567"
 ```
 
-Selecao de agente (ambientes com multiplos agentes):
+Seleção de agente (configurações com múltiplos agentes):
 
 ```bash
 # Pin a job to agent "ops" (falls back to default if that agent is missing)
@@ -427,13 +429,14 @@ openclaw cron edit <jobId> --agent ops
 openclaw cron edit <jobId> --clear-agent
 ```
 
-Execucao manual (debug):
+Execução manual (forçar é o padrão; use `--due` para executar apenas quando devido):
 
 ```bash
-openclaw cron run <jobId> --force
+openclaw cron run <jobId>
+openclaw cron run <jobId> --due
 ```
 
-Editar um job existente (campos de patch):
+Editar um job existente (patch de campos):
 
 ```bash
 openclaw cron edit <jobId> \
@@ -442,7 +445,7 @@ openclaw cron edit <jobId> \
   --thinking low
 ```
 
-Historico de execucoes:
+Histórico de execuções:
 
 ```bash
 openclaw cron runs --id <jobId> --limit 50
@@ -454,22 +457,29 @@ Evento de sistema imediato sem criar um job:
 openclaw system event --mode now --text "Next heartbeat: check battery."
 ```
 
-## Superficie de API do Gateway
+## Superfície da API do Gateway
 
 - `cron.list`, `cron.status`, `cron.add`, `cron.update`, `cron.remove`
-- `cron.run` (force ou due), `cron.runs`
+- `cron.run` (forçar ou devido), `cron.runs`
   Para eventos de sistema imediatos sem um job, use [`openclaw system event`](/cli/system).
 
-## Solucao de problemas
+## Solução de problemas
 
-### “Nada roda”
+### “Nada executa”
 
-- Verifique se o cron esta habilitado: `cron.enabled` e `OPENCLAW_SKIP_CRON`.
-- Verifique se o Gateway esta rodando continuamente (cron roda dentro do processo do Gateway).
-- Para agendamentos `cron`: confirme o fuso horario (`--tz`) vs o fuso horario do host.
+- Verifique se o cron está habilitado: `cron.enabled` e `OPENCLAW_SKIP_CRON`.
+- Verifique se o Gateway está rodando continuamente (o cron roda dentro do processo do Gateway).
+- Para agendas `cron`: confirme o fuso horário (`--tz`) vs o fuso do host.
 
-### Telegram entrega no lugar errado
+### Um job recorrente continua atrasando após falhas
 
-- Para topicos de forum, use `-100…:topic:<id>` para que seja explicito e inequivoco.
-- Se voce vir prefixos `telegram:...` em logs ou em alvos de “ultima rota” armazenados, isso e normal;
-  a entrega por cron os aceita e ainda analisa corretamente os IDs de topico.
+- O OpenClaw aplica backoff exponencial de retry para jobs recorrentes após erros consecutivos:
+  30s, 1m, 5m, 15m, depois 60m entre tentativas.
+- O backoff é redefinido automaticamente após a próxima execução bem-sucedida.
+- Jobs pontuais (`at`) são desativados após uma execução terminal (`ok`, `error` ou `skipped`) e não fazem retry.
+
+### O Telegram entrega no lugar errado
+
+- Para tópicos de fórum, use `-100…:topic:<id>` para que fique explícito e inequívoco.
+- Se você vir prefixos `telegram:...` nos logs ou em alvos de “última rota” armazenados, isso é normal;
+  a entrega por cron os aceita e ainda analisa corretamente os IDs de tópico.

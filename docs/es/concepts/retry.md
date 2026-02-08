@@ -1,19 +1,19 @@
 ---
-summary: "Politica de reintentos para llamadas salientes a proveedores"
+summary: "Política de reintentos para llamadas salientes a proveedores"
 read_when:
-  - Actualizar el comportamiento o los valores predeterminados de reintentos del proveedor
-  - Depurar errores de envio del proveedor o limites de tasa
-title: "Politica de Reintentos"
+  - Al actualizar el comportamiento o los valores predeterminados de reintento del proveedor
+  - Al depurar errores de envío del proveedor o límites de velocidad
+title: "Política de reintentos"
 x-i18n:
   source_path: concepts/retry.md
   source_hash: 55bb261ff567f46c
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:58:30Z
+  generated_at: 2026-02-08T09:33:08Z
 ---
 
-# Politica de reintentos
+# Política de reintentos
 
 ## Objetivos
 
@@ -24,28 +24,28 @@ x-i18n:
 ## Valores predeterminados
 
 - Intentos: 3
-- Limite maximo de retraso: 30000 ms
+- Límite máximo de retraso: 30000 ms
 - Jitter: 0.1 (10 por ciento)
 - Valores predeterminados del proveedor:
-  - Retraso minimo de Telegram: 400 ms
-  - Retraso minimo de Discord: 500 ms
+  - Retraso mínimo de Telegram: 400 ms
+  - Retraso mínimo de Discord: 500 ms
 
 ## Comportamiento
 
 ### Discord
 
-- Reintenta solo en errores de limite de tasa (HTTP 429).
-- Usa `retry_after` cuando esta disponible; de lo contrario, retroceso exponencial.
+- Reintenta solo en errores por límite de velocidad (HTTP 429).
+- Usa `retry_after` cuando está disponible; de lo contrario, retroceso exponencial.
 
 ### Telegram
 
-- Reintenta en errores transitorios (429, tiempo de espera, conexion/restablecida/cerrada, temporalmente no disponible).
-- Usa `retry_after` cuando esta disponible; de lo contrario, retroceso exponencial.
-- Los errores de analisis de Markdown no se reintentan; se vuelven a enviar como texto plano.
+- Reintenta en errores transitorios (429, tiempo de espera, conexión/restablecimiento/cierre, temporalmente no disponible).
+- Usa `retry_after` cuando está disponible; de lo contrario, retroceso exponencial.
+- Los errores de análisis de Markdown no se reintentan; se usa texto sin formato como alternativa.
 
-## Configuracion
+## Configuración
 
-Configure la politica de reintentos por proveedor en `~/.openclaw/openclaw.json`:
+Configure la política de reintentos por proveedor en `~/.openclaw/openclaw.json`:
 
 ```json5
 {
@@ -72,5 +72,5 @@ Configure la politica de reintentos por proveedor en `~/.openclaw/openclaw.json`
 
 ## Notas
 
-- Los reintentos se aplican por solicitud (envio de mensajes, carga de medios, reaccion, encuesta, sticker).
+- Los reintentos se aplican por solicitud (envío de mensajes, carga de medios, reacción, encuesta, sticker).
 - Los flujos compuestos no reintentan los pasos completados.

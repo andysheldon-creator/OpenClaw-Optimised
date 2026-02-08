@@ -1,26 +1,26 @@
 ---
-summary: "一般的な OpenClaw セットアップ向けの、スキーマに準拠した設定例"
+summary: "一般的な OpenClaw セットアップ向けのスキーマに準拠した設定例"
 read_when:
-  - OpenClaw の設定方法を学んでいるとき
+  - OpenClaw の設定方法を学ぶとき
   - 設定例を探しているとき
-  - 初めて OpenClaw をセットアップするとき
+  - OpenClaw を初めてセットアップするとき
 title: "設定例"
 x-i18n:
   source_path: gateway/configuration-examples.md
   source_hash: 2c9cee53d56a4232
   provider: openai
-  model: gpt-5.2-pro
+  model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-06T05:21:54Z
+  generated_at: 2026-02-08T09:21:45Z
 ---
 
 # 設定例
 
-以下の例は、現在の設定スキーマに整合しています。網羅的なリファレンスとフィールドごとの注記については、[Configuration](/gateway/configuration) を参照してください。
+以下の例は、現在の設定スキーマに準拠しています。網羅的なリファレンスや各フィールドの注記については、[Configuration](/gateway/configuration) を参照してください。
 
 ## クイックスタート
 
-### 絶対に必要な最小構成
+### 最小構成
 
 ```json5
 {
@@ -29,9 +29,9 @@ x-i18n:
 }
 ```
 
-`~/.openclaw/openclaw.json` に保存すると、その番号からボットへダイレクトメッセージを送れます。
+`~/.openclaw/openclaw.json` に保存すると、その番号からボットにダイレクトメッセージを送信できます。
 
-### 推奨のスターター
+### 推奨スターター
 
 ```json5
 {
@@ -55,7 +55,7 @@ x-i18n:
 
 ## 拡張例（主要オプション）
 
-> JSON5 では、コメントや末尾カンマを使用できます。通常の JSON も使用できます。
+> JSON5 ではコメントや末尾のカンマを使用できます。通常の JSON でも動作します。
 
 ```json5
 {
@@ -430,7 +430,7 @@ x-i18n:
 }
 ```
 
-## よくあるパターン
+## 一般的なパターン
 
 ### マルチプラットフォーム構成
 
@@ -453,9 +453,9 @@ x-i18n:
 }
 ```
 
-### セキュア ダイレクトメッセージモード（共有受信箱 / 複数ユーザーのダイレクトメッセージ）
+### セキュア DM モード（共有受信箱 / 複数ユーザーのダイレクトメッセージ）
 
-複数の人があなたのボットにダイレクトメッセージを送れる場合（`allowFrom` に複数のエントリがある、複数人分のペアリング承認がある、または `dmPolicy: "open"`）、送信者が異なるダイレクトメッセージがデフォルトで 1 つのコンテキストを共有しないように、**セキュア ダイレクトメッセージモード** を有効化してください。
+複数の人がボットにダイレクトメッセージを送信できる場合（`allowFrom` に複数のエントリがある、複数人のペアリング承認、または `dmPolicy: "open"`）、異なる送信者からのダイレクトメッセージがデフォルトで同一のコンテキストを共有しないように、**セキュア DM モード** を有効にしてください。
 
 ```json5
 {
@@ -479,7 +479,7 @@ x-i18n:
 }
 ```
 
-### API キーへのフェイルオーバー付き OAuth
+### API キーのフェイルオーバー付き OAuth
 
 ```json5
 {
@@ -548,7 +548,7 @@ x-i18n:
 }
 ```
 
-### ワークボット（アクセス制限）
+### 業務用ボット（制限付きアクセス）
 
 ```json5
 {
@@ -607,7 +607,7 @@ x-i18n:
 
 ## ヒント
 
-- `dmPolicy: "open"` を設定する場合、対応する `allowFrom` のリストには `"*"` が含まれている必要があります。
-- プロバイダー ID は異なります（電話番号、ユーザー ID、チャンネル ID）。形式の確認には、プロバイダーのドキュメントを使用してください。
-- 後から追加できる任意セクション: `web`、`browser`、`ui`、`discovery`、`canvasHost`、`talk`、`signal`、`imessage`。
-- より深いセットアップ注記については、[Providers](/channels/whatsapp) と [Troubleshooting](/gateway/troubleshooting) を参照してください。
+- `dmPolicy: "open"` を設定した場合、対応する `allowFrom` のリストには `"*"` を含める必要があります。
+- プロバイダー ID は異なります（電話番号、ユーザー ID、チャンネル ID など）。形式は各プロバイダーのドキュメントで確認してください。
+- 後から追加できるオプションのセクション: `web`, `browser`, `ui`, `discovery`, `canvasHost`, `talk`, `signal`, `imessage`。
+- 詳細なセットアップの注記については、[Providers](/channels/whatsapp) および [Troubleshooting](/gateway/troubleshooting) を参照してください。

@@ -1,36 +1,36 @@
 ---
-summary: "Hubs, die zu jeder OpenClaw-Dokumentation verlinken"
+summary: „Hubs, die auf jede OpenClaw-Dokumentation verlinken“
 read_when:
-  - Sie moechten eine vollstaendige Uebersicht der Dokumentation
-title: "Dokumentations-Hubs"
+  - Sie möchten eine vollständige Übersicht der Dokumentation
+title: „Docs-Hubs“
 x-i18n:
   source_path: start/hubs.md
-  source_hash: a2e3aa07d6c8c2dc
+  source_hash: 027cb7937ba63866
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:39Z
+  generated_at: 2026-02-08T09:37:28Z
 ---
 
-# Dokumentations-Hubs
+# Docs-Hubs
 
 <Note>
 Wenn Sie neu bei OpenClaw sind, beginnen Sie mit [Erste Schritte](/start/getting-started).
 </Note>
 
-Verwenden Sie diese Hubs, um jede Seite zu entdecken, einschliesslich Deep Dives und Referenzdokumenten, die nicht in der linken Navigation erscheinen.
+Nutzen Sie diese Hubs, um jede Seite zu entdecken, einschließlich Deep Dives und Referenzdokumente, die nicht in der linken Navigation erscheinen.
 
-## Hier starten
+## Hier beginnen
 
 - [Index](/)
 - [Erste Schritte](/start/getting-started)
 - [Schnellstart](/start/quickstart)
-- [Einfuehrung](/start/onboarding)
+- [Onboarding](/start/onboarding)
 - [Assistent](/start/wizard)
-- [Einrichtung](/start/setup)
-- [Dashboard (lokaler Gateway)](http://127.0.0.1:18789/)
+- [Setup](/start/setup)
+- [Dashboard (lokales Gateway)](http://127.0.0.1:18789/)
 - [Hilfe](/help)
-- [Dokumentationsverzeichnis](/start/docs-directory)
+- [Docs-Verzeichnis](/start/docs-directory)
 - [Konfiguration](/gateway/configuration)
 - [Konfigurationsbeispiele](/gateway/configuration-examples)
 - [OpenClaw-Assistent](/start/openclaw)
@@ -41,7 +41,7 @@ Verwenden Sie diese Hubs, um jede Seite zu entdecken, einschliesslich Deep Dives
 
 - [Docker](/install/docker)
 - [Nix](/install/nix)
-- [Aktualisieren / Rollback](/install/updating)
+- [Aktualisierung / Rollback](/install/updating)
 - [Bun-Workflow (experimentell)](/install/bun)
 
 ## Kernkonzepte
@@ -49,10 +49,10 @@ Verwenden Sie diese Hubs, um jede Seite zu entdecken, einschliesslich Deep Dives
 - [Architektur](/concepts/architecture)
 - [Funktionen](/concepts/features)
 - [Netzwerk-Hub](/network)
-- [Agent-Laufzeitumgebung](/concepts/agent)
+- [Agent-Runtime](/concepts/agent)
 - [Agent-Arbeitsbereich](/concepts/agent-workspace)
 - [Speicher](/concepts/memory)
-- [Agent-Schleife](/concepts/agent-loop)
+- [Agent-Loop](/concepts/agent-loop)
 - [Streaming + Chunking](/concepts/streaming)
 - [Multi-Agent-Routing](/concepts/multi-agent)
 - [Kompaktierung](/concepts/compaction)
@@ -65,18 +65,18 @@ Verwenden Sie diese Hubs, um jede Seite zu entdecken, einschliesslich Deep Dives
 - [RPC-Adapter](/reference/rpc)
 - [TypeBox-Schemas](/concepts/typebox)
 - [Zeitzonenbehandlung](/concepts/timezone)
-- [Praesenz](/concepts/presence)
-- [Erkennung + Transporte](/gateway/discovery)
+- [Präsenz](/concepts/presence)
+- [Discovery + Transports](/gateway/discovery)
 - [Bonjour](/gateway/bonjour)
-- [Kanal-Routing](/concepts/channel-routing)
-- [Gruppen](/concepts/groups)
-- [Gruppennachrichten](/concepts/group-messages)
+- [Kanal-Routing](/channels/channel-routing)
+- [Gruppen](/channels/groups)
+- [Gruppennachrichten](/channels/group-messages)
 - [Modell-Failover](/concepts/model-failover)
 - [OAuth](/concepts/oauth)
 
 ## Anbieter + Ingress
 
-- [Chat-Kanaele-Hub](/channels)
+- [Chat-Kanäle-Hub](/channels)
 - [Modellanbieter-Hub](/providers/models)
 - [WhatsApp](/channels/whatsapp)
 - [Telegram](/channels/telegram)
@@ -96,10 +96,10 @@ Verwenden Sie diese Hubs, um jede Seite zu entdecken, einschliesslich Deep Dives
 
 - [Gateway-Runbook](/gateway)
 - [Netzwerkmodell](/gateway/network-model)
-- [Gateway-Pairing](/gateway/pairing)
+- [Gateway-Kopplung](/gateway/pairing)
 - [Gateway-Sperre](/gateway/gateway-lock)
 - [Hintergrundprozess](/gateway/background-process)
-- [Gesundheit](/gateway/health)
+- [Zustand](/gateway/health)
 - [Heartbeat](/gateway/heartbeat)
 - [Doctor](/gateway/doctor)
 - [Protokollierung](/gateway/logging)
@@ -114,25 +114,25 @@ Verwenden Sie diese Hubs, um jede Seite zu entdecken, einschliesslich Deep Dives
 
 ## Werkzeuge + Automatisierung
 
-- [Werkzeugoberflaeche](/tools)
+- [Werkzeuge-Oberfläche](/tools)
 - [OpenProse](/prose)
 - [CLI-Referenz](/cli)
 - [Exec-Werkzeug](/tools/exec)
-- [Erhoehter Modus](/tools/elevated)
+- [Erhöhter Modus](/tools/elevated)
 - [Cron-Jobs](/automation/cron-jobs)
 - [Cron vs. Heartbeat](/automation/cron-vs-heartbeat)
-- [Thinking + verbose](/tools/thinking)
+- [Thinking + ausführlich](/tools/thinking)
 - [Modelle](/concepts/models)
 - [Sub-Agents](/tools/subagents)
-- [Agent send CLI](/tools/agent-send)
-- [Terminal-UI](/tui)
+- [Agent-Send CLI](/tools/agent-send)
+- [Terminal-UI](/web/tui)
 - [Browser-Steuerung](/tools/browser)
 - [Browser (Linux-Fehlerbehebung)](/tools/browser-linux-troubleshooting)
 - [Umfragen](/automation/poll)
 
 ## Nodes, Medien, Sprache
 
-- [Nodes-Uebersicht](/nodes)
+- [Nodes-Überblick](/nodes)
 - [Kamera](/nodes/camera)
 - [Bilder](/nodes/images)
 - [Audio](/nodes/audio)
@@ -142,25 +142,25 @@ Verwenden Sie diese Hubs, um jede Seite zu entdecken, einschliesslich Deep Dives
 
 ## Plattformen
 
-- [Plattformen-Uebersicht](/platforms)
+- [Plattformen-Überblick](/platforms)
 - [macOS](/platforms/macos)
 - [iOS](/platforms/ios)
 - [Android](/platforms/android)
 - [Windows (WSL2)](/platforms/windows)
 - [Linux](/platforms/linux)
-- [Web-Oberflaechen](/web)
+- [Web-Oberflächen](/web)
 
-## macOS-Begleit-App (fortgeschritten)
+## macOS-Companion-App (fortgeschritten)
 
 - [macOS-Dev-Setup](/platforms/mac/dev-setup)
-- [macOS-Menueleiste](/platforms/mac/menu-bar)
+- [macOS-Menüleiste](/platforms/mac/menu-bar)
 - [macOS-Sprachaktivierung](/platforms/mac/voicewake)
 - [macOS-Sprach-Overlay](/platforms/mac/voice-overlay)
 - [macOS WebChat](/platforms/mac/webchat)
 - [macOS Canvas](/platforms/mac/canvas)
 - [macOS-Child-Prozess](/platforms/mac/child-process)
-- [macOS-Gesundheit](/platforms/mac/health)
-- [macOS-Symbol](/platforms/mac/icon)
+- [macOS-Zustand](/platforms/mac/health)
+- [macOS-Icon](/platforms/mac/icon)
 - [macOS-Protokollierung](/platforms/mac/logging)
 - [macOS-Berechtigungen](/platforms/mac/permissions)
 - [macOS-Remote](/platforms/mac/remote)
@@ -187,18 +187,18 @@ Verwenden Sie diese Hubs, um jede Seite zu entdecken, einschliesslich Deep Dives
 
 ## Experimente (explorativ)
 
-- [Einfuehrungs-Konfigurationsprotokoll](/experiments/onboarding-config-protocol)
-- [Cron-Haertungsnotizen](/experiments/plans/cron-add-hardening)
-- [Gruppenrichtlinien-Haertungsnotizen](/experiments/plans/group-policy-hardening)
+- [Onboarding-Konfigurationsprotokoll](/experiments/onboarding-config-protocol)
+- [Hinweise zur Cron-Härtung](/experiments/plans/cron-add-hardening)
+- [Hinweise zur Gruppenrichtlinien-Härtung](/experiments/plans/group-policy-hardening)
 - [Forschung: Speicher](/experiments/research/memory)
 - [Erkundung der Modellkonfiguration](/experiments/proposals/model-config)
 
 ## Projekt
 
-- [Danksagungen](/reference/credits)
+- [Credits](/reference/credits)
 
-## Tests + Release
+## Testen + Release
 
-- [Tests](/reference/test)
+- [Testen](/reference/test)
 - [Release-Checkliste](/reference/RELEASING)
-- [Geraetemodelle](/reference/device-models)
+- [Gerätemodelle](/reference/device-models)

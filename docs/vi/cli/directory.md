@@ -1,8 +1,8 @@
 ---
-summary: "Tham chiếu CLI cho `openclaw directory` (bản thân, peers, nhóm)"
+summary: "Tham chiếu CLI cho `openclaw directory` (self, peers, groups)"
 read_when:
-  - Bạn muốn tra cứu ID liên hệ/nhóm/bản thân cho một kênh
-  - Bạn đang phát triển một bộ điều hợp thư mục kênh
+  - Bạn muốn tra cứu ID liên hệ/nhóm/self cho một kênh
+  - Bạn đang phát triển bộ điều hợp danh bạ kênh
 title: "directory"
 x-i18n:
   source_path: cli/directory.md
@@ -10,24 +10,24 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:06:26Z
+  generated_at: 2026-02-08T09:38:22Z
 ---
 
 # `openclaw directory`
 
-Tra cứu thư mục cho các kênh có hỗ trợ (liên hệ/peers, nhóm và “tôi”).
+Tra cứu danh bạ cho các kênh có hỗ trợ (liên hệ/peers, nhóm và “tôi”).
 
-## Các cờ dùng chung
+## Cờ dùng chung
 
-- `--channel <name>`: id/alias của kênh (bắt buộc khi có nhiều kênh được cấu hình; tự động khi chỉ có một kênh)
-- `--account <id>`: id tài khoản (mặc định: theo mặc định của kênh)
+- `--channel <name>`: id/bí danh kênh (bắt buộc khi cấu hình nhiều kênh; tự động khi chỉ có một kênh)
+- `--account <id>`: id tài khoản (mặc định: tài khoản mặc định của kênh)
 - `--json`: xuất JSON
 
 ## Ghi chú
 
-- `directory` được thiết kế để giúp bạn tìm các ID có thể dán vào các lệnh khác (đặc biệt là `openclaw message send --target ...`).
-- Với nhiều kênh, kết quả dựa trên cấu hình (allowlists / các nhóm đã cấu hình) thay vì thư mục của nhà cung cấp theo thời gian thực.
-- Đầu ra mặc định là `id` (và đôi khi `name`) được phân tách bằng tab; dùng `--json` cho scripting.
+- `directory` nhằm giúp bạn tìm các ID có thể dán vào các lệnh khác (đặc biệt là `openclaw message send --target ...`).
+- Với nhiều kênh, kết quả dựa trên cấu hình (danh sách cho phép / nhóm đã cấu hình) thay vì danh bạ trực tiếp từ nhà cung cấp.
+- Đầu ra mặc định là `id` (và đôi khi `name`) được phân tách bằng tab; dùng `--json` cho mục đích scripting.
 
 ## Sử dụng kết quả với `message send`
 
@@ -39,7 +39,7 @@ openclaw message send --channel slack --target user:U012ABCDEF --message "hello"
 ## Định dạng ID (theo kênh)
 
 - WhatsApp: `+15551234567` (DM), `1234567890-1234567890@g.us` (nhóm)
-- Telegram: `@username` hoặc chat id dạng số; nhóm dùng id số
+- Telegram: `@username` hoặc id chat dạng số; nhóm là id dạng số
 - Slack: `user:U…` và `channel:C…`
 - Discord: `user:<id>` và `channel:<id>`
 - Matrix (plugin): `user:@user:server`, `room:!roomId:server` hoặc `#alias:server`
@@ -47,7 +47,7 @@ openclaw message send --channel slack --target user:U012ABCDEF --message "hello"
 - Zalo (plugin): user id (Bot API)
 - Zalo Personal / `zalouser` (plugin): thread id (DM/nhóm) từ `zca` (`me`, `friend list`, `group list`)
 
-## Bản thân (“tôi”)
+## Self (“tôi”)
 
 ```bash
 openclaw directory self --channel zalouser
@@ -61,7 +61,7 @@ openclaw directory peers list --channel zalouser --query "name"
 openclaw directory peers list --channel zalouser --limit 50
 ```
 
-## Nhóm
+## Groups (nhóm)
 
 ```bash
 openclaw directory groups list --channel zalouser

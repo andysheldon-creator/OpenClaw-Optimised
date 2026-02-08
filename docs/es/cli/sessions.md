@@ -1,7 +1,7 @@
 ---
-summary: "Referencia de CLI para `openclaw sessions` (listar sesiones almacenadas + uso)"
+summary: "Referencia de la CLI para `openclaw sessions` (listar sesiones almacenadas + uso)"
 read_when:
-  - Quiere listar las sesiones almacenadas y ver la actividad reciente
+  - Quiere listar sesiones almacenadas y ver la actividad reciente
 title: "sesiones"
 x-i18n:
   source_path: cli/sessions.md
@@ -9,7 +9,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:58:19Z
+  generated_at: 2026-02-08T09:32:57Z
 ---
 
 # `openclaw sessions`

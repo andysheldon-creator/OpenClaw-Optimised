@@ -1,5 +1,5 @@
 ---
-summary: "Sử dụng API hợp nhất của Qianfan để truy cập nhiều mô hình trong OpenClaw"
+summary: "Dùng API hợp nhất của Qianfan để truy cập nhiều mô hình trong OpenClaw"
 read_when:
   - Bạn muốn một khóa API duy nhất cho nhiều LLM
   - Bạn cần hướng dẫn thiết lập Baidu Qianfan
@@ -10,26 +10,26 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:16:02Z
+  generated_at: 2026-02-08T09:39:55Z
 ---
 
-# Hướng dẫn Nhà cung cấp Qianfan
+# Hướng dẫn nhà cung cấp Qianfan
 
-Qianfan là nền tảng MaaS của Baidu, cung cấp **API hợp nhất** để định tuyến yêu cầu tới nhiều mô hình phía sau một
-endpoint và khóa API duy nhất. Nền tảng này tương thích với OpenAI, vì vậy hầu hết các SDK OpenAI đều hoạt động chỉ bằng cách đổi base URL.
+Qianfan là nền tảng MaaS của Baidu, cung cấp một **API hợp nhất** để định tuyến yêu cầu tới nhiều mô hình phía sau một
+điểm cuối và khóa API duy nhất. Nền tảng này tương thích OpenAI, vì vậy hầu hết các SDK OpenAI đều hoạt động chỉ bằng cách chuyển base URL.
 
 ## Điều kiện tiên quyết
 
-1. Tài khoản Baidu Cloud có quyền truy cập API Qianfan
+1. Một tài khoản Baidu Cloud có quyền truy cập API Qianfan
 2. Một khóa API từ bảng điều khiển Qianfan
 3. OpenClaw đã được cài đặt trên hệ thống của bạn
 
-## Lấy khóa API
+## Lấy khóa API của bạn
 
-1. Truy cập [Qianfan Console](https://console.bce.baidu.com/qianfan/ais/console/apiKey)
-2. Tạo ứng dụng mới hoặc chọn ứng dụng hiện có
+1. Truy cập [Bảng điều khiển Qianfan](https://console.bce.baidu.com/qianfan/ais/console/apiKey)
+2. Tạo một ứng dụng mới hoặc chọn ứng dụng hiện có
 3. Tạo khóa API (định dạng: `bce-v3/ALTAK-...`)
-4. Sao chép khóa API để sử dụng với OpenClaw
+4. Sao chép khóa API để dùng với OpenClaw
 
 ## Thiết lập CLI
 

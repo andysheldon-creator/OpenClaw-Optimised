@@ -1,29 +1,29 @@
 ---
-summary: "Thiet lap Brave Search API cho web_search"
+summary: "Thiết lập API Brave Search cho web_search"
 read_when:
-  - Ban muon su dung Brave Search cho web_search
-  - Ban can BRAVE_API_KEY hoac thong tin goi dich vu
+  - Bạn muốn dùng Brave Search cho web_search
+  - Bạn cần BRAVE_API_KEY hoặc thông tin gói
 title: "Brave Search"
 x-i18n:
   source_path: brave-search.md
-  source_hash: cdcb037b092b8a10
+  source_hash: 81cd0a13239c13f4
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:56Z
+  generated_at: 2026-02-08T09:37:47Z
 ---
 
-# Brave Search API
+# API Brave Search
 
-OpenClaw su dung Brave Search lam nha cung cap mac dinh cho `web_search`.
+OpenClaw dùng Brave Search làm nhà cung cấp mặc định cho `web_search`.
 
-## Lay API key
+## Lấy khóa API
 
-1. Tao tai khoan Brave Search API tai https://brave.com/search/api/
-2. Trong bang dieu khien, chon goi **Data for Search** va tao API key.
-3. Luu key vao config (khuyen nghi) hoac dat `BRAVE_API_KEY` trong moi truong Gateway.
+1. Tạo tài khoản Brave Search API tại [https://brave.com/search/api/](https://brave.com/search/api/)
+2. Trong bảng điều khiển, chọn gói **Data for Search** và tạo khóa API.
+3. Lưu khóa vào cấu hình (khuyến nghị) hoặc đặt `BRAVE_API_KEY` trong biến môi trường của Gateway.
 
-## Vi du config
+## Ví dụ cấu hình
 
 ```json5
 {
@@ -40,9 +40,9 @@ OpenClaw su dung Brave Search lam nha cung cap mac dinh cho `web_search`.
 }
 ```
 
-## Ghi chu
+## Ghi chú
 
-- Goi Data for AI **khong** tuong thich voi `web_search`.
-- Brave cung cap goi mien phi va cac goi tra phi; hay kiem tra cong thong tin Brave API de biet gioi han hien tai.
+- Gói Data for AI **không** tương thích với `web_search`.
+- Brave cung cấp gói miễn phí cùng các gói trả phí; hãy kiểm tra cổng Brave API để biết giới hạn hiện tại.
 
-Xem [Web tools](/tools/web) de biet cau hinh web_search day du.
+Xem [Công cụ web](/tools/web) để biết cấu hình web_search đầy đủ.

@@ -1,7 +1,7 @@
 ---
 summary: „Stellen Sie einen OpenAI‑kompatiblen /v1/chat/completions‑HTTP‑Endpunkt über das Gateway bereit“
 read_when:
-  - Integration von Tools, die OpenAI Chat Completions erwarten
+  - Integration von Werkzeugen, die OpenAI Chat Completions erwarten
 title: „OpenAI Chat Completions“
 x-i18n:
   source_path: gateway/openai-http-api.md
@@ -9,12 +9,12 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:04:24Z
+  generated_at: 2026-02-08T09:36:15Z
 ---
 
 # OpenAI Chat Completions (HTTP)
 
-Das Gateway von OpenClaw kann einen kleinen, OpenAI‑kompatiblen Chat‑Completions‑Endpunkt bereitstellen.
+Das Gateway von OpenClaw kann einen kleinen OpenAI‑kompatiblen Chat‑Completions‑Endpunkt bereitstellen.
 
 Dieser Endpunkt ist **standardmäßig deaktiviert**. Aktivieren Sie ihn zuerst in der Konfiguration.
 
@@ -25,7 +25,7 @@ Unter der Haube werden Anfragen als normaler Gateway‑Agent‑Lauf ausgeführt 
 
 ## Authentifizierung
 
-Verwendet die Gateway‑Auth‑Konfiguration. Senden Sie ein Bearer‑Token:
+Verwendet die Gateway‑Authentifizierungskonfiguration. Senden Sie ein Bearer‑Token:
 
 - `Authorization: Bearer <token>`
 
@@ -34,14 +34,14 @@ Hinweise:
 - Wenn `gateway.auth.mode="token"`, verwenden Sie `gateway.auth.token` (oder `OPENCLAW_GATEWAY_TOKEN`).
 - Wenn `gateway.auth.mode="password"`, verwenden Sie `gateway.auth.password` (oder `OPENCLAW_GATEWAY_PASSWORD`).
 
-## Agent auswählen
+## Auswahl eines Agenten
 
 Keine benutzerdefinierten Header erforderlich: Kodieren Sie die Agent‑ID im OpenAI‑Feld `model`:
 
 - `model: "openclaw:<agentId>"` (Beispiel: `"openclaw:main"`, `"openclaw:beta"`)
 - `model: "agent:<agentId>"` (Alias)
 
-Oder zielen Sie per Header auf einen bestimmten OpenClaw‑Agenten:
+Oder sprechen Sie einen bestimmten OpenClaw‑Agenten per Header an:
 
 - `x-openclaw-agent-id: <agentId>` (Standard: `main`)
 
@@ -49,7 +49,7 @@ Erweitert:
 
 - `x-openclaw-session-key: <sessionKey>` zur vollständigen Kontrolle des Sitzungs‑Routings.
 
-## Endpunkt aktivieren
+## Aktivieren des Endpunkts
 
 Setzen Sie `gateway.http.endpoints.chatCompletions.enabled` auf `true`:
 
@@ -65,7 +65,7 @@ Setzen Sie `gateway.http.endpoints.chatCompletions.enabled` auf `true`:
 }
 ```
 
-## Endpunkt deaktivieren
+## Deaktivieren des Endpunkts
 
 Setzen Sie `gateway.http.endpoints.chatCompletions.enabled` auf `false`:
 
@@ -83,7 +83,7 @@ Setzen Sie `gateway.http.endpoints.chatCompletions.enabled` auf `false`:
 
 ## Sitzungsverhalten
 
-Standardmäßig ist der Endpunkt **zustandslos pro Anfrage** (bei jedem Aufruf wird ein neuer Sitzungsschlüssel erzeugt).
+Standardmäßig ist der Endpunkt **zustandslos pro Anfrage** (bei jedem Aufruf wird ein neuer Sitzungsschlüssel generiert).
 
 Wenn die Anfrage eine OpenAI‑Zeichenkette `user` enthält, leitet das Gateway daraus einen stabilen Sitzungsschlüssel ab, sodass wiederholte Aufrufe eine Agent‑Sitzung teilen können.
 

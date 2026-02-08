@@ -59,7 +59,7 @@ MODEL = "gpt-5.2-chat-latest"
 GLOSSARY_MODEL = "gpt-5.2-pro"  # more capable model for glossary generation
 PROVIDER = "openai"
 WORKFLOW = "v1"
-WORKERS = 30
+WORKERS = 100
 MAX_RETRIES = 3
 RETRY_DELAY = 5
 

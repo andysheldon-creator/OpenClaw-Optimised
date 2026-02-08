@@ -1,55 +1,55 @@
 ---
-summary: "Thiet ke hang doi lenh de tuan tu hoa cac lan chay tra loi tu dong dau vao"
+summary: "Thiết kế hàng đợi lệnh để tuần tự hóa các lần chạy auto-reply đến"
 read_when:
-  - Thay doi thuc thi hoac do dong thoi cua tra loi tu dong
-title: "Hang Doi Lenh"
+  - Thay đổi cách thực thi hoặc mức song song của auto-reply
+title: "Hàng đợi lệnh"
 x-i18n:
   source_path: concepts/queue.md
   source_hash: 2104c24d200fb4f9
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:00Z
+  generated_at: 2026-02-08T09:38:42Z
 ---
 
-# Hang Doi Lenh (2026-01-16)
+# Hàng đợi lệnh (2026-01-16)
 
-Chung toi tuan tu hoa cac lan chay tra loi tu dong dau vao (tat ca kenh) thong qua mot hang doi nho trong tien trinh de ngan viec nhieu lan chay tac tu va cham vao nhau, trong khi van cho phep song song an toan giua cac phien.
+Chúng tôi tuần tự hóa các lần chạy auto-reply đến (tất cả kênh) thông qua một hàng đợi nhỏ chạy trong tiến trình để ngăn nhiều lần chạy của tác tử va chạm với nhau, đồng thời vẫn cho phép song song an toàn giữa các phiên.
 
-## Vi sao
+## Vì sao
 
-- Cac lan chay tra loi tu dong co the ton kem (goi LLM) va co the va cham khi nhieu tin nhan dau vao den gan nhau.
-- Tuan tu hoa giup tranh canh tranh tai nguyen dung chung (tep phien, log, CLI stdin) va giam nguy co bi gioi han toc do tu phia tren.
+- Các lần chạy auto-reply có thể tốn kém (gọi LLM) và có thể va chạm khi nhiều tin nhắn đến trong thời gian ngắn.
+- Tuần tự hóa giúp tránh tranh chấp tài nguyên dùng chung (tệp phiên, log, stdin của CLI) và giảm khả năng chạm giới hạn tốc độ từ phía upstream.
 
-## Cach hoat dong
+## Cách hoạt động
 
-- Mot hang doi FIFO nhan biet lane rut moi lane voi gioi han dong thoi co the cau hinh (mac dinh 1 cho cac lane chua cau hinh; main mac dinh 4, subagent la 8).
-- `runEmbeddedPiAgent` xep hang theo **khoa phien** (lane `session:<key>`) de dam bao chi co mot lan chay dang hoat dong moi phien.
-- Moi lan chay phien sau do duoc dua vao mot **lane toan cuc** (mac dinh la `main`) de tong muc song song bi gioi han boi `agents.defaults.maxConcurrent`.
-- Khi bat log chi tiet, cac lan chay bi xep hang se phat ra thong bao ngan neu cho hon ~2s truoc khi bat dau.
-- Chi bao dang go van kich hoat ngay lap tuc khi xep hang (neu kenh ho tro) nen trai nghiem nguoi dung khong doi trong khi cho den luot.
+- Một hàng đợi FIFO nhận biết lane sẽ xả từng lane với giới hạn song song có thể cấu hình (mặc định 1 cho các lane chưa cấu hình; main mặc định 4, subagent 8).
+- `runEmbeddedPiAgent` xếp hàng theo **khóa phiên** (lane `session:<key>`) để đảm bảo chỉ có một lần chạy đang hoạt động cho mỗi phiên.
+- Mỗi lần chạy của phiên sau đó được xếp vào **lane toàn cục** (`main` theo mặc định) để tổng mức song song bị giới hạn bởi `agents.defaults.maxConcurrent`.
+- Khi bật log chi tiết, các lần chạy bị xếp hàng sẽ phát ra thông báo ngắn nếu chúng phải đợi hơn ~2 giây trước khi bắt đầu.
+- Chỉ báo đang gõ vẫn được kích hoạt ngay khi enqueue (khi kênh hỗ trợ), vì vậy trải nghiệm người dùng không thay đổi trong khi chờ đến lượt.
 
-## Che do hang doi (theo kenh)
+## Chế độ hàng đợi (theo từng kênh)
 
-Tin nhan dau vao co the dieu huong lan chay hien tai, cho mot luot theo doi, hoac lam ca hai:
+Tin nhắn đến có thể điều hướng lần chạy hiện tại, chờ lượt tiếp theo, hoặc làm cả hai:
 
-- `steer`: chen ngay vao lan chay hien tai (huy cac cuoc goi cong cu dang cho sau ran gioi cong cu tiep theo). Neu khong streaming, se quay ve followup.
-- `followup`: xep hang cho luot tac tu tiep theo sau khi lan chay hien tai ket thuc.
-- `collect`: gop tat ca tin nhan da xep hang thanh **mot** luot followup duy nhat (mac dinh). Neu tin nhan nham den cac kenh/luong khac nhau, chung se duoc rut rieng le de bao toan dinh tuyen.
-- `steer-backlog` (con goi la `steer+backlog`): dieu huong ngay **va** giu lai tin nhan cho mot luot followup.
-- `interrupt` (ke thua): huy lan chay dang hoat dong cua phien do, sau do chay tin nhan moi nhat.
-- `queue` (ten goi khac ke thua): giong voi `steer`.
+- `steer`: chèn ngay vào lần chạy hiện tại (hủy các lệnh gọi công cụ đang chờ sau ranh giới công cụ tiếp theo). Nếu không streaming, sẽ rơi về followup.
+- `followup`: xếp hàng cho lượt tác tử tiếp theo sau khi lần chạy hiện tại kết thúc.
+- `collect`: gộp tất cả tin nhắn đã xếp hàng thành **một** lượt followup duy nhất (mặc định). Nếu tin nhắn nhắm đến các kênh/luồng khác nhau, chúng sẽ được xả riêng lẻ để giữ đúng định tuyến.
+- `steer-backlog` (còn gọi là `steer+backlog`): điều hướng ngay **và** vẫn giữ lại tin nhắn cho một lượt followup.
+- `interrupt` (legacy): hủy lần chạy đang hoạt động của phiên đó, sau đó chạy tin nhắn mới nhất.
+- `queue` (bí danh legacy): giống như `steer`.
 
-Steer-backlog co nghia la ban co the nhan duoc phan hoi followup sau lan chay da dieu huong, vi vay
-cac be mat streaming co the trong giong nhu bi trung lap. Uu tien `collect`/`steer` neu ban muon
-mot phan hoi cho moi tin nhan dau vao.
-Gui `/queue collect` nhu mot lenh doc lap (theo phien) hoac dat `messages.queue.byChannel.discord: "collect"`.
+Steer-backlog có nghĩa là bạn có thể nhận được phản hồi followup sau lần chạy được điều hướng, vì vậy
+các bề mặt streaming có thể trông như bị trùng lặp. Ưu tiên `collect`/`steer` nếu bạn muốn
+mỗi tin nhắn đến chỉ có một phản hồi.
+Gửi `/queue collect` như một lệnh độc lập (theo phiên) hoặc đặt `messages.queue.byChannel.discord: "collect"`.
 
-Mac dinh (khi khong duoc dat trong cau hinh):
+Mặc định (khi không đặt trong cấu hình):
 
-- Tat ca be mat → `collect`
+- Tất cả bề mặt → `collect`
 
-Cau hinh toan cuc hoac theo kenh thong qua `messages.queue`:
+Cấu hình toàn cục hoặc theo kênh thông qua `messages.queue`:
 
 ```json5
 {
@@ -65,32 +65,32 @@ Cau hinh toan cuc hoac theo kenh thong qua `messages.queue`:
 }
 ```
 
-## Tuy chon hang doi
+## Tùy chọn hàng đợi
 
-Tuy chon ap dung cho `followup`, `collect`, va `steer-backlog` (va cho `steer` khi no quay ve followup):
+Các tùy chọn áp dụng cho `followup`, `collect` và `steer-backlog` (và cho `steer` khi nó rơi về followup):
 
-- `debounceMs`: cho yen lang truoc khi bat dau mot luot followup (ngan “tiep tuc, tiep tuc”).
-- `cap`: so tin nhan toi da duoc xep hang moi phien.
-- `drop`: chinh sach tran (`old`, `new`, `summarize`).
+- `debounceMs`: chờ yên lặng trước khi bắt đầu một lượt followup (ngăn “tiếp tục, tiếp tục”).
+- `cap`: số lượng tin nhắn tối đa được xếp hàng cho mỗi phiên.
+- `drop`: chính sách tràn (`old`, `new`, `summarize`).
 
-Summarize giu mot danh sach gach dau dong ngan cac tin nhan bi loai bo va chen no nhu mot prompt followup tong hop.
-Mac dinh: `debounceMs: 1000`, `cap: 20`, `drop: summarize`.
+Summarize giữ một danh sách gạch đầu dòng ngắn các tin nhắn bị loại bỏ và chèn nó như một prompt followup tổng hợp.
+Mặc định: `debounceMs: 1000`, `cap: 20`, `drop: summarize`.
 
-## Ghi de theo phien
+## Ghi đè theo phiên
 
-- Gui `/queue <mode>` nhu mot lenh doc lap de luu che do cho phien hien tai.
-- Co the ket hop tuy chon: `/queue collect debounce:2s cap:25 drop:summarize`
-- `/queue default` hoac `/queue reset` se xoa ghi de theo phien.
+- Gửi `/queue <mode>` như một lệnh độc lập để lưu chế độ cho phiên hiện tại.
+- Có thể kết hợp các tùy chọn: `/queue collect debounce:2s cap:25 drop:summarize`
+- `/queue default` hoặc `/queue reset` sẽ xóa ghi đè của phiên.
 
-## Pham vi va dam bao
+## Phạm vi và đảm bảo
 
-- Ap dung cho cac lan chay tac tu tra loi tu dong tren tat ca cac kenh dau vao su dung pipeline tra loi cua Gateway (WhatsApp web, Telegram, Slack, Discord, Signal, iMessage, webchat, v.v.).
-- Lane mac dinh (`main`) la dung chung cho toan bo tien trinh doi voi inbound + heartbeat chinh; dat `agents.defaults.maxConcurrent` de cho phep nhieu phien song song.
-- Cac lane bo sung co the ton tai (vi du `cron`, `subagent`) de cac cong viec nen chay song song ma khong chan cac phan hoi dau vao.
-- Lane theo phien dam bao chi co mot lan chay tac tu cham vao mot phien cu the tai mot thoi diem.
-- Khong co phu thuoc ben ngoai hoac luong worker nen; thuan TypeScript + promises.
+- Áp dụng cho các lần chạy tác tử auto-reply trên tất cả các kênh đến sử dụng pipeline trả lời của gateway (WhatsApp web, Telegram, Slack, Discord, Signal, iMessage, webchat, v.v.).
+- Lane mặc định (`main`) là dùng chung toàn tiến trình cho inbound + heartbeat chính; đặt `agents.defaults.maxConcurrent` để cho phép nhiều phiên chạy song song.
+- Có thể tồn tại các lane bổ sung (ví dụ `cron`, `subagent`) để các job nền chạy song song mà không chặn phản hồi inbound.
+- Lane theo phiên đảm bảo chỉ có một lần chạy tác tử chạm vào một phiên tại cùng thời điểm.
+- Không có phụ thuộc bên ngoài hay luồng worker nền; thuần TypeScript + promises.
 
-## Xu ly su co
+## Xử lý sự cố
 
-- Neu lenh co ve bi ket, hay bat log chi tiet va tim cac dong “queued for …ms” de xac nhan hang doi dang duoc rut.
-- Neu ban can do sau hang doi, hay bat log chi tiet va theo doi cac dong thoi gian hang doi.
+- Nếu lệnh có vẻ bị kẹt, hãy bật log chi tiết và tìm các dòng “queued for …ms” để xác nhận hàng đợi đang được xả.
+- Nếu bạn cần độ sâu hàng đợi, hãy bật log chi tiết và theo dõi các dòng thời gian của hàng đợi.

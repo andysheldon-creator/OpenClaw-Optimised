@@ -1,7 +1,7 @@
 ---
-summary: "Resumen de emparejamiento: aprobar quién puede enviarle mensajes directos + qué nodos pueden unirse"
+summary: "Resumen del emparejamiento: aprobar quién puede enviarle mensajes directos + qué nodos pueden unirse"
 read_when:
-  - Configurar el control de acceso a Mensajes directos
+  - Configurar el control de acceso a mensajes directos
   - Emparejar un nuevo nodo iOS/Android
   - Revisar la postura de seguridad de OpenClaw
 title: "Emparejamiento"
@@ -11,32 +11,32 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T08:15:25Z
+  generated_at: 2026-02-08T09:32:38Z
 ---
 
 # Emparejamiento
 
-“El **emparejamiento**” es el paso explícito de **aprobación del propietario** de OpenClaw.
+“El emparejamiento” es el paso explícito de **aprobación del propietario** de OpenClaw.
 Se utiliza en dos lugares:
 
-1. **Emparejamiento de Mensajes directos** (quién tiene permitido hablar con el bot)
-2. **Emparejamiento de nodos** (qué dispositivos/nodos pueden unirse a la red del Gateway)
+1. **Emparejamiento de mensajes directos (DM)** (quién tiene permitido hablar con el bot)
+2. **Emparejamiento de nodos** (qué dispositivos/nodos tienen permitido unirse a la red del Gateway)
 
 Contexto de seguridad: [Security](/gateway/security)
 
-## 1) Emparejamiento de Mensajes directos (acceso de chat entrante)
+## 1) Emparejamiento de mensajes directos (acceso entrante al chat)
 
-Cuando un canal se configura con la política de Mensajes directos `pairing`, los remitentes desconocidos reciben un código corto y su mensaje **no se procesa** hasta que usted lo apruebe.
+Cuando un canal se configura con la política de mensajes directos `pairing`, los remitentes desconocidos reciben un código corto y su mensaje **no se procesa** hasta que usted apruebe.
 
-Las políticas predeterminadas de Mensajes directos están documentadas en: [Security](/gateway/security)
+Las políticas predeterminadas de mensajes directos están documentadas en: [Security](/gateway/security)
 
 Códigos de emparejamiento:
 
 - 8 caracteres, en mayúsculas, sin caracteres ambiguos (`0O1I`).
 - **Expiran después de 1 hora**. El bot solo envía el mensaje de emparejamiento cuando se crea una nueva solicitud (aproximadamente una vez por hora por remitente).
-- Las solicitudes de emparejamiento de Mensajes directos pendientes están limitadas a **3 por canal** de forma predeterminada; las solicitudes adicionales se ignoran hasta que una expire o sea aprobada.
+- Las solicitudes pendientes de emparejamiento de mensajes directos están limitadas a **3 por canal** de forma predeterminada; las solicitudes adicionales se ignoran hasta que una expire o sea aprobada.
 
-### Aprobar a un remitente
+### Aprobar un remitente
 
 ```bash
 openclaw pairing list telegram
@@ -47,12 +47,12 @@ Canales compatibles: `telegram`, `whatsapp`, `signal`, `imessage`, `discord`, `s
 
 ### Dónde vive el estado
 
-Almacenado en `~/.openclaw/credentials/`:
+Almacenado bajo `~/.openclaw/credentials/`:
 
 - Solicitudes pendientes: `<channel>-pairing.json`
 - Almacén de lista de permitidos aprobados: `<channel>-allowFrom.json`
 
-Trate estos datos como sensibles (controlan el acceso a su asistente).
+Trate estos elementos como sensibles (controlan el acceso a su asistente).
 
 ## 2) Emparejamiento de dispositivos de nodo (nodos iOS/Android/macOS/headless)
 
@@ -69,7 +69,7 @@ openclaw devices reject <requestId>
 
 ### Almacenamiento del estado de emparejamiento de nodos
 
-Almacenado en `~/.openclaw/devices/`:
+Almacenado bajo `~/.openclaw/devices/`:
 
 - `pending.json` (de corta duración; las solicitudes pendientes expiran)
 - `paired.json` (dispositivos emparejados + tokens)
@@ -77,9 +77,9 @@ Almacenado en `~/.openclaw/devices/`:
 ### Notas
 
 - La API heredada `node.pair.*` (CLI: `openclaw nodes pending/approve`) es un
-  almacén de emparejamiento separado y propiedad del Gateway. Los nodos WS aún requieren emparejamiento de dispositivos.
+  almacén de emparejamiento independiente propiedad del Gateway. Los nodos WS aún requieren emparejamiento de dispositivos.
 
-## Documentos relacionados
+## Documentación relacionada
 
 - Modelo de seguridad + inyección de prompts: [Security](/gateway/security)
 - Actualización segura (ejecutar doctor): [Updating](/install/updating)

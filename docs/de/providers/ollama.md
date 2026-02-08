@@ -1,25 +1,25 @@
 ---
-summary: "OpenClaw mit Ollama ausführen (lokale LLM-Laufzeitumgebung)"
+summary: „OpenClaw mit Ollama (lokale LLM-Laufzeit) ausführen“
 read_when:
   - Sie möchten OpenClaw mit lokalen Modellen über Ollama ausführen
   - Sie benötigen Anleitungen zur Einrichtung und Konfiguration von Ollama
-title: "Ollama"
+title: „Ollama“
 x-i18n:
   source_path: providers/ollama.md
-  source_hash: 2992dd0a456d19c3
+  source_hash: 61f88017027beb20
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:19Z
+  generated_at: 2026-02-08T09:37:14Z
 ---
 
 # Ollama
 
-Ollama ist eine lokale LLM-Laufzeitumgebung, mit der sich Open-Source-Modelle einfach auf Ihrem Rechner ausführen lassen. OpenClaw integriert sich in die OpenAI-kompatible API von Ollama und kann **werkzeugfähige Modelle automatisch erkennen**, wenn Sie sich mit `OLLAMA_API_KEY` (oder einem Auth-Profil) dafür entscheiden und keinen expliziten `models.providers.ollama`-Eintrag definieren.
+Ollama ist eine lokale LLM-Laufzeit, mit der sich Open-Source-Modelle einfach auf Ihrem Rechner ausführen lassen. OpenClaw integriert sich in die OpenAI‑kompatible API von Ollama und kann **werkzeugfähige Modelle automatisch erkennen**, wenn Sie sich mit `OLLAMA_API_KEY` (oder einem Auth‑Profil) dafür entscheiden und keinen expliziten `models.providers.ollama`‑Eintrag definieren.
 
 ## Schnellstart
 
-1. Installieren Sie Ollama: https://ollama.ai
+1. Installieren Sie Ollama: [https://ollama.ai](https://ollama.ai)
 
 2. Ziehen Sie ein Modell:
 
@@ -33,7 +33,7 @@ ollama pull qwen2.5-coder:32b
 ollama pull deepseek-r1:32b
 ```
 
-3. Aktivieren Sie Ollama für OpenClaw (beliebiger Wert; Ollama benötigt keinen echten Schlüssel):
+3. Aktivieren Sie Ollama für OpenClaw (jeder Wert funktioniert; Ollama benötigt keinen echten Schlüssel):
 
 ```bash
 # Set environment variable
@@ -43,7 +43,7 @@ export OLLAMA_API_KEY="ollama-local"
 openclaw config set models.providers.ollama.apiKey "ollama-local"
 ```
 
-4. Verwenden Sie Ollama-Modelle:
+4. Verwenden Sie Ollama‑Modelle:
 
 ```json5
 {
@@ -57,16 +57,16 @@ openclaw config set models.providers.ollama.apiKey "ollama-local"
 
 ## Modellerkennung (impliziter Anbieter)
 
-Wenn Sie `OLLAMA_API_KEY` (oder ein Auth-Profil) setzen und **keinen** `models.providers.ollama` definieren, erkennt OpenClaw Modelle aus der lokalen Ollama-Instanz unter `http://127.0.0.1:11434`:
+Wenn Sie `OLLAMA_API_KEY` (oder ein Auth‑Profil) setzen und **keinen** `models.providers.ollama` definieren, erkennt OpenClaw Modelle aus der lokalen Ollama‑Instanz unter `http://127.0.0.1:11434`:
 
-- Abfragen von `/api/tags` und `/api/show`
-- Beibehaltung nur der Modelle, die die Fähigkeit `tools` melden
+- Fragt `/api/tags` und `/api/show` ab
+- Behält nur Modelle, die die Fähigkeit `tools` melden
 - Markiert `reasoning`, wenn das Modell `thinking` meldet
 - Liest `contextWindow` aus `model_info["<arch>.context_length"]`, sofern verfügbar
 - Setzt `maxTokens` auf das 10‑Fache des Kontextfensters
 - Setzt alle Kosten auf `0`
 
-Dies vermeidet manuelle Modelleinträge und hält den Katalog mit den Fähigkeiten von Ollama synchron.
+Dies vermeidet manuelle Modelleinträge und hält den Katalog an den Fähigkeiten von Ollama ausgerichtet.
 
 Um zu sehen, welche Modelle verfügbar sind:
 
@@ -81,7 +81,7 @@ Um ein neues Modell hinzuzufügen, ziehen Sie es einfach mit Ollama:
 ollama pull mistral
 ```
 
-Das neue Modell wird automatisch erkannt und steht zur Nutzung bereit.
+Das neue Modell wird automatisch erkannt und steht zur Verwendung bereit.
 
 Wenn Sie `models.providers.ollama` explizit setzen, wird die automatische Erkennung übersprungen und Sie müssen Modelle manuell definieren (siehe unten).
 
@@ -101,7 +101,7 @@ Verwenden Sie eine explizite Konfiguration, wenn:
 
 - Ollama auf einem anderen Host/Port läuft.
 - Sie bestimmte Kontextfenster oder Modelllisten erzwingen möchten.
-- Sie Modelle einbeziehen möchten, die keine Werkzeugunterstützung melden.
+- Sie Modelle einschließen möchten, die keine Werkzeugunterstützung melden.
 
 ```json5
 {
@@ -129,9 +129,9 @@ Verwenden Sie eine explizite Konfiguration, wenn:
 }
 ```
 
-Wenn `OLLAMA_API_KEY` gesetzt ist, können Sie `apiKey` im Anbieter-Eintrag weglassen, und OpenClaw füllt ihn für Verfügbarkeitsprüfungen aus.
+Wenn `OLLAMA_API_KEY` gesetzt ist, können Sie `apiKey` im Anbietereintrag weglassen, und OpenClaw füllt ihn für Verfügbarkeitsprüfungen aus.
 
-### Benutzerdefinierte Basis-URL (explizite Konfiguration)
+### Benutzerdefinierte Basis‑URL (explizite Konfiguration)
 
 Wenn Ollama auf einem anderen Host oder Port läuft (die explizite Konfiguration deaktiviert die automatische Erkennung, daher definieren Sie Modelle manuell):
 
@@ -150,7 +150,7 @@ Wenn Ollama auf einem anderen Host oder Port läuft (die explizite Konfiguration
 
 ### Modellauswahl
 
-Nach der Konfiguration stehen alle Ihre Ollama-Modelle zur Verfügung:
+Nach der Konfiguration stehen alle Ihre Ollama‑Modelle zur Verfügung:
 
 ```json5
 {
@@ -167,9 +167,9 @@ Nach der Konfiguration stehen alle Ihre Ollama-Modelle zur Verfügung:
 
 ## Erweitert
 
-### Reasoning-Modelle
+### Reasoning‑Modelle
 
-OpenClaw markiert Modelle als reasoning-fähig, wenn Ollama `thinking` in `/api/show` meldet:
+OpenClaw markiert Modelle als reasoning‑fähig, wenn Ollama `thinking` in `/api/show` meldet:
 
 ```bash
 ollama pull deepseek-r1:32b
@@ -177,13 +177,13 @@ ollama pull deepseek-r1:32b
 
 ### Modellkosten
 
-Ollama ist kostenlos und läuft lokal, daher sind alle Modellkosten auf $0 gesetzt.
+Ollama ist kostenlos und läuft lokal, daher sind alle Modellkosten auf 0 $ gesetzt.
 
-### Streaming-Konfiguration
+### Streaming‑Konfiguration
 
-Aufgrund eines [bekannten Problems](https://github.com/badlogic/pi-mono/issues/1205) im zugrunde liegenden SDK mit dem Antwortformat von Ollama ist **Streaming standardmäßig deaktiviert** für Ollama-Modelle. Dies verhindert beschädigte Antworten bei der Verwendung werkzeugfähiger Modelle.
+Aufgrund eines [bekannten Problems](https://github.com/badlogic/pi-mono/issues/1205) im zugrunde liegenden SDK mit dem Antwortformat von Ollama ist **Streaming für Ollama‑Modelle standardmäßig deaktiviert**. Dies verhindert beschädigte Antworten bei der Verwendung werkzeugfähiger Modelle.
 
-Wenn Streaming deaktiviert ist, werden Antworten auf einmal (Nicht-Streaming-Modus) geliefert, wodurch das Problem vermieden wird, dass verschachtelte Content-/Reasoning-Deltas zu verstümmelter Ausgabe führen.
+Wenn Streaming deaktiviert ist, werden Antworten auf einmal (Nicht‑Streaming‑Modus) geliefert, wodurch das Problem vermieden wird, dass verschachtelte Inhalts‑/Reasoning‑Deltas zu unleserlicher Ausgabe führen.
 
 #### Streaming wieder aktivieren (Erweitert)
 
@@ -205,7 +205,7 @@ Wenn Sie Streaming für Ollama wieder aktivieren möchten (kann bei werkzeugfäh
 
 #### Streaming für andere Anbieter deaktivieren
 
-Sie können Streaming bei Bedarf auch für jeden anderen Anbieter deaktivieren:
+Sie können Streaming bei Bedarf auch für jeden Anbieter deaktivieren:
 
 ```json5
 {
@@ -223,13 +223,13 @@ Sie können Streaming bei Bedarf auch für jeden anderen Anbieter deaktivieren:
 
 ### Kontextfenster
 
-Für automatisch erkannte Modelle verwendet OpenClaw das von Ollama gemeldete Kontextfenster, sofern verfügbar; andernfalls wird standardmäßig `8192` verwendet. Sie können `contextWindow` und `maxTokens` in der expliziten Anbieter-Konfiguration überschreiben.
+Für automatisch erkannte Modelle verwendet OpenClaw das von Ollama gemeldete Kontextfenster, sofern verfügbar; andernfalls wird standardmäßig `8192` verwendet. Sie können `contextWindow` und `maxTokens` in der expliziten Anbieter‑Konfiguration überschreiben.
 
 ## Fehlerbehebung
 
-### Ollama nicht erkannt
+### Ollama wird nicht erkannt
 
-Stellen Sie sicher, dass Ollama läuft und dass Sie `OLLAMA_API_KEY` (oder ein Auth-Profil) gesetzt haben und **keinen** expliziten `models.providers.ollama`-Eintrag definiert haben:
+Stellen Sie sicher, dass Ollama läuft und dass Sie `OLLAMA_API_KEY` (oder ein Auth‑Profil) gesetzt haben und **keinen** expliziten `models.providers.ollama`‑Eintrag definiert haben:
 
 ```bash
 ollama serve
@@ -243,12 +243,12 @@ curl http://localhost:11434/api/tags
 
 ### Keine Modelle verfügbar
 
-OpenClaw erkennt automatisch nur Modelle, die Werkzeugunterstützung melden. Wenn Ihr Modell nicht aufgeführt ist, können Sie entweder:
+OpenClaw erkennt automatisch nur Modelle, die Werkzeugunterstützung melden. Wenn Ihr Modell nicht aufgeführt ist, dann:
 
-- Ein werkzeugfähiges Modell ziehen, oder
-- Das Modell explizit in `models.providers.ollama` definieren.
+- Ziehen Sie ein werkzeugfähiges Modell, oder
+- Definieren Sie das Modell explizit in `models.providers.ollama`.
 
-Um Modelle hinzuzufügen:
+So fügen Sie Modelle hinzu:
 
 ```bash
 ollama list  # See what's installed
@@ -256,7 +256,7 @@ ollama pull gpt-oss:20b  # Pull a tool-capable model
 ollama pull llama3.3     # Or another model
 ```
 
-### Verbindung abgelehnt
+### Verbindung verweigert
 
 Prüfen Sie, dass Ollama auf dem richtigen Port läuft:
 
@@ -270,15 +270,15 @@ ollama serve
 
 ### Beschädigte Antworten oder Werkzeugnamen in der Ausgabe
 
-Wenn Sie verstümmelte Antworten mit Werkzeugnamen (wie `sessions_send`, `memory_get`) oder fragmentiertem Text bei der Verwendung von Ollama-Modellen sehen, liegt dies an einem Upstream-SDK-Problem mit Streaming-Antworten. **Dies ist in der neuesten OpenClaw-Version standardmäßig behoben**, indem Streaming für Ollama-Modelle deaktiviert wird.
+Wenn Sie bei der Verwendung von Ollama‑Modellen unleserliche Antworten mit Werkzeugnamen (wie `sessions_send`, `memory_get`) oder fragmentiertem Text sehen, liegt dies an einem vorgelagerten SDK‑Problem mit Streaming‑Antworten. **Dies ist in der neuesten OpenClaw‑Version standardmäßig behoben**, indem Streaming für Ollama‑Modelle deaktiviert wird.
 
 Wenn Sie Streaming manuell aktiviert haben und dieses Problem auftritt:
 
-1. Entfernen Sie die Konfiguration `streaming: true` aus Ihren Ollama-Modell-Einträgen, oder
-2. Setzen Sie `streaming: false` explizit für Ollama-Modelle (siehe [Streaming-Konfiguration](#streaming-configuration))
+1. Entfernen Sie die Konfiguration `streaming: true` aus Ihren Ollama‑Modelleinträgen, oder
+2. Setzen Sie `streaming: false` explizit für Ollama‑Modelle (siehe [Streaming‑Konfiguration](#streaming-konfiguration))
 
 ## Siehe auch
 
 - [Model Providers](/concepts/model-providers) – Überblick über alle Anbieter
-- [Model Selection](/concepts/models) – So wählen Sie Modelle aus
+- [Model Selection](/concepts/models) – Auswahl von Modellen
 - [Configuration](/gateway/configuration) – Vollständige Konfigurationsreferenz

@@ -1,26 +1,26 @@
 ---
-summary: "Ejecute OpenClaw con LLM locales (LM Studio, vLLM, LiteLLM, endpoints OpenAI personalizados)"
+summary: "Ejecute OpenClaw en LLM locales (LM Studio, vLLM, LiteLLM, endpoints personalizados compatibles con OpenAI)"
 read_when:
-  - Quiere servir modelos desde su propia caja con GPU
+  - Quiere servir modelos desde su propio equipo con GPU
   - Está conectando LM Studio o un proxy compatible con OpenAI
   - Necesita la guía más segura para modelos locales
 title: "Modelos locales"
 x-i18n:
   source_path: gateway/local-models.md
-  source_hash: 63a7cc8b114355c6
+  source_hash: 82164e8c4f0c7479
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:58:54Z
+  generated_at: 2026-02-08T09:33:31Z
 ---
 
 # Modelos locales
 
-Lo local es viable, pero OpenClaw espera **contextos grandes** y **defensas sólidas contra la inyección de prompts**. Las tarjetas pequeñas truncan el contexto y filtran seguridad. Apunte alto: **≥2 Mac Studio al máximo o un rig de GPU equivalente (~$30k+)**. Una sola GPU de **24 GB** funciona solo para prompts más ligeros con mayor latencia. Use la **variante de modelo más grande / de tamaño completo que pueda ejecutar**; los checkpoints muy cuantizados o “pequeños” elevan el riesgo de inyección de prompts (ver [Security](/gateway/security)).
+Lo local es viable, pero OpenClaw espera un contexto grande y defensas sólidas contra la inyección de prompts. Las tarjetas pequeñas truncan el contexto y filtran seguridad. Apunte alto: **≥2 Mac Studios al máximo o un equipo de GPU equivalente (~USD $30k+)**. Una sola GPU de **24 GB** funciona solo para prompts más ligeros con mayor latencia. Use la **variante de modelo más grande / de tamaño completo que pueda ejecutar**; los checkpoints agresivamente cuantizados o “pequeños” elevan el riesgo de inyección de prompts (ver [Security](/gateway/security)).
 
 ## Recomendado: LM Studio + MiniMax M2.1 (Responses API, tamaño completo)
 
-La mejor pila local actual. Cargue MiniMax M2.1 en LM Studio, habilite el servidor local (predeterminado `http://127.0.0.1:1234`), y use Responses API para mantener el razonamiento separado del texto final.
+El mejor stack local actual. Cargue MiniMax M2.1 en LM Studio, habilite el servidor local (predeterminado `http://127.0.0.1:1234`), y use Responses API para mantener el razonamiento separado del texto final.
 
 ```json5
 {
@@ -59,15 +59,15 @@ La mejor pila local actual. Cargue MiniMax M2.1 en LM Studio, habilite el servid
 
 **Lista de verificación de configuración**
 
-- Instale LM Studio: https://lmstudio.ai
-- En LM Studio, descargue la **compilación más grande de MiniMax M2.1 disponible** (evite variantes “small”/muy cuantizadas), inicie el servidor y confirme que `http://127.0.0.1:1234/v1/models` lo lista.
+- Instale LM Studio: [https://lmstudio.ai](https://lmstudio.ai)
+- En LM Studio, descargue la **compilación más grande de MiniMax M2.1 disponible** (evite variantes “small”/fuertemente cuantizadas), inicie el servidor y confirme que `http://127.0.0.1:1234/v1/models` lo lista.
 - Mantenga el modelo cargado; la carga en frío agrega latencia de arranque.
 - Ajuste `contextWindow`/`maxTokens` si su compilación de LM Studio difiere.
 - Para WhatsApp, manténgase en Responses API para que solo se envíe el texto final.
 
-Mantenga los modelos alojados configurados incluso cuando ejecute localmente; use `models.mode: "merge"` para que los respaldos sigan disponibles.
+Mantenga los modelos alojados configurados incluso al ejecutar localmente; use `models.mode: "merge"` para que los fallbacks sigan disponibles.
 
-### Configuración híbrida: principal alojado, respaldo local
+### Configuración híbrida: principal alojado, fallback local
 
 ```json5
 {
@@ -108,18 +108,18 @@ Mantenga los modelos alojados configurados incluso cuando ejecute localmente; us
 }
 ```
 
-### Local primero con red de seguridad alojada
+### Prioridad local con red de seguridad alojada
 
-Intercambie el orden de principal y respaldo; mantenga el mismo bloque de proveedores y `models.mode: "merge"` para poder recurrir a Sonnet u Opus cuando la caja local esté caída.
+Intercambie el orden de principal y fallback; mantenga el mismo bloque de proveedores y `models.mode: "merge"` para poder volver a Sonnet u Opus cuando el equipo local esté fuera de servicio.
 
 ### Alojamiento regional / enrutamiento de datos
 
-- Las variantes alojadas de MiniMax/Kimi/GLM también existen en OpenRouter con endpoints fijados por región (p. ej., alojados en EE. UU.). Elija allí la variante regional para mantener el tráfico en su jurisdicción elegida mientras sigue usando `models.mode: "merge"` para respaldos de Anthropic/OpenAI.
-- Solo local sigue siendo la vía de mayor privacidad; el enrutamiento regional alojado es el punto intermedio cuando necesita funciones del proveedor pero quiere control sobre el flujo de datos.
+- También existen variantes alojadas de MiniMax/Kimi/GLM en OpenRouter con endpoints fijados por región (p. ej., alojados en EE. UU.). Elija allí la variante regional para mantener el tráfico en su jurisdicción elegida mientras sigue usando `models.mode: "merge"` como fallback de Anthropic/OpenAI.
+- Solo local sigue siendo la vía de mayor privacidad; el enrutamiento regional alojado es el punto intermedio cuando necesita funciones del proveedor pero quiere controlar el flujo de datos.
 
 ## Otros proxies locales compatibles con OpenAI
 
-vLLM, LiteLLM, OAI-proxy o gateways personalizados funcionan si exponen un endpoint `/v1` de estilo OpenAI. Reemplace el bloque de proveedor anterior con su endpoint y el ID del modelo:
+vLLM, LiteLLM, OAI-proxy o Gateways personalizados funcionan si exponen un endpoint `/v1` al estilo OpenAI. Reemplace el bloque de proveedor anterior con su endpoint y el ID del modelo:
 
 ```json5
 {
@@ -147,11 +147,11 @@ vLLM, LiteLLM, OAI-proxy o gateways personalizados funcionan si exponen un endpo
 }
 ```
 
-Mantenga `models.mode: "merge"` para que los modelos alojados sigan disponibles como respaldo.
+Mantenga `models.mode: "merge"` para que los modelos alojados sigan disponibles como fallbacks.
 
 ## Solución de problemas
 
 - ¿El Gateway puede alcanzar el proxy? `curl http://127.0.0.1:1234/v1/models`.
-- ¿Modelo de LM Studio descargado? Vuelva a cargarlo; el inicio en frío es una causa común de “bloqueo”.
+- ¿Modelo de LM Studio descargado de memoria? Vuelva a cargarlo; el inicio en frío es una causa común de “bloqueo”.
 - ¿Errores de contexto? Baje `contextWindow` o aumente el límite de su servidor.
 - Seguridad: los modelos locales omiten los filtros del proveedor; mantenga los agentes acotados y la compactación activada para limitar el radio de impacto de la inyección de prompts.

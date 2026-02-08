@@ -10,12 +10,12 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:34:58Z
+  generated_at: 2026-02-08T09:23:43Z
 ---
 
 # 설문
 
-## 지원 채널
+## 지원되는 채널
 
 - WhatsApp (웹 채널)
 - Discord
@@ -51,7 +51,7 @@ openclaw message poll --channel msteams --target conversation:19:abc@thread.tacv
 
 메서드: `poll`
 
-매개변수:
+파라미터:
 
 - `to` (string, 필수)
 - `question` (string, 필수)
@@ -63,13 +63,13 @@ openclaw message poll --channel msteams --target conversation:19:abc@thread.tacv
 
 ## 채널별 차이
 
-- WhatsApp: 2-12개 옵션, `maxSelections` 는 옵션 개수 범위 내여야 하며, `durationHours` 는 무시됩니다.
-- Discord: 2-10개 옵션, `durationHours` 는 1-768시간으로 제한됩니다 (기본값 24). `maxSelections > 1` 는 다중 선택을 활성화합니다. Discord 는 엄격한 선택 개수 제한을 지원하지 않습니다.
-- MS Teams: Adaptive Card 설문 (OpenClaw 관리). 기본 설문 API 가 없으며, `durationHours` 는 무시됩니다.
+- WhatsApp: 2-12 개 옵션, `maxSelections` 은 옵션 개수 범위 내여야 하며 `durationHours` 을 무시합니다.
+- Discord: 2-10 개 옵션, `durationHours` 은 1-768 시간으로 제한됩니다 (기본값 24). `maxSelections > 1` 은 다중 선택을 활성화합니다. Discord 는 엄격한 선택 개수 제한을 지원하지 않습니다.
+- MS Teams: Adaptive Card 설문 (OpenClaw 관리). 기본 설문 API 가 없으며 `durationHours` 은 무시됩니다.
 
 ## 에이전트 도구 (메시지)
 
-`message` 도구를 `poll` 액션 (`to`, `pollQuestion`, `pollOption`, 선택적으로 `pollMulti`, `pollDurationHours`, `channel`)과 함께 사용합니다.
+`message` 도구를 `poll` 액션과 함께 사용합니다 (`to`, `pollQuestion`, `pollOption`, 선택 사항으로 `pollMulti`, `pollDurationHours`, `channel`).
 
-참고: Discord 에는 '정확히 N 개 선택' 모드가 없으며, `pollMulti` 는 다중 선택으로 매핑됩니다.
-Teams 설문은 Adaptive Card 로 렌더링되며, `~/.openclaw/msteams-polls.json` 에서 투표를 기록하려면 게이트웨이가 온라인 상태를 유지해야 합니다.
+참고: Discord 에는 ‘정확히 N 개 선택’ 모드가 없으며 `pollMulti` 는 다중 선택으로 매핑됩니다.
+Teams 설문은 Adaptive Card 로 렌더링되며 `~/.openclaw/msteams-polls.json` 에서 투표를 기록하려면 Gateway(게이트웨이) 가 온라인 상태를 유지해야 합니다.

@@ -1,25 +1,25 @@
 ---
-summary: "Gateway(게이트웨이)에 연결된 터미널 UI를 위한 CLI 레퍼런스인 `openclaw tui`"
+summary: "Gateway(게이트웨이)에 연결된 터미널 UI 를 위한 CLI 참조"
 read_when:
-  - Gateway(게이트웨이)를 위한 터미널 UI가 필요할 때(원격 친화적)
-  - 스크립트에서 url/token/session 을 전달하고 싶을 때
+  - Gateway(게이트웨이)를 위한 터미널 UI 가 필요할 때(원격 환경에 적합)
+  - 스크립트에서 url/token/session 을 전달하고자 할 때
 title: "tui"
 x-i18n:
   source_path: cli/tui.md
-  source_hash: f0a97d92e08746a9
+  source_hash: aa6f37b960926997
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:35:37Z
+  generated_at: 2026-02-08T09:24:30Z
 ---
 
 # `openclaw tui`
 
-Gateway(게이트웨이)에 연결된 터미널 UI를 엽니다.
+Gateway(게이트웨이)에 연결된 터미널 UI 를 엽니다.
 
-관련 항목:
+관련 자료:
 
-- TUI 가이드: [TUI](/tui)
+- TUI 가이드: [TUI](/web/tui)
 
 ## 예제
 

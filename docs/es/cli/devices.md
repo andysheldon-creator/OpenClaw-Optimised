@@ -10,7 +10,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:58:13Z
+  generated_at: 2026-02-08T09:32:52Z
 ---
 
 # `openclaw devices`
@@ -63,12 +63,12 @@ openclaw devices revoke --device <deviceId> --role node
 ## Opciones comunes
 
 - `--url <url>`: URL de WebSocket del Gateway (por defecto `gateway.remote.url` cuando está configurado).
-- `--token <token>`: Token del Gateway (si es necesario).
+- `--token <token>`: Token del Gateway (si es requerido).
 - `--password <password>`: Contraseña del Gateway (autenticación por contraseña).
-- `--timeout <ms>`: Tiempo de espera de RPC.
-- `--json`: Salida JSON (recomendado para scripting).
+- `--timeout <ms>`: Tiempo de espera del RPC.
+- `--json`: Salida JSON (recomendada para scripting).
 
-Nota: cuando configura `--url`, la CLI no recurre a credenciales de configuración ni de variables de entorno.
+Nota: cuando establece `--url`, la CLI no recurre a credenciales de configuración ni de variables de entorno.
 Pase `--token` o `--password` explícitamente. La falta de credenciales explícitas es un error.
 
 ## Notas

@@ -1,29 +1,29 @@
 ---
-summary: "Tac vu LLM chi JSON cho workflow (cong cu plugin tuy chon)"
+summary: "Tác vụ LLM chỉ JSON cho workflow (công cụ plugin tùy chọn)"
 read_when:
-  - Ban muon mot buoc LLM chi JSON ben trong workflow
-  - Ban can dau ra LLM duoc xac thuc theo schema de tu dong hoa
-title: "Tac vu LLM"
+  - Bạn muốn một bước LLM chỉ JSON bên trong workflow
+  - Bạn cần đầu ra LLM được xác thực theo schema để tự động hóa
+title: "Tác vụ LLM"
 x-i18n:
   source_path: tools/llm-task.md
   source_hash: b7aa78f179cb0f63
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:08:43Z
+  generated_at: 2026-02-08T09:40:22Z
 ---
 
-# Tac vu LLM
+# Tác vụ LLM
 
-`llm-task` la mot **cong cu plugin tuy chon** chay tac vu LLM chi JSON va
-tra ve dau ra co cau truc (tuy chon xac thuc theo JSON Schema).
+`llm-task` là một **công cụ plugin tùy chọn** chạy một tác vụ LLM chỉ JSON và
+trả về đầu ra có cấu trúc (có thể tùy chọn xác thực theo JSON Schema).
 
-Dieu nay rat phu hop cho cac cong cu workflow nhu Lobster: ban co the them mot buoc LLM duy nhat
-ma khong can viet ma OpenClaw tuy chinh cho moi workflow.
+Cách này rất phù hợp cho các công cụ workflow như Lobster: bạn có thể thêm một bước LLM duy nhất
+mà không cần viết mã OpenClaw tùy chỉnh cho từng workflow.
 
-## Bat plugin
+## Bật plugin
 
-1. Bat plugin:
+1. Bật plugin:
 
 ```json
 {
@@ -35,7 +35,7 @@ ma khong can viet ma OpenClaw tuy chinh cho moi workflow.
 }
 ```
 
-2. Them cong cu vao danh sach cho phep (no duoc dang ky voi `optional: true`):
+2. Thêm công cụ vào danh sách cho phép (nó được đăng ký với `optional: true`):
 
 ```json
 {
@@ -50,7 +50,7 @@ ma khong can viet ma OpenClaw tuy chinh cho moi workflow.
 }
 ```
 
-## Cau hinh (tuy chon)
+## Cấu hình (tùy chọn)
 
 ```json
 {
@@ -72,27 +72,27 @@ ma khong can viet ma OpenClaw tuy chinh cho moi workflow.
 }
 ```
 
-`allowedModels` la danh sach cho phep cac chuoi `provider/model`. Neu duoc thiet lap, moi yeu cau
-nam ngoai danh sach se bi tu choi.
+`allowedModels` là một danh sách cho phép của các chuỗi `provider/model`. Nếu được đặt,
+mọi yêu cầu nằm ngoài danh sách sẽ bị từ chối.
 
-## Tham so cong cu
+## Tham số công cụ
 
-- `prompt` (string, bat buoc)
-- `input` (any, tuy chon)
-- `schema` (object, JSON Schema tuy chon)
-- `provider` (string, tuy chon)
-- `model` (string, tuy chon)
-- `authProfileId` (string, tuy chon)
-- `temperature` (number, tuy chon)
-- `maxTokens` (number, tuy chon)
-- `timeoutMs` (number, tuy chon)
+- `prompt` (string, bắt buộc)
+- `input` (any, tùy chọn)
+- `schema` (object, JSON Schema tùy chọn)
+- `provider` (string, tùy chọn)
+- `model` (string, tùy chọn)
+- `authProfileId` (string, tùy chọn)
+- `temperature` (number, tùy chọn)
+- `maxTokens` (number, tùy chọn)
+- `timeoutMs` (number, tùy chọn)
 
-## Dau ra
+## Đầu ra
 
-Tra ve `details.json` chua JSON da duoc phan tich (va xac thuc theo
-`schema` khi duoc cung cap).
+Trả về `details.json` chứa JSON đã được phân tích (và xác thực theo
+`schema` khi được cung cấp).
 
-## Vi du: Buoc workflow Lobster
+## Ví dụ: bước workflow Lobster
 
 ```lobster
 openclaw.invoke --tool llm-task --action json --args-json '{
@@ -113,10 +113,10 @@ openclaw.invoke --tool llm-task --action json --args-json '{
 }'
 ```
 
-## Luu y ve an toan
+## Ghi chú an toàn
 
-- Cong cu la **chi JSON** va huong dan mo hinh chi xuat JSON (khong
-  code fences, khong binh luan).
-- Khong co cong cu nao duoc mo cho mo hinh trong lan chay nay.
-- Xem dau ra la khong dang tin cay tru khi ban xac thuc bang `schema`.
-- Dat cac buoc phe duyet truoc moi buoc gay tac dong (send, post, exec).
+- Công cụ này **chỉ JSON** và hướng dẫn mô hình chỉ xuất JSON (không
+  code fence, không bình luận).
+- Không có công cụ nào được cung cấp cho mô hình trong lần chạy này.
+- Hãy coi đầu ra là không đáng tin cậy trừ khi bạn xác thực bằng `schema`.
+- Đặt các bước phê duyệt trước bất kỳ bước nào gây tác dụng phụ (send, post, exec).

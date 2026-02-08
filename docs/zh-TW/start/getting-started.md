@@ -2,15 +2,15 @@
 summary: "在幾分鐘內安裝 OpenClaw 並執行你的第一個聊天。"
 read_when:
   - 從零開始的首次設定
-  - 你想要最快速完成可用聊天的路徑
+  - 你想要最快速地完成可用聊天
 title: "入門指南"
 x-i18n:
   source_path: start/getting-started.md
-  source_hash: 27aeeb3d18c49538
+  source_hash: 6eeb4d38a70f2ad9
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:54:40Z
+  generated_at: 2026-02-08T09:29:15Z
 ---
 
 # 入門指南
@@ -20,9 +20,9 @@ x-i18n:
 <Info>
 最快速的聊天方式：開啟 Control UI（不需要設定頻道）。執行 `openclaw dashboard`
 並在瀏覽器中聊天，或在
-<Tooltip headline="Gateway host" tip="執行 OpenClaw gateway 服務的機器。">gateway host</Tooltip>
+<Tooltip headline="Gateway host" tip="The machine running the OpenClaw gateway service.">閘道器主機</Tooltip>
 上開啟 `http://127.0.0.1:18789/`。
-文件：[Dashboard](/web/dashboard) 與 [Control UI](/web/control-ui)。
+文件： [Dashboard](/web/dashboard) 與 [Control UI](/web/control-ui)。
 </Info>
 
 ## 先決條件
@@ -51,7 +51,7 @@ x-i18n:
     </Tabs>
 
     <Note>
-    其他安裝方式與需求請見：[Install](/install)。
+    其他安裝方式與需求請參考： [Install](/install)。
     </Note>
 
   </Step>
@@ -60,8 +60,8 @@ x-i18n:
     openclaw onboard --install-daemon
     ```
 
-    精靈會設定驗證、Gateway 閘道器設定，以及選用的頻道。
-    詳情請見 [Onboarding Wizard](/start/wizard)。
+    精靈會設定身分驗證、Gateway 閘道器設定，以及選用的頻道。
+    詳情請參閱 [Onboarding Wizard](/start/wizard)。
 
   </Step>
   <Step title="檢查 Gateway 閘道器">
@@ -80,7 +80,7 @@ x-i18n:
 </Steps>
 
 <Check>
-如果 Control UI 能夠載入，代表你的 Gateway 閘道器已準備就緒。
+如果 Control UI 能成功載入，表示你的 Gateway 閘道器已準備好使用。
 </Check>
 
 ## 選用檢查與附加項目
@@ -107,22 +107,22 @@ x-i18n:
 ## 深入了解
 
 <Columns>
-  <Card title="入門引導精靈（詳細）" href="/start/wizard">
+  <Card title="入門引導精靈（詳細說明）" href="/start/wizard">
     完整的 CLI 精靈參考與進階選項。
   </Card>
   <Card title="macOS 應用程式入門引導" href="/start/onboarding">
-    macOS 應用程式的首次執行流程。
+    macOS 應用程式首次執行流程。
   </Card>
 </Columns>
 
 ## 你將會擁有
 
 - 一個正在執行的 Gateway 閘道器
-- 已設定的驗證
-- Control UI 存取權或已連線的頻道
+- 已設定的身分驗證
+- Control UI 存取權或已連接的頻道
 
-## 下一步
+## 後續步驟
 
-- 私訊安全與核准：[Pairing](/start/pairing)
-- 連接更多頻道：[Channels](/channels)
-- 進階工作流程與從原始碼開始：[Setup](/start/setup)
+- 私訊安全與核准： [Pairing](/channels/pairing)
+- 連接更多頻道： [Channels](/channels)
+- 進階工作流程與從原始碼開始： [Setup](/start/setup)

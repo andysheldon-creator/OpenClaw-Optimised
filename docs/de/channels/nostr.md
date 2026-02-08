@@ -1,7 +1,7 @@
 ---
-summary: „Nostr-DM-Kanal über NIP-04-verschlüsselte Nachrichten“
+summary: "Nostr-DM-Kanal über NIP-04-verschlüsselte Nachrichten"
 read_when:
-  - Sie möchten, dass OpenClaw Direktnachrichten über Nostr empfängt
+  - Sie möchten, dass OpenClaw DMs über Nostr empfängt
   - Sie richten dezentrale Nachrichtenübermittlung ein
 title: "Nostr"
 x-i18n:
@@ -10,7 +10,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:03:31Z
+  generated_at: 2026-02-08T09:35:22Z
 ---
 
 # Nostr
@@ -21,17 +21,17 @@ Nostr ist ein dezentrales Protokoll für soziale Netzwerke. Dieser Kanal ermögl
 
 ## Installation (bei Bedarf)
 
-### Einführung (empfohlen)
+### Onboarding (empfohlen)
 
-- Der Einführungsassistent (`openclaw onboard`) und `openclaw channels add` listen optionale Kanal-Plugins auf.
-- Die Auswahl von Nostr fordert Sie auf, das Plugin bei Bedarf zu installieren.
+- Der Onboarding-Assistent (`openclaw onboard`) und `openclaw channels add` listen optionale Kanal-Plugins auf.
+- Wenn Sie Nostr auswählen, werden Sie aufgefordert, das Plugin bei Bedarf zu installieren.
 
-Standardinstallationen:
+Installationsstandards:
 
 - **Dev-Kanal + git checkout verfügbar:** verwendet den lokalen Plugin-Pfad.
 - **Stable/Beta:** lädt von npm herunter.
 
-Sie können die Auswahl jederzeit in der Eingabeaufforderung überschreiben.
+Sie können die Auswahl jederzeit in der Abfrage überschreiben.
 
 ### Manuelle Installation
 
@@ -39,13 +39,13 @@ Sie können die Auswahl jederzeit in der Eingabeaufforderung überschreiben.
 openclaw plugins install @openclaw/nostr
 ```
 
-Lokales Checkout verwenden (Dev-Workflows):
+Lokalen Checkout verwenden (Dev-Workflows):
 
 ```bash
 openclaw plugins install --link <path-to-openclaw>/extensions/nostr
 ```
 
-Starten Sie das Gateway nach der Installation oder Aktivierung von Plugins neu.
+Starten Sie das Gateway nach dem Installieren oder Aktivieren von Plugins neu.
 
 ## Schnellstart
 
@@ -68,7 +68,7 @@ nak key generate
 }
 ```
 
-3. Den Schlüssel exportieren:
+3. Schlüssel exportieren:
 
 ```bash
 export NOSTR_PRIVATE_KEY="nsec1..."
@@ -78,19 +78,19 @@ export NOSTR_PRIVATE_KEY="nsec1..."
 
 ## Konfigurationsreferenz
 
-| Schlüssel    | Typ      | Standard                                    | Beschreibung                                  |
+| Key          | Type     | Default                                     | Description                                   |
 | ------------ | -------- | ------------------------------------------- | --------------------------------------------- |
-| `privateKey` | string   | erforderlich                                | Privater Schlüssel im `nsec`- oder Hex-Format |
+| `privateKey` | string   | required                                    | Privater Schlüssel im `nsec`- oder Hex-Format |
 | `relays`     | string[] | `['wss://relay.damus.io', 'wss://nos.lol']` | Relay-URLs (WebSocket)                        |
 | `dmPolicy`   | string   | `pairing`                                   | DM-Zugriffsrichtlinie                         |
-| `allowFrom`  | string[] | `[]`                                        | Zulässige Absender-Pubkeys                    |
+| `allowFrom`  | string[] | `[]`                                        | Erlaubte Absender-Pubkeys                     |
 | `enabled`    | boolean  | `true`                                      | Kanal aktivieren/deaktivieren                 |
 | `name`       | string   | -                                           | Anzeigename                                   |
 | `profile`    | object   | -                                           | NIP-01-Profilmetadaten                        |
 
 ## Profilmetadaten
 
-Profildaten werden als NIP-01-`kind:0`-Ereignis veröffentlicht. Sie können diese über die Control UI (Kanäle -> Nostr -> Profil) verwalten oder direkt in der Konfiguration festlegen.
+Profildaten werden als NIP-01-`kind:0`-Event veröffentlicht. Sie können diese über die Control UI (Kanäle -> Nostr -> Profil) verwalten oder direkt in der Konfiguration setzen.
 
 Beispiel:
 
@@ -117,7 +117,7 @@ Beispiel:
 Hinweise:
 
 - Profil-URLs müssen `https://` verwenden.
-- Der Import von Relays führt Felder zusammen und bewahrt lokale Überschreibungen.
+- Das Importieren von Relays führt Felder zusammen und erhält lokale Überschreibungen.
 
 ## Zugriffskontrolle
 
@@ -169,16 +169,16 @@ Tipps:
 - Verwenden Sie 2–3 Relays für Redundanz.
 - Vermeiden Sie zu viele Relays (Latenz, Duplikate).
 - Bezahlte Relays können die Zuverlässigkeit verbessern.
-- Lokale Relays sind zum Testen geeignet (`ws://localhost:7777`).
+- Lokale Relays sind für Tests geeignet (`ws://localhost:7777`).
 
 ## Protokollunterstützung
 
-| NIP    | Status      | Beschreibung                                   |
-| ------ | ----------- | ---------------------------------------------- |
-| NIP-01 | Unterstützt | Grundlegendes Ereignisformat + Profilmetadaten |
-| NIP-04 | Unterstützt | Verschlüsselte DMs (`kind:4`)                  |
-| NIP-17 | Geplant     | Geschenkverpackte DMs                          |
-| NIP-44 | Geplant     | Versionierte Verschlüsselung                   |
+| NIP    | Status      | Beschreibung                        |
+| ------ | ----------- | ----------------------------------- |
+| NIP-01 | Unterstützt | Basis-Eventformat + Profilmetadaten |
+| NIP-04 | Unterstützt | Verschlüsselte DMs (`kind:4`)       |
+| NIP-17 | Geplant     | Gift-wrapped DMs                    |
+| NIP-44 | Geplant     | Versionierte Verschlüsselung        |
 
 ## Tests
 
@@ -218,18 +218,18 @@ docker run -p 7777:7777 ghcr.io/hoytech/strfry
 
 ### Antworten werden nicht gesendet
 
-- Prüfen Sie, ob das Relay Schreibvorgänge akzeptiert.
+- Prüfen Sie, ob das Relay Schreibzugriffe akzeptiert.
 - Überprüfen Sie die ausgehende Konnektivität.
-- Achten Sie auf Relay-Ratenlimits.
+- Achten Sie auf Relay-Ratenbegrenzungen.
 
 ### Doppelte Antworten
 
 - Erwartet bei Verwendung mehrerer Relays.
-- Nachrichten werden nach Ereignis-ID dedupliziert; nur die erste Zustellung löst eine Antwort aus.
+- Nachrichten werden anhand der Event-ID dedupliziert; nur die erste Zustellung löst eine Antwort aus.
 
 ## Sicherheit
 
-- Private Schlüssel niemals committen.
+- Committen Sie niemals private Schlüssel.
 - Verwenden Sie Umgebungsvariablen für Schlüssel.
 - Erwägen Sie `allowlist` für Produktions-Bots.
 

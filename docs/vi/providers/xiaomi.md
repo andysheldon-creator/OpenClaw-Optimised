@@ -10,19 +10,19 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:08:07Z
+  generated_at: 2026-02-08T09:39:55Z
 ---
 
 # Xiaomi MiMo
 
 Xiaomi MiMo là nền tảng API cho các mô hình **MiMo**. Nền tảng này cung cấp các REST API tương thích với
-định dạng OpenAI và Anthropic, và sử dụng khóa API để xác thực. Tạo khóa API của bạn trong
+định dạng OpenAI và Anthropic, đồng thời sử dụng khóa API để xác thực. Tạo khóa API của bạn trong
 [Xiaomi MiMo console](https://platform.xiaomimimo.com/#/console/api-keys). OpenClaw sử dụng
 nhà cung cấp `xiaomi` với khóa API Xiaomi MiMo.
 
 ## Tổng quan mô hình
 
-- **mimo-v2-flash**: cửa sổ ngữ cảnh 262144 token, tương thích Anthropic Messages API.
+- **mimo-v2-flash**: cửa sổ ngữ cảnh 262144 token, tương thích với Anthropic Messages API.
 - Base URL: `https://api.xiaomimimo.com/anthropic`
 - Authorization: `Bearer $XIAOMI_API_KEY`
 
@@ -34,7 +34,7 @@ openclaw onboard --auth-choice xiaomi-api-key
 openclaw onboard --auth-choice xiaomi-api-key --xiaomi-api-key "$XIAOMI_API_KEY"
 ```
 
-## Đoạn cau hinh
+## Đoạn cấu hình
 
 ```json5
 {
@@ -67,5 +67,5 @@ openclaw onboard --auth-choice xiaomi-api-key --xiaomi-api-key "$XIAOMI_API_KEY"
 ## Ghi chú
 
 - Tham chiếu mô hình: `xiaomi/mimo-v2-flash`.
-- Nhà cung cấp được chèn tự động khi `XIAOMI_API_KEY` được thiết lập (hoặc khi tồn tại hồ sơ xác thực).
-- Xem [/concepts/model-providers](/concepts/model-providers) để biết thêm chi tiết về các quy tắc nhà cung cấp.
+- Nhà cung cấp được tự động chèn khi `XIAOMI_API_KEY` được thiết lập (hoặc khi tồn tại hồ sơ xác thực).
+- Xem [/concepts/model-providers](/concepts/model-providers) để biết các quy tắc về nhà cung cấp.

@@ -2,7 +2,7 @@
 summary: "Exponer un endpoint HTTP /v1/responses compatible con OpenResponses desde el Gateway"
 read_when:
   - Integrar clientes que hablan la API de OpenResponses
-  - Desea entradas basadas en ítems, llamadas a herramientas del cliente o eventos SSE
+  - Quiere entradas basadas en ítems, llamadas a herramientas del cliente o eventos SSE
 title: "API de OpenResponses"
 x-i18n:
   source_path: gateway/openresponses-http-api.md
@@ -10,7 +10,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:59:03Z
+  generated_at: 2026-02-08T09:33:40Z
 ---
 
 # API de OpenResponses (HTTP)
@@ -22,7 +22,7 @@ Este endpoint está **deshabilitado por defecto**. Habilítelo primero en la con
 - `POST /v1/responses`
 - Mismo puerto que el Gateway (multiplexación WS + HTTP): `http://<gateway-host>:<port>/v1/responses`
 
-Internamente, las solicitudes se ejecutan como una ejecución normal de un agente del Gateway (misma ruta de código que
+Internamente, las solicitudes se ejecutan como una ejecución normal de un agente del Gateway (mismo flujo de código que
 `openclaw agent`), por lo que el enrutamiento/permisos/configuración coinciden con su Gateway.
 
 ## Autenticación
@@ -49,11 +49,11 @@ O apunte a un agente específico de OpenClaw por encabezado:
 
 Avanzado:
 
-- `x-openclaw-session-key: <sessionKey>` para controlar completamente el enrutamiento de la sesión.
+- `x-openclaw-session-key: <sessionKey>` para controlar completamente el enrutamiento de sesiones.
 
 ## Habilitar el endpoint
 
-Configure `gateway.http.endpoints.responses.enabled` en `true`:
+Establezca `gateway.http.endpoints.responses.enabled` en `true`:
 
 ```json5
 {
@@ -69,7 +69,7 @@ Configure `gateway.http.endpoints.responses.enabled` en `true`:
 
 ## Deshabilitar el endpoint
 
-Configure `gateway.http.endpoints.responses.enabled` en `false`:
+Establezca `gateway.http.endpoints.responses.enabled` en `false`:
 
 ```json5
 {
@@ -88,11 +88,11 @@ Configure `gateway.http.endpoints.responses.enabled` en `false`:
 Por defecto, el endpoint es **sin estado por solicitud** (se genera una nueva clave de sesión en cada llamada).
 
 Si la solicitud incluye una cadena `user` de OpenResponses, el Gateway deriva una clave de sesión estable
-a partir de ella, de modo que las llamadas repetidas puedan compartir una sesión del agente.
+a partir de ella, de modo que las llamadas repetidas pueden compartir una sesión de agente.
 
-## Forma de la solicitud (compatibilidad)
+## Forma de la solicitud (compatible)
 
-La solicitud sigue la API de OpenResponses con entrada basada en ítems. Soporte actual:
+La solicitud sigue la API de OpenResponses con entrada basada en ítems. Compatibilidad actual:
 
 - `input`: cadena o arreglo de objetos de ítems.
 - `instructions`: se fusiona en el prompt del sistema.
@@ -100,9 +100,9 @@ La solicitud sigue la API de OpenResponses con entrada basada en ítems. Soporte
 - `tool_choice`: filtrar o requerir herramientas del cliente.
 - `stream`: habilita streaming SSE.
 - `max_output_tokens`: límite de salida de mejor esfuerzo (dependiente del proveedor).
-- `user`: enrutamiento de sesión estable.
+- `user`: enrutamiento estable de sesión.
 
-Aceptado pero **actualmente ignorado**:
+Aceptados pero **actualmente ignorados**:
 
 - `max_tool_calls`
 - `reasoning`
@@ -118,12 +118,12 @@ Aceptado pero **actualmente ignorado**:
 Roles: `system`, `developer`, `user`, `assistant`.
 
 - `system` y `developer` se agregan al prompt del sistema.
-- El ítem más reciente `user` o `function_call_output` se convierte en el “mensaje actual”.
+- El ítem `user` o `function_call_output` más reciente se convierte en el “mensaje actual”.
 - Los mensajes anteriores de usuario/asistente se incluyen como historial para contexto.
 
 ### `function_call_output` (herramientas por turnos)
 
-Envíe los resultados de la herramienta de vuelta al modelo:
+Envíe los resultados de herramientas de vuelta al modelo:
 
 ```json
 {
@@ -142,11 +142,11 @@ Aceptados por compatibilidad de esquema, pero ignorados al construir el prompt.
 Proporcione herramientas con `tools: [{ type: "function", function: { name, description?, parameters? } }]`.
 
 Si el agente decide llamar a una herramienta, la respuesta devuelve un ítem de salida `function_call`.
-Luego envíe una solicitud de seguimiento con `function_call_output` para continuar el turno.
+Luego, envíe una solicitud de seguimiento con `function_call_output` para continuar el turno.
 
 ## Imágenes (`input_image`)
 
-Soporta fuentes base64 o URL:
+Admite fuentes base64 o URL:
 
 ```json
 {
@@ -155,12 +155,12 @@ Soporta fuentes base64 o URL:
 }
 ```
 
-Tipos MIME permitidos (actual): `image/jpeg`, `image/png`, `image/gif`, `image/webp`.
+Tipos MIME permitidos (actuales): `image/jpeg`, `image/png`, `image/gif`, `image/webp`.
 Tamaño máximo (actual): 10MB.
 
 ## Archivos (`input_file`)
 
-Soporta fuentes base64 o URL:
+Admite fuentes base64 o URL:
 
 ```json
 {
@@ -174,7 +174,7 @@ Soporta fuentes base64 o URL:
 }
 ```
 
-Tipos MIME permitidos (actual): `text/plain`, `text/markdown`, `text/html`, `text/csv`,
+Tipos MIME permitidos (actuales): `text/plain`, `text/markdown`, `text/html`, `text/csv`,
 `application/json`, `application/pdf`.
 
 Tamaño máximo (actual): 5MB.
@@ -186,18 +186,18 @@ Comportamiento actual:
 - Los PDF se analizan para extraer texto. Si se encuentra poco texto, las primeras páginas se rasterizan
   en imágenes y se pasan al modelo.
 
-El análisis de PDF utiliza la compilación heredada `pdfjs-dist` compatible con Node (sin worker). La compilación
-moderna de PDF.js espera workers del navegador/variables globales del DOM, por lo que no se usa en el Gateway.
+El análisis de PDF utiliza la compilación heredada `pdfjs-dist` compatible con Node (sin worker). La compilación moderna
+de PDF.js espera workers del navegador/globals del DOM, por lo que no se usa en el Gateway.
 
-Valores predeterminados de obtención por URL:
+Valores predeterminados de obtención de URL:
 
 - `files.allowUrl`: `true`
 - `images.allowUrl`: `true`
-- Las solicitudes están protegidas (resolución DNS, bloqueo de IP privadas, límites de redirecciones, tiempos de espera).
+- Las solicitudes están protegidas (resolución DNS, bloqueo de IP privadas, límites de redirección, timeouts).
 
 ## Límites de archivos + imágenes (configuración)
 
-Los valores predeterminados se pueden ajustar en `gateway.http.endpoints.responses`:
+Los valores predeterminados pueden ajustarse en `gateway.http.endpoints.responses`:
 
 ```json5
 {
@@ -257,7 +257,7 @@ Valores predeterminados cuando se omiten:
 
 ## Streaming (SSE)
 
-Configure `stream: true` para recibir Server-Sent Events (SSE):
+Establezca `stream: true` para recibir Server-Sent Events (SSE):
 
 - `Content-Type: text/event-stream`
 - Cada línea de evento es `event: <type>` y `data: <json>`
@@ -274,11 +274,11 @@ Tipos de eventos emitidos actualmente:
 - `response.content_part.done`
 - `response.output_item.done`
 - `response.completed`
-- `response.failed` (en caso de error)
+- `response.failed` (en error)
 
 ## Uso
 
-`usage` se completa cuando el proveedor subyacente reporta conteos de tokens.
+`usage` se completa cuando el proveedor subyacente informa recuentos de tokens.
 
 ## Errores
 
@@ -290,7 +290,7 @@ Los errores usan un objeto JSON como:
 
 Casos comunes:
 
-- `401` autenticación faltante/invalidada
+- `401` autenticación faltante/inválida
 - `400` cuerpo de solicitud inválido
 - `405` método incorrecto
 

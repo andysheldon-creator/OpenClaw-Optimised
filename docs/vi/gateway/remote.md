@@ -1,98 +1,98 @@
 ---
-summary: "Truy cap tu xa bang duong ham SSH (Gateway WS) va tailnet"
+summary: "Truy cập từ xa bằng đường hầm SSH (Gateway WS) và tailnet"
 read_when:
-  - Van hanh hoac xu ly su co cac thiet lap Gateway tu xa
-title: "Truy cap tu xa"
+  - Chạy hoặc xử lý sự cố các thiết lập gateway từ xa
+title: "Truy cập từ xa"
 x-i18n:
   source_path: gateway/remote.md
   source_hash: 449d406f88c53dcc
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:07:32Z
+  generated_at: 2026-02-08T09:39:11Z
 ---
 
-# Truy cap tu xa (SSH, duong ham, va tailnet)
+# Truy cập từ xa (SSH, đường hầm, và tailnet)
 
-Repo nay ho tro “truy cap tu xa qua SSH” bang cach duy tri mot Gateway (master) duy nhat chay tren mot may chu/may ban rieng, va ket noi cac client toi no.
+Repo này hỗ trợ “truy cập từ xa qua SSH” bằng cách duy trì một Gateway duy nhất (máy chủ chính) chạy trên một máy chuyên dụng (desktop/server) và kết nối các client tới đó.
 
-- Doi voi **nguoi van hanh (ban / ung dung macOS)**: duong ham SSH la phuong an du phong pho bien.
-- Doi voi **node (iOS/Android va cac thiet bi tuong lai)**: ket noi toi **Gateway WebSocket** (LAN/tailnet hoac duong ham SSH khi can).
+- Dành cho **operator (bạn / ứng dụng macOS)**: đường hầm SSH là phương án dự phòng phổ quát.
+- Dành cho **node (iOS/Android và các thiết bị tương lai)**: kết nối tới **Gateway WebSocket** (LAN/tailnet hoặc đường hầm SSH khi cần).
 
-## Y tuong cot loi
+## Ý tưởng cốt lõi
 
-- Gateway WebSocket bind vao **loopback** tren cong da cau hinh (mac dinh 18789).
-- De su dung tu xa, ban forward cong loopback do qua SSH (hoac dung tailnet/VPN de giam can thiet phai tunnel).
+- Gateway WebSocket bind vào **loopback** trên cổng bạn cấu hình (mặc định 18789).
+- Khi dùng từ xa, bạn chuyển tiếp cổng loopback đó qua SSH (hoặc dùng tailnet/VPN để giảm nhu cầu tạo đường hầm).
 
-## Cac thiet lap VPN/tailnet pho bien (noi agent chay)
+## Các thiết lập VPN/tailnet phổ biến (nơi agent chạy)
 
-Hay xem **may chu Gateway** la “noi agent ton tai.” No so huu session, cau hinh xac thuc, kenh va trang thai.
-Laptop/desktop cua ban (va cac node) ket noi toi may chu do.
+Hãy coi **máy chủ gateway** là “nơi agent sống.” Nó sở hữu các phiên, hồ sơ xác thực, kênh và trạng thái.
+Laptop/desktop của bạn (và các node) kết nối tới máy chủ đó.
 
-### 1) Gateway luon hoat dong trong tailnet (VPS hoac may chu tai nha)
+### 1) Gateway luôn bật trong tailnet của bạn (VPS hoặc máy chủ tại nhà)
 
-Chay Gateway tren mot may chu on dinh va truy cap qua **Tailscale** hoac SSH.
+Chạy Gateway trên một máy chủ cố định và truy cập qua **Tailscale** hoặc SSH.
 
-- **UX tot nhat:** giu `gateway.bind: "loopback"` va dung **Tailscale Serve** cho Control UI.
-- **Du phong:** giu loopback + duong ham SSH tu bat ky may nao can truy cap.
-- **Vi du:** [exe.dev](/install/exe-dev) (VM de dung) hoac [Hetzner](/install/hetzner) (VPS san xuat).
+- **Trải nghiệm tốt nhất:** giữ `gateway.bind: "loopback"` và dùng **Tailscale Serve** cho Control UI.
+- **Phương án dự phòng:** giữ loopback + đường hầm SSH từ bất kỳ máy nào cần truy cập.
+- **Ví dụ:** [exe.dev](/install/exe-dev) (VM dễ dùng) hoặc [Hetzner](/install/hetzner) (VPS sản xuất).
 
-Phu hop khi laptop cua ban hay ngu nhung ban muon agent luon hoat dong.
+Cách này lý tưởng khi laptop của bạn thường xuyên sleep nhưng bạn muốn agent luôn bật.
 
-### 2) May tinh de ban tai nha chay Gateway, laptop la bo dieu khien tu xa
+### 2) Desktop tại nhà chạy Gateway, laptop điều khiển từ xa
 
-Laptop **khong** chay agent. No ket noi tu xa:
+Laptop **không** chạy agent. Nó kết nối từ xa:
 
-- Dung che do **Remote over SSH** cua ung dung macOS (Settings → General → “OpenClaw runs”).
-- Ung dung tu dong mo va quan ly duong ham, nen WebChat + kiem tra suc khoe hoat dong “ngay lap tuc.”
+- Dùng chế độ **Remote over SSH** của ứng dụng macOS (Settings → General → “OpenClaw runs”).
+- Ứng dụng tự mở và quản lý đường hầm, nên WebChat + kiểm tra tình trạng hoạt động “chạy ngay”.
 
 Runbook: [macOS remote access](/platforms/mac/remote).
 
-### 3) Laptop chay Gateway, truy cap tu xa tu cac may khac
+### 3) Laptop chạy Gateway, truy cập từ xa từ các máy khác
 
-Giu Gateway cuc bo nhung mo truy cap an toan:
+Giữ Gateway chạy cục bộ nhưng phơi bày an toàn:
 
-- Tao duong ham SSH toi laptop tu cac may khac, hoac
-- Dung Tailscale Serve cho Control UI va giu Gateway chi bind loopback.
+- Tạo đường hầm SSH tới laptop từ các máy khác, hoặc
+- Dùng Tailscale Serve cho Control UI và giữ Gateway chỉ bind loopback.
 
-Huong dan: [Tailscale](/gateway/tailscale) va [Web overview](/web).
+Hướng dẫn: [Tailscale](/gateway/tailscale) và [Web overview](/web).
 
-## Luong lenh (cai gi chay o dau)
+## Luồng lệnh (chạy ở đâu)
 
-Mot dich vu gateway duy nhat so huu trang thai + kenh. Node chi la thiet bi ngoai vi.
+Một dịch vụ gateway sở hữu trạng thái + kênh. Các node là thiết bị ngoại vi.
 
-Vi du luong (Telegram → node):
+Ví dụ luồng (Telegram → node):
 
-- Tin nhan Telegram toi **Gateway**.
-- Gateway chay **agent** va quyet dinh co goi cong cu node hay khong.
-- Gateway goi **node** qua Gateway WebSocket (RPC `node.*`).
-- Node tra ket qua; Gateway gui phan hoi nguoc lai Telegram.
+- Tin nhắn Telegram đến **Gateway**.
+- Gateway chạy **agent** và quyết định có gọi công cụ của node hay không.
+- Gateway gọi **node** qua Gateway WebSocket (RPC `node.*`).
+- Node trả kết quả; Gateway phản hồi lại Telegram.
 
-Ghi chu:
+Ghi chú:
 
-- **Node khong chay dich vu gateway.** Chi nen co mot gateway tren moi host, tru khi ban co chu y chay cac cau hinh co lap (xem [Multiple gateways](/gateway/multiple-gateways)).
-- Che do “node mode” cua ung dung macOS chi la mot client node qua Gateway WebSocket.
+- **Node không chạy dịch vụ gateway.** Mỗi host chỉ nên chạy một gateway trừ khi bạn cố ý chạy các hồ sơ cô lập (xem [Multiple gateways](/gateway/multiple-gateways)).
+- Chế độ “node mode” của ứng dụng macOS chỉ là một client node qua Gateway WebSocket.
 
-## Duong ham SSH (CLI + cong cu)
+## Đường hầm SSH (CLI + công cụ)
 
-Tao duong ham cuc bo toi Gateway WS tu xa:
+Tạo một đường hầm cục bộ tới Gateway WS từ xa:
 
 ```bash
 ssh -N -L 18789:127.0.0.1:18789 user@host
 ```
 
-Khi duong ham da mo:
+Khi đường hầm đã mở:
 
-- `openclaw health` va `openclaw status --deep` se truy cap gateway tu xa qua `ws://127.0.0.1:18789`.
-- `openclaw gateway {status,health,send,agent,call}` cung co the nham toi URL da forward qua `--url` khi can.
+- `openclaw health` và `openclaw status --deep` giờ truy cập gateway từ xa qua `ws://127.0.0.1:18789`.
+- `openclaw gateway {status,health,send,agent,call}` cũng có thể nhắm tới URL đã chuyển tiếp qua `--url` khi cần.
 
-Luu y: thay `18789` bang `gateway.port` da cau hinh (hoac `--port`/`OPENCLAW_GATEWAY_PORT`).
-Luu y: khi ban truyen `--url`, CLI se khong tu dong dung cau hinh hay thong tin xac thuc tu bien moi truong.
-Hay chi ro `--token` hoac `--password`. Thieu thong tin xac thuc ro rang se gay loi.
+Lưu ý: thay `18789` bằng `gateway.port` bạn đã cấu hình (hoặc `--port`/`OPENCLAW_GATEWAY_PORT`).
+Lưu ý: khi bạn truyền `--url`, CLI sẽ không dùng dự phòng từ cấu hình hay biến môi trường.
+Hãy bao gồm `--token` hoặc `--password` một cách rõ ràng. Thiếu thông tin xác thực tường minh là lỗi.
 
-## Gia tri mac dinh tu xa cho CLI
+## Mặc định từ xa của CLI
 
-Ban co the luu dich tieu tu xa de cac lenh CLI dung mac dinh:
+Bạn có thể lưu một mục tiêu từ xa để các lệnh CLI dùng mặc định:
 
 ```json5
 {
@@ -106,31 +106,31 @@ Ban co the luu dich tieu tu xa de cac lenh CLI dung mac dinh:
 }
 ```
 
-Khi gateway chi bind loopback, hay giu URL o `ws://127.0.0.1:18789` va mo duong ham SSH truoc.
+Khi gateway chỉ bind loopback, giữ URL ở `ws://127.0.0.1:18789` và mở đường hầm SSH trước.
 
 ## Chat UI qua SSH
 
-WebChat khong con dung cong HTTP rieng. UI chat SwiftUI ket noi truc tiep toi Gateway WebSocket.
+WebChat không còn dùng cổng HTTP riêng. Giao diện chat SwiftUI kết nối trực tiếp tới Gateway WebSocket.
 
-- Forward `18789` qua SSH (xem o tren), sau do ket noi client toi `ws://127.0.0.1:18789`.
-- Tren macOS, nen dung che do “Remote over SSH” cua ung dung, vi no tu dong quan ly duong ham.
+- Chuyển tiếp `18789` qua SSH (xem trên), rồi kết nối client tới `ws://127.0.0.1:18789`.
+- Trên macOS, ưu tiên chế độ “Remote over SSH” của ứng dụng, chế độ này tự quản lý đường hầm.
 
-## Ung dung macOS “Remote over SSH”
+## Ứng dụng macOS “Remote over SSH”
 
-Ung dung thanh menu macOS co the thiet lap toan bo quy trinh tu dau den cuoi (kiem tra trang thai tu xa, WebChat, va forward Voice Wake).
+Ứng dụng menu bar trên macOS có thể điều khiển toàn bộ thiết lập này từ đầu đến cuối (kiểm tra trạng thái từ xa, WebChat và chuyển tiếp Voice Wake).
 
 Runbook: [macOS remote access](/platforms/mac/remote).
 
-## Quy tac bao mat (tu xa/VPN)
+## Quy tắc bảo mật (từ xa/VPN)
 
-Tom tat: **giu Gateway chi bind loopback** tru khi ban chac chan can mo bind.
+Phiên bản ngắn gọn: **giữ Gateway chỉ bind loopback** trừ khi bạn chắc chắn cần bind ra ngoài.
 
-- **Loopback + SSH/Tailscale Serve** la mac dinh an toan nhat (khong lo cong khai).
-- **Bind khong phai loopback** (`lan`/`tailnet`/`custom`, hoac `auto` khi loopback khong kha dung) bat buoc phai dung token/mat khau.
-- `gateway.remote.token` **chi** dung cho cac cuoc goi CLI tu xa — **khong** kich hoat xac thuc cuc bo.
-- `gateway.remote.tlsFingerprint` co dinh chung chi TLS tu xa khi dung `wss://`.
-- **Tailscale Serve** co the xac thuc bang header dinh danh khi `gateway.auth.allowTailscale: true`.
-  Dat no thanh `false` neu ban muon dung token/mat khau thay the.
-- Doi xu quyen dieu khien qua trinh duyet giong quyen cua nguoi van hanh: chi tailnet + ghep node co chu y.
+- **Loopback + SSH/Tailscale Serve** là mặc định an toàn nhất (không phơi bày công khai).
+- **Bind không phải loopback** (`lan`/`tailnet`/`custom`, hoặc `auto` khi loopback không khả dụng) phải dùng token/mật khẩu xác thực.
+- `gateway.remote.token` **chỉ** dành cho các lệnh CLI từ xa — **không** bật xác thực cục bộ.
+- `gateway.remote.tlsFingerprint` ghim chứng chỉ TLS từ xa khi dùng `wss://`.
+- **Tailscale Serve** có thể xác thực qua header định danh khi `gateway.auth.allowTailscale: true`.
+  Đặt thành `false` nếu bạn muốn dùng token/mật khẩu thay thế.
+- Hãy coi điều khiển qua trình duyệt như quyền operator: chỉ trong tailnet + ghép cặp node có chủ đích.
 
-Dao sau: [Security](/gateway/security).
+Phân tích chi tiết: [Security](/gateway/security).

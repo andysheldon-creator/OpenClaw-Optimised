@@ -1,9 +1,9 @@
 ---
 summary: „PeekabooBridge-Integration für macOS-UI-Automatisierung“
 read_when:
-  - Hosting von PeekabooBridge in OpenClaw.app
-  - Integration von Peekaboo über den Swift Package Manager
-  - Ändern des PeekabooBridge-Protokolls/der -Pfade
+  - „Hosting von PeekabooBridge in OpenClaw.app“
+  - „Integration von Peekaboo über Swift Package Manager“
+  - „Ändern des PeekabooBridge-Protokolls bzw. der Pfade“
 title: „Peekaboo Bridge“
 x-i18n:
   source_path: platforms/mac/peekaboo.md
@@ -11,12 +11,13 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:05:00Z
+  generated_at: 2026-02-08T09:36:51Z
 ---
 
 # Peekaboo Bridge (macOS-UI-Automatisierung)
 
-OpenClaw kann **PeekabooBridge** als lokalen, berechtigungsbewussten Broker für UI-Automatisierung hosten. Dadurch kann die `peekaboo` CLI die UI-Automatisierung steuern und dabei die TCC-Berechtigungen der macOS-App wiederverwenden.
+OpenClaw kann **PeekabooBridge** als lokalen, berechtigungsbewussten Broker für UI-Automatisierung hosten.
+Dadurch kann die `peekaboo` CLI die UI-Automatisierung steuern und dabei die TCC-Berechtigungen der macOS-App wiederverwenden.
 
 ## Was das ist (und was nicht)
 
@@ -40,7 +41,8 @@ Peekaboo-Clients versuchen Hosts typischerweise in dieser Reihenfolge:
 2. Claude.app (falls installiert)
 3. OpenClaw.app (schlanker Broker)
 
-Verwenden Sie `peekaboo bridge status --verbose`, um zu sehen, welcher Host aktiv ist und welcher Socket-Pfad verwendet wird. Sie können dies überschreiben mit:
+Verwenden Sie `peekaboo bridge status --verbose`, um zu sehen, welcher Host aktiv ist und welcher
+Socket-Pfad verwendet wird. Sie können dies überschreiben mit:
 
 ```bash
 export PEEKABOO_BRIDGE_SOCKET=/path/to/bridge.sock
@@ -48,15 +50,16 @@ export PEEKABOO_BRIDGE_SOCKET=/path/to/bridge.sock
 
 ## Sicherheit & Berechtigungen
 
-- Die Bridge validiert **Aufrufer-Code-Signaturen**; eine Allowlist von TeamIDs wird erzwungen (Peekaboo-Host-TeamID + OpenClaw-App-TeamID).
-- Anfragen laufen nach ~10 Sekunden ab.
+- Die Bridge validiert **Code-Signaturen der Aufrufer**; eine Allowlist von TeamIDs wird durchgesetzt (Peekaboo-Host-TeamID + OpenClaw-App-TeamID).
+- Anfragen laufen nach ca. 10 Sekunden ab.
 - Wenn erforderliche Berechtigungen fehlen, gibt die Bridge eine klare Fehlermeldung zurück, anstatt die Systemeinstellungen zu öffnen.
 
 ## Snapshot-Verhalten (Automatisierung)
 
-Snapshots werden im Speicher abgelegt und verfallen nach kurzer Zeit automatisch. Wenn Sie eine längere Aufbewahrung benötigen, erfassen Sie erneut vom Client aus.
+Snapshots werden im Speicher abgelegt und verfallen automatisch nach kurzer Zeit.
+Wenn Sie eine längere Aufbewahrung benötigen, erfassen Sie diese erneut vom Client aus.
 
 ## Fehlerbehebung
 
-- Wenn `peekaboo` „bridge client is not authorized“ meldet, stellen Sie sicher, dass der Client korrekt signiert ist, oder führen Sie den Host mit `PEEKABOO_ALLOW_UNSIGNED_SOCKET_CLIENTS=1` **nur** im **Debug**-Modus aus.
+- Wenn `peekaboo` „bridge client is not authorized“ meldet, stellen Sie sicher, dass der Client korrekt signiert ist, oder führen Sie den Host mit `PEEKABOO_ALLOW_UNSIGNED_SOCKET_CLIENTS=1` nur im **Debug**-Modus aus.
 - Wenn keine Hosts gefunden werden, öffnen Sie eine der Host-Apps (Peekaboo.app oder OpenClaw.app) und bestätigen Sie, dass die Berechtigungen erteilt sind.

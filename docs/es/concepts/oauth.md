@@ -1,10 +1,10 @@
 ---
-summary: "OAuth en OpenClaw: intercambio de tokens, almacenamiento y patrones de multiples cuentas"
+summary: "OAuth en OpenClaw: intercambio de tokens, almacenamiento y patrones de múltiples cuentas"
 read_when:
-  - Quiere entender OAuth en OpenClaw de principio a fin
-  - Tiene problemas de invalidacion de tokens / cierre de sesion
-  - Quiere flujos de setup-token o autenticacion OAuth
-  - Quiere multiples cuentas o enrutamiento por perfiles
+  - Quiere comprender OAuth en OpenClaw de extremo a extremo
+  - Ha tenido problemas de invalidación de tokens / cierre de sesión
+  - Quiere flujos de autenticación con setup-token u OAuth
+  - Quiere múltiples cuentas o enrutamiento por perfiles
 title: "OAuth"
 x-i18n:
   source_path: concepts/oauth.md
@@ -12,59 +12,59 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:58:36Z
+  generated_at: 2026-02-08T09:33:12Z
 ---
 
 # OAuth
 
-OpenClaw admite “autenticacion por suscripcion” mediante OAuth para proveedores que la ofrecen (en particular **OpenAI Codex (ChatGPT OAuth)**). Para suscripciones de Anthropic, use el flujo **setup-token**. Esta pagina explica:
+OpenClaw admite “autenticación por suscripción” mediante OAuth para proveedores que la ofrecen (en particular **OpenAI Codex (ChatGPT OAuth)**). Para suscripciones de Anthropic, use el flujo **setup-token**. Esta página explica:
 
-- como funciona el **intercambio de tokens** OAuth (PKCE)
-- donde se **almacenan** los tokens (y por que)
-- como manejar **multiples cuentas** (perfiles + anulaciones por sesion)
+- cómo funciona el **intercambio de tokens** de OAuth (PKCE)
+- dónde se **almacenan** los tokens (y por qué)
+- cómo manejar **múltiples cuentas** (perfiles + anulaciones por sesión)
 
-OpenClaw tambien admite **plugins de proveedores** que incluyen sus propios flujos OAuth o de claves API.
-Ejecutelos mediante:
+OpenClaw también admite **plugins de proveedor** que incluyen sus propios flujos de OAuth o de clave de API.
+Ejecútelos mediante:
 
 ```bash
 openclaw models auth login --provider <id>
 ```
 
-## El sumidero de tokens (por que existe)
+## El sumidero de tokens (por qué existe)
 
-Los proveedores OAuth suelen emitir un **nuevo refresh token** durante los flujos de inicio de sesion/renovacion. Algunos proveedores (o clientes OAuth) pueden invalidar refresh tokens antiguos cuando se emite uno nuevo para el mismo usuario/aplicacion.
+Los proveedores OAuth suelen emitir un **nuevo token de actualización** durante los flujos de inicio de sesión/actualización. Algunos proveedores (o clientes OAuth) pueden invalidar tokens de actualización anteriores cuando se emite uno nuevo para el mismo usuario/aplicación.
 
-Sintoma practico:
+Síntoma práctico:
 
-- usted inicia sesion mediante OpenClaw _y_ mediante Claude Code / Codex CLI → uno de ellos termina “cerrando sesion” de forma aleatoria mas tarde
+- inicia sesión mediante OpenClaw _y_ mediante Claude Code / Codex CLI → uno de ellos termina “cerrando sesión” de forma aleatoria más tarde
 
 Para reducir esto, OpenClaw trata `auth-profiles.json` como un **sumidero de tokens**:
 
 - el runtime lee las credenciales desde **un solo lugar**
-- podemos mantener multiples perfiles y enrutar de forma deterministica
+- podemos mantener múltiples perfiles y enrutarlos de forma determinista
 
-## Almacenamiento (donde viven los tokens)
+## Almacenamiento (dónde viven los tokens)
 
 Los secretos se almacenan **por agente**:
 
-- Perfiles de autenticacion (OAuth + claves API): `~/.openclaw/agents/<agentId>/agent/auth-profiles.json`
-- Cache de runtime (gestionada automaticamente; no edite): `~/.openclaw/agents/<agentId>/agent/auth.json`
+- Perfiles de autenticación (OAuth + claves de API): `~/.openclaw/agents/<agentId>/agent/auth-profiles.json`
+- Caché de runtime (gestionada automáticamente; no la edite): `~/.openclaw/agents/<agentId>/agent/auth.json`
 
-Archivo legado solo para importacion (aun compatible, pero no es el almacen principal):
+Archivo heredado solo para importación (aún compatible, pero no es el almacén principal):
 
-- `~/.openclaw/credentials/oauth.json` (importado en `auth-profiles.json` en el primer uso)
+- `~/.openclaw/credentials/oauth.json` (importado a `auth-profiles.json` en el primer uso)
 
-Todo lo anterior tambien respeta `$OPENCLAW_STATE_DIR` (anulacion del directorio de estado). Referencia completa: [/gateway/configuration](/gateway/configuration#auth-storage-oauth--api-keys)
+Todo lo anterior también respeta `$OPENCLAW_STATE_DIR` (anulación del directorio de estado). Referencia completa: [/gateway/configuration](/gateway/configuration#auth-storage-oauth--api-keys)
 
-## Anthropic setup-token (autenticacion por suscripcion)
+## Anthropic setup-token (autenticación por suscripción)
 
-Ejecute `claude setup-token` en cualquier maquina y luego peguelo en OpenClaw:
+Ejecute `claude setup-token` en cualquier máquina y luego péguelo en OpenClaw:
 
 ```bash
 openclaw models auth setup-token --provider anthropic
 ```
 
-Si genero el token en otro lugar, peguelo manualmente:
+Si generó el token en otro lugar, péguelo manualmente:
 
 ```bash
 openclaw models auth paste-token --provider anthropic
@@ -76,9 +76,9 @@ Verifique:
 openclaw models status
 ```
 
-## Intercambio OAuth (como funciona el inicio de sesion)
+## Intercambio OAuth (cómo funciona el inicio de sesión)
 
-Los flujos interactivos de inicio de sesion de OpenClaw estan implementados en `@mariozechner/pi-ai` y conectados a los asistentes/comandos.
+Los flujos interactivos de inicio de sesión de OpenClaw están implementados en `@mariozechner/pi-ai` y conectados a los asistentes/comandos.
 
 ### Anthropic (Claude Pro/Max) setup-token
 
@@ -86,67 +86,67 @@ Forma del flujo:
 
 1. ejecute `claude setup-token`
 2. pegue el token en OpenClaw
-3. guarde como un perfil de autenticacion por token (sin renovacion)
+3. almacénelo como un perfil de autenticación por token (sin actualización)
 
-La ruta del asistente es `openclaw onboard` → opcion de autenticacion `setup-token` (Anthropic).
+La ruta del asistente es `openclaw onboard` → opción de autenticación `setup-token` (Anthropic).
 
 ### OpenAI Codex (ChatGPT OAuth)
 
 Forma del flujo (PKCE):
 
-1. genere el verificador/desafio PKCE + un `state` aleatorio
-2. abra `https://auth.openai.com/oauth/authorize?...`
-3. intente capturar el callback en `http://127.0.0.1:1455/auth/callback`
-4. si el callback no puede enlazarse (o usted esta remoto/sin interfaz), pegue la URL/codigo de redireccion
-5. intercambie en `https://auth.openai.com/oauth/token`
-6. extraiga `accountId` del token de acceso y almacene `{ access, refresh, expires, accountId }`
+1. generar verificador/desafío PKCE + `state` aleatorio
+2. abrir `https://auth.openai.com/oauth/authorize?...`
+3. intentar capturar el callback en `http://127.0.0.1:1455/auth/callback`
+4. si el callback no puede enlazarse (o está remoto/sin interfaz), pegar la URL/código de redirección
+5. intercambiar en `https://auth.openai.com/oauth/token`
+6. extraer `accountId` del token de acceso y almacenar `{ access, refresh, expires, accountId }`
 
-La ruta del asistente es `openclaw onboard` → opcion de autenticacion `openai-codex`.
+La ruta del asistente es `openclaw onboard` → opción de autenticación `openai-codex`.
 
-## Renovacion + expiracion
+## Actualización + caducidad
 
 Los perfiles almacenan una marca de tiempo `expires`.
 
-En tiempo de ejecucion:
+En tiempo de ejecución:
 
-- si `expires` esta en el futuro → use el token de acceso almacenado
-- si expiro → renueve (bajo un bloqueo de archivo) y sobrescriba las credenciales almacenadas
+- si `expires` está en el futuro → use el token de acceso almacenado
+- si está caducado → actualice (bajo un bloqueo de archivo) y sobrescriba las credenciales almacenadas
 
-El flujo de renovacion es automatico; por lo general no necesita administrar tokens manualmente.
+El flujo de actualización es automático; por lo general no necesita gestionar los tokens manualmente.
 
-## Multiples cuentas (perfiles) + enrutamiento
+## Múltiples cuentas (perfiles) + enrutamiento
 
 Dos patrones:
 
 ### 1) Preferido: agentes separados
 
-Si quiere que “personal” y “trabajo” nunca interactuen, use agentes aislados (sesiones + credenciales + espacio de trabajo separados):
+Si quiere que “personal” y “trabajo” nunca interactúen, use agentes aislados (sesiones + credenciales + espacio de trabajo separados):
 
 ```bash
 openclaw agents add work
 openclaw agents add personal
 ```
 
-Luego configure la autenticacion por agente (asistente) y enrute los chats al agente correcto.
+Luego configure la autenticación por agente (asistente) y enrute los chats al agente correcto.
 
-### 2) Avanzado: multiples perfiles en un solo agente
+### 2) Avanzado: múltiples perfiles en un solo agente
 
-`auth-profiles.json` admite multiples IDs de perfil para el mismo proveedor.
+`auth-profiles.json` admite múltiples ID de perfil para el mismo proveedor.
 
-Elija que perfil se usa:
+Elija qué perfil se usa:
 
-- globalmente mediante el orden de configuracion (`auth.order`)
-- por sesion mediante `/model ...@<profileId>`
+- globalmente mediante el orden de configuración (`auth.order`)
+- por sesión mediante `/model ...@<profileId>`
 
-Ejemplo (anulacion por sesion):
+Ejemplo (anulación por sesión):
 
 - `/model Opus@anthropic:work`
 
-Como ver que IDs de perfil existen:
+Cómo ver qué ID de perfil existen:
 
 - `openclaw channels list --json` (muestra `auth[]`)
 
-Documentos relacionados:
+Documentación relacionada:
 
-- [/concepts/model-failover](/concepts/model-failover) (rotacion + reglas de enfriamiento)
+- [/concepts/model-failover](/concepts/model-failover) (reglas de rotación + enfriamiento)
 - [/tools/slash-commands](/tools/slash-commands) (superficie de comandos)

@@ -1,40 +1,40 @@
 ---
-summary: "Kontext: was das Modell sieht, wie er aufgebaut ist und wie er inspiziert werden kann"
+summary: "Kontext: was das Modell sieht, wie er aufgebaut ist und wie Sie ihn prüfen"
 read_when:
-  - Sie moechten verstehen, was „Kontext“ in OpenClaw bedeutet
-  - Sie debuggen, warum das Modell etwas „weiss“ (oder vergessen hat)
-  - Sie moechten den Kontext-Overhead reduzieren (/context, /status, /compact)
+  - Sie möchten verstehen, was „Kontext“ in OpenClaw bedeutet
+  - Sie debuggen, warum das Modell etwas „weiß“ (oder vergessen hat)
+  - Sie möchten den Kontext-Overhead reduzieren (/context, /status, /compact)
 title: "Kontext"
 x-i18n:
   source_path: concepts/context.md
-  source_hash: b32867b9b93254fd
+  source_hash: e6f42f515380ce12
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:04:05Z
+  generated_at: 2026-02-08T09:35:57Z
 ---
 
 # Kontext
 
-„Kontext“ ist **alles, was OpenClaw fuer einen Lauf an das Modell sendet**. Er ist durch das **Kontextfenster** des Modells (Token-Limit) begrenzt.
+„Kontext“ ist **alles, was OpenClaw für einen Lauf an das Modell sendet**. Er ist durch das **Kontextfenster** des Modells (Token-Limit) begrenzt.
 
-Mentales Modell fuer Einsteiger:
+Mentales Modell für Einsteiger:
 
 - **System-Prompt** (von OpenClaw erstellt): Regeln, Werkzeuge, Skills-Liste, Zeit/Laufzeit und injizierte Workspace-Dateien.
-- **Gesprächsverlauf**: Ihre Nachrichten + die Antworten des Assistenten fuer diese Sitzung.
-- **Werkzeugaufrufe/-ergebnisse + Anhaenge**: Kommandoausgaben, Dateizugriffe, Bilder/Audio usw.
+- **Gesprächsverlauf**: Ihre Nachrichten + die Nachrichten des Assistenten für diese Sitzung.
+- **Werkzeugaufrufe/-ergebnisse + Anhänge**: Befehlsausgaben, Dateizugriffe, Bilder/Audio usw.
 
-Kontext ist _nicht dasselbe_ wie „Speicher“: Speicher kann auf der Festplatte abgelegt und spaeter wieder geladen werden; Kontext ist das, was sich aktuell im Fenster des Modells befindet.
+Kontext ist _nicht dasselbe_ wie „Speicher“: Speicher kann auf der Festplatte abgelegt und später wieder geladen werden; Kontext ist das, was sich aktuell im Fenster des Modells befindet.
 
-## Schnellstart (Kontext inspizieren)
+## Schnellstart (Kontext prüfen)
 
 - `/status` → schnelle Ansicht „wie voll ist mein Fenster?“ + Sitzungseinstellungen.
-- `/context list` → was injiziert wird + grobe Groessen (pro Datei + Summen).
-- `/context detail` → tiefere Aufschluesselung: pro Datei, pro Werkzeug-Schema, pro Skill-Eintrag sowie Groesse des System-Prompts.
-- `/usage tokens` → fuegt normalen Antworten eine Fusszeile zur Nutzung pro Antwort hinzu.
-- `/compact` → fasst aelteren Verlauf zu einem kompakten Eintrag zusammen, um Fensterplatz freizugeben.
+- `/context list` → was injiziert wird + grobe Größen (pro Datei + Summen).
+- `/context detail` → detaillierte Aufschlüsselung: pro Datei, pro Werkzeug-Schema, pro Skill-Eintrag und Größe des System-Prompts.
+- `/usage tokens` → hängt an normale Antworten eine Nutzungs-Fußzeile pro Antwort an.
+- `/compact` → fasst ältere Historie zu einem kompakten Eintrag zusammen, um Platz im Fenster freizugeben.
 
-Siehe auch: [Slash commands](/tools/slash-commands), [Token use & costs](/token-use), [Compaction](/concepts/compaction).
+Siehe auch: [Slash commands](/tools/slash-commands), [Token use & costs](/reference/token-use), [Compaction](/concepts/compaction).
 
 ## Beispielausgabe
 
@@ -83,20 +83,20 @@ Top tools (schema size):
 … (+N more tools)
 ```
 
-## Was zum Kontextfenster zaehlt
+## Was zum Kontextfenster zählt
 
-Alles, was das Modell erhaelt, zaehlt, einschliesslich:
+Alles, was das Modell erhält, zählt dazu, einschließlich:
 
 - System-Prompt (alle Abschnitte).
 - Gesprächsverlauf.
 - Werkzeugaufrufe + Werkzeugergebnisse.
-- Anhaenge/Transkripte (Bilder/Audio/Dateien).
+- Anhänge/Transkripte (Bilder/Audio/Dateien).
 - Kompaktionszusammenfassungen und Pruning-Artefakte.
-- Anbieter-„Wrapper“ oder versteckte Header (nicht sichtbar, zaehlen trotzdem).
+- Anbieter-„Wrapper“ oder versteckte Header (nicht sichtbar, zählen trotzdem).
 
-## Wie OpenClaw den System-Prompt aufbaut
+## Wie OpenClaw den System-Prompt erstellt
 
-Der System-Prompt ist **OpenClaw-eigen** und wird bei jedem Lauf neu erstellt. Er enthaelt:
+Der System-Prompt gehört **OpenClaw** und wird bei jedem Lauf neu aufgebaut. Er umfasst:
 
 - Werkzeugliste + kurze Beschreibungen.
 - Skills-Liste (nur Metadaten; siehe unten).
@@ -105,11 +105,11 @@ Der System-Prompt ist **OpenClaw-eigen** und wird bei jedem Lauf neu erstellt. E
 - Laufzeit-Metadaten (Host/OS/Modell/Thinking).
 - Injizierte Workspace-Bootstrap-Dateien unter **Project Context**.
 
-Vollstaendige Aufschluesselung: [System Prompt](/concepts/system-prompt).
+Vollständige Aufschlüsselung: [System Prompt](/concepts/system-prompt).
 
 ## Injizierte Workspace-Dateien (Project Context)
 
-Standardmaessig injiziert OpenClaw eine feste Menge an Workspace-Dateien (falls vorhanden):
+Standardmäßig injiziert OpenClaw einen festen Satz an Workspace-Dateien (falls vorhanden):
 
 - `AGENTS.md`
 - `SOUL.md`
@@ -119,50 +119,50 @@ Standardmaessig injiziert OpenClaw eine feste Menge an Workspace-Dateien (falls 
 - `HEARTBEAT.md`
 - `BOOTSTRAP.md` (nur beim ersten Lauf)
 
-Grosse Dateien werden pro Datei mit `agents.defaults.bootstrapMaxChars` gekuerzt (Standard `20000` Zeichen). `/context` zeigt **roh vs. injiziert**e Groessen und ob eine Kuerzung stattgefunden hat.
+Große Dateien werden pro Datei mit `agents.defaults.bootstrapMaxChars` gekürzt (Standard `20000` Zeichen). `/context` zeigt **Roh- vs. injizierte** Größen und ob eine Kürzung stattgefunden hat.
 
-## Skills: was injiziert wird vs. on-demand geladen
+## Skills: was injiziert wird vs. bedarfsweise geladen
 
-Der System-Prompt enthaelt eine kompakte **Skills-Liste** (Name + Beschreibung + Speicherort). Diese Liste verursacht realen Overhead.
+Der System-Prompt enthält eine kompakte **Skills-Liste** (Name + Beschreibung + Speicherort). Diese Liste verursacht realen Overhead.
 
-Skill-Anweisungen sind standardmaessig _nicht_ enthalten. Vom Modell wird erwartet, den Skill `read` und die `SKILL.md` **nur bei Bedarf** zu laden.
+Skill-Anweisungen sind standardmäßig _nicht_ enthalten. Vom Modell wird erwartet, dass es `read` die `SKILL.md` des Skills **nur bei Bedarf**.
 
 ## Werkzeuge: es gibt zwei Kosten
 
 Werkzeuge beeinflussen den Kontext auf zwei Arten:
 
 1. **Werkzeuglisten-Text** im System-Prompt (das, was Sie als „Tooling“ sehen).
-2. **Werkzeug-Schemata** (JSON). Diese werden an das Modell gesendet, damit es Werkzeuge aufrufen kann. Sie zaehlen zum Kontext, auch wenn Sie sie nicht als Klartext sehen.
+2. **Werkzeug-Schemas** (JSON). Diese werden an das Modell gesendet, damit es Werkzeuge aufrufen kann. Sie zählen zum Kontext, auch wenn Sie sie nicht als Klartext sehen.
 
-`/context detail` schluesselt die groessten Werkzeug-Schemata auf, damit Sie sehen koennen, was dominiert.
+`/context detail` schlüsselt die größten Werkzeug-Schemas auf, damit Sie sehen können, was dominiert.
 
 ## Befehle, Direktiven und „Inline-Shortcuts“
 
 Slash-Befehle werden vom Gateway verarbeitet. Es gibt einige unterschiedliche Verhaltensweisen:
 
-- **Eigenstaendige Befehle**: Eine Nachricht, die nur aus `/...` besteht, wird als Befehl ausgefuehrt.
+- **Eigenständige Befehle**: Eine Nachricht, die nur `/...` ist, wird als Befehl ausgeführt.
 - **Direktiven**: `/think`, `/verbose`, `/reasoning`, `/elevated`, `/model`, `/queue` werden entfernt, bevor das Modell die Nachricht sieht.
-  - Nur-Direktiven-Nachrichten persistieren Sitzungseinstellungen.
+  - Nachrichten, die nur aus Direktiven bestehen, speichern Sitzungseinstellungen.
   - Inline-Direktiven in einer normalen Nachricht wirken als Hinweise pro Nachricht.
-- **Inline-Shortcuts** (nur erlaubte Absender): Bestimmte `/...`-Tokens innerhalb einer normalen Nachricht koennen sofort ausgefuehrt werden (Beispiel: „hey /status“) und werden entfernt, bevor das Modell den restlichen Text sieht.
+- **Inline-Shortcuts** (nur Allowlist-Absender): Bestimmte `/...`-Tokens innerhalb einer normalen Nachricht können sofort ausgeführt werden (Beispiel: „hey /status“) und werden entfernt, bevor das Modell den verbleibenden Text sieht.
 
 Details: [Slash commands](/tools/slash-commands).
 
-## Sitzungen, Kompaktion und Pruning (was persistiert)
+## Sitzungen, Kompaktierung und Pruning (was bestehen bleibt)
 
-Was ueber Nachrichten hinweg persistiert, haengt vom Mechanismus ab:
+Was über Nachrichten hinweg bestehen bleibt, hängt vom Mechanismus ab:
 
-- **Normaler Verlauf** persistiert im Sitzungsprotokoll, bis er durch Richtlinien kompakt/pruned wird.
-- **Kompaktion** persistiert eine Zusammenfassung im Protokoll und behaelt aktuelle Nachrichten unveraendert.
-- **Pruning** entfernt alte Werkzeugergebnisse aus dem _im Speicher befindlichen_ Prompt fuer einen Lauf, schreibt das Protokoll jedoch nicht um.
+- **Normaler Verlauf** bleibt im Sitzungsprotokoll, bis er durch Richtlinien kompaktierte/geschnitten wird.
+- **Kompaktierung** speichert eine Zusammenfassung im Protokoll und lässt aktuelle Nachrichten intakt.
+- **Pruning** entfernt alte Werkzeugergebnisse aus dem _in-memory_-Prompt für einen Lauf, schreibt das Protokoll jedoch nicht um.
 
-Dokumentation: [Session](/concepts/session), [Compaction](/concepts/compaction), [Session pruning](/concepts/session-pruning).
+Doku: [Session](/concepts/session), [Compaction](/concepts/compaction), [Session pruning](/concepts/session-pruning).
 
-## Was `/context` tatsaechlich meldet
+## Was `/context` tatsächlich meldet
 
-`/context` bevorzugt den neuesten **laufbasiert erstellten** System-Prompt-Bericht, sofern verfuegbar:
+`/context` bevorzugt den neuesten **run-built** System-Prompt-Bericht, sofern verfügbar:
 
-- `System prompt (run)` = aus dem letzten eingebetteten (werkzeugfaehigen) Lauf erfasst und im Sitzungsspeicher persistiert.
-- `System prompt (estimate)` = bei Bedarf berechnet, wenn kein Laufbericht existiert (oder wenn ueber ein CLI-Backend ausgefuehrt wird, das keinen Bericht erzeugt).
+- `System prompt (run)` = aus dem letzten eingebetteten (werkzeugfähigen) Lauf erfasst und im Sitzungsspeicher persistiert.
+- `System prompt (estimate)` = ad hoc berechnet, wenn kein Laufbericht existiert (oder bei Ausführung über ein CLI-Backend, das keinen Bericht erzeugt).
 
-In beiden Faellen meldet es Groessen und die groessten Beitraege; es gibt **nicht** den vollstaendigen System-Prompt oder Werkzeug-Schemata aus.
+In beiden Fällen meldet es Größen und Hauptverursacher; es gibt **nicht** den vollständigen System-Prompt oder Werkzeug-Schemas aus.

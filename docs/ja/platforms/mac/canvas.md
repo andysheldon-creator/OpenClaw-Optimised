@@ -1,9 +1,9 @@
 ---
-summary: "WKWebView + カスタム URL スキームにより埋め込まれた、エージェント制御の Canvas パネル"
+summary: "WKWebView とカスタム URL スキームを介して埋め込まれた、エージェント制御の Canvas パネル"
 read_when:
-  - macOS の Canvas パネルを実装する場合
-  - ビジュアルワークスペース向けのエージェント制御を追加する場合
-  - WKWebView の Canvas ロードをデバッグする場合
+  - macOS Canvas パネルを実装する場合
+  - 視覚的ワークスペース向けのエージェント制御を追加する場合
+  - WKWebView の Canvas 読み込みをデバッグする場合
 title: "Canvas"
 x-i18n:
   source_path: platforms/mac/canvas.md
@@ -11,20 +11,20 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:34:21Z
+  generated_at: 2026-02-08T09:22:37Z
 ---
 
 # Canvas（macOS アプリ）
 
-macOS アプリは、`WKWebView` を使用してエージェント制御の **Canvas パネル** を埋め込みます。これは、HTML/CSS/JS、A2UI、小規模なインタラクティブ UI サーフェス向けの軽量なビジュアルワークスペースです。
+macOS アプリは、`WKWebView` を使用して、エージェント制御の **Canvas パネル** を埋め込みます。これは、HTML/CSS/JS、A2UI、および小規模なインタラクティブ UI サーフェス向けの軽量な視覚的ワークスペースです。
 
-## Canvas の配置場所
+## Canvas の保存場所
 
 Canvas の状態は Application Support 配下に保存されます。
 
 - `~/Library/Application Support/OpenClaw/canvas/<session>/...`
 
-Canvas パネルは、**カスタム URL スキーム** を介してそれらのファイルを配信します。
+Canvas パネルは、**カスタム URL スキーム** を介してこれらのファイルを提供します。
 
 - `openclaw-canvas://<session>/<path>`
 
@@ -38,21 +38,21 @@ Canvas パネルは、**カスタム URL スキーム** を介してそれらの
 
 ## パネルの挙動
 
-- メニューバー（またはマウスカーソル）付近にアンカーされた、ボーダーレスでリサイズ可能なパネルです。
+- メニューバー（またはマウスカーソル）付近に固定される、枠線なしでサイズ変更可能なパネルです。
 - セッションごとにサイズと位置を記憶します。
 - ローカルの Canvas ファイルが変更されると自動的に再読み込みします。
 - 同時に表示される Canvas パネルは 1 つのみです（必要に応じてセッションが切り替わります）。
 
-Canvas は、設定 → **Allow Canvas** から無効化できます。無効化されている場合、Canvas ノードのコマンドは `CANVAS_DISABLED` を返します。
+Canvas は、設定 → **Allow Canvas** から無効化できます。無効化すると、canvas ノードのコマンドは `CANVAS_DISABLED` を返します。
 
-## エージェント API サーフェス
+## エージェント API の提供範囲
 
-Canvas は **Gateway WebSocket** を介して公開されているため、エージェントは次の操作を行えます。
+Canvas は **Gateway WebSocket** を介して公開されているため、エージェントは次を実行できます。
 
 - パネルの表示／非表示
 - パスまたは URL へのナビゲーション
 - JavaScript の評価
-- スナップショット画像のキャプチャ
+- スナップショット画像の取得
 
 CLI の例:
 
@@ -65,14 +65,14 @@ openclaw nodes canvas snapshot --node <id>
 
 注記:
 
-- `canvas.navigate` は **ローカル Canvas パス**、`http(s)` の URL、および `file://` の URL を受け付けます。
-- `"/"` を渡した場合、Canvas はローカルのスキャフォールド、または `index.html` を表示します。
+- `canvas.navigate` は **ローカル Canvas のパス**、`http(s)` の URL、および `file://` の URL を受け付けます。
+- `"/"` を渡すと、Canvas はローカルのスキャフォールド、または `index.html` を表示します。
 
 ## Canvas における A2UI
 
-A2UI は Gateway の Canvas ホストによって提供され、Canvas パネル内にレンダリングされます。Gateway が Canvas ホストをアドバタイズすると、macOS アプリは初回オープン時に自動的に A2UI ホストページへナビゲートします。
+A2UI は Gateway の canvas host によってホストされ、Canvas パネル内にレンダリングされます。Gateway が Canvas host をアドバタイズすると、macOS アプリは初回オープン時に A2UI host ページへ自動的にナビゲートします。
 
-既定の A2UI ホスト URL:
+デフォルトの A2UI host URL:
 
 ```
 http://<gateway-host>:18793/__openclaw__/a2ui/
@@ -80,7 +80,7 @@ http://<gateway-host>:18793/__openclaw__/a2ui/
 
 ### A2UI コマンド（v0.8）
 
-Canvas は現在、**A2UI v0.8** のサーバー→クライアント メッセージを受け付けます。
+Canvas は現在、**A2UI v0.8** の server→client メッセージを受け付けます。
 
 - `beginRendering`
 - `surfaceUpdate`
@@ -118,10 +118,10 @@ Canvas はディープリンクを介して新しいエージェント実行を�
 window.location.href = "openclaw://agent?message=Review%20this%20design";
 ```
 
-有効なキーが提供されない限り、アプリは確認を求めます。
+有効なキーが提供されていない場合、アプリは確認を求めます。
 
-## セキュリティに関する注意
+## セキュリティに関する注記
 
-- Canvas スキームはディレクトリトラバーサルをブロックします。ファイルはセッションのルート配下に存在する必要があります。
-- ローカルの Canvas コンテンツはカスタム スキームを使用します（loopback サーバーは不要です）。
-- 外部の `http(s)` の URL は、明示的にナビゲートされた場合にのみ許可されます。
+- Canvas スキームはディレクトリトラバーサルをブロックします。ファイルはセッションルート配下に存在する必要があります。
+- ローカルの Canvas コンテンツはカスタムスキームを使用します（ループバックサーバーは不要です）。
+- 外部の `http(s)` URL は、明示的にナビゲートされた場合にのみ許可されます。

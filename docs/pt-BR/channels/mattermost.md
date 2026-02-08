@@ -1,27 +1,27 @@
 ---
-summary: "Configuracao do bot do Mattermost e configuracao do OpenClaw"
+summary: "Configuração do bot do Mattermost e configuração do OpenClaw"
 read_when:
   - Configurando o Mattermost
   - Depurando o roteamento do Mattermost
 title: "Mattermost"
 x-i18n:
   source_path: channels/mattermost.md
-  source_hash: 57fabe5eb0efbcb8
+  source_hash: 1599abf7539c51f7
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:21Z
+  generated_at: 2026-02-08T09:30:01Z
 ---
 
 # Mattermost (plugin)
 
-Status: suportado via plugin (token de bot + eventos WebSocket). Canais, grupos e Mensagens diretas são suportados.
+Status: suportado via plugin (token de bot + eventos WebSocket). Canais, grupos e DMs são suportados.
 Mattermost é uma plataforma de mensagens de equipe auto-hospedável; veja o site oficial em
 [mattermost.com](https://mattermost.com) para detalhes do produto e downloads.
 
-## Plugin necessario
+## Plugin obrigatório
 
-O Mattermost é entregue como um plugin e não vem incluído na instalação principal.
+O Mattermost é distribuído como um plugin e não vem incluído na instalação principal.
 
 Instale via CLI (registro npm):
 
@@ -35,19 +35,19 @@ Checkout local (ao executar a partir de um repositório git):
 openclaw plugins install ./extensions/mattermost
 ```
 
-Se voce escolher Mattermost durante a configuracao/integracao inicial e um checkout git for detectado,
+Se você escolher Mattermost durante a configuração/integração inicial e um checkout git for detectado,
 o OpenClaw oferecerá automaticamente o caminho de instalação local.
 
-Detalhes: [Plugins](/plugin)
+Detalhes: [Plugins](/tools/plugin)
 
-## Inicio rapido
+## Início Rápido
 
 1. Instale o plugin do Mattermost.
 2. Crie uma conta de bot no Mattermost e copie o **token do bot**.
 3. Copie a **URL base** do Mattermost (por exemplo, `https://chat.example.com`).
-4. Configure o OpenClaw e inicie o Gateway.
+4. Configure o OpenClaw e inicie o gateway.
 
-Configuracao mínima:
+Configuração mínima:
 
 ```json5
 {
@@ -62,24 +62,24 @@ Configuracao mínima:
 }
 ```
 
-## Variaveis de ambiente (conta padrão)
+## Variáveis de ambiente (conta padrão)
 
-Defina estas no host do Gateway se voce preferir variaveis de ambiente:
+Defina estas no host do Gateway se preferir variáveis de ambiente:
 
 - `MATTERMOST_BOT_TOKEN=...`
 - `MATTERMOST_URL=https://chat.example.com`
 
-As variaveis de ambiente se aplicam apenas à conta **padrão** (`default`). Outras contas devem usar valores de configuracao.
+As variáveis de ambiente se aplicam apenas à conta **padrão** (`default`). Outras contas devem usar valores de configuração.
 
 ## Modos de chat
 
-O Mattermost responde automaticamente a Mensagens diretas. O comportamento em canais é controlado por `chatmode`:
+O Mattermost responde automaticamente a DMs. O comportamento em canais é controlado por `chatmode`:
 
-- `oncall` (padrão): responde apenas quando @mencionado nos canais.
+- `oncall` (padrão): responde apenas quando @mencionado em canais.
 - `onmessage`: responde a todas as mensagens do canal.
 - `onchar`: responde quando uma mensagem começa com um prefixo de gatilho.
 
-Exemplo de configuracao:
+Exemplo de configuração:
 
 ```json5
 {
@@ -92,36 +92,36 @@ Exemplo de configuracao:
 }
 ```
 
-Observações:
+Notas:
 
 - `onchar` ainda responde a @menções explícitas.
-- `channels.mattermost.requireMention` é respeitado para configuracoes legadas, mas `chatmode` é preferido.
+- `channels.mattermost.requireMention` é respeitado para configurações legadas, mas `chatmode` é preferido.
 
-## Controle de acesso (Mensagens diretas)
+## Controle de acesso (DMs)
 
 - Padrão: `channels.mattermost.dmPolicy = "pairing"` (remetentes desconhecidos recebem um código de pareamento).
 - Aprovar via:
   - `openclaw pairing list mattermost`
   - `openclaw pairing approve mattermost <CODE>`
-- Mensagens diretas públicas: `channels.mattermost.dmPolicy="open"` mais `channels.mattermost.allowFrom=["*"]`.
+- DMs públicas: `channels.mattermost.dmPolicy="open"` mais `channels.mattermost.allowFrom=["*"]`.
 
 ## Canais (grupos)
 
 - Padrão: `channels.mattermost.groupPolicy = "allowlist"` (controlado por menção).
-- Permitir remetentes via allowlist com `channels.mattermost.groupAllowFrom` (IDs de usuário ou `@username`).
+- Permitir remetentes por lista de permissões com `channels.mattermost.groupAllowFrom` (IDs de usuário ou `@username`).
 - Canais abertos: `channels.mattermost.groupPolicy="open"` (controlado por menção).
 
 ## Alvos para entrega de saída
 
-Use estes formatos de alvo com `openclaw message send` ou cron/webhooks:
+Use estes formatos de destino com `openclaw message send` ou cron/webhooks:
 
 - `channel:<id>` para um canal
-- `user:<id>` para uma Mensagem direta
-- `@username` para uma Mensagem direta (resolvida via API do Mattermost)
+- `user:<id>` para uma DM
+- `@username` para uma DM (resolvida via a API do Mattermost)
 
 IDs simples são tratados como canais.
 
-## Multiplas contas
+## Múltiplas contas
 
 O Mattermost suporta múltiplas contas em `channels.mattermost.accounts`:
 
@@ -138,8 +138,8 @@ O Mattermost suporta múltiplas contas em `channels.mattermost.accounts`:
 }
 ```
 
-## Solucao de problemas
+## Solução de problemas
 
-- Sem respostas em canais: garanta que o bot esteja no canal e mencione-o (oncall), use um prefixo de gatilho (onchar) ou defina `chatmode: "onmessage"`.
+- Sem respostas em canais: verifique se o bot está no canal e mencione-o (oncall), use um prefixo de gatilho (onchar) ou defina `chatmode: "onmessage"`.
 - Erros de autenticação: verifique o token do bot, a URL base e se a conta está habilitada.
-- Problemas com múltiplas contas: variaveis de ambiente se aplicam apenas à conta `default`.
+- Problemas com múltiplas contas: variáveis de ambiente se aplicam apenas à conta `default`.

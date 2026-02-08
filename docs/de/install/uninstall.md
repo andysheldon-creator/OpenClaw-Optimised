@@ -1,7 +1,7 @@
 ---
-summary: "OpenClaw vollständig deinstallieren (CLI, Dienst, Status, Workspace)"
+summary: "OpenClaw vollständig deinstallieren (CLI, Dienst, Zustand, Workspace)"
 read_when:
-  - Sie möchten OpenClaw von einem Rechner entfernen
+  - Sie möchten OpenClaw von einer Maschine entfernen
   - Der Gateway-Dienst läuft nach der Deinstallation noch
 title: "Deinstallation"
 x-i18n:
@@ -10,7 +10,7 @@ x-i18n:
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T07:04:44Z
+  generated_at: 2026-02-08T09:36:37Z
 ---
 
 # Deinstallation
@@ -28,7 +28,7 @@ Empfohlen: Verwenden Sie den integrierten Deinstaller:
 openclaw uninstall
 ```
 
-Nicht-interaktiv (Automatisierung / npx):
+Nicht interaktiv (Automatisierung / npx):
 
 ```bash
 openclaw uninstall --all --yes --non-interactive
@@ -49,15 +49,15 @@ openclaw gateway stop
 openclaw gateway uninstall
 ```
 
-3. Status + Konfiguration löschen:
+3. Zustand + Konfiguration löschen:
 
 ```bash
 rm -rf "${OPENCLAW_STATE_DIR:-$HOME/.openclaw}"
 ```
 
-Wenn Sie `OPENCLAW_CONFIG_PATH` auf einen benutzerdefinierten Speicherort außerhalb des Statusverzeichnisses gesetzt haben, löschen Sie diese Datei ebenfalls.
+Wenn Sie `OPENCLAW_CONFIG_PATH` auf einen benutzerdefinierten Speicherort außerhalb des Zustandsverzeichnisses gesetzt haben, löschen Sie diese Datei ebenfalls.
 
-4. Löschen Sie Ihren Workspace (optional, entfernt Agent-Dateien):
+4. Workspace löschen (optional, entfernt Agent-Dateien):
 
 ```bash
 rm -rf ~/.openclaw/workspace
@@ -71,7 +71,7 @@ pnpm remove -g openclaw
 bun remove -g openclaw
 ```
 
-6. Wenn Sie die macOS-App installiert haben:
+6. Falls Sie die macOS-App installiert haben:
 
 ```bash
 rm -rf /Applications/OpenClaw.app
@@ -79,16 +79,16 @@ rm -rf /Applications/OpenClaw.app
 
 Hinweise:
 
-- Wenn Sie Profile verwendet haben (`--profile` / `OPENCLAW_PROFILE`), wiederholen Sie Schritt 3 für jedes Statusverzeichnis (Standardwerte sind `~/.openclaw-<profile>`).
-- Im Remote-Modus befindet sich das Statusverzeichnis auf dem **Gateway-Host**; führen Sie die Schritte 1–4 daher auch dort aus.
+- Wenn Sie Profile (`--profile` / `OPENCLAW_PROFILE`) verwendet haben, wiederholen Sie Schritt 3 für jedes Zustandsverzeichnis (Standardwerte sind `~/.openclaw-<profile>`).
+- Im Remote-Modus befindet sich das Zustandsverzeichnis auf dem **Gateway-Host**; führen Sie daher die Schritte 1–4 auch dort aus.
 
 ## Manuelle Dienstentfernung (CLI nicht installiert)
 
-Verwenden Sie dies, wenn der Gateway-Dienst weiterläuft, `openclaw` jedoch fehlt.
+Verwenden Sie dies, wenn der Gateway-Dienst weiterläuft, aber `openclaw` fehlt.
 
 ### macOS (launchd)
 
-Standard-Label ist `bot.molt.gateway` (oder `bot.molt.<profile>`; das Legacy-Label `com.openclaw.*` kann noch existieren):
+Das Standard-Label ist `bot.molt.gateway` (oder `bot.molt.<profile>`; das Legacy-Label `com.openclaw.*` kann noch vorhanden sein):
 
 ```bash
 launchctl bootout gui/$UID/bot.molt.gateway
@@ -99,7 +99,7 @@ Wenn Sie ein Profil verwendet haben, ersetzen Sie Label und Plist-Namen durch `b
 
 ### Linux (systemd User-Unit)
 
-Standard-Unit-Name ist `openclaw-gateway.service` (oder `openclaw-gateway-<profile>.service`):
+Der Standard-Unit-Name ist `openclaw-gateway.service` (oder `openclaw-gateway-<profile>.service`):
 
 ```bash
 systemctl --user disable --now openclaw-gateway.service
@@ -109,8 +109,8 @@ systemctl --user daemon-reload
 
 ### Windows (Geplante Aufgabe)
 
-Standard-Taskname ist `OpenClaw Gateway` (oder `OpenClaw Gateway (<profile>)`).
-Das Task-Skript befindet sich unter Ihrem Statusverzeichnis.
+Der Standard-Taskname ist `OpenClaw Gateway` (oder `OpenClaw Gateway (<profile>)`).
+Das Task-Skript befindet sich unter Ihrem Zustandsverzeichnis.
 
 ```powershell
 schtasks /Delete /F /TN "OpenClaw Gateway"
@@ -119,17 +119,17 @@ Remove-Item -Force "$env:USERPROFILE\.openclaw\gateway.cmd"
 
 Wenn Sie ein Profil verwendet haben, löschen Sie den entsprechenden Tasknamen und `~\.openclaw-<profile>\gateway.cmd`.
 
-## Normale Installation vs. Quellcode-Checkout
+## Normale Installation vs. Source-Checkout
 
 ### Normale Installation (install.sh / npm / pnpm / bun)
 
 Wenn Sie `https://openclaw.ai/install.sh` oder `install.ps1` verwendet haben, wurde die CLI mit `npm install -g openclaw@latest` installiert.
-Entfernen Sie sie mit `npm rm -g openclaw` (oder `pnpm remove -g` / `bun remove -g`, falls Sie diese Methode verwendet haben).
+Entfernen Sie sie mit `npm rm -g openclaw` (oder `pnpm remove -g` / `bun remove -g`, wenn Sie auf diese Weise installiert haben).
 
-### Quellcode-Checkout (git clone)
+### Source-Checkout (git clone)
 
-Wenn Sie aus einem Repo-Checkout ausführen (`git clone` + `openclaw ...` / `bun run openclaw ...`):
+Wenn Sie aus einem Repo-Checkout heraus arbeiten (`git clone` + `openclaw ...` / `bun run openclaw ...`):
 
 1. Deinstallieren Sie den Gateway-Dienst **vor** dem Löschen des Repos (verwenden Sie den einfachen Weg oben oder die manuelle Dienstentfernung).
 2. Löschen Sie das Repo-Verzeichnis.
-3. Entfernen Sie Status + Workspace wie oben beschrieben.
+3. Entfernen Sie Zustand + Workspace wie oben gezeigt.

@@ -1,20 +1,20 @@
 ---
-summary: "Referencia de CLI para `openclaw sessions` (listar sessoes armazenadas + uso)"
+summary: "Referência da CLI para `openclaw sessions` (listar sessões armazenadas + uso)"
 read_when:
-  - Voce quer listar sessoes armazenadas e ver atividade recente
-title: "sessoes"
+  - Você quer listar sessões armazenadas e ver a atividade recente
+title: "sessões"
 x-i18n:
   source_path: cli/sessions.md
   source_hash: d8866ef166c0dea5
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:55:42Z
+  generated_at: 2026-02-08T09:30:22Z
 ---
 
 # `openclaw sessions`
 
-Listar sessoes de conversas armazenadas.
+Listar sessões de conversa armazenadas.
 
 ```bash
 openclaw sessions

@@ -1,26 +1,26 @@
 ---
-summary: "Ejemplos de configuracion precisos al esquema para configuraciones comunes de OpenClaw"
+summary: "Ejemplos de configuración fieles al esquema para configuraciones comunes de OpenClaw"
 read_when:
   - Aprendiendo a configurar OpenClaw
-  - Buscando ejemplos de configuracion
+  - Buscando ejemplos de configuración
   - Configurando OpenClaw por primera vez
-title: "Ejemplos de configuracion"
+title: "Ejemplos de configuración"
 x-i18n:
   source_path: gateway/configuration-examples.md
   source_hash: 2c9cee53d56a4232
   provider: openai
   model: gpt-5.2-chat-latest
   workflow: v1
-  generated_at: 2026-02-08T06:58:48Z
+  generated_at: 2026-02-08T09:33:25Z
 ---
 
-# Ejemplos de configuracion
+# Ejemplos de configuración
 
-Los ejemplos a continuacion estan alineados con el esquema de configuracion actual. Para la referencia exhaustiva y notas por campo, vea [Configuration](/gateway/configuration).
+Los ejemplos a continuación están alineados con el esquema de configuración actual. Para la referencia exhaustiva y las notas por campo, consulte [Configuración](/gateway/configuration).
 
-## Inicio rapido
+## Inicio rápido
 
-### Minimo absoluto
+### Mínimo absoluto
 
 ```json5
 {
@@ -29,7 +29,7 @@ Los ejemplos a continuacion estan alineados con el esquema de configuracion actu
 }
 ```
 
-Guarde en `~/.openclaw/openclaw.json` y podra enviar un Mensaje directo al bot desde ese numero.
+Guárdelo en `~/.openclaw/openclaw.json` y podrá enviar mensajes directos al bot desde ese número.
 
 ### Inicio recomendado
 
@@ -55,7 +55,7 @@ Guarde en `~/.openclaw/openclaw.json` y podra enviar un Mensaje directo al bot d
 
 ## Ejemplo ampliado (opciones principales)
 
-> JSON5 le permite usar comentarios y comas finales. El JSON regular tambien funciona.
+> JSON5 le permite usar comentarios y comas finales. El JSON regular también funciona.
 
 ```json5
 {
@@ -432,7 +432,7 @@ Guarde en `~/.openclaw/openclaw.json` y podra enviar un Mensaje directo al bot d
 
 ## Patrones comunes
 
-### Configuracion multiplataforma
+### Configuración multiplataforma
 
 ```json5
 {
@@ -453,9 +453,9 @@ Guarde en `~/.openclaw/openclaw.json` y podra enviar un Mensaje directo al bot d
 }
 ```
 
-### Modo de Mensaje directo seguro (bandeja compartida / Mensajes directos multiusuario)
+### Modo de DM seguro (bandeja compartida / DMs multiusuario)
 
-Si mas de una persona puede enviar un Mensaje directo a su bot (multiples entradas en `allowFrom`, aprobaciones de emparejamiento para varias personas, o `dmPolicy: "open"`), habilite el **modo de Mensaje directo seguro** para que los Mensajes directos de diferentes remitentes no compartan un mismo contexto de forma predeterminada:
+Si más de una persona puede enviar mensajes directos a su bot (múltiples entradas en `allowFrom`, aprobaciones de emparejamiento para varias personas, o `dmPolicy: "open"`), habilite el **modo de DM seguro** para que los mensajes directos de distintos remitentes no compartan un mismo contexto de forma predeterminada:
 
 ```json5
 {
@@ -479,7 +479,7 @@ Si mas de una persona puede enviar un Mensaje directo a su bot (multiples entrad
 }
 ```
 
-### OAuth con conmutacion por error a clave de API
+### OAuth con conmutación por error a clave de API
 
 ```json5
 {
@@ -509,7 +509,7 @@ Si mas de una persona puede enviar un Mensaje directo a su bot (multiples entrad
 }
 ```
 
-### Suscripcion de Anthropic + clave de API, respaldo de MiniMax
+### Suscripción de Anthropic + clave de API, respaldo de MiniMax
 
 ```json5
 {
@@ -608,6 +608,6 @@ Si mas de una persona puede enviar un Mensaje directo a su bot (multiples entrad
 ## Consejos
 
 - Si establece `dmPolicy: "open"`, la lista correspondiente de `allowFrom` debe incluir `"*"`.
-- Los ID de proveedor difieren (numeros de telefono, ID de usuario, ID de canal). Use la documentacion del proveedor para confirmar el formato.
-- Secciones opcionales para agregar mas adelante: `web`, `browser`, `ui`, `discovery`, `canvasHost`, `talk`, `signal`, `imessage`.
-- Vea [Providers](/channels/whatsapp) y [Troubleshooting](/gateway/troubleshooting) para notas de configuracion mas detalladas.
+- Los IDs de proveedor difieren (números de teléfono, IDs de usuario, IDs de canal). Use la documentación del proveedor para confirmar el formato.
+- Secciones opcionales para agregar más adelante: `web`, `browser`, `ui`, `discovery`, `canvasHost`, `talk`, `signal`, `imessage`.
+- Consulte [Proveedores](/channels/whatsapp) y [Solución de problemas](/gateway/troubleshooting) para obtener notas de configuración más detalladas.
