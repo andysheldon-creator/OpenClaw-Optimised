@@ -828,7 +828,13 @@ export async function runEmbeddedAttempt(
         }
 
         try {
-          await waitForCompactionRetry();
+          // Wait for compaction retry with 60s timeout to prevent session lockout (issue #5784)
+          const compactionResult = await waitForCompactionRetry(60_000);
+          if (compactionResult.timedOut) {
+            log.warn(
+              `embedded run compaction retry timed out: runId=${params.runId} - forcing completion to prevent lockout`,
+            );
+          }
         } catch (err) {
           if (isAbortError(err)) {
             if (!promptError) {

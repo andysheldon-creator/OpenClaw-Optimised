@@ -546,18 +546,54 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
     // which is generated AFTER the tool sends the actual answer.
     didSendViaMessagingTool: () => messagingToolSentTexts.length > 0,
     getLastToolError: () => (state.lastToolError ? { ...state.lastToolError } : undefined),
-    waitForCompactionRetry: () => {
+    /**
+     * Wait for compaction retry to complete, with an optional timeout.
+     * If timeout is reached, force-resolves to prevent session lockout.
+     * @param timeoutMs - Timeout in milliseconds (default: 60000ms = 60s)
+     * @returns Object with `timedOut: true` if timeout was reached
+     */
+    waitForCompactionRetry: (timeoutMs = 60_000): Promise<{ timedOut?: boolean }> => {
+      const createTimeoutRace = (promise: Promise<void>): Promise<{ timedOut?: boolean }> => {
+        if (timeoutMs <= 0) {
+          return promise.then(() => ({}));
+        }
+        let timeoutId: ReturnType<typeof setTimeout> | undefined;
+        const timeoutPromise = new Promise<{ timedOut: boolean }>((resolve) => {
+          timeoutId = setTimeout(() => {
+            log.warn(
+              `Compaction retry timeout (${timeoutMs}ms) reached - force-resolving to prevent session lockout`,
+            );
+            // Force-resolve state to prevent permanent lock
+            state.pendingCompactionRetry = 0;
+            state.compactionInFlight = false;
+            state.compactionRetryResolve?.();
+            state.compactionRetryResolve = undefined;
+            state.compactionRetryPromise = null;
+            resolve({ timedOut: true });
+          }, timeoutMs);
+        });
+        return Promise.race([
+          promise.then(() => {
+            if (timeoutId) {
+              clearTimeout(timeoutId);
+            }
+            return {};
+          }),
+          timeoutPromise,
+        ]);
+      };
+
       if (state.compactionInFlight || state.pendingCompactionRetry > 0) {
         ensureCompactionPromise();
-        return state.compactionRetryPromise ?? Promise.resolve();
+        return createTimeoutRace(state.compactionRetryPromise ?? Promise.resolve());
       }
-      return new Promise<void>((resolve) => {
+      return new Promise<{ timedOut?: boolean }>((resolve) => {
         queueMicrotask(() => {
           if (state.compactionInFlight || state.pendingCompactionRetry > 0) {
             ensureCompactionPromise();
-            void (state.compactionRetryPromise ?? Promise.resolve()).then(resolve);
+            void createTimeoutRace(state.compactionRetryPromise ?? Promise.resolve()).then(resolve);
           } else {
-            resolve();
+            resolve({});
           }
         });
       });
