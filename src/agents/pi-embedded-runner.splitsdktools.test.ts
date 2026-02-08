@@ -122,7 +122,6 @@ describe("splitSdkTools", () => {
     const { builtInTools, customTools } = splitSdkTools({
       tools,
       sandboxEnabled: true,
-      modelApi: "openai-responses",
     });
     expect(builtInTools).toEqual([]);
     expect(customTools.map((tool) => tool.name)).toEqual([
@@ -137,7 +136,6 @@ describe("splitSdkTools", () => {
     const { builtInTools, customTools } = splitSdkTools({
       tools,
       sandboxEnabled: false,
-      modelApi: "openai-responses",
     });
     expect(builtInTools).toEqual([]);
     expect(customTools.map((tool) => tool.name)).toEqual([
@@ -147,22 +145,5 @@ describe("splitSdkTools", () => {
       "write",
       "browser",
     ]);
-  });
-
-  it("can route tools to builtInTools for openai-completions when enabled", () => {
-    const { builtInTools, customTools } = splitSdkTools({
-      tools,
-      sandboxEnabled: false,
-      modelApi: "openai-completions",
-      openaiCompletionsTools: true,
-    });
-    expect(builtInTools.map((tool) => tool.name)).toEqual([
-      "read",
-      "exec",
-      "edit",
-      "write",
-      "browser",
-    ]);
-    expect(customTools).toEqual([]);
   });
 });

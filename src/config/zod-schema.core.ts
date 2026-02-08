@@ -18,7 +18,6 @@ export const ModelCompatSchema = z
     maxTokensField: z
       .union([z.literal("max_completion_tokens"), z.literal("max_tokens")])
       .optional(),
-    openaiCompletionsTools: z.boolean().optional(),
   })
   .strict()
   .optional();
