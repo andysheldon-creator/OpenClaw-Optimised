@@ -8,12 +8,14 @@ import {
   checkShellCompletionStatus,
   ensureCompletionCacheExists,
 } from "../commands/doctor-completion.js";
+import { doctorCommand } from "../commands/doctor.js";
 import {
   formatUpdateAvailableHint,
   formatUpdateOneLiner,
   resolveUpdateAvailability,
 } from "../commands/status.update.js";
 import { readConfigFileSnapshot, writeConfigFile } from "../config/config.js";
+import { resolveStateDir } from "../config/paths.js";
 import { resolveOpenClawPackageRoot } from "../infra/openclaw-root.js";
 import { trimLogTail } from "../infra/restart-sentinel.js";
 import { parseSemver } from "../infra/runtime-guard.js";
@@ -56,6 +58,7 @@ import { theme } from "../terminal/theme.js";
 import { replaceCliName, resolveCliName } from "./cli-name.js";
 import { formatCliCommand } from "./command-format.js";
 import { installCompletion } from "./completion-cli.js";
+import { runDaemonRestart } from "./daemon-cli.js";
 import { formatHelpExamples } from "./help-format.js";
 
 export type UpdateCommandOptions = {
@@ -86,7 +89,10 @@ const STEP_LABELS: Record<string, string> = {
   "preflight cleanup": "Cleaning preflight worktree",
   "deps install": "Installing dependencies",
   build: "Building",
-  "ui:build": "Building UI",
+  "ui:build": "Building UI assets",
+  "ui:build (post-doctor repair)": "Restoring missing UI assets",
+  "ui assets verify": "Validating UI assets",
+  "openclaw doctor entry": "Checking doctor entrypoint",
   "openclaw doctor": "Running doctor checks",
   "git rev-parse HEAD (after)": "Verifying update",
   "global update": "Updating via package manager",
@@ -121,7 +127,6 @@ const DEFAULT_PACKAGE_NAME = "openclaw";
 const CORE_PACKAGE_NAMES = new Set([DEFAULT_PACKAGE_NAME]);
 const CLI_NAME = resolveCliName();
 const OPENCLAW_REPO_URL = "https://github.com/openclaw/openclaw.git";
-const DEFAULT_GIT_DIR = path.join(os.homedir(), ".openclaw");
 
 function normalizeTag(value?: string | null): string | null {
   if (!value) {
@@ -308,7 +313,7 @@ function resolveGitInstallDir(): string {
 }
 
 function resolveDefaultGitDir(): string {
-  return DEFAULT_GIT_DIR;
+  return resolveStateDir(process.env, os.homedir);
 }
 
 function resolveNodeRunner(): string {
@@ -1064,14 +1069,12 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
       defaultRuntime.log(theme.heading("Restarting service..."));
     }
     try {
-      const { runDaemonRestart } = await import("./daemon-cli.js");
       const restarted = await runDaemonRestart();
       if (!opts.json && restarted) {
         defaultRuntime.log(theme.success("Daemon restarted successfully."));
         defaultRuntime.log("");
         process.env.OPENCLAW_UPDATE_IN_PROGRESS = "1";
         try {
-          const { doctorCommand } = await import("../commands/doctor.js");
           const interactiveDoctor = Boolean(process.stdin.isTTY) && !opts.json && opts.yes !== true;
           await doctorCommand(defaultRuntime, {
             nonInteractive: !interactiveDoctor,

@@ -2,6 +2,64 @@
 
 Docs: https://docs.openclaw.ai
 
+## 2026.2.6-4
+
+### Added
+
+- Gateway: add `agents.create`, `agents.update`, `agents.delete` RPC methods for web UI agent management. (#11045) Thanks @advaitpaliwal.
+
+### Fixes
+
+- Discord: support forum/media `thread create` starter messages, wire `message thread create --message`, and harden thread-create routing. (#10062) Thanks @jarvis89757.
+- Web UI: make chat refresh smoothly scroll to the latest messages and suppress new-messages badge flash during manual refresh.
+- Cron: route text-only isolated agent announces through the shared subagent announce flow; add exponential backoff for repeated errors; preserve future `nextRunAtMs` on restart; include current-boundary schedule matches; prevent stale threadId reuse across targets; and add per-job execution timeout. (#11641) Thanks @tyler6204.
+- Subagents: stabilize announce timing, preserve compaction metrics across retries, clamp overflow-prone long timeouts, and cap impossible context usage token totals. (#11551) Thanks @tyler6204.
+- Agents: recover from context overflow caused by oversized tool results (pre-emptive capping + fallback truncation). (#11579) Thanks @tyler6204.
+- Telegram: render markdown spoilers with `<tg-spoiler>` HTML tags. (#11543) Thanks @ezhikkk.
+- Gateway/CLI: when `gateway.bind=lan`, use a LAN IP for probe URLs and Control UI links. (#11448) Thanks @AnonO6.
+- Memory: set Voyage embeddings `input_type` for improved retrieval. (#10818) Thanks @mcinteerj.
+- Memory/QMD: run boot refresh in background by default, add configurable QMD maintenance timeouts, and retry QMD after fallback failures. (#9690, #9705)
+- Media understanding: recognize `.caf` audio attachments for transcription. (#10982) Thanks @succ985.
+- State dir: honor `OPENCLAW_STATE_DIR` for default device identity and canvas storage paths. (#4824) Thanks @kossoy.
+- Doctor/State dir: suppress repeated legacy migration warnings only for valid symlink mirrors, while keeping warnings for empty or invalid legacy trees. (#11709) Thanks @gumadeiras.
+- Tests: harden flaky hotspots by removing timer sleeps, consolidating onboarding provider-auth coverage, and improving memory test realism. (#11598) Thanks @gumadeiras.
+
+## 2026.2.6
+
+### Changes
+
+- Cron: default `wakeMode` is now `"now"` for new jobs (was `"next-heartbeat"`). (#10776) Thanks @tyler6204.
+- Cron: `cron run` defaults to force execution; use `--due` to restrict to due-only. (#10776) Thanks @tyler6204.
+- Models: support Anthropic Opus 4.6 and OpenAI Codex gpt-5.3-codex (forward-compat fallbacks). (#9853, #10720, #9995) Thanks @TinyTb, @calvin-hpnet, @tyler6204.
+- Providers: add xAI (Grok) support. (#9885) Thanks @grp06.
+- Providers: add Baidu Qianfan support. (#8868) Thanks @ide-rea.
+- Web UI: add token usage dashboard. (#10072) Thanks @Takhoffman.
+- Memory: native Voyage AI support. (#7078) Thanks @mcinteerj.
+- Sessions: cap sessions_history payloads to reduce context overflow. (#10000) Thanks @gut-puncture.
+- CLI: sort commands alphabetically in help output. (#8068) Thanks @deepsoumya617.
+- CI: optimize pipeline throughput (macOS consolidation, Windows perf, workflow concurrency). (#10784) Thanks @mcaxtr.
+- Agents: bump pi-mono to 0.52.7; add embedded forward-compat fallback for Opus 4.6 model ids.
+
+### Added
+
+- Cron: run history deep-links to session chat from the dashboard. (#10776) Thanks @tyler6204.
+- Cron: per-run session keys in run log entries and default labels for cron sessions. (#10776) Thanks @tyler6204.
+- Cron: legacy payload field compatibility (`deliver`, `channel`, `to`, `bestEffortDeliver`) in schema. (#10776) Thanks @tyler6204.
+
+### Fixes
+
+- Cron: scheduler reliability (timer drift, restart catch-up, lock contention, stale running markers). (#10776) Thanks @tyler6204.
+- Cron: store migration hardening (legacy field migration, parse error handling, explicit delivery mode persistence). (#10776) Thanks @tyler6204.
+- Telegram: auto-inject DM topic threadId in message tool + subagent announce. (#7235) Thanks @Lukavyi.
+- Security: require auth for Gateway canvas host and A2UI assets. (#9518) Thanks @coygeek.
+- Cron: fix scheduling and reminder delivery regressions; harden next-run recompute + timer re-arming + legacy schedule fields. (#9733, #9823, #9948, #9932) Thanks @tyler6204, @pycckuu, @j2h4u, @fujiwara-tofu-shop.
+- Update: harden Control UI asset handling in update flow. (#10146) Thanks @gumadeiras.
+- Security: add skill/plugin code safety scanner; redact credentials from config.get gateway responses. (#9806, #9858) Thanks @abdelsfane.
+- Exec approvals: coerce bare string allowlist entries to objects. (#9903) Thanks @mcaxtr.
+- Slack: add mention stripPatterns for /new and /reset. (#9971) Thanks @ironbyte-rgb.
+- Chrome extension: fix bundled path resolution. (#8914) Thanks @kelvinCB.
+- Compaction/errors: allow multiple compaction retries on context overflow; show clear billing errors. (#8928, #8391) Thanks @Glucksberg.
+
 ## 2026.2.3
 
 ### Changes
@@ -32,7 +90,6 @@ Docs: https://docs.openclaw.ai
 - Web UI: apply button styling to the new-messages indicator.
 - Onboarding: infer auth choice from non-interactive API key flags. (#8484) Thanks @f-trycua.
 - Security: keep untrusted channel metadata out of system prompts (Slack/Discord). Thanks @KonstantinMirin.
-- Discord: treat allowlisted senders as owner for system-prompt identity hints while keeping channel topics untrusted.
 - Security: enforce sandboxed media paths for message tool attachments. (#9182) Thanks @victormier.
 - Security: require explicit credentials for gateway URL overrides to prevent credential leakage. (#8113) Thanks @victormier.
 - Security: gate `whatsapp_login` tool to owner senders and default-deny non-owner contexts. (#8768) Thanks @victormier.

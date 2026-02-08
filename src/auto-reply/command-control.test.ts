@@ -9,26 +9,21 @@ import { listChatCommands } from "./commands-registry.js";
 import { parseActivationCommand } from "./group-activation.js";
 import { parseSendPolicyCommand } from "./send-policy.js";
 
+const createRegistry = () =>
+  createTestRegistry([
+    {
+      pluginId: "discord",
+      plugin: createOutboundTestPlugin({ id: "discord", outbound: { deliveryMode: "direct" } }),
+      source: "test",
+    },
+  ]);
+
 beforeEach(() => {
-  setActivePluginRegistry(
-    createTestRegistry([
-      {
-        pluginId: "discord",
-        source: "test",
-        plugin: createOutboundTestPlugin({
-          id: "discord",
-          outbound: {
-            deliveryMode: "direct",
-            sendText: async () => ({ ok: true, id: "1" }),
-          },
-        }),
-      },
-    ]),
-  );
+  setActivePluginRegistry(createRegistry());
 });
 
 afterEach(() => {
-  setActivePluginRegistry(createTestRegistry([]));
+  setActivePluginRegistry(createRegistry());
 });
 
 describe("resolveCommandAuthorization", () => {
@@ -183,6 +178,18 @@ describe("resolveCommandAuthorization", () => {
   });
 
   it("uses owner allowlist override from context when configured", () => {
+    setActivePluginRegistry(
+      createTestRegistry([
+        {
+          pluginId: "discord",
+          plugin: createOutboundTestPlugin({
+            id: "discord",
+            outbound: { deliveryMode: "direct" },
+          }),
+          source: "test",
+        },
+      ]),
+    );
     const cfg = {
       channels: { discord: {} },
     } as OpenClawConfig;
