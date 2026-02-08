@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
+import type { OpenClawConfig } from "../../config/config.js";
 import { buildEmbeddedExtensionPaths } from "./extensions.js";
 
 describe("context pruning extension (always mode)", () => {
   it("enables context-pruning extension for non-anthropic providers when mode=always", () => {
-    const cfg: any = {
+    const cfg = {
       agents: {
         defaults: {
           contextPruning: {
@@ -17,7 +18,7 @@ describe("context pruning extension (always mode)", () => {
           },
         },
       },
-    };
+    } as unknown as OpenClawConfig;
 
     const paths = buildEmbeddedExtensionPaths({
       cfg,
