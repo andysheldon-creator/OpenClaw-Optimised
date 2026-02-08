@@ -190,6 +190,8 @@ function broadcastChatError(params: {
   params.context.nodeSendToSession(params.sessionKey, "chat", payload);
 }
 
+type BroadcastMessage = Record<string, unknown> & { command?: boolean };
+
 function extractMessageText(message: unknown): string | null {
   if (!message || typeof message !== "object") {
     return null;
@@ -602,7 +604,7 @@ export const chatHandlers: GatewayRequestHandlers = {
               .filter(Boolean)
               .join("\n\n")
               .trim();
-            let message: Record<string, unknown> | undefined;
+            let message: BroadcastMessage | undefined;
             if (combinedReply) {
               const { storePath: latestStorePath, entry: latestEntry } = loadSessionEntry(
                 p.sessionKey,
@@ -640,7 +642,7 @@ export const chatHandlers: GatewayRequestHandlers = {
               };
             }
             if (message) {
-              (message as any).command = true;
+              message.command = true;
             }
             broadcastChatFinal({
               context,
