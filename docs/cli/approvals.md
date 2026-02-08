@@ -24,6 +24,13 @@ openclaw approvals get --node <id|name|ip>
 openclaw approvals get --gateway
 ```
 
+## List pending approval requests
+
+```bash
+openclaw approvals pending
+openclaw approvals pending --json
+```
+
 ## Replace approvals from a file
 
 ```bash
@@ -48,3 +55,4 @@ openclaw approvals allowlist remove "~/Projects/**/bin/rg"
 - `--agent` defaults to `"*"`, which applies to all agents.
 - The node host must advertise `system.execApprovals.get/set` (macOS app or headless node host).
 - Approvals files are stored per host at `~/.openclaw/exec-approvals.json`.
+- `pending` queries the gateway runtime (requires a running gateway and `operator.approvals` scope).

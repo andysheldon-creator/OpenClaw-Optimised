@@ -87,6 +87,35 @@ export const ExecApprovalsNodeSetParamsSchema = Type.Object(
   { additionalProperties: false },
 );
 
+export const ExecApprovalPendingParamsSchema = Type.Object({}, { additionalProperties: false });
+
+export const ExecApprovalPendingItemSchema = Type.Object(
+  {
+    id: NonEmptyString,
+    command: NonEmptyString,
+    createdAtMs: Type.Integer({ minimum: 0 }),
+    expiresAtMs: Type.Integer({ minimum: 0 }),
+    waitingMs: Type.Integer({ minimum: 0 }),
+    expiresInMs: Type.Integer({ minimum: 0 }),
+    agentId: Type.Optional(Type.String()),
+    cwd: Type.Optional(Type.String()),
+    host: Type.Optional(Type.String()),
+    security: Type.Optional(Type.String()),
+    ask: Type.Optional(Type.String()),
+    resolvedPath: Type.Optional(Type.String()),
+    sessionKey: Type.Optional(Type.String()),
+  },
+  { additionalProperties: false },
+);
+
+export const ExecApprovalPendingResultSchema = Type.Object(
+  {
+    nowMs: Type.Integer({ minimum: 0 }),
+    pending: Type.Array(ExecApprovalPendingItemSchema),
+  },
+  { additionalProperties: false },
+);
+
 export const ExecApprovalRequestParamsSchema = Type.Object(
   {
     id: Type.Optional(NonEmptyString),

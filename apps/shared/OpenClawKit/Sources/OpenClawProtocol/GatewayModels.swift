@@ -2338,6 +2338,87 @@ public struct ExecApprovalsSnapshot: Codable, Sendable {
     }
 }
 
+public struct ExecApprovalPendingParams: Codable, Sendable {
+}
+
+public struct ExecApprovalPendingItem: Codable, Sendable {
+    public let id: String
+    public let command: String
+    public let createdatms: Int
+    public let expiresatms: Int
+    public let waitingms: Int
+    public let expiresinms: Int
+    public let agentid: String?
+    public let cwd: String?
+    public let host: String?
+    public let security: String?
+    public let ask: String?
+    public let resolvedpath: String?
+    public let sessionkey: String?
+
+    public init(
+        id: String,
+        command: String,
+        createdatms: Int,
+        expiresatms: Int,
+        waitingms: Int,
+        expiresinms: Int,
+        agentid: String?,
+        cwd: String?,
+        host: String?,
+        security: String?,
+        ask: String?,
+        resolvedpath: String?,
+        sessionkey: String?
+    ) {
+        self.id = id
+        self.command = command
+        self.createdatms = createdatms
+        self.expiresatms = expiresatms
+        self.waitingms = waitingms
+        self.expiresinms = expiresinms
+        self.agentid = agentid
+        self.cwd = cwd
+        self.host = host
+        self.security = security
+        self.ask = ask
+        self.resolvedpath = resolvedpath
+        self.sessionkey = sessionkey
+    }
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case command
+        case createdatms = "createdAtMs"
+        case expiresatms = "expiresAtMs"
+        case waitingms = "waitingMs"
+        case expiresinms = "expiresInMs"
+        case agentid = "agentId"
+        case cwd
+        case host
+        case security
+        case ask
+        case resolvedpath = "resolvedPath"
+        case sessionkey = "sessionKey"
+    }
+}
+
+public struct ExecApprovalPendingResult: Codable, Sendable {
+    public let nowms: Int
+    public let pending: [ExecApprovalPendingItem]
+
+    public init(
+        nowms: Int,
+        pending: [ExecApprovalPendingItem]
+    ) {
+        self.nowms = nowms
+        self.pending = pending
+    }
+    private enum CodingKeys: String, CodingKey {
+        case nowms = "nowMs"
+        case pending
+    }
+}
+
 public struct ExecApprovalRequestParams: Codable, Sendable {
     public let id: String?
     public let command: String

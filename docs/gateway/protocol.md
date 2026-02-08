@@ -174,6 +174,7 @@ The Gateway treats these as **claims** and enforces server-side allowlists.
 
 - When an exec request needs approval, the gateway broadcasts `exec.approval.requested`.
 - Operator clients resolve by calling `exec.approval.resolve` (requires `operator.approvals` scope).
+- Operator clients can list active requests with `exec.approval.pending` (requires `operator.approvals` scope).
 
 ## Versioning
 

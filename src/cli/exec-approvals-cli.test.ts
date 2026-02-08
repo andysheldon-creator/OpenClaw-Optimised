@@ -2,6 +2,22 @@ import { Command } from "commander";
 import { describe, expect, it, vi } from "vitest";
 
 const callGatewayFromCli = vi.fn(async (method: string, _opts: unknown, params?: unknown) => {
+  if (method === "exec.approval.pending") {
+    return {
+      nowMs: 1_700_000_000_000,
+      pending: [
+        {
+          id: "approval-1",
+          command: "cat << 'EOF' && sleep 1",
+          createdAtMs: 1_699_999_999_000,
+          expiresAtMs: 1_700_000_060_000,
+          waitingMs: 1_000,
+          expiresInMs: 60_000,
+          agentId: "main",
+        },
+      ],
+    };
+  }
   if (method.endsWith(".get")) {
     return {
       path: "/tmp/exec-approvals.json",
@@ -138,5 +154,42 @@ describe("exec approvals CLI", () => {
         }),
       }),
     );
+  });
+
+  it("lists pending approvals", async () => {
+    runtimeLogs.length = 0;
+    runtimeErrors.length = 0;
+    callGatewayFromCli.mockClear();
+
+    const { registerExecApprovalsCli } = await import("./exec-approvals-cli.js");
+    const program = new Command();
+    program.exitOverride();
+    registerExecApprovalsCli(program);
+
+    await program.parseAsync(["approvals", "pending"], { from: "user" });
+
+    expect(callGatewayFromCli).toHaveBeenCalledWith("exec.approval.pending", expect.anything(), {});
+    expect(runtimeErrors).toHaveLength(0);
+    expect(runtimeLogs.join("\n")).toContain("approval-1");
+    expect(runtimeLogs.join("\n")).toContain("main");
+  });
+
+  it("outputs pending approvals as json", async () => {
+    runtimeLogs.length = 0;
+    runtimeErrors.length = 0;
+    callGatewayFromCli.mockClear();
+
+    const { registerExecApprovalsCli } = await import("./exec-approvals-cli.js");
+    const program = new Command();
+    program.exitOverride();
+    registerExecApprovalsCli(program);
+
+    await program.parseAsync(["approvals", "pending", "--json"], { from: "user" });
+
+    expect(callGatewayFromCli).toHaveBeenCalledWith("exec.approval.pending", expect.anything(), {});
+    expect(runtimeErrors).toHaveLength(0);
+    const parsed = JSON.parse(runtimeLogs.at(-1) ?? "{}") as { pending?: unknown[] };
+    expect(Array.isArray(parsed.pending)).toBe(true);
+    expect(parsed.pending?.[0]).toEqual(expect.objectContaining({ id: "approval-1" }));
   });
 });

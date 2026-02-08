@@ -31,6 +31,21 @@ type ExecApprovalsCliOpts = NodesRpcOpts & {
   agent?: string;
 };
 
+type ExecApprovalPendingItem = {
+  id: string;
+  command: string;
+  createdAtMs: number;
+  expiresAtMs: number;
+  waitingMs: number;
+  expiresInMs: number;
+  agentId?: string;
+};
+
+type ExecApprovalPendingResult = {
+  nowMs: number;
+  pending: ExecApprovalPendingItem[];
+};
+
 function formatAge(msAgo: number) {
   const s = Math.max(0, Math.floor(msAgo / 1000));
   if (s < 60) {
@@ -193,6 +208,50 @@ function renderApprovalsSnapshot(snapshot: ExecApprovalsSnapshot, targetLabel: s
   );
 }
 
+function summarizeCommand(command: string, maxChars = 96): string {
+  const singleLine = command.replace(/\s+/g, " ").trim();
+  if (singleLine.length <= maxChars) {
+    return singleLine;
+  }
+  return `${singleLine.slice(0, Math.max(0, maxChars - 1))}…`;
+}
+
+function renderPendingApprovals(result: ExecApprovalPendingResult) {
+  const rich = isRich();
+  const heading = (text: string) => (rich ? theme.heading(text) : text);
+  const muted = (text: string) => (rich ? theme.muted(text) : text);
+  const tableWidth = Math.max(60, (process.stdout.columns ?? 120) - 1);
+  const pending = Array.isArray(result.pending) ? result.pending : [];
+
+  if (pending.length === 0) {
+    defaultRuntime.log(muted("No pending exec approvals."));
+    return;
+  }
+
+  const rows = pending.map((entry) => ({
+    ID: entry.id,
+    Agent: entry.agentId?.trim() || "*",
+    Command: summarizeCommand(entry.command),
+    Waiting: formatAge(entry.waitingMs),
+    Expires: formatAge(entry.expiresInMs),
+  }));
+
+  defaultRuntime.log(heading("Pending exec approvals"));
+  defaultRuntime.log(
+    renderTable({
+      width: tableWidth,
+      columns: [
+        { key: "ID", header: "ID", minWidth: 12 },
+        { key: "Agent", header: "Agent", minWidth: 8 },
+        { key: "Command", header: "Command", minWidth: 24, flex: true },
+        { key: "Waiting", header: "Waiting", minWidth: 8 },
+        { key: "Expires", header: "Expires", minWidth: 8 },
+      ],
+      rows,
+    }).trimEnd(),
+  );
+}
+
 async function saveSnapshot(
   opts: ExecApprovalsCliOpts,
   nodeId: string | null,
@@ -273,6 +332,33 @@ export function registerExecApprovalsCli(program: Command) {
       }
     });
   nodesCallOpts(getCmd);
+
+  const pendingCmd = approvals
+    .command("pending")
+    .description("List pending exec approval requests")
+    .action(async (opts: NodesRpcOpts) => {
+      try {
+        const result = (await callGatewayFromCli("exec.approval.pending", opts, {})) as
+          | ExecApprovalPendingResult
+          | undefined;
+        const payload: ExecApprovalPendingResult = {
+          nowMs:
+            typeof result?.nowMs === "number" && Number.isFinite(result.nowMs)
+              ? result.nowMs
+              : Date.now(),
+          pending: Array.isArray(result?.pending) ? result.pending : [],
+        };
+        if (opts.json) {
+          defaultRuntime.log(JSON.stringify(payload));
+          return;
+        }
+        renderPendingApprovals(payload);
+      } catch (err) {
+        defaultRuntime.error(formatCliError(err));
+        defaultRuntime.exit(1);
+      }
+    });
+  nodesCallOpts(pendingCmd);
 
   const setCmd = approvals
     .command("set")

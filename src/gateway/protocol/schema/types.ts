@@ -69,6 +69,8 @@ import type {
   DeviceTokenRotateParamsSchema,
 } from "./devices.js";
 import type {
+  ExecApprovalPendingParamsSchema,
+  ExecApprovalPendingResultSchema,
   ExecApprovalsGetParamsSchema,
   ExecApprovalsNodeGetParamsSchema,
   ExecApprovalsNodeSetParamsSchema,
@@ -225,6 +227,8 @@ export type ExecApprovalsSetParams = Static<typeof ExecApprovalsSetParamsSchema>
 export type ExecApprovalsNodeGetParams = Static<typeof ExecApprovalsNodeGetParamsSchema>;
 export type ExecApprovalsNodeSetParams = Static<typeof ExecApprovalsNodeSetParamsSchema>;
 export type ExecApprovalsSnapshot = Static<typeof ExecApprovalsSnapshotSchema>;
+export type ExecApprovalPendingParams = Static<typeof ExecApprovalPendingParamsSchema>;
+export type ExecApprovalPendingResult = Static<typeof ExecApprovalPendingResultSchema>;
 export type ExecApprovalRequestParams = Static<typeof ExecApprovalRequestParamsSchema>;
 export type ExecApprovalResolveParams = Static<typeof ExecApprovalResolveParamsSchema>;
 export type DevicePairListParams = Static<typeof DevicePairListParamsSchema>;
