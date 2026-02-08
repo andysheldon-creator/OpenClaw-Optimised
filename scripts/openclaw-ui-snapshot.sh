@@ -218,6 +218,8 @@ if [[ $safe_share -eq 1 ]]; then
 else
   try_out "Menubar list (json)" menubar.json peekaboo menubar list --json
   try_out "Window list (json)" windows.json peekaboo list windows --json
+  try_out "App list (json)" apps.json peekaboo list apps --json
+  try_out "Screens list (json)" screens.json peekaboo list screens --json
 fi
 
 # OpenClaw runtime status (optional, but useful alongside UI artifacts).
@@ -260,6 +262,8 @@ for f in \
   peekaboo-permissions.txt \
   menubar.json \
   windows.json \
+  apps.json \
+  screens.json \
   openclaw-status.txt \
   openclaw-gateway-status.txt \
   openclaw-channels-status.txt \
