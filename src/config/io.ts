@@ -58,6 +58,7 @@ const SHELL_ENV_EXPECTED_KEYS = [
 
 const CONFIG_BACKUP_COUNT = 5;
 const loggedInvalidConfigs = new Set<string>();
+let lastLoggedWarningKey: string | null = null;
 
 export type ParseConfigJson5Result = { ok: true; parsed: unknown } | { ok: false; error: string };
 
@@ -223,6 +224,7 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
             timeoutMs: resolveShellEnvFallbackTimeoutMs(deps.env),
           });
         }
+        lastLoggedWarningKey = null;
         return {};
       }
       const raw = deps.fs.readFileSync(configPath, "utf-8");
@@ -245,6 +247,7 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
       const resolvedConfig = substituted;
       warnOnConfigMiskeys(resolvedConfig, deps.logger);
       if (typeof resolvedConfig !== "object" || resolvedConfig === null) {
+        lastLoggedWarningKey = null;
         return {};
       }
       const preValidationDuplicates = findDuplicateAgentDirs(resolvedConfig as OpenClawConfig, {
@@ -272,7 +275,13 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
         const details = validated.warnings
           .map((iss) => `- ${iss.path || "<root>"}: ${iss.message}`)
           .join("\n");
-        deps.logger.warn(`Config warnings:\\n${details}`);
+        const warningKey = `${configPath}:${details}`;
+        if (warningKey !== lastLoggedWarningKey) {
+          lastLoggedWarningKey = warningKey;
+          deps.logger.warn(`Config warnings:\\n${details}`);
+        }
+      } else {
+        lastLoggedWarningKey = null;
       }
       warnIfConfigFromFuture(validated.config, deps.logger);
       const cfg = applyModelDefaults(
@@ -309,6 +318,7 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
 
       return applyConfigOverrides(cfg);
     } catch (err) {
+      lastLoggedWarningKey = null;
       if (err instanceof DuplicateAgentDirError) {
         deps.logger.error(err.message);
         throw err;
