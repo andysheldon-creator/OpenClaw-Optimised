@@ -247,6 +247,23 @@ function resolvePerplexityModel(perplexity?: PerplexityConfig): string {
   return fromConfig || DEFAULT_PERPLEXITY_MODEL;
 }
 
+export function normalizePerplexityModelForBaseUrl(params: {
+  model: string;
+  baseUrl: string;
+}): string {
+  const model = params.model.trim();
+  const baseUrl = params.baseUrl.trim();
+
+  // Perplexity direct API expects model IDs like "sonar-pro" (no namespace).
+  // Our historical default is the OpenRouter-style "perplexity/sonar-pro".
+  if (baseUrl === PERPLEXITY_DIRECT_BASE_URL && model.includes("/")) {
+    const parts = model.split("/");
+    return parts[parts.length - 1] ?? model;
+  }
+
+  return model;
+}
+
 function resolveSearchCount(value: unknown, fallback: number): number {
   const parsed = typeof value === "number" && Number.isFinite(value) ? value : fallback;
   const clamped = Math.max(1, Math.min(MAX_SEARCH_COUNT, Math.floor(parsed)));
@@ -377,18 +394,22 @@ async function runWebSearch(params: {
   const start = Date.now();
 
   if (params.provider === "perplexity") {
+    const baseUrl = params.perplexityBaseUrl ?? DEFAULT_PERPLEXITY_BASE_URL;
+    const rawModel = params.perplexityModel ?? DEFAULT_PERPLEXITY_MODEL;
+    const model = normalizePerplexityModelForBaseUrl({ model: rawModel, baseUrl });
+
     const { content, citations } = await runPerplexitySearch({
       query: params.query,
       apiKey: params.apiKey,
-      baseUrl: params.perplexityBaseUrl ?? DEFAULT_PERPLEXITY_BASE_URL,
-      model: params.perplexityModel ?? DEFAULT_PERPLEXITY_MODEL,
+      baseUrl,
+      model,
       timeoutSeconds: params.timeoutSeconds,
     });
 
     const payload = {
       query: params.query,
       provider: params.provider,
-      model: params.perplexityModel ?? DEFAULT_PERPLEXITY_MODEL,
+      model,
       tookMs: Date.now() - start,
       content: wrapWebContent(content),
       citations,
