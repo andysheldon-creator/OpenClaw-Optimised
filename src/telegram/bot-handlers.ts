@@ -30,6 +30,7 @@ import {
   buildTelegramParentPeer,
   resolveTelegramForumThreadId,
 } from "./bot/helpers.js";
+import { invalidateGroupMembership, verifyGroupMembership } from "./group-membership-cache.js";
 import { migrateTelegramGroupConfig } from "./group-migration.js";
 import { resolveTelegramInlineButtonsScope } from "./inline-buttons.js";
 import {
@@ -396,6 +397,34 @@ export const registerTelegramHandlers = ({
             return;
           }
         }
+        if (groupPolicy === "members") {
+          if (!senderId) {
+            logVerbose(`Blocked telegram group message (no sender ID, groupPolicy: members)`);
+            return;
+          }
+          if (
+            !isSenderAllowed({
+              allow: effectiveGroupAllow,
+              senderId,
+              senderUsername,
+            })
+          ) {
+            logVerbose(`Blocked telegram group message from ${senderId} (groupPolicy: members)`);
+            return;
+          }
+          const memberCheck = await verifyGroupMembership({
+            chatId,
+            api: ctx.api,
+            botId: ctx.me.id,
+            allowFrom: effectiveGroupAllow,
+          });
+          if (!memberCheck.trusted) {
+            logVerbose(
+              `Blocked telegram group ${chatId} (groupPolicy: members, ${memberCheck.reason})`,
+            );
+            return;
+          }
+        }
         const groupAllowlist = resolveGroupPolicy(chatId);
         if (groupAllowlist.allowlistEnabled && !groupAllowlist.allowed) {
           logger.info(
@@ -665,6 +694,14 @@ export const registerTelegramHandlers = ({
     }
   });
 
+  // Invalidate group membership cache on member changes
+  bot.on("message:new_chat_members", (ctx) => {
+    invalidateGroupMembership(ctx.message.chat.id);
+  });
+  bot.on("message:left_chat_member", (ctx) => {
+    invalidateGroupMembership(ctx.message.chat.id);
+  });
+
   bot.on("message", async (ctx) => {
     try {
       const msg = ctx.message;
@@ -758,6 +795,36 @@ export const registerTelegramHandlers = ({
             })
           ) {
             logVerbose(`Blocked telegram group message from ${senderId} (groupPolicy: allowlist)`);
+            return;
+          }
+        }
+        if (groupPolicy === "members") {
+          const senderId = msg.from?.id;
+          if (senderId == null) {
+            logVerbose(`Blocked telegram group message (no sender ID, groupPolicy: members)`);
+            return;
+          }
+          const senderUsername = msg.from?.username ?? "";
+          if (
+            !isSenderAllowed({
+              allow: effectiveGroupAllow,
+              senderId: String(senderId),
+              senderUsername,
+            })
+          ) {
+            logVerbose(`Blocked telegram group message from ${senderId} (groupPolicy: members)`);
+            return;
+          }
+          const memberCheck = await verifyGroupMembership({
+            chatId,
+            api: ctx.api,
+            botId: ctx.me.id,
+            allowFrom: effectiveGroupAllow,
+          });
+          if (!memberCheck.trusted) {
+            logVerbose(
+              `Blocked telegram group ${chatId} (groupPolicy: members, ${memberCheck.reason})`,
+            );
             return;
           }
         }

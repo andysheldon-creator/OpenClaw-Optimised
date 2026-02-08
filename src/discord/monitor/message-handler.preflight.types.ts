@@ -29,7 +29,7 @@ export type DiscordMessagePreflightContext = {
   textLimit: number;
   replyToMode: ReplyToMode;
   ackReactionScope: "all" | "direct" | "group-all" | "group-mentions";
-  groupPolicy: "open" | "disabled" | "allowlist";
+  groupPolicy: "open" | "disabled" | "allowlist" | "members";
 
   data: DiscordMessageEvent;
   client: Client;

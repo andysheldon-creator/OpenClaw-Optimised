@@ -54,6 +54,7 @@ import {
   resolveTelegramForumThreadId,
   resolveTelegramThreadSpec,
 } from "./bot/helpers.js";
+import { verifyGroupMembership } from "./group-membership-cache.js";
 import { buildInlineKeyboard } from "./send.js";
 
 const EMPTY_RESPONSE_FALLBACK = "No response generated. Please try again.";
@@ -210,7 +211,7 @@ async function resolveTelegramCommandAuth(params: {
       });
       return null;
     }
-    if (groupPolicy === "allowlist" && requireAuth) {
+    if ((groupPolicy === "allowlist" || groupPolicy === "members") && requireAuth) {
       if (
         senderIdRaw == null ||
         !isSenderAllowed({
@@ -222,6 +223,21 @@ async function resolveTelegramCommandAuth(params: {
         await withTelegramApiErrorLogging({
           operation: "sendMessage",
           fn: () => bot.api.sendMessage(chatId, "You are not authorized to use this command."),
+        });
+        return null;
+      }
+    }
+    if (groupPolicy === "members" && requireAuth) {
+      const memberCheck = await verifyGroupMembership({
+        chatId,
+        api: bot.api,
+        botId: bot.botInfo.id,
+        allowFrom: effectiveGroupAllow,
+      });
+      if (!memberCheck.trusted) {
+        await withTelegramApiErrorLogging({
+          operation: "sendMessage",
+          fn: () => bot.api.sendMessage(chatId, "This group has untrusted members."),
         });
         return null;
       }

@@ -1,6 +1,7 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { resetInboundDedupe } from "../auto-reply/reply/inbound-dedupe.js";
 import { createTelegramBot } from "./bot.js";
+import { clearGroupMembershipCache } from "./group-membership-cache.js";
 
 const { sessionStorePath } = vi.hoisted(() => ({
   sessionStorePath: `/tmp/openclaw-telegram-${Math.random().toString(16).slice(2)}.json`,
@@ -59,6 +60,8 @@ const setMyCommandsSpy = vi.fn(async () => undefined);
 const sendMessageSpy = vi.fn(async () => ({ message_id: 77 }));
 const sendAnimationSpy = vi.fn(async () => ({ message_id: 78 }));
 const sendPhotoSpy = vi.fn(async () => ({ message_id: 79 }));
+const getChatMemberCountSpy = vi.fn(async () => 2);
+const getChatMemberSpy = vi.fn(async () => ({ status: "member" }));
 type ApiStub = {
   config: { use: (arg: unknown) => void };
   answerCallbackQuery: typeof answerCallbackQuerySpy;
@@ -68,6 +71,8 @@ type ApiStub = {
   sendMessage: typeof sendMessageSpy;
   sendAnimation: typeof sendAnimationSpy;
   sendPhoto: typeof sendPhotoSpy;
+  getChatMemberCount: typeof getChatMemberCountSpy;
+  getChatMember: typeof getChatMemberSpy;
 };
 const apiStub: ApiStub = {
   config: { use: useSpy },
@@ -78,6 +83,8 @@ const apiStub: ApiStub = {
   sendMessage: sendMessageSpy,
   sendAnimation: sendAnimationSpy,
   sendPhoto: sendPhotoSpy,
+  getChatMemberCount: getChatMemberCountSpy,
+  getChatMember: getChatMemberSpy,
 };
 
 vi.mock("grammy", () => ({
@@ -154,6 +161,9 @@ describe("createTelegramBot", () => {
     middlewareUseSpy.mockReset();
     sequentializeSpy.mockReset();
     botCtorSpy.mockReset();
+    getChatMemberCountSpy.mockReset().mockResolvedValue(2);
+    getChatMemberSpy.mockReset().mockResolvedValue({ status: "member" });
+    clearGroupMembershipCache();
     _sequentializeKey = undefined;
   });
 
@@ -366,5 +376,111 @@ describe("createTelegramBot", () => {
     });
 
     expect(replySpy).toHaveBeenCalledTimes(1);
+  });
+
+  // groupPolicy: "members" tests
+
+  it("blocks group messages when groupPolicy is 'members' and membership check fails (untrusted members)", async () => {
+    onSpy.mockReset();
+    const replySpy = replyModule.__replySpy as unknown as ReturnType<typeof vi.fn>;
+    replySpy.mockReset();
+    // 3 members in the group but only 1 trusted ID → count mismatch
+    getChatMemberCountSpy.mockResolvedValue(3);
+    getChatMemberSpy.mockResolvedValue({ status: "member" });
+    loadConfig.mockReturnValue({
+      channels: {
+        telegram: {
+          groupPolicy: "members",
+          allowFrom: ["123456789"],
+          groups: { "*": { requireMention: false } },
+        },
+      },
+    });
+
+    createTelegramBot({ token: "tok" });
+    const handler = getOnHandler("message") as (ctx: Record<string, unknown>) => Promise<void>;
+
+    await handler({
+      message: {
+        chat: { id: -100123456789, type: "group", title: "Test Group" },
+        from: { id: 123456789, username: "testuser" },
+        text: "hello",
+        date: 1736380800,
+      },
+      api: apiStub,
+      me: { id: 999, username: "openclaw_bot" },
+      getFile: async () => ({ download: async () => new Uint8Array() }),
+    });
+
+    expect(replySpy).not.toHaveBeenCalled();
+  });
+
+  it("allows group messages when groupPolicy is 'members' and all members are trusted", async () => {
+    onSpy.mockReset();
+    const replySpy = replyModule.__replySpy as unknown as ReturnType<typeof vi.fn>;
+    replySpy.mockReset();
+    // 2 members: 1 trusted user + 1 bot
+    getChatMemberCountSpy.mockResolvedValue(2);
+    getChatMemberSpy.mockResolvedValue({ status: "member" });
+    loadConfig.mockReturnValue({
+      channels: {
+        telegram: {
+          groupPolicy: "members",
+          allowFrom: ["123456789"],
+          groups: { "*": { requireMention: false } },
+        },
+      },
+    });
+
+    createTelegramBot({ token: "tok" });
+    const handler = getOnHandler("message") as (ctx: Record<string, unknown>) => Promise<void>;
+
+    await handler({
+      message: {
+        chat: { id: -100123456789, type: "group", title: "Test Group" },
+        from: { id: 123456789, username: "testuser" },
+        text: "hello",
+        date: 1736380800,
+      },
+      api: apiStub,
+      me: { id: 999, username: "openclaw_bot" },
+      getFile: async () => ({ download: async () => new Uint8Array() }),
+    });
+
+    expect(replySpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("blocks group messages from untrusted sender even when groupPolicy is 'members'", async () => {
+    onSpy.mockReset();
+    const replySpy = replyModule.__replySpy as unknown as ReturnType<typeof vi.fn>;
+    replySpy.mockReset();
+    loadConfig.mockReturnValue({
+      channels: {
+        telegram: {
+          groupPolicy: "members",
+          allowFrom: ["123456789"],
+          groups: { "*": { requireMention: false } },
+        },
+      },
+    });
+
+    createTelegramBot({ token: "tok" });
+    const handler = getOnHandler("message") as (ctx: Record<string, unknown>) => Promise<void>;
+
+    await handler({
+      message: {
+        chat: { id: -100123456789, type: "group", title: "Test Group" },
+        from: { id: 999999, username: "notallowed" }, // Not in allowFrom
+        text: "hello",
+        date: 1736380800,
+      },
+      api: apiStub,
+      me: { id: 999, username: "openclaw_bot" },
+      getFile: async () => ({ download: async () => new Uint8Array() }),
+    });
+
+    // Should not even reach membership check
+    expect(replySpy).not.toHaveBeenCalled();
+    expect(getChatMemberCountSpy).not.toHaveBeenCalled();
   });
 });

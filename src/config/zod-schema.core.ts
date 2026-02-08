@@ -124,7 +124,7 @@ export const ReplyToModeSchema = z.union([z.literal("off"), z.literal("first"), 
 // Used with .default("allowlist").optional() pattern:
 //   - .optional() allows field omission in input config
 //   - .default("allowlist") ensures runtime always resolves to "allowlist" if not provided
-export const GroupPolicySchema = z.enum(["open", "disabled", "allowlist"]);
+export const GroupPolicySchema = z.enum(["open", "disabled", "allowlist", "members"]);
 
 export const DmPolicySchema = z.enum(["pairing", "allowlist", "open", "disabled"]);
 

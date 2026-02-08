@@ -57,7 +57,7 @@ async function noteDiscordTokenHelp(prompter: WizardPrompter): Promise<void> {
 function setDiscordGroupPolicy(
   cfg: OpenClawConfig,
   accountId: string,
-  groupPolicy: "open" | "allowlist" | "disabled",
+  groupPolicy: "open" | "allowlist" | "disabled" | "members",
 ): OpenClawConfig {
   if (accountId === DEFAULT_ACCOUNT_ID) {
     return {

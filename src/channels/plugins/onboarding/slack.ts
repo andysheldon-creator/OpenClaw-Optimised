@@ -127,7 +127,7 @@ async function noteSlackTokenHelp(prompter: WizardPrompter, botName: string): Pr
 function setSlackGroupPolicy(
   cfg: OpenClawConfig,
   accountId: string,
-  groupPolicy: "open" | "allowlist" | "disabled",
+  groupPolicy: "open" | "allowlist" | "disabled" | "members",
 ): OpenClawConfig {
   if (accountId === DEFAULT_ACCOUNT_ID) {
     return {
