@@ -269,4 +269,41 @@ describe("sanitizeSessionHistory", () => {
 
     expect(result).toEqual([]);
   });
+
+  it("drops assistant thinking blocks for github-copilot models", async () => {
+    vi.mocked(helpers.isGoogleModelApi).mockReturnValue(false);
+
+    const sessionManager = {
+      getEntries: vi.fn().mockReturnValue([]),
+      appendCustomEntry: vi.fn(),
+    } as unknown as SessionManager;
+
+    const messages: AgentMessage[] = [
+      { role: "user", content: "hello" },
+      {
+        role: "assistant",
+        content: [
+          {
+            type: "thinking",
+            thinking: "internal",
+            thinkingSignature: "reasoning_text",
+          },
+          { type: "text", text: "hi" },
+        ],
+      } as unknown as AgentMessage,
+    ];
+
+    const result = await sanitizeSessionHistory({
+      messages,
+      modelApi: "openai-completions",
+      provider: "github-copilot",
+      modelId: "claude-opus-4.6",
+      sessionManager,
+      sessionId: "test-session",
+    });
+
+    expect(result[1]?.role).toBe("assistant");
+    const assistant = result[1] as Extract<AgentMessage, { role: "assistant" }>;
+    expect(assistant.content).toEqual([{ type: "text", text: "hi" }]);
+  });
 });
