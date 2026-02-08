@@ -797,6 +797,40 @@ export const en = {
     installing: "Installing…",
     apiKey: "API key",
     saveKey: "Save key",
+    technicalNames: {
+      // Channel configs
+      "channels.bluebubbles": "BlueBubbles Channel",
+      "channels.slack": "Slack Channel",
+      "channels.telegram": "Telegram Channel",
+      "channels.discord": "Discord Channel",
+      "channels.whatsapp": "WhatsApp Channel",
+      "channels.signal": "Signal Channel",
+      "channels.imessage": "iMessage Channel",
+      "channels.googlechat": "Google Chat Channel",
+      "channels.nostr": "Nostr Channel",
+      // Plugin configs
+      "plugins.entries.voice-call.enabled": "Voice Call Plugin",
+      // API Keys - Google
+      GOOGLE_PLACES_API_KEY: "Google Places API Key",
+      GOOGLE_API_KEY: "Google API Key",
+      GEMINI_API_KEY: "Gemini API Key",
+      // API Keys - AI Providers
+      OPENAI_API_KEY: "OpenAI API Key",
+      ANTHROPIC_API_KEY: "Anthropic API Key",
+      CLAUDE_API_KEY: "Claude API Key",
+      // API Keys - Other
+      NOTION_API_KEY: "Notion API Key",
+      ELEVENLABS_API_KEY: "ElevenLabs API Key",
+      TRELLO_API_KEY: "Trello API Key",
+      TRELLO_TOKEN: "Trello Token",
+      GITHUB_TOKEN: "GitHub Token",
+      SLACK_TOKEN: "Slack Token",
+      DISCORD_TOKEN: "Discord Token",
+      TELEGRAM_BOT_TOKEN: "Telegram Bot Token",
+      // Runtime dirs
+      SHERPA_ONNX_RUNTIME_DIR: "Sherpa ONNX Runtime Dir",
+      SHERPA_ONNX_MODEL_DIR: "Sherpa ONNX Model Dir",
+    },
   },
 
   // Cron View

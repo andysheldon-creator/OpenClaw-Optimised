@@ -2,7 +2,7 @@ import { html, nothing } from "lit";
 import type { SkillMessageMap } from "../controllers/skills.ts";
 import type { SkillStatusEntry, SkillStatusReport } from "../types.ts";
 import { clampText } from "../format.ts";
-import { t } from "../i18n/i18n-manager.ts";
+import { t, translateTechnicalName } from "../i18n/i18n-manager.ts";
 
 type SkillGroup = {
   id: string;
@@ -150,16 +150,18 @@ function renderSkill(skill: SkillStatusEntry, props: SkillsProps) {
   const sourceLabel = t(`skills.skillSources.${skill.source}`, {
     defaultValue: skill.source,
   });
-  const formatMissingItem = (type: string, item: string) => {
-    const translated = t(`skills.technicalNames.${item}`, { defaultValue: item });
-    return `${t(`skills.missingType.${type}`)}: ${translated}`;
+  const formatMissingItems = (type: string, items: string[]) => {
+    if (items.length === 0) return null;
+    const typeLabel = t(`skills.missingType.${type}`);
+    const translatedItems = items.map((item) => translateTechnicalName(item));
+    return `${typeLabel}: ${translatedItems.join(", ")}`;
   };
   const missing = [
-    ...skill.missing.bins.map((b) => formatMissingItem("bin", b)),
-    ...skill.missing.env.map((e) => formatMissingItem("env", e)),
-    ...skill.missing.config.map((c) => formatMissingItem("config", c)),
-    ...skill.missing.os.map((o) => formatMissingItem("os", o)),
-  ];
+    formatMissingItems("bin", skill.missing.bins),
+    formatMissingItems("env", skill.missing.env),
+    formatMissingItems("config", skill.missing.config),
+    formatMissingItems("os", skill.missing.os),
+  ].filter((item): item is string => item !== null);
   const reasons: string[] = [];
   if (skill.disabled) {
     reasons.push(t("skills.status.disabled"));
@@ -198,7 +200,7 @@ function renderSkill(skill: SkillStatusEntry, props: SkillsProps) {
           missing.length > 0
             ? html`
               <div class="muted" style="margin-top: 6px;">
-                ${t("skills.missing", { items: missing.join(", ") })}
+                ${t("skills.missing", { items: missing.join("; ") })}
               </div>
             `
             : nothing

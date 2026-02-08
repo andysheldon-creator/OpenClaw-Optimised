@@ -608,6 +608,11 @@ export const pt = {
       canvasHost: "Hospedagem de Canvas",
       talk: "Voz",
       plugins: "Plugins",
+      diagnostics: "Diagnósticos",
+      nodeHost: "Hospedagem de Nodes",
+      media: "Mídia",
+      memory: "Memória",
+      approvals: "Aprovações",
     },
     sectionDescriptions: {
       env: "Variáveis de ambiente passadas ao processo do gateway",
@@ -637,6 +642,11 @@ export const pt = {
       canvasHost: "Renderização e exibição de canvas",
       talk: "Configurações de voz e fala",
       plugins: "Gerenciamento de plugins e extensões",
+      diagnostics: "Verificações de saúde e diagnóstico do sistema",
+      nodeHost: "Configurações de hospedagem e execução de nodes",
+      media: "Processamento e armazenamento de mídia",
+      memory: "Configurações de memória e armazenamento em cache",
+      approvals: "Configurações de aprovação de execução de ferramentas e comandos",
     },
     schemaUnavailable: "Esquema indisponível.",
     unsupportedSchema: "Esquema não suportado. Use Texto Puro.",
@@ -1328,6 +1338,40 @@ export const pt = {
     installing: "Instalando…",
     apiKey: "Chave de API",
     saveKey: "Salvar chave",
+    technicalNames: {
+      // Channel configs
+      "channels.bluebubbles": "Canal BlueBubbles",
+      "channels.slack": "Canal Slack",
+      "channels.telegram": "Canal Telegram",
+      "channels.discord": "Canal Discord",
+      "channels.whatsapp": "Canal WhatsApp",
+      "channels.signal": "Canal Signal",
+      "channels.imessage": "Canal iMessage",
+      "channels.googlechat": "Canal Google Chat",
+      "channels.nostr": "Canal Nostr",
+      // Plugin configs
+      "plugins.entries.voice-call.enabled": "Plugin de Chamada de Voz",
+      // API Keys - Google
+      GOOGLE_PLACES_API_KEY: "Chave API Google Places",
+      GOOGLE_API_KEY: "Chave API Google",
+      GEMINI_API_KEY: "Chave API Gemini",
+      // API Keys - AI Providers
+      OPENAI_API_KEY: "Chave API OpenAI",
+      ANTHROPIC_API_KEY: "Chave API Anthropic",
+      CLAUDE_API_KEY: "Chave API Claude",
+      // API Keys - Other
+      NOTION_API_KEY: "Chave API Notion",
+      ELEVENLABS_API_KEY: "Chave API ElevenLabs",
+      TRELLO_API_KEY: "Chave API Trello",
+      TRELLO_TOKEN: "Token Trello",
+      GITHUB_TOKEN: "Token GitHub",
+      SLACK_TOKEN: "Token Slack",
+      DISCORD_TOKEN: "Token Discord",
+      TELEGRAM_BOT_TOKEN: "Token Bot Telegram",
+      // Runtime dirs
+      SHERPA_ONNX_RUNTIME_DIR: "Diretório Runtime Sherpa ONNX",
+      SHERPA_ONNX_MODEL_DIR: "Diretório Modelos Sherpa ONNX",
+    },
   },
 
   // Cron View

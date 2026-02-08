@@ -127,3 +127,33 @@ export function t(
 ): string {
   return i18n.t(key, undefined, replacements);
 }
+
+// Helper function to translate technical names (API keys, config paths, etc.)
+// This accesses the technicalNames object directly to avoid dot-splitting issues
+export function translateTechnicalName(name: string): string {
+  const locale = i18n.getLocale();
+  const currentLocaleData = locales[locale] as Record<string, unknown>;
+  const defaultLocaleData = locales[defaultLocale as keyof typeof locales] as Record<
+    string,
+    unknown
+  >;
+
+  // Try current locale first
+  const skillsData = currentLocaleData?.skills as Record<string, unknown> | undefined;
+  const technicalNames = skillsData?.technicalNames as Record<string, string> | undefined;
+  if (technicalNames && name in technicalNames) {
+    return technicalNames[name];
+  }
+
+  // Fallback to default locale
+  const defaultSkillsData = defaultLocaleData?.skills as Record<string, unknown> | undefined;
+  const defaultTechnicalNames = defaultSkillsData?.technicalNames as
+    | Record<string, string>
+    | undefined;
+  if (defaultTechnicalNames && name in defaultTechnicalNames) {
+    return defaultTechnicalNames[name];
+  }
+
+  // Return original name if no translation found
+  return name;
+}

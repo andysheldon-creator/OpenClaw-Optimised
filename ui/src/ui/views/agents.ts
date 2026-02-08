@@ -18,7 +18,7 @@ import {
 } from "../../../../src/agents/tool-policy.js";
 import { formatAgo } from "../format.ts";
 // i18n
-import { t } from "../i18n/i18n-manager.ts";
+import { t, translateTechnicalName } from "../i18n/i18n-manager.ts";
 import {
   formatCronPayload,
   formatCronSchedule,
@@ -1703,7 +1703,7 @@ function renderAgentTools(params: {
       <div class="agent-tools-meta" style="margin-top: 16px;">
         <div class="agent-kv">
           <div class="label">${t("agents.profile")}</div>
-          <div class="mono">${profile}</div>
+          <div class="mono">${t(`profiles.${profile}`, { defaultValue: profile })}</div>
         </div>
         <div class="agent-kv">
           <div class="label">${t("agents.source")}</div>
@@ -2009,16 +2009,18 @@ function renderAgentSkillRow(
   },
 ) {
   const enabled = params.usingAllowlist ? params.allowSet.has(skill.name) : true;
-  const formatMissingItem = (type: string, item: string) => {
-    const translated = t(`skills.technicalNames.${item}`, { defaultValue: item });
-    return `${t(`skills.missingType.${type}`)}: ${translated}`;
+  const formatMissingItems = (type: string, items: string[]) => {
+    if (items.length === 0) return null;
+    const typeLabel = t(`skills.missingType.${type}`);
+    const translatedItems = items.map((item) => translateTechnicalName(item));
+    return `${typeLabel}: ${translatedItems.join(", ")}`;
   };
   const missing = [
-    ...skill.missing.bins.map((b) => formatMissingItem("bin", b)),
-    ...skill.missing.env.map((e) => formatMissingItem("env", e)),
-    ...skill.missing.config.map((c) => formatMissingItem("config", c)),
-    ...skill.missing.os.map((o) => formatMissingItem("os", o)),
-  ];
+    formatMissingItems("bin", skill.missing.bins),
+    formatMissingItems("env", skill.missing.env),
+    formatMissingItems("config", skill.missing.config),
+    formatMissingItems("os", skill.missing.os),
+  ].filter((item): item is string => item !== null);
   const reasons: string[] = [];
   if (skill.disabled) {
     reasons.push(t("agents.skillStatus.disabled"));
@@ -2057,7 +2059,7 @@ function renderAgentSkillRow(
         ${
           missing.length > 0
             ? html`<div class="muted" style="margin-top: 6px;">${t("skills.missing", {
-                items: missing.join(", "),
+                items: missing.join("; "),
               })}</div>`
             : nothing
         }
