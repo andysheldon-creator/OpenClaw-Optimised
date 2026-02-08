@@ -51,7 +51,8 @@ export function renderChatControls(state: AppViewState) {
   const disableFocusToggle = state.onboarding;
   const showThinking = state.onboarding ? false : state.settings.chatShowThinking;
   const focusActive = state.onboarding ? true : state.settings.chatFocusMode;
-  const isMainSession = mainSessionKey != null && state.sessionKey === mainSessionKey;
+  const isMainSession =
+    state.sessionKey === "main" || (mainSessionKey != null && state.sessionKey === mainSessionKey);
   // Refresh icon
   const refreshIcon = html`
     <svg
@@ -170,13 +171,14 @@ export function renderChatControls(state: AppViewState) {
         class="btn btn--sm btn--icon btn--danger-icon"
         ?disabled=${!state.connected || isMainSession || state.chatLoading}
         @click=${async () => {
+          if (!state.client) return;
           const key = state.sessionKey;
           const confirmed = window.confirm(
             `Delete session "${key}"?\n\nThis will delete the session and archive its transcript.`,
           );
           if (!confirmed) return;
           try {
-            await state.client!.request("sessions.delete", { key, deleteTranscript: true });
+            await state.client.request("sessions.delete", { key, deleteTranscript: true });
             const fallback = mainSessionKey || "main";
             state.sessionKey = fallback;
             state.chatMessage = "";
