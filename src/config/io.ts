@@ -212,6 +212,11 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
   const configPath =
     candidatePaths.find((candidate) => deps.fs.existsSync(candidate)) ?? requestedConfigPath;
 
+  // Snapshot of env vars captured after applyConfigEnv + resolveConfigEnvVars.
+  // Used by writeConfigFile to verify ${VAR} restoration against the env state
+  // that produced the resolved config, not the (possibly mutated) live env.
+  let envSnapshotForRestore: Record<string, string | undefined> | null = null;
+
   function loadConfig(): OpenClawConfig {
     try {
       if (!deps.fs.existsSync(configPath)) {
@@ -242,6 +247,11 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
 
       // Substitute ${VAR} env var references
       const substituted = resolveConfigEnvVars(resolved, deps.env);
+
+      // Capture env snapshot after substitution for use by writeConfigFile.
+      // This ensures restoreEnvVarRefs verifies against the env that produced
+      // the resolved values, not a potentially mutated live env (TOCTOU fix).
+      envSnapshotForRestore = { ...deps.env } as Record<string, string | undefined>;
 
       const resolvedConfig = substituted;
       warnOnConfigMiskeys(resolvedConfig, deps.logger);
@@ -405,6 +415,8 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
       let substituted: unknown;
       try {
         substituted = resolveConfigEnvVars(resolved, deps.env);
+        // Capture env snapshot (same as loadConfig — see TOCTOU comment above)
+        envSnapshotForRestore = { ...deps.env } as Record<string, string | undefined>;
       } catch (err) {
         const message =
           err instanceof MissingEnvVarError
@@ -508,7 +520,11 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
         const currentRaw = await deps.fs.promises.readFile(configPath, "utf-8");
         const parsedRes = parseConfigJson5(currentRaw, deps.json5);
         if (parsedRes.ok) {
-          cfgToWrite = restoreEnvVarRefs(cfg, parsedRes.parsed, deps.env) as OpenClawConfig;
+          // Use env snapshot from when config was loaded (if available) to avoid
+          // TOCTOU issues where env changes between load and write. Falls back to
+          // live env if no snapshot exists (e.g., first write before any load).
+          const envForRestore = envSnapshotForRestore ?? deps.env;
+          cfgToWrite = restoreEnvVarRefs(cfg, parsedRes.parsed, envForRestore) as OpenClawConfig;
         }
       }
     } catch {

@@ -135,20 +135,18 @@ describe("restoreEnvVarRefs", () => {
     expect(result).toEqual({ key: "${MY_VAR}" });
   });
 
-  it("restores when env mutation coincidentally matches incoming (known TOCTOU caveat)", () => {
-    // TOCTOU caveat: if env mutates between read and write to coincidentally match
-    // the caller's new value, restoration fires incorrectly. This is acceptable because:
-    // - applyConfigEnv only sets vars NOT already set
-    // - writeConfigFile runs immediately after config changes
-    // - The coincidence requires an external env mutation matching the new value exactly
-    // Fixing would require env snapshots at read time — a larger refactor.
-    const mutatedEnv = { MY_VAR: "new-value" } as unknown as NodeJS.ProcessEnv;
-    const incoming = { key: "new-value" };
+  it("does not restore when env snapshot differs from live env (TOCTOU fix)", () => {
+    // With env snapshots: at read time MY_VAR was "old-value", so incoming is "old-value".
+    // Caller changed it to "new-value". Live env also changed to "new-value".
+    // But using the READ-TIME snapshot ("old-value"), we correctly see mismatch and keep incoming.
+    const readTimeEnv = { MY_VAR: "old-value" } as unknown as NodeJS.ProcessEnv;
+    const incoming = { key: "new-value" }; // caller intentionally changed this
     const parsed = { key: "${MY_VAR}" };
 
-    const result = restoreEnvVarRefs(incoming, parsed, mutatedEnv);
-    // Restores because current env matches incoming — can't distinguish from intentional change
-    expect(result).toEqual({ key: "${MY_VAR}" });
+    const result = restoreEnvVarRefs(incoming, parsed, readTimeEnv);
+    // Using read-time snapshot: ${MY_VAR} resolves to "old-value", doesn't match "new-value"
+    // → correctly keeps caller's new value
+    expect(result).toEqual({ key: "new-value" });
   });
 
   // Edge case: $${VAR} escape sequence (Greptile comment #2)
