@@ -223,6 +223,7 @@ The wizard uses it to set your **allowlist/owner** so your own DMs are permitted
 
 - Groups map to `agent:<agentId>:whatsapp:group:<jid>` sessions.
 - Group policy: `channels.whatsapp.groupPolicy = open|disabled|allowlist` (default `allowlist`).
+- When `groupPolicy: "allowlist"` and `channels.whatsapp.groups` has specific group JID entries, those JIDs act as a **group allowlist** — only listed groups are allowed, but anyone in an approved group can chat. `groupAllowFrom` then only gates **slash command authorization** (e.g., `/activation`, `/config`). When no `groups` entries exist, `groupAllowFrom` gates all message access (legacy behavior).
 - Activation modes:
   - `mention` (default): requires @mention or regex match.
   - `always`: always triggers.
