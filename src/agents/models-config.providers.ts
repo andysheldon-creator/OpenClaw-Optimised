@@ -11,12 +11,12 @@ import {
   resolveCloudflareAiGatewayBaseUrl,
 } from "./cloudflare-ai-gateway.js";
 import { resolveAwsSdkEnvVarName, resolveEnvApiKey } from "./model-auth.js";
+import { OLLAMA_NATIVE_BASE_URL } from "./ollama-stream.js";
 import {
   buildSyntheticModelDefinition,
   SYNTHETIC_BASE_URL,
   SYNTHETIC_MODEL_CATALOG,
 } from "./synthetic-models.js";
-import { OLLAMA_NATIVE_BASE_URL } from "./ollama-stream.js";
 import { discoverVeniceModels, VENICE_BASE_URL } from "./venice-models.js";
 
 type ModelsConfig = NonNullable<OpenClawConfig["models"]>;
