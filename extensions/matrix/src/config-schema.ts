@@ -34,6 +34,22 @@ const matrixRoomSchema = z
   })
   .optional();
 
+const matrixAccountSchema = z
+  .object({
+    name: z.string().optional(),
+    enabled: z.boolean().optional(),
+    homeserver: z.string().optional(),
+    userId: z.string().optional(),
+    accessToken: z.string().optional(),
+    password: z.string().optional(),
+    deviceName: z.string().optional(),
+    initialSyncLimit: z.number().optional(),
+    encryption: z.boolean().optional(),
+    mediaMaxMb: z.number().optional(),
+    replyToMode: z.enum(["off", "first", "all"]).optional(),
+  })
+  .optional();
+
 export const MatrixConfigSchema = z.object({
   name: z.string().optional(),
   enabled: z.boolean().optional(),
@@ -60,4 +76,5 @@ export const MatrixConfigSchema = z.object({
   groups: z.object({}).catchall(matrixRoomSchema).optional(),
   rooms: z.object({}).catchall(matrixRoomSchema).optional(),
   actions: matrixActionSchema,
+  accounts: z.object({}).catchall(matrixAccountSchema).optional(),
 });
