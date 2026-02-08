@@ -1649,13 +1649,14 @@ public struct AgentsCreateParams: Codable, Sendable {
         name: String,
         workspace: String,
         emoji: String?,
-        avatar: String?
-    ) {
+        avatar: String?)
+    {
         self.name = name
         self.workspace = workspace
         self.emoji = emoji
         self.avatar = avatar
     }
+
     private enum CodingKeys: String, CodingKey {
         case name
         case workspace
@@ -1674,13 +1675,14 @@ public struct AgentsCreateResult: Codable, Sendable {
         ok: Bool,
         agentid: String,
         name: String,
-        workspace: String
-    ) {
+        workspace: String)
+    {
         self.ok = ok
         self.agentid = agentid
         self.name = name
         self.workspace = workspace
     }
+
     private enum CodingKeys: String, CodingKey {
         case ok
         case agentid = "agentId"
@@ -1701,14 +1703,15 @@ public struct AgentsUpdateParams: Codable, Sendable {
         name: String?,
         workspace: String?,
         model: String?,
-        avatar: String?
-    ) {
+        avatar: String?)
+    {
         self.agentid = agentid
         self.name = name
         self.workspace = workspace
         self.model = model
         self.avatar = avatar
     }
+
     private enum CodingKeys: String, CodingKey {
         case agentid = "agentId"
         case name
@@ -1724,11 +1727,12 @@ public struct AgentsUpdateResult: Codable, Sendable {
 
     public init(
         ok: Bool,
-        agentid: String
-    ) {
+        agentid: String)
+    {
         self.ok = ok
         self.agentid = agentid
     }
+
     private enum CodingKeys: String, CodingKey {
         case ok
         case agentid = "agentId"
@@ -1741,11 +1745,12 @@ public struct AgentsDeleteParams: Codable, Sendable {
 
     public init(
         agentid: String,
-        deletefiles: Bool?
-    ) {
+        deletefiles: Bool?)
+    {
         self.agentid = agentid
         self.deletefiles = deletefiles
     }
+
     private enum CodingKeys: String, CodingKey {
         case agentid = "agentId"
         case deletefiles = "deleteFiles"
@@ -1760,12 +1765,13 @@ public struct AgentsDeleteResult: Codable, Sendable {
     public init(
         ok: Bool,
         agentid: String,
-        removedbindings: Int
-    ) {
+        removedbindings: Int)
+    {
         self.ok = ok
         self.agentid = agentid
         self.removedbindings = removedbindings
     }
+
     private enum CodingKeys: String, CodingKey {
         case ok
         case agentid = "agentId"
