@@ -181,7 +181,9 @@ async function resolveContextReport(
   const budget = params.cfg?.agents?.defaults?.contextBudget;
   const enabled = typeof budget?.enabled === "boolean" ? budget.enabled : false;
   const toPosInt = (v: unknown): number | undefined => {
-    if (typeof v !== "number" || !Number.isFinite(v)) return undefined;
+    if (typeof v !== "number" || !Number.isFinite(v)) {
+      return undefined;
+    }
     const n = Math.floor(v);
     return n > 0 ? n : undefined;
   };
@@ -290,8 +292,12 @@ export async function buildContextReply(params: HandleCommandsParams): Promise<R
 
   const contextBudgetLine = (() => {
     const b = report.contextBudget;
-    if (!b) return "";
-    if (!b.enabled) return "";
+    if (!b) {
+      return "";
+    }
+    if (!b.enabled) {
+      return "";
+    }
     const eff = b.effective;
     const fmt = (n?: number) => (typeof n === "number" ? `${formatInt(n)} chars` : "?");
     return `Context budget: enabled (bootstrap≤${fmt(eff?.bootstrapMaxChars)} memory≤${fmt(eff?.memoryMaxInjectedChars)} web_fetch≤${fmt(eff?.webFetchMaxChars)})`;

@@ -15,16 +15,20 @@ export function resolveContextBudget(cfg?: OpenClawConfig): ContextBudget {
   const enabled = typeof raw.enabled === "boolean" ? raw.enabled : false;
 
   const readPosInt = (v: unknown): number | undefined => {
-    if (typeof v !== "number" || !Number.isFinite(v)) return undefined;
+    if (typeof v !== "number" || !Number.isFinite(v)) {
+      return undefined;
+    }
     const n = Math.floor(v);
     return n > 0 ? n : undefined;
   };
 
+  const rawObj = raw as Record<string, unknown>;
+
   return {
     enabled,
-    bootstrapMaxChars: readPosInt((raw as any).bootstrapMaxChars),
-    memoryMaxInjectedChars: readPosInt((raw as any).memoryMaxInjectedChars),
-    webFetchMaxChars: readPosInt((raw as any).webFetchMaxChars),
+    bootstrapMaxChars: readPosInt(rawObj.bootstrapMaxChars),
+    memoryMaxInjectedChars: readPosInt(rawObj.memoryMaxInjectedChars),
+    webFetchMaxChars: readPosInt(rawObj.webFetchMaxChars),
   };
 }
 
@@ -33,7 +37,9 @@ export function maybeClampMaxChars(params: {
   budget?: number;
   enabled: boolean;
 }): number {
-  if (!params.enabled) return params.configured;
+  if (!params.enabled) {
+    return params.configured;
+  }
   if (typeof params.budget !== "number" || !Number.isFinite(params.budget) || params.budget <= 0) {
     return params.configured;
   }

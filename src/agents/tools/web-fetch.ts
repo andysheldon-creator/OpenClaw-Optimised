@@ -669,7 +669,7 @@ export function createWebFetchTool(options?: {
       const extractMode = readStringParam(params, "extractMode") === "text" ? "text" : "markdown";
       const maxChars = readNumberParam(params, "maxChars", { integer: true });
       const maxCharsCap = resolveFetchMaxCharsCap(fetch);
-      const budget = cfg?.agents?.defaults?.contextBudget;
+      const budget = options?.config?.agents?.defaults?.contextBudget;
       const budgetEnabled = typeof budget?.enabled === "boolean" ? budget.enabled : false;
       const budgetCap =
         budgetEnabled &&
