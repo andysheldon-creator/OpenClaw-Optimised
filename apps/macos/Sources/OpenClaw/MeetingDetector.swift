@@ -13,6 +13,8 @@ final class MeetingDetector {
     private let logger = Logger(subsystem: "ai.openclaw", category: "meeting.detector")
     private let eventStore = EKEventStore()
     private let transcriber = MeetingTranscriber()
+    let whisperTranscriber = WhisperTranscriber()
+    private var activeEngine: TranscriptionEngine?
 
     private(set) var currentSession: MeetingSession?
     private(set) var upcomingMeetings: [EKEvent] = []
@@ -24,6 +26,17 @@ final class MeetingDetector {
 
     var adHocDetectionEnabled: Bool = true {
         didSet { UserDefaults.standard.set(self.adHocDetectionEnabled, forKey: "meetingAdHocDetectionEnabled") }
+    }
+
+    var transcriptionEngine: TranscriptionEngine {
+        get {
+            TranscriptionEngine(rawValue: UserDefaults.standard.string(forKey: "meetingTranscriptionEngine") ?? "whisper") ?? .whisper
+        }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: "meetingTranscriptionEngine") }
+    }
+
+    var whisperModelState: WhisperModelState {
+        self.whisperTranscriber.modelState
     }
 
     private var calendarCheckTask: Task<Void, Never>?
@@ -159,14 +172,17 @@ final class MeetingDetector {
         let meetingTitle = title ?? calendarEvent?.title ?? "Meeting \(Self.shortTimestamp())"
         let attendees = calendarEvent?.attendees?.compactMap(\.url.absoluteString) ?? []
 
-        // Pause TalkMode to free the single SFSpeechRecognitionTask slot
-        // Apple only allows one active recognition task per process
-        self.talkModeWasPaused = TalkModeController.shared.isPaused
-        if !self.talkModeWasPaused {
-            self.logger.info("meeting: pausing talk mode to free speech recognizer")
-            TalkModeController.shared.setPaused(true)
-            // Wait for TalkModeRuntime to actually stop its recognition task
-            await TalkModeRuntime.shared.setPaused(true)
+        let engine = self.transcriptionEngine
+        self.activeEngine = engine
+
+        // Only pause TalkMode for Apple Speech (it conflicts with SFSpeechRecognizer)
+        if engine == .apple {
+            self.talkModeWasPaused = TalkModeController.shared.isPaused
+            if !self.talkModeWasPaused {
+                self.logger.info("meeting: pausing talk mode to free speech recognizer")
+                TalkModeController.shared.setPaused(true)
+                await TalkModeRuntime.shared.setPaused(true)
+            }
         }
 
         let session = MeetingSession(
@@ -175,12 +191,19 @@ final class MeetingDetector {
             attendees: attendees)
         session.start()
         self.currentSession = session
-        self.logger.info("meeting started: \(meetingTitle, privacy: .public)")
+        self.logger.info("meeting started: \(meetingTitle, privacy: .public) engine=\(engine.rawValue, privacy: .public)")
 
-        // Start transcription
-        await self.transcriber.start { [weak session] speaker, text, isFinal in
+        // Start transcription with the selected engine
+        let segmentHandler: @MainActor (Speaker, String, Bool) -> Void = { [weak session] speaker, text, isFinal in
             guard let session, session.status == .recording else { return }
             session.updateLastSegment(for: speaker, text: text, isFinal: isFinal)
+        }
+
+        switch engine {
+        case .whisper:
+            await self.whisperTranscriber.start(onSegment: segmentHandler)
+        case .apple:
+            await self.transcriber.start(onSegment: segmentHandler)
         }
 
         self.startSilenceDetection()
@@ -194,12 +217,16 @@ final class MeetingDetector {
             self.logger.warning("microphone permission denied")
         }
 
-        let speechStatus = await Self.requestSpeechPermission()
-        if !speechStatus {
-            self.logger.warning("speech recognition permission denied")
+        // Whisper doesn't need SFSpeechRecognizer permission
+        if self.transcriptionEngine == .apple {
+            let speechStatus = await Self.requestSpeechPermission()
+            if !speechStatus {
+                self.logger.warning("speech recognition permission denied")
+            }
+            return micStatus && speechStatus
         }
 
-        return micStatus && speechStatus
+        return micStatus
     }
 
     /// Must be `nonisolated` so the completion handler doesn't inherit @MainActor isolation.
@@ -227,7 +254,17 @@ final class MeetingDetector {
     func stopMeeting() async {
         guard let session = self.currentSession else { return }
         session.stop()
-        await self.transcriber.stop()
+
+        // Stop the active transcription engine
+        switch self.activeEngine {
+        case .whisper:
+            await self.whisperTranscriber.stop()
+        case .apple:
+            await self.transcriber.stop()
+        case nil:
+            await self.transcriber.stop()
+        }
+
         self.silenceCheckTask?.cancel()
         self.silenceCheckTask = nil
 
@@ -237,12 +274,13 @@ final class MeetingDetector {
                 "segments=\(session.segments.filter(\.isFinal).count)")
         self.currentSession = nil
 
-        // Resume TalkMode if it was active before the meeting
-        if !self.talkModeWasPaused {
+        // Resume TalkMode if it was paused for Apple Speech
+        if self.activeEngine == .apple, !self.talkModeWasPaused {
             self.logger.info("meeting: resuming talk mode")
             TalkModeController.shared.setPaused(false)
             await TalkModeRuntime.shared.setPaused(false)
         }
+        self.activeEngine = nil
     }
 
     // MARK: - Silence detection
