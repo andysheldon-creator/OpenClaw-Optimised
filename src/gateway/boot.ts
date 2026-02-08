@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { CliDeps } from "../cli/deps.js";
@@ -11,7 +12,8 @@ import { type RuntimeEnv, defaultRuntime } from "../runtime.js";
 function generateBootSessionId(): string {
   const now = new Date();
   const ts = now.toISOString().replace(/[:.]/g, "-").replace("T", "_").replace("Z", "");
-  return `boot-${ts}`;
+  const suffix = crypto.randomUUID().slice(0, 8);
+  return `boot-${ts}-${suffix}`;
 }
 
 const log = createSubsystemLogger("gateway/boot");
