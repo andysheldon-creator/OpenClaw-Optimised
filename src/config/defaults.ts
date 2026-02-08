@@ -309,6 +309,11 @@ export function applyAgentDefaults(cfg: OpenClawConfig): OpenClawConfig {
     mutated = true;
   }
 
+  if (nextDefaults.allowAgents === undefined) {
+    nextDefaults.allowAgents = ["*"];
+    mutated = true;
+  }
+
   const nextSubagents = defaults?.subagents ? { ...defaults.subagents } : {};
   if (!hasSubMax) {
     nextSubagents.maxConcurrent = DEFAULT_SUBAGENT_MAX_CONCURRENT;
