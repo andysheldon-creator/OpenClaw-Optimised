@@ -70,7 +70,7 @@ describe("noteSessionSecretsWarnings", () => {
     );
   });
 
-  it("all clean — reports 'no obvious unredacted secrets detected'", async () => {
+  it("all clean — reports 'no unredacted secrets detected'", async () => {
     const mockFiles = [
       "/mock/state/agents/agent1/session1.jsonl",
       "/mock/state/agents/agent2/session2.jsonl",
@@ -83,7 +83,7 @@ describe("noteSessionSecretsWarnings", () => {
     await noteSessionSecretsWarnings();
 
     const noteCall = mockNote.mock.calls[0][0];
-    expect(noteCall).toContain("no obvious unredacted secrets detected");
+    expect(noteCall).toContain("no unredacted secrets detected");
     expect(noteCall).toContain("Scanned 2 session file(s)");
   });
 
@@ -107,7 +107,7 @@ describe("noteSessionSecretsWarnings", () => {
     await noteSessionSecretsWarnings();
 
     const noteCall = mockNote.mock.calls[0][0];
-    expect(noteCall).toContain("Found unredacted secrets in 2 of 4");
+    expect(noteCall).toContain("unredacted secret(s) across 2 of 4");
     expect(noteCall).toContain("50%"); // 2/4 = 50%
     expect(noteCall).toContain("openclaw sessions scrub");
     expect(noteCall).toContain("--dry-run");
@@ -132,7 +132,7 @@ describe("noteSessionSecretsWarnings", () => {
     const noteCall = mockNote.mock.calls[0][0];
     expect(noteCall).toContain("Scanned 200 session file(s)");
     expect(noteCall).toContain("(deterministic sample)");
-    expect(noteCall).toContain("no obvious unredacted secrets detected");
+    expect(noteCall).toContain("no unredacted secrets detected");
   });
 
   it("large file count with secrets — reports sample size and suggests scrub", async () => {
@@ -159,7 +159,7 @@ describe("noteSessionSecretsWarnings", () => {
     expect(mockReadFile).toHaveBeenCalledTimes(200);
 
     const noteCall = mockNote.mock.calls[0][0];
-    expect(noteCall).toContain("Found unredacted secrets in 50 of 200");
+    expect(noteCall).toContain("unredacted secret(s) across 50 of 200");
     expect(noteCall).toContain("(deterministic sample)");
     expect(noteCall).toContain("25%"); // 50/200 = 25%
     expect(noteCall).toContain("openclaw sessions scrub");
@@ -183,7 +183,7 @@ describe("noteSessionSecretsWarnings", () => {
     expect(mockNote).toHaveBeenCalled();
     const noteCall = mockNote.mock.calls[0][0];
     expect(noteCall).toContain("Could not read 1 session file");
-    expect(noteCall).toContain("no obvious unredacted secrets detected");
+    expect(noteCall).toContain("no unredacted secrets detected");
   });
 
   it("detects multiple pattern types", async () => {
@@ -197,7 +197,7 @@ describe("noteSessionSecretsWarnings", () => {
     await noteSessionSecretsWarnings();
 
     const noteCall = mockNote.mock.calls[0][0];
-    expect(noteCall).toContain("Found unredacted secrets in 1 of 1");
+    expect(noteCall).toContain("unredacted secret(s) across 1 of 1");
     expect(noteCall).toContain("100%");
   });
 });

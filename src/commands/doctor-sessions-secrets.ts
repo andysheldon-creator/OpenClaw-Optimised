@@ -17,19 +17,23 @@ function deterministicSample(array: string[], n: number): string[] {
 async function scanFileForSecrets(
   filePath: string,
   patterns: RegExp[],
-): Promise<{ match: boolean; error?: boolean }> {
+): Promise<{ matchCount: number; error?: boolean }> {
   try {
     const content = await fs.promises.readFile(filePath, "utf-8");
+    let count = 0;
     for (const pattern of patterns) {
       // Reset lastIndex for global regexps
       pattern.lastIndex = 0;
-      if (pattern.test(content)) {
-        return { match: true };
+      const matches = content.match(
+        new RegExp(pattern.source, pattern.flags.replace("g", "") + "g"),
+      );
+      if (matches) {
+        count += matches.length;
       }
     }
-    return { match: false };
+    return { matchCount: count };
   } catch {
-    return { match: false, error: true };
+    return { matchCount: 0, error: true };
   }
 }
 
@@ -50,6 +54,7 @@ export async function noteSessionSecretsWarnings(_cfg?: OpenClawConfig): Promise
 
   const patterns = compilePatterns(getDefaultRedactPatterns());
   let filesWithSecrets = 0;
+  let totalSecrets = 0;
   let readErrors = 0;
 
   // Scan all files if <=200, otherwise sample 200 randomly to avoid long delays
@@ -60,8 +65,9 @@ export async function noteSessionSecretsWarnings(_cfg?: OpenClawConfig): Promise
     const result = await scanFileForSecrets(file, patterns);
     if (result.error) {
       readErrors++;
-    } else if (result.match) {
+    } else if (result.matchCount > 0) {
       filesWithSecrets++;
+      totalSecrets += result.matchCount;
     }
   }
 
@@ -77,7 +83,7 @@ export async function noteSessionSecretsWarnings(_cfg?: OpenClawConfig): Promise
     const percentage = Math.round((filesWithSecrets / sampleSize) * 100);
     const sampledNote = files.length > 200 ? " (deterministic sample)" : "";
     warnings.push(
-      `- Found unredacted secrets in ${filesWithSecrets} of ${sampleSize} session files scanned${sampledNote} (~${percentage}%).`,
+      `- Found ${totalSecrets} unredacted secret(s) across ${filesWithSecrets} of ${sampleSize} session files scanned${sampledNote} (~${percentage}%).`,
     );
     warnings.push(
       `  Session transcripts may contain API keys, tokens, or passwords from tool calls.`,
@@ -91,7 +97,7 @@ export async function noteSessionSecretsWarnings(_cfg?: OpenClawConfig): Promise
   } else {
     const sampledNote = files.length > 200 ? " (deterministic sample)" : "";
     warnings.push(
-      `- Scanned ${sampleSize} session file(s)${sampledNote}, no obvious unredacted secrets detected.`,
+      `- Scanned ${sampleSize} session file(s)${sampledNote} — no unredacted secrets detected. ✓`,
     );
     warnings.push(
       `  This is a basic pattern check. Run ${formatCliCommand("openclaw sessions scrub --dry-run")} for thorough analysis.`,
