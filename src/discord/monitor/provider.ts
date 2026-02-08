@@ -659,8 +659,54 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
   // Timeout to detect zombie connections where HELLO is never received.
   const HELLO_TIMEOUT_MS = 30000;
   let helloTimeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  // Liveness watchdog: if we never reach READY/RESUMED within this window,
+  // force the provider to exit so the supervisor loop can retry from scratch.
+  // This prevents the scenario where Carbon's internal reconnect loop keeps
+  // cycling (close → backoff → connect → close) without ever emitting an error,
+  // which would block waitForDiscordGatewayStop() forever.
+  const LIVENESS_TIMEOUT_MS =
+    typeof reconnectConfig?.livenessTimeoutMs === "number"
+      ? reconnectConfig.livenessTimeoutMs
+      : 5 * 60_000; // default: 5 minutes
+  let livenessTimer: ReturnType<typeof setTimeout> | undefined;
+  let lastConnectedAt = 0;
+  const resetLivenessTimer = () => {
+    if (livenessTimer) {
+      clearTimeout(livenessTimer);
+    }
+    if (aborting || abortSignal?.aborted || LIVENESS_TIMEOUT_MS <= 0) {
+      return;
+    }
+    livenessTimer = setTimeout(() => {
+      livenessTimer = undefined;
+      if (aborting || abortSignal?.aborted) {
+        return;
+      }
+      if (gateway?.isConnected) {
+        // Currently connected — reset the timer, don't kill anything.
+        resetLivenessTimer();
+        return;
+      }
+      runtime.log?.(
+        danger(
+          `discord: liveness watchdog triggered — gateway has not reached READY/RESUMED for ${Math.round(LIVENESS_TIMEOUT_MS / 1000)}s, forcing provider restart`,
+        ),
+      );
+      // Force the provider to exit by aborting; the supervisor while-loop will restart it.
+      onAbort();
+    }, LIVENESS_TIMEOUT_MS);
+  };
+
   const onGatewayDebug = (msg: unknown) => {
     const message = String(msg);
+
+    // Track when gateway reaches a healthy state so liveness timer can be reset.
+    if (message.includes("READY") || message.includes("RESUMED")) {
+      lastConnectedAt = Date.now();
+      resetLivenessTimer();
+    }
+
     if (!message.includes("WebSocket connection opened")) {
       return;
     }
@@ -681,6 +727,10 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
     }, HELLO_TIMEOUT_MS);
   };
   gatewayEmitter?.on("debug", onGatewayDebug);
+
+  // Start the liveness watchdog on initial connection.
+  resetLivenessTimer();
+
   try {
     await waitForDiscordGatewayStop({
       gateway: gateway
@@ -711,6 +761,9 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
     stopGatewayLogging();
     if (helloTimeoutId) {
       clearTimeout(helloTimeoutId);
+    }
+    if (livenessTimer) {
+      clearTimeout(livenessTimer);
     }
     gatewayEmitter?.removeListener("debug", onGatewayDebug);
     abortSignal?.removeEventListener("abort", onAbort);

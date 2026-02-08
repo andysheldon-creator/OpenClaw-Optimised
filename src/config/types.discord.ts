@@ -97,6 +97,13 @@ export type DiscordGatewayReconnectConfig = {
   baseDelayMs?: number;
   /** Maximum backoff delay (ms). Default: 30000. */
   maxDelayMs?: number;
+  /**
+   * Liveness watchdog timeout (ms). If the gateway fails to reach READY/RESUMED
+   * within this window, the provider is forcibly restarted by the supervisor loop.
+   * This prevents silent reconnect storms where Carbon cycles internally without
+   * ever emitting an error. Default: 300000 (5 minutes). Set to 0 to disable.
+   */
+  livenessTimeoutMs?: number;
 };
 
 export type DiscordExecApprovalConfig = {
