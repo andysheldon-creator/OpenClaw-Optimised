@@ -52,7 +52,11 @@ export async function findSessionFiles(stateDir: string): Promise<string[]> {
     }
   }
 
-  // Legacy layout: ~/.openclaw/sessions/*.jsonl (pre-agent-scoped storage)
+  // Legacy layout: ${stateDir}/sessions/*.jsonl (pre-agent-scoped storage)
+  await addFromDir(path.join(stateDir, "sessions"));
+
+  // Also scan ~/.openclaw/sessions/ if stateDir is non-default, so legacy
+  // transcripts are found regardless of the configured state directory.
   const legacyDir = path.join(os.homedir(), ".openclaw", "sessions");
   if (legacyDir !== path.join(stateDir, "sessions")) {
     await addFromDir(legacyDir);
