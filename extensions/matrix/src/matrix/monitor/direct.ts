@@ -60,6 +60,26 @@ export function createDirectRoomTracker(client: MatrixClient, opts: DirectRoomTr
     }
   };
 
+  const roomHasNameOrAlias = async (roomId: string): Promise<boolean> => {
+    try {
+      const nameState = await client.getRoomStateEvent(roomId, "m.room.name", "");
+      if (nameState?.name && typeof nameState.name === "string" && nameState.name.trim()) {
+        return true;
+      }
+    } catch {
+      // No name set
+    }
+    try {
+      const aliasState = await client.getRoomStateEvent(roomId, "m.room.canonical_alias", "");
+      if (aliasState?.alias && typeof aliasState.alias === "string" && aliasState.alias.trim()) {
+        return true;
+      }
+    } catch {
+      // No alias set
+    }
+    return false;
+  };
+
   const hasDirectFlag = async (roomId: string, userId?: string): Promise<boolean> => {
     const target = userId?.trim();
     if (!target) {
@@ -85,8 +105,14 @@ export function createDirectRoomTracker(client: MatrixClient, opts: DirectRoomTr
 
       const memberCount = await resolveMemberCount(roomId);
       if (memberCount === 2) {
-        log(`matrix: dm detected via member count room=${roomId} members=${memberCount}`);
-        return true;
+        // Don't classify named rooms as DMs — rooms with an explicit name or
+        // canonical alias are intentional channels even with only 2 members (#12138)
+        const hasRoomIdentity = await roomHasNameOrAlias(roomId);
+        if (!hasRoomIdentity) {
+          log(`matrix: dm detected via member count room=${roomId} members=${memberCount}`);
+          return true;
+        }
+        log(`matrix: skipping member-count DM heuristic for named room=${roomId}`);
       }
 
       const selfUserId = params.selfUserId ?? (await ensureSelfUserId());
