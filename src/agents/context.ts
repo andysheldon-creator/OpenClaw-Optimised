@@ -35,7 +35,11 @@ const loadPromise = (async () => {
         for (const modelCfg of providerModels) {
           const modelId = modelCfg?.id;
           const contextWindow = modelCfg?.contextWindow;
-          if (typeof modelId === "string" && typeof contextWindow === "number" && contextWindow > 0) {
+          if (
+            typeof modelId === "string" &&
+            typeof contextWindow === "number" &&
+            contextWindow > 0
+          ) {
             // Store under both plain model ID (used by lookupContextTokens callers)
             // and provider/modelId format for complete coverage
             MODEL_CACHE.set(modelId, contextWindow);
