@@ -60,6 +60,13 @@ const SHELL_ENV_EXPECTED_KEYS = [
 const CONFIG_BACKUP_COUNT = 5;
 const loggedInvalidConfigs = new Set<string>();
 
+// Module-level env snapshot shared across exported wrapper functions.
+// readConfigFileSnapshot() stores it; writeConfigFile() consumes it.
+// This bridges the TOCTOU gap when callers use the exported wrappers
+// (which create separate createConfigIO instances) rather than reusing
+// a single IO instance.
+let _moduleEnvSnapshot: Record<string, string | undefined> | null = null;
+
 export type ParseConfigJson5Result = { ok: true; parsed: unknown } | { ok: false; error: string };
 
 function hashConfigRaw(raw: string | null): string {
@@ -581,6 +588,14 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
     loadConfig,
     readConfigFileSnapshot,
     writeConfigFile,
+    /** Return the env snapshot captured during the last loadConfig/readConfigFileSnapshot, or null. */
+    getEnvSnapshot(): Record<string, string | undefined> | null {
+      return envSnapshotForRestore;
+    },
+    /** Inject an env snapshot (e.g. from a prior IO instance) for use by writeConfigFile. */
+    setEnvSnapshot(snapshot: Record<string, string | undefined>): void {
+      envSnapshotForRestore = snapshot;
+    },
   };
 }
 
@@ -645,10 +660,21 @@ export function loadConfig(): OpenClawConfig {
 }
 
 export async function readConfigFileSnapshot(): Promise<ConfigFileSnapshot> {
-  return await createConfigIO().readConfigFileSnapshot();
+  const io = createConfigIO();
+  const snapshot = await io.readConfigFileSnapshot();
+  // Persist env snapshot from this IO instance so a subsequent writeConfigFile()
+  // call (which creates its own IO instance) can use the read-time env state.
+  _moduleEnvSnapshot = io.getEnvSnapshot();
+  return snapshot;
 }
 
 export async function writeConfigFile(cfg: OpenClawConfig): Promise<void> {
   clearConfigCache();
-  await createConfigIO().writeConfigFile(cfg);
+  const io = createConfigIO();
+  // Inject module-level env snapshot from a prior readConfigFileSnapshot() call
+  // so that env restoration uses read-time env, not live env (TOCTOU fix).
+  if (_moduleEnvSnapshot) {
+    io.setEnvSnapshot(_moduleEnvSnapshot);
+  }
+  await io.writeConfigFile(cfg);
 }
