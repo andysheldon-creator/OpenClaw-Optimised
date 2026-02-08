@@ -21,7 +21,28 @@ Compaction **persists** in the session’s JSONL history.
 
 ## Configuration
 
-See [Compaction config & modes](/concepts/compaction) for the `agents.defaults.compaction` settings.
+See [Compaction config in the gateway configuration reference](/gateway/configuration#agentsdefaultscompaction-reserve-headroom--memory-flush) for `agents.defaults.compaction` settings.
+
+### Dedicated compaction model
+
+By default, compaction uses the primary model. Some providers (e.g. CLI-based wrappers) may not support the summarization API, causing compaction to fail silently during auto-compaction. Set `agents.defaults.model.compact` to a dedicated provider/model for reliable compaction:
+
+```json5
+{
+  agents: {
+    defaults: {
+      model: {
+        primary: "google-gemini-cli/gemini-3-pro-preview",
+        compact: "myapi/gemini-3-pro-preview",
+      },
+    },
+  },
+}
+```
+
+- Applies to both `/compact` and auto-compaction (context overflow).
+- If the compact model fails, OpenClaw falls back to the primary model automatically.
+- Compaction quality directly affects context accuracy, so pick a capable model.
 
 ## Auto-compaction (default on)
 

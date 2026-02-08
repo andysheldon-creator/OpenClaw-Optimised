@@ -1685,6 +1685,7 @@ Defaults for Talk mode (macOS/iOS/Android). Voice IDs fall back to `ELEVENLABS_V
 Controls the embedded agent runtime (model/thinking/verbose/timeouts).
 `agents.defaults.models` defines the configured model catalog (and acts as the allowlist for `/model`).
 `agents.defaults.model.primary` sets the default model; `agents.defaults.model.fallbacks` are global failovers.
+`agents.defaults.model.compact` optionally sets a dedicated model for compaction summarization (falls back to primary if unset or if the compact model fails).
 `agents.defaults.imageModel` is optional and is **only used if the primary model lacks image input**.
 Each `agents.defaults.models` entry can include:
 
@@ -1742,6 +1743,26 @@ Example: Opus 4.6 primary with MiniMax M2.1 fallback (hosted MiniMax):
       model: {
         primary: "anthropic/claude-opus-4-6",
         fallbacks: ["minimax/MiniMax-M2.1"],
+      },
+    },
+  },
+}
+```
+
+##### `model.compact` (dedicated compaction model)
+
+By default, compaction uses the primary model. If your primary model does not support the summarization API (e.g. some CLI-based providers return 400 on compaction), set `model.compact` to a provider/model that handles summarization reliably.
+
+Compaction quality directly affects context accuracy after summary, so choose a capable model. If the compact model fails, OpenClaw automatically falls back to the primary model.
+
+```json5
+{
+  agents: {
+    defaults: {
+      model: {
+        primary: "google-gemini-cli/gemini-3-pro-preview",
+        compact: "myapi/gemini-3-pro-preview",
+        fallbacks: ["myapi/gemini-3-pro-preview", "google-gemini-cli/gemini-3-flash-preview"],
       },
     },
   },
