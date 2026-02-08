@@ -114,7 +114,7 @@ export function createEventHandlers(context: EventHandlerContext) {
       state.activeChatRunId = evt.runId;
     }
     if (evt.state === "delta") {
-      const displayText = streamAssembler.ingestDelta(evt.runId, evt.message, state.showThinking);
+      const displayText = streamAssembler.ingestDelta(evt.runId, evt.message, true);
       if (!displayText) {
         return;
       }
@@ -174,7 +174,7 @@ export function createEventHandlers(context: EventHandlerContext) {
             : ""
           : "";
 
-      const finalText = streamAssembler.finalize(evt.runId, evt.message, state.showThinking);
+      const finalText = streamAssembler.finalize(evt.runId, evt.message, true);
       chatLog.finalizeAssistant(finalText, evt.runId);
       pendingDeltaByRun.delete(evt.runId);
       noteFinalizedRun(evt.runId);
