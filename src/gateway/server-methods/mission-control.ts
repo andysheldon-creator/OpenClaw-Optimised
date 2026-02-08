@@ -62,7 +62,9 @@ let tasks: MissionControlTask[] = [];
 let db: import("better-sqlite3").Database | null = null;
 
 function initDb(): void {
-  if (db) return;
+  if (db) {
+    return;
+  }
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const Database = require("better-sqlite3");
@@ -91,10 +93,10 @@ function dbToTask(row: unknown): MissionControlTask {
     status: String(r.status) as MissionControlTaskStatus,
     agentId: r.agent_id ? String(r.agent_id) : null,
     sessionKey: r.session_key ? String(r.session_key) : null,
-    createdAt: Number(r.created_at) * 1000,
-    updatedAt: Number(r.updated_at) * 1000,
-    startedAt: r.started_at ? Number(r.started_at) * 1000 : null,
-    finishedAt: r.finished_at ? Number(r.finished_at) * 1000 : null,
+    createdAt: Number(r.created_at),
+    updatedAt: Number(r.updated_at),
+    startedAt: r.started_at ? Number(r.started_at) : null,
+    finishedAt: r.finished_at ? Number(r.finished_at) : null,
     resultSummary: r.result_summary ? String(r.result_summary) : null,
     errorMessage: r.error_message ? String(r.error_message) : null,
     priority: r.priority ? Number(r.priority) : 0,
@@ -105,7 +107,9 @@ function dbToTask(row: unknown): MissionControlTask {
 }
 
 function fetchTasksFromDb(): MissionControlTask[] {
-  if (!db) return tasks;
+  if (!db) {
+    return tasks;
+  }
   try {
     const rows = db.prepare("SELECT * FROM jobs ORDER BY created_at DESC").all();
     return rows.map(dbToTask);
@@ -130,8 +134,8 @@ function insertTaskToDb(task: MissionControlTask): void {
       task.status,
       task.agentId,
       task.sessionKey,
-      Math.floor(task.createdAt / 1000),
-      Math.floor(task.updatedAt / 1000),
+      task.createdAt,
+      task.updatedAt,
       task.priority ?? 0,
       (task.tags ?? []).join(","),
       task.failCount ?? 0,
@@ -145,7 +149,9 @@ function insertTaskToDb(task: MissionControlTask): void {
 function updateTaskInDb(task: MissionControlTask): void {
   if (!db) {
     const idx = tasks.findIndex((t) => t.id === task.id);
-    if (idx >= 0) tasks[idx] = task;
+    if (idx >= 0) {
+      tasks[idx] = task;
+    }
     return;
   }
   try {
@@ -172,9 +178,9 @@ function updateTaskInDb(task: MissionControlTask): void {
       task.status,
       task.agentId,
       task.sessionKey,
-      Math.floor(task.updatedAt / 1000),
-      task.startedAt ? Math.floor(task.startedAt / 1000) : null,
-      task.finishedAt ? Math.floor(task.finishedAt / 1000) : null,
+      task.updatedAt,
+      task.startedAt,
+      task.finishedAt,
       task.resultSummary,
       task.errorMessage,
       task.priority ?? 0,
@@ -185,7 +191,9 @@ function updateTaskInDb(task: MissionControlTask): void {
     );
   } catch {
     const idx = tasks.findIndex((t) => t.id === task.id);
-    if (idx >= 0) tasks[idx] = task;
+    if (idx >= 0) {
+      tasks[idx] = task;
+    }
   }
 }
 
@@ -255,8 +263,12 @@ export const missionControlHandlers: GatewayRequestHandlers = {
     }
 
     const patch = p.patch;
-    if (patch.title !== undefined) task.title = patch.title;
-    if (patch.description !== undefined) task.description = patch.description;
+    if (patch.title !== undefined) {
+      task.title = patch.title;
+    }
+    if (patch.description !== undefined) {
+      task.description = patch.description;
+    }
     if (patch.status !== undefined) {
       const oldStatus = task.status;
       task.status = patch.status;
@@ -268,16 +280,36 @@ export const missionControlHandlers: GatewayRequestHandlers = {
         task.finishedAt = Date.now();
       }
     }
-    if (patch.agentId !== undefined) task.agentId = patch.agentId;
-    if (patch.sessionKey !== undefined) task.sessionKey = patch.sessionKey;
-    if (patch.priority !== undefined) task.priority = patch.priority;
-    if (patch.tags !== undefined) task.tags = patch.tags;
-    if (patch.resultSummary !== undefined) task.resultSummary = patch.resultSummary;
-    if (patch.errorMessage !== undefined) task.errorMessage = patch.errorMessage;
-    if (patch.startedAt !== undefined) task.startedAt = patch.startedAt;
-    if (patch.finishedAt !== undefined) task.finishedAt = patch.finishedAt;
-    if (patch.failCount !== undefined) task.failCount = patch.failCount;
-    if (patch.revisionCount !== undefined) task.revisionCount = patch.revisionCount;
+    if (patch.agentId !== undefined) {
+      task.agentId = patch.agentId;
+    }
+    if (patch.sessionKey !== undefined) {
+      task.sessionKey = patch.sessionKey;
+    }
+    if (patch.priority !== undefined) {
+      task.priority = patch.priority;
+    }
+    if (patch.tags !== undefined) {
+      task.tags = patch.tags;
+    }
+    if (patch.resultSummary !== undefined) {
+      task.resultSummary = patch.resultSummary;
+    }
+    if (patch.errorMessage !== undefined) {
+      task.errorMessage = patch.errorMessage;
+    }
+    if (patch.startedAt !== undefined) {
+      task.startedAt = patch.startedAt;
+    }
+    if (patch.finishedAt !== undefined) {
+      task.finishedAt = patch.finishedAt;
+    }
+    if (patch.failCount !== undefined) {
+      task.failCount = patch.failCount;
+    }
+    if (patch.revisionCount !== undefined) {
+      task.revisionCount = patch.revisionCount;
+    }
 
     task.updatedAt = Date.now();
 
