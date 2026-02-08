@@ -23,6 +23,7 @@ import {
   applySessionDefaults,
   applyTalkApiKey,
 } from "./defaults.js";
+import { restoreEnvVarRefs } from "./env-preserve.js";
 import { MissingEnvVarError, resolveConfigEnvVars } from "./env-substitution.js";
 import { collectConfigEnvVars } from "./env-vars.js";
 import { ConfigIncludeError, resolveConfigIncludes } from "./includes.js";
@@ -493,9 +494,37 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
         .join("\n");
       deps.logger.warn(`Config warnings:\n${details}`);
     }
+
+    // Restore ${VAR} env var references that were resolved during config loading.
+    // Read the current file (pre-substitution) and restore any references whose
+    // resolved values match the incoming config — so we don't overwrite
+    // "${ANTHROPIC_API_KEY}" with "sk-ant-..." when the caller didn't change it.
+    let cfgToWrite: OpenClawConfig = cfg;
+    try {
+      if (deps.fs.existsSync(configPath)) {
+        const currentRaw = await deps.fs.promises.readFile(configPath, "utf-8");
+        const parsedRes = parseConfigJson5(currentRaw, deps.json5);
+        if (parsedRes.ok) {
+          // Resolve includes to get the full pre-substitution object
+          let preSubstitution: unknown = parsedRes.parsed;
+          try {
+            preSubstitution = resolveConfigIncludes(parsedRes.parsed, configPath, {
+              readFile: (p) => deps.fs.readFileSync(p, "utf-8"),
+              parseJson: (raw) => deps.json5.parse(raw),
+            });
+          } catch {
+            // If include resolution fails, use parsed as-is
+          }
+          cfgToWrite = restoreEnvVarRefs(cfg, preSubstitution, deps.env) as OpenClawConfig;
+        }
+      }
+    } catch {
+      // If reading the current file fails, write cfg as-is (no env restoration)
+    }
+
     const dir = path.dirname(configPath);
     await deps.fs.promises.mkdir(dir, { recursive: true, mode: 0o700 });
-    const json = JSON.stringify(applyModelDefaults(stampConfigVersion(cfg)), null, 2)
+    const json = JSON.stringify(applyModelDefaults(stampConfigVersion(cfgToWrite)), null, 2)
       .trimEnd()
       .concat("\n");
 
