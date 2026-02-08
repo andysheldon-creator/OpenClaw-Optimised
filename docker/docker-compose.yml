@@ -49,6 +49,8 @@ services:
       OPENCLAW_TRUSTED_PROXIES: ${OPENCLAW_TRUSTED_PROXIES:-172.28.0.10}
       OPENCLAW_N8N_BASE_URL: ${OPENCLAW_N8N_BASE_URL:-http://n8n:5678/workflows}
       OPENCLAW_N8N_API_KEY: ${OPENCLAW_N8N_API_KEY:-}
+      N8N_BASE_URL: ${N8N_BASE_URL:-http://n8n:5678/workflows}
+      N8N_API_KEY: ${N8N_API_KEY:-}
       # Channels: set bot tokens to auto-enable channels.
       # Leave blank to skip that channel.
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
