@@ -5,6 +5,7 @@ import { agentsHandlers } from "./server-methods/agents.js";
 import { browserHandlers } from "./server-methods/browser.js";
 import { channelsHandlers } from "./server-methods/channels.js";
 import { chatHandlers } from "./server-methods/chat.js";
+import { clawdbotControlPlaneHandlers } from "./server-methods/clawdbot-control-plane.js";
 import { configHandlers } from "./server-methods/config.js";
 import { connectHandlers } from "./server-methods/connect.js";
 import { cronHandlers } from "./server-methods/cron.js";
@@ -72,6 +73,15 @@ const READ_METHODS = new Set([
   "node.list",
   "node.describe",
   "chat.history",
+  "clawdbot.snapshot",
+  "clawdbot.runs.list",
+  "clawdbot.runs.get",
+  "clawdbot.approvals.list",
+  "clawdbot.skills.inventory",
+  "clawdbot.workflows.inventory",
+  "clawdbot.bindings.list",
+  "clawdbot.drift.status",
+  "clawdbot.readiness.report",
 ]);
 const WRITE_METHODS = new Set([
   "send",
@@ -88,6 +98,13 @@ const WRITE_METHODS = new Set([
   "chat.send",
   "chat.abort",
   "browser.request",
+  "clawdbot.approvals.resolve",
+  "clawdbot.skills.mutate",
+  "clawdbot.workflows.mutate",
+  "clawdbot.bindings.upsert",
+  "clawdbot.marketing.compile",
+  "clawdbot.marketing.execute",
+  "clawdbot.backfill",
 ]);
 
 function authorizeGatewayMethod(method: string, client: GatewayRequestOptions["client"]) {
@@ -173,6 +190,7 @@ export const coreGatewayHandlers: GatewayRequestHandlers = {
   ...modelsHandlers,
   ...configHandlers,
   ...wizardHandlers,
+  ...clawdbotControlPlaneHandlers,
   ...talkHandlers,
   ...ttsHandlers,
   ...skillsHandlers,

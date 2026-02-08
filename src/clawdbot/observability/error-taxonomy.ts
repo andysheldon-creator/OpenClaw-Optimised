@@ -228,7 +228,7 @@ export const errorTaxonomy: Readonly<Record<string, TaxonomyEntry>> = {
 export function classifyError(error: Error, codeHint?: string): ClassifiedError {
   // Direct lookup when a code hint is provided.
   if (codeHint && codeHint in errorTaxonomy) {
-    const entry = errorTaxonomy[codeHint]!;
+    const entry = errorTaxonomy[codeHint];
     return {
       code: codeHint,
       message: entry.message,
@@ -260,7 +260,7 @@ export function classifyError(error: Error, codeHint?: string): ClassifiedError 
   }
 
   // Fallback to unknown internal error.
-  const fallback = errorTaxonomy["INTERNAL_UNKNOWN"]!;
+  const fallback = errorTaxonomy["INTERNAL_UNKNOWN"];
   return {
     code: "INTERNAL_UNKNOWN",
     message: fallback.message,

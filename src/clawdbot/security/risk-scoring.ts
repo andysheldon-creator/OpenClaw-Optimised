@@ -161,7 +161,9 @@ export function calculateRiskScore(
 
   for (const evaluate of evaluators) {
     const factor = evaluate(context);
-    if (factor) factors.push(factor);
+    if (factor) {
+      factors.push(factor);
+    }
   }
 
   // Weighted average — if no factors fire, score is 0.

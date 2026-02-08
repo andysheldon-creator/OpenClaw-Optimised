@@ -1,19 +1,17 @@
-version: "3.8"
-
 services:
   postgres:
     image: postgres:16-alpine
     container_name: clawdbot-postgres
-    ports:
-      - "5432:5432"
     environment:
-      POSTGRES_USER: clawdbot
-      POSTGRES_PASSWORD: clawdbot_password
-      POSTGRES_DB: clawdbot
+      POSTGRES_USER: ${POSTGRES_USER:-clawdbot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-clawdbot_password}
+      POSTGRES_DB: ${POSTGRES_DB:-clawdbot}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U clawdbot"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-clawdbot}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -23,10 +21,10 @@ services:
   redis:
     image: redis:7-alpine
     container_name: clawdbot-redis
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -35,30 +33,94 @@ services:
     networks:
       - clawdbot-network
 
+  openclaw-gateway:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: ${OPENCLAW_IMAGE:-openclaw:local}
+    container_name: clawdbot-openclaw-gateway
+    user: "0:0"
+    environment:
+      HOME: /home/node
+      TERM: xterm-256color
+      OPENCLAW_STATE_DIR: /home/node/.openclaw
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-dev-local-token}
+      OPENCLAW_GATEWAY_PORT: "18789"
+      OPENCLAW_TRUSTED_PROXIES: ${OPENCLAW_TRUSTED_PROXIES:-172.28.0.10}
+      OPENCLAW_N8N_BASE_URL: ${OPENCLAW_N8N_BASE_URL:-http://n8n:5678/workflows}
+      OPENCLAW_N8N_API_KEY: ${OPENCLAW_N8N_API_KEY:-}
+      # Channels: set bot tokens to auto-enable channels.
+      # Leave blank to skip that channel.
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+    entrypoint: ["sh", "/app/docker/gateway-entrypoint.sh"]
+    volumes:
+      - openclaw_state:/home/node/.openclaw
+    depends_on:
+      n8n:
+        condition: service_started
+    ports:
+      # OAuth callback for interactive onboarding (openclaw onboard)
+      - "1455:1455"
+    expose:
+      - "18789"
+    restart: unless-stopped
+    networks:
+      - clawdbot-network
+
+  dashboard:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: ${OPENCLAW_IMAGE:-openclaw:local}
+    container_name: clawdbot-dashboard
+    environment:
+      OPENCLAW_DASHBOARD_BASE_PATH: /
+    command:
+      [
+        "pnpm",
+        "--dir",
+        "dashboard",
+        "preview",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "5174",
+        "--strictPort",
+      ]
+    depends_on:
+      - openclaw-gateway
+    expose:
+      - "5174"
+    restart: unless-stopped
+    networks:
+      - clawdbot-network
+
   n8n:
     image: n8nio/n8n:latest
     container_name: clawdbot-n8n
-    ports:
-      - "5678:5678"
     depends_on:
       postgres:
         condition: service_healthy
     environment:
       DB_TYPE: postgresdb
       DB_POSTGRESDB_HOST: postgres
-      DB_POSTGRESDB_USER: clawdbot
-      DB_POSTGRESDB_PASSWORD: clawdbot_password
-      DB_POSTGRESDB_DATABASE: n8n
+      DB_POSTGRESDB_USER: ${POSTGRES_USER:-clawdbot}
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD:-clawdbot_password}
+      DB_POSTGRESDB_DATABASE: ${POSTGRES_DB:-clawdbot}
       DB_POSTGRESDB_PORT: 5432
+      N8N_PUBLIC_API_DISABLED: "false"
       N8N_DISABLE_X_FRAME_OPTIONS: "true"
-      N8N_EDITOR_BASE_URL: /workflows
+      N8N_EDITOR_BASE_URL: ${N8N_EDITOR_BASE_URL:-http://localhost:8080/workflows/}
       N8N_PATH: /workflows
       N8N_BASIC_AUTH_ACTIVE: "false"
-      N8N_HOST: localhost
+      N8N_HOST: n8n
       N8N_PORT: 5678
-      WEBHOOK_URL: http://localhost:8080
+      N8N_PROXY_HOPS: 1
+      WEBHOOK_URL: ${WEBHOOK_URL:-http://localhost:8080/workflows}
     volumes:
       - n8n_data:/home/node/.n8n
+    expose:
+      - "5678"
     networks:
       - clawdbot-network
     restart: unless-stopped
@@ -70,17 +132,24 @@ services:
       - "8080:80"
     depends_on:
       - n8n
+      - dashboard
+      - openclaw-gateway
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     networks:
-      - clawdbot-network
+      clawdbot-network:
+        ipv4_address: 172.28.0.10
     restart: unless-stopped
 
 volumes:
   postgres_data:
   redis_data:
   n8n_data:
+  openclaw_state:
 
 networks:
   clawdbot-network:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

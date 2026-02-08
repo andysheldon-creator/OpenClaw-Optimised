@@ -1,0 +1,188 @@
+{
+  "name": "Marketing Plan Dry Run Preview",
+  "description": "Compiles a marketing plan into a deterministic action graph, generates human-reviewable diffs, and stores preview artifacts without mutating external ad accounts.",
+  "area": "marketing",
+  "version": "1.0.0",
+  "nodes": [
+    {
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "position": [220, 280],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "marketing-plan/dry-run",
+        "responseMode": "onReceived"
+      }
+    },
+    {
+      "id": "validate-input",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.if",
+      "position": [430, 280],
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.plan.title }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "compile-plan",
+      "name": "Compile Marketing Plan",
+      "type": "n8n-nodes-clawdbot.clawdbotSkill",
+      "position": [650, 220],
+      "parameters": {
+        "skillName": "marketing-plan-compiler",
+        "input": "={{ JSON.stringify({ ...$json.plan, mode: 'dry-run' }) }}"
+      }
+    },
+    {
+      "id": "build-preview",
+      "name": "Build Diff Preview",
+      "type": "n8n-nodes-base.set",
+      "position": [860, 220],
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "run_mode",
+              "value": "dry-run"
+            },
+            {
+              "name": "preview_title",
+              "value": "={{ $json.plan.title }}"
+            },
+            {
+              "name": "action_graph_hash",
+              "value": "={{ $json.actionGraphHash }}"
+            }
+          ],
+          "json": [
+            {
+              "name": "proposed_actions",
+              "value": "={{ $json.actions }}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "risk-check",
+      "name": "High Risk Changes?",
+      "type": "n8n-nodes-base.if",
+      "position": [1070, 220],
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ JSON.stringify($json.actions) }}",
+              "operation": "contains",
+              "value2": "\"risk\":\"high\""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "approval-gate",
+      "name": "Approval Gate",
+      "type": "n8n-nodes-clawdbot.clawdbotApprovalGate",
+      "position": [1280, 170],
+      "parameters": {
+        "approverRole": "marketing-operator",
+        "timeoutMinutes": 240,
+        "includeSnapshot": true,
+        "onRejection": "stop",
+        "onTimeout": "stop"
+      }
+    },
+    {
+      "id": "store-preview",
+      "name": "Store Preview Artifact",
+      "type": "n8n-nodes-clawdbot.clawdbotArtifact",
+      "position": [1280, 300],
+      "parameters": {
+        "kind": "json",
+        "name": "marketing-plan-dry-run-preview",
+        "payload": "={{ JSON.stringify($json) }}"
+      }
+    },
+    {
+      "id": "notify-preview",
+      "name": "Notify Preview Ready",
+      "type": "n8n-nodes-base.set",
+      "position": [1490, 240],
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "preview_ready"
+            },
+            {
+              "name": "message",
+              "value": "Dry-run preview generated with no external mutations."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "reject-invalid",
+      "name": "Reject Invalid Payload",
+      "type": "n8n-nodes-base.set",
+      "position": [650, 420],
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "invalid_payload"
+            },
+            {
+              "name": "message",
+              "value": "Plan payload missing required fields."
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "connections": {
+    "webhook-trigger": {
+      "main": [[{ "node": "validate-input", "type": "main", "index": 0 }]]
+    },
+    "validate-input": {
+      "main": [
+        [{ "node": "compile-plan", "type": "main", "index": 0 }],
+        [{ "node": "reject-invalid", "type": "main", "index": 0 }]
+      ]
+    },
+    "compile-plan": {
+      "main": [[{ "node": "build-preview", "type": "main", "index": 0 }]]
+    },
+    "build-preview": {
+      "main": [[{ "node": "risk-check", "type": "main", "index": 0 }]]
+    },
+    "risk-check": {
+      "main": [
+        [{ "node": "approval-gate", "type": "main", "index": 0 }],
+        [{ "node": "store-preview", "type": "main", "index": 0 }]
+      ]
+    },
+    "approval-gate": {
+      "main": [[{ "node": "store-preview", "type": "main", "index": 0 }]]
+    },
+    "store-preview": {
+      "main": [[{ "node": "notify-preview", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

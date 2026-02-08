@@ -178,9 +178,15 @@ export type HealthDigestGateResult = {
  * Returns the worst status across all services.
  */
 export function computeOverallStatus(services: HealthCheckResult[]): ServiceStatus {
-  if (services.some((s) => s.status === "down")) return "down";
-  if (services.some((s) => s.status === "degraded")) return "degraded";
-  if (services.some((s) => s.status === "unknown")) return "unknown";
+  if (services.some((s) => s.status === "down")) {
+    return "down";
+  }
+  if (services.some((s) => s.status === "degraded")) {
+    return "degraded";
+  }
+  if (services.some((s) => s.status === "unknown")) {
+    return "unknown";
+  }
   return "healthy";
 }
 

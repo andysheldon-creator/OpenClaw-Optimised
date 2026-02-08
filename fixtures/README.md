@@ -80,11 +80,13 @@ const contacts = readFixture("csv/contacts.csv");
 
 ### api-responses/
 
-| File                     | Description                                                            |
-| ------------------------ | ---------------------------------------------------------------------- |
-| `crm-lead.json`          | Full CRM lead record with contact, company, deal, and activity history |
-| `enrichment-result.json` | Data enrichment API response with person, company, and intent signals  |
-| `webhook-event.json`     | Inbound webhook event payload (`message.received` type)                |
+| File                               | Description                                                                       |
+| ---------------------------------- | --------------------------------------------------------------------------------- |
+| `crm-lead.json`                    | Full CRM lead record with contact, company, deal, and activity history            |
+| `enrichment-result.json`           | Data enrichment API response with person, company, and intent signals             |
+| `marketing-plan-sandbox.json`      | Sandbox marketing plan fixture with campaign, ad group, keyword, and ad mutations |
+| `control-plane-operator-flow.json` | Operator lifecycle fixture for skill/workflow mutation E2E harness                |
+| `webhook-event.json`               | Inbound webhook event payload (`message.received` type)                           |
 
 ## Guidelines
 

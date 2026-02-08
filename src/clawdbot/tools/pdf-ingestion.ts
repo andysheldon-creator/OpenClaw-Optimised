@@ -1,15 +1,22 @@
 /**
  * TOOLS-015 (#51) -- PDF / text ingestion
  *
- * Stubs for ingesting PDF and plain-text documents into a structured
- * representation. The extracted text, page metadata, and table-of-contents
- * tree are returned for downstream processing (RAG, summarization,
- * search indexing, etc.).
+ * Extracts text from PDF and plain-text documents into a structured
+ * representation using system CLI tools:
+ * - `pdftotext` (poppler-utils) for text-based PDFs
+ * - `pdfinfo` (poppler-utils) for PDF metadata
+ * - `tesseract` for OCR fallback on scanned/image PDFs
  *
  * @module
  */
 
-import { readFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { readFile, stat, writeFile, unlink, mkdtemp } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { promisify } from "node:util";
+
+const execFileAsync = promisify(execFile);
 
 // ---------------------------------------------------------------------------
 // Table of contents
@@ -69,6 +76,12 @@ export type IngestMetadata = {
 
   /** MIME type of the source file. */
   content_type?: string;
+
+  /** Number of pages (PDF only). */
+  page_count?: number;
+
+  /** Whether OCR was used (scanned document). */
+  ocr_used?: boolean;
 };
 
 // ---------------------------------------------------------------------------
@@ -91,39 +104,188 @@ export type IngestResult = {
 };
 
 // ---------------------------------------------------------------------------
-// PDF ingestion stub
+// Helpers
+// ---------------------------------------------------------------------------
+
+async function commandExists(cmd: string): Promise<boolean> {
+  try {
+    await execFileAsync("which", [cmd]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Extract metadata from a PDF using `pdfinfo`. */
+async function extractPdfInfo(
+  path: string,
+): Promise<{
+  title?: string;
+  author?: string;
+  producer?: string;
+  pageCount?: number;
+  createdAt?: string;
+  modifiedAt?: string;
+}> {
+  try {
+    const { stdout } = await execFileAsync("pdfinfo", [path]);
+    const get = (key: string): string | undefined => {
+      const match = stdout.match(new RegExp(`^${key}:\\s*(.+)$`, "m"));
+      return match?.[1]?.trim() || undefined;
+    };
+    return {
+      title: get("Title"),
+      author: get("Author"),
+      producer: get("Producer"),
+      pageCount: get("Pages") ? parseInt(get("Pages")!, 10) : undefined,
+      createdAt: get("CreationDate"),
+      modifiedAt: get("ModDate"),
+    };
+  } catch {
+    return {};
+  }
+}
+
+/** Extract text from a PDF using `pdftotext`, returning per-page content. */
+async function extractWithPdftotext(path: string, pageCount: number): Promise<IngestedPage[]> {
+  const pages: IngestedPage[] = [];
+  for (let i = 1; i <= pageCount; i++) {
+    try {
+      const { stdout } = await execFileAsync("pdftotext", [
+        "-f",
+        String(i),
+        "-l",
+        String(i),
+        "-layout",
+        path,
+        "-",
+      ]);
+      const text = stdout.trim();
+      pages.push({ page_number: i, text, char_count: text.length });
+    } catch {
+      pages.push({ page_number: i, text: "", char_count: 0 });
+    }
+  }
+  return pages;
+}
+
+/** OCR a PDF using ghostscript (PDF→PNG) + tesseract (PNG→text). */
+async function extractWithOcr(path: string, pageCount: number): Promise<IngestedPage[]> {
+  const tempDir = await mkdtemp(join(tmpdir(), "pdf-ocr-"));
+  const pages: IngestedPage[] = [];
+
+  try {
+    for (let i = 1; i <= Math.min(pageCount, 50); i++) {
+      const pngPath = join(tempDir, `page-${i}.png`);
+      const txtPath = join(tempDir, `page-${i}`);
+
+      try {
+        // Render PDF page to PNG at 300 DPI
+        await execFileAsync(
+          "gs",
+          [
+            "-dNOPAUSE",
+            "-dBATCH",
+            "-dSAFER",
+            "-sDEVICE=png16m",
+            "-r300",
+            `-dFirstPage=${i}`,
+            `-dLastPage=${i}`,
+            `-sOutputFile=${pngPath}`,
+            path,
+          ],
+          { timeout: 30_000 },
+        );
+
+        // OCR the PNG
+        await execFileAsync("tesseract", [pngPath, txtPath, "-l", "eng"], { timeout: 30_000 });
+
+        const text = await readFile(`${txtPath}.txt`, "utf-8").then((t) => t.trim());
+        pages.push({ page_number: i, text, char_count: text.length });
+      } catch {
+        pages.push({ page_number: i, text: "", char_count: 0 });
+      }
+
+      // Clean up temp files for this page
+      await unlink(pngPath).catch(() => {});
+      await unlink(`${txtPath}.txt`).catch(() => {});
+    }
+  } finally {
+    // Best-effort cleanup of temp directory
+    await unlink(tempDir).catch(() => {});
+  }
+
+  return pages;
+}
+
+// ---------------------------------------------------------------------------
+// PDF ingestion
 // ---------------------------------------------------------------------------
 
 /**
  * Ingest a PDF document and extract its text content, page structure,
  * metadata, and table of contents.
  *
- * This is a stub -- a real implementation would use a library such as
- * `pdf-parse`, `pdfjs-dist`, or an external service.
+ * Uses `pdftotext` (poppler-utils) for text extraction with OCR fallback
+ * via `tesseract` + `ghostscript` for scanned documents.
  *
  * @param path Absolute path to the PDF file.
  * @returns The structured ingestion result.
  */
 export async function ingestPdf(path: string): Promise<IngestResult> {
-  // Read the file to verify it exists and capture size.
-  const data = await readFile(path);
+  const fileStat = await stat(path);
+  const info = await extractPdfInfo(path);
+  const pageCount = info.pageCount ?? 1;
 
-  // TODO: parse PDF with a library (pdf-parse, pdfjs-dist, etc.)
-  // TODO: extract text per page, metadata, and bookmarks/TOC
-
-  return {
-    text: "",
-    pages: [],
-    metadata: {
-      file_size_bytes: data.byteLength,
-      content_type: "application/pdf",
-    },
-    table_of_contents: [],
+  const metadata: IngestMetadata = {
+    title: info.title,
+    author: info.author,
+    producer: info.producer,
+    created_at: info.createdAt,
+    modified_at: info.modifiedAt,
+    file_size_bytes: fileStat.size,
+    content_type: "application/pdf",
+    page_count: pageCount,
+    ocr_used: false,
   };
+
+  // Try pdftotext first
+  let pages: IngestedPage[] = [];
+  if (await commandExists("pdftotext")) {
+    pages = await extractWithPdftotext(path, pageCount);
+  }
+
+  // If pdftotext extracted very little text, try OCR
+  const totalChars = pages.reduce((sum, p) => sum + p.char_count, 0);
+  if (totalChars < 100 && (await commandExists("tesseract")) && (await commandExists("gs"))) {
+    pages = await extractWithOcr(path, pageCount);
+    metadata.ocr_used = true;
+  }
+
+  const fullText = pages.map((p) => p.text).join("\n\n");
+
+  // Extract basic TOC from heading-like patterns in the text
+  const toc: TocEntry[] = [];
+  for (const page of pages) {
+    for (const line of page.text.split("\n")) {
+      const trimmed = line.trim();
+      // Detect all-caps lines as potential section headings
+      if (
+        trimmed.length > 3 &&
+        trimmed.length < 80 &&
+        trimmed === trimmed.toUpperCase() &&
+        /[A-Z]/.test(trimmed)
+      ) {
+        toc.push({ title: trimmed, level: 1, page: page.page_number });
+      }
+    }
+  }
+
+  return { text: fullText, pages, metadata, table_of_contents: toc };
 }
 
 // ---------------------------------------------------------------------------
-// Plain text ingestion stub
+// Plain text ingestion
 // ---------------------------------------------------------------------------
 
 /**
@@ -134,16 +296,21 @@ export async function ingestPdf(path: string): Promise<IngestResult> {
  * - Markdown-style (`# Heading`, `## Sub-heading`)
  * - Underlined (`Heading\n=======`, `Sub-heading\n-------`)
  *
- * This is a stub -- heading detection and page segmentation are minimal.
- *
  * @param path Absolute path to the text file.
  * @returns The structured ingestion result.
  */
 export async function ingestText(path: string): Promise<IngestResult> {
   const data = await readFile(path, "utf-8");
+  const lines = data.split("\n");
 
-  // TODO: detect headings for TOC, segment into logical pages / sections
-  // TODO: extract metadata from front-matter (YAML, TOML) if present
+  // Detect Markdown headings for TOC
+  const toc: TocEntry[] = [];
+  for (const line of lines) {
+    const match = line.match(/^(#{1,6})\s+(.+)/);
+    if (match) {
+      toc.push({ title: match[2].trim(), level: match[1].length });
+    }
+  }
 
   const page: IngestedPage = {
     page_number: 1,
@@ -158,6 +325,6 @@ export async function ingestText(path: string): Promise<IngestResult> {
       file_size_bytes: Buffer.byteLength(data, "utf-8"),
       content_type: "text/plain",
     },
-    table_of_contents: [],
+    table_of_contents: toc,
   };
 }

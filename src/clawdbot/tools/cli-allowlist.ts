@@ -112,6 +112,16 @@ const DEFAULT_ENTRIES: CliAllowlistEntry[] = [
     allowed_args: ["list", "why", "outdated", "audit"],
     denied_args: ["publish"],
   },
+  {
+    command_pattern: "gads",
+    allowed_args: ["*"],
+    denied_args: ["--delete-account", "--close-account"],
+  },
+  {
+    command_pattern: "google-ads",
+    allowed_args: ["*"],
+    denied_args: ["--delete-account", "--close-account"],
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -145,20 +155,28 @@ export class CliAllowlist {
     const entry = this.entries.find((e) => matchPattern(e.command_pattern, command));
 
     // No matching entry -- deny by default.
-    if (!entry) return false;
+    if (!entry) {
+      return false;
+    }
 
     const joinedArgs = args.join(" ");
 
     // Deny rules take precedence.
     for (const denied of entry.denied_args) {
-      if (joinedArgs.includes(denied)) return false;
+      if (joinedArgs.includes(denied)) {
+        return false;
+      }
     }
 
     // If no explicit allow patterns, the command itself is enough.
-    if (entry.allowed_args.length === 0) return true;
+    if (entry.allowed_args.length === 0) {
+      return true;
+    }
 
     // Wildcard allows everything.
-    if (entry.allowed_args.includes("*")) return true;
+    if (entry.allowed_args.includes("*")) {
+      return true;
+    }
 
     // At least one allowed pattern must match.
     return entry.allowed_args.some((pattern) => joinedArgs.includes(pattern));
@@ -184,7 +202,9 @@ export class CliAllowlist {
  * This is intentionally minimal; full glob support can be added later.
  */
 function matchPattern(pattern: string, value: string): boolean {
-  if (pattern === "*") return true;
+  if (pattern === "*") {
+    return true;
+  }
   if (pattern.endsWith("*")) {
     return value.startsWith(pattern.slice(0, -1));
   }

@@ -15,7 +15,6 @@ import type {
   PaymentTerms,
   InvoiceLineItem,
   MoneyAmount,
-  ExpenseCategory,
   ExpenseLine,
   BudgetVarianceLine,
   RevenueSource,

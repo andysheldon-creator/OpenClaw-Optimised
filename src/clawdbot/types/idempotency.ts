@@ -5,6 +5,8 @@
  * step executions within a run are detected and short-circuited.
  */
 
+import crypto from "node:crypto";
+
 /** Branded string so plain strings cannot be used where an idempotency key is expected. */
 export type IdempotencyKey = string & { readonly __brand: "IdempotencyKey" };
 
@@ -25,6 +27,7 @@ export type IdempotencyRecord = {
  * resolve to the same record.
  */
 export function generateIdempotencyKey(runId: string, stepIndex: number): IdempotencyKey {
-  // TODO: implement hashing / encoding strategy
-  return `${runId}:${stepIndex}` as IdempotencyKey;
+  const raw = `${runId}:${stepIndex}`;
+  const digest = crypto.createHash("sha256").update(raw).digest("base64url");
+  return digest as IdempotencyKey;
 }

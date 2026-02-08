@@ -128,11 +128,21 @@ export class InMemoryAuditLog implements AuditLogService {
 
 /** Test whether a single event matches all provided criteria. */
 function matchesCriteria(event: AuditEvent, criteria: AuditQuery): boolean {
-  if (criteria.from && event.timestamp < criteria.from) return false;
-  if (criteria.to && event.timestamp > criteria.to) return false;
-  if (criteria.category && event.category !== criteria.category) return false;
-  if (criteria.actor && event.actor !== criteria.actor) return false;
-  if (criteria.runId && event.runId !== criteria.runId) return false;
+  if (criteria.from && event.timestamp < criteria.from) {
+    return false;
+  }
+  if (criteria.to && event.timestamp > criteria.to) {
+    return false;
+  }
+  if (criteria.category && event.category !== criteria.category) {
+    return false;
+  }
+  if (criteria.actor && event.actor !== criteria.actor) {
+    return false;
+  }
+  if (criteria.runId && event.runId !== criteria.runId) {
+    return false;
+  }
 
   if (criteria.minSeverity) {
     if (SEVERITY_ORDER[event.severity] < SEVERITY_ORDER[criteria.minSeverity]) {

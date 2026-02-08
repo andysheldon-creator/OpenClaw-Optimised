@@ -1,0 +1,507 @@
+[
+  {
+    "skillName": "1password",
+    "status": "blocked",
+    "reason": "missing bin: op",
+    "source": "openclaw-bundled",
+    "requiredTools": ["op"],
+    "requiredEnv": [],
+    "blockers": ["missing bin: op", "missing bin: op"],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "apple-notes",
+    "status": "live-ready",
+    "reason": "All runtime prerequisites satisfied.",
+    "source": "openclaw-bundled",
+    "requiredTools": ["memo"],
+    "requiredEnv": [],
+    "blockers": [],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "apple-reminders",
+    "status": "live-ready",
+    "reason": "All runtime prerequisites satisfied.",
+    "source": "openclaw-bundled",
+    "requiredTools": ["remindctl"],
+    "requiredEnv": [],
+    "blockers": [],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "bear-notes",
+    "status": "blocked",
+    "reason": "missing bin: grizzly",
+    "source": "openclaw-bundled",
+    "requiredTools": ["grizzly"],
+    "requiredEnv": [],
+    "blockers": ["missing bin: grizzly", "missing bin: grizzly"],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "blogwatcher",
+    "status": "live-ready",
+    "reason": "All runtime prerequisites satisfied.",
+    "source": "openclaw-bundled",
+    "requiredTools": ["blogwatcher"],
+    "requiredEnv": [],
+    "blockers": [],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "blucli",
+    "status": "blocked",
+    "reason": "missing bin: blu",
+    "source": "openclaw-bundled",
+    "requiredTools": ["blu"],
+    "requiredEnv": [],
+    "blockers": ["missing bin: blu", "missing bin: blu"],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "bluebubbles",
+    "status": "blocked",
+    "reason": "missing config: channels.bluebubbles",
+    "source": "openclaw-bundled",
+    "requiredTools": [],
+    "requiredEnv": [],
+    "blockers": ["missing config: channels.bluebubbles", "missing config: channels.bluebubbles"],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "camsnap",
+    "status": "blocked",
+    "reason": "missing bin: camsnap",
+    "source": "openclaw-bundled",
+    "requiredTools": ["camsnap"],
+    "requiredEnv": [],
+    "blockers": ["missing bin: camsnap", "missing bin: camsnap"],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "clawhub",
+    "status": "blocked",
+    "reason": "missing bin: clawhub",
+    "source": "openclaw-bundled",
+    "requiredTools": ["clawhub"],
+    "requiredEnv": [],
+    "blockers": ["missing bin: clawhub", "missing bin: clawhub"],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "coding-agent",
+    "status": "live-ready",
+    "reason": "All runtime prerequisites satisfied.",
+    "source": "openclaw-bundled",
+    "requiredTools": ["claude", "codex", "opencode", "pi"],
+    "requiredEnv": [],
+    "blockers": [],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "eightctl",
+    "status": "blocked",
+    "reason": "missing bin: eightctl",
+    "source": "openclaw-bundled",
+    "requiredTools": ["eightctl"],
+    "requiredEnv": [],
+    "blockers": ["missing bin: eightctl", "missing bin: eightctl"],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "gemini",
+    "status": "live-ready",
+    "reason": "All runtime prerequisites satisfied.",
+    "source": "openclaw-bundled",
+    "requiredTools": ["gemini"],
+    "requiredEnv": [],
+    "blockers": [],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "gifgrep",
+    "status": "live-ready",
+    "reason": "All runtime prerequisites satisfied.",
+    "source": "openclaw-bundled",
+    "requiredTools": ["gifgrep"],
+    "requiredEnv": [],
+    "blockers": [],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "github",
+    "status": "live-ready",
+    "reason": "All runtime prerequisites satisfied.",
+    "source": "openclaw-bundled",
+    "requiredTools": ["gh"],
+    "requiredEnv": [],
+    "blockers": [],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "gog",
+    "status": "live-ready",
+    "reason": "All runtime prerequisites satisfied.",
+    "source": "openclaw-bundled",
+    "requiredTools": ["gog"],
+    "requiredEnv": [],
+    "blockers": [],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "goplaces",
+    "status": "blocked",
+    "reason": "missing env: GOOGLE_PLACES_API_KEY",
+    "source": "openclaw-bundled",
+    "requiredTools": ["goplaces"],
+    "requiredEnv": ["GOOGLE_PLACES_API_KEY"],
+    "blockers": ["missing env: GOOGLE_PLACES_API_KEY", "missing env: GOOGLE_PLACES_API_KEY"],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "healthcheck",
+    "status": "live-ready",
+    "reason": "All runtime prerequisites satisfied.",
+    "source": "openclaw-bundled",
+    "requiredTools": [],
+    "requiredEnv": [],
+    "blockers": [],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "himalaya",
+    "status": "blocked",
+    "reason": "missing bin: himalaya",
+    "source": "openclaw-bundled",
+    "requiredTools": ["himalaya"],
+    "requiredEnv": [],
+    "blockers": ["missing bin: himalaya", "missing bin: himalaya"],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "imsg",
+    "status": "live-ready",
+    "reason": "All runtime prerequisites satisfied.",
+    "source": "openclaw-bundled",
+    "requiredTools": ["imsg"],
+    "requiredEnv": [],
+    "blockers": [],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "local-places",
+    "status": "blocked",
+    "reason": "missing env: GOOGLE_PLACES_API_KEY",
+    "source": "openclaw-bundled",
+    "requiredTools": ["uv"],
+    "requiredEnv": ["GOOGLE_PLACES_API_KEY"],
+    "blockers": ["missing env: GOOGLE_PLACES_API_KEY", "missing env: GOOGLE_PLACES_API_KEY"],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "mcporter",
+    "status": "blocked",
+    "reason": "missing bin: mcporter",
+    "source": "openclaw-bundled",
+    "requiredTools": ["mcporter"],
+    "requiredEnv": [],
+    "blockers": ["missing bin: mcporter", "missing bin: mcporter"],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "model-usage",
+    "status": "blocked",
+    "reason": "missing bin: codexbar",
+    "source": "openclaw-bundled",
+    "requiredTools": ["codexbar"],
+    "requiredEnv": [],
+    "blockers": ["missing bin: codexbar", "missing bin: codexbar"],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "nano-banana-pro",
+    "status": "blocked",
+    "reason": "missing env: GEMINI_API_KEY",
+    "source": "openclaw-bundled",
+    "requiredTools": ["uv"],
+    "requiredEnv": ["GEMINI_API_KEY"],
+    "blockers": ["missing env: GEMINI_API_KEY", "missing env: GEMINI_API_KEY"],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "nano-pdf",
+    "status": "blocked",
+    "reason": "missing bin: nano-pdf",
+    "source": "openclaw-bundled",
+    "requiredTools": ["nano-pdf"],
+    "requiredEnv": [],
+    "blockers": ["missing bin: nano-pdf", "missing bin: nano-pdf"],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "notion",
+    "status": "blocked",
+    "reason": "missing env: NOTION_API_KEY",
+    "source": "openclaw-bundled",
+    "requiredTools": [],
+    "requiredEnv": ["NOTION_API_KEY"],
+    "blockers": ["missing env: NOTION_API_KEY", "missing env: NOTION_API_KEY"],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "obsidian",
+    "status": "live-ready",
+    "reason": "All runtime prerequisites satisfied.",
+    "source": "openclaw-bundled",
+    "requiredTools": ["obsidian-cli"],
+    "requiredEnv": [],
+    "blockers": [],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "openai-image-gen",
+    "status": "blocked",
+    "reason": "missing env: OPENAI_API_KEY",
+    "source": "openclaw-bundled",
+    "requiredTools": ["python3"],
+    "requiredEnv": ["OPENAI_API_KEY"],
+    "blockers": ["missing env: OPENAI_API_KEY", "missing env: OPENAI_API_KEY"],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "openai-whisper",
+    "status": "live-ready",
+    "reason": "All runtime prerequisites satisfied.",
+    "source": "openclaw-bundled",
+    "requiredTools": ["whisper"],
+    "requiredEnv": [],
+    "blockers": [],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "openai-whisper-api",
+    "status": "blocked",
+    "reason": "missing env: OPENAI_API_KEY",
+    "source": "openclaw-bundled",
+    "requiredTools": ["curl"],
+    "requiredEnv": ["OPENAI_API_KEY"],
+    "blockers": ["missing env: OPENAI_API_KEY", "missing env: OPENAI_API_KEY"],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "openhue",
+    "status": "blocked",
+    "reason": "missing bin: openhue",
+    "source": "openclaw-bundled",
+    "requiredTools": ["openhue"],
+    "requiredEnv": [],
+    "blockers": ["missing bin: openhue", "missing bin: openhue"],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "oracle",
+    "status": "blocked",
+    "reason": "missing bin: oracle",
+    "source": "openclaw-bundled",
+    "requiredTools": ["oracle"],
+    "requiredEnv": [],
+    "blockers": ["missing bin: oracle", "missing bin: oracle"],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "ordercli",
+    "status": "blocked",
+    "reason": "missing bin: ordercli",
+    "source": "openclaw-bundled",
+    "requiredTools": ["ordercli"],
+    "requiredEnv": [],
+    "blockers": ["missing bin: ordercli", "missing bin: ordercli"],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "peekaboo",
+    "status": "blocked",
+    "reason": "missing bin: peekaboo",
+    "source": "openclaw-bundled",
+    "requiredTools": ["peekaboo"],
+    "requiredEnv": [],
+    "blockers": ["missing bin: peekaboo", "missing bin: peekaboo"],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "sag",
+    "status": "blocked",
+    "reason": "missing bin: sag",
+    "source": "openclaw-bundled",
+    "requiredTools": ["sag"],
+    "requiredEnv": ["ELEVENLABS_API_KEY"],
+    "blockers": ["missing bin: sag", "missing env: ELEVENLABS_API_KEY", "missing bin: sag"],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "session-logs",
+    "status": "live-ready",
+    "reason": "All runtime prerequisites satisfied.",
+    "source": "openclaw-bundled",
+    "requiredTools": ["jq", "rg"],
+    "requiredEnv": [],
+    "blockers": [],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "sherpa-onnx-tts",
+    "status": "blocked",
+    "reason": "missing env: SHERPA_ONNX_RUNTIME_DIR",
+    "source": "openclaw-bundled",
+    "requiredTools": [],
+    "requiredEnv": ["SHERPA_ONNX_RUNTIME_DIR", "SHERPA_ONNX_MODEL_DIR"],
+    "blockers": [
+      "missing env: SHERPA_ONNX_RUNTIME_DIR",
+      "missing env: SHERPA_ONNX_MODEL_DIR",
+      "missing env: SHERPA_ONNX_RUNTIME_DIR"
+    ],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "skill-creator",
+    "status": "live-ready",
+    "reason": "All runtime prerequisites satisfied.",
+    "source": "openclaw-bundled",
+    "requiredTools": [],
+    "requiredEnv": [],
+    "blockers": [],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "slack",
+    "status": "blocked",
+    "reason": "missing config: channels.slack",
+    "source": "openclaw-bundled",
+    "requiredTools": [],
+    "requiredEnv": [],
+    "blockers": ["missing config: channels.slack", "missing config: channels.slack"],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "songsee",
+    "status": "blocked",
+    "reason": "missing bin: songsee",
+    "source": "openclaw-bundled",
+    "requiredTools": ["songsee"],
+    "requiredEnv": [],
+    "blockers": ["missing bin: songsee", "missing bin: songsee"],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "sonoscli",
+    "status": "blocked",
+    "reason": "missing bin: sonos",
+    "source": "openclaw-bundled",
+    "requiredTools": ["sonos"],
+    "requiredEnv": [],
+    "blockers": ["missing bin: sonos", "missing bin: sonos"],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "spotify-player",
+    "status": "blocked",
+    "reason": "missing any bin: spogo",
+    "source": "openclaw-bundled",
+    "requiredTools": ["spogo", "spotify_player"],
+    "requiredEnv": [],
+    "blockers": [
+      "missing any bin: spogo",
+      "missing any bin: spotify_player",
+      "missing any bin: spogo"
+    ],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "summarize",
+    "status": "live-ready",
+    "reason": "All runtime prerequisites satisfied.",
+    "source": "openclaw-bundled",
+    "requiredTools": ["summarize"],
+    "requiredEnv": [],
+    "blockers": [],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "things-mac",
+    "status": "live-ready",
+    "reason": "All runtime prerequisites satisfied.",
+    "source": "openclaw-bundled",
+    "requiredTools": ["things"],
+    "requiredEnv": [],
+    "blockers": [],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "tmux",
+    "status": "blocked",
+    "reason": "missing bin: tmux",
+    "source": "openclaw-bundled",
+    "requiredTools": ["tmux"],
+    "requiredEnv": [],
+    "blockers": ["missing bin: tmux", "missing bin: tmux"],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "trello",
+    "status": "blocked",
+    "reason": "missing env: TRELLO_API_KEY",
+    "source": "openclaw-bundled",
+    "requiredTools": ["jq"],
+    "requiredEnv": ["TRELLO_API_KEY", "TRELLO_TOKEN"],
+    "blockers": [
+      "missing env: TRELLO_API_KEY",
+      "missing env: TRELLO_TOKEN",
+      "missing env: TRELLO_API_KEY"
+    ],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "video-frames",
+    "status": "live-ready",
+    "reason": "All runtime prerequisites satisfied.",
+    "source": "openclaw-bundled",
+    "requiredTools": ["ffmpeg"],
+    "requiredEnv": [],
+    "blockers": [],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "voice-call",
+    "status": "blocked",
+    "reason": "missing config: plugins.entries.voice-call.enabled",
+    "source": "openclaw-bundled",
+    "requiredTools": [],
+    "requiredEnv": [],
+    "blockers": [
+      "missing config: plugins.entries.voice-call.enabled",
+      "missing config: plugins.entries.voice-call.enabled"
+    ],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "wacli",
+    "status": "blocked",
+    "reason": "missing bin: wacli",
+    "source": "openclaw-bundled",
+    "requiredTools": ["wacli"],
+    "requiredEnv": [],
+    "blockers": ["missing bin: wacli", "missing bin: wacli"],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  },
+  {
+    "skillName": "weather",
+    "status": "live-ready",
+    "reason": "All runtime prerequisites satisfied.",
+    "source": "openclaw-bundled",
+    "requiredTools": ["curl"],
+    "requiredEnv": [],
+    "blockers": [],
+    "updatedAt": "2026-02-07T23:22:16.981Z"
+  }
+]

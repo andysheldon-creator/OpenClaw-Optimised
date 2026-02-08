@@ -124,7 +124,7 @@ export function detectPii(
   }
 
   // Sort by position to make downstream processing deterministic.
-  return detections.sort((a, b) => a.start - b.start);
+  return detections.toSorted((a, b) => a.start - b.start);
 }
 
 // ---------------------------------------------------------------------------
@@ -151,7 +151,7 @@ export function maskPii(text: string, config: PiiMaskConfig): PiiMaskResult {
 
   // Build the masked string by replacing spans back-to-front to preserve offsets.
   let masked = text;
-  const reversed = [...detections].reverse();
+  const reversed = [...detections].toReversed();
 
   for (const detection of reversed) {
     const strategy = config.typeOverrides?.[detection.type] ?? config.defaultStrategy;
@@ -179,7 +179,9 @@ function applyStrategy(
       return placeholder;
 
     case "partial": {
-      if (value.length <= keep * 2) return placeholder;
+      if (value.length <= keep * 2) {
+        return placeholder;
+      }
       const head = value.slice(0, keep);
       const tail = value.slice(-keep);
       return `${head}${"*".repeat(value.length - keep * 2)}${tail}`;

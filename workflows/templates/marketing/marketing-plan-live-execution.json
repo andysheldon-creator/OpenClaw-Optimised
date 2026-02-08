@@ -1,0 +1,224 @@
+{
+  "name": "Marketing Plan Live Execution",
+  "description": "Executes approved marketing action graphs with browser or CLI adapter branching, bounded retry policy, ledger writes, and escalation for deterministic failures.",
+  "area": "marketing",
+  "version": "1.0.0",
+  "nodes": [
+    {
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "position": [220, 320],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "marketing-plan/live",
+        "responseMode": "onReceived"
+      }
+    },
+    {
+      "id": "compile-plan",
+      "name": "Compile Marketing Plan",
+      "type": "n8n-nodes-clawdbot.clawdbotSkill",
+      "position": [440, 320],
+      "parameters": {
+        "skillName": "marketing-plan-compiler",
+        "input": "={{ JSON.stringify({ ...$json.plan, mode: 'live' }) }}"
+      }
+    },
+    {
+      "id": "require-approval",
+      "name": "Require Launch Approval",
+      "type": "n8n-nodes-clawdbot.clawdbotApprovalGate",
+      "position": [660, 320],
+      "parameters": {
+        "approverRole": "marketing-operator",
+        "timeoutMinutes": 180,
+        "includeSnapshot": true,
+        "onRejection": "stop",
+        "onTimeout": "stop"
+      }
+    },
+    {
+      "id": "for-each-action",
+      "name": "For Each Action",
+      "type": "n8n-nodes-base.splitInBatches",
+      "position": [880, 320],
+      "parameters": {
+        "batchSize": 1,
+        "fieldToSplitOut": "actions"
+      }
+    },
+    {
+      "id": "route-adapter",
+      "name": "Route Adapter",
+      "type": "n8n-nodes-base.switch",
+      "position": [1100, 320],
+      "parameters": {
+        "rules": {
+          "string": [
+            {
+              "value1": "={{ $json.actions[0].adapter }}",
+              "operation": "equal",
+              "value2": "browser"
+            },
+            {
+              "value1": "={{ $json.actions[0].adapter }}",
+              "operation": "equal",
+              "value2": "cli"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "execute-browser",
+      "name": "Execute Browser Action",
+      "type": "n8n-nodes-clawdbot.clawdbotSkill",
+      "position": [1320, 220],
+      "parameters": {
+        "skillName": "google-ads-browser",
+        "input": "={{ JSON.stringify($json.actions[0]) }}"
+      }
+    },
+    {
+      "id": "execute-cli",
+      "name": "Execute CLI Action",
+      "type": "n8n-nodes-clawdbot.clawdbotSkill",
+      "position": [1320, 420],
+      "parameters": {
+        "skillName": "google-ads-cli",
+        "input": "={{ JSON.stringify($json.actions[0]) }}"
+      }
+    },
+    {
+      "id": "merge-results",
+      "name": "Merge Action Results",
+      "type": "n8n-nodes-base.merge",
+      "position": [1540, 320],
+      "parameters": {
+        "mode": "append"
+      }
+    },
+    {
+      "id": "transient-failure",
+      "name": "Transient Failure?",
+      "type": "n8n-nodes-base.if",
+      "position": [1760, 320],
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.errorCategory }}",
+              "operation": "in",
+              "value2": "rate_limit,timeout"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "retry-delay",
+      "name": "Retry Delay",
+      "type": "n8n-nodes-base.wait",
+      "position": [1980, 240],
+      "parameters": {
+        "amount": 30,
+        "unit": "seconds"
+      }
+    },
+    {
+      "id": "escalate-failure",
+      "name": "Escalate Deterministic Failure",
+      "type": "n8n-nodes-clawdbot.clawdbotApprovalGate",
+      "position": [1980, 400],
+      "parameters": {
+        "approverRole": "incident-commander",
+        "timeoutMinutes": 60,
+        "includeSnapshot": true,
+        "onRejection": "continue",
+        "onTimeout": "continue"
+      }
+    },
+    {
+      "id": "write-ledger",
+      "name": "Write Mutation Ledger",
+      "type": "n8n-nodes-clawdbot.clawdbotSkill",
+      "position": [2200, 320],
+      "parameters": {
+        "skillName": "mutation-ledger-upsert",
+        "input": "={{ JSON.stringify($json) }}"
+      }
+    },
+    {
+      "id": "reconcile",
+      "name": "Run Reconciliation",
+      "type": "n8n-nodes-clawdbot.clawdbotSkill",
+      "position": [2420, 320],
+      "parameters": {
+        "skillName": "marketing-reconcile",
+        "input": "={{ JSON.stringify($json) }}"
+      }
+    },
+    {
+      "id": "store-artifacts",
+      "name": "Store Replay Bundle",
+      "type": "n8n-nodes-clawdbot.clawdbotArtifact",
+      "position": [2640, 320],
+      "parameters": {
+        "kind": "json",
+        "name": "marketing-live-replay",
+        "payload": "={{ JSON.stringify($json) }}"
+      }
+    }
+  ],
+  "connections": {
+    "webhook-trigger": {
+      "main": [[{ "node": "compile-plan", "type": "main", "index": 0 }]]
+    },
+    "compile-plan": {
+      "main": [[{ "node": "require-approval", "type": "main", "index": 0 }]]
+    },
+    "require-approval": {
+      "main": [[{ "node": "for-each-action", "type": "main", "index": 0 }]]
+    },
+    "for-each-action": {
+      "main": [[{ "node": "route-adapter", "type": "main", "index": 0 }]]
+    },
+    "route-adapter": {
+      "main": [
+        [{ "node": "execute-browser", "type": "main", "index": 0 }],
+        [{ "node": "execute-cli", "type": "main", "index": 0 }]
+      ]
+    },
+    "execute-browser": {
+      "main": [[{ "node": "merge-results", "type": "main", "index": 0 }]]
+    },
+    "execute-cli": {
+      "main": [[{ "node": "merge-results", "type": "main", "index": 0 }]]
+    },
+    "merge-results": {
+      "main": [[{ "node": "transient-failure", "type": "main", "index": 0 }]]
+    },
+    "transient-failure": {
+      "main": [
+        [{ "node": "retry-delay", "type": "main", "index": 0 }],
+        [{ "node": "escalate-failure", "type": "main", "index": 0 }]
+      ]
+    },
+    "retry-delay": {
+      "main": [[{ "node": "for-each-action", "type": "main", "index": 0 }]]
+    },
+    "escalate-failure": {
+      "main": [[{ "node": "write-ledger", "type": "main", "index": 0 }]]
+    },
+    "write-ledger": {
+      "main": [[{ "node": "reconcile", "type": "main", "index": 0 }]]
+    },
+    "reconcile": {
+      "main": [[{ "node": "store-artifacts", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

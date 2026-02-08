@@ -10,6 +10,9 @@
  * @module
  */
 
+import { chromium } from "playwright-core";
+import { CommitStepDetector } from "./browser-commit-gate.js";
+
 // ---------------------------------------------------------------------------
 // BrowserAction
 // ---------------------------------------------------------------------------
@@ -99,6 +102,12 @@ export type BrowserRunnerOptions = {
    * before navigating.
    */
   credential_domain?: string;
+
+  /**
+   * When true, allows interactions that match destructive commit-gate
+   * heuristics (submit/payment/delete/confirm).
+   */
+  allow_commit_actions?: boolean;
 };
 
 // ---------------------------------------------------------------------------
@@ -191,15 +200,162 @@ export class BrowserRunner {
    * @throws {Error} If the session exceeds `timeout_ms`.
    */
   async execute(opts: BrowserRunnerOptions): Promise<BrowserRunnerResult> {
-    void opts;
-    void DEFAULT_TIMEOUT_MS;
-    void DEFAULT_VIEWPORT_WIDTH;
-    void DEFAULT_VIEWPORT_HEIGHT;
+    const timeoutMs = opts.timeout_ms ?? DEFAULT_TIMEOUT_MS;
+    const startedAt = Date.now();
+    const screenshots: BrowserScreenshot[] = [];
+    const extractedData: Record<number, string> = {};
+    const actionResults: boolean[] = [];
+    const detector = new CommitStepDetector();
 
-    // TODO: launch Playwright browser
-    // TODO: iterate over actions, capture screenshots, run commit-gate checks
-    // TODO: collect extracted data, close browser, return result
+    const browser = await chromium.launch({ headless: opts.headless ?? true });
+    const context = await browser.newContext({
+      viewport: {
+        width: opts.viewport_width ?? DEFAULT_VIEWPORT_WIDTH,
+        height: opts.viewport_height ?? DEFAULT_VIEWPORT_HEIGHT,
+      },
+    });
+    const page = await context.newPage();
 
-    throw new Error("BrowserRunner.execute not implemented");
+    try {
+      await page.goto(opts.url, { waitUntil: "domcontentloaded", timeout: timeoutMs });
+
+      for (const [index, action] of opts.actions.entries()) {
+        const elapsed = Date.now() - startedAt;
+        const remaining = timeoutMs - elapsed;
+        if (remaining <= 0) {
+          throw new Error(`BrowserRunner timed out after ${timeoutMs}ms.`);
+        }
+
+        try {
+          await this.executeAction(
+            page,
+            action,
+            remaining,
+            detector,
+            Boolean(opts.allow_commit_actions),
+          );
+          actionResults.push(true);
+        } catch (error) {
+          actionResults.push(false);
+          throw error;
+        }
+
+        if (opts.screenshot) {
+          const shot = await page.screenshot({ fullPage: true, type: "png" });
+          screenshots.push({
+            action_index: index,
+            data_base64: Buffer.from(shot).toString("base64"),
+            url: page.url(),
+            captured_at: new Date().toISOString(),
+          });
+        }
+
+        if (action.type === "extract") {
+          const selector = action.selector?.trim();
+          if (!selector) {
+            throw new Error("extract action requires selector");
+          }
+          const value = (await page.locator(selector).first().textContent()) ?? "";
+          extractedData[index] = value.trim();
+        }
+      }
+
+      return {
+        screenshots,
+        extracted_data: extractedData,
+        page_title: await page.title(),
+        final_url: page.url(),
+        duration_ms: Date.now() - startedAt,
+        action_results: actionResults,
+      };
+    } finally {
+      await context.close().catch(() => {});
+      await browser.close().catch(() => {});
+    }
+  }
+
+  private async executeAction(
+    page: import("playwright-core").Page,
+    action: BrowserAction,
+    timeoutMs: number,
+    detector: CommitStepDetector,
+    allowCommitActions: boolean,
+  ): Promise<void> {
+    switch (action.type) {
+      case "navigate": {
+        const url = action.value?.trim();
+        if (!url) {
+          throw new Error("navigate action requires value (url)");
+        }
+        await page.goto(url, { waitUntil: "domcontentloaded", timeout: timeoutMs });
+        return;
+      }
+      case "click": {
+        const selector = action.selector?.trim();
+        if (!selector) {
+          throw new Error("click action requires selector");
+        }
+        const text = ((await page.locator(selector).first().textContent()) ?? "").trim();
+        const gates = detector.detect([{ selector, text }]);
+        const gated = gates.find((gate) => gate.requires_approval);
+        if (gated && !allowCommitActions) {
+          throw new Error(
+            `commit gate triggered for "${selector}" (${gated.action_type}); approval required`,
+          );
+        }
+        await page.locator(selector).first().click({ timeout: timeoutMs });
+        return;
+      }
+      case "type": {
+        const selector = action.selector?.trim();
+        if (!selector) {
+          throw new Error("type action requires selector");
+        }
+        await page
+          .locator(selector)
+          .first()
+          .fill(action.value ?? "", { timeout: timeoutMs });
+        return;
+      }
+      case "wait": {
+        const selector = action.selector?.trim();
+        if (selector) {
+          await page.waitForSelector(selector, { timeout: timeoutMs });
+          return;
+        }
+        const parsed = Number.parseInt(action.value ?? "", 10);
+        const delay = Number.isFinite(parsed) ? Math.max(0, parsed) : 500;
+        await page.waitForTimeout(Math.min(delay, timeoutMs));
+        return;
+      }
+      case "extract": {
+        return;
+      }
+      case "scroll": {
+        const parsed = Number.parseInt(action.value ?? "", 10);
+        const delta = Number.isFinite(parsed) ? parsed : 400;
+        await page.mouse.wheel(0, delta);
+        return;
+      }
+      case "select": {
+        const selector = action.selector?.trim();
+        if (!selector) {
+          throw new Error("select action requires selector");
+        }
+        const value = action.value ?? "";
+        await page.locator(selector).first().selectOption(value, { timeout: timeoutMs });
+        return;
+      }
+      case "hover": {
+        const selector = action.selector?.trim();
+        if (!selector) {
+          throw new Error("hover action requires selector");
+        }
+        await page.locator(selector).first().hover({ timeout: timeoutMs });
+        return;
+      }
+      default:
+        throw new Error(`Unsupported browser action type: ${String(action.type)}`);
+    }
   }
 }

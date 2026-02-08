@@ -22,6 +22,13 @@ The Clawdbot template library provides ready-to-deploy n8n workflow templates fo
 | ------------------ | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Invoice Processing | `workflows/templates/finance/invoice-processing.json` | Parses invoice documents with a Clawdbot skill, matches against purchase orders, auto-approves matched invoices, routes discrepancies through a finance review approval gate, and posts approved invoices to the accounting system. |
 
+### Marketing
+
+| Template                   | File                                                               | Description                                                                                                                                                                                             |
+| -------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Marketing Plan Dry Run     | `workflows/templates/marketing/marketing-plan-dry-run.json`        | Compiles a marketing plan into a deterministic action graph, builds diff artifacts for operator review, and stores preview output without mutating external ad platforms.                               |
+| Marketing Plan Live Runner | `workflows/templates/marketing/marketing-plan-live-execution.json` | Runs approved action graphs with adapter branching (`browser` or `cli`), bounded retries for transient failures, escalation for deterministic failures, ledger writes, and replay artifact persistence. |
+
 ## Deploying Templates
 
 ### From the Dashboard
@@ -61,6 +68,12 @@ Templates are starting points. After deploying, open the workflow in the n8n edi
 3. **Adjust branching logic** -- modify IF/Switch conditions to match your business rules
 4. **Set approval roles** -- change `approverRole` parameters to match your org structure
 5. **Connect notification channels** -- update Slack channels, email addresses, etc.
+
+For marketing templates:
+
+1. Confirm dry-run template produces complete proposed mutation output.
+2. Confirm live template node bindings map to the expected skill versions.
+3. Validate retry and escalation branches in a sandbox before production rollout.
 
 ## Testing with Dry Run
 

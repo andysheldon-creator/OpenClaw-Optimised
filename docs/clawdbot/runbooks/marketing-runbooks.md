@@ -2,6 +2,11 @@
 
 Runbooks for all Marketing workflows in the Clawdbot Business Skill Packs.
 
+For production Google Ads mutation operations and incident handling, also use:
+
+- `docs/clawdbot/runbooks/marketing-live-execution.md`
+- `docs/clawdbot/runbooks/dashboard-lifecycle-operations.md`
+
 Covers:
 
 - BIZ-078 (#170) Compile weekly content ideas docs + runbook

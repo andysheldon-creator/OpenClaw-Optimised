@@ -137,8 +137,12 @@ export class StubSecretRotator implements SecretRotator {
   async getDueRotations(): Promise<RotationSchedule[]> {
     const now = Date.now();
     return [...this.schedules.values()].filter((s) => {
-      if (s.status === "due" || s.status === "overdue") return true;
-      if (s.nextRotationAt && new Date(s.nextRotationAt).getTime() <= now) return true;
+      if (s.status === "due" || s.status === "overdue") {
+        return true;
+      }
+      if (s.nextRotationAt && new Date(s.nextRotationAt).getTime() <= now) {
+        return true;
+      }
       return false;
     });
   }

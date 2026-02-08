@@ -136,13 +136,17 @@ export function applyRetention(
   const results: DataPurgeResult[] = [];
 
   for (const policy of policies) {
-    if (!policy.enabled || policy.retentionDays === 0) continue;
+    if (!policy.enabled || policy.retentionDays === 0) {
+      continue;
+    }
 
     const cutoff = new Date(now.getTime() - policy.retentionDays * 86_400_000);
     const categoryRecords = records.filter((r) => r.category === policy.category);
     const expired = categoryRecords.filter((r) => new Date(r.createdAt) < cutoff);
 
-    if (expired.length === 0) continue;
+    if (expired.length === 0) {
+      continue;
+    }
 
     // TODO: execute the actual purge strategy (delete/archive/anonymise)
     // against the backing data store. For now we report what would happen.

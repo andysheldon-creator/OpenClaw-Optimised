@@ -1,0 +1,19 @@
+{
+  "skillMutation": {
+    "action": "skill.pin",
+    "reason": "Pin workflow integration for production smoke test.",
+    "pinnedVersion": "2026.02.07"
+  },
+  "workflowMutation": {
+    "action": "workflow.activate",
+    "reason": "Activate workflow after readiness review."
+  },
+  "workflowRun": {
+    "action": "workflow.run",
+    "reason": "Operator validation run from dashboard flow test."
+  },
+  "deniedMutation": {
+    "action": "workflow.pause",
+    "reason": "Viewer should not be able to pause workflows."
+  }
+}

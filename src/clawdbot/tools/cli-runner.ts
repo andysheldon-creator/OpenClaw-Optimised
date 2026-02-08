@@ -10,6 +10,9 @@
  * @module
  */
 
+import { spawn } from "node:child_process";
+import { CliAllowlist } from "./cli-allowlist.js";
+
 // ---------------------------------------------------------------------------
 // Options
 // ---------------------------------------------------------------------------
@@ -86,6 +89,8 @@ const DEFAULT_TIMEOUT_MS = 30_000;
  * ```
  */
 export class CliRunner {
+  constructor(private readonly allowlist: CliAllowlist = new CliAllowlist()) {}
+
   /**
    * Execute a shell command and return its captured output.
    *
@@ -100,16 +105,83 @@ export class CliRunner {
    * @throws {Error} If the process cannot be spawned.
    */
   async execute(opts: CliRunnerOptions): Promise<CliRunnerResult> {
-    const _timeout = opts.timeout_ms ?? DEFAULT_TIMEOUT_MS;
+    const timeoutMs = opts.timeout_ms ?? DEFAULT_TIMEOUT_MS;
+    const command = opts.command.trim();
+    const args = opts.args ?? [];
 
-    // TODO: validate against CliAllowlist
-    // TODO: spawn child process via node:child_process or Bun.spawn
-    // TODO: capture stdout/stderr, enforce timeout, record duration
+    if (!command) {
+      throw new Error("CliRunner.execute requires a command.");
+    }
+    if (!this.allowlist.isAllowed(command, args)) {
+      throw new Error(`CliRunner denied by allowlist: "${command} ${args.join(" ")}"`);
+    }
 
-    void _timeout;
+    const startedAt = Date.now();
 
-    throw new Error(
-      `CliRunner.execute not implemented (command: "${opts.command} ${opts.args.join(" ")}")`,
-    );
+    return await new Promise<CliRunnerResult>((resolve, reject) => {
+      let settled = false;
+      let timedOut = false;
+      let stdout = "";
+      let stderr = "";
+
+      const finish = (err?: Error, result?: CliRunnerResult) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clearTimeout(timeoutTimer);
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve(result as CliRunnerResult);
+      };
+
+      const child = spawn(command, args, {
+        cwd: opts.cwd,
+        env: {
+          ...process.env,
+          ...opts.env,
+        },
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+
+      child.stdout?.setEncoding("utf8");
+      child.stderr?.setEncoding("utf8");
+
+      child.stdout?.on("data", (chunk: string) => {
+        stdout += chunk;
+      });
+      child.stderr?.on("data", (chunk: string) => {
+        stderr += chunk;
+      });
+      child.on("error", (error) => {
+        finish(error);
+      });
+      child.on("close", (code) => {
+        if (timedOut) {
+          return;
+        }
+        finish(undefined, {
+          stdout,
+          stderr,
+          exit_code: code ?? -1,
+          duration_ms: Date.now() - startedAt,
+        });
+      });
+
+      const timeoutTimer = setTimeout(() => {
+        timedOut = true;
+        child.kill("SIGTERM");
+        setTimeout(() => {
+          if (!child.killed) {
+            child.kill("SIGKILL");
+          }
+        }, 1_000).unref();
+        finish(
+          new Error(`CliRunner timed out after ${timeoutMs}ms: "${command} ${args.join(" ")}"`),
+        );
+      }, timeoutMs);
+    });
   }
 }

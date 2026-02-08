@@ -1,0 +1,78 @@
+{
+  "title": "Sandbox Search Campaign Rollout",
+  "accountId": "sandbox-account-123",
+  "mode": "live",
+  "preferredAdapter": "auto",
+  "constraints": {
+    "maxDailyBudgetDeltaUsd": 400,
+    "maxBidDeltaPct": 25,
+    "blockCampaignActivation": false
+  },
+  "campaigns": [
+    {
+      "name": "Q1 Search Expansion",
+      "objective": "leads",
+      "dailyBudgetUsd": 320,
+      "status": "enabled",
+      "targeting": {
+        "locations": ["US", "CA"],
+        "languages": ["en"]
+      },
+      "adGroups": [
+        {
+          "name": "Brand Exact",
+          "keywords": [
+            {
+              "text": "openclaw automation",
+              "matchType": "exact",
+              "bidUsd": 4.8
+            },
+            {
+              "text": "openclaw workflow automation",
+              "matchType": "phrase",
+              "bidUsd": 5.6
+            }
+          ],
+          "ads": [
+            {
+              "headline": "Automate Marketing Workflows",
+              "description": "Preview and launch campaign mutations safely.",
+              "finalUrl": "https://example.com/automation",
+              "state": "enabled"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Retargeting Safety Net",
+      "objective": "conversions",
+      "dailyBudgetUsd": 180,
+      "status": "paused",
+      "targeting": {
+        "locations": ["US"],
+        "languages": ["en"]
+      },
+      "adGroups": [
+        {
+          "name": "Remarketing Core",
+          "keywords": [
+            {
+              "text": "marketing automation dashboard",
+              "matchType": "broad",
+              "bidUsd": 3.2
+            }
+          ],
+          "ads": [
+            {
+              "headline": "Launch Plans With Guardrails",
+              "description": "Approve, execute, and replay campaign runs.",
+              "finalUrl": "https://example.com/guardrails",
+              "state": "paused"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

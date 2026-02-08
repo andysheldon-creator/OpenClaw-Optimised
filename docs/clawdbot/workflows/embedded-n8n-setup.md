@@ -9,14 +9,16 @@ n8n runs as a Docker container behind an Nginx reverse proxy. The Clawdbot dashb
 ```
 Browser
   |
-  +-- /            -> Dashboard (port 3000)
-  +-- /workflows/* -> n8n editor (port 5678)
+  +-- /            -> Dashboard (dashboard:5174)
+  +-- /workflows/* -> n8n editor (n8n:5678)
+  +-- /gateway/*   -> OpenClaw gateway (openclaw-gateway:18789)
   +-- /health      -> Nginx health check
   |
   [Nginx :8080]
       |
-      +-- upstream dashboard (host.docker.internal:3000)
-      +-- upstream n8n (n8n:5678)
+      +-- upstream dashboard
+      +-- upstream n8n
+      +-- upstream openclaw-gateway
       |
       [Postgres :5432]  [Redis :6379]
 ```
@@ -32,40 +34,55 @@ Browser
 From the repository root:
 
 ```bash
-docker compose -f docker/docker-compose.yml up -d
+docker compose -f docker/docker-compose.yml up -d --build
 ```
 
-This starts four services:
+This starts six services:
 
-| Service    | Image              | Port | Purpose                       |
-| ---------- | ------------------ | ---- | ----------------------------- |
-| `postgres` | postgres:16-alpine | 5432 | Shared database               |
-| `redis`    | redis:7-alpine     | 6379 | Caching and pub/sub           |
-| `n8n`      | n8nio/n8n:latest   | 5678 | Workflow engine               |
-| `nginx`    | nginx:alpine       | 8080 | Reverse proxy (single origin) |
+| Service            | Image              | Port  | Purpose                         |
+| ------------------ | ------------------ | ----- | ------------------------------- |
+| `openclaw-gateway` | `openclaw:local`   | 18789 | Gateway runtime + control plane |
+| `dashboard`        | `openclaw:local`   | 5174  | Dashboard UI                    |
+| `postgres`         | postgres:16-alpine | 5432  | Shared database                 |
+| `redis`            | redis:7-alpine     | 6379  | Caching and pub/sub             |
+| `n8n`              | n8nio/n8n:latest   | 5678  | Workflow engine                 |
+| `nginx`            | nginx:alpine       | 8080  | Reverse proxy (single origin)   |
+
+On startup, the `openclaw-gateway` container also initializes local gateway settings so the dashboard can connect through Nginx:
+
+- `gateway.mode=local`
+- `gateway.bind=lan`
+- `gateway.auth.mode=token`
+- `gateway.auth.token=$OPENCLAW_GATEWAY_TOKEN` (defaults to `dev-local-token`)
+- `gateway.controlUi.allowInsecureAuth=true` (local container profile)
 
 ## Key Environment Variables
 
 The `n8n` service is configured with these settings in `docker/docker-compose.yml`:
 
-| Variable                      | Value                   | Why                                              |
-| ----------------------------- | ----------------------- | ------------------------------------------------ |
-| `N8N_DISABLE_X_FRAME_OPTIONS` | `true`                  | Allow embedding in an iframe                     |
-| `N8N_EDITOR_BASE_URL`         | `/workflows`            | Editor assets served under `/workflows`          |
-| `N8N_PATH`                    | `/workflows`            | API routes prefixed with `/workflows`            |
-| `N8N_BASIC_AUTH_ACTIVE`       | `false`                 | Auth handled by the Clawdbot dashboard (not n8n) |
-| `WEBHOOK_URL`                 | `http://localhost:8080` | External webhook base URL                        |
-| `DB_TYPE`                     | `postgresdb`            | Use Postgres instead of SQLite                   |
+| Variable                      | Value                              | Why                                              |
+| ----------------------------- | ---------------------------------- | ------------------------------------------------ |
+| `N8N_DISABLE_X_FRAME_OPTIONS` | `true`                             | Allow embedding in an iframe                     |
+| `N8N_EDITOR_BASE_URL`         | `http://localhost:8080/workflows/` | Editor assets served under `/workflows`          |
+| `N8N_PATH`                    | `/workflows`                       | API routes prefixed with `/workflows`            |
+| `N8N_BASIC_AUTH_ACTIVE`       | `false`                            | Auth handled by the Clawdbot dashboard (not n8n) |
+| `WEBHOOK_URL`                 | `http://localhost:8080/workflows`  | External webhook base URL                        |
+| `DB_TYPE`                     | `postgresdb`                       | Use Postgres instead of SQLite                   |
+| `OPENCLAW_N8N_BASE_URL`       | `http://n8n:5678/workflows`        | Gateway inventory sync target                    |
 
 ## Nginx Reverse Proxy
 
 The Nginx config at `docker/nginx/default.conf` routes traffic:
 
 - `location /workflows/` proxies to the n8n upstream with WebSocket support (required for the n8n editor's real-time updates)
-- `location /` proxies to the dashboard upstream on `host.docker.internal:3000`
+- `location /gateway/ws` proxies dashboard websocket traffic to the OpenClaw gateway
+- `location /gateway/` proxies gateway HTTP endpoints
+- `location /` proxies to the dashboard upstream
 - `location /health` returns a simple 200 for load balancer health checks
 
-WebSocket headers (`Upgrade`, `Connection`) and long timeouts (7 days) are set on the `/workflows/` location to support persistent editor connections.
+WebSocket headers (`Upgrade`, `Connection`) are set on `/workflows/` and `/gateway/ws`.
+
+`/workflows/` currently uses 600-second proxy connect/send/read timeouts in `docker/nginx/default.conf`.
 
 ## Clawdbot Custom Nodes
 
@@ -112,10 +129,22 @@ curl http://localhost:8080/health
 http://localhost:8080/workflows/
 ```
 
-4. Open the full dashboard (when running):
+4. Open the full dashboard:
 
 ```
 http://localhost:8080/
+```
+
+5. Verify gateway websocket upgrade through Nginx:
+
+```bash
+curl -i --max-time 3 --http1.1 \
+  -H 'Connection: Upgrade' \
+  -H 'Upgrade: websocket' \
+  -H 'Sec-WebSocket-Version: 13' \
+  -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' \
+  -H 'Authorization: Bearer dev-local-token' \
+  http://localhost:8080/gateway/ws
 ```
 
 ## Stopping the Stack

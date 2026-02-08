@@ -168,8 +168,12 @@ export type ExpenseReceiptGateSnapshot = {
 export function vendorNamesMatch(claimVendor: string, receiptVendor: string): boolean {
   const a = claimVendor.toLowerCase().trim();
   const b = receiptVendor.toLowerCase().trim();
-  if (a === b) return true;
-  if (a.includes(b) || b.includes(a)) return true;
+  if (a === b) {
+    return true;
+  }
+  if (a.includes(b) || b.includes(a)) {
+    return true;
+  }
   return false;
 }
 
@@ -298,8 +302,12 @@ export function requiresApproval(
   config: ExpenseReceiptGateConfig = DEFAULT_EXPENSE_RECEIPT_GATE_CONFIG,
 ): boolean {
   // Always require approval above the auto-approve threshold
-  if (claim.claimedAmount > config.autoApproveMaxAmount) return true;
+  if (claim.claimedAmount > config.autoApproveMaxAmount) {
+    return true;
+  }
   // Require approval for anything other than a full match
-  if (matchResult.status !== "full_match") return true;
+  if (matchResult.status !== "full_match") {
+    return true;
+  }
   return false;
 }

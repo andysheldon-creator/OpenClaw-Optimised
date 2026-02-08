@@ -79,13 +79,17 @@ export class StubTriggerManager implements TriggerManager {
 
   async enable(triggerId: string): Promise<void> {
     const t = this.triggers.get(triggerId);
-    if (!t) throw new Error(`Trigger not found: ${triggerId}`);
+    if (!t) {
+      throw new Error(`Trigger not found: ${triggerId}`);
+    }
     this.triggers.set(triggerId, { ...t, enabled: true, updatedAt: new Date().toISOString() });
   }
 
   async disable(triggerId: string): Promise<void> {
     const t = this.triggers.get(triggerId);
-    if (!t) throw new Error(`Trigger not found: ${triggerId}`);
+    if (!t) {
+      throw new Error(`Trigger not found: ${triggerId}`);
+    }
     this.triggers.set(triggerId, { ...t, enabled: false, updatedAt: new Date().toISOString() });
   }
 
@@ -95,8 +99,12 @@ export class StubTriggerManager implements TriggerManager {
 
   async execute(triggerId: string, _payload?: unknown): Promise<{ runId: string }> {
     const t = this.triggers.get(triggerId);
-    if (!t) throw new Error(`Trigger not found: ${triggerId}`);
-    if (!t.enabled) throw new Error(`Trigger ${triggerId} is disabled`);
+    if (!t) {
+      throw new Error(`Trigger not found: ${triggerId}`);
+    }
+    if (!t.enabled) {
+      throw new Error(`Trigger ${triggerId} is disabled`);
+    }
 
     // TODO: dispatch to the n8n API or Clawdbot runtime to actually start a run
     const runId = `run_${Date.now()}_${triggerId}`;

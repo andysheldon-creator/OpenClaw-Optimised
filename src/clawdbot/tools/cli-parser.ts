@@ -24,7 +24,9 @@
 export function parseJsonOutput(stdout: string): unknown {
   const trimmed = stripAnsi(stdout).trim();
 
-  if (trimmed.length === 0) return null;
+  if (trimmed.length === 0) {
+    return null;
+  }
 
   // Try standard JSON first.
   try {
@@ -36,7 +38,9 @@ export function parseJsonOutput(stdout: string): unknown {
   // Try newline-delimited JSON (one JSON value per line).
   const lines = trimmed.split("\n").filter((line) => line.trim().length > 0);
 
-  if (lines.length === 0) return null;
+  if (lines.length === 0) {
+    return null;
+  }
 
   // If every non-empty line is valid JSON, treat as NDJSON.
   const parsed: unknown[] = [];
@@ -77,19 +81,21 @@ export function parseTableOutput(stdout: string): Record<string, string>[] {
     .split("\n")
     .filter((line) => line.trim().length > 0);
 
-  if (lines.length < 2) return [];
+  if (lines.length < 2) {
+    return [];
+  }
 
-  const headerLine = lines[0]!;
+  const headerLine = lines[0];
   const headers = splitColumns(headerLine);
 
   const results: Record<string, string>[] = [];
 
   for (let i = 1; i < lines.length; i++) {
-    const values = splitColumns(lines[i]!);
+    const values = splitColumns(lines[i]);
     const row: Record<string, string> = {};
 
     for (let col = 0; col < headers.length; col++) {
-      row[headers[col]!] = values[col] ?? "";
+      row[headers[col]] = values[col] ?? "";
     }
 
     results.push(row);
@@ -114,7 +120,9 @@ export function parseTableOutput(stdout: string): Record<string, string>[] {
  */
 export function parseCsvOutput(stdout: string): string[][] {
   const trimmed = stripAnsi(stdout).trim();
-  if (trimmed.length === 0) return [];
+  if (trimmed.length === 0) {
+    return [];
+  }
 
   const rows: string[][] = [];
   let currentRow: string[] = [];
@@ -122,7 +130,7 @@ export function parseCsvOutput(stdout: string): string[][] {
   let inQuotes = false;
 
   for (let i = 0; i < trimmed.length; i++) {
-    const ch = trimmed[i]!;
+    const ch = trimmed[i];
 
     if (inQuotes) {
       if (ch === '"') {

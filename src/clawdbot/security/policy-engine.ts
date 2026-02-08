@@ -113,7 +113,7 @@ export class PolicyEngine {
     }
 
     // Rules sorted by priority (lower = first), stable within same priority.
-    const sorted = [...policy.rules].sort((a, b) => a.priority - b.priority);
+    const sorted = [...policy.rules].toSorted((a, b) => a.priority - b.priority);
 
     for (const rule of sorted) {
       if (matchesAllConditions(rule.conditions, context)) {

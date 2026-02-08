@@ -207,7 +207,7 @@ export class InMemoryMetrics implements MetricsCollector {
   /** Build a deterministic map key from name + sorted labels. */
   private metricKey(name: string, labels: Record<string, string>): string {
     const sorted = Object.entries(labels)
-      .sort(([a], [b]) => a.localeCompare(b))
+      .toSorted(([a], [b]) => a.localeCompare(b))
       .map(([k, v]) => `${k}=${v}`)
       .join(",");
     return sorted ? `${name}{${sorted}}` : name;

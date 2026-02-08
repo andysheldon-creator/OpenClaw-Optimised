@@ -118,7 +118,9 @@ export function verifyWebhookSignature(event: WebhookEvent, secret: string): boo
   const expectedBuf = Buffer.from(expectedHmac, "hex");
   const providedBuf = Buffer.from(provided, "hex");
 
-  if (expectedBuf.length !== providedBuf.length) return false;
+  if (expectedBuf.length !== providedBuf.length) {
+    return false;
+  }
 
   return timingSafeEqual(expectedBuf, providedBuf);
 }
@@ -133,7 +135,9 @@ export function verifyWebhookSignature(event: WebhookEvent, secret: string): boo
  * @returns `true` when the IP is allowed (or the allowlist is empty).
  */
 export function isIpAllowed(config: WebhookConfig, sourceIp: string): boolean {
-  if (config.allowed_ips.length === 0) return true;
+  if (config.allowed_ips.length === 0) {
+    return true;
+  }
 
   // TODO: support CIDR range matching
   return config.allowed_ips.includes(sourceIp);

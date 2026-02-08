@@ -146,12 +146,16 @@ export function classifyMatch(
   poAmount: number | null,
   config: InvoicePoGateConfig = DEFAULT_INVOICE_PO_GATE_CONFIG,
 ): MatchStatus {
-  if (poAmount === null) return "unmatched";
+  if (poAmount === null) {
+    return "unmatched";
+  }
 
   const variance = Math.abs(invoiceAmount - poAmount);
   const variancePercent = poAmount === 0 ? (variance > 0 ? 100 : 0) : (variance / poAmount) * 100;
 
-  if (variance === 0) return "exact";
+  if (variance === 0) {
+    return "exact";
+  }
   if (variancePercent <= config.tolerancePercent && variance <= config.toleranceAbsolute) {
     return "within_tolerance";
   }
@@ -171,8 +175,12 @@ export function requiresApproval(
   config: InvoicePoGateConfig = DEFAULT_INVOICE_PO_GATE_CONFIG,
 ): boolean {
   return lineMatches.some((line) => {
-    if (line.status === "over_threshold") return true;
-    if (line.status === "unmatched" && config.requireApprovalForUnmatched) return true;
+    if (line.status === "over_threshold") {
+      return true;
+    }
+    if (line.status === "unmatched" && config.requireApprovalForUnmatched) {
+      return true;
+    }
     return false;
   });
 }

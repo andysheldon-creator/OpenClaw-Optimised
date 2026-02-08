@@ -131,7 +131,7 @@ export function compareRun(
       stepResults.push({
         index: i,
         passed: false,
-        reason: `Expected step "${expected!.toolCall}" but run ended early.`,
+        reason: `Expected step "${expected.toolCall}" but run ended early.`,
         durationOutOfRange: false,
       });
       continue;

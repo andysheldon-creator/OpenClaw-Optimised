@@ -1,369 +1,141 @@
 # Clawdbot Docker Stack
 
-A complete Docker Compose stack for local development and testing of the Clawdbot project. Includes PostgreSQL, Redis, n8n workflow automation, and an nginx reverse proxy.
+This stack runs Clawdbot with an embedded n8n instance behind an Nginx reverse proxy.
 
 ## Services
 
-### PostgreSQL 16
+| Service            | Purpose                                 | Internal Port |
+| ------------------ | --------------------------------------- | ------------- |
+| `openclaw-gateway` | OpenClaw gateway + control-plane RPC    | `18789`       |
+| `dashboard`        | Clawdbot dashboard (Vite preview)       | `5174`        |
+| `n8n`              | Embedded workflow engine                | `5678`        |
+| `nginx`            | Single-origin reverse proxy             | `80`          |
+| `postgres`         | n8n persistence                         | `5432`        |
+| `redis`            | Optional workflow/queue cache transport | `6379`        |
 
-- **Port:** 5432
-- **Username:** `clawdbot`
-- **Password:** `clawdbot_password`
-- **Database:** `clawdbot`
-- **Volume:** `postgres_data` (persistent storage)
-- **Purpose:** Primary database for application and n8n metadata
+Nginx exposes one host entrypoint:
 
-### Redis 7
-
-- **Port:** 6379
-- **Volume:** `redis_data` (persistent storage)
-- **Purpose:** Caching and session management
-
-### n8n (Workflow Automation)
-
-- **Port:** 5678 (direct), 8080/workflows (via nginx)
-- **Image:** `n8nio/n8n:latest`
-- **Database:** PostgreSQL (shared with application)
-- **Configuration:**
-  - DB: PostgreSQL at `postgres:5432`
-  - X-Frame-Options disabled for embedding
-  - Base URL: `/workflows`
-  - Basic auth disabled (for local dev)
-- **Volume:** `n8n_data` (workflow definitions and user data)
-- **Purpose:** Visual workflow automation and integration platform
-
-### nginx (Reverse Proxy)
-
-- **Port:** 8080
-- **Configuration:** `./nginx/default.conf`
-- **Routes:**
-  - `/workflows/` → n8n (5678) with WebSocket support
-  - `/` → Dashboard at localhost:3000 (configurable)
-  - `/health` → Health check endpoint
-- **Purpose:** Single entry point for web services with request routing
+- `http://localhost:8080/` -> Dashboard (monitoring, runs, approvals)
+- `http://localhost:8080/chat/` -> Chat UI (talk to the agent)
+- `http://localhost:8080/workflows/editor` -> Dashboard with embedded n8n canvas
+- `http://localhost:8080/workflows/` -> n8n editor (standalone)
+- `ws://localhost:8080/gateway/ws` -> Gateway WebSocket
 
 ## Quick Start
 
-### Prerequisites
-
-- Docker Engine 20.10+
-- Docker Compose 2.0+
-- macOS: Docker Desktop configured with `host.docker.internal` support
-
-### Start the Stack
+### 1. Build and start
 
 ```bash
-cd docker
-make up
+docker compose -f docker/docker-compose.yml up -d --build
 ```
 
-### Check Status
+### 2. Run interactive onboarding (first time only)
+
+The gateway needs an AI provider to function. Run the onboarding wizard
+inside the container:
 
 ```bash
-make status
+docker exec -it clawdbot-openclaw-gateway node dist/index.js onboard
 ```
 
-### View Logs
+This will walk you through:
+
+- **Risk acknowledgement**
+- **AI provider auth** (OpenAI Codex OAuth, API key, Anthropic, etc.)
+- **Default model selection**
+- **Channel setup** (skip if using env vars for Telegram)
+- **Tool API keys** (Brave search, Firecrawl, etc.)
+
+For OpenAI Codex OAuth: the wizard shows a URL to open in your browser.
+After signing in, the browser redirects to `http://localhost:1455/auth/callback`
+which the container captures automatically (port 1455 is mapped to the host).
+If the callback doesn't auto-complete, paste the full redirect URL back into
+the terminal.
+
+All credentials persist in the `openclaw_state` Docker volume. You only
+need to run onboarding once unless you wipe volumes.
+
+### 3. Open the Chat UI
+
+- `http://localhost:8080/chat/` — talk to the agent
+
+The dashboard at `http://localhost:8080/` is for monitoring runs,
+approvals, and workflows. The Chat UI is where you actually interact
+with the agent.
+
+Default gateway token: `dev-local-token`
+
+## Telegram
+
+To connect a Telegram bot, set the token before starting:
 
 ```bash
-# Follow all logs in real-time
-make logs-follow
-
-# View specific service logs
-make logs-n8n
-make logs-postgres
-make logs-nginx
-
-# View last 50 lines of all logs
-make logs
+TELEGRAM_BOT_TOKEN=123456:ABC-DEF docker compose -f docker/docker-compose.yml up -d
 ```
 
-### Stop the Stack
+The gateway auto-detects the token and starts the Telegram channel.
+No additional config needed.
+
+## Gateway Initialization
+
+The gateway uses an entrypoint script (`docker/gateway-entrypoint.sh`) that
+handles first-run and subsequent-run config automatically:
+
+**First run** (no init marker in the volume):
+
+- Seeds gateway config: mode, bind, auth, trusted proxies, Control UI basePath
+- Writes an init marker so the full seed is not repeated
+
+**Subsequent runs** (init marker exists):
+
+- Patches only env-driven values (token, trusted proxies) so they
+  stay in sync with docker-compose environment variables
+- Preserves any manual config changes you made via `openclaw config set`
+
+**Volume reset** (`docker compose down -v`):
+
+- Removes the init marker, config, and credentials — next start does a fresh
+  seed, and you'll need to re-run onboarding
+
+Config and credentials are stored in the `openclaw_state` volume at
+`/home/node/.openclaw/`.
+
+## Key Environment Variables
+
+You can override these when starting compose:
+
+- `OPENCLAW_GATEWAY_TOKEN` (default: `dev-local-token`)
+- `OPENCLAW_GATEWAY_PORT` (default: `18789`)
+- `OPENCLAW_TRUSTED_PROXIES` (default: `172.28.0.10` — the nginx container IP)
+- `TELEGRAM_BOT_TOKEN` (optional; auto-enables Telegram channel)
+- `OPENCLAW_N8N_BASE_URL` (default: `http://n8n:5678/workflows`)
+- `OPENCLAW_N8N_API_KEY` (optional; set if your n8n API is secured)
+- `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`
+- `POSTGRES_PORT`, `REDIS_PORT`
+
+Example:
 
 ```bash
-make down
+OPENCLAW_GATEWAY_TOKEN=my-token \
+TELEGRAM_BOT_TOKEN=123456:ABC-DEF \
+docker compose -f docker/docker-compose.yml up -d --build
 ```
 
-## Access Services
-
-Once the stack is running:
-
-- **n8n Workflows:** http://localhost:8080/workflows/
-- **Dashboard (placeholder):** http://localhost:8080/ (requires service at localhost:3000)
-- **PostgreSQL:** `localhost:5432` (from host or other containers)
-- **Redis:** `localhost:6379` (from host or other containers)
-
-## Database Connection
-
-### From Host Machine
+## Verification
 
 ```bash
-# PostgreSQL
-psql -h localhost -U clawdbot -d clawdbot
-
-# Redis
-redis-cli -h localhost -p 6379
+docker compose -f docker/docker-compose.yml ps
+curl http://localhost:8080/health
 ```
 
-### From Inside Containers
+## Stop
 
 ```bash
-# PostgreSQL
-psql -h postgres -U clawdbot -d clawdbot
-
-# Redis
-redis-cli -h redis -p 6379
+docker compose -f docker/docker-compose.yml down
 ```
 
-### Connection Strings
-
-- **PostgreSQL:** `postgresql://clawdbot:clawdbot_password@postgres:5432/clawdbot`
-- **Redis:** `redis://redis:6379`
-
-## Environment Variables
-
-The stack uses hardcoded credentials suitable for local development. For production, consider:
-
-1. Creating a `.env` file in the `docker/` directory
-2. Using Docker secrets for sensitive data
-3. Implementing environment-specific overrides
-
-To use environment variables:
+Remove volumes too (resets all state including credentials):
 
 ```bash
-# Create docker/.env
-POSTGRES_USER=custom_user
-POSTGRES_PASSWORD=secure_password
-POSTGRES_DB=custom_db
-
-# Then docker-compose will use these values
-docker-compose -f docker-compose.yml up -d
+docker compose -f docker/docker-compose.yml down -v
 ```
-
-## Persistent Data
-
-All services store data in Docker volumes:
-
-- `postgres_data` → PostgreSQL data directory
-- `redis_data` → Redis persistent store
-- `n8n_data` → n8n workflows and user configuration
-
-These volumes survive container restarts but are removed with `make clean`.
-
-## Networking
-
-All services are connected via the `clawdbot-network` bridge network:
-
-- Service-to-service communication uses container names (e.g., `postgres:5432`)
-- From the host, services are accessible via `localhost:<port>`
-
-## Configuration
-
-### nginx Routes
-
-Edit `./nginx/default.conf` to:
-
-- Change proxy destinations
-- Add new endpoints
-- Modify WebSocket behavior
-- Update timeouts
-
-After changes, restart nginx:
-
-```bash
-docker-compose restart nginx
-```
-
-### n8n Settings
-
-n8n stores configuration in the `n8n_data` volume. To reset:
-
-```bash
-docker-compose down -v  # Remove all volumes
-make up                  # Rebuild from scratch
-```
-
-## Troubleshooting
-
-### Port Already in Use
-
-If ports 5432, 6379, 5678, or 8080 are occupied:
-
-1. Edit `docker-compose.yml` and change the host port (left side of `:`)
-2. Restart the stack: `make restart`
-
-### PostgreSQL Connection Failures
-
-1. Check PostgreSQL is healthy: `make status`
-2. View logs: `make logs-postgres`
-3. Verify credentials in `docker-compose.yml`
-
-### n8n Not Responding
-
-1. Wait 30 seconds for initialization
-2. Check logs: `make logs-n8n`
-3. Verify PostgreSQL is running: `docker-compose ps`
-
-### nginx Upstream Issues
-
-1. Ensure n8n is healthy: `make logs-n8n`
-2. Check nginx config: `docker-compose exec nginx cat /etc/nginx/conf.d/default.conf`
-3. Restart nginx: `docker-compose restart nginx`
-
-### Docker Network Issues
-
-On macOS, `host.docker.internal` must resolve correctly. If the dashboard (localhost:3000) is unreachable:
-
-1. Verify your service is running on port 3000
-2. Test from inside a container:
-   ```bash
-   docker-compose exec nginx ping host.docker.internal
-   ```
-
-## Makefile Targets
-
-| Target               | Description                       |
-| -------------------- | --------------------------------- |
-| `make help`          | Show available commands           |
-| `make up`            | Start all services                |
-| `make down`          | Stop all services                 |
-| `make restart`       | Restart all services              |
-| `make status`        | Show service status               |
-| `make logs`          | Show last 50 lines of all logs    |
-| `make logs-follow`   | Follow all logs in real-time      |
-| `make logs-n8n`      | Follow n8n logs                   |
-| `make logs-postgres` | Follow PostgreSQL logs            |
-| `make logs-nginx`    | Follow nginx logs                 |
-| `make clean`         | Remove all containers and volumes |
-
-## Development Workflow
-
-### Local Development with OpenClaw
-
-1. **Start the stack:**
-
-   ```bash
-   cd docker
-   make up
-   ```
-
-2. **Run OpenClaw CLI in another terminal:**
-
-   ```bash
-   cd ..
-   pnpm dev
-   ```
-
-3. **Monitor services:**
-
-   ```bash
-   # In docker directory
-   make logs-follow
-   ```
-
-4. **Stop everything:**
-   ```bash
-   # Stop OpenClaw (Ctrl+C in its terminal)
-   # Stop Docker stack
-   make down
-   ```
-
-### Database Inspection
-
-```bash
-# Connect to PostgreSQL
-docker-compose exec postgres psql -U clawdbot -d clawdbot
-
-# List tables
-\dt
-
-# Exit
-\q
-```
-
-### Redis Inspection
-
-```bash
-# Connect to Redis
-docker-compose exec redis redis-cli
-
-# List all keys
-KEYS *
-
-# Get a value
-GET key_name
-
-# Exit
-EXIT
-```
-
-## Performance Tuning
-
-For production or performance testing:
-
-### PostgreSQL
-
-Edit `docker-compose.yml` and add to postgres environment:
-
-```yaml
-POSTGRES_INITDB_ARGS: "-c shared_buffers=256MB -c max_connections=200"
-```
-
-### Redis
-
-Add to redis command:
-
-```yaml
-command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
-```
-
-### Resource Limits
-
-Uncomment or add to services:
-
-```yaml
-deploy:
-  resources:
-    limits:
-      cpus: "2"
-      memory: 2G
-    reservations:
-      cpus: "1"
-      memory: 1G
-```
-
-## Cleanup
-
-### Remove Stopped Containers Only
-
-```bash
-docker-compose -f docker-compose.yml down
-```
-
-### Remove Everything (Including Volumes)
-
-```bash
-make clean
-```
-
-### Prune System
-
-```bash
-docker system prune -a
-```
-
-## Notes
-
-- The stack is configured for **local development** with relaxed security settings
-- PostgreSQL credentials are in plain text; never use in production
-- n8n basic auth is disabled for ease of access
-- nginx allows requests from `host.docker.internal` for local dashboard access
-- Consider adding `.env` file support for sensitive data in production environments
-
-## Further Reading
-
-- [n8n Documentation](https://docs.n8n.io/)
-- [Docker Compose Reference](https://docs.docker.com/compose/compose-file/)
-- [PostgreSQL Docker Guide](https://hub.docker.com/_/postgres)
-- [Redis Docker Guide](https://hub.docker.com/_/redis)
-- [nginx Docker Guide](https://hub.docker.com/_/nginx)

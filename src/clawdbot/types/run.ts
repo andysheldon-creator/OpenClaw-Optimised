@@ -64,7 +64,7 @@ export type RunStep = {
   /** The input/arguments passed to the tool. */
   input: unknown;
   /** The output returned by the tool (undefined until the step completes). */
-  result: unknown | undefined;
+  result: unknown;
   /** Wall-clock duration in milliseconds (set once the step finishes). */
   durationMs: number | undefined;
   /** Current state of this step. */
@@ -90,7 +90,7 @@ export type Run = {
   /** The input payload provided to the skill at invocation time. */
   input: unknown;
   /** The final output produced by the skill (undefined until completed). */
-  output: unknown | undefined;
+  output: unknown;
   /** URIs or identifiers for artifacts generated during the run (screenshots, transcripts, exports). */
   artifacts: string[];
   /** ISO-8601 timestamp of when the run was created. */

@@ -32,6 +32,7 @@ When you touch tests or want extra confidence:
 When debugging real providers/models (requires real creds):
 
 - Live suite (models + gateway tool/image probes): `pnpm test:live`
+- Marketing sandbox live harness (opt-in): `OPENCLAW_MARKETING_SANDBOX_E2E=1 pnpm test:live src/clawdbot/control-plane/marketing-sandbox.live.test.ts`
 
 Tip: when you only need one failing case, prefer narrowing live tests via the allowlist env vars described below.
 
@@ -89,6 +90,19 @@ Use this decision table:
 - Editing logic/tests: run `pnpm test` (and `pnpm test:coverage` if you changed a lot)
 - Touching gateway networking / WS protocol / pairing: add `pnpm test:e2e`
 - Debugging “my bot is down” / provider-specific failures / tool calling: run a narrowed `pnpm test:live`
+- Validating dashboard lifecycle control-plane flows: run `pnpm test:e2e src/clawdbot/control-plane/dashboard-operator-flow.e2e.test.ts`
+
+## Control-plane test coverage
+
+- Unit/integration:
+  - `src/clawdbot/control-plane/marketing.test.ts` validates deterministic compile output and risk fingerprinting.
+  - `src/clawdbot/control-plane/service.test.ts` validates idempotent ledger dedupe, readiness guards, and backfill idempotency.
+  - `src/gateway/server-methods/clawdbot-control-plane.test.ts` validates query/mutation endpoint contracts.
+  - `src/clawdbot/workflows/marketing-templates.test.ts` validates dry-run/live marketing template structure.
+- E2E:
+  - `src/clawdbot/control-plane/dashboard-operator-flow.e2e.test.ts` covers operator lifecycle mutation and denied viewer path.
+- Live:
+  - `src/clawdbot/control-plane/marketing-sandbox.live.test.ts` executes sandbox marketing flow when explicitly enabled.
 
 ## Live: model smoke (profile keys)
 

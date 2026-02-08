@@ -26,6 +26,19 @@ export type {
 } from "./browser-runner.js";
 export { BrowserRunner } from "./browser-runner.js";
 
+// TOOLS-016 (#297) Google Ads browser adapter
+export type {
+  GoogleAdsMutationActionType,
+  GoogleAdsMutationAction,
+  GoogleAdsActionErrorCategory,
+  GoogleAdsMutationResult,
+  GoogleAdsSessionProbeResult,
+} from "./google-ads-types.js";
+export { GoogleAdsBrowserAdapter } from "./google-ads-browser.js";
+
+// TOOLS-017 (#298) Google Ads CLI adapter
+export { GoogleAdsCliAdapter } from "./google-ads-cli.js";
+
 // TOOLS-005 (#41) Browser credential vault
 export type { BrowserCredential, BrowserSessionData } from "./browser-vault.js";
 export { BrowserSessionStore } from "./browser-vault.js";

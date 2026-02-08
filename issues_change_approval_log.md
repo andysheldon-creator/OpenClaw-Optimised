@@ -2045,17 +2045,666 @@ From repo fork to business skill packs, the full Clawdbot platform stands comple
 
 ---
 
+## Issue #286 — [UI-014] Dashboard web app workspace scaffold (Vite + Lit)
+
+**Labels:** `epic: UI`, `size: 2pt`, `frontend`, `app: web-dashboard`
+**Blockers:** #285
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+A new `dashboard/` workspace package now exists with Vite + Lit wiring in place,
+`pnpm-workspace.yaml` includes `dashboard`, so installs and filtering resolve with grace.
+Build output lands in `dist/dashboard` through `dashboard/vite.config.ts` as requested,
+Dev server and production build both run cleanly from the new package scaffold invested.
+
+> _A dashboard root now stands on its own,_
+> _Built and served with pathways known._
+
+---
+
+## Issue #287 — [UI-015] Dashboard shell + routing using UI contracts
+
+**Labels:** `epic: UI`, `size: 2pt`, `frontend`, `app: web-dashboard`
+**Blockers:** #286
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+`dashboard/src/components/dashboard-shell.ts` renders sidebar, top bar, and breadcrumb chrome from shell contracts,
+`dashboard/src/router.ts` registers `/`, `/runs`, `/approvals`, `/workflows`, `/skills`, `/tools`, and `/settings` route parts.
+Route matching updates active sidebar state and breadcrumb labels with no console churn,
+Navigation events flow through a single app shell so view swaps remain concise and stern.
+
+> _Shell and routes now move in sync,_
+> _One registry keeps all paths in links._
+
+---
+
+## Issue #288 — [UI-016] Command Center widgets view (mock data)
+
+**Labels:** `epic: UI`, `size: 2pt`, `frontend`, `app: web-dashboard`
+**Blockers:** #287
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+`dashboard/src/data/widgets.ts` now provides typed `Widget[]` mock payloads for every widget type,
+`dashboard/src/views/command-center.ts` maps those widgets into a responsive grid with loading and loaded sight.
+Cards render summary metrics, health rows, cost trend snippets, and activity feed entries,
+The view remains data-factory driven so future API swaps can replace mocks without surgery.
+
+> _Widgets pulse with mocked command-center light,_
+> _Loading and loaded both render right._
+
+---
+
+## Issue #289 — [UI-017] Runs list view (filters + table)
+
+**Labels:** `epic: UI`, `size: 2pt`, `frontend`, `app: web-dashboard`
+**Blockers:** #287
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+`dashboard/src/data/runs.ts` returns a typed `PaginatedRunList` plus filter/sort helpers bound to config,
+`dashboard/src/views/runs-list.ts` reads `DEFAULT_RUN_LIST_CONFIG` and renders columns in configured order without drift.
+Search, state filter, and sort controls mutate list state against mock rows as required,
+Inspect actions route into run detail paths so list-to-detail flow is already wired.
+
+> _Runs align in a sortable lane,_
+> _Filters shift state without strain._
+
+---
+
+## Issue #290 — [UI-018] Run detail view + inspector drawer (mock data)
+
+**Labels:** `epic: UI`, `size: 2pt`, `frontend`, `app: web-dashboard`
+**Blockers:** #289
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+`dashboard/src/data/run-detail.ts` now exports a typed `RunDetailView` bundle with timeline and step inspections,
+`dashboard/src/views/run-detail.ts` renders timeline entries and a reusable drawer for per-step deep descriptions.
+Drawer width and default closed state come directly from `DEFAULT_INSPECTOR_DRAWER` values,
+Open/close interactions and inspection payload rendering work with mock run progression surfaces.
+
+> _Timeline to drawer in one clear thread,_
+> _Step-level detail is now widespread._
+
+---
+
+## Issue #291 — [UI-019] Approval queue view (list + action stubs)
+
+**Labels:** `epic: UI`, `size: 1pt`, `frontend`, `app: web-dashboard`
+**Blockers:** #289
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+`dashboard/src/data/approvals.ts` provides typed `ApprovalQueueItem[]` fixtures across statuses and urgency levels,
+`dashboard/src/views/approvals.ts` maps `DEFAULT_APPROVAL_QUEUE_CONFIG` filters into a table with styled labels.
+Approve and reject controls are present as disabled non-destructive stubs per scope,
+Search, status, and minimum urgency filters all update queue visibility with no backend rope.
+
+> _Approvals queue with urgency cues,_
+> _Stubbed actions wait for live reviews._
+
+---
+
+## Issue #292 — [UI-020] Workflow catalog view (grid/list)
+
+**Labels:** `epic: UI`, `size: 2pt`, `frontend`, `app: web-dashboard`
+**Blockers:** #287
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+`dashboard/src/data/workflow-catalog.ts` now isolates typed `CatalogEntry[]` mock catalog records,
+`dashboard/src/views/workflow-catalog.ts` supports grid/list toggles plus filters and sort controls from config.
+`DEFAULT_CATALOG_CONFIG` initializes status filtering, page intent, and view mode behavior,
+Cards and list rows share one filtered dataset so state handling stays coherent and safer.
+
+> _Catalog flips from grid to list with ease,_
+> _Config-driven filters match the keys._
+
+---
+
+## Issue #293 — [UI-021] Workflow editor YAML view (validation shell)
+
+**Labels:** `epic: UI`, `size: 2pt`, `frontend`, `app: web-dashboard`
+**Blockers:** #287
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+`dashboard/src/data/workflow-editor.ts` now exports mock `EditorState` and `ValidationResult` diagnostics,
+`dashboard/src/views/workflow-editor.ts` renders toolbar controls, YAML textarea shell, and diagnostics acoustics.
+`DEFAULT_EDITOR_CONFIG` is cloned as the source of behavior for validation, wrapping, and font display,
+Validate/format/save/deploy controls remain UI-only stubs while keeping future editor integration in play.
+
+> _Editor shell now speaks in YAML tone,_
+> _Diagnostics render with config as throne._
+
+---
+
+## Issue #294 — [UI-022] Skills registry view (grid + detail drawer)
+
+**Labels:** `epic: UI`, `size: 2pt`, `frontend`, `app: web-dashboard`
+**Blockers:** #287
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+`dashboard/src/data/skills.ts` provides typed `SkillCard[]` and `SkillDetail` fixtures with manifest/version metadata,
+`dashboard/src/views/skills-registry.ts` supports grid/list toggles and filter state from default config data.
+A reusable detail drawer shows manifest YAML, versions, and changelog entries for selected skills,
+Usage stats toggles and status filters keep registry browsing aligned with UI contract drills.
+
+> _Skill cards and drawer now pair by name,_
+> _Manifest and versions surface in frame._
+
+---
+
+## Issue #285 — [EPIC] Clawdbot Dashboard MVP (Phase 1)
+
+**Labels:** `epic: UI`, `app: web-dashboard`
+**Blockers:** #286-#294
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+Phase 1 dashboard scope is now complete across scaffold, shell routing, and all seven core view deliveries,
+Every child issue (#286 through #294) landed with mock adapters and contract-based render pathways for future back-end recoveries.
+Build validation passed for the new package and dev startup confirms the app shell serves correctly,
+The web dashboard MVP now has a working surface to iterate on with real APIs next directly.
+
+> _Epic closed with every child complete,_
+> _Dashboard MVP stands on typed feet._
+
+---
+
+## Issue #295 — [EPIC] Marketing Plan Live Execution (Google Ads via Browser/CLI)
+
+**Labels:** `epic: BIZ`
+**Blockers:** #296-#308
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+The live marketing execution epic now lands with compiler, adapters, ledger, policy, workflows, UI launch flow, E2E harness, and runbooks integrated.
+`src/clawdbot/control-plane/service.ts` orchestrates compile-to-run execution with preflight, approvals, telemetry, replay, and artifact indexing.
+`dashboard/src/views/command-center.ts` moved the operator path from mock preview into a real compile and execute launch sequence.
+All child issues (#296 through #308) are implemented and covered by unit, integration, and targeted E2E tests.
+
+> _No longer mock and no longer guess,_
+> _Live plan execution now ships with finesse._
+
+---
+
+## Issue #296 — [SK-011] Skill readiness audit + capability matrix for live marketing execution
+
+**Labels:** `epic: SK`, `size: 2pt`, `backend`
+**Blockers:** #295
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+`src/clawdbot/control-plane/inventory.ts` now builds a unified capability matrix and writes it to `skills/capability-matrix.json`.
+Live readiness now blocks missing prerequisites and stub/blocked chains before launch via the control-plane readiness checks.
+`scripts/clawdbot-readiness-report.ts` prints a strict go/no-go readiness report for operators and CI gates.
+Skill inventory status is queryable from control-plane snapshot endpoints for dashboard visibility.
+
+> _Capability states are now plain to see,_
+> _Live mode blocks what should not be._
+
+---
+
+## Issue #297 — [TOOLS-016] Browser session probe + live Google Ads action executor
+
+**Labels:** `epic: TOOLS`, `size: 2pt`, `blocked`, `backend`
+**Blockers:** #296
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+`src/clawdbot/tools/google-ads-browser.ts` adds authenticated session probing and early login redirect detection for Google Ads browser flows.
+Action execution now supports typed mutation operations with validated inputs and deterministic per-action result payloads.
+Dry-run and live execution both return normalized response contracts and include troubleshooting metadata.
+Service integration enforces browser readiness before live action execution when browser adapter nodes are required.
+
+> _Browser probe now fails fast when auth is gone,_
+> _And action contracts stay steady from dusk to dawn._
+
+---
+
+## Issue #298 — [TOOLS-017] Google Ads CLI adapter for campaign mutation actions
+
+**Labels:** `epic: TOOLS`, `size: 2pt`, `blocked`, `backend`
+**Blockers:** #296
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+`src/clawdbot/tools/google-ads-cli.ts` implements a first-class CLI adapter with typed mutation actions and normalized outputs.
+Adapter-level validation now rejects malformed IDs, campaign context, ad-group requirements, and invalid budget payloads.
+Error categories (`validation`, `auth`, `permission`, `rate_limit`, `timeout`, `unknown`) are deterministic and machine-consumable.
+The adapter contract matches browser-path action shapes through shared `src/clawdbot/tools/google-ads-types.ts`.
+
+> _CLI and browser now speak one tongue,_
+> _Typed action results keep pipelines young._
+
+---
+
+## Issue #299 — [CORE-011] External mutation ledger + idempotency for ad actions
+
+**Labels:** `epic: CORE`, `size: 2pt`, `blocked`, `backend`
+**Blockers:** #297, #298
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+`src/clawdbot/control-plane/types.ts` introduces `ExternalMutationLedgerEntry` with run/action identity, account/resource IDs, fingerprint, and status.
+`src/clawdbot/control-plane/service.ts` now dedupes actions by stable fingerprint and enforces idempotency keys by account+fingerprint.
+Retry paths are safe: already-applied equivalent actions are skipped and logged as deduped rather than re-mutated.
+`src/clawdbot/control-plane/service.test.ts` verifies duplicate execution suppression and stable replay behavior.
+
+> _Ledger keys now guard each mutation line,_
+> _Repeat runs skip what was already fine._
+
+---
+
+## Issue #300 — [SEC-007] Spend/risk guardrails and approval policies for live ad mutations
+
+**Labels:** `epic: SEC`, `size: 2pt`, `blocked`, `backend`
+**Blockers:** #299
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+`src/clawdbot/control-plane/marketing.ts` classifies risk deterministically using budget, bid, and activation context.
+`src/clawdbot/control-plane/service.ts` enforces policy checks and routes high-impact runs/actions through approval records.
+Approval payloads include risk rule IDs, urgency, and structured rationale for operator review surfaces.
+Tests cover gating logic and stable risk fingerprint behavior.
+
+> _Risk rules now gate the costly climb,_
+> _Approvals catch high-impact moves in time._
+
+---
+
+## Issue #301 — [WF-011] Marketing plan schema + compiler to executable action graph
+
+**Labels:** `epic: WF`, `size: 2pt`, `blocked`, `backend`
+**Blockers:** #296, #299
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+`src/clawdbot/control-plane/marketing.ts` now defines the marketing plan schema validator and deterministic compiler.
+Compilation emits ordered action graph nodes with stable deterministic IDs and a reproducible graph hash.
+Validation errors are operator-friendly and surfaced before run execution.
+`src/clawdbot/control-plane/marketing.test.ts` verifies deterministic output and validation guarantees.
+
+> _Plan to graph now compiles with care,_
+> _Same input yields the same path there._
+
+---
+
+## Issue #302 — [WF-012] n8n templates for marketing plan dry-run and live execution
+
+**Labels:** `epic: WF`, `size: 2pt`, `blocked`, `backend`
+**Blockers:** #301, #300, #297, #298
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+`workflows/templates/marketing/marketing-plan-dry-run.json` adds no-mutation preview flow with approval gating and artifact output.
+`workflows/templates/marketing/marketing-plan-live-execution.json` adds adapter routing, bounded retry, escalation, ledger, reconciliation, and replay storage.
+Template metadata docs are updated in both `workflows/templates/README.md` and `docs/clawdbot/workflows/template-library.md`.
+`src/clawdbot/workflows/marketing-templates.test.ts` validates required node contracts in both templates.
+
+> _Dry-run previews and live-run lanes,_
+> _Now template-backed with explicit chains._
+
+---
+
+## Issue #303 — [OBS-011] Live execution telemetry, artifacts, and replay traces for marketing runs
+
+**Labels:** `epic: OBS`, `size: 2pt`, `blocked`, `backend`
+**Blockers:** #299, #302
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+`src/clawdbot/control-plane/service.ts` now emits action-level telemetry with adapter, timing, status, and error category.
+Artifact indexing includes graph artifact, per-action artifacts, and replay markers for failure diagnostics.
+Replay traces capture request/response envelopes per action for deterministic troubleshooting bundles.
+Run detail and snapshot APIs expose these observability structures to dashboard consumers.
+
+> _Each action now leaves a measured trace,_
+> _Replay bundles preserve the failing place._
+
+---
+
+## Issue #304 — [CORE-012] Runtime query endpoints for dashboard live data (runs/approvals/workflows/skills)
+
+**Labels:** `epic: CORE`, `size: 2pt`, `blocked`, `backend`, `app: web-dashboard`
+**Blockers:** #299, #303
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+`src/gateway/server-methods/clawdbot-control-plane.ts` now exposes live query and mutation surfaces for snapshot, runs, approvals, skills, workflows, bindings, drift, backfill, and readiness.
+Control-plane handlers are registered in `src/gateway/server-methods.ts` and method lists in `src/gateway/server-methods-list.ts`.
+Payloads map to dashboard contracts used by live adapters in `dashboard/src/data/live-api.ts`.
+`src/gateway/server-methods/clawdbot-control-plane.test.ts` validates core query contracts and compile/run request flow.
+
+> _Live endpoint bridges now replace mock streams,_
+> _Dashboard reads runtime truth, not dreams._
+
+---
+
+## Issue #305 — [UI-023] Replace dashboard mock adapters with live runtime data
+
+**Labels:** `epic: UI`, `size: 2pt`, `blocked`, `frontend`, `app: web-dashboard`
+**Blockers:** #304
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+`dashboard/src/data/live-api.ts` now defaults to gateway-backed runtime data across widgets, runs, approvals, skills, workflows, and bindings.
+Mock mode is explicit and opt-in via persisted toggle (`openclaw.dashboard.mock_mode`) rather than default behavior.
+Views now surface loading/error/empty behavior for live failures while preserving optional mock fallback for local dev.
+Gateway connection settings are surfaced in command center and wired through `dashboard/src/data/gateway-client.ts`.
+
+> _Live data now leads and mocks stand by,_
+> _Only when toggled do fixtures reply._
+
+---
+
+## Issue #306 — [UI-024] Marketing plan launch UX (input, dry-run diff, approval submit)
+
+**Labels:** `epic: UI`, `size: 2pt`, `blocked`, `frontend`, `app: web-dashboard`
+**Blockers:** #302, #305, #300
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+`dashboard/src/views/command-center.ts` now includes plan intake, compile, execute, and readiness controls with live gateway wiring.
+Dry-run output renders structured mutation diffs with grouped rows, risk pills, and spend-impact highlighting.
+Approval and launch transitions now show run IDs, policy context, and execution state feedback.
+Mock fallback recursion was removed and replaced with explicit unavailable-state handling.
+
+> _Operators can launch from one clear pane,_
+> _See diff and risk before touching campaign._
+
+---
+
+## Issue #307 — [BIZ-183] Live E2E: Marketing plan to Google Ads sandbox execution
+
+**Labels:** `epic: BIZ`, `size: 2pt`, `blocked`, `backend`
+**Blockers:** #297, #298, #302, #303, #306
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+`fixtures/api-responses/marketing-plan-sandbox.json` provides a realistic sandbox plan fixture for end-to-end flow coverage.
+`src/clawdbot/control-plane/marketing-sandbox.live.test.ts` adds opt-in live harness execution and forced-failure replay assertions.
+`src/clawdbot/control-plane/dashboard-operator-flow.e2e.test.ts` validates operator lifecycle-to-run path and denied viewer path.
+Testing guidance for these flows is documented in `docs/testing.md`.
+
+> _Sandbox harness now proves the path end to end,_
+> _From plan to replay when runs bend._
+
+---
+
+## Issue #308 — [BIZ-184] Production runbook: live marketing execution, rollback, and incident handling
+
+**Labels:** `epic: BIZ`, `size: 1pt`, `blocked`
+**Blockers:** #307
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+`docs/clawdbot/runbooks/marketing-live-execution.md` now documents preconditions, dry-run review, launch, rollback, and incident flows.
+The runbook includes explicit approval, reconciliation, and communication templates for production handling.
+Existing marketing runbook index now references this production path in `docs/clawdbot/runbooks/marketing-runbooks.md`.
+Operational guidance aligns with artifact and replay capabilities delivered in runtime.
+
+> _Runbook steps now guide each launch and halt,_
+> _From planned rollout through postmortem fault._
+
+---
+
+## Issue #309 — [EPIC] Skills + n8n Workflow Control Plane (Dashboard Managed)
+
+**Labels:** `epic: WF`, `app: web-dashboard`
+**Blockers:** #310-#320
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+The control-plane epic now lands with unified inventories, lifecycle APIs, RBAC policy gates, drift health, backfill, and operator E2E coverage.
+Dashboard views moved from passive browse to actionable skill/workflow lifecycle operations backed by runtime mutations.
+n8n inventory sync and template mapping provide contract-linked workflow state visibility.
+All child issues (#310 through #320) are implemented and validated in tests plus runbooks.
+
+> _Control plane now governs skill and flow,_
+> _From dashboard action to runtime glow._
+
+---
+
+## Issue #310 — [SK-012] Unified live skill inventory + readiness status from existing skill set
+
+**Labels:** `epic: SK`, `size: 2pt`, `backend`
+**Blockers:** #309
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+`src/clawdbot/control-plane/inventory.ts` aggregates skill inventory and readiness metadata from existing repo/runtime skill surfaces.
+Readiness captures tools, env/config prerequisites, blockers, lifecycle, and live-ready status.
+`skills/capability-matrix.json` is now the machine-readable readiness artifact synced from inventory build.
+Dashboard snapshot and dedicated inventory endpoints expose this live skill inventory without static mocks.
+
+> _One inventory now lists each skill's state,_
+> _Readiness and blockers surface at the gate._
+
+---
+
+## Issue #311 — [WF-013] n8n workflow inventory sync + contract mapping for existing workflows
+
+**Labels:** `epic: WF`, `size: 2pt`, `blocked`, `backend`
+**Blockers:** #310
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+`src/clawdbot/control-plane/inventory.ts` now syncs workflow metadata from n8n API and repo templates into one normalized inventory.
+Template nodes are mapped to skill bindings through `skillName` extraction for contract-level visibility.
+Workflow lifecycle/version/hash metadata is persisted and surfaced for dashboard operations.
+Drift and health checks include workflow inventory state and n8n-sourced entries.
+
+> _Workflow sync now spans repo and runtime seas,_
+> _Mapped skills reveal contract mismatches with ease._
+
+---
+
+## Issue #312 — [CORE-013] Control-plane API for skill and workflow lifecycle operations
+
+**Labels:** `epic: CORE`, `size: 2pt`, `blocked`, `backend`, `app: web-dashboard`
+**Blockers:** #310, #311
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+`src/clawdbot/control-plane/service.ts` implements typed lifecycle operations for skills, workflows, and bindings with policy checks.
+`src/gateway/server-methods/clawdbot-control-plane.ts` exposes mutation/query handlers for dashboard-driven lifecycle control.
+Operation auditing and policy decisions are emitted on every mutation attempt.
+Idempotent behavior is enforced for repeated equivalent marketing actions through ledger fingerprint dedupe.
+
+> _Lifecycle APIs now move beyond read,_
+> _Typed mutation paths execute what ops need._
+
+---
+
+## Issue #313 — [UI-025] Skills management dashboard: lifecycle actions + readiness visibility
+
+**Labels:** `epic: UI`, `size: 2pt`, `blocked`, `frontend`, `app: web-dashboard`
+**Blockers:** #310, #312
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+`dashboard/src/views/skills-registry.ts` now includes lifecycle action controls (enable/disable/pin/unpin/deprecate/reactivate/reload).
+Readiness blockers, capability, lifecycle, and last operation context are visible in live detail surfaces.
+Lifecycle actions call real runtime mutations via `dashboard/src/data/live-api.ts`.
+UI reflects approval-required paths and post-action refresh to keep state aligned with backend outcomes.
+
+> _Skills page now acts, not only reads,_
+> _Readiness context stands beside each deed._
+
+---
+
+## Issue #314 — [UI-026] Workflow operations dashboard: deploy/activate/pause/run/rollback
+
+**Labels:** `epic: UI`, `size: 2pt`, `blocked`, `frontend`, `app: web-dashboard`
+**Blockers:** #311, #312
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+`dashboard/src/views/workflow-catalog.ts` now supports deploy, activate, pause, run, and rollback lifecycle actions.
+Operators get version/deploy metadata and mapped-skill context before applying mutations.
+Mutation actions route through live control-plane APIs and surface approval-required states.
+Catalog view remains filterable/sortable while operating against live inventory payloads.
+
+> _Workflow controls now ship in dashboard light,_
+> _Deploy to rollback all wired up right._
+
+---
+
+## Issue #315 — [WF-014] Skill-to-workflow binding editor + preflight validation
+
+**Labels:** `epic: WF`, `size: 2pt`, `blocked`, `backend`, `app: web-dashboard`
+**Blockers:** #310, #311, #312
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+`dashboard/src/views/workflow-editor.ts` adds live binding editing with workflow/node/skill mapping and requirement inputs.
+`src/clawdbot/control-plane/service.ts` validates bindings for missing skills, non-live skills, and missing prereq context.
+`clawdbot.bindings.upsert` returns structured validation issues and blocks invalid error-severity submissions.
+Binding inventory is queryable and persisted for dashboard lifecycle workflows.
+
+> _Bindings now preflight before they deploy,_
+> _Invalid links are blocked, no blind alloy._
+
+---
+
+## Issue #316 — [SEC-008] RBAC and approval policy for dashboard lifecycle mutations
+
+**Labels:** `epic: SEC`, `size: 2pt`, `blocked`, `backend`, `app: web-dashboard`
+**Blockers:** #312
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+`src/clawdbot/control-plane/service.ts` enforces server-side role policy (`viewer`, `operator`, `admin`) for all lifecycle mutations.
+High-impact operations are routed to approval queue records instead of direct mutation when policy requires escalation.
+Audit events include actor, action, reason, metadata, and policy decision fields for completeness.
+Tests verify denied viewer mutation path and approval-gated behavior.
+
+> _Server-side RBAC now guards each press,_
+> _Audit fields retain who, why, and success._
+
+---
+
+## Issue #317 — [OBS-012] Drift detection and sync health for skills/workflows across repo-runtime-n8n
+
+**Labels:** `epic: OBS`, `size: 2pt`, `blocked`, `backend`, `app: web-dashboard`
+**Blockers:** #310, #311, #312
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+`src/clawdbot/control-plane/inventory.ts` computes deterministic drift records for skills and workflows against stored metadata.
+Sync health now tracks stale state, unresolved drift totals, and critical drift counts for dashboard status surfaces.
+`clawdbot.drift.status` and snapshot payloads expose item-level drift and aggregate health metrics.
+Readiness reporting and strict mode consume these drift signals for operational gating.
+
+> _Drift checks now flag when state falls out of line,_
+> _Sync health tells ops when systems are fine._
+
+---
+
+## Issue #318 — [BIZ-185] Backfill migration: register existing skills/workflows into control-plane metadata
+
+**Labels:** `epic: BIZ`, `size: 2pt`, `blocked`, `backend`
+**Blockers:** #310, #311, #312
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+`src/clawdbot/control-plane/service.ts` now backfills skill/workflow metadata into control-plane state from live inventory.
+`scripts/clawdbot-control-plane-backfill.ts` provides repeatable migration execution with optional strict unresolved enforcement.
+Backfill reports unresolved high-severity drift entities for manual follow-up.
+`src/clawdbot/control-plane/service.test.ts` verifies rerun idempotency.
+
+> _Backfill seeds metadata day-one in place,_
+> _Reruns stay safe and keep the same base._
+
+---
+
+## Issue #319 — [BIZ-186] E2E operator flow: manage skill + workflow from dashboard and execute live run
+
+**Labels:** `epic: BIZ`, `size: 2pt`, `blocked`, `backend`, `app: web-dashboard`
+**Blockers:** #313, #314, #315, #316, #317, #318
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+`src/clawdbot/control-plane/dashboard-operator-flow.e2e.test.ts` exercises lifecycle mutation plus workflow run and denied viewer path.
+`fixtures/api-responses/control-plane-operator-flow.json` provides deterministic operator action fixtures.
+Assertions cover state mutation, run creation, and enforced permission denial behavior.
+This E2E path closes the operator journey gap between dashboard UI actions and runtime control-plane effects.
+
+> _Operator flow now runs from click to run,_
+> _And denied paths prove policy is done._
+
+---
+
+## Issue #320 — [BIZ-187] Operations runbook for dashboard-driven skills/workflow lifecycle management
+
+**Labels:** `epic: BIZ`, `size: 1pt`, `blocked`
+**Blockers:** #319
+**Status:** CLOSED
+**Grade:** PASS ✅
+
+**Review:**
+`docs/clawdbot/runbooks/dashboard-lifecycle-operations.md` now provides full skill/workflow lifecycle, RBAC, approval, rollback, and incident procedures.
+Runbook includes binding preflight workflow, tabletop validation scenarios, and recovery steps.
+Backfill and readiness script usage is documented with strict-mode guidance.
+Documentation aligns operational steps with implemented API/UI surfaces.
+
+> _Runbook now turns tribal steps to code,_
+> _Ops can steer safely on a documented road._
+
+---
+
 # FINAL SUMMARY
 
-**Total Issues:** 284
-**Issues Closed:** 284
+**Total Issues:** 320
+**Issues Closed:** 320
 **Issues Remaining:** 0
 **Overall Grade:** PASS ✅
 
 All issues have been implemented, reviewed, and approved. The Clawdbot platform
 now spans: dev environment (RF), core runtime (CORE), skill framework (SK),
 tool integrations (TOOLS), workflow orchestration (WF), dashboard UI (UI),
-security governance (SEC), observability (OBS), and 182 business skill pack
-issues (BIZ) covering Sales, Support, Finance, Ops, Marketing, and People.
+security governance (SEC), observability (OBS), business skill packs (BIZ),
+the dashboard MVP Phase 1 package, and the dashboard-managed control-plane
+plus live marketing execution rollout.
 
 _The Ralph Loop is complete._

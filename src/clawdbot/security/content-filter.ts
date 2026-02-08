@@ -131,13 +131,15 @@ export function filterOutboundContent(
   placeholder = "[REDACTED]",
 ): FilterResult {
   const matches: FilterMatch[] = [];
-  const enabledRules = rules.filter((r) => r.enabled).sort((a, b) => a.priority - b.priority);
+  const enabledRules = rules.filter((r) => r.enabled).toSorted((a, b) => a.priority - b.priority);
 
   let modified = content;
   let overallAction: FilterAction = "allow";
 
   for (const rule of enabledRules) {
-    if (!rule.pattern) continue;
+    if (!rule.pattern) {
+      continue;
+    }
 
     // TODO: cache compiled regex for performance
     const re = new RegExp(rule.pattern, "gi");
@@ -162,7 +164,7 @@ export function filterOutboundContent(
   if (overallAction === "redact" || matches.some((m) => m.action === "redact")) {
     const redactMatches = matches
       .filter((m) => m.action === "redact" && m.start !== undefined && m.end !== undefined)
-      .sort((a, b) => (b.start ?? 0) - (a.start ?? 0));
+      .toSorted((a, b) => (b.start ?? 0) - (a.start ?? 0));
 
     for (const m of redactMatches) {
       if (m.start !== undefined && m.end !== undefined) {

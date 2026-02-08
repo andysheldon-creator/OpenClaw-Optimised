@@ -1,0 +1,32 @@
+export {
+  getControlPlaneService,
+  resetControlPlaneServiceForTest,
+  ControlPlaneService,
+} from "./service.js";
+export type {
+  ApprovalQueueRecord,
+  BindingValidationIssue,
+  BindingValidationResult,
+  CapabilityStatus,
+  ControlPlaneAuditEvent,
+  ControlPlanePolicyRole,
+  ControlPlaneState,
+  DashboardSnapshot,
+  DriftItem,
+  DriftSeverity,
+  ExternalMutationLedgerEntry,
+  LifecycleAction,
+  MarketingAction,
+  MarketingActionTelemetry,
+  MarketingExecutionMode,
+  MarketingRun,
+  PolicyDecision,
+  SkillCapability,
+  SkillInventoryItem,
+  SkillLifecycleState,
+  SyncHealth,
+  WorkflowInventoryItem,
+  WorkflowLifecycleState,
+  WorkflowSkillBinding,
+} from "./types.js";
+export { compileMarketingPlan, validateMarketingPlan } from "./marketing.js";
