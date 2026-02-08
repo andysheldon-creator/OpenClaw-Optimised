@@ -283,8 +283,9 @@ async function installDownloadSpec(params: {
   entry: SkillEntry;
   spec: SkillInstallSpec;
   timeoutMs: number;
+  workspaceDir: string;
 }): Promise<SkillInstallResult> {
-  const { entry, spec, timeoutMs } = params;
+  const { entry, spec, timeoutMs, workspaceDir } = params;
   const url = spec.url?.trim();
   if (!url) {
     return {
@@ -349,15 +350,35 @@ async function installDownloadSpec(params: {
     stripComponents: spec.stripComponents,
     timeoutMs,
   });
-  const success = extractResult.code === 0;
+  if (extractResult.code !== 0) {
+    return {
+      ok: false,
+      message: formatInstallFailureMessage(extractResult),
+      stdout: extractResult.stdout.trim(),
+      stderr: extractResult.stderr.trim(),
+      code: extractResult.code,
+    };
+  }
+
+  // Defender audit: vet extracted candidate before considering install successful
+  const defenderWorkspace = resolveDefenderWorkspace(workspaceDir);
+  const auditResult = await runDefenderAudit(defenderWorkspace, targetDir, timeoutMs);
+  if (!auditResult.ok) {
+    return {
+      ok: false,
+      message: `Download failed security audit. Install aborted. ${auditResult.stderr ?? "audit failed"}`,
+      stdout: "",
+      stderr: auditResult.stderr ?? "",
+      code: 1,
+    };
+  }
+
   return {
-    ok: success,
-    message: success
-      ? `Downloaded and extracted to ${targetDir}`
-      : formatInstallFailureMessage(extractResult),
+    ok: true,
+    message: `Downloaded and extracted to ${targetDir}`,
     stdout: extractResult.stdout.trim(),
     stderr: extractResult.stderr.trim(),
-    code: extractResult.code,
+    code: 0,
   };
 }
 
@@ -412,23 +433,6 @@ export async function installSkill(params: SkillInstallRequest): Promise<SkillIn
   const spec = findInstallSpec(entry, params.installId);
   const warnings = await collectSkillInstallScanWarnings(entry);
 
-  // Defender audit: if openclaw-defender audit-skills.sh is present, run it; abort install on failure
-  const skillDir = path.resolve(entry.skill.baseDir);
-  const defenderWorkspace = resolveDefenderWorkspace(workspaceDir);
-  const auditResult = await runDefenderAudit(defenderWorkspace, skillDir, timeoutMs);
-  if (!auditResult.ok) {
-    return withWarnings(
-      {
-        ok: false,
-        message: `Skill failed security audit. Install aborted. ${auditResult.stderr ?? "audit failed"}`,
-        stdout: "",
-        stderr: auditResult.stderr ?? "",
-        code: 1,
-      },
-      warnings,
-    );
-  }
-
   if (!spec) {
     return withWarnings(
       {
@@ -442,7 +446,12 @@ export async function installSkill(params: SkillInstallRequest): Promise<SkillIn
     );
   }
   if (spec.kind === "download") {
-    const downloadResult = await installDownloadSpec({ entry, spec, timeoutMs });
+    const downloadResult = await installDownloadSpec({
+      entry,
+      spec,
+      timeoutMs,
+      workspaceDir,
+    });
     return withWarnings(downloadResult, warnings);
   }
 

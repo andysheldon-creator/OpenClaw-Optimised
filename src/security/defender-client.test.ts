@@ -80,8 +80,16 @@ describe("runDefenderRuntimeMonitor", () => {
 
   it("returns ok: true when script exists and check passes", async () => {
     const workspaceDir = makeTmpDir("defender-client");
-    await fs.mkdir(path.join(workspaceDir, "scripts"), { recursive: true });
-    const scriptPath = path.join(workspaceDir, "scripts", "runtime-monitor.sh");
+    await fs.mkdir(path.join(workspaceDir, "skills", "openclaw-defender", "scripts"), {
+      recursive: true,
+    });
+    const scriptPath = path.join(
+      workspaceDir,
+      "skills",
+      "openclaw-defender",
+      "scripts",
+      "runtime-monitor.sh",
+    );
     await fs.writeFile(
       scriptPath,
       '#!/bin/bash\ncase "$1" in kill-switch) [ "$2" != check ] || exit 0;; *) exit 0;; esac\n',
@@ -94,8 +102,16 @@ describe("runDefenderRuntimeMonitor", () => {
 
   it("returns ok: false with stderr when script exits non-zero", async () => {
     const workspaceDir = makeTmpDir("defender-client");
-    await fs.mkdir(path.join(workspaceDir, "scripts"), { recursive: true });
-    const scriptPath = path.join(workspaceDir, "scripts", "runtime-monitor.sh");
+    await fs.mkdir(path.join(workspaceDir, "skills", "openclaw-defender", "scripts"), {
+      recursive: true,
+    });
+    const scriptPath = path.join(
+      workspaceDir,
+      "skills",
+      "openclaw-defender",
+      "scripts",
+      "runtime-monitor.sh",
+    );
     await fs.writeFile(
       scriptPath,
       '#!/bin/bash\necho "Command blocked by policy" >&2\nexit 1\n',
@@ -115,8 +131,16 @@ describe("runDefenderRuntimeMonitor", () => {
 
   it("returns ok: false when script times out", async () => {
     const workspaceDir = makeTmpDir("defender-client");
-    await fs.mkdir(path.join(workspaceDir, "scripts"), { recursive: true });
-    const scriptPath = path.join(workspaceDir, "scripts", "runtime-monitor.sh");
+    await fs.mkdir(path.join(workspaceDir, "skills", "openclaw-defender", "scripts"), {
+      recursive: true,
+    });
+    const scriptPath = path.join(
+      workspaceDir,
+      "skills",
+      "openclaw-defender",
+      "scripts",
+      "runtime-monitor.sh",
+    );
     await fs.writeFile(scriptPath, "#!/bin/bash\nsleep 10\nexit 0\n", "utf-8");
     await fs.chmod(scriptPath, 0o755);
     const result = await runDefenderRuntimeMonitor(workspaceDir, "test", ["arg"], 500);
@@ -140,9 +164,17 @@ describe("runDefenderAudit", () => {
     const workspaceDir = makeTmpDir("defender-client");
     const skillDir = makeTmpDir("defender-skill");
     await fs.mkdir(workspaceDir, { recursive: true });
-    await fs.mkdir(path.join(workspaceDir, "scripts"), { recursive: true });
+    await fs.mkdir(path.join(workspaceDir, "skills", "openclaw-defender", "scripts"), {
+      recursive: true,
+    });
     await fs.mkdir(skillDir, { recursive: true });
-    const scriptPath = path.join(workspaceDir, "scripts", "audit-skills.sh");
+    const scriptPath = path.join(
+      workspaceDir,
+      "skills",
+      "openclaw-defender",
+      "scripts",
+      "audit-skills.sh",
+    );
     await fs.writeFile(scriptPath, '#!/bin/bash\necho "Audit passed"\nexit 0\n', "utf-8");
     await fs.chmod(scriptPath, 0o755);
     const result = await runDefenderAudit(workspaceDir, skillDir, 5_000);
@@ -153,9 +185,17 @@ describe("runDefenderAudit", () => {
     const workspaceDir = makeTmpDir("defender-client");
     const skillDir = makeTmpDir("defender-skill");
     await fs.mkdir(workspaceDir, { recursive: true });
-    await fs.mkdir(path.join(workspaceDir, "scripts"), { recursive: true });
+    await fs.mkdir(path.join(workspaceDir, "skills", "openclaw-defender", "scripts"), {
+      recursive: true,
+    });
     await fs.mkdir(skillDir, { recursive: true });
-    const scriptPath = path.join(workspaceDir, "scripts", "audit-skills.sh");
+    const scriptPath = path.join(
+      workspaceDir,
+      "skills",
+      "openclaw-defender",
+      "scripts",
+      "audit-skills.sh",
+    );
     await fs.writeFile(
       scriptPath,
       '#!/bin/bash\necho "FAIL: Malicious pattern detected" >&2\nexit 1\n',
@@ -172,9 +212,17 @@ describe("runDefenderAudit", () => {
     const workspaceDir = makeTmpDir("defender-client");
     const skillDir = makeTmpDir("defender-skill");
     await fs.mkdir(workspaceDir, { recursive: true });
-    await fs.mkdir(path.join(workspaceDir, "scripts"), { recursive: true });
+    await fs.mkdir(path.join(workspaceDir, "skills", "openclaw-defender", "scripts"), {
+      recursive: true,
+    });
     await fs.mkdir(skillDir, { recursive: true });
-    const scriptPath = path.join(workspaceDir, "scripts", "audit-skills.sh");
+    const scriptPath = path.join(
+      workspaceDir,
+      "skills",
+      "openclaw-defender",
+      "scripts",
+      "audit-skills.sh",
+    );
     await fs.writeFile(scriptPath, "#!/bin/bash\nsleep 10\nexit 0\n", "utf-8");
     await fs.chmod(scriptPath, 0o755);
     const result = await runDefenderAudit(workspaceDir, skillDir, 500);
