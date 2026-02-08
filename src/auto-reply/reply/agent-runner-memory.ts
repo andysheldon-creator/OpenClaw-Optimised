@@ -99,8 +99,12 @@ export async function readPromptTokensFromSessionLog(
     }
     const promptTokens = derivePromptTokens(lastUsage) ?? lastUsage.input ?? 0;
     const outputTokens = lastUsage.output ?? 0;
-    const totalTokens = lastUsage.total ?? promptTokens + outputTokens;
-    return totalTokens > 0 ? totalTokens : undefined;
+    const usageTotal = lastUsage.total;
+    if (typeof usageTotal === "number" && Number.isFinite(usageTotal) && usageTotal > 0) {
+      return usageTotal;
+    }
+    const derivedTotalTokens = promptTokens + outputTokens;
+    return derivedTotalTokens > 0 ? derivedTotalTokens : undefined;
   } catch {
     return undefined;
   }
