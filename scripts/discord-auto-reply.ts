@@ -85,7 +85,7 @@ async function main() {
   setInterval(async () => {
     try {
       await pollMessages(token, me.id, targetChannelId);
-    } catch (_err) {
+    } catch (err) {
       console.error("Polling error:", err);
     }
   }, POLLING_INTERVAL_MS);
