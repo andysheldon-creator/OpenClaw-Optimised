@@ -517,9 +517,9 @@ export async function resolveImplicitProviders(params: {
     allowKeychainPrompt: false,
   });
 
+  const minimaxEnv = resolveEnvApiKey("minimax");
   const minimaxKey =
-    resolveEnvApiKeyVarName("minimax") ??
-    resolveApiKeyFromProfiles({ provider: "minimax", store: authStore });
+    minimaxEnv?.apiKey ?? resolveApiKeyFromProfiles({ provider: "minimax", store: authStore });
   if (minimaxKey) {
     providers.minimax = { ...buildMinimaxProvider(), apiKey: minimaxKey };
   }
@@ -532,23 +532,23 @@ export async function resolveImplicitProviders(params: {
     };
   }
 
+  const moonshotEnv = resolveEnvApiKey("moonshot");
   const moonshotKey =
-    resolveEnvApiKeyVarName("moonshot") ??
-    resolveApiKeyFromProfiles({ provider: "moonshot", store: authStore });
+    moonshotEnv?.apiKey ?? resolveApiKeyFromProfiles({ provider: "moonshot", store: authStore });
   if (moonshotKey) {
     providers.moonshot = { ...buildMoonshotProvider(), apiKey: moonshotKey };
   }
 
+  const syntheticEnv = resolveEnvApiKey("synthetic");
   const syntheticKey =
-    resolveEnvApiKeyVarName("synthetic") ??
-    resolveApiKeyFromProfiles({ provider: "synthetic", store: authStore });
+    syntheticEnv?.apiKey ?? resolveApiKeyFromProfiles({ provider: "synthetic", store: authStore });
   if (syntheticKey) {
     providers.synthetic = { ...buildSyntheticProvider(), apiKey: syntheticKey };
   }
 
+  const veniceEnv = resolveEnvApiKey("venice");
   const veniceKey =
-    resolveEnvApiKeyVarName("venice") ??
-    resolveApiKeyFromProfiles({ provider: "venice", store: authStore });
+    veniceEnv?.apiKey ?? resolveApiKeyFromProfiles({ provider: "venice", store: authStore });
   if (veniceKey) {
     providers.venice = { ...(await buildVeniceProvider()), apiKey: veniceKey };
   }
@@ -557,7 +557,9 @@ export async function resolveImplicitProviders(params: {
   const huaweiMaasKey =
     huaweiMaasEnv?.apiKey ??
     resolveApiKeyFromProfiles({ provider: "huawei-maas", store: authStore });
-  providers["huawei-maas"] = await buildHuaweiMaasProvider(huaweiMaasKey || "");
+  if (huaweiMaasKey) {
+    providers["huawei-maas"] = await buildHuaweiMaasProvider(huaweiMaasKey);
+  }
 
   const qwenProfiles = listProfilesForProvider(authStore, "qwen-portal");
   if (qwenProfiles.length > 0) {
@@ -567,9 +569,9 @@ export async function resolveImplicitProviders(params: {
     };
   }
 
+  const xiaomiEnv = resolveEnvApiKey("xiaomi");
   const xiaomiKey =
-    resolveEnvApiKeyVarName("xiaomi") ??
-    resolveApiKeyFromProfiles({ provider: "xiaomi", store: authStore });
+    xiaomiEnv?.apiKey ?? resolveApiKeyFromProfiles({ provider: "xiaomi", store: authStore });
   if (xiaomiKey) {
     providers.xiaomi = { ...buildXiaomiProvider(), apiKey: xiaomiKey };
   }
@@ -603,16 +605,16 @@ export async function resolveImplicitProviders(params: {
   }
 
   // Ollama provider - only add if explicitly configured
+  const ollamaEnv = resolveEnvApiKey("ollama");
   const ollamaKey =
-    resolveEnvApiKeyVarName("ollama") ??
-    resolveApiKeyFromProfiles({ provider: "ollama", store: authStore });
+    ollamaEnv?.apiKey ?? resolveApiKeyFromProfiles({ provider: "ollama", store: authStore });
   if (ollamaKey) {
     providers.ollama = { ...(await buildOllamaProvider()), apiKey: ollamaKey };
   }
 
+  const qianfanEnv = resolveEnvApiKey("qianfan");
   const qianfanKey =
-    resolveEnvApiKeyVarName("qianfan") ??
-    resolveApiKeyFromProfiles({ provider: "qianfan", store: authStore });
+    qianfanEnv?.apiKey ?? resolveApiKeyFromProfiles({ provider: "qianfan", store: authStore });
   if (qianfanKey) {
     providers.qianfan = { ...buildQianfanProvider(), apiKey: qianfanKey };
   }
