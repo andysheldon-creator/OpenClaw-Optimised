@@ -341,7 +341,7 @@ export function discoverOpenClawPlugins(params: {
       if (candidates.length > prevCount) {
         diagnostics.push({
           level: "warn",
-          message: `Workspace plugins discovered at ${dir} — workspace plugins are not auto-enabled for security. Use 'openclaw plugin enable <id>' to enable.`,
+          message: `Workspace plugins discovered at ${dir} — workspace plugins are not auto-enabled for security. Use 'openclaw plugins enable <id>' to enable.`,
           source: dir,
         });
       }
