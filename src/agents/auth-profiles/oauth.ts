@@ -9,6 +9,7 @@ import type { OpenClawConfig } from "../../config/config.js";
 import type { AuthProfileStore } from "./types.js";
 import { refreshQwenPortalCredentials } from "../../providers/qwen-portal-oauth.js";
 import { refreshChutesTokens } from "../chutes-oauth.js";
+import { resolveSecret } from "../../infra/keychain.js";
 import { AUTH_STORE_LOCK_OPTIONS, log } from "./constants.js";
 import { formatAuthDoctorHint } from "./doctor.js";
 import { ensureAuthStoreFile, resolveAuthStorePath } from "./paths.js";
@@ -168,15 +169,15 @@ export async function resolveApiKeyForProfile(params: {
     }
   }
 
-  if (cred.type === "api_key") {
-    const key = cred.key?.trim();
+  if (cred.type === \"api_key\") {
+    const key = resolveSecret(cred.key?.trim());
     if (!key) {
       return null;
     }
     return { apiKey: key, provider: cred.provider, email: cred.email };
   }
-  if (cred.type === "token") {
-    const token = cred.token?.trim();
+  if (cred.type === \"token\") {
+    const token = resolveSecret(cred.token?.trim());
     if (!token) {
       return null;
     }
