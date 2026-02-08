@@ -190,7 +190,7 @@ const FIELD_LABELS: Record<string, string> = {
   "tools.message.broadcast.enabled": "Enable Message Broadcast",
   "tools.web.search.enabled": "Enable Web Search Tool",
   "tools.web.search.provider": "Web Search Provider",
-  "tools.web.search.apiKey": "Brave Search API Key",
+  "tools.web.search.apiKey": "Web Search API Key (Brave or Tavily)",
   "tools.web.search.maxResults": "Web Search Max Results",
   "tools.web.search.timeoutSeconds": "Web Search Timeout (sec)",
   "tools.web.search.cacheTtlMinutes": "Web Search Cache TTL (min)",
