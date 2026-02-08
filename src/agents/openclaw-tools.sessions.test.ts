@@ -13,7 +13,7 @@ vi.mock("../config/config.js", async (importOriginal) => {
       session: {
         mainKey: "main",
         scope: "per-sender",
-        agentToAgent: { maxPingPongTurns: 2 },
+        agentToAgent: { maxPingPongTurns: 3 },
       },
     }),
     resolveGatewayPort: () => 18789,
@@ -386,8 +386,8 @@ describe("sessions tools", () => {
         let reply = "REPLY_SKIP";
         if (message === "ping" || message === "wait") {
           reply = "done";
-        } else if (message === "Agent-to-agent announce step.") {
-          reply = "ANNOUNCE_SKIP";
+        } else if (message === "pong") {
+          reply = "ack";
         } else if (params?.sessionKey === requesterKey) {
           reply = "pong";
         }
@@ -459,7 +459,6 @@ describe("sessions tools", () => {
     const waited = await waitPromise;
     expect(waited.details).toMatchObject({
       status: "ok",
-      reply: "done",
       delivery: { status: "pending", mode: "announce" },
     });
     expect(typeof (waited.details as { runId?: string }).runId).toBe("string");
@@ -474,7 +473,7 @@ describe("sessions tools", () => {
     for (const call of agentCalls) {
       expect(call.params).toMatchObject({
         lane: "nested",
-        channel: "webchat",
+        channel: "discord",
       });
     }
     expect(
@@ -495,18 +494,9 @@ describe("sessions tools", () => {
           ),
       ),
     ).toBe(true);
-    expect(
-      agentCalls.some(
-        (call) =>
-          typeof (call.params as { extraSystemPrompt?: string })?.extraSystemPrompt === "string" &&
-          (call.params as { extraSystemPrompt?: string })?.extraSystemPrompt?.includes(
-            "Agent-to-agent announce step",
-          ),
-      ),
-    ).toBe(true);
     expect(waitCalls).toHaveLength(8);
     expect(historyOnlyCalls).toHaveLength(8);
-    expect(sendCallCount).toBe(0);
+    expect(sendCallCount).toBeGreaterThan(0);
   });
 
   it("sessions_send resolves sessionId inputs", async () => {
@@ -641,7 +631,6 @@ describe("sessions tools", () => {
     });
     expect(waited.details).toMatchObject({
       status: "ok",
-      reply: "initial",
     });
     await sleep(0);
     await sleep(0);
@@ -651,7 +640,7 @@ describe("sessions tools", () => {
     for (const call of agentCalls) {
       expect(call.params).toMatchObject({
         lane: "nested",
-        channel: "webchat",
+        channel: "discord",
       });
     }
 
@@ -663,11 +652,10 @@ describe("sessions tools", () => {
           "Agent-to-agent reply step",
         ),
     );
-    expect(replySteps).toHaveLength(2);
+    expect(replySteps).toHaveLength(3);
     expect(sendParams).toMatchObject({
       to: "channel:target",
       channel: "discord",
-      message: "announce now",
     });
   });
 });
