@@ -162,6 +162,15 @@ export async function checkCircuitBreaker(
   config: OpenClawConfig,
   gateway: { log: (msg: string) => void },
 ): Promise<boolean> {
+  // Skip FUSE polling entirely if both missionCritical and manualUpgrade are set
+  const missionCritical = config.update?.missionCritical ?? false;
+  const manualUpgrade = config.update?.manualUpgrade ?? false;
+
+  if (missionCritical && manualUpgrade) {
+    // Both options set - no need to fetch FUSE at all
+    return true;
+  }
+
   let content: string;
   const fuseUrl = config.update?.fuseUrl ?? FUSE_URL;
 
@@ -194,7 +203,6 @@ export async function checkCircuitBreaker(
   // HOLD command - suspends cron jobs
   if (content.startsWith("HOLD")) {
     const reason = content.length <= 4 ? "." : content.substring(4);
-    const missionCritical = config.update?.missionCritical ?? false;
 
     if (!missionCritical) {
       gateway.log(`Processing suspended${reason}`);
@@ -220,8 +228,6 @@ export async function checkCircuitBreaker(
       gateway.log("Invalid UPGRADE command: no version specified");
       return true;
     }
-
-    const manualUpgrade = config.update?.manualUpgrade ?? false;
 
     if (!manualUpgrade) {
       // Trigger auto-upgrade (non-blocking - runs in background)
