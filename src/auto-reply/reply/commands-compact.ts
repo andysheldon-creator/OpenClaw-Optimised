@@ -83,8 +83,8 @@ export const handleCompactCommand: CommandHandler = async (params) => {
     workspaceDir: params.workspaceDir,
     config: params.cfg,
     skillsSnapshot: params.sessionEntry.skillsSnapshot,
-    provider: params.provider,
-    model: params.model,
+    provider: params.sessionEntry?.fallbackProvider ?? params.provider,
+    model: params.sessionEntry?.fallbackModel ?? params.model,
     thinkLevel: params.resolvedThinkLevel ?? (await params.resolveDefaultThinkingLevel()),
     bashElevated: {
       enabled: false,

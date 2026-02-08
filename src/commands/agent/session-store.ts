@@ -52,6 +52,8 @@ export async function updateSessionStoreAfterAgentRun(params: {
     updatedAt: Date.now(),
     modelProvider: providerUsed,
     model: modelUsed,
+    fallbackProvider: fallbackProvider ?? entry.fallbackProvider,
+    fallbackModel: fallbackModel ?? entry.fallbackModel,
     contextTokens,
   };
   if (isCliProvider(providerUsed, cfg)) {

@@ -72,6 +72,10 @@ export type SessionEntry = {
   totalTokens?: number;
   modelProvider?: string;
   model?: string;
+  /** Fallback provider used when primary model failed */
+  fallbackProvider?: string;
+  /** Fallback model used when primary model failed */
+  fallbackModel?: string;
   contextTokens?: number;
   compactionCount?: number;
   memoryFlushAt?: number;
