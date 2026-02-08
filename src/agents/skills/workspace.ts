@@ -328,10 +328,12 @@ export async function syncSkillsToWorkspace(params: {
       bundledSkillsDir: params.bundledSkillsDir,
     });
 
+    // Filter entries by allowBundled config before syncing
+    const filtered = filterSkillEntries(entries, params.config);
     await fsp.rm(targetSkillsDir, { recursive: true, force: true });
     await fsp.mkdir(targetSkillsDir, { recursive: true });
 
-    for (const entry of entries) {
+    for (const entry of filtered) {
       const dest = path.join(targetSkillsDir, entry.skill.name);
       try {
         await fsp.cp(entry.skill.baseDir, dest, {
