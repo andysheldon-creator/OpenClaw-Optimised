@@ -410,7 +410,9 @@ export function sanitizeUserFacingText(text: string): string {
     );
   }
 
-  if (isBillingErrorMessage(trimmed)) {
+  // Only check for billing errors in text that looks like an API error response,
+  // not in normal assistant text (prevents false positives on user content)
+  if ((isRawApiErrorPayload(trimmed) || isLikelyHttpErrorText(trimmed)) && isBillingErrorMessage(trimmed)) {
     return BILLING_ERROR_USER_MESSAGE;
   }
 
