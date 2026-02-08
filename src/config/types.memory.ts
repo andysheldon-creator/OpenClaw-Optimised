@@ -36,6 +36,7 @@ export type MemoryQmdUpdateConfig = {
   debounceMs?: number;
   onBoot?: boolean;
   embedInterval?: string;
+  embedTimeoutMs?: number;
 };
 
 export type MemoryQmdLimitsConfig = {

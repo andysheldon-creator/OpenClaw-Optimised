@@ -87,6 +87,7 @@ export class QmdMemoryManager implements MemorySearchManager {
   private db: SqliteDatabase | null = null;
   private lastUpdateAt: number | null = null;
   private lastEmbedAt: number | null = null;
+  private lastEmbedError: string | null = null;
 
   private constructor(params: {
     cfg: OpenClawConfig;
@@ -346,6 +347,8 @@ export class QmdMemoryManager implements MemorySearchManager {
         qmd: {
           collections: this.qmd.collections.length,
           lastUpdateAt: this.lastUpdateAt,
+          lastEmbedAt: this.lastEmbedAt,
+          lastEmbedError: this.lastEmbedError,
         },
       },
     };
@@ -388,16 +391,20 @@ export class QmdMemoryManager implements MemorySearchManager {
       }
       await this.runQmd(["update"], { timeoutMs: 120_000 });
       const embedIntervalMs = this.qmd.update.embedIntervalMs;
+      const embedTimeoutMs = this.qmd.update.embedTimeoutMs ?? 600_000;
       const shouldEmbed =
         Boolean(force) ||
         this.lastEmbedAt === null ||
         (embedIntervalMs > 0 && Date.now() - this.lastEmbedAt > embedIntervalMs);
       if (shouldEmbed) {
         try {
-          await this.runQmd(["embed"], { timeoutMs: 120_000 });
+          await this.runQmd(["embed"], { timeoutMs: embedTimeoutMs });
           this.lastEmbedAt = Date.now();
+          this.lastEmbedError = null;
         } catch (err) {
-          log.warn(`qmd embed failed (${reason}): ${String(err)}`);
+          const message = `qmd embed failed (${reason}, timeout ${embedTimeoutMs}ms): ${String(err)}`;
+          this.lastEmbedError = message;
+          log.error(message);
         }
       }
       this.lastUpdateAt = Date.now();
