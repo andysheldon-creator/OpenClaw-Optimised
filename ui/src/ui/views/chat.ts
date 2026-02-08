@@ -86,7 +86,7 @@ function renderCompactionIndicator(status: CompactionIndicatorStatus | null | un
   // Show "compacting..." while active
   if (status.active) {
     return html`
-      <div class="callout info compaction-indicator compaction-indicator--active">
+      <div class="compaction-indicator compaction-indicator--active" role="status" aria-live="polite">
         ${icons.loader} Compacting context...
       </div>
     `;
@@ -97,7 +97,7 @@ function renderCompactionIndicator(status: CompactionIndicatorStatus | null | un
     const elapsed = Date.now() - status.completedAt;
     if (elapsed < COMPACTION_TOAST_DURATION_MS) {
       return html`
-        <div class="callout success compaction-indicator compaction-indicator--complete">
+        <div class="compaction-indicator compaction-indicator--complete" role="status" aria-live="polite">
           ${icons.check} Context compacted
         </div>
       `;
@@ -225,6 +225,16 @@ export function renderChat(props: ChatProps) {
         buildChatItems(props),
         (item) => item.key,
         (item) => {
+          if (item.kind === "divider") {
+            return html`
+              <div class="chat-divider" role="separator" data-ts=${String(item.timestamp)}>
+                <span class="chat-divider__line"></span>
+                <span class="chat-divider__label">${item.label}</span>
+                <span class="chat-divider__line"></span>
+              </div>
+            `;
+          }
+
           if (item.kind === "reading-indicator") {
             return renderReadingIndicatorGroup(assistantIdentity);
           }
@@ -258,8 +268,6 @@ export function renderChat(props: ChatProps) {
       ${props.disabledReason ? html`<div class="callout">${props.disabledReason}</div>` : nothing}
 
       ${props.error ? html`<div class="callout danger">${props.error}</div>` : nothing}
-
-      ${renderCompactionIndicator(props.compactionStatus)}
 
       ${
         props.focusMode
@@ -345,6 +353,8 @@ export function renderChat(props: ChatProps) {
           `
           : nothing
       }
+
+      ${renderCompactionIndicator(props.compactionStatus)}
 
       ${
         props.showNewMessages
@@ -480,6 +490,20 @@ function buildChatItems(props: ChatProps): Array<ChatItem | MessageGroup> {
   for (let i = historyStart; i < history.length; i++) {
     const msg = history[i];
     const normalized = normalizeMessage(msg);
+    const raw = msg as Record<string, unknown>;
+    const marker = raw.__openclaw as Record<string, unknown> | undefined;
+    if (marker && marker.kind === "compaction") {
+      items.push({
+        kind: "divider",
+        key:
+          typeof marker.id === "string"
+            ? `divider:compaction:${marker.id}`
+            : `divider:compaction:${normalized.timestamp}:${i}`,
+        label: "Compaction",
+        timestamp: normalized.timestamp ?? Date.now(),
+      });
+      continue;
+    }
 
     if (!props.showThinking && normalized.role.toLowerCase() === "toolresult") {
       continue;
