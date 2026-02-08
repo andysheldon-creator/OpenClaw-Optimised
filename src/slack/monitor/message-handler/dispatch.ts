@@ -116,8 +116,6 @@ export async function dispatchPreparedSlackMessage(prepared: PreparedSlackMessag
   // live message via chat.startStream/appendStream/stopStream instead of
   // posting separate messages.  Tool results still use normal delivery.
   const slackStreamingEnabled = account.config.streaming === true;
-  // DEBUG: temporary logging to diagnose streaming — remove after verification
-  console.error(`[stream-debug] streaming enabled: ${slackStreamingEnabled}, config.streaming: ${account.config.streaming}, blockStreaming: ${account.config.blockStreaming}`);
   // Wrapped in an object so TypeScript can track mutations across closures.
   const streamState = { handle: null as SlackStreamHandle | null, failed: false };
 
@@ -170,8 +168,6 @@ export async function dispatchPreparedSlackMessage(prepared: PreparedSlackMessag
         // doesn't give us one (e.g. replyToMode=off), fall back to the
         // incoming message timestamp so a thread is created.
         const replyThreadTs = replyPlan.nextThreadTs() ?? incomingThreadTs ?? messageTs;
-        // DEBUG
-        console.error(`[stream-debug] starting stream: channel=${message.channel}, threadTs=${replyThreadTs}`);
         const client = createSlackWebClient(ctx.botToken);
         // Always use message.channel — it's the actual Slack channel/DM ID
         // that the API requires.  prepared.replyTarget may contain a user ID
@@ -183,7 +179,6 @@ export async function dispatchPreparedSlackMessage(prepared: PreparedSlackMessag
         });
         replyPlan.markSent();
       } catch (err) {
-        console.error(`[stream-debug] stream start FAILED: ${String(err)}`);
         logVerbose(`slack: stream start failed, falling back to normal delivery: ${String(err)}`);
         streamState.failed = true;
         await deliverNormal(payload);

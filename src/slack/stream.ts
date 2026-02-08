@@ -41,8 +41,9 @@ const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
  * Start a Slack streaming message using `chat.startStream` /
  * `chat.appendStream` / `chat.stopStream`.
  *
- * The API returns a message `ts` (not a `stream_id`) which is used
- * with the channel to identify the stream for append/stop calls.
+ * The API returns a message `ts` which is used with the channel to
+ * identify the stream for append/stop calls.  Each append sends the
+ * full cumulative text as `markdown_text`.
  */
 export async function startSlackStream(params: {
   client: WebClient;
@@ -56,7 +57,6 @@ export async function startSlackStream(params: {
     startPayload.thread_ts = threadTs;
   }
 
-  console.error(`[stream-debug] calling chat.startStream with:`, JSON.stringify(startPayload));
   const startResult = (await client.apiCall("chat.startStream", startPayload)) as {
     ok?: boolean;
     ts?: string;
@@ -64,13 +64,11 @@ export async function startSlackStream(params: {
     channel?: string;
     error?: string;
   };
-  console.error(`[stream-debug] chat.startStream result:`, JSON.stringify(startResult));
 
   if (!startResult.ok) {
     throw new Error(`chat.startStream failed: ${startResult.error ?? "unknown error"}`);
   }
 
-  // The API may return stream_id (older docs) or ts (current behavior).
   const streamId = startResult.stream_id ?? startResult.ts;
   if (!streamId) {
     throw new Error("chat.startStream returned neither stream_id nor ts");
@@ -78,40 +76,30 @@ export async function startSlackStream(params: {
 
   const streamChannel = startResult.channel ?? channel;
   let appendCount = 0;
-  // Track cumulative text for appendStream (each append sends full content so far).
   let cumulativeText = "";
 
   const rawAppend = async (text: string) => {
     appendCount++;
     cumulativeText += text;
-    console.error(`[stream-debug] append #${appendCount} (+${text.length} chars, total=${cumulativeText.length})`);
-    // Try both field names — the API may expect stream_id or use channel+ts.
     const result = (await client.apiCall("chat.appendStream", {
       channel: streamChannel,
-      stream_id: streamId,
       ts: streamId,
-      text: cumulativeText,
+      markdown_text: cumulativeText,
     })) as { ok?: boolean; error?: string };
     if (!result.ok) {
-      console.error(`[stream-debug] append #${appendCount} FAILED:`, JSON.stringify(result));
       throw new Error(`chat.appendStream failed: ${result.error}`);
     }
   };
 
   const rawStop = async () => {
-    console.error(`[stream-debug] stopping stream ${streamId} after ${appendCount} appends`);
-    const result = (await client.apiCall("chat.stopStream", {
+    await client.apiCall("chat.stopStream", {
       channel: streamChannel,
-      stream_id: streamId,
       ts: streamId,
-    })) as { ok?: boolean; error?: string };
-    console.error(`[stream-debug] chat.stopStream result:`, JSON.stringify(result));
+    });
   };
 
-  // Wrap append with chunking for visible progressive reveal.
   const chunkedAppend = async (text: string) => {
     const chunks = chunkText(text, STREAM_CHUNK_SIZE);
-    console.error(`[stream-debug] chunking ${text.length} chars into ${chunks.length} chunks`);
     for (let i = 0; i < chunks.length; i++) {
       await rawAppend(chunks[i]);
       if (i < chunks.length - 1) {
