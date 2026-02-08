@@ -45,6 +45,9 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Validate fork directory
+[[ ! -f "$OPENCLAW_FORK_DIR/package.json" ]] && { log_error "Not a valid OpenClaw directory: $OPENCLAW_FORK_DIR"; exit 1; }
+
 cd "$OPENCLAW_FORK_DIR"
 VERSION=$(grep '"version"' package.json | head -1 | sed 's/.*"version": *"\([^"]*\)".*/\1/')
 log "Building OpenClaw $VERSION"
