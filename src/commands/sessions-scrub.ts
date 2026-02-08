@@ -92,7 +92,9 @@ export async function sessionsScrubCommand(
     redactionCount: 0,
   };
 
-  const concurrency = Math.max(1, opts.concurrency ?? DEFAULT_CONCURRENCY);
+  const rawConcurrency = opts.concurrency ?? DEFAULT_CONCURRENCY;
+  const concurrency =
+    Number.isFinite(rawConcurrency) && rawConcurrency >= 1 ? rawConcurrency : DEFAULT_CONCURRENCY;
 
   spin.start(
     opts.dryRun ? "Scanning for secrets (dry run)..." : "Scrubbing secrets from sessions...",
