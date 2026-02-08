@@ -60,3 +60,11 @@
 1. Persona Confusion: 소율 호출 -> 세나 응답
 2. Loop/Duplicate: 세나 반복 응답
    -> 즉시 분석 착수
+
+---
+
+[수진] Phase 4 (Persona & Protocol) 적용 완료
+
+- 5인 페르소나 (소율, 세나, 유리, 미루, 하나) 정식 정의 (SOUL.md)
+- A2A 프로토콜 (Rule A: 세나만 지시 가능) 명시
+- 이제 '하나'는 환각이 아니라 정식 멤버입니다.
