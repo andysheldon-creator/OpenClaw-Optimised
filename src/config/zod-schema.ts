@@ -528,7 +528,7 @@ export const OpenClawSchema = z
           .optional(),
         gcp: z
           .object({
-            project: z.string().optional(),
+            project: z.string(),
           })
           .strict()
           .optional(),
