@@ -3,7 +3,7 @@ import { loadConfig } from "../config/config.js";
 import { logVerbose } from "../globals.js";
 import { resolveSlackAccount } from "./accounts.js";
 import { createSlackWebClient } from "./client.js";
-import { markHomeTabCustom } from "./home-tab-state.js";
+import { clearHomeTabCustom, markHomeTabCustom } from "./home-tab-state.js";
 import { sendMessageSlack } from "./send.js";
 import { resolveSlackBotToken } from "./token.js";
 
@@ -281,4 +281,12 @@ export async function publishSlackHomeTab(
     view: { type: "home", blocks: blocks as any },
   });
   markHomeTabCustom(userId);
+}
+
+/**
+ * Clear a user's custom Home Tab view, allowing the default view to be
+ * published again on the next `app_home_opened` event.
+ */
+export function resetSlackHomeTab(userId: string): void {
+  clearHomeTabCustom(userId);
 }

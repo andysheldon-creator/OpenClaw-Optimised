@@ -15,6 +15,7 @@ const removeOwnSlackReactions = vi.fn(async () => ["thumbsup"]);
 const removeSlackReaction = vi.fn(async () => ({}));
 const sendSlackMessage = vi.fn(async () => ({}));
 const publishSlackHomeTab = vi.fn(async () => ({}));
+const resetSlackHomeTab = vi.fn(() => undefined);
 const unpinSlackMessage = vi.fn(async () => ({}));
 
 vi.mock("../../slack/actions.js", () => ({
@@ -27,6 +28,7 @@ vi.mock("../../slack/actions.js", () => ({
   pinSlackMessage: (...args: unknown[]) => pinSlackMessage(...args),
   publishSlackHomeTab: (...args: unknown[]) => publishSlackHomeTab(...args),
   reactSlackMessage: (...args: unknown[]) => reactSlackMessage(...args),
+  resetSlackHomeTab: (...args: unknown[]) => resetSlackHomeTab(...args),
   readSlackMessages: (...args: unknown[]) => readSlackMessages(...args),
   removeOwnSlackReactions: (...args: unknown[]) => removeOwnSlackReactions(...args),
   removeSlackReaction: (...args: unknown[]) => removeSlackReaction(...args),
@@ -465,6 +467,28 @@ describe("handleSlackAction", () => {
     } as OpenClawConfig;
     await expect(
       handleSlackAction({ action: "updateHomeTab", userId: "U123", blocks: [] }, cfg),
+    ).rejects.toThrow("disabled");
+  });
+
+  it("resetHomeTab clears custom view for user", async () => {
+    const cfg = { channels: { slack: { botToken: "tok" } } } as OpenClawConfig;
+    resetSlackHomeTab.mockClear();
+    const result = await handleSlackAction({ action: "resetHomeTab", userId: "U123" }, cfg);
+    expect(resetSlackHomeTab).toHaveBeenCalledWith("U123");
+    expect(result.details).toMatchObject({ ok: true });
+  });
+
+  it("resetHomeTab throws when userId is missing", async () => {
+    const cfg = { channels: { slack: { botToken: "tok" } } } as OpenClawConfig;
+    await expect(handleSlackAction({ action: "resetHomeTab" }, cfg)).rejects.toThrow();
+  });
+
+  it("resetHomeTab respects homeTab action gate", async () => {
+    const cfg = {
+      channels: { slack: { botToken: "tok", actions: { homeTab: false } } },
+    } as OpenClawConfig;
+    await expect(
+      handleSlackAction({ action: "resetHomeTab", userId: "U123" }, cfg),
     ).rejects.toThrow("disabled");
   });
 });

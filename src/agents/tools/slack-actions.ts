@@ -11,6 +11,7 @@ import {
   pinSlackMessage,
   publishSlackHomeTab,
   reactSlackMessage,
+  resetSlackHomeTab,
   readSlackMessages,
   removeOwnSlackReactions,
   removeSlackReaction,
@@ -325,6 +326,18 @@ export async function handleSlackAction(
       await publishSlackHomeTab(userId, blocks as Record<string, unknown>[]);
     }
     return jsonResult({ ok: true });
+  }
+
+  if (action === "resetHomeTab") {
+    if (!isActionEnabled("homeTab")) {
+      throw new Error("Slack Home Tab updates are disabled.");
+    }
+    const userId = readStringParam(params, "userId", { required: true });
+    resetSlackHomeTab(userId);
+    return jsonResult({
+      ok: true,
+      message: "Custom Home Tab cleared; default will restore on next visit.",
+    });
   }
 
   throw new Error(`Unknown action: ${action}`);
