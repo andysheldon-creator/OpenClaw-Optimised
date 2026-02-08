@@ -92,3 +92,78 @@ describe("redactSensitiveText", () => {
     expect(output).toBe(input);
   });
 });
+
+describe("redactSensitiveText — single-pass stability for JSONL scrubbing", () => {
+  const opts = { mode: "tools" as const, patterns: defaults };
+
+  function assertStableInOnePass(input: string, description?: string) {
+    const pass1 = redactSensitiveText(input, opts);
+    const pass2 = redactSensitiveText(pass1, opts);
+    expect(pass2, description ?? "output should be stable after one pass").toBe(pass1);
+  }
+
+  // Use clearly fake values that match real patterns but won't trigger GitHub push protection.
+  const FAKE_HEX_48 = "aa".repeat(24);
+  const FAKE_ALPHA_24 = "A".repeat(24);
+
+  it("ENV-style assignment with prefixed token", () => {
+    const input = `MY_SECRET_TOKEN=sk-FAKE${FAKE_ALPHA_24}`;
+    assertStableInOnePass(input);
+  });
+
+  it("ENV-style assignment with generic secret", () => {
+    const input = `OPENCLAW_GATEWAY_TOKEN=${FAKE_HEX_48}`;
+    assertStableInOnePass(input);
+  });
+
+  it("JSON field containing a prefixed token", () => {
+    const input = `{"token":"sk-FAKE${FAKE_ALPHA_24}"}`;
+    assertStableInOnePass(input);
+  });
+
+  it("JSON field containing a non-prefixed secret", () => {
+    const input = `{"apiKey":"${FAKE_HEX_48}"}`;
+    assertStableInOnePass(input);
+  });
+
+  it("double-encoded JSON (JSONL with escaped inner JSON)", () => {
+    const inner = JSON.stringify({ apiKey: `sk-FAKE${FAKE_ALPHA_24}` });
+    const jsonl = JSON.stringify({ role: "assistant", content: inner });
+    assertStableInOnePass(jsonl, "double-encoded JSON secret");
+  });
+
+  it("double-encoded JSON with prefixed token in non-standard field", () => {
+    const inner = JSON.stringify({ botToken: `sk-FAKE${FAKE_ALPHA_24}` });
+    const jsonl = JSON.stringify({ role: "tool", content: inner });
+    assertStableInOnePass(jsonl, "double-encoded prefixed token");
+  });
+
+  it("double-encoded JSON with env-style content", () => {
+    const content = `export MY_SECRET_TOKEN=sk-FAKE${FAKE_ALPHA_24}`;
+    const jsonl = JSON.stringify({ role: "tool", content });
+    assertStableInOnePass(jsonl, "env-style in JSON content");
+  });
+
+  it("triple-encoded JSON (tool result containing stringified config)", () => {
+    const config = JSON.stringify({
+      secrets: { provider: "gcp" },
+      gateway: { auth: { token: FAKE_HEX_48 } },
+    });
+    const toolResult = JSON.stringify({ output: config });
+    const jsonl = JSON.stringify({ role: "tool", content: toolResult });
+    assertStableInOnePass(jsonl, "triple-encoded JSON secret");
+  });
+
+  it("multiple secrets on one line", () => {
+    const input = `MY_SECRET_TOKEN=sk-FAKE${FAKE_ALPHA_24} GEMINI_API_KEY=AIzaSyFAKE${FAKE_ALPHA_24}`;
+    assertStableInOnePass(input, "multiple secrets on one line");
+  });
+
+  it("masked output does not re-trigger patterns", () => {
+    const input = `sk-FAKE${FAKE_ALPHA_24}`;
+    const pass1 = redactSensitiveText(input, opts);
+    expect(pass1).not.toBe(input); // should be redacted
+    const pass2 = redactSensitiveText(pass1, opts);
+    expect(pass2).toBe(pass1); // should be stable
+  });
+});

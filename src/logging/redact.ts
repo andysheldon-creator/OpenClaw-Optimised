@@ -66,6 +66,10 @@ function resolvePatterns(value?: string[]): RegExp[] {
 }
 
 function maskToken(token: string): string {
+  // Already masked — don't re-mask (prevents instability across passes)
+  if (token.includes("…") || token === "***") {
+    return token;
+  }
   if (token.length < DEFAULT_REDACT_MIN_LENGTH) {
     return "***";
   }
