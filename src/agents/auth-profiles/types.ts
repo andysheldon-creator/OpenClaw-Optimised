@@ -21,6 +21,8 @@ export type TokenCredential = {
   /** Optional expiry timestamp (ms since epoch). */
   expires?: number;
   email?: string;
+  /** Optional routing hint for subscription-based sessions (e.g. Anthropic). */
+  routingHint?: string;
 };
 
 export type OAuthCredential = OAuthCredentials & {
@@ -28,6 +30,8 @@ export type OAuthCredential = OAuthCredentials & {
   provider: string;
   clientId?: string;
   email?: string;
+  /** Optional routing hint for subscription-based sessions (e.g. Anthropic). */
+  routingHint?: string;
 };
 
 export type AuthProfileCredential = ApiKeyCredential | TokenCredential | OAuthCredential;
