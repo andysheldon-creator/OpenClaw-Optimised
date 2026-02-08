@@ -9,7 +9,7 @@ import { installPluginFromNpmSpec, installPluginFromPath } from "../plugins/inst
 import { recordPluginInstall } from "../plugins/installs.js";
 import { applyExclusiveSlotSelection } from "../plugins/slots.js";
 import { buildPluginStatusReport } from "../plugins/status.js";
-import { uninstallPlugin } from "../plugins/uninstall.js";
+import { resolveUninstallDirectoryTarget, uninstallPlugin } from "../plugins/uninstall.js";
 import { updateNpmInstalledPlugins } from "../plugins/update.js";
 import { defaultRuntime } from "../runtime.js";
 import { formatDocsLink } from "../terminal/links.js";
@@ -319,7 +319,7 @@ export function registerPluginsCli(program: Command) {
     .command("uninstall")
     .description("Uninstall a plugin")
     .argument("<id>", "Plugin id")
-    .option("--keep-config", "Keep installed files, only remove config entries", false)
+    .option("--keep-config", "Keep installed files on disk", false)
     .option("--force", "Skip confirmation prompt", false)
     .option("--dry-run", "Show what would be removed without making changes", false)
     .action(async (id: string, opts: PluginUninstallOptions) => {
@@ -334,8 +334,14 @@ export function registerPluginsCli(program: Command) {
       const hasEntry = pluginId in (cfg.plugins?.entries ?? {});
       const hasInstall = pluginId in (cfg.plugins?.installs ?? {});
 
-      if (!hasEntry && !hasInstall && !plugin) {
-        defaultRuntime.error(`Plugin not found: ${id}`);
+      if (!hasEntry && !hasInstall) {
+        if (plugin) {
+          defaultRuntime.error(
+            `Plugin "${pluginId}" is not managed by plugins config/install records and cannot be uninstalled.`,
+          );
+        } else {
+          defaultRuntime.error(`Plugin not found: ${id}`);
+        }
         process.exit(1);
       }
 
@@ -363,8 +369,15 @@ export function registerPluginsCli(program: Command) {
       if (cfg.plugins?.slots?.memory === pluginId) {
         preview.push(`memory slot (will reset to "memory-core")`);
       }
-      if (!opts.keepConfig && !isLinked && install?.installPath) {
-        preview.push(`directory: ${shortenHomePath(install.installPath)}`);
+      const deleteTarget = !opts.keepConfig
+        ? resolveUninstallDirectoryTarget({
+            pluginId,
+            hasInstall,
+            installRecord: install,
+          })
+        : null;
+      if (deleteTarget) {
+        preview.push(`directory: ${shortenHomePath(deleteTarget)}`);
       }
 
       const pluginName = plugin?.name || pluginId;

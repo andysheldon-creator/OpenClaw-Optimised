@@ -3,7 +3,12 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { OpenClawConfig } from "../config/config.js";
-import { removePluginFromConfig, uninstallPlugin } from "./uninstall.js";
+import { resolvePluginInstallDir } from "./install.js";
+import {
+  removePluginFromConfig,
+  resolveUninstallDirectoryTarget,
+  uninstallPlugin,
+} from "./uninstall.js";
 
 describe("removePluginFromConfig", () => {
   it("removes plugin from entries", () => {
@@ -229,35 +234,42 @@ describe("uninstallPlugin", () => {
   });
 
   it("deletes directory when deleteFiles is true", async () => {
-    const pluginDir = path.join(tempDir, "my-plugin");
+    const pluginId = "my-plugin";
+    const extensionsDir = path.join(tempDir, "extensions");
+    const pluginDir = resolvePluginInstallDir(pluginId, extensionsDir);
     await fs.mkdir(pluginDir, { recursive: true });
     await fs.writeFile(path.join(pluginDir, "index.js"), "// plugin");
 
     const config: OpenClawConfig = {
       plugins: {
         entries: {
-          "my-plugin": { enabled: true },
+          [pluginId]: { enabled: true },
         },
         installs: {
-          "my-plugin": {
+          [pluginId]: {
             source: "npm",
-            spec: "my-plugin@1.0.0",
+            spec: `${pluginId}@1.0.0`,
             installPath: pluginDir,
           },
         },
       },
     };
 
-    const result = await uninstallPlugin({
-      config,
-      pluginId: "my-plugin",
-      deleteFiles: true,
-    });
+    try {
+      const result = await uninstallPlugin({
+        config,
+        pluginId,
+        deleteFiles: true,
+        extensionsDir,
+      });
 
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.actions.directory).toBe(true);
-      await expect(fs.access(pluginDir)).rejects.toThrow();
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.actions.directory).toBe(true);
+        await expect(fs.access(pluginDir)).rejects.toThrow();
+      }
+    } finally {
+      await fs.rm(pluginDir, { recursive: true, force: true });
     }
   });
 
@@ -357,5 +369,75 @@ describe("uninstallPlugin", () => {
 
     // Should succeed; directory deletion failure is not fatal
     expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.actions.directory).toBe(false);
+    }
+  });
+
+  it("never deletes arbitrary configured install paths", async () => {
+    const outsideDir = path.join(tempDir, "outside-dir");
+    const extensionsDir = path.join(tempDir, "extensions");
+    await fs.mkdir(outsideDir, { recursive: true });
+    await fs.writeFile(path.join(outsideDir, "index.js"), "// keep me");
+
+    const config: OpenClawConfig = {
+      plugins: {
+        entries: {
+          "my-plugin": { enabled: true },
+        },
+        installs: {
+          "my-plugin": {
+            source: "npm",
+            spec: "my-plugin@1.0.0",
+            installPath: outsideDir,
+          },
+        },
+      },
+    };
+
+    const result = await uninstallPlugin({
+      config,
+      pluginId: "my-plugin",
+      deleteFiles: true,
+      extensionsDir,
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.actions.directory).toBe(false);
+      await expect(fs.access(outsideDir)).resolves.toBeUndefined();
+    }
+  });
+});
+
+describe("resolveUninstallDirectoryTarget", () => {
+  it("returns null for linked plugins", () => {
+    expect(
+      resolveUninstallDirectoryTarget({
+        pluginId: "my-plugin",
+        hasInstall: true,
+        installRecord: {
+          source: "path",
+          sourcePath: "/tmp/my-plugin",
+          installPath: "/tmp/my-plugin",
+        },
+      }),
+    ).toBeNull();
+  });
+
+  it("falls back to default path when configured installPath is untrusted", () => {
+    const extensionsDir = path.join(os.tmpdir(), "openclaw-uninstall-safe");
+    const target = resolveUninstallDirectoryTarget({
+      pluginId: "my-plugin",
+      hasInstall: true,
+      installRecord: {
+        source: "npm",
+        spec: "my-plugin@1.0.0",
+        installPath: "/tmp/not-openclaw-extensions/my-plugin",
+      },
+      extensionsDir,
+    });
+
+    expect(target).toBe(resolvePluginInstallDir("my-plugin", extensionsDir));
   });
 });

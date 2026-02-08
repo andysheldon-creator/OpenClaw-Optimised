@@ -1,5 +1,7 @@
 import fs from "node:fs/promises";
+import path from "node:path";
 import type { OpenClawConfig } from "../config/config.js";
+import type { PluginInstallRecord } from "../config/types.plugins.js";
 import { resolvePluginInstallDir } from "./install.js";
 import { defaultSlotIdForKey, type PluginSlotKey } from "./slots.js";
 
@@ -15,6 +17,40 @@ export type UninstallActions = {
 export type UninstallPluginResult =
   | { ok: true; config: OpenClawConfig; pluginId: string; actions: UninstallActions }
   | { ok: false; error: string };
+
+export function resolveUninstallDirectoryTarget(params: {
+  pluginId: string;
+  hasInstall: boolean;
+  installRecord?: PluginInstallRecord;
+  extensionsDir?: string;
+}): string | null {
+  if (!params.hasInstall) {
+    return null;
+  }
+
+  if (params.installRecord?.source === "path") {
+    return null;
+  }
+
+  let defaultPath: string;
+  try {
+    defaultPath = resolvePluginInstallDir(params.pluginId, params.extensionsDir);
+  } catch {
+    return null;
+  }
+
+  const configuredPath = params.installRecord?.installPath;
+  if (!configuredPath) {
+    return defaultPath;
+  }
+
+  if (path.resolve(configuredPath) === path.resolve(defaultPath)) {
+    return configuredPath;
+  }
+
+  // Never trust configured installPath blindly for recursive deletes.
+  return defaultPath;
+}
 
 /**
  * Remove plugin references from config (pure config mutation).
@@ -126,6 +162,7 @@ export type UninstallPluginParams = {
   config: OpenClawConfig;
   pluginId: string;
   deleteFiles?: boolean;
+  extensionsDir?: string;
 };
 
 /**
@@ -135,7 +172,7 @@ export type UninstallPluginParams = {
 export async function uninstallPlugin(
   params: UninstallPluginParams,
 ): Promise<UninstallPluginResult> {
-  const { config, pluginId, deleteFiles = true } = params;
+  const { config, pluginId, deleteFiles = true, extensionsDir } = params;
 
   // Validate plugin exists
   const hasEntry = pluginId in (config.plugins?.entries ?? {});
@@ -156,22 +193,28 @@ export async function uninstallPlugin(
     directory: false,
   };
 
-  // Delete installed directory if requested and not a linked plugin
-  if (deleteFiles && !isLinked && installRecord?.installPath) {
+  const deleteTarget =
+    deleteFiles && !isLinked
+      ? resolveUninstallDirectoryTarget({
+          pluginId,
+          hasInstall,
+          installRecord,
+          extensionsDir,
+        })
+      : null;
+
+  // Delete installed directory if requested and safe.
+  if (deleteTarget) {
+    const existed =
+      (await fs
+        .access(deleteTarget)
+        .then(() => true)
+        .catch(() => false)) ?? false;
     try {
-      await fs.rm(installRecord.installPath, { recursive: true, force: true });
-      actions.directory = true;
+      await fs.rm(deleteTarget, { recursive: true, force: true });
+      actions.directory = existed;
     } catch {
       // Directory deletion failure is not fatal; config is the source of truth
-    }
-  } else if (deleteFiles && !isLinked && hasInstall) {
-    // Fallback to default install location if installPath not recorded
-    const defaultPath = resolvePluginInstallDir(pluginId);
-    try {
-      await fs.rm(defaultPath, { recursive: true, force: true });
-      actions.directory = true;
-    } catch {
-      // Ignore
     }
   }
 
