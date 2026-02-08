@@ -100,6 +100,11 @@ Add a line for each script (replace `youruser` with your actual username):
 youruser ALL=(secretsuser) NOPASSWD: /home/secretsuser/scripts/myapi.sh
 ```
 
+**Important security notes:**
+- Only whitelist the exact script paths — never add `/bin/bash`, `/bin/sh`, or other interpreters
+- The whitelist is strict: `sudo -u secretsuser /bin/bash /path/to/script` will be denied because `/bin/bash` isn't whitelisted
+- Each script must be listed separately; wildcards like `/home/secretsuser/scripts/*` would allow creating new scripts to bypass security
+
 ### Step 6: Test It
 
 As your normal user:
@@ -133,6 +138,7 @@ cat /home/secretsuser/.env
 | Agent reads script source | Directory permissions (700) |
 | Prompt injection to leak keys | Cannot read what it cannot access |
 | Agent runs arbitrary sudo | Whitelist only allows specific scripts |
+| Interpreter bypass (`sudo -u secretsuser /bin/bash script`) | Only exact paths are whitelisted; `/bin/bash` not allowed |
 | Argument injection | Proper quoting in scripts (see below) |
 
 ## Writing Secure Scripts
