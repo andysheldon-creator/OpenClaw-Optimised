@@ -22,3 +22,11 @@
 - Test: pi-embedded-utils.test.ts (Leak Case 포함) PASS
 - Status: READY FOR MERGE
   [로아] 실사용 테스트(이미지) 검증 완료. SENA 말투 정상화 확인. (Context Leak Fixed) ✅
+
+---
+
+[하윤/Hotfix] A2A 통신 설정 누락 수정 완료
+
+- 증상: 소율이 'status ok' 했지만 실제 호출 안 됨 (Silent Failure)
+- 원인: agentToAgent.enabled 기본값이 false로 처리됨
+- 해결: src/config/defaults.ts에 applyToolDefaults 추가 (기본값 true)
