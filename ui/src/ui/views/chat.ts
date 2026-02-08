@@ -92,6 +92,20 @@ const voiceState: VoiceState = {
   speaking: false,
 };
 
+// --- Server-side TTS connection state ---
+let ttsGatewayHttpUrl: string | null = null;
+let ttsGatewayToken: string | null = null;
+
+/** Set the gateway connection info for server-side TTS. Call from app-render. */
+export function setTtsGatewayInfo(gatewayWsUrl: string, token: string) {
+  // Convert ws:// → http://, wss:// → https://
+  ttsGatewayHttpUrl = gatewayWsUrl
+    .replace(/^wss:\/\//i, "https://")
+    .replace(/^ws:\/\//i, "http://")
+    .replace(/\/+$/, "");
+  ttsGatewayToken = token || null;
+}
+
 // --- Browser TTS for voice replies ---
 let ttsRerender: (() => void) | null = null;
 let preferredVoice: SpeechSynthesisVoice | null = null;
@@ -107,14 +121,20 @@ function selectBestVoice(): SpeechSynthesisVoice | null {
   }
 
   // Ranked preferences: natural-sounding English voices
+  // macOS 15+ "Premium" voices are neural and sound very natural.
+  // Prefer those, then Enhanced, then Google/Microsoft, then basic.
   const preferred = [
-    // macOS premium voices
+    // macOS Premium neural voices (macOS 15+)
+    "Zoe (Premium)",
+    "Evan (Premium)",
+    "Ava (Premium)",
+    "Tom (Premium)",
+    "Fiona (Premium)",
+    "Joelle (Premium)",
+    // macOS Enhanced voices (still decent)
     "Samantha (Enhanced)",
-    "Samantha",
     "Karen (Enhanced)",
-    "Karen",
     "Daniel (Enhanced)",
-    "Daniel",
     // Google voices (Chrome)
     "Google UK English Female",
     "Google UK English Male",
@@ -122,13 +142,23 @@ function selectBestVoice(): SpeechSynthesisVoice | null {
     // Microsoft voices (Edge/Windows)
     "Microsoft Zira",
     "Microsoft David",
+    // Basic macOS fallbacks
+    "Samantha",
+    "Karen",
+    "Daniel",
   ];
 
   for (const name of preferred) {
-    const match = voices.find((v) => v.name.includes(name));
+    const match = voices.find((v) => v.name === name);
     if (match) {
       return match;
     }
+  }
+
+  // Try any Premium voice
+  const premiumVoice = voices.find((v) => v.name.includes("(Premium)") && v.lang.startsWith("en"));
+  if (premiumVoice) {
+    return premiumVoice;
   }
 
   // Fallback: any English voice that's not "Google 日本語" etc.
@@ -162,12 +192,8 @@ function cleanTextForSpeech(text: string): string {
     .trim();
 }
 
-function speakText(text: string) {
-  if (!("speechSynthesis" in globalThis) || !voiceState.ttsEnabled) {
-    return;
-  }
-  const clean = cleanTextForSpeech(text);
-  if (!clean) {
+function speakWithBrowserTts(clean: string) {
+  if (!("speechSynthesis" in globalThis)) {
     return;
   }
   const utterance = new SpeechSynthesisUtterance(clean);
@@ -190,6 +216,66 @@ function speakText(text: string) {
   };
   speechSynthesis.cancel();
   speechSynthesis.speak(utterance);
+}
+
+function speakText(text: string) {
+  if (!voiceState.ttsEnabled) {
+    return;
+  }
+  const clean = cleanTextForSpeech(text);
+  if (!clean) {
+    return;
+  }
+
+  // Try server-side TTS first (Edge TTS neural voices)
+  if (ttsGatewayHttpUrl) {
+    voiceState.speaking = true;
+    ttsRerender?.();
+
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (ttsGatewayToken) {
+      headers.Authorization = `Bearer ${ttsGatewayToken}`;
+    }
+
+    fetch(`${ttsGatewayHttpUrl}/api/tts/synthesize`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ text: clean }),
+    })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`TTS server error: ${res.status}`);
+        }
+        return res.blob();
+      })
+      .then((blob) => {
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        audio.onended = () => {
+          voiceState.speaking = false;
+          ttsRerender?.();
+          URL.revokeObjectURL(url);
+        };
+        audio.onerror = () => {
+          voiceState.speaking = false;
+          ttsRerender?.();
+          URL.revokeObjectURL(url);
+        };
+        audio.play().catch(() => {
+          voiceState.speaking = false;
+          ttsRerender?.();
+          URL.revokeObjectURL(url);
+        });
+      })
+      .catch(() => {
+        // Fall back to browser TTS
+        speakWithBrowserTts(clean);
+      });
+    return;
+  }
+
+  // Fallback: browser Speech API
+  speakWithBrowserTts(clean);
 }
 
 function stopSpeaking() {

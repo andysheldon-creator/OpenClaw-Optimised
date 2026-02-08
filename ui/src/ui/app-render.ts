@@ -64,7 +64,7 @@ const debouncedLoadUsage = (state: UsageState) => {
 };
 import { renderAgents } from "./views/agents.ts";
 import { renderChannels } from "./views/channels.ts";
-import { renderChat } from "./views/chat.ts";
+import { renderChat, setTtsGatewayInfo } from "./views/chat.ts";
 import { renderConfig } from "./views/config.ts";
 import { renderCron } from "./views/cron.ts";
 import { renderDebug } from "./views/debug.ts";
@@ -1054,7 +1054,8 @@ export function renderApp(state: AppViewState) {
 
         ${
           state.tab === "chat"
-            ? renderChat(
+            ? (setTtsGatewayInfo(state.settings.gatewayUrl, state.settings.token),
+              renderChat(
                 {
                   sessionKey: state.sessionKey,
                   onSessionKeyChange: (next) => {
@@ -1130,7 +1131,7 @@ export function renderApp(state: AppViewState) {
                   assistantAvatar: state.assistantAvatar,
                 },
                 () => (state as any).requestUpdate?.(),
-              )
+              ))
             : nothing
         }
 
