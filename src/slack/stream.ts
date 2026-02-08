@@ -42,8 +42,8 @@ const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
  * `chat.appendStream` / `chat.stopStream`.
  *
  * The API returns a message `ts` which is used with the channel to
- * identify the stream for append/stop calls.  Each append sends the
- * full cumulative text as `markdown_text`.
+ * identify the stream for append/stop calls.  Each append sends
+ * incremental text via `markdown_text` — Slack accumulates internally.
  */
 export async function startSlackStream(params: {
   client: WebClient;
@@ -75,16 +75,12 @@ export async function startSlackStream(params: {
   }
 
   const streamChannel = startResult.channel ?? channel;
-  let appendCount = 0;
-  let cumulativeText = "";
 
   const rawAppend = async (text: string) => {
-    appendCount++;
-    cumulativeText += text;
     const result = (await client.apiCall("chat.appendStream", {
       channel: streamChannel,
       ts: streamId,
-      markdown_text: cumulativeText,
+      markdown_text: text,
     })) as { ok?: boolean; error?: string };
     if (!result.ok) {
       throw new Error(`chat.appendStream failed: ${result.error}`);
