@@ -51,7 +51,7 @@ describe("buildHomeTabBlocks", () => {
     const cfg: OpenClawConfig = {
       agents: { list: [{ id: "main", default: true, name: "TestBot" }] },
     };
-    const blocks = buildHomeTabBlocks({ botUserId: "U12345", cfg });
+    const blocks = buildHomeTabBlocks({ cfg });
 
     expect(blocks[0]).toMatchObject({
       type: "header",
@@ -61,7 +61,7 @@ describe("buildHomeTabBlocks", () => {
 
   it("falls back to ui.assistant.name when no agent name", () => {
     const cfg: OpenClawConfig = { ui: { assistant: { name: "MyAssistant" } } };
-    const blocks = buildHomeTabBlocks({ botUserId: "U12345", cfg });
+    const blocks = buildHomeTabBlocks({ cfg });
 
     expect(blocks[0]).toMatchObject({
       type: "header",
@@ -89,7 +89,7 @@ describe("buildHomeTabBlocks", () => {
     const cfg: OpenClawConfig = {
       agents: { list: [{ id: "main", model: "anthropic/opus-4" }] },
     };
-    const blocks = buildHomeTabBlocks({ botUserId: "U12345", cfg, uptimeMs: 7200_000 });
+    const blocks = buildHomeTabBlocks({ cfg, uptimeMs: 7200_000 });
     const infoSection = blocks[2];
     const text = JSON.stringify(infoSection);
     expect(text).toContain("anthropic/opus-4");
@@ -97,7 +97,7 @@ describe("buildHomeTabBlocks", () => {
   });
 
   it("uses default /openclaw slash command when none provided", () => {
-    const blocks = buildHomeTabBlocks({ botUserId: "U99" });
+    const blocks = buildHomeTabBlocks({});
     const slashBlock = blocks.find(
       (b) =>
         b.type === "section" &&
@@ -113,7 +113,7 @@ describe("buildHomeTabBlocks", () => {
   });
 
   it("uses custom slash command when provided", () => {
-    const blocks = buildHomeTabBlocks({ botUserId: "U99", slashCommand: "/mybot" });
+    const blocks = buildHomeTabBlocks({ slashCommand: "/mybot" });
     const slashBlock = blocks.find(
       (b) =>
         b.type === "section" &&
@@ -130,7 +130,7 @@ describe("buildHomeTabBlocks", () => {
   });
 
   it("includes docs/github/community links in context block", () => {
-    const blocks = buildHomeTabBlocks({ botUserId: "U99" });
+    const blocks = buildHomeTabBlocks({});
     const contextBlock = blocks.find((b) => b.type === "context");
     expect(contextBlock).toBeDefined();
     const contextText = JSON.stringify(contextBlock);
@@ -150,7 +150,7 @@ describe("buildHomeTabBlocks", () => {
         },
       },
     };
-    const blocks = buildHomeTabBlocks({ botUserId: "U99", cfg });
+    const blocks = buildHomeTabBlocks({ cfg });
     const channelBlock = blocks.find(
       (b) =>
         b.type === "section" &&
@@ -172,7 +172,7 @@ describe("buildHomeTabBlocks", () => {
         ],
       },
     };
-    const blocks = buildHomeTabBlocks({ botUserId: "U99", cfg });
+    const blocks = buildHomeTabBlocks({ cfg });
     expect(blocks[0]).toMatchObject({
       type: "header",
       text: { type: "plain_text", text: "Alpha" },
@@ -180,7 +180,7 @@ describe("buildHomeTabBlocks", () => {
   });
 
   it("does not include any auth tokens or dashboard links", () => {
-    const blocks = buildHomeTabBlocks({ botUserId: "U99" });
+    const blocks = buildHomeTabBlocks({});
     const fullText = JSON.stringify(blocks);
     expect(fullText).not.toContain("token");
     expect(fullText).not.toContain("Dashboard");

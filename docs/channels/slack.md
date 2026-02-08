@@ -537,7 +537,7 @@ When a user opens the bot's **Home** tab in Slack, OpenClaw automatically publis
 - Getting started guide and slash command reference
 - Links to docs, GitHub, and community
 
-The view is cached per user and only re-published when the version changes (e.g., after an update or restart). No additional configuration is required — the Home Tab works out of the box as long as the Slack app manifest includes `app_home.messages_tab_enabled: true` (which is the default).
+The view is cached per user and only re-published when the version changes (e.g., after an update or restart). No additional configuration is required — the Home Tab works out of the box as long as the Slack app manifest includes `app_home.home_tab_enabled: true` and subscribes to the `app_home_opened` event (both are set by the default OpenClaw manifest).
 
 ### Configuration
 

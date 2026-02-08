@@ -474,7 +474,7 @@ describe("handleSlackAction", () => {
     const cfg = { channels: { slack: { botToken: "tok" } } } as OpenClawConfig;
     resetSlackHomeTab.mockClear();
     const result = await handleSlackAction({ action: "resetHomeTab", userId: "U123" }, cfg);
-    expect(resetSlackHomeTab).toHaveBeenCalledWith("U123");
+    expect(resetSlackHomeTab).toHaveBeenCalledWith("U123", expect.any(Object));
     expect(result.details).toMatchObject({ ok: true });
   });
 

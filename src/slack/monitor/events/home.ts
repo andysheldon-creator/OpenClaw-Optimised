@@ -4,7 +4,14 @@ import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 import type { SlackMonitorContext } from "../context.js";
 import { danger, logVerbose } from "../../../globals.js";
 import { VERSION } from "../../../version.js";
-import { hasCurrentHomeTab, hasCustomHomeTab, markHomeTabPublished } from "../../home-tab-state.js";
+import {
+  clearPublishInFlight,
+  hasCurrentHomeTab,
+  hasCustomHomeTab,
+  isPublishInFlight,
+  markHomeTabPublished,
+  markPublishInFlight,
+} from "../../home-tab-state.js";
 
 /** Returns process uptime in milliseconds, consistent with gateway health state. */
 function processUptimeMs(): number {
@@ -55,7 +62,6 @@ export function resolveAgentModelDisplay(
 }
 
 export function buildHomeTabBlocks(params: {
-  botUserId: string;
   slashCommand?: string;
   cfg?: OpenClawConfig;
   uptimeMs?: number;
@@ -172,6 +178,8 @@ export function registerSlackHomeTabEvents(params: { ctx: SlackMonitorContext })
     return;
   }
 
+  const accountId = ctx.accountId;
+
   ctx.app.event(
     "app_home_opened",
     async ({ event, body }: SlackEventMiddlewareArgs<"app_home_opened">) => {
@@ -193,34 +201,44 @@ export function registerSlackHomeTabEvents(params: { ctx: SlackMonitorContext })
         const userId = event.user;
 
         // If the user has a custom (agent-pushed) view, don't overwrite it.
-        if (hasCustomHomeTab(userId)) {
+        if (hasCustomHomeTab(accountId, userId)) {
           logVerbose(`slack: home tab has custom view for ${userId}, skipping default publish`);
           return;
         }
 
         // Skip re-publish if this user already has the current version rendered
-        if (hasCurrentHomeTab(userId, VERSION)) {
+        if (hasCurrentHomeTab(accountId, userId, VERSION)) {
           logVerbose(`slack: home tab already published for ${userId}, skipping`);
           return;
         }
 
-        const blocks = buildHomeTabBlocks({
-          botUserId: ctx.botUserId,
-          slashCommand: ctx.slashCommand.name ? `/${ctx.slashCommand.name}` : undefined,
-          cfg: ctx.cfg,
-        });
+        // Deduplicate concurrent app_home_opened events for the same user
+        if (isPublishInFlight(accountId, userId)) {
+          logVerbose(`slack: home tab publish already in-flight for ${userId}, skipping`);
+          return;
+        }
+        markPublishInFlight(accountId, userId);
 
-        await ctx.app.client.views.publish({
-          token: ctx.botToken,
-          user_id: userId,
-          view: {
-            type: "home",
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Block Kit JSON built dynamically
-            blocks: blocks as any,
-          },
-        });
+        try {
+          const blocks = buildHomeTabBlocks({
+            slashCommand: ctx.slashCommand.name ? `/${ctx.slashCommand.name}` : undefined,
+            cfg: ctx.cfg,
+          });
 
-        markHomeTabPublished(userId, VERSION);
+          await ctx.app.client.views.publish({
+            token: ctx.botToken,
+            user_id: userId,
+            view: {
+              type: "home",
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Block Kit JSON built dynamically
+              blocks: blocks as any,
+            },
+          });
+
+          markHomeTabPublished(accountId, userId, VERSION);
+        } finally {
+          clearPublishInFlight(accountId, userId);
+        }
       } catch (err) {
         ctx.runtime.error?.(danger(`slack app_home_opened handler failed: ${String(err)}`));
       }
