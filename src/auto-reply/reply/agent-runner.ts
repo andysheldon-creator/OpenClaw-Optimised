@@ -366,6 +366,26 @@ export async function runReplyAgent(params: {
       cleanupTranscripts: true,
     });
 
+  // The brain-muscle pipeline adds at least one extra model call (planner) and often two (planner + synthesis).
+  // Keep it for heavier prompts where the orchestration benefit outweighs cost/latency.
+  const shouldRunReplyPipeline = (() => {
+    if (!pipelineEnabled || isHeartbeat) {
+      return false;
+    }
+    const musclePrimary = pipeline.muscleModels[0];
+    if (!musclePrimary) {
+      return false;
+    }
+    const isDistinctModel =
+      musclePrimary.provider !== pipeline.brain.provider ||
+      musclePrimary.model !== pipeline.brain.model;
+    if (!isDistinctModel) {
+      return false;
+    }
+    const trimmed = commandBody.trim();
+    return trimmed.length >= 600;
+  })();
+
   const runBrainMuscleBrainPipeline = async (): Promise<
     ReturnType<typeof runAgentTurnWithFallback>
   > => {
@@ -558,32 +578,31 @@ export async function runReplyAgent(params: {
   };
   try {
     const runStartedAt = Date.now();
-    const runOutcome =
-      pipelineEnabled && !isHeartbeat
-        ? await runBrainMuscleBrainPipeline()
-        : await runAgentTurnWithFallback({
-            commandBody,
-            followupRun,
-            sessionCtx,
-            opts,
-            typingSignals,
-            blockReplyPipeline,
-            blockStreamingEnabled,
-            blockReplyChunking,
-            resolvedBlockStreamingBreak,
-            applyReplyToMode,
-            shouldEmitToolResult,
-            shouldEmitToolOutput,
-            pendingToolTasks,
-            resetSessionAfterCompactionFailure,
-            resetSessionAfterRoleOrderingConflict,
-            isHeartbeat,
-            sessionKey,
-            getActiveSessionEntry: () => activeSessionEntry,
-            activeSessionStore,
-            storePath,
-            resolvedVerboseLevel,
-          });
+    const runOutcome = shouldRunReplyPipeline
+      ? await runBrainMuscleBrainPipeline()
+      : await runAgentTurnWithFallback({
+          commandBody,
+          followupRun,
+          sessionCtx,
+          opts,
+          typingSignals,
+          blockReplyPipeline,
+          blockStreamingEnabled,
+          blockReplyChunking,
+          resolvedBlockStreamingBreak,
+          applyReplyToMode,
+          shouldEmitToolResult,
+          shouldEmitToolOutput,
+          pendingToolTasks,
+          resetSessionAfterCompactionFailure,
+          resetSessionAfterRoleOrderingConflict,
+          isHeartbeat,
+          sessionKey,
+          getActiveSessionEntry: () => activeSessionEntry,
+          activeSessionStore,
+          storePath,
+          resolvedVerboseLevel,
+        });
 
     if (runOutcome.kind === "final") {
       return finalizeWithFollowup(runOutcome.payload, queueKey, runFollowupTurn);

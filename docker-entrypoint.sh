@@ -239,24 +239,56 @@ if (cfg.browser && cfg.browser.profiles) {
   }
 }
 
-// Agent model config - Opus brain with OpenRouter muscle fallback
+// Agent model config
+// Defaults favor low cost (Haiku). Opus is opt-in via OPENCLAW_BRAIN_MODEL / OPENCLAW_FALLBACK_MODELS.
 cfg.agents = cfg.agents || {};
 cfg.agents.defaults = cfg.agents.defaults || {};
+
+const primaryModel = (process.env.OPENCLAW_PRIMARY_MODEL || 'anthropic/claude-haiku-4.5').trim();
+const fallbacksRaw = (process.env.OPENCLAW_FALLBACK_MODELS || '').trim();
+const fallbackModels = fallbacksRaw
+  ? fallbacksRaw
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+  : [];
+
 cfg.agents.defaults.model = {
-  primary: 'anthropic/claude-opus-4-5',
-  fallbacks: ['anthropic/claude-haiku-4.5']
-};
-cfg.agents.defaults.models = {
-  'anthropic/claude-opus-4-5': {},
-  'openrouter/anthropic/claude-haiku-4.5': {}
+  primary: primaryModel,
+  fallbacks: fallbackModels,
 };
 
-// Enable brain -> muscle -> brain reply pipeline (disabled by default in OpenClaw).
-// Brain stays as the configured primary model; muscle defaults to model fallbacks unless overridden.
+// Reduce accidental spend: default thinking to off unless user enables it per-session.
+cfg.agents.defaults.thinkingDefault = cfg.agents.defaults.thinkingDefault || 'off';
+
+// Enable brain -> muscle -> brain reply pipeline.
+// Brain defaults to Opus (better planning) but can be overridden to a cheaper model.
+// Muscle defaults to model fallbacks (or Haiku when no fallbacks are configured).
 cfg.agents.defaults.replyPipeline = cfg.agents.defaults.replyPipeline || {};
 cfg.agents.defaults.replyPipeline.enabled = true;
-cfg.agents.defaults.replyPipeline.brainModel = 'anthropic/claude-opus-4-5';
-cfg.agents.defaults.replyPipeline.muscleModels = ['anthropic/claude-haiku-4.5'];
+cfg.agents.defaults.replyPipeline.brainModel = (
+  process.env.OPENCLAW_BRAIN_MODEL || 'anthropic/claude-opus-4-5'
+).trim();
+const muscleRaw = (process.env.OPENCLAW_MUSCLE_MODELS || '').trim();
+cfg.agents.defaults.replyPipeline.muscleModels = muscleRaw
+  ? muscleRaw
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+  : (fallbackModels.length > 0 ? fallbackModels : [primaryModel]);
+
+// Ensure all referenced models have a config entry so alias/indexing and per-model options work.
+cfg.agents.defaults.models = cfg.agents.defaults.models || {};
+for (const ref of [
+  primaryModel,
+  ...(cfg.agents.defaults.model.fallbacks || []),
+  cfg.agents.defaults.replyPipeline.brainModel,
+  ...(cfg.agents.defaults.replyPipeline.muscleModels || []),
+]) {
+  if (typeof ref === 'string' && ref.trim()) {
+    cfg.agents.defaults.models[ref.trim()] = cfg.agents.defaults.models[ref.trim()] || {};
+  }
+}
 
 fs.mkdirSync(path.dirname(configPath), { recursive: true });
 fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2));
