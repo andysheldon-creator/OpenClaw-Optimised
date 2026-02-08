@@ -44,6 +44,8 @@ export const handlePluginCommand: CommandHandler = async (
     accountId: params.ctx.AccountId ?? undefined,
     messageThreadId:
       typeof params.ctx.MessageThreadId === "number" ? params.ctx.MessageThreadId : undefined,
+    chatId: command.to?.replace(/^telegram:/, "") ?? command.from?.replace(/^telegram:/, ""),
+    messageId: params.ctx.MessageSid,
   });
 
   return {
