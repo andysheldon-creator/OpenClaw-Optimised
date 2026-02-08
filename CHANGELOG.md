@@ -21,12 +21,18 @@ Docs: https://docs.openclaw.ai
 - Memory/QMD: run boot refresh in background by default, add configurable QMD maintenance timeouts, and retry QMD after fallback failures. (#9690, #9705)
 - Media understanding: recognize `.caf` audio attachments for transcription. (#10982) Thanks @succ985.
 - State dir: honor `OPENCLAW_STATE_DIR` for default device identity and canvas storage paths. (#4824) Thanks @kossoy.
+- Doctor/State dir: suppress repeated legacy migration warnings only for valid symlink mirrors, while keeping warnings for empty or invalid legacy trees. (#11709) Thanks @gumadeiras.
 - Tests: harden flaky hotspots by removing timer sleeps, consolidating onboarding provider-auth coverage, and improving memory test realism. (#11598) Thanks @gumadeiras.
 
 ## 2026.2.6
 
 ### Changes
 
+- Hygiene: remove `workspace:*` from `dependencies` in msteams, nostr, zalo extensions (breaks external `npm install`; keep in `devDependencies` only).
+- Hygiene: add non-root `sandbox` user to `Dockerfile.sandbox` and `Dockerfile.sandbox-browser`.
+- Hygiene: remove dead `vitest` key from `package.json` (superseded by `vitest.config.ts`).
+- Hygiene: remove redundant top-level `overrides` from `package.json` (pnpm uses `pnpm.overrides`).
+- Hygiene: sync `onlyBuiltDependencies` between `pnpm-workspace.yaml` and `package.json` (add missing `node-llama-cpp`, sort alphabetically).
 - Cron: default `wakeMode` is now `"now"` for new jobs (was `"next-heartbeat"`). (#10776) Thanks @tyler6204.
 - Cron: `cron run` defaults to force execution; use `--due` to restrict to due-only. (#10776) Thanks @tyler6204.
 - Models: support Anthropic Opus 4.6 and OpenAI Codex gpt-5.3-codex (forward-compat fallbacks). (#9853, #10720, #9995) Thanks @TinyTb, @calvin-hpnet, @tyler6204.
