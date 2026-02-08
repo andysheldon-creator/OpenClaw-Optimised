@@ -5,6 +5,7 @@ import {
   type SkillStatusEntry,
   type SkillStatusReport,
 } from "../agents/skills-status.js";
+import { formatRecommendations, getSkillRecommendations } from "../commands/skill-recommend.js";
 import { loadConfig } from "../config/config.js";
 import { defaultRuntime } from "../runtime.js";
 import { formatDocsLink } from "../terminal/links.js";
@@ -394,6 +395,28 @@ export function registerSkillsCli(program: Command) {
         const workspaceDir = resolveAgentWorkspaceDir(config, resolveDefaultAgentId(config));
         const report = buildWorkspaceSkillStatus(workspaceDir, { config });
         defaultRuntime.log(formatSkillsCheck(report, opts));
+      } catch (err) {
+        defaultRuntime.error(String(err));
+        defaultRuntime.exit(1);
+      }
+    });
+
+  skills
+    .command("recommend")
+    .description("Get personalized skill recommendations based on your setup")
+    .option("--json", "Output as JSON", false)
+    .option("-n, --limit <number>", "Maximum number of recommendations", "5")
+    .option("--include-installed", "Include already installed skills", false)
+    .action(async (opts) => {
+      try {
+        const config = loadConfig();
+        const workspaceDir = resolveAgentWorkspaceDir(config, resolveDefaultAgentId(config));
+        const report = buildWorkspaceSkillStatus(workspaceDir, { config });
+        const recommendations = getSkillRecommendations(config, report, {
+          limit: parseInt(opts.limit, 10) || 5,
+          includeInstalled: opts.includeInstalled,
+        });
+        defaultRuntime.log(formatRecommendations(recommendations, opts.json));
       } catch (err) {
         defaultRuntime.error(String(err));
         defaultRuntime.exit(1);
