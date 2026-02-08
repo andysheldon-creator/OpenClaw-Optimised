@@ -3,35 +3,28 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { defaultRuntime } from "../runtime.js";
+import {
+  restoreStateDirEnv,
+  setStateDirEnv,
+  snapshotStateDirEnv,
+} from "../test-helpers/state-dir-env.js";
 
 describe("canvas host state dir defaults", () => {
-  let previousStateDir: string | undefined;
-  let previousLegacyStateDir: string | undefined;
+  let envSnapshot: ReturnType<typeof snapshotStateDirEnv>;
 
   beforeEach(() => {
-    previousStateDir = process.env.OPENCLAW_STATE_DIR;
-    previousLegacyStateDir = process.env.CLAWDBOT_STATE_DIR;
+    envSnapshot = snapshotStateDirEnv();
   });
 
   afterEach(() => {
     vi.resetModules();
-    if (previousStateDir === undefined) {
-      delete process.env.OPENCLAW_STATE_DIR;
-    } else {
-      process.env.OPENCLAW_STATE_DIR = previousStateDir;
-    }
-    if (previousLegacyStateDir === undefined) {
-      delete process.env.CLAWDBOT_STATE_DIR;
-    } else {
-      process.env.CLAWDBOT_STATE_DIR = previousLegacyStateDir;
-    }
+    restoreStateDirEnv(envSnapshot);
   });
 
   it("uses OPENCLAW_STATE_DIR for the default canvas root", async () => {
     const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-canvas-state-"));
     const stateDir = path.join(tempRoot, "state");
-    process.env.OPENCLAW_STATE_DIR = stateDir;
-    delete process.env.CLAWDBOT_STATE_DIR;
+    setStateDirEnv(stateDir);
     vi.resetModules();
 
     const { createCanvasHostHandler } = await import("./server.js");
