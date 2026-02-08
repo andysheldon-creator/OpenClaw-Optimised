@@ -271,7 +271,7 @@ async function maybeQueueSubagentAnnounce(params: {
     queueSettings.mode === "interrupt";
   if (isActive && (shouldFollowup || queueSettings.mode === "steer")) {
     const origin = resolveAnnounceOrigin(entry, params.requesterOrigin);
-    enqueueAnnounce({
+    const didQueue = enqueueAnnounce({
       key: canonicalKey,
       item: {
         prompt: params.triggerMessage,
@@ -287,7 +287,7 @@ async function maybeQueueSubagentAnnounce(params: {
       },
       send: sendAnnounce,
     });
-    return "queued";
+    return didQueue ? "queued" : "none";
   }
 
   return "none";
