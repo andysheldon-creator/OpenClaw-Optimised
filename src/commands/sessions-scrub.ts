@@ -94,7 +94,7 @@ export async function sessionsScrubCommand(
   async function processNext(): Promise<void> {
     while (fileIndex < files.length) {
       const idx = fileIndex++;
-      const file = files[idx]!;
+      const file = files[idx];
       result.filesScanned++;
       try {
         const { modified, redactionCount } = await scrubSessionFile(file, opts);
