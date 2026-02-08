@@ -45,7 +45,9 @@ export async function probeTelegram(
         break;
       } catch (err) {
         fetchError = err;
-        if (i < 2) await new Promise((resolve) => setTimeout(resolve, 1000));
+        if (i < 2) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
       }
     }
 

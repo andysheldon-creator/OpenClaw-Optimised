@@ -1,13 +1,15 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { type Mock, describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { probeTelegram } from "./probe.js";
 
 describe("probeTelegram retry logic", () => {
   const token = "test-token";
   const timeoutMs = 5000;
+  let fetchMock: Mock;
 
   beforeEach(() => {
     vi.useFakeTimers();
-    global.fetch = vi.fn();
+    fetchMock = vi.fn();
+    global.fetch = fetchMock;
   });
 
   afterEach(() => {
@@ -23,10 +25,10 @@ describe("probeTelegram retry logic", () => {
         result: { id: 123, username: "test_bot" },
       }),
     };
-    (global.fetch as any).mockResolvedValueOnce(mockResponse);
+    fetchMock.mockResolvedValueOnce(mockResponse);
 
     // Mock getWebhookInfo which is also called
-    (global.fetch as any).mockResolvedValueOnce({
+    fetchMock.mockResolvedValueOnce({
       ok: true,
       json: vi.fn().mockResolvedValue({ ok: true, result: { url: "" } }),
     });
@@ -34,16 +36,16 @@ describe("probeTelegram retry logic", () => {
     const result = await probeTelegram(token, timeoutMs);
 
     expect(result.ok).toBe(true);
-    expect(global.fetch).toHaveBeenCalledTimes(2); // getMe + getWebhookInfo
+    expect(fetchMock).toHaveBeenCalledTimes(2); // getMe + getWebhookInfo
     expect(result.bot?.username).toBe("test_bot");
   });
 
   it("should retry and succeed if first attempt fails but second succeeds", async () => {
     // 1st attempt: Network error
-    (global.fetch as any).mockRejectedValueOnce(new Error("Network timeout"));
+    fetchMock.mockRejectedValueOnce(new Error("Network timeout"));
 
     // 2nd attempt: Success
-    (global.fetch as any).mockResolvedValueOnce({
+    fetchMock.mockResolvedValueOnce({
       ok: true,
       json: vi.fn().mockResolvedValue({
         ok: true,
@@ -52,7 +54,7 @@ describe("probeTelegram retry logic", () => {
     });
 
     // getWebhookInfo
-    (global.fetch as any).mockResolvedValueOnce({
+    fetchMock.mockResolvedValueOnce({
       ok: true,
       json: vi.fn().mockResolvedValue({ ok: true, result: { url: "" } }),
     });
@@ -65,18 +67,18 @@ describe("probeTelegram retry logic", () => {
     const result = await probePromise;
 
     expect(result.ok).toBe(true);
-    expect(global.fetch).toHaveBeenCalledTimes(3); // fail getMe, success getMe, getWebhookInfo
+    expect(fetchMock).toHaveBeenCalledTimes(3); // fail getMe, success getMe, getWebhookInfo
     expect(result.bot?.username).toBe("test_bot");
   });
 
   it("should retry twice and succeed on the third attempt", async () => {
     // 1st attempt: Network error
-    (global.fetch as any).mockRejectedValueOnce(new Error("Network error 1"));
+    fetchMock.mockRejectedValueOnce(new Error("Network error 1"));
     // 2nd attempt: Network error
-    (global.fetch as any).mockRejectedValueOnce(new Error("Network error 2"));
+    fetchMock.mockRejectedValueOnce(new Error("Network error 2"));
 
     // 3rd attempt: Success
-    (global.fetch as any).mockResolvedValueOnce({
+    fetchMock.mockResolvedValueOnce({
       ok: true,
       json: vi.fn().mockResolvedValue({
         ok: true,
@@ -85,7 +87,7 @@ describe("probeTelegram retry logic", () => {
     });
 
     // getWebhookInfo
-    (global.fetch as any).mockResolvedValueOnce({
+    fetchMock.mockResolvedValueOnce({
       ok: true,
       json: vi.fn().mockResolvedValue({ ok: true, result: { url: "" } }),
     });
@@ -99,13 +101,13 @@ describe("probeTelegram retry logic", () => {
     const result = await probePromise;
 
     expect(result.ok).toBe(true);
-    expect(global.fetch).toHaveBeenCalledTimes(4); // fail, fail, success, webhook
+    expect(fetchMock).toHaveBeenCalledTimes(4); // fail, fail, success, webhook
     expect(result.bot?.username).toBe("test_bot");
   });
 
   it("should fail after 3 unsuccessful attempts", async () => {
     const errorMsg = "Final network error";
-    (global.fetch as any).mockRejectedValue(new Error(errorMsg));
+    fetchMock.mockRejectedValue(new Error(errorMsg));
 
     const probePromise = probeTelegram(token, timeoutMs);
 
@@ -117,7 +119,7 @@ describe("probeTelegram retry logic", () => {
 
     expect(result.ok).toBe(false);
     expect(result.error).toBe(errorMsg);
-    expect(global.fetch).toHaveBeenCalledTimes(3); // 3 attempts at getMe
+    expect(fetchMock).toHaveBeenCalledTimes(3); // 3 attempts at getMe
   });
 
   it("should NOT retry if getMe returns a 401 Unauthorized", async () => {
@@ -129,13 +131,13 @@ describe("probeTelegram retry logic", () => {
         description: "Unauthorized",
       }),
     };
-    (global.fetch as any).mockResolvedValueOnce(mockResponse);
+    fetchMock.mockResolvedValueOnce(mockResponse);
 
     const result = await probeTelegram(token, timeoutMs);
 
     expect(result.ok).toBe(false);
     expect(result.status).toBe(401);
     expect(result.error).toBe("Unauthorized");
-    expect(global.fetch).toHaveBeenCalledTimes(1); // Should not retry
+    expect(fetchMock).toHaveBeenCalledTimes(1); // Should not retry
   });
 });
