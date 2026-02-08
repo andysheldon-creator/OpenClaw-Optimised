@@ -422,6 +422,7 @@ export async function runReplyAgent(params: {
     });
 
     if (isDiagnosticsEnabled(cfg)) {
+      const captureContent = cfg?.diagnostics?.otel?.captureContent === true;
       const input = usage?.input;
       const output = usage?.output;
       const cacheRead = usage?.cacheRead;
@@ -446,16 +447,17 @@ export async function runReplyAgent(params: {
         ? [stopReason === "tool_calls" ? "tool_call" : stopReason]
         : ["stop"];
 
-      // Build GenAI input/output messages for OTel content capture
-      const inputMessages: GenAiMessage[] = [
-        { role: "user", parts: [{ type: "text", content: commandBody }] },
-      ];
-      const outputParts = payloadArray
-        .map((p) => p.text?.trim())
-        .filter((t): t is string => Boolean(t));
-      const pendingCalls = runResult.meta.pendingToolCalls;
+      // Content capture is intentionally opt-in and controlled by diagnostics.otel.captureContent.
+      // When disabled, we still emit aggregate usage/timings/errors but omit message content fields.
+      const inputMessages: GenAiMessage[] = captureContent
+        ? [{ role: "user", parts: [{ type: "text", content: commandBody }] }]
+        : [];
+      const outputParts = captureContent
+        ? payloadArray.map((p) => p.text?.trim()).filter((t): t is string => Boolean(t))
+        : [];
+      const pendingCalls = captureContent ? runResult.meta.pendingToolCalls : undefined;
       const outputMessages: GenAiMessage[] = [];
-      if (outputParts.length > 0 || pendingCalls?.length) {
+      if (captureContent && (outputParts.length > 0 || pendingCalls?.length)) {
         const msg: GenAiMessage = {
           role: "assistant",
           parts: [
@@ -503,11 +505,12 @@ export async function runReplyAgent(params: {
         operationName: "chat",
         finishReasons,
         responseModel: runResult.meta.agentMeta?.model,
-        inputMessages,
+        inputMessages: inputMessages.length > 0 ? inputMessages : undefined,
         outputMessages: outputMessages.length > 0 ? outputMessages : undefined,
-        systemInstructions: runResult.meta.systemPromptText
-          ? [{ type: "text" as const, content: runResult.meta.systemPromptText }]
-          : undefined,
+        systemInstructions:
+          captureContent && runResult.meta.systemPromptText
+            ? [{ type: "text" as const, content: runResult.meta.systemPromptText }]
+            : undefined,
         temperature:
           typeof resolvedModelParams?.temperature === "number"
             ? resolvedModelParams.temperature

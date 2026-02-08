@@ -449,16 +449,22 @@ export function handleMessageEnd(
       ? ((assistantMessage as { errorMessage?: string }).errorMessage ?? "LLM request failed.")
       : undefined;
 
-  const outputParts = buildAssistantParts((assistantMessage as { content?: unknown }).content);
-  const outputMessages: GenAiMessage[] = outputParts.length
-    ? [
-        {
-          role: "assistant",
-          parts: outputParts,
-          ...(finishReasons?.length ? { finish_reason: finishReasons[0] } : {}),
-        },
-      ]
-    : [];
+  // Content capture is intentionally opt-in and controlled by diagnostics.otel.captureContent.
+  // When disabled, we still emit timings/usage/errors but omit message content fields.
+  const outputParts =
+    ctx.params.captureContent === true
+      ? buildAssistantParts((assistantMessage as { content?: unknown }).content)
+      : [];
+  const outputMessages: GenAiMessage[] =
+    ctx.params.captureContent === true && outputParts.length
+      ? [
+          {
+            role: "assistant",
+            parts: outputParts,
+            ...(finishReasons?.length ? { finish_reason: finishReasons[0] } : {}),
+          },
+        ]
+      : [];
 
   emitDiagnosticEvent({
     type: "model.inference",
