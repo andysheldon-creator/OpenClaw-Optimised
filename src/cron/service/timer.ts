@@ -169,12 +169,17 @@ export async function executeJob(
           await delay(250);
         }
 
-        if (heartbeatResult.status === "ran") {
-          await finish("ok", undefined, text);
-        } else if (heartbeatResult.status === "skipped") {
-          await finish("skipped", heartbeatResult.reason, text);
-        } else {
+        if (heartbeatResult.status === "error") {
           await finish("error", heartbeatResult.reason, text);
+        } else {
+          // The system event was already enqueued above (line 146); even
+          // when the synchronous heartbeat was skipped (e.g. another
+          // request in flight), the queued event will be picked up by
+          // the next natural heartbeat cycle.  Treat as "ok" so
+          // one-shot jobs (schedule.kind="at") are properly cleaned up
+          // or deleted (deleteAfterRun).
+          // @see https://github.com/openclaw/openclaw/issues/11612
+          await finish("ok", undefined, text);
         }
       } else {
         // wakeMode is "next-heartbeat" or runHeartbeatOnce not available

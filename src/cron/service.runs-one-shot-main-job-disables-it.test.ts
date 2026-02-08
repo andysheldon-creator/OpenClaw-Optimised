@@ -185,6 +185,78 @@ describe("CronService", () => {
     await store.cleanup();
   });
 
+  it("deletes one-shot job even when heartbeat is skipped (#11612)", async () => {
+    const store = await makeStorePath();
+    const enqueueSystemEvent = vi.fn();
+    const requestHeartbeatNow = vi.fn();
+
+    let now = 0;
+    const nowMs = () => {
+      now += 10;
+      return now;
+    };
+
+    let resolveHeartbeat: ((res: HeartbeatRunResult) => void) | null = null;
+    const runHeartbeatOnce = vi.fn(
+      async () =>
+        await new Promise<HeartbeatRunResult>((resolve) => {
+          resolveHeartbeat = resolve;
+        }),
+    );
+
+    const cron = new CronService({
+      storePath: store.storePath,
+      cronEnabled: true,
+      log: noopLogger,
+      nowMs,
+      enqueueSystemEvent,
+      requestHeartbeatNow,
+      runHeartbeatOnce,
+      runIsolatedAgentJob: vi.fn(async () => ({ status: "ok" })),
+    });
+
+    await cron.start();
+    const job = await cron.add({
+      name: "one-shot skipped heartbeat",
+      enabled: true,
+      deleteAfterRun: true,
+      schedule: { kind: "at", at: new Date(1).toISOString() },
+      sessionTarget: "main",
+      wakeMode: "now",
+      payload: { kind: "systemEvent", text: "fire once" },
+    });
+
+    const runPromise = cron.run(job.id, "force");
+    for (let i = 0; i < 10; i++) {
+      if (runHeartbeatOnce.mock.calls.length > 0) {
+        break;
+      }
+      await Promise.resolve();
+    }
+
+    // Event was enqueued before heartbeat attempt.
+    expect(enqueueSystemEvent).toHaveBeenCalledWith("fire once", {
+      agentId: undefined,
+    });
+
+    // Heartbeat reports "skipped" (e.g. agent already idle, nothing to run).
+    // Use a reason other than "requests-in-flight" so the retry loop in
+    // executeJob breaks immediately (that loop only retries on that specific
+    // reason, and relies on real setTimeout which doesn't advance under
+    // fake timers).
+    resolveHeartbeat?.({ status: "skipped", reason: "already-idle" });
+    await runPromise;
+
+    // Despite skipped heartbeat, the job should be treated as "ok"
+    // and deleted because the system event was already enqueued.
+    expect(job.state.lastStatus).toBe("ok");
+    const jobs = await cron.list({ includeDisabled: true });
+    expect(jobs.find((j) => j.id === job.id)).toBeUndefined();
+
+    cron.stop();
+    await store.cleanup();
+  });
+
   it("runs an isolated job and posts summary to main", async () => {
     const store = await makeStorePath();
     const enqueueSystemEvent = vi.fn();
