@@ -362,9 +362,12 @@ export function parseCliJson(raw: string, backend: CliBackendConfig): CliOutput 
       if (isRecord(entry.usage)) {
         usage = toUsage(entry.usage) ?? usage;
       }
-      // Same priority as the single-object path: message → content → result
+      // Same priority as the single-object path: message → content → result → top-level
       const candidate =
-        collectText(entry.message) || collectText(entry.content) || collectText(entry.result);
+        collectText(entry.message) ||
+        collectText(entry.content) ||
+        collectText(entry.result) ||
+        collectText(entry);
       if (candidate) {
         text = candidate;
       }

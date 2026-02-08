@@ -86,6 +86,16 @@ describe("parseCliJson", () => {
     expect(parseCliJson("{bad json", MINIMAL_BACKEND)).toBeNull();
   });
 
+  it("falls back to top-level text on array entry", () => {
+    const raw = JSON.stringify([
+      { type: "system", session_id: "s1" },
+      { type: "response", text: "top-level text" },
+    ]);
+    const out = parseCliJson(raw, MINIMAL_BACKEND);
+    expect(out).not.toBeNull();
+    expect(out!.text).toBe("top-level text");
+  });
+
   it("prefers last matching text in array (result overwrites earlier message)", () => {
     const raw = JSON.stringify([
       {
