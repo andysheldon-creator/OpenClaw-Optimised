@@ -21,12 +21,21 @@ const NEW_STATE_DIRNAME = ".openclaw";
 const CONFIG_FILENAME = "openclaw.json";
 const LEGACY_CONFIG_FILENAMES = ["clawdbot.json", "moltbot.json", "moldbot.json"] as const;
 
+function resolveHomeDir(homedir: () => string = os.homedir): string {
+  const home = homedir();
+  if (process.platform === "win32") {
+    return path.resolve(home);
+  }
+  return home;
+}
+
 function legacyStateDirs(homedir: () => string = os.homedir): string[] {
-  return LEGACY_STATE_DIRNAMES.map((dir) => path.join(homedir(), dir));
+  const home = resolveHomeDir(homedir);
+  return LEGACY_STATE_DIRNAMES.map((dir) => path.join(home, dir));
 }
 
 function newStateDir(homedir: () => string = os.homedir): string {
-  return path.join(homedir(), NEW_STATE_DIRNAME);
+  return path.join(resolveHomeDir(homedir), NEW_STATE_DIRNAME);
 }
 
 export function resolveLegacyStateDir(homedir: () => string = os.homedir): string {
