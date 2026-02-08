@@ -7,9 +7,6 @@ import { getDefaultRedactPatterns, parsePattern } from "../logging/redact.js";
 import { note } from "../terminal/note.js";
 
 /**
- * Randomly shuffle an array using Fisher-Yates algorithm.
- */
-/**
  * Deterministic sample: sort paths and take first N for stable, reproducible results.
  * Avoids nondeterministic "flapping" warnings across runs.
  */
