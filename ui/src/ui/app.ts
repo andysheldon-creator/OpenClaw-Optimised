@@ -40,9 +40,8 @@ import {
   handleNostrProfileSave as handleNostrProfileSaveInternal,
   handleNostrProfileToggleAdvanced as handleNostrProfileToggleAdvancedInternal,
   handleSimplexAddressShowOrCreate as handleSimplexAddressShowOrCreateInternal,
-  handleSimplexInviteCreate as handleSimplexInviteCreateInternal,
+  handleSimplexOneTimeLinkCreate as handleSimplexOneTimeLinkCreateInternal,
   handleSimplexInviteRevoke as handleSimplexInviteRevokeInternal,
-  type SimplexInviteMode,
   handleWhatsAppLogout as handleWhatsAppLogoutInternal,
   handleWhatsAppStart as handleWhatsAppStartInternal,
   handleWhatsAppWait as handleWhatsAppWaitInternal,
@@ -499,8 +498,8 @@ export class OpenClawApp extends LitElement {
     handleNostrProfileToggleAdvancedInternal(this);
   }
 
-  async handleSimplexInviteCreate(accountId: string, mode: SimplexInviteMode) {
-    await handleSimplexInviteCreateInternal(this, accountId, mode);
+  async handleSimplexOneTimeLinkCreate(accountId: string) {
+    await handleSimplexOneTimeLinkCreateInternal(this, accountId);
   }
 
   async handleSimplexInviteRevoke(accountId: string) {
