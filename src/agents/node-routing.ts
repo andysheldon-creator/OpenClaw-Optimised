@@ -18,7 +18,11 @@ export type ConnectedNode = {
 
 export type NodeResolutionResult =
   | { ok: true; node: ConnectedNode }
-  | { ok: false; error: string; code: "NOT_FOUND" | "NOT_CONNECTED" | "NO_AGENT_CAP" };
+  | {
+      ok: false;
+      error: string;
+      code: "NOT_FOUND" | "NOT_CONNECTED" | "NO_AGENT_CAP" | "GATEWAY_ERROR";
+    };
 
 /**
  * Resolve a node by ID or display name.
@@ -65,8 +69,7 @@ export async function resolveNodeByIdOrName(
       const lowerTarget = target.toLowerCase();
       match = nodes.find(
         (n) =>
-          n.displayName?.toLowerCase() === lowerTarget ||
-          n.nodeId.toLowerCase() === lowerTarget,
+          n.displayName?.toLowerCase() === lowerTarget || n.nodeId.toLowerCase() === lowerTarget,
       );
     }
 
@@ -87,8 +90,7 @@ export async function resolveNodeByIdOrName(
     }
 
     // Check if node has agent.run capability
-    const hasAgentCap =
-      match.commands?.includes("agent.run") || match.caps?.includes("agent");
+    const hasAgentCap = match.commands?.includes("agent.run") || match.caps?.includes("agent");
 
     if (!hasAgentCap) {
       return {
@@ -104,7 +106,7 @@ export async function resolveNodeByIdOrName(
     return {
       ok: false,
       error: `failed to resolve node: ${message}`,
-      code: "NOT_FOUND",
+      code: "GATEWAY_ERROR",
     };
   }
 }
@@ -122,6 +124,7 @@ export async function resolveNodeByIdOrName(
 export async function invokeAgentOnNode(params: {
   nodeId: string;
   message: string;
+  images?: Array<{ type: "image"; data: string; mimeType: string }>;
   sessionKey?: string;
   agentId?: string;
   channel?: string;
@@ -152,6 +155,7 @@ export async function invokeAgentOnNode(params: {
         command: "agent.run",
         params: {
           message: params.message,
+          images: params.images?.length ? params.images : undefined,
           sessionKey: params.sessionKey,
           agentId: params.agentId,
           channel: params.channel,

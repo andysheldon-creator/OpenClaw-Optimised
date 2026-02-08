@@ -186,6 +186,18 @@ export const agentHandlers: GatewayRequestHandlers = {
     // Node routing: check if agent is configured to run on a specific node
     const nodeTarget = agentId ? resolveAgentNodeRouting(cfg, agentId) : undefined;
     if (nodeTarget) {
+      // Set dedupe entry early to prevent duplicate invocations on retry
+      const accepted = {
+        runId: idem,
+        status: "accepted" as const,
+        acceptedAt: Date.now(),
+        routedToNode: nodeTarget,
+      };
+      context.dedupe.set(`agent:${idem}`, {
+        ts: Date.now(),
+        ok: true,
+        payload: accepted,
+      });
       const nodeResolution = await resolveNodeByIdOrName(nodeTarget);
       if (!nodeResolution.ok) {
         respond(
@@ -201,7 +213,8 @@ export const agentHandlers: GatewayRequestHandlers = {
       // Forward the agent request to the target node
       const nodeResult = await invokeAgentOnNode({
         nodeId: nodeResolution.node.nodeId,
-        message: request.message,
+        message: message,
+        images: images,
         sessionKey: request.sessionKey,
         agentId: request.agentId,
         channel: request.channel,
@@ -218,7 +231,6 @@ export const agentHandlers: GatewayRequestHandlers = {
           groupChannel: groupChannelRaw || undefined,
           groupSpace: groupSpaceRaw || undefined,
           label: request.label,
-          attachments: normalizedAttachments.length > 0 ? normalizedAttachments : undefined,
         },
       });
 
