@@ -62,11 +62,11 @@ const CONFIG_BACKUP_COUNT = 5;
 const loggedInvalidConfigs = new Set<string>();
 
 // Module-level env snapshot shared across exported wrapper functions.
-// readConfigFileSnapshot() stores it; writeConfigFile() consumes it.
-// This bridges the TOCTOU gap when callers use the exported wrappers
-// (which create separate createConfigIO instances) rather than reusing
-// a single IO instance.
-let _moduleEnvSnapshot: Record<string, string | undefined> | null = null;
+// readConfigFileSnapshot() stores it keyed by configPath; writeConfigFile()
+// consumes the matching entry. This bridges the TOCTOU gap when callers use
+// the exported wrappers (which create separate createConfigIO instances)
+// rather than reusing a single IO instance.
+const _moduleEnvSnapshots = new Map<string, Record<string, string | undefined>>();
 
 export type ParseConfigJson5Result = { ok: true; parsed: unknown } | { ok: false; error: string };
 
@@ -674,19 +674,24 @@ export function loadConfig(): OpenClawConfig {
 export async function readConfigFileSnapshot(): Promise<ConfigFileSnapshot> {
   const io = createConfigIO();
   const snapshot = await io.readConfigFileSnapshot();
-  // Persist env snapshot from this IO instance so a subsequent writeConfigFile()
+  // Persist env snapshot keyed by configPath so a subsequent writeConfigFile()
   // call (which creates its own IO instance) can use the read-time env state.
-  _moduleEnvSnapshot = io.getEnvSnapshot();
+  const envSnap = io.getEnvSnapshot();
+  if (envSnap) {
+    _moduleEnvSnapshots.set(io.configPath, envSnap);
+  }
   return snapshot;
 }
 
 export async function writeConfigFile(cfg: OpenClawConfig): Promise<void> {
   clearConfigCache();
   const io = createConfigIO();
-  // Inject module-level env snapshot from a prior readConfigFileSnapshot() call
+  // Inject path-scoped env snapshot from a prior readConfigFileSnapshot() call
   // so that env restoration uses read-time env, not live env (TOCTOU fix).
-  if (_moduleEnvSnapshot) {
-    io.setEnvSnapshot(_moduleEnvSnapshot);
+  const envSnap = _moduleEnvSnapshots.get(io.configPath);
+  if (envSnap) {
+    io.setEnvSnapshot(envSnap);
+    _moduleEnvSnapshots.delete(io.configPath); // consume once
   }
   await io.writeConfigFile(cfg);
 }
