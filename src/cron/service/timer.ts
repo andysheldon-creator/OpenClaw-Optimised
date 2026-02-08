@@ -115,12 +115,12 @@ function applyJobResult(
 }
 
 export function armTimer(state: CronServiceState) {
-  if (state.timer) {
-    clearTimeout(state.timer);
-  }
-  state.timer = null;
   if (!state.deps.cronEnabled) {
     state.deps.log.debug({}, "cron: armTimer skipped - scheduler disabled");
+    if (state.timer) {
+      clearTimeout(state.timer);
+      state.timer = null;
+    }
     return;
   }
   const nextAt = nextWakeAtMs(state);
@@ -134,6 +134,10 @@ export function armTimer(state: CronServiceState) {
       { jobCount, enabledCount, withNextRun },
       "cron: armTimer skipped - no jobs with nextRunAtMs",
     );
+    if (state.timer) {
+      clearTimeout(state.timer);
+      state.timer = null;
+    }
     return;
   }
   const now = state.deps.nowMs();
@@ -141,6 +145,12 @@ export function armTimer(state: CronServiceState) {
   // Wake at least once a minute to avoid schedule drift and recover quickly
   // when the process was paused or wall-clock time jumps.
   const clampedDelay = Math.min(delay, MAX_TIMER_DELAY_MS);
+  
+  if (state.timer) {
+    clearTimeout(state.timer);
+    state.timer = null;
+  }
+  
   state.timer = setTimeout(async () => {
     try {
       await onTimer(state);
