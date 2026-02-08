@@ -1,6 +1,8 @@
 export type CompactionSafeguardRuntimeValue = {
   maxHistoryShare?: number;
   contextWindowTokens?: number;
+  /** Dedicated model for summarization (e.g., "google/gemini-2.0-flash"). */
+  summarizationModel?: string;
 };
 
 // Session-scoped runtime registry keyed by object identity.

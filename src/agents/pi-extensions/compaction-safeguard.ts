@@ -12,6 +12,27 @@ import {
   summarizeInStages,
 } from "../compaction.js";
 import { getCompactionSafeguardRuntime } from "./compaction-safeguard-runtime.js";
+
+/**
+ * Parse a model reference string (e.g., "google/gemini-2.0-flash") into provider and modelId.
+ */
+function parseModelRef(ref: string): { provider: string; modelId: string } | null {
+  const trimmed = ref.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const slashIndex = trimmed.indexOf("/");
+  if (slashIndex === -1) {
+    return null;
+  }
+  const provider = trimmed.slice(0, slashIndex);
+  const modelId = trimmed.slice(slashIndex + 1);
+  if (!provider || !modelId) {
+    return null;
+  }
+  return { provider, modelId };
+}
+
 const FALLBACK_SUMMARY =
   "Summary unavailable due to context limits. Older messages were truncated.";
 const TURN_PREFIX_INSTRUCTIONS =
@@ -170,7 +191,26 @@ export default function compactionSafeguardExtension(api: ExtensionAPI): void {
     const toolFailureSection = formatToolFailuresSection(toolFailures);
     const fallbackSummary = `${FALLBACK_SUMMARY}${toolFailureSection}${fileOpsSummary}`;
 
-    const model = ctx.model;
+    // Resolve summarization model: prefer dedicated model if configured, fall back to session model
+    const runtime = getCompactionSafeguardRuntime(ctx.sessionManager);
+    let model = ctx.model;
+    let usedDedicatedModel = false;
+
+    if (runtime?.summarizationModel) {
+      const parsed = parseModelRef(runtime.summarizationModel);
+      if (parsed) {
+        const dedicatedModel = ctx.modelRegistry.find(parsed.provider, parsed.modelId);
+        if (dedicatedModel) {
+          model = dedicatedModel;
+          usedDedicatedModel = true;
+        } else {
+          console.warn(
+            `Compaction: configured summarization model "${runtime.summarizationModel}" not found in registry; falling back to session model`,
+          );
+        }
+      }
+    }
+
     if (!model) {
       return {
         compaction: {
@@ -182,20 +222,41 @@ export default function compactionSafeguardExtension(api: ExtensionAPI): void {
       };
     }
 
-    const apiKey = await ctx.modelRegistry.getApiKey(model);
+    let apiKey = await ctx.modelRegistry.getApiKey(model);
     if (!apiKey) {
-      return {
-        compaction: {
-          summary: fallbackSummary,
-          firstKeptEntryId: preparation.firstKeptEntryId,
-          tokensBefore: preparation.tokensBefore,
-          details: { readFiles, modifiedFiles },
-        },
-      };
+      // If dedicated model has no API key, try falling back to session model
+      if (usedDedicatedModel && ctx.model) {
+        const sessionApiKey = await ctx.modelRegistry.getApiKey(ctx.model);
+        if (sessionApiKey) {
+          console.warn(
+            `Compaction: no API key for summarization model "${runtime?.summarizationModel}"; falling back to session model`,
+          );
+          model = ctx.model;
+          apiKey = sessionApiKey;
+        } else {
+          return {
+            compaction: {
+              summary: fallbackSummary,
+              firstKeptEntryId: preparation.firstKeptEntryId,
+              tokensBefore: preparation.tokensBefore,
+              details: { readFiles, modifiedFiles },
+            },
+          };
+        }
+      } else {
+        return {
+          compaction: {
+            summary: fallbackSummary,
+            firstKeptEntryId: preparation.firstKeptEntryId,
+            tokensBefore: preparation.tokensBefore,
+            details: { readFiles, modifiedFiles },
+          },
+        };
+      }
     }
 
     try {
-      const runtime = getCompactionSafeguardRuntime(ctx.sessionManager);
+      // Note: runtime was already retrieved above for summarization model resolution
       const modelContextWindow = resolveContextWindowTokens(model);
       const contextWindowTokens = runtime?.contextWindowTokens ?? modelContextWindow;
       const turnPrefixMessages = preparation.turnPrefixMessages ?? [];

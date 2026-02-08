@@ -69,6 +69,14 @@ export type SessionResetConfig = {
   atHour?: number;
   /** Sliding idle window (minutes). When set with daily mode, whichever expires first wins. */
   idleMinutes?: number;
+  /** Flush memory before session reset (idle/daily/manual). Default: false. */
+  flushMemoryOnReset?: boolean;
+  /** Model to use for session-end flush. Default: claude-3-5-haiku. */
+  flushModel?: string;
+  /** Custom prompt for session-end flush. */
+  flushPrompt?: string;
+  /** Custom system prompt for session-end flush. */
+  flushSystemPrompt?: string;
 };
 export type SessionResetByTypeConfig = {
   dm?: SessionResetConfig;

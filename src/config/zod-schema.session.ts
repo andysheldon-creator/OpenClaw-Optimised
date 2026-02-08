@@ -12,6 +12,14 @@ const SessionResetConfigSchema = z
     mode: z.union([z.literal("daily"), z.literal("idle")]).optional(),
     atHour: z.number().int().min(0).max(23).optional(),
     idleMinutes: z.number().int().positive().optional(),
+    /** Flush memory before session reset (idle/daily/manual). Default: false. */
+    flushMemoryOnReset: z.boolean().optional(),
+    /** Model to use for session-end flush. Default: claude-3-5-haiku. */
+    flushModel: z.string().optional(),
+    /** Custom prompt for session-end flush. */
+    flushPrompt: z.string().optional(),
+    /** Custom system prompt for session-end flush. */
+    flushSystemPrompt: z.string().optional(),
   })
   .strict();
 

@@ -5,7 +5,11 @@ import path from "node:path";
 import type { OpenClawConfig } from "../../config/config.js";
 import type { TtsAutoMode } from "../../config/types.tts.js";
 import type { MsgContext, TemplateContext } from "../templating.js";
-import { resolveSessionAgentId } from "../../agents/agent-scope.js";
+import {
+  resolveAgentDir,
+  resolveAgentWorkspaceDir,
+  resolveSessionAgentId,
+} from "../../agents/agent-scope.js";
 import { normalizeChatType } from "../../channels/chat-type.js";
 import {
   DEFAULT_RESET_TRIGGERS,
@@ -32,6 +36,7 @@ import { resolveCommandAuthorization } from "../command-auth.js";
 import { formatInboundBodyWithSenderMeta } from "./inbound-sender-meta.js";
 import { normalizeInboundTextNewlines } from "./inbound-text.js";
 import { stripMentions, stripStructuralPrefixes } from "./mentions.js";
+import { runSessionEndFlush, resolveSessionEndFlushSettings } from "./session-end-flush.js";
 
 export type SessionInitResult = {
   sessionCtx: TemplateContext;
@@ -195,7 +200,9 @@ export async function initSessionState(params: {
 
   sessionKey = resolveSessionKey(sessionScope, sessionCtxForState, mainKey);
   const entry = sessionStore[sessionKey];
-  const previousSessionEntry = resetTriggered && entry ? { ...entry } : undefined;
+  // Capture previous entry for both manual reset (/new) and idle/daily expiry
+  // This is set after we evaluate freshEntry to know if session will reset
+  let previousSessionEntry: SessionEntry | undefined;
   const now = Date.now();
   const isThread = resolveThreadFlag({
     sessionKey,
@@ -233,6 +240,29 @@ export async function initSessionState(params: {
     persistedModelOverride = entry.modelOverride;
     persistedProviderOverride = entry.providerOverride;
   } else {
+    // Capture previous session entry for callers to know what was reset
+    if (entry) {
+      previousSessionEntry = { ...entry };
+    }
+
+    // Session is resetting - run memory flush if enabled
+    // This captures context before it's lost to idle/daily/manual reset
+    if (entry && resolveSessionEndFlushSettings(cfg)) {
+      const workspaceDir = resolveAgentWorkspaceDir(cfg, agentId);
+      const agentDir = resolveAgentDir(cfg, agentId);
+      // Fire and forget - don't block session init on flush
+      runSessionEndFlush({
+        cfg,
+        sessionEntry: entry,
+        sessionKey,
+        agentId,
+        workspaceDir,
+        agentDir,
+      }).catch(() => {
+        // Silently ignore flush errors - session reset should proceed
+      });
+    }
+
     sessionId = crypto.randomUUID();
     isNewSession = true;
     systemSent = false;
