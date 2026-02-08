@@ -83,6 +83,14 @@ channels:
           tables: off
 ```
 
+## Chat-client fit (practical tips)
+
+Markdown support varies a lot across chat clients. If you’re generating text meant to be read in a DM/group, keep it simple:
+
+- Prefer short paragraphs and bullet lists over complex formatting.
+- Prefer label-style sections like `Done:` / `Next:` over multi-level headings.
+- Avoid deeply nested lists and wide code blocks (they wrap badly on mobile).
+
 ## Chunking rules
 
 - Chunk limits come from channel adapters/config and are applied to the IR text.
