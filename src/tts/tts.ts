@@ -507,6 +507,23 @@ export function resolveTtsProviderOrder(primary: TtsProvider): TtsProvider[] {
   return [primary, ...TTS_PROVIDERS.filter((provider) => provider !== primary)];
 }
 
+/**
+ * Formats a TTS provider error message, handling cases where error.message
+ * may be undefined or empty.
+ */
+export function formatTtsError(provider: string, error: Error): string {
+  if (error.name === "AbortError") {
+    return `${provider}: request timed out`;
+  }
+  const message = error.message?.trim();
+  if (message) {
+    return `${provider}: ${message}`;
+  }
+  // Fallback to error name or string representation when message is unavailable
+  const fallback = error.name || String(error) || "unknown error";
+  return `${provider}: ${fallback}`;
+}
+
 export function isTtsProviderConfigured(config: ResolvedTtsConfig, provider: TtsProvider): boolean {
   if (provider === "edge") {
     return config.edge.enabled;
@@ -1314,12 +1331,7 @@ export async function textToSpeech(params: {
         voiceCompatible: output.voiceCompatible,
       };
     } catch (err) {
-      const error = err as Error;
-      if (error.name === "AbortError") {
-        lastError = `${provider}: request timed out`;
-      } else {
-        lastError = `${provider}: ${error.message}`;
-      }
+      lastError = formatTtsError(provider, err as Error);
     }
   }
 
@@ -1408,12 +1420,7 @@ export async function textToSpeechTelephony(params: {
         sampleRate: output.sampleRate,
       };
     } catch (err) {
-      const error = err as Error;
-      if (error.name === "AbortError") {
-        lastError = `${provider}: request timed out`;
-      } else {
-        lastError = `${provider}: ${error.message}`;
-      }
+      lastError = formatTtsError(provider, err as Error);
     }
   }
 
@@ -1576,4 +1583,5 @@ export const _test = {
   summarizeText,
   resolveOutputFormat,
   resolveEdgeOutputFormat,
+  formatTtsError,
 };
