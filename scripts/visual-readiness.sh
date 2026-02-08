@@ -55,8 +55,29 @@ mkdir -p "$out"
 
 echo ""
 echo "== Capturing snapshot bundle =="
-peekaboo menubar list --json > "$out/menubar.json" || true
-peekaboo list windows --json > "$out/windows.json" || true
+# Prefer `peekaboo list ...` for stable JSON flags.
+peekaboo list menubar --json > "$out/menubar.json" || true
+
+# Best-effort: list windows for the active app (if we can detect it).
+active_bundle_id="$(
+  (peekaboo app list --json 2>/dev/null || true) | python3 -c '
+import json,sys
+s=sys.stdin.read().strip()
+if not s:
+  raise SystemExit(0)
+j=json.loads(s)
+apps=(j.get("data") or {}).get("apps") or []
+for a in apps:
+  if a.get("is_active") and a.get("bundle_id"):
+    print(a["bundle_id"])
+    break
+'
+)"
+if [ -n "${active_bundle_id:-}" ]; then
+  peekaboo list windows --app "$active_bundle_id" --include-details bounds,ids --json > "$out/windows.json" || true
+else
+  : > "$out/windows.json"
+fi
 
 # Fast/high-signal artifacts for debugging state.
 peekaboo image --mode frontmost --retina --path "$out/frontmost.png"
