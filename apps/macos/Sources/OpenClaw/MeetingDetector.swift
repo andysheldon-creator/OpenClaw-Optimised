@@ -42,7 +42,6 @@ final class MeetingDetector {
 
     private var calendarCheckTask: Task<Void, Never>?
     private var silenceCheckTask: Task<Void, Never>?
-    private var micStopTask: Task<Void, Never>?
     private var talkModeWasPaused = false
 
     private init() {
@@ -53,10 +52,52 @@ final class MeetingDetector {
     // MARK: - Lifecycle
 
     func start() {
-        guard self.meetingDetectionEnabled else { return }
-        self.logger.info("meeting detector starting")
+        guard self.meetingDetectionEnabled else {
+            self.logger.info("meeting detector disabled, skipping start")
+            return
+        }
+        Self.logAudioDeviceDiagnostics(logger: self.logger)
+        self.logger.info("meeting detector starting (adHoc=\(self.adHocDetectionEnabled) suppress=\(self.suppressNextAutoStart) micRunning=\(Self.isMicRunning()))")
         self.startCalendarMonitor()
         self.startMicMonitor()
+    }
+
+    private nonisolated static func logAudioDeviceDiagnostics(logger: Logger) {
+        let defaultID = defaultInputDeviceID()
+        let devices = allAudioDeviceIDs()
+        logger.info("audio diagnostics: defaultInput=\(defaultID) totalDevices=\(devices.count)")
+        for device in devices {
+            // Get device name
+            var nameAddr = AudioObjectPropertyAddress(
+                mSelector: kAudioObjectPropertyName,
+                mScope: kAudioObjectPropertyScopeGlobal,
+                mElement: kAudioObjectPropertyElementMain)
+            var nameRef: CFString = "" as CFString
+            var nameSize = UInt32(MemoryLayout<CFString>.size)
+            AudioObjectGetPropertyData(device, &nameAddr, 0, nil, &nameSize, &nameRef)
+
+            // Check input streams
+            var streamAddr = AudioObjectPropertyAddress(
+                mSelector: kAudioDevicePropertyStreams,
+                mScope: kAudioObjectPropertyScopeInput,
+                mElement: kAudioObjectPropertyElementMain)
+            var streamSize: UInt32 = 0
+            let streamStatus = AudioObjectGetPropertyDataSize(device, &streamAddr, 0, nil, &streamSize)
+            let hasInput = streamStatus == noErr && streamSize > 0
+
+            // Check running
+            var runAddr = AudioObjectPropertyAddress(
+                mSelector: kAudioDevicePropertyDeviceIsRunningSomewhere,
+                mScope: kAudioObjectPropertyScopeGlobal,
+                mElement: kAudioObjectPropertyElementMain)
+            var running: UInt32 = 0
+            var runSize = UInt32(MemoryLayout<UInt32>.size)
+            let runStatus = AudioObjectGetPropertyData(device, &runAddr, 0, nil, &runSize, &running)
+
+            if hasInput {
+                logger.info("  device \(device): \"\(nameRef as String, privacy: .public)\" input=\(hasInput) running=\(running) runStatus=\(runStatus)")
+            }
+        }
     }
 
     func stop() {
@@ -67,8 +108,6 @@ final class MeetingDetector {
         self.silenceCheckTask = nil
         self.micPollTask?.cancel()
         self.micPollTask = nil
-        self.micStopTask?.cancel()
-        self.micStopTask = nil
         if self.currentSession != nil {
             Task { await self.stopMeeting() }
         }
@@ -143,19 +182,39 @@ final class MeetingDetector {
     private var micPollTask: Task<Void, Never>?
     private var micWasRunning = false
 
+    private var micPollCount = 0
+
     private func startMicMonitor() {
         self.micPollTask?.cancel()
         self.micPollTask = Task { [weak self] in
             while let self, !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 2_000_000_000) // poll every 2s
-                let running = Self.isMicRunning()
-                let wasRunning = self.micWasRunning
-                self.micWasRunning = running
+                if self.currentSession != nil {
+                    // During recording: probe every 10s to detect if meeting ended
+                    try? await Task.sleep(nanoseconds: 10_000_000_000)
+                    await self.probeForMeetingEnd()
+                } else {
+                    // Not recording: check mic state every 2s for auto-start
+                    try? await Task.sleep(nanoseconds: 2_000_000_000)
+                    let running = Self.isMicRunning()
+                    let wasRunning = self.micWasRunning
+                    self.micWasRunning = running
 
-                if running, !wasRunning {
-                    self.handleMicStarted()
-                } else if !running, wasRunning {
-                    self.handleMicStopped()
+                    // Log every 15th poll (~30s) or on transitions
+                    self.micPollCount += 1
+                    if running != wasRunning || self.micPollCount % 15 == 0 {
+                        self.logger.info("mic poll: running=\(running) was=\(wasRunning) adHoc=\(self.adHocDetectionEnabled)")
+                    }
+
+                    if running, !wasRunning {
+                        self.handleMicStarted()
+                    }
+
+                    // Clear suppressNextAutoStart once mic has been idle for a
+                    // full poll cycle — the transient from our own shutdown is over.
+                    if !running, self.suppressNextAutoStart {
+                        self.suppressNextAutoStart = false
+                        self.logger.info("clearing suppressNextAutoStart (mic idle)")
+                    }
                 }
             }
         }
@@ -166,9 +225,7 @@ final class MeetingDetector {
     private var suppressNextAutoStart = false
 
     private func handleMicStarted() {
-        // Mic started — cancel any pending auto-stop
-        self.micStopTask?.cancel()
-        self.micStopTask = nil
+        self.logger.info("handleMicStarted: adHoc=\(self.adHocDetectionEnabled) session=\(self.currentSession != nil) suppress=\(self.suppressNextAutoStart)")
         guard self.adHocDetectionEnabled, self.currentSession == nil else { return }
         if self.suppressNextAutoStart {
             self.suppressNextAutoStart = false
@@ -179,19 +236,53 @@ final class MeetingDetector {
         Task { await self.startMeeting() }
     }
 
-    private func handleMicStopped() {
+    /// Number of consecutive probes that found the mic idle.
+    private var consecutiveIdleProbes = 0
+
+    /// Temporarily pause our audio capture, check if another app is still
+    /// using the mic, then resume.  Requires 2 consecutive idle probes
+    /// before auto-stopping to avoid false positives.
+    private func probeForMeetingEnd() async {
         guard self.currentSession != nil else { return }
-        self.logger.info("mic went idle — will auto-stop meeting in 5s")
-        self.micStopTask?.cancel()
-        self.micStopTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 5_000_000_000)
-            guard !Task.isCancelled else { return }
-            guard !Self.isMicRunning() else {
-                self?.logger.info("mic restarted during grace period, keeping meeting")
-                return
+
+        // Pause our mic so we can see if anyone else is using the hardware
+        switch self.activeEngine {
+        case .whisper:
+            await self.whisperTranscriber.pauseMic()
+        case .apple:
+            await self.transcriber.pauseMic()
+        case nil:
+            return
+        }
+
+        // Wait for the audio subsystem to settle
+        try? await Task.sleep(nanoseconds: 500_000_000) // 500ms
+
+        let otherAppUsing = Self.isMicRunning()
+
+        // Resume our capture immediately
+        switch self.activeEngine {
+        case .whisper:
+            await self.whisperTranscriber.resumeMic()
+        case .apple:
+            await self.transcriber.resumeMic()
+        case nil:
+            break
+        }
+
+        if otherAppUsing {
+            if self.consecutiveIdleProbes > 0 {
+                self.logger.info("probe: mic active again, resetting idle count")
             }
-            self?.logger.info("mic still idle after grace period — auto-stopping meeting")
-            await self?.stopMeeting()
+            self.consecutiveIdleProbes = 0
+        } else {
+            self.consecutiveIdleProbes += 1
+            self.logger.info("probe: mic idle (count=\(self.consecutiveIdleProbes))")
+            if self.consecutiveIdleProbes >= 2 {
+                self.logger.info("probe: confirmed idle for 2 probes — auto-stopping meeting")
+                self.consecutiveIdleProbes = 0
+                await self.stopMeeting()
+            }
         }
     }
 
@@ -208,16 +299,50 @@ final class MeetingDetector {
     }
 
     private nonisolated static func isMicRunning() -> Bool {
-        let deviceID = Self.defaultInputDeviceID()
-        guard deviceID != kAudioObjectUnknown else { return false }
-        var address = AudioObjectPropertyAddress(
-            mSelector: kAudioDevicePropertyDeviceIsRunningSomewhere,
+        // Check ALL input devices, not just the default — meeting apps may
+        // select a non-default device.
+        let devices = Self.allAudioDeviceIDs()
+        for device in devices {
+            // Only consider devices that have input streams
+            var streamAddr = AudioObjectPropertyAddress(
+                mSelector: kAudioDevicePropertyStreams,
+                mScope: kAudioObjectPropertyScopeInput,
+                mElement: kAudioObjectPropertyElementMain)
+            var streamSize: UInt32 = 0
+            guard AudioObjectGetPropertyDataSize(device, &streamAddr, 0, nil, &streamSize) == noErr,
+                  streamSize > 0 else { continue }
+
+            var runAddr = AudioObjectPropertyAddress(
+                mSelector: kAudioDevicePropertyDeviceIsRunningSomewhere,
+                mScope: kAudioObjectPropertyScopeGlobal,
+                mElement: kAudioObjectPropertyElementMain)
+            var running: UInt32 = 0
+            var runSize = UInt32(MemoryLayout<UInt32>.size)
+            if AudioObjectGetPropertyData(device, &runAddr, 0, nil, &runSize, &running) == noErr,
+               running != 0 {
+                return true
+            }
+        }
+        return false
+    }
+
+    private nonisolated static func allAudioDeviceIDs() -> [AudioObjectID] {
+        var propAddr = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDevices,
             mScope: kAudioObjectPropertyScopeGlobal,
             mElement: kAudioObjectPropertyElementMain)
-        var running: UInt32 = 0
-        var size = UInt32(MemoryLayout<UInt32>.size)
-        let status = AudioObjectGetPropertyData(deviceID, &address, 0, nil, &size, &running)
-        return status == noErr && running != 0
+        var dataSize: UInt32 = 0
+        guard AudioObjectGetPropertyDataSize(
+            AudioObjectID(kAudioObjectSystemObject), &propAddr, 0, nil, &dataSize) == noErr else {
+            return []
+        }
+        let count = Int(dataSize) / MemoryLayout<AudioObjectID>.size
+        var devices = [AudioObjectID](repeating: 0, count: count)
+        guard AudioObjectGetPropertyData(
+            AudioObjectID(kAudioObjectSystemObject), &propAddr, 0, nil, &dataSize, &devices) == noErr else {
+            return []
+        }
+        return devices
     }
 
     // MARK: - Meeting control
@@ -256,6 +381,7 @@ final class MeetingDetector {
             attendees: attendees)
         session.start()
         self.currentSession = session
+        self.consecutiveIdleProbes = 0
         self.logger.info("meeting started: \(meetingTitle, privacy: .public) engine=\(engine.rawValue, privacy: .public)")
 
         // Start transcription with the selected engine

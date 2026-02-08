@@ -254,6 +254,22 @@ actor WhisperTranscriber {
         self.micEngine = nil
     }
 
+    /// Temporarily stop the mic engine so external code can probe whether
+    /// another app is still using the hardware microphone.
+    func pauseMic() {
+        self.micEngine?.stop()
+    }
+
+    /// Re-start the mic engine after a `pauseMic()` probe.
+    func resumeMic() {
+        guard let engine = self.micEngine else { return }
+        do {
+            try engine.start()
+        } catch {
+            self.logger.error("whisper: mic resume failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
     private func appendSamples(_ samples: [Float]) {
         guard self.isRunning else { return }
         self.audioBuffer.append(contentsOf: samples)

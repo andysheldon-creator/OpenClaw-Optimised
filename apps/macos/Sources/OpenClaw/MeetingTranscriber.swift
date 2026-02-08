@@ -167,6 +167,22 @@ actor MeetingTranscriber {
         self.micEngine = nil
     }
 
+    /// Temporarily stop the mic engine so external code can probe whether
+    /// another app is still using the hardware microphone.
+    func pauseMic() {
+        self.micEngine?.stop()
+    }
+
+    /// Re-start the mic engine after a `pauseMic()` probe.
+    func resumeMic() {
+        guard let engine = self.micEngine else { return }
+        do {
+            try engine.start()
+        } catch {
+            self.logger.error("meeting: mic resume failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
     // MARK: - System audio (ScreenCaptureKit)
 
     private func startSystemAudioStream(request: SFSpeechAudioBufferRecognitionRequest) async {
