@@ -17,6 +17,7 @@ import {
 import { resolveChannelMediaMaxBytes } from "../../channels/plugins/media-limits.js";
 import { loadChannelOutboundAdapter } from "../../channels/plugins/outbound/load.js";
 import { resolveMarkdownTableMode } from "../../config/markdown-tables.js";
+import { scrubPIIWithConfig } from "../privacy.js";
 import {
   appendAssistantMessageToSessionTranscript,
   resolveMirroredTranscriptText,
@@ -314,8 +315,9 @@ export async function deliverOutboundPayloads(params: {
   };
   const normalizedPayloads = normalizeReplyPayloadsForDelivery(payloads);
   for (const payload of normalizedPayloads) {
+    const scrubbedText = scrubPIIWithConfig(payload.text ?? \"\");
     const payloadSummary: NormalizedOutboundPayload = {
-      text: payload.text ?? "",
+      text: scrubbedText,
       mediaUrls: payload.mediaUrls ?? (payload.mediaUrl ? [payload.mediaUrl] : []),
       channelData: payload.channelData,
     };

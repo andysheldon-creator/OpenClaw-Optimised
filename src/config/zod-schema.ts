@@ -32,6 +32,21 @@ const NodeHostSchema = z
   .strict()
   .optional();
 
+const PrivacySchema = z
+  .object({
+    piiScrubbing: z.union([z.literal("on"), z.literal("off")]).optional(),
+    piiPatterns: z.array(z.string()).optional(),
+  })
+  .strict()
+  .optional();
+
+const SecuritySchema = z
+  .object({
+    privacy: PrivacySchema,
+  })
+  .strict()
+  .optional();
+
 const MemoryQmdPathSchema = z
   .object({
     path: z.string(),
@@ -243,6 +258,7 @@ export const OpenClawSchema = z
       })
       .strict()
       .optional(),
+    security: SecuritySchema,
     auth: z
       .object({
         profiles: z
