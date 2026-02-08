@@ -32,6 +32,21 @@ describe("splitMediaFromOutput", () => {
     expect(result.text).toBe("MEDIA:../../etc/passwd");
   });
 
+  it("accepts absolute media paths under system temp directory", async () => {
+    const os = await import("node:os");
+    const tmpPath = `${os.tmpdir()}/tts-abc123/voice-12345.opus`;
+    const result = splitMediaFromOutput(`MEDIA:${tmpPath}`);
+    expect(result.mediaUrls).toEqual([tmpPath]);
+    expect(result.text).toBe("");
+  });
+
+  it("rejects absolute paths under /var/folders cache dirs (not temp)", () => {
+    const result = splitMediaFromOutput(
+      "MEDIA:/var/folders/zw/v7rwkhs55y9gc3t3xw353sx80000gn/C/sensitive-cache.db",
+    );
+    expect(result.mediaUrls).toBeUndefined();
+  });
+
   it("captures safe relative media paths", () => {
     const result = splitMediaFromOutput("MEDIA:./screenshots/image.png");
     expect(result.mediaUrls).toEqual(["./screenshots/image.png"]);

@@ -1,7 +1,10 @@
 // Shared helpers for parsing MEDIA tokens from command/stdout text.
 
+import os from "node:os";
 import { parseFenceSpans } from "../markdown/fences.js";
 import { parseAudioTag } from "./audio-tags.js";
+
+const SYSTEM_TMPDIR = os.tmpdir().replace(/[/\\]+$/, "");
 
 // Allow optional wrapping backticks and punctuation after the token; capture the core token.
 export const MEDIA_TOKEN_RE = /\bMEDIA:\s*`?([^\n]+)`?/gi;
@@ -28,7 +31,26 @@ function isValidMedia(candidate: string, opts?: { allowSpaces?: boolean }) {
     return true;
   }
 
-  // Local paths: only allow safe relative paths starting with ./ that do not traverse upwards.
+  // Local paths: allow absolute paths only under system temp directories (e.g. TTS output).
+  // Cross-platform os.tmpdir() check first (handles Windows where paths don't start with /).
+  const tmpDir = SYSTEM_TMPDIR;
+  if (
+    (candidate.startsWith(tmpDir + "/") || candidate.startsWith(tmpDir + "\\")) &&
+    !candidate.includes("..")
+  ) {
+    return true;
+  }
+  // Unix: additional known temp prefixes for launchd/systemd contexts where TMPDIR
+  // may not be inherited (os.tmpdir() falls back to /tmp).
+  // Only match /var/folders/<xx>/<hash>/T/ (temp), not /C/ (caches) or other subdirs.
+  if (candidate.startsWith("/")) {
+    const isUnderTemp =
+      candidate.startsWith("/tmp/") ||
+      candidate.startsWith("/private/tmp/") ||
+      /^\/var\/folders\/[^/]+\/[^/]+\/T\//.test(candidate);
+    return isUnderTemp && !candidate.includes("..");
+  }
+  // Safe relative paths starting with ./ that do not traverse upwards.
   return candidate.startsWith("./") && !candidate.includes("..");
 }
 

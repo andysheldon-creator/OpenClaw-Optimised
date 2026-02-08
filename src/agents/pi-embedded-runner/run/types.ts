@@ -80,7 +80,11 @@ export type EmbeddedRunAttemptParams = {
   blockReplyBreak?: "text_end" | "message_end";
   blockReplyChunking?: BlockReplyChunking;
   onReasoningStream?: (payload: { text?: string; mediaUrls?: string[] }) => void | Promise<void>;
-  onToolResult?: (payload: { text?: string; mediaUrls?: string[] }) => void | Promise<void>;
+  onToolResult?: (payload: {
+    text?: string;
+    mediaUrls?: string[];
+    audioAsVoice?: boolean;
+  }) => void | Promise<void>;
   onAgentEvent?: (evt: { stream: string; data: Record<string, unknown> }) => void;
   /** Require explicit message tool targets (no implicit last-route sends). */
   requireExplicitMessageTarget?: boolean;

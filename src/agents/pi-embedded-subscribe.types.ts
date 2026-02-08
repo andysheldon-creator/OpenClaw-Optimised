@@ -12,7 +12,11 @@ export type SubscribeEmbeddedPiSessionParams = {
   toolResultFormat?: ToolResultFormat;
   shouldEmitToolResult?: () => boolean;
   shouldEmitToolOutput?: () => boolean;
-  onToolResult?: (payload: { text?: string; mediaUrls?: string[] }) => void | Promise<void>;
+  onToolResult?: (payload: {
+    text?: string;
+    mediaUrls?: string[];
+    audioAsVoice?: boolean;
+  }) => void | Promise<void>;
   onReasoningStream?: (payload: { text?: string; mediaUrls?: string[] }) => void | Promise<void>;
   onBlockReply?: (payload: {
     text?: string;
