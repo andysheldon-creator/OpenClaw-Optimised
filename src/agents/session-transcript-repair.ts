@@ -18,6 +18,14 @@ type ToolCallBlock = {
 function extractToolCallsFromAssistant(
   msg: Extract<AgentMessage, { role: "assistant" }>,
 ): ToolCallLike[] {
+  // Skip tool call extraction for aborted or errored messages to prevent
+  // synthetic tool_result generation for incomplete/malformed tool_use blocks.
+  // This fixes API 400 errors: "unexpected tool_use_id found in tool_result blocks"
+  const stopReason = (msg as { stopReason?: unknown }).stopReason;
+  if (stopReason === "aborted" || stopReason === "error") {
+    return [];
+  }
+
   const content = msg.content;
   if (!Array.isArray(content)) {
     return [];
