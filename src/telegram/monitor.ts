@@ -36,15 +36,15 @@ export function createTelegramRunnerOptions(cfg: OpenClawConfig): RunOptions<unk
     },
     runner: {
       fetch: {
-        // Match grammY defaults
+        // Enforce 30-second timeout more strictly
         timeout: 30,
         // Request reactions without dropping default update types.
         allowed_updates: resolveTelegramAllowedUpdates(),
       },
       // Suppress grammY getUpdates stack traces; we log concise errors ourselves.
       silent: true,
-      // Retry transient failures for a limited window before surfacing errors.
-      maxRetryTime: 5 * 60 * 1000,
+      // Reduce retry time to prevent long hangs before our own retry logic takes over
+      maxRetryTime: 2 * 60 * 1000, // 2 minutes instead of 5
       retryInterval: "exponential",
     },
   };
@@ -56,6 +56,8 @@ const TELEGRAM_POLL_RESTART_POLICY = {
   factor: 1.8,
   jitter: 0.25,
 };
+
+const MAX_RESTART_ATTEMPTS = 20; // Prevent infinite retry loops
 
 const isGetUpdatesConflict = (err: unknown) => {
   if (!err || typeof err !== "object") {
@@ -79,12 +81,57 @@ const isGetUpdatesConflict = (err: unknown) => {
   return haystack.includes("getupdates");
 };
 
+const NETWORK_ERROR_SNIPPETS = [
+  "fetch failed",
+  "network",
+  "timeout",
+  "socket",
+  "econnreset",
+  "econnrefused",
+  "undici",
+];
+
+const isNetworkRelatedError = (err: unknown) => {
+  if (!err) {
+    return false;
+  }
+  const message = formatErrorMessage(err).toLowerCase();
+  if (!message) {
+    return false;
+  }
+  return NETWORK_ERROR_SNIPPETS.some((snippet) => message.includes(snippet));
+};
+
 /** Check if error is a Grammy HttpError (used to scope unhandled rejection handling) */
 const isGrammyHttpError = (err: unknown): boolean => {
   if (!err || typeof err !== "object") {
     return false;
   }
   return (err as { name?: string }).name === "HttpError";
+};
+
+const isTimeoutAbortError = (err: unknown): boolean => {
+  if (!err || typeof err !== "object") {
+    return false;
+  }
+  const error = err as Error;
+
+  // Check if it's an AbortError
+  if (error.name !== "AbortError" && !error.message?.includes("This operation was aborted")) {
+    return false;
+  }
+
+  // Check if it's likely a timeout (vs intentional abort)
+  const message = error.message?.toLowerCase() || "";
+  const stack = error.stack?.toLowerCase() || "";
+
+  // Look for timeout-related indicators in the error
+  return (
+    message.includes("timeout") ||
+    stack.includes("timeout") ||
+    stack.includes("undici") ||
+    stack.includes("getupdates")
+  );
 };
 
 export async function monitorTelegramProvider(opts: MonitorTelegramOpts = {}) {
@@ -176,27 +223,53 @@ export async function monitorTelegramProvider(opts: MonitorTelegramOpts = {}) {
           void runner.stop();
         }
       };
-      opts.abortSignal?.addEventListener("abort", stopOnAbort, { once: true });
+      opts.abortSignal?.addEventListener("abort", stopOnAbort);
       try {
         // runner.task() returns a promise that resolves when the runner stops
         await runner.task();
         return;
       } catch (err) {
         if (opts.abortSignal?.aborted) {
+          // Propagate the abort so callers can react to cancellation.
           throw err;
         }
         const isConflict = isGetUpdatesConflict(err);
         const isRecoverable = isRecoverableTelegramNetworkError(err, { context: "polling" });
-        if (!isConflict && !isRecoverable) {
+        const isNetworkError = isNetworkRelatedError(err);
+        const isTimeout = isTimeoutAbortError(err);
+
+        // Treat timeout AbortErrors as recoverable network errors
+        const shouldRetry = isConflict || isRecoverable || isNetworkError || isTimeout;
+
+        if (!shouldRetry) {
           throw err;
         }
         restartAttempts += 1;
+        // Prevent infinite retry loops
+        if (restartAttempts >= MAX_RESTART_ATTEMPTS) {
+          const errMsg = formatErrorMessage(err);
+          (opts.runtime?.error ?? console.error)(
+            `Telegram monitor: maximum restart attempts (${MAX_RESTART_ATTEMPTS}) exceeded: ${errMsg}`,
+          );
+          throw err;
+        }
         const delayMs = computeBackoff(TELEGRAM_POLL_RESTART_POLICY, restartAttempts);
-        const reason = isConflict ? "getUpdates conflict" : "network error";
+        let reason = "network error";
+        if (isConflict) {
+          reason = "getUpdates conflict";
+        } else if (isTimeout) {
+          reason = "request timeout";
+        }
         const errMsg = formatErrorMessage(err);
         (opts.runtime?.error ?? console.error)(
-          `Telegram ${reason}: ${errMsg}; retrying in ${formatDurationMs(delayMs)}.`,
+          `Telegram ${reason}: ${errMsg}; retrying in ${formatDurationMs(delayMs)} (attempt ${restartAttempts}/${MAX_RESTART_ATTEMPTS}).`,
         );
+        // Stop the current runner before retrying
+        try {
+          await runner.stop();
+        } catch {
+          // Ignore runner stop errors
+        }
         try {
           await sleepWithAbort(delayMs, opts.abortSignal);
         } catch (sleepErr) {

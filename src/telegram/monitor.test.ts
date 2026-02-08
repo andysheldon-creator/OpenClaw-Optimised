@@ -136,7 +136,7 @@ describe("monitorTelegramProvider (grammY)", () => {
         sink: { concurrency: 3 },
         runner: expect.objectContaining({
           silent: true,
-          maxRetryTime: 5 * 60 * 1000,
+          maxRetryTime: 2 * 60 * 1000, // Reduced from 5 min to 2 min for faster recovery
           retryInterval: "exponential",
         }),
       }),
