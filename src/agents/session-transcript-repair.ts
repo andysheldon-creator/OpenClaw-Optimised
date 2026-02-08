@@ -203,7 +203,9 @@ export function repairToolUseResultPairing(messages: AgentMessage[]): ToolUseRep
       }
     } else if (role === "toolResult") {
       const id = extractToolResultId(msg as Extract<AgentMessage, { role: "toolResult" }>);
-      if (id) preScanToolResultIds.add(id);
+      if (id) {
+        preScanToolResultIds.add(id);
+      }
     }
   }
   const orphanedToolCalls = Array.from(preScanToolCallIds).filter(
