@@ -476,7 +476,8 @@ Add to `~/.openclaw/openclaw.json`:
           "output": "json",
           "input": "arg",
           "modelArg": "--model",
-          "sessionMode": "none"
+          "sessionMode": "always",
+          "sessionArg": "--session-id"
         }
       }
     }
@@ -495,13 +496,32 @@ CLAUDE_CODE_GIT_BASH_PATH='C:\Users\<username>\Documents\Git\bin\bash.exe' node 
 
 **Why not JSON config?** Backslashes in JSON (`\\`) get interpreted as escape sequences when passed through the config system. For example, `\b` becomes a backspace character, corrupting paths like `C:\Users\...\bin\bash.exe` into `C:Users...inash.exe`.
 
+### Session Mode Configuration
+
+**Purpose:** Controls how Claude CLI manages conversation memory across messages.
+
+**Valid Options:**
+- `"always"` - **Recommended**: Creates/uses persistent sessions for conversation memory. Bot remembers context between messages.
+- `"existing"` - Only resumes existing sessions, doesn't create new ones
+- `"none"` - No session management. Each message starts fresh with no memory of previous messages.
+
+**sessionArg:** When using `"always"` or `"existing"`, set `"sessionArg": "--session-id"` to specify the CLI argument for passing session IDs.
+
+**Why sessionMode matters for Telegram/messaging bots:**
+- Without session mode (`"none"`), the bot forgets context between messages, requiring users to repeat information
+- With `"always"`, the bot maintains conversation history, making interactions more natural
+- The gateway automatically hot-reloads when you change sessionMode in the config
+
+**Schema Reference:** Valid values defined in `src/config/zod-schema.core.ts:253`
+
 ### Common Issues and Fixes
 
 | Error | Cause | Fix |
 |-------|-------|-----|
+| Bot forgets context between messages | Session mode disabled | Set `"sessionMode": "always"` and `"sessionArg": "--session-id"` in config |
 | `Unknown model: anthropic/claude-opus-4.5` | Model version uses dots instead of dashes | Change `4.5` to `4-5` (use dashes not dots) |
 | `Claude Code was unable to find CLAUDE_CODE_GIT_BASH_PATH` | Path escaping issue or wrong path | Set via shell env var with single quotes and backslashes |
-| `No conversation found with session ID` | CLI trying to resume non-existent session | Add `"sessionMode": "none"` to config |
+| `No conversation found with session ID` | CLI trying to resume non-existent session | Check sessionMode is `"always"` not `"existing"` |
 | Response is raw JSON/gibberish | Wrong output format parsing | Use `"output": "json"` with `"--output-format", "json"` (not `stream-json`/`jsonl`) |
 | `When using --print, --output-format=stream-json requires --verbose` | Missing flag | Add `--verbose` if using stream-json (but prefer json format) |
 
@@ -575,7 +595,8 @@ This format specifies the exact model version released on a particular date (e.g
              "output": "json",
              "input": "arg",
              "modelArg": "--model",
-             "sessionMode": "none"
+             "sessionMode": "always",
+             "sessionArg": "--session-id"
            }
          }
        }
@@ -602,6 +623,35 @@ Check logs at: `\tmp\openclaw\openclaw-<date>.log`
 ## DJ Profile Pack
 
 The DJ profile pack is a personal assistant configuration with Telegram integration, Notion task management, and Google Calendar support. Documentation lives in `docs/dj/`.
+
+### DJ Skills Workspace Setup
+
+**Critical:** DJ skills in the repository (`skills/dj-*`) are for development only. OpenClaw loads skills from the workspace directory.
+
+**Symptom:** Bot doesn't recognize calendar/Notion commands, responds with "I don't have access to your calendar. I'm a software engineering assistant..."
+
+**Root Cause:** DJ skills not present in `~/.openclaw/workspace/skills/`
+
+**Solution:**
+```bash
+# Copy all DJ skills to workspace
+mkdir -p ~/.openclaw/workspace/skills
+cp -r skills/dj-* ~/.openclaw/workspace/skills/
+
+# Verify skills are present
+ls ~/.openclaw/workspace/skills/
+# Should show: dj-agenda, dj-budget, dj-calendars, dj-capture, dj-findslot,
+#              dj-improve, dj-mode, dj-podcast, dj-research, dj-rlm, dj-site,
+#              dj-timeblock, dj-web
+```
+
+**What this fixes:**
+- `/agenda` - Calendar + tasks view now works
+- `/capture` - Notion task capture now works
+- `/findslot` - Calendar slot finding now works
+- All other DJ skills become available
+
+**Note:** The gateway automatically picks up skills from the workspace directory without restart. However, if skills weren't present at startup, you may need to restart the gateway once after copying them.
 
 ### DJ Setup: Common Pitfalls and Solutions
 
@@ -703,28 +753,117 @@ export GOG_ACCOUNT="your-email@gmail.com"
 gog auth list
 ```
 
-#### 6. Model Configuration: Version Naming Confusion
+#### 6. Model Configuration: Valid Model Names
 
-**Symptom:** User says "opus 4.6" but expects specific version
+**Symptom:** `Unknown model: anthropic/claude-opus-4-20260205` or `Unknown model: anthropic/claude-sonnet-4`
 
-**Root Cause:** Model versions use date-based identifiers, not semantic versioning
+**Root Cause:** OpenClaw validates model names against its internal catalog. Only registered aliases and full catalog names work. Date-based model IDs and incomplete version numbers are rejected.
 
-**Solution:** Use the date-based format:
+**Valid model names** (from `src/config/defaults.ts`):
+
+| Alias | Full Name | Notes |
+|-------|-----------|-------|
+| `opus` | `anthropic/claude-opus-4-5` | Latest Opus (currently 4.6) |
+| `sonnet` | `anthropic/claude-sonnet-4-5` | Latest Sonnet |
+
+**For CLI backend**, prefix with the backend name:
 ```json
 {
   "model": {
-    "primary": "claude-cli/claude-opus-4-20260205"
+    "primary": "claude-cli/opus"
   }
 }
 ```
 
-The format is: `claude-{model}-{major}-{YYYYMMDD}`
-- `claude-opus-4-20260205` = Claude Opus 4 released on Feb 5, 2026 (version "4.6")
-- `claude-sonnet-4-5-20250514` = Claude Sonnet 4.5 released on May 14, 2025
+**Common mistakes:**
+- `anthropic/claude-sonnet-4` - Missing minor version (`-5`)
+- `anthropic/claude-opus-4-20260205` - Date-based IDs not in catalog
+- `claude-opus-4.5` - Dots instead of dashes
 
-**Note:** The public-facing version name (e.g., "4.6") is a marketing label. The API uses date-based identifiers for reproducibility.
+#### 7. Telegram Bot Token: `file:` Protocol Not Supported
 
-#### 7. USER.md Setup
+**Symptom:**
+```
+[telegram] channel exited: Call to 'getMe' failed! (404: Not Found)
+```
+
+**Root Cause:** Using `"botToken": "file:~/.openclaw/credentials/telegram-bot-token.txt"` in config. The `botToken` field is used as a **literal string** — there is no `file:` protocol resolver. The gateway sends `file:~/.openclaw/credentials/...` as the token to Telegram's API, producing a 404.
+
+**Solution:** Use `tokenFile` instead of `botToken` for file-based tokens:
+```json
+{
+  "channels": {
+    "telegram": {
+      "tokenFile": "~/.openclaw/credentials/telegram-bot-token.txt"
+    }
+  }
+}
+```
+
+**Also check:** The token file must NOT have a trailing newline. Verify with:
+```bash
+xxd ~/.openclaw/credentials/telegram-bot-token.txt | tail -1
+# Last byte should NOT be 0a (newline)
+# Fix: printf '%s' "YOUR_TOKEN" > ~/.openclaw/credentials/telegram-bot-token.txt
+```
+
+**Reference:** Token resolution logic in `src/telegram/token.ts` — priority order:
+1. Per-account `tokenFile` → 2. Per-account `botToken` → 3. Global `tokenFile` → 4. Global `botToken` → 5. `TELEGRAM_BOT_TOKEN` env var
+
+#### 8. Google Calendar (gog): Insufficient Authentication Scopes (403)
+
+**Symptom:**
+```
+Google API error (403 insufficientPermissions): Request had insufficient authentication scopes.
+```
+
+**Root Cause:** The Google Cloud project used for OAuth credentials does not have the Calendar API enabled, or the OAuth token was issued without the `calendar` scope.
+
+**Solution:**
+1. Enable Calendar API in Google Cloud Console:
+   `https://console.cloud.google.com/apis/library/calendar-json.googleapis.com?project=YOUR_PROJECT_ID`
+2. Re-authenticate with `--force-consent` to get a fresh token with correct scopes:
+   ```bash
+   gog auth add YOUR_EMAIL --services calendar,gmail --force-consent --manual
+   ```
+3. Verify:
+   ```bash
+   gog calendar list --json | head -c 200
+   # Should return JSON array of calendars, not a 403
+   ```
+
+**Note:** The project ID can be found in `~/.openclaw/credentials/google_client_secret.json` under the `project_id` field.
+
+#### 9. CLI Backend Skills Prompt Gap (Code Fix Required)
+
+**Symptom:** Bot responds to `/agenda` with generic "I don't have access to your calendar" even though skills are loaded and `gog`/`NOTION_API_KEY` are available.
+
+**Root Cause:** The CLI runner (`src/agents/cli-runner/helpers.ts`) did NOT pass `skillsPrompt` to `buildAgentSystemPrompt()`. When a skill command like `/agenda` was matched, the gateway rewrote the message to "Use the dj-agenda skill", but the CLI agent had no skills section in its system prompt and didn't know what "dj-agenda" was.
+
+**Fix applied in 3 files:**
+- `src/agents/cli-runner/helpers.ts` — Added `skillsPrompt` parameter to `buildSystemPrompt()`, passes it to `buildAgentSystemPrompt()`
+- `src/agents/cli-runner.ts` — Added `skillsPrompt` parameter to `runCliAgent()`, passes it to `buildSystemPrompt()`
+- `src/auto-reply/reply/agent-runner-execution.ts` — Passes `params.followupRun.run.skillsSnapshot?.prompt` to `runCliAgent()`
+
+**Comparison:** The embedded Pi runner at `src/agents/pi-embedded-runner/system-prompt.ts:57` already passed `skillsPrompt` correctly. This was only broken on the CLI backend path.
+
+#### 10. NOTION_API_KEY Not Persisted Across Sessions
+
+**Symptom:** Notion integration works in one terminal session but fails after restarting the terminal or gateway.
+
+**Root Cause:** `NOTION_API_KEY` was set with `export` in a terminal session but never saved to disk.
+
+**Solution:** Save the key to a credentials file and load it from bashrc:
+```bash
+# Save key
+echo -n "YOUR_NOTION_KEY" > ~/.openclaw/credentials/notion-api-key.txt
+chmod 600 ~/.openclaw/credentials/notion-api-key.txt
+
+# Add to bashrc
+echo 'export NOTION_API_KEY="$(cat ~/.openclaw/credentials/notion-api-key.txt)"' >> ~/.bashrc
+```
+
+#### 11. USER.md Setup
 
 **No issues encountered.** The USER.md file creation worked smoothly using direct file write with heredoc.
 
@@ -736,35 +875,79 @@ The format is: `claude-{model}-{major}-{YYYYMMDD}`
 
 Use this checklist to verify complete DJ setup:
 
-- [ ] **Telegram Bot**: Bot token configured, user ID in allowlist
+- [ ] **DJ Skills**: All skills copied to `~/.openclaw/workspace/skills/` (13 skills total)
+- [ ] **Telegram Bot**:
+  - [ ] Bot token saved to `~/.openclaw/credentials/telegram-bot-token.txt` (no trailing newline!)
+  - [ ] Config uses `"tokenFile"` (NOT `"botToken": "file:..."`)
+  - [ ] User ID in `allowFrom` list
 - [ ] **Notion Integration**:
-  - [ ] Integration created at notion.so/my-integrations
+  - [ ] Integration created at notion.so/my-integrations (bot name: "Open Claw")
   - [ ] API key saved to `~/.openclaw/credentials/notion-api-key.txt`
+  - [ ] `NOTION_API_KEY` loaded in `~/.bashrc`
   - [ ] Tasks database shared with integration
   - [ ] Projects database shared with integration
   - [ ] Research database shared with integration
-  - [ ] Database IDs configured in `openclaw.json` under `dj.notion`
 - [ ] **Google Calendar (gog)**:
-  - [ ] OAuth client credentials downloaded
-  - [ ] Credentials saved to `~/.openclaw/credentials/google_client_secret.json`
-  - [ ] Authentication completed: `gog auth list` shows account
-  - [ ] Keyring password set in `~/.bashrc` (GOG_KEYRING_PASSWORD)
-  - [ ] Account email set in `~/.bashrc` (GOG_ACCOUNT)
+  - [ ] Calendar API enabled in Google Cloud Console for OAuth project
+  - [ ] OAuth client credentials saved to `~/.openclaw/credentials/google_client_secret.json`
+  - [ ] gog binary installed at `~/.local/bin/gog`
+  - [ ] Authentication completed with calendar scope: `gog auth list` shows account
+  - [ ] `gog calendar list --json` returns data (not 403)
+  - [ ] `GOG_KEYRING_PASSWORD` set in `~/.bashrc`
+  - [ ] `GOG_ACCOUNT` set in `~/.bashrc`
 - [ ] **USER.md**: Profile created at `~/.openclaw/workspace/USER.md`
-- [ ] **Model Configuration**: Claude Opus 4.6 or preferred model configured
+- [ ] **Model Configuration**: `claude-cli/opus` for CLI backend or `anthropic/claude-opus-4-5` for direct API
 - [ ] **Gateway Restart**: Restarted with all environment variables
 
-**Final Test:**
-```bash
-# Start gateway with all env vars
-source ~/.bashrc
-export ANTHROPIC_API_KEY="your-key"
-export OPENCLAW_GATEWAY_TOKEN="local-dev-token"
-node openclaw.mjs gateway run --port 18789 --verbose
-
-# Send test message via Telegram
-# Bot should respond with personalized greeting based on USER.md
+**Working openclaw.json reference (CLI backend + Telegram):**
+```json
+{
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "claude-cli/opus"
+      },
+      "cliBackends": {
+        "claude-cli": {
+          "command": "claude",
+          "args": ["-p", "--output-format", "json"],
+          "output": "json",
+          "input": "arg",
+          "modelArg": "--model",
+          "sessionMode": "always",
+          "sessionArg": "--session-id"
+        }
+      }
+    }
+  },
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "dmPolicy": "pairing",
+      "tokenFile": "~/.openclaw/credentials/telegram-bot-token.txt",
+      "allowFrom": [8487794139],
+      "groupPolicy": "allowlist",
+      "streamMode": "partial"
+    }
+  }
+}
 ```
+
+**Gateway startup (WSL2):**
+```bash
+source ~/.bashrc
+export NOTION_API_KEY="$(cat ~/.openclaw/credentials/notion-api-key.txt)"
+export ANTHROPIC_API_KEY="$(cat ~/.openclaw/credentials/anthropic-api-key.txt)"
+export OPENCLAW_GATEWAY_TOKEN="local-dev-token"
+cd /mnt/d/Dev/Clawdbot/openclaw
+node openclaw.mjs gateway run --port 18789 --verbose
+```
+
+**Verification sequence in Telegram:**
+1. `/budget` — Basic skill dispatch (no deps)
+2. `/calendars` — Google Calendar connectivity
+3. `/agenda` — Calendar + Notion integration
+4. `/capture test note` — Notion write
 
 ### Budget System (`src/budget/`)
 
