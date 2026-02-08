@@ -171,6 +171,7 @@ function makeAttemptResult(
     messagingToolSentTexts: [],
     messagingToolSentTargets: [],
     cloudCodeAssistFormatError: false,
+    didAutoCompaction: false,
     ...overrides,
   };
 }
@@ -216,10 +217,12 @@ describe("overflow compaction in run loop", () => {
     expect(mockedRunEmbeddedAttempt).toHaveBeenCalledTimes(2);
     expect(log.warn).toHaveBeenCalledWith(
       expect.stringContaining(
-        "context overflow detected (attempt 1/3); attempting auto-compaction",
+        "[openclaw-overflow-compaction] context overflow detected (attempt 1/3); attempting manual compaction",
       ),
     );
-    expect(log.info).toHaveBeenCalledWith(expect.stringContaining("auto-compaction succeeded"));
+    expect(log.info).toHaveBeenCalledWith(
+      expect.stringContaining("[openclaw-overflow-compaction] manual compaction succeeded"),
+    );
     // Should not be an error result
     expect(result.meta.error).toBeUndefined();
   });
@@ -241,7 +244,9 @@ describe("overflow compaction in run loop", () => {
     expect(mockedRunEmbeddedAttempt).toHaveBeenCalledTimes(1);
     expect(result.meta.error?.kind).toBe("context_overflow");
     expect(result.payloads?.[0]?.isError).toBe(true);
-    expect(log.warn).toHaveBeenCalledWith(expect.stringContaining("auto-compaction failed"));
+    expect(log.warn).toHaveBeenCalledWith(
+      expect.stringContaining("[openclaw-overflow-compaction] manual compaction failed"),
+    );
   });
 
   it("retries compaction up to 3 times before giving up", async () => {
@@ -322,5 +327,20 @@ describe("overflow compaction in run loop", () => {
     expect(mockedCompactDirect).not.toHaveBeenCalled();
     expect(mockedRunEmbeddedAttempt).toHaveBeenCalledTimes(1);
     expect(result.meta.error?.kind).toBe("compaction_failure");
+  });
+
+  it("skips manual compaction if auto-compaction already ran", async () => {
+    const overflowError = new Error("request_too_large: Request size exceeds model context window");
+
+    mockedRunEmbeddedAttempt.mockResolvedValue(
+      makeAttemptResult({ promptError: overflowError, didAutoCompaction: true }),
+    );
+
+    const result = await runEmbeddedPiAgent(baseParams);
+
+    expect(mockedCompactDirect).not.toHaveBeenCalled();
+    expect(mockedRunEmbeddedAttempt).toHaveBeenCalledTimes(1);
+    expect(result.meta.error?.kind).toBe("context_overflow");
+    expect(result.payloads?.[0]?.isError).toBe(true);
   });
 });

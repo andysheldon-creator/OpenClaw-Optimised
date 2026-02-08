@@ -404,14 +404,16 @@ export async function runEmbeddedPiAgent(
                   `error=${errorText.slice(0, 200)}`,
               );
               const isCompactionFailure = isCompactionFailureError(errorText);
-              // Attempt auto-compaction on context overflow (not compaction_failure)
+              // Attempt manual overflow compaction on context overflow (not compaction_failure).
+              // If Pi already auto-compacted during this attempt, skip our manual compaction to avoid duplicates.
               if (
                 !isCompactionFailure &&
-                overflowCompactionAttempts < MAX_OVERFLOW_COMPACTION_ATTEMPTS
+                overflowCompactionAttempts < MAX_OVERFLOW_COMPACTION_ATTEMPTS &&
+                !attempt.didAutoCompaction
               ) {
                 overflowCompactionAttempts++;
                 log.warn(
-                  `context overflow detected (attempt ${overflowCompactionAttempts}/${MAX_OVERFLOW_COMPACTION_ATTEMPTS}); attempting auto-compaction for ${provider}/${modelId}`,
+                  `[openclaw-overflow-compaction] context overflow detected (attempt ${overflowCompactionAttempts}/${MAX_OVERFLOW_COMPACTION_ATTEMPTS}); attempting manual compaction for ${provider}/${modelId}`,
                 );
                 const compactResult = await compactEmbeddedPiSessionDirect({
                   sessionId: params.sessionId,
@@ -435,11 +437,13 @@ export async function runEmbeddedPiAgent(
                   ownerNumbers: params.ownerNumbers,
                 });
                 if (compactResult.compacted) {
-                  log.info(`auto-compaction succeeded for ${provider}/${modelId}; retrying prompt`);
+                  log.info(
+                    `[openclaw-overflow-compaction] manual compaction succeeded for ${provider}/${modelId}; retrying prompt`,
+                  );
                   continue;
                 }
                 log.warn(
-                  `auto-compaction failed for ${provider}/${modelId}: ${compactResult.reason ?? "nothing to compact"}`,
+                  `[openclaw-overflow-compaction] manual compaction failed for ${provider}/${modelId}: ${compactResult.reason ?? "nothing to compact"}`,
                 );
               }
 

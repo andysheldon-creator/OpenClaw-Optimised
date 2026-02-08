@@ -20,9 +20,12 @@ export function handleAgentStart(ctx: EmbeddedPiSubscribeContext) {
 }
 
 export function handleAutoCompactionStart(ctx: EmbeddedPiSubscribeContext) {
+  ctx.state.autoCompactionAttempts += 1;
   ctx.state.compactionInFlight = true;
   ctx.ensureCompactionPromise();
-  ctx.log.debug(`embedded run compaction start: runId=${ctx.params.runId}`);
+  ctx.log.debug(
+    `[pi-auto-compaction] start: runId=${ctx.params.runId} attempt=${ctx.state.autoCompactionAttempts}`,
+  );
   emitAgentEvent({
     runId: ctx.params.runId,
     stream: "compaction",
@@ -43,7 +46,7 @@ export function handleAutoCompactionEnd(
   if (willRetry) {
     ctx.noteCompactionRetry();
     ctx.resetForCompactionRetry();
-    ctx.log.debug(`embedded run compaction retry: runId=${ctx.params.runId}`);
+    ctx.log.debug(`[pi-auto-compaction] retry: runId=${ctx.params.runId}`);
   } else {
     ctx.maybeResolveCompactionWait();
   }

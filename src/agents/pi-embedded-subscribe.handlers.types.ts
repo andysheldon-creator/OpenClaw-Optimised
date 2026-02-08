@@ -54,6 +54,7 @@ export type EmbeddedPiSubscribeState = {
   pendingCompactionRetry: number;
   compactionRetryResolve?: () => void;
   compactionRetryPromise: Promise<void> | null;
+  autoCompactionAttempts: number;
 
   messagingToolSentTexts: string[];
   messagingToolSentTextsNormalized: string[];
