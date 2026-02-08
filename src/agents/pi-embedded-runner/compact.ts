@@ -1,116 +1,40 @@
-import {
-  createAgentSession,
-  estimateTokens,
-  SessionManager,
-  SettingsManager,
-} from "@mariozechner/pi-coding-agent";
-import fs from "node:fs/promises";
-import os from "node:os";
-import type { ReasoningLevel, ThinkLevel } from "../../auto-reply/thinking.js";
-import type { OpenClawConfig } from "../../config/config.js";
-import type { ExecElevatedDefaults } from "../bash-tools.js";
-import type { EmbeddedPiCompactResult } from "./types.js";
-import { resolveHeartbeatPrompt } from "../../auto-reply/heartbeat.js";
-import { resolveChannelCapabilities } from "../../config/channel-capabilities.js";
-import { getMachineDisplayName } from "../../infra/machine-name.js";
-import { type enqueueCommand, enqueueCommandInLane } from "../../process/command-queue.js";
-import { isSubagentSessionKey } from "../../routing/session-key.js";
-import { resolveSignalReactionLevel } from "../../signal/reaction-level.js";
-import { resolveTelegramInlineButtonsScope } from "../../telegram/inline-buttons.js";
-import { resolveTelegramReactionLevel } from "../../telegram/reaction-level.js";
-import { buildTtsSystemPromptHint } from "../../tts/tts.js";
-import { resolveUserPath } from "../../utils.js";
-import { normalizeMessageChannel } from "../../utils/message-channel.js";
-import { isReasoningTagProvider } from "../../utils/provider-utils.js";
-import { resolveOpenClawAgentDir } from "../agent-paths.js";
-import { resolveSessionAgentIds } from "../agent-scope.js";
-import { makeBootstrapWarn, resolveBootstrapContextForRun } from "../bootstrap-files.js";
-import { listChannelSupportedActions, resolveChannelMessageToolHints } from "../channel-tools.js";
-import { formatUserTime, resolveUserTimeFormat, resolveUserTimezone } from "../date-time.js";
-import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../defaults.js";
-import { resolveOpenClawDocsPath } from "../docs-path.js";
-import { getApiKeyForModel, resolveModelAuthMode } from "../model-auth.js";
-import { ensureOpenClawModelsJson } from "../models-config.js";
-import {
-  ensureSessionHeader,
-  validateAnthropicTurns,
-  validateGeminiTurns,
-} from "../pi-embedded-helpers.js";
-import {
-  ensurePiCompactionReserveTokens,
-  resolveCompactionReserveTokensFloor,
-} from "../pi-settings.js";
-import { createOpenClawCodingTools } from "../pi-tools.js";
-import { resolveSandboxContext } from "../sandbox.js";
-import { repairSessionFileIfNeeded } from "../session-file-repair.js";
-import { guardSessionManager } from "../session-tool-result-guard-wrapper.js";
-import { acquireSessionWriteLock } from "../session-write-lock.js";
-import {
-  applySkillEnvOverrides,
-  applySkillEnvOverridesFromSnapshot,
-  loadWorkspaceSkillEntries,
-  resolveSkillsPromptForRun,
-  type SkillSnapshot,
-} from "../skills.js";
-import { resolveTranscriptPolicy } from "../transcript-policy.js";
-import { buildEmbeddedExtensionPaths } from "./extensions.js";
-import {
-  logToolSchemasForGoogle,
-  sanitizeSessionHistory,
-  sanitizeToolsForGoogle,
-} from "./google.js";
-import { getDmHistoryLimitFromSessionKey, limitHistoryTurns } from "./history.js";
-import { resolveGlobalLane, resolveSessionLane } from "./lanes.js";
-import { log } from "./logger.js";
-import { buildModelAliasLines, resolveModel } from "./model.js";
-import { buildEmbeddedSandboxInfo } from "./sandbox-info.js";
-import { prewarmSessionFile, trackSessionManagerAccess } from "./session-manager-cache.js";
-import {
-  applySystemPromptOverrideToSession,
-  buildEmbeddedSystemPrompt,
-  createSystemPromptOverride,
-} from "./system-prompt.js";
-import { splitSdkTools } from "./tool-split.js";
-import { describeUnknownError, mapThinkingLevel, resolveExecToolDefaults } from "./utils.js";
-
-export type CompactEmbeddedPiSessionParams = {
-  sessionId: string;
-  sessionKey?: string;
-  messageChannel?: string;
-  messageProvider?: string;
-  agentAccountId?: string;
-  authProfileId?: string;
-  /** Group id for channel-level tool policy resolution. */
-  groupId?: string | null;
-  /** Group channel label (e.g. #general) for channel-level tool policy resolution. */
-  groupChannel?: string | null;
-  /** Group space label (e.g. guild/team id) for channel-level tool policy resolution. */
-  groupSpace?: string | null;
-  /** Parent session key for subagent policy inheritance. */
-  spawnedBy?: string | null;
-  /** Whether the sender is an owner (required for owner-only tools). */
-  senderIsOwner?: boolean;
-  sessionFile: string;
-  workspaceDir: string;
-  agentDir?: string;
-  config?: OpenClawConfig;
-  skillsSnapshot?: SkillSnapshot;
-  provider?: string;
-  model?: string;
-  thinkLevel?: ThinkLevel;
-  reasoningLevel?: ReasoningLevel;
-  bashElevated?: ExecElevatedDefaults;
-  customInstructions?: string;
-  lane?: string;
-  enqueue?: typeof enqueueCommand;
-  extraSystemPrompt?: string;
-  ownerNumbers?: string[];
-};
 
 /**
- * Core compaction logic without lane queueing.
- * Use this when already inside a session/global lane to avoid deadlocks.
+ * Retries compaction with exponential backoff for transient errors.
  */
+async function compactWithRetry(
+  operation: () => Promise<EmbeddedPiCompactResult>,
+  maxRetries = 3,
+): Promise<EmbeddedPiCompactResult> {
+  let lastError: unknown = undefined;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      const isTransient = isTransientCompactionError(error);
+      if (!isTransient || attempt === maxRetries) throw error;
+      const backoffMs = 100 * Math.pow(2, attempt - 1);
+      await new Promise(resolve => setTimeout(resolve, backoffMs));
+    }
+  }
+  throw lastError;
+}
+
+/**
+ * Identifies transient vs permanent compaction errors.
+ */
+function isTransientCompactionError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const msg = error.message.toLowerCase();
+  if (msg.includes('econnrefused') || msg.includes('econnreset')) return true;
+  if (msg.includes('timeout') || msg.includes('timedout')) return true;
+  if (msg.includes('eagain') || msg.includes('ebusy')) return true;
+  if (msg.includes('enoent') && msg.includes('temp')) return true;
+  return false;
+}
+
+==> compact.ts <==
 export async function compactEmbeddedPiSessionDirect(
   params: CompactEmbeddedPiSessionParams,
 ): Promise<EmbeddedPiCompactResult> {
@@ -434,9 +358,21 @@ export async function compactEmbeddedPiSessionDirect(
         if (limited.length > 0) {
           session.agent.replaceMessages(limited);
         }
-        const result = await session.compact(params.customInstructions);
+        // Retry session compaction on transient errors (network, timeout, etc)
+        let result;
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            result = await session.compact(params.customInstructions);
+            break;
+          } catch (err) {
+            if (attempt < 2 && isTransientCompactionError(err)) {
+              await new Promise(r => setTimeout(r, 100 * Math.pow(2, attempt)));
+              continue;
+            }
+            throw err;
+          }
+        }
         // Estimate tokens after compaction by summing token estimates for remaining messages
-        let tokensAfter: number | undefined;
         try {
           tokensAfter = 0;
           for (const message of session.messages) {
