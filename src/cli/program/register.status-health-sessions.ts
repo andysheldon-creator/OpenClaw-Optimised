@@ -173,6 +173,7 @@ export function registerStatusHealthSessionsCommands(program: Command) {
     .option("--dry-run", "Report what would be scrubbed without modifying files", false)
     .option("--verbose", "Show per-file details", false)
     .option("--no-backup", "Skip creating .bak backups")
+    .option("--concurrency <n>", "Number of files to process in parallel (default: 20)", parseInt)
     .addHelpText(
       "after",
       () =>
@@ -198,6 +199,7 @@ export function registerStatusHealthSessionsCommands(program: Command) {
           dryRun: Boolean(opts.dryRun),
           verbose: Boolean(opts.verbose),
           noBackup: !opts.backup,
+          concurrency: opts.concurrency as number | undefined,
         });
       });
     });

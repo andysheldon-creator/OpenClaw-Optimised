@@ -95,7 +95,15 @@ const routeSessionsScrub: RouteSpec = {
     const dryRun = hasFlag(argv, "--dry-run");
     const verbose = hasFlag(argv, "--verbose");
     const noBackup = hasFlag(argv, "--no-backup");
-    await sessionsScrubCommand(defaultRuntime, { dryRun, verbose, noBackup });
+    const concurrencyIdx = argv.indexOf("--concurrency");
+    const concurrency =
+      concurrencyIdx >= 0 ? parseInt(argv[concurrencyIdx + 1] ?? "", 10) : undefined;
+    await sessionsScrubCommand(defaultRuntime, {
+      dryRun,
+      verbose,
+      noBackup,
+      concurrency: concurrency && !isNaN(concurrency) ? concurrency : undefined,
+    });
     return true;
   },
 };

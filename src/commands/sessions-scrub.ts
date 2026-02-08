@@ -7,10 +7,13 @@ import { redactSensitiveText } from "../logging/redact.js";
 import { stylePromptTitle } from "../terminal/prompt-style.js";
 import { theme } from "../terminal/theme.js";
 
+const DEFAULT_CONCURRENCY = 20;
+
 type ScrubOptions = {
   dryRun?: boolean;
   verbose?: boolean;
   noBackup?: boolean;
+  concurrency?: number;
 };
 
 type ScrubResult = {
@@ -79,29 +82,41 @@ export async function sessionsScrubCommand(
     redactionCount: 0,
   };
 
+  const concurrency = Math.max(1, opts.concurrency ?? DEFAULT_CONCURRENCY);
+
   spin.start(
     opts.dryRun ? "Scanning for secrets (dry run)..." : "Scrubbing secrets from sessions...",
   );
 
-  for (const file of files) {
-    result.filesScanned++;
-    try {
-      const { modified, redactionCount } = await scrubSessionFile(file, opts);
-      if (modified) {
-        result.filesModified++;
-        result.redactionCount += redactionCount;
-        if (opts.verbose) {
-          const action = opts.dryRun ? "Would scrub" : "Scrubbed";
-          runtime.log(theme.muted(`${action}: ${file} (${redactionCount} redaction(s))`));
+  // Process files with bounded concurrency
+  let fileIndex = 0;
+
+  async function processNext(): Promise<void> {
+    while (fileIndex < files.length) {
+      const idx = fileIndex++;
+      const file = files[idx]!;
+      result.filesScanned++;
+      try {
+        const { modified, redactionCount } = await scrubSessionFile(file, opts);
+        if (modified) {
+          result.filesModified++;
+          result.redactionCount += redactionCount;
+          if (opts.verbose) {
+            const action = opts.dryRun ? "Would scrub" : "Scrubbed";
+            runtime.log(theme.muted(`${action}: ${file} (${redactionCount} redaction(s))`));
+          }
         }
-      }
-    } catch (error) {
-      if (opts.verbose) {
-        const message = error instanceof Error ? error.message : String(error);
-        runtime.error(`Failed to process ${file}: ${message}`);
+      } catch (error) {
+        if (opts.verbose) {
+          const message = error instanceof Error ? error.message : String(error);
+          runtime.error(`Failed to process ${file}: ${message}`);
+        }
       }
     }
   }
+
+  const workers = Array.from({ length: Math.min(concurrency, files.length) }, () => processNext());
+  await Promise.all(workers);
 
   spin.stop(opts.dryRun ? "Scan complete" : "Scrub complete");
 
