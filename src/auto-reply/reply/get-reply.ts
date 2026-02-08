@@ -142,8 +142,13 @@ export async function getReplyFromConfig(
         bodyForAgent: finalized.BodyForAgent,
         transcript: finalized.Transcript,
         timestamp: finalized.Timestamp,
-        channelId: finalized.ChannelId,
-        conversationId: finalized.ConversationId,
+        channelId: (
+          finalized.OriginatingChannel ??
+          finalized.Surface ??
+          finalized.Provider ??
+          ""
+        ).toLowerCase(),
+        conversationId: finalized.OriginatingTo ?? finalized.To ?? finalized.From ?? undefined,
         messageId: finalized.MessageSid,
         senderId: finalized.SenderId,
         senderName: finalized.SenderName,
