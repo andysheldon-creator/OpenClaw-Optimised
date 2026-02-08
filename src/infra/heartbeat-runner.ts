@@ -995,34 +995,94 @@ export function startHeartbeatRunner(opts: {
     }
 
     const reason = params?.reason;
-    const sessionKey = params?.sessionKey;
+    const sessionKeys = params?.sessionKeys;
     const isInterval = reason === "interval";
     const startedAt = Date.now();
     const now = startedAt;
     let ran = false;
 
-    for (const agent of state.agents.values()) {
-      if (isInterval && now < agent.nextDueMs) {
-        continue;
-      }
+    // Use a Set to track distinct session keys to process.
+    // If no specific keys were requested, we'll still run the default logic (process all agents).
+    // If keys are provided, we should ensure we cover those keys, potentially iterating multiple times or
+    // ensuring runHeartbeatOnce is called for each context.
+    // However, runHeartbeatOnce is fundamentally agent-based.
+    // To support multiple specific sessions, we need to iterate them.
 
-      const res = await runOnce({
-        cfg: state.cfg,
-        agentId: agent.agentId,
-        heartbeat: agent.heartbeat,
-        reason,
-        sessionKey,
-        deps: { runtime: state.runtime },
-      });
-      if (res.status === "skipped" && res.reason === "requests-in-flight") {
-        return res;
+    // If sessionKeys are present, we run for each unique key.
+    // If not, we run the standard per-agent loop.
+    // Note: sessionKeys are typically specific channels. We must map them to agents if possible,
+    // or simply runHeartbeatOnce with that sessionKey (which resolves the agent anyway).
+
+    const keysToProcess =
+      sessionKeys && sessionKeys.length > 0 ? new Set(sessionKeys) : new Set<string>();
+
+    if (keysToProcess.size > 0) {
+      // Process specific sessions requested by wake events.
+      // We still need to iterate agents to respect their configs, OR we can attempt to resolve
+      // the agent from the session key.
+      // Since runHeartbeatOnce takes an agentId AND a sessionKey, we should try to derive the agent.
+      // If we can't derive it, we might skip or fallback to default agent.
+
+      for (const key of keysToProcess) {
+        const agentId = resolveAgentIdFromSessionKey(key) || resolveDefaultAgentId(state.cfg);
+        const agent = state.agents.get(normalizeAgentId(agentId));
+
+        // Even if the agent isn't in our active scheduled list (state.agents),
+        // we might still want to process an explicit event for it.
+        // But runHeartbeatOnce checks `isHeartbeatEnabledForAgent`.
+        // Let's rely on runHeartbeatOnce to do the right thing.
+
+        // We prefer using the cached heartbeat config from state.agents if available,
+        // otherwise resolve fresh.
+        const heartbeat = agent?.heartbeat;
+
+        const res = await runOnce({
+          cfg: state.cfg,
+          agentId,
+          heartbeat,
+          reason,
+          sessionKey: key,
+          deps: { runtime: state.runtime },
+        });
+
+        if (res.status === "skipped" && res.reason === "requests-in-flight") {
+          return res;
+        }
+
+        if (res.status !== "skipped" || res.reason !== "disabled") {
+          if (agent) {
+            agent.lastRunMs = now;
+            agent.nextDueMs = now + agent.intervalMs;
+          }
+        }
+        if (res.status === "ran") {
+          ran = true;
+        }
       }
-      if (res.status !== "skipped" || res.reason !== "disabled") {
-        agent.lastRunMs = now;
-        agent.nextDueMs = now + agent.intervalMs;
-      }
-      if (res.status === "ran") {
-        ran = true;
+    } else {
+      // Standard loop: run for each configured agent (default behavior)
+      for (const agent of state.agents.values()) {
+        if (isInterval && now < agent.nextDueMs) {
+          continue;
+        }
+
+        const res = await runOnce({
+          cfg: state.cfg,
+          agentId: agent.agentId,
+          heartbeat: agent.heartbeat,
+          reason,
+          deps: { runtime: state.runtime },
+        });
+        if (res.status === "skipped" && res.reason === "requests-in-flight") {
+          return res;
+        }
+        if (res.status !== "skipped" || res.reason !== "disabled") {
+          agent.lastRunMs = now;
+          agent.nextDueMs = now + agent.intervalMs;
+        }
+        if (res.status === "ran") {
+          ran = true;
+        }
       }
     }
 
@@ -1034,7 +1094,7 @@ export function startHeartbeatRunner(opts: {
   };
 
   setHeartbeatWakeHandler(async (params) =>
-    run({ reason: params.reason, sessionKey: params.sessionKey }),
+    run({ reason: params.reason, sessionKeys: params.sessionKeys }),
   );
   updateConfig(state.cfg);
 

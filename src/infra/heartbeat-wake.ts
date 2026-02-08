@@ -5,12 +5,12 @@ export type HeartbeatRunResult =
 
 export type HeartbeatWakeHandler = (opts: {
   reason?: string;
-  sessionKey?: string;
+  sessionKeys?: string[];
 }) => Promise<HeartbeatRunResult>;
 
 let handler: HeartbeatWakeHandler | null = null;
 let pendingReason: string | null = null;
-let pendingSessionKey: string | null = null;
+const pendingSessionKeys = new Set<string>();
 let scheduled = false;
 let running = false;
 let timer: NodeJS.Timeout | null = null;
@@ -36,28 +36,28 @@ function schedule(coalesceMs: number) {
     }
 
     const reason = pendingReason;
-    const sessionKey = pendingSessionKey;
+    const sessionKeys = Array.from(pendingSessionKeys);
     pendingReason = null;
-    pendingSessionKey = null;
+    pendingSessionKeys.clear();
     running = true;
     try {
       const res = await active({
         reason: reason ?? undefined,
-        sessionKey: sessionKey ?? undefined,
+        sessionKeys: sessionKeys.length > 0 ? sessionKeys : undefined,
       });
       if (res.status === "skipped" && res.reason === "requests-in-flight") {
         // The main lane is busy; retry soon.
         pendingReason = reason ?? "retry";
-        if (sessionKey) {
-          pendingSessionKey = sessionKey;
+        for (const key of sessionKeys) {
+          pendingSessionKeys.add(key);
         }
         schedule(DEFAULT_RETRY_MS);
       }
     } catch {
       // Error is already logged by the heartbeat runner; schedule a retry.
       pendingReason = reason ?? "retry";
-      if (sessionKey) {
-        pendingSessionKey = sessionKey;
+      for (const key of sessionKeys) {
+        pendingSessionKeys.add(key);
       }
       schedule(DEFAULT_RETRY_MS);
     } finally {
@@ -84,7 +84,7 @@ export function requestHeartbeatNow(opts?: {
 }) {
   pendingReason = opts?.reason ?? pendingReason ?? "requested";
   if (opts?.sessionKey) {
-    pendingSessionKey = opts.sessionKey;
+    pendingSessionKeys.add(opts.sessionKey);
   }
   schedule(opts?.coalesceMs ?? DEFAULT_COALESCE_MS);
 }
