@@ -371,7 +371,11 @@ export function createSessionStatusTool(opts?: {
       }
 
       const agentDir = resolveAgentDir(cfg, agentId);
-      const providerForCard = resolved.entry.providerOverride?.trim() || configured.provider;
+      // Status should describe the model/provider that actually served the latest run.
+      const providerForCard =
+        resolved.entry.modelProvider?.trim() ||
+        resolved.entry.providerOverride?.trim() ||
+        configured.provider;
       const usageProvider = resolveUsageProviderId(providerForCard);
       let usageLine: string | undefined;
       if (usageProvider) {

@@ -336,8 +336,13 @@ export function buildStatusMessage(args: StatusArgs): string {
     defaultProvider: DEFAULT_PROVIDER,
     defaultModel: DEFAULT_MODEL,
   });
-  const provider = entry?.providerOverride ?? resolved.provider ?? DEFAULT_PROVIDER;
-  let model = entry?.modelOverride ?? resolved.model ?? DEFAULT_MODEL;
+  const servedProvider = entry?.modelProvider?.trim();
+  const servedModel = entry?.model?.trim();
+  // /status should report the model that actually served the latest run.
+  // Overrides/defaults are intent, but sessionEntry.modelProvider/model is observed runtime truth.
+  const provider =
+    servedProvider ?? entry?.providerOverride?.trim() ?? resolved.provider ?? DEFAULT_PROVIDER;
+  let model = servedModel ?? entry?.modelOverride?.trim() ?? resolved.model ?? DEFAULT_MODEL;
   let contextTokens =
     entry?.contextTokens ??
     args.agent?.contextTokens ??

@@ -66,6 +66,21 @@ const buildFlags = (entry?: SessionEntry): string[] => {
   return flags;
 };
 
+function resolveSessionModelLabel(params: {
+  entry?: SessionEntry;
+  configProvider: string;
+  configModel: string;
+}): { provider: string; model: string; label: string } {
+  const servedProvider = params.entry?.modelProvider?.trim();
+  const servedModel = params.entry?.model?.trim();
+  // Session metadata records what actually ran (including fallback), so prefer it
+  // over configured defaults or user overrides when rendering status surfaces.
+  const provider =
+    servedProvider ?? params.entry?.providerOverride?.trim() ?? params.configProvider;
+  const model = servedModel ?? params.entry?.modelOverride?.trim() ?? params.configModel;
+  return { provider, model, label: `${provider}/${model}` };
+}
+
 export async function getStatusSummary(): Promise<StatusSummary> {
   const cfg = loadConfig();
   const linkContext = await resolveLinkChannelContext(cfg);
@@ -91,7 +106,9 @@ export async function getStatusSummary(): Promise<StatusSummary> {
     defaultProvider: DEFAULT_PROVIDER,
     defaultModel: DEFAULT_MODEL,
   });
+  const configProvider = resolved.provider ?? DEFAULT_PROVIDER;
   const configModel = resolved.model ?? DEFAULT_MODEL;
+  const configModelLabel = `${configProvider}/${configModel}`;
   const configContextTokens =
     cfg.agents?.defaults?.contextTokens ??
     lookupContextTokens(configModel) ??
@@ -117,9 +134,16 @@ export async function getStatusSummary(): Promise<StatusSummary> {
       .map(([key, entry]) => {
         const updatedAt = entry?.updatedAt ?? null;
         const age = updatedAt ? now - updatedAt : null;
-        const model = entry?.model ?? configModel ?? null;
+        const modelRef = resolveSessionModelLabel({
+          entry,
+          configProvider,
+          configModel,
+        });
         const contextTokens =
-          entry?.contextTokens ?? lookupContextTokens(model) ?? configContextTokens ?? null;
+          entry?.contextTokens ??
+          lookupContextTokens(modelRef.model) ??
+          configContextTokens ??
+          null;
         const input = entry?.inputTokens ?? 0;
         const output = entry?.outputTokens ?? 0;
         const total = entry?.totalTokens ?? input + output;
@@ -149,7 +173,7 @@ export async function getStatusSummary(): Promise<StatusSummary> {
           totalTokens: total ?? null,
           remainingTokens: remaining,
           percentUsed: pct,
-          model,
+          model: modelRef.label,
           contextTokens,
           flags: buildFlags(entry),
         } satisfies SessionStatus;
@@ -195,7 +219,7 @@ export async function getStatusSummary(): Promise<StatusSummary> {
       paths: Array.from(paths),
       count: totalSessions,
       defaults: {
-        model: configModel ?? null,
+        model: configModelLabel,
         contextTokens: configContextTokens ?? null,
       },
       recent,

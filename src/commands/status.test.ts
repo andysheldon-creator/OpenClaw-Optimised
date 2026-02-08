@@ -415,6 +415,28 @@ describe("statusCommand", () => {
     expect(logs.join("\n")).toMatch(/WARN/);
   });
 
+  it("prefers served session model metadata in status summaries", async () => {
+    const originalLoadSessionStore = mocks.loadSessionStore.getMockImplementation();
+
+    mocks.loadSessionStore.mockReturnValue({
+      "agent:main:main": {
+        updatedAt: Date.now() - 10_000,
+        providerOverride: "openai",
+        modelOverride: "gpt-4.1-mini",
+        modelProvider: "anthropic",
+        model: "claude-haiku-4-5",
+      },
+    });
+
+    await statusCommand({ json: true }, runtime as never);
+    const payload = JSON.parse((runtime.log as vi.Mock).mock.calls.at(-1)?.[0]);
+    expect(payload.sessions.recent[0]?.model).toBe("anthropic/claude-haiku-4-5");
+
+    if (originalLoadSessionStore) {
+      mocks.loadSessionStore.mockImplementation(originalLoadSessionStore);
+    }
+  });
+
   it("includes sessions across agents in JSON output", async () => {
     const originalAgents = mocks.listAgentsForGateway.getMockImplementation();
     const originalResolveStorePath = mocks.resolveStorePath.getMockImplementation();

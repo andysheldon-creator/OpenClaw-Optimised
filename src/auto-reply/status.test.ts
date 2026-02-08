@@ -207,14 +207,14 @@ describe("buildStatusMessage", () => {
     expect(optionsLine).not.toContain("elevated");
   });
 
-  it("prefers model overrides over last-run model", () => {
+  it("prefers served model metadata over configured/override model", () => {
     const text = buildStatusMessage({
       agent: {
         model: "anthropic/claude-opus-4-5",
         contextTokens: 32_000,
       },
       sessionEntry: {
-        sessionId: "override-1",
+        sessionId: "served-1",
         updatedAt: 0,
         providerOverride: "openai",
         modelOverride: "gpt-4.1-mini",
@@ -228,7 +228,56 @@ describe("buildStatusMessage", () => {
       modelAuth: "api-key",
     });
 
-    expect(normalizeTestText(text)).toContain("Model: openai/gpt-4.1-mini");
+    expect(normalizeTestText(text)).toContain("Model: anthropic/claude-haiku-4-5");
+  });
+
+  it("uses served fallback metadata when runtime differs from override", () => {
+    const text = buildStatusMessage({
+      agent: {
+        model: "anthropic/claude-opus-4-5",
+      },
+      sessionEntry: {
+        sessionId: "served-2",
+        updatedAt: 0,
+        providerOverride: "openai",
+        modelOverride: "gpt-4.1-mini",
+        modelProvider: "openrouter",
+        model: "anthropic/claude-3.5-sonnet",
+      },
+      sessionKey: "agent:main:main",
+      sessionScope: "per-sender",
+      queue: { mode: "collect", depth: 0 },
+      modelAuth: "api-key",
+    });
+
+    expect(normalizeTestText(text)).toContain("Model: openrouter/anthropic/claude-3.5-sonnet");
+  });
+
+  it("falls back to override/default when served metadata is missing", () => {
+    const fromOverride = buildStatusMessage({
+      agent: { model: "anthropic/claude-opus-4-5" },
+      sessionEntry: {
+        sessionId: "fallback-1",
+        updatedAt: 0,
+        providerOverride: "openai",
+        modelOverride: "gpt-4.1-mini",
+      },
+      sessionKey: "agent:main:main",
+      sessionScope: "per-sender",
+      queue: { mode: "collect", depth: 0 },
+      modelAuth: "api-key",
+    });
+    expect(normalizeTestText(fromOverride)).toContain("Model: openai/gpt-4.1-mini");
+
+    const fromDefault = buildStatusMessage({
+      agent: { model: "google-antigravity/claude-sonnet-4-5" },
+      sessionEntry: { sessionId: "fallback-2", updatedAt: 0 },
+      sessionKey: "agent:main:main",
+      sessionScope: "per-sender",
+      queue: { mode: "collect", depth: 0 },
+      modelAuth: "api-key",
+    });
+    expect(normalizeTestText(fromDefault)).toContain("Model: google-antigravity/claude-sonnet-4-5");
   });
 
   it("keeps provider prefix from configured model", () => {
