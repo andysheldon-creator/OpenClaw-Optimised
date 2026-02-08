@@ -5,9 +5,9 @@ import {
   type SkillStatusEntry,
   type SkillStatusReport,
 } from "../agents/skills-status.js";
-import { loadConfig } from "../config/config.js";
 import { loadWorkspaceSkillEntries } from "../agents/skills/workspace.js";
 import { auditSkill, formatAuditReport } from "../commands/skill-audit.js";
+import { loadConfig } from "../config/config.js";
 import { defaultRuntime } from "../runtime.js";
 import { formatDocsLink } from "../terminal/links.js";
 import { renderTable } from "../terminal/table.js";
@@ -403,8 +403,8 @@ export function registerSkillsCli(program: Command) {
     });
 
   skills
-    .command(\"audit\")
-    .description(\"Audit installed skills for permissions and capabilities\")
+    .command("audit")
+    .description("Audit installed skills for permissions and capabilities")
     .action(async () => {
       try {
         const config = loadConfig();

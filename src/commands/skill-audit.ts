@@ -15,11 +15,15 @@ export type PermissionKind =
   | "Media"
   | "Privacy";
 
+export type RiskLevel = "Low" | "Medium" | "High";
+
 export interface SkillAuditResult {
   skillName: string;
   emoji?: string;
   permissions: PermissionKind[];
   tools: string[];
+  riskLevel: RiskLevel;
+  riskReason?: string;
 }
 
 const PERMISSION_PATTERNS: Record<PermissionKind, RegExp> = {
@@ -51,11 +55,37 @@ export function auditSkill(entry: SkillEntry): SkillAuditResult {
     }
   }
 
+  // Risk Assessment Logic
+  let riskLevel: RiskLevel = "Low";
+  let riskReason = "";
+
+  const hasSystem = permissions.has("System");
+  const hasNetwork = permissions.has("Network");
+  const hasFile = permissions.has("FileSystem");
+  const hasPrivacy = permissions.has("Privacy");
+
+  if (hasSystem && hasNetwork) {
+    riskLevel = "High";
+    riskReason =
+      "Can execute system commands AND access the internet (potential data exfiltration risk).";
+  } else if (hasSystem || (hasFile && hasNetwork)) {
+    riskLevel = "High";
+    riskReason = "Critical access to system or files with network capabilities.";
+  } else if (hasFile || hasPrivacy || hasNetwork) {
+    riskLevel = "Medium";
+    riskReason = "Has access to files, privacy data, or network.";
+  } else {
+    riskLevel = "Low";
+    riskReason = "Only limited or no sensitive permissions detected.";
+  }
+
   return {
     skillName: entry.skill.name,
     emoji: entry.metadata?.emoji,
     permissions: Array.from(permissions),
     tools,
+    riskLevel,
+    riskReason,
   };
 }
 
@@ -70,28 +100,46 @@ export function formatAuditReport(results: SkillAuditResult[]): string {
   const lines: string[] = [];
   lines.push("");
   lines.push("🛡️  \x1b[1mSkill Permissions Audit Report\x1b[0m");
-  lines.push("\x1b[2mAnalyzing capabilities based on provided tools.\x1b[0m");
+  lines.push("\x1b[2mAnalyzing capabilities and potential risks of installed skills.\x1b[0m");
   lines.push("");
 
-  // Sort by name
-  const sorted = [...results].toSorted((a, b) => a.skillName.localeCompare(b.skillName));
+  // Sort by risk (High first) then name
+  const riskOrder: Record<RiskLevel, number> = { High: 0, Medium: 1, Low: 2 };
+  const sorted = [...results].toSorted((a, b) => {
+    if (riskOrder[a.riskLevel] !== riskOrder[b.riskLevel]) {
+      return riskOrder[a.riskLevel] - riskOrder[b.riskLevel];
+    }
+    return a.skillName.localeCompare(b.skillName);
+  });
 
   for (const res of sorted) {
     const emoji = res.emoji ?? "📦";
-    const perms =
-      res.permissions.length > 0
-        ? res.permissions.map((p) => `\x1b[33m${p}\x1b[0m`).join(", ")
-        : "\x1b[2mNo sensitive permissions detected\x1b[0m";
+    const riskColors: Record<RiskLevel, string> = {
+      High: "\x1b[31m", // Red
+      Medium: "\x1b[33m", // Yellow
+      Low: "\x1b[32m", // Green
+    };
+    const riskLabel = `${riskColors[res.riskLevel]}${res.riskLevel} Risk\x1b[0m`;
 
-    lines.push(`${emoji} \x1b[1m${res.skillName}\x1b[0m`);
-    lines.push(`   \x1b[2mPermissions:\x1b[0m ${perms}`);
+    lines.push(`${emoji} \x1b[1m${res.skillName}\x1b[0m  [${riskLabel}]`);
+
+    if (res.permissions.length > 0) {
+      lines.push(`   \x1b[2mPermissions:\x1b[0m ${res.permissions.join(", ")}`);
+    }
+
+    if (res.riskLevel !== "Low") {
+      lines.push(`   \x1b[2mWhy:\x1b[0m ${res.riskReason}`);
+    }
+
     if (res.tools.length > 0) {
       lines.push(`   \x1b[2mTools:\x1b[0m ${res.tools.join(", ")}`);
     }
     lines.push("");
   }
 
-  lines.push("\x1b[2mNote: This is an automated analysis based on tool descriptions.\x1b[0m");
+  lines.push(
+    "\x1b[2mNote: This is an automated security analysis. Always review skill source code if unsure.\x1b[0m",
+  );
   lines.push("");
 
   return lines.join("\n");
