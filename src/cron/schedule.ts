@@ -2,6 +2,14 @@ import { Cron } from "croner";
 import type { CronSchedule } from "./types.js";
 import { parseAbsoluteTimeMs } from "./parse.js";
 
+function resolveCronTimezone(tz?: string) {
+  const trimmed = typeof tz === "string" ? tz.trim() : "";
+  if (trimmed) {
+    return trimmed;
+  }
+  return Intl.DateTimeFormat().resolvedOptions().timeZone;
+}
+
 export function computeNextRunAtMs(schedule: CronSchedule, nowMs: number): number | undefined {
   if (schedule.kind === "at") {
     // Handle both canonical `at` (string) and legacy `atMs` (number) fields.
@@ -38,9 +46,16 @@ export function computeNextRunAtMs(schedule: CronSchedule, nowMs: number): numbe
     return undefined;
   }
   const cron = new Cron(expr, {
-    timezone: schedule.tz?.trim() || undefined,
+    timezone: resolveCronTimezone(schedule.tz),
     catch: false,
   });
-  const next = cron.nextRun(new Date(nowMs));
-  return next ? next.getTime() : undefined;
+  // Use a tiny lookback (1ms) so croner doesn't skip the current second
+  // boundary. Without this, a job updated at exactly its cron time would
+  // be scheduled for the *next* matching time (e.g. 24h later for daily).
+  const next = cron.nextRun(new Date(nowMs - 1));
+  if (!next) {
+    return undefined;
+  }
+  const nextMs = next.getTime();
+  return Number.isFinite(nextMs) && nextMs >= nowMs ? nextMs : undefined;
 }
