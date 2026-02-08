@@ -511,23 +511,16 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
     // Read the current file (pre-substitution) and restore any references whose
     // resolved values match the incoming config — so we don't overwrite
     // "${ANTHROPIC_API_KEY}" with "sk-ant-..." when the caller didn't change it.
+    //
+    // We use only the root file's parsed content (no $include resolution) to avoid
+    // pulling values from included files into the root config on write-back.
     let cfgToWrite: OpenClawConfig = cfg;
     try {
       if (deps.fs.existsSync(configPath)) {
         const currentRaw = await deps.fs.promises.readFile(configPath, "utf-8");
         const parsedRes = parseConfigJson5(currentRaw, deps.json5);
         if (parsedRes.ok) {
-          // Resolve includes to get the full pre-substitution object
-          let preSubstitution: unknown = parsedRes.parsed;
-          try {
-            preSubstitution = resolveConfigIncludes(parsedRes.parsed, configPath, {
-              readFile: (p) => deps.fs.readFileSync(p, "utf-8"),
-              parseJson: (raw) => deps.json5.parse(raw),
-            });
-          } catch {
-            // If include resolution fails, use parsed as-is
-          }
-          cfgToWrite = restoreEnvVarRefs(cfg, preSubstitution, deps.env) as OpenClawConfig;
+          cfgToWrite = restoreEnvVarRefs(cfg, parsedRes.parsed, deps.env) as OpenClawConfig;
         }
       }
     } catch {

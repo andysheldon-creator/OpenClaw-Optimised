@@ -48,14 +48,16 @@ function tryResolveString(template: string, env: NodeJS.ProcessEnv): string | nu
         const name = template.slice(start, end);
         if (ENV_VAR_NAME.test(name)) {
           const val = env[name];
-          if (val === undefined || val === "") return null;
+          if (val === undefined || val === "") {
+            return null;
+          }
           chunks.push(val);
           i = end;
           continue;
         }
       }
     }
-    chunks.push(template[i]!);
+    chunks.push(template[i]);
   }
 
   return chunks.join("");
