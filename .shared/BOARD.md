@@ -21,3 +21,4 @@
 - Build: SUCCESS (5.9s)
 - Test: pi-embedded-utils.test.ts (Leak Case 포함) PASS
 - Status: READY FOR MERGE
+  [로아] 실사용 테스트(이미지) 검증 완료. SENA 말투 정상화 확인. (Context Leak Fixed) ✅
