@@ -23,11 +23,20 @@ import {
   waitForEmbeddedPiRunEnd,
 } from "./pi-embedded.js";
 import { type AnnounceQueueItem, enqueueAnnounce } from "./subagent-announce-queue.js";
-import { resolveSubagentAnnounceDeliveryTimeoutMs } from "./timeout.js";
+import {
+  resolveSubagentAnnounceDeliveryTimeoutMs,
+  resolveSubagentAnnounceMaxAgeMs,
+} from "./timeout.js";
 import { readLatestAssistantReply } from "./tools/agent-step.js";
 
 const MULTI_RUN_WINDOW_MS = 24 * 60 * 60 * 1000;
 const RECENT_TASK_RUNS = new Map<string, Map<string, number>>();
+const RECENT_SAME_RUN_ANNOUNCE = new Map<string, number>();
+
+export function __resetSubagentAnnounceStateForTests() {
+  RECENT_TASK_RUNS.clear();
+  RECENT_SAME_RUN_ANNOUNCE.clear();
+}
 
 function normalizeTaskIdentity(task?: string, label?: string) {
   const raw = (label || task || "").trim().toLowerCase().replace(/\s+/g, " ");
@@ -44,6 +53,19 @@ function registerTaskRun(taskKey: string, runId: string, now = Date.now()) {
   runs.set(runId, now);
   RECENT_TASK_RUNS.set(taskKey, runs);
   return Array.from(runs.keys());
+}
+
+function seenSameRunAnnounce(key: string, now = Date.now()): boolean {
+  for (const [candidate, ts] of RECENT_SAME_RUN_ANNOUNCE.entries()) {
+    if (now - ts > MULTI_RUN_WINDOW_MS) {
+      RECENT_SAME_RUN_ANNOUNCE.delete(candidate);
+    }
+  }
+  return RECENT_SAME_RUN_ANNOUNCE.has(key);
+}
+
+function markSameRunAnnounce(key: string, now = Date.now()) {
+  RECENT_SAME_RUN_ANNOUNCE.set(key, now);
 }
 
 function formatDurationShort(valueMs?: number) {
@@ -209,6 +231,7 @@ async function maybeQueueSubagentAnnounce(params: {
   summaryLine?: string;
   requesterOrigin?: DeliveryContext;
   highPriority?: boolean;
+  maxAgeMs?: number;
 }): Promise<"steered" | "queued" | "none"> {
   const { cfg, entry } = loadRequesterSessionEntry(params.requesterSessionKey);
   const canonicalKey = resolveRequesterStoreKey(cfg, params.requesterSessionKey);
@@ -249,7 +272,10 @@ async function maybeQueueSubagentAnnounce(params: {
         origin,
         highPriority: params.highPriority,
       },
-      settings: queueSettings,
+      settings: {
+        ...queueSettings,
+        maxAgeMs: params.maxAgeMs,
+      },
       send: sendAnnounce,
     });
     return "queued";
@@ -530,6 +556,11 @@ export async function runSubagentAnnounceFlow(params: {
     const taskRunKey = `${params.requesterSessionKey}::${taskIdentity}`;
     const seenRunIds = registerTaskRun(taskRunKey, params.childRunId);
     const hasMultipleActualRuns = seenRunIds.length > 1;
+    const announceState = outcome.status;
+    const sameRunAnnounceKey = `${params.requesterSessionKey}|${taskIdentity}|${params.childRunId}|${announceState}`;
+    if (seenSameRunAnnounce(sameRunAnnounceKey)) {
+      return true;
+    }
 
     const triggerMessage = [
       `A ${announceType} "${taskLabel}" just ${statusLabel}.`,
@@ -550,18 +581,22 @@ export async function runSubagentAnnounceFlow(params: {
       "You can respond with NO_REPLY if no announcement is needed (e.g., internal task with no user-facing result).",
     ].join("\n");
 
+    const announceMaxAgeMs = resolveSubagentAnnounceMaxAgeMs(loadConfig());
     const queued = await maybeQueueSubagentAnnounce({
       requesterSessionKey: params.requesterSessionKey,
       triggerMessage,
       summaryLine: taskLabel,
       requesterOrigin,
       highPriority: hasMultipleActualRuns,
+      maxAgeMs: announceMaxAgeMs,
     });
     if (queued === "steered") {
+      markSameRunAnnounce(sameRunAnnounceKey);
       didAnnounce = true;
       return true;
     }
     if (queued === "queued") {
+      markSameRunAnnounce(sameRunAnnounceKey);
       didAnnounce = true;
       return true;
     }
@@ -592,6 +627,7 @@ export async function runSubagentAnnounceFlow(params: {
       timeoutMs: announceDeliveryTimeoutMs,
     });
 
+    markSameRunAnnounce(sameRunAnnounceKey);
     didAnnounce = true;
   } catch (err) {
     defaultRuntime.error?.(`Subagent announce failed: ${String(err)}`);
