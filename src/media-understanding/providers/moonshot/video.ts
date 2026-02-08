@@ -51,7 +51,7 @@ export async function describeMoonshotVideo(
         ],
       },
     ],
-    max_tokens: 4096,
+    max_tokens: 8192,
   };
 
   const { response: res, release } = await fetchWithTimeoutGuarded(
@@ -75,11 +75,14 @@ export async function describeMoonshotVideo(
 
     const payload = (await res.json()) as {
       choices?: Array<{
-        message?: { content?: string };
+        message?: { content?: string; reasoning_content?: string };
       }>;
     };
 
-    const text = payload.choices?.[0]?.message?.content?.trim();
+    const msg = payload.choices?.[0]?.message;
+    // K2.5 defaults to thinking mode: main reply in content, reasoning in reasoning_content.
+    // If content is empty but reasoning_content exists, use reasoning as fallback.
+    const text = msg?.content?.trim() || msg?.reasoning_content?.trim();
     if (!text) {
       throw new Error("Moonshot video description response missing content");
     }
