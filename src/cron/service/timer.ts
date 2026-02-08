@@ -1,44 +1,65 @@
 import type { HeartbeatRunResult } from "../../infra/heartbeat-wake.js";
 import type { CronJob } from "../types.js";
 import type { CronEvent, CronServiceState } from "./state.js";
-import { computeJobNextRunAtMs, nextWakeAtMs, resolveJobPayloadTextForMain } from "./jobs.js";
+import { computeJobNextRunAtMs, nextWakeAtMs, resolveJobPayloadTextForMain, recomputeNextRuns } from "./jobs.js";
 import { locked } from "./locked.js";
 import { ensureLoaded, persist } from "./store.js";
 
 const MAX_TIMEOUT_MS = 2 ** 31 - 1;
 
 export function armTimer(state: CronServiceState) {
-  if (state.timer) {
-    clearTimeout(state.timer);
-  }
-  state.timer = null;
   if (!state.deps.cronEnabled) {
+    if (state.timer) {
+      clearTimeout(state.timer);
+      state.timer = null;
+    }
     return;
   }
   const nextAt = nextWakeAtMs(state);
   if (!nextAt) {
+    if (state.timer) {
+      clearTimeout(state.timer);
+      state.timer = null;
+    }
     return;
   }
   const delay = Math.max(nextAt - state.deps.nowMs(), 0);
   // Avoid TimeoutOverflowWarning when a job is far in the future.
   const clampedDelay = Math.min(delay, MAX_TIMEOUT_MS);
+  
+  if (state.timer) {
+    clearTimeout(state.timer);
+    state.timer = null;
+  }
+  
+  state.deps.log.debug(
+    { nextAt, now: state.deps.nowMs(), delay, clampedDelay },
+    "cron: arming timer",
+  );
+  
   state.timer = setTimeout(() => {
     void onTimer(state).catch((err) => {
       state.deps.log.error({ err: String(err) }, "cron: timer tick failed");
     });
   }, clampedDelay);
-  state.timer.unref?.();
+  // Don't unref - we want the timer to keep the event loop alive
 }
 
 export async function onTimer(state: CronServiceState) {
+  state.deps.log.debug("cron: timer callback invoked");
   if (state.running) {
+    state.deps.log.debug("cron: already running, skipping");
     return;
   }
   state.running = true;
   try {
     await locked(state, async () => {
-      await ensureLoaded(state, { forceReload: true });
+      // Load without recomputing to preserve stored nextRunAtMs values
+      await ensureLoaded(state, { forceReload: true, skipRecompute: true });
+      // Check and run due jobs using stored nextRunAtMs
       await runDueJobs(state);
+      // Then recompute next runs for subsequent executions
+      recomputeNextRuns(state);
       await persist(state);
       armTimer(state);
     });
