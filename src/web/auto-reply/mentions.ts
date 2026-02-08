@@ -54,8 +54,14 @@ export function isBotMentionedFromTargets(
     // Self-chat mode: suppress mentions only when the sender IS the owner (WhatsApp auto-includes
     // the owner's JID in mentionedJids). When someone else mentions the bot via JID or LID,
     // normalizedMentions correctly resolves to E164 — honour that.
-    const senderIsOwner =
-      msg.senderE164 && targets.selfE164 && normalizeE164(msg.senderE164) === targets.selfE164;
+    let senderIsOwner = false;
+    if (msg.senderE164 && targets.selfE164) {
+      senderIsOwner = normalizeE164(msg.senderE164) === targets.selfE164;
+    } else if (msg.senderJid && targets.selfJid) {
+      // Fallback: compare JIDs when senderE164 is missing
+      const normalizeSenderJid = msg.senderJid.replace(/:\d+/, "");
+      senderIsOwner = normalizeSenderJid === targets.selfJid;
+    }
     if (!senderIsOwner) {
       if (targets.selfE164 && targets.normalizedMentions.includes(targets.selfE164)) {
         return true;
