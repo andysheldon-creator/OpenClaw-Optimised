@@ -185,11 +185,7 @@ export function restoreRedactedValues(
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(incoming as Record<string, unknown>)) {
     const dotPath = prefix ? `${prefix}.${key}` : key;
-    if (
-      lookupSensitive(dotPath, uiHints) &&
-      value === REDACTED_SENTINEL &&
-      typeof orig[key] === "string"
-    ) {
+    if (lookupSensitive(dotPath, uiHints) && value === REDACTED_SENTINEL && key in orig) {
       result[key] = orig[key];
     } else if (typeof value === "object" && value !== null) {
       result[key] = restoreRedactedValues(value, orig[key], uiHints, dotPath);
