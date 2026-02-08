@@ -1068,7 +1068,11 @@ function mapSensitivePaths(schema: z.ZodType, path: string, hints: ConfigUiHints
   let currentSchema: unknown = schema;
   let isSensitive = sensitive.has(schema);
 
-  while (currentSchema instanceof z.ZodOptional || currentSchema instanceof z.ZodNullable) {
+  while (
+    currentSchema instanceof z.ZodOptional ||
+    currentSchema instanceof z.ZodNullable ||
+    currentSchema instanceof z.ZodDefault
+  ) {
     isSensitive ||= sensitive.has(currentSchema.unwrap());
     currentSchema = currentSchema.unwrap();
   }
@@ -1091,10 +1095,31 @@ function mapSensitivePaths(schema: z.ZodType, path: string, hints: ConfigUiHints
       const nextPath = path ? `${path}.${key}` : key;
       next = mapSensitivePaths(shape[key], nextPath, next);
     }
+  } else if (currentSchema instanceof z.ZodArray) {
+    const nextPath = path ? `${path}[]` : "[]";
+    next = mapSensitivePaths(currentSchema.element as z.ZodType, nextPath, next);
+  } else if (currentSchema instanceof z.ZodRecord) {
+    const nextPath = path ? `${path}.*` : "*";
+    next = mapSensitivePaths(currentSchema._def.valueType as z.ZodType, nextPath, next);
+  } else if (
+    currentSchema instanceof z.ZodUnion ||
+    currentSchema instanceof z.ZodDiscriminatedUnion
+  ) {
+    for (const option of currentSchema.options) {
+      next = mapSensitivePaths(option as z.ZodType, path, next);
+    }
+  } else if (currentSchema instanceof z.ZodIntersection) {
+    next = mapSensitivePaths(currentSchema._def.left as z.ZodType, path, next);
+    next = mapSensitivePaths(currentSchema._def.right as z.ZodType, path, next);
   }
 
   return next;
 }
+
+/** @internal */
+export const __test__ = {
+  mapSensitivePaths,
+};
 
 function buildBaseConfigSchema(): ConfigSchemaResponse {
   if (cachedBase) {
