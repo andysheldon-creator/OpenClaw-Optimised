@@ -104,7 +104,7 @@ function getAnnounceQueue(
 
 async function sendIfFresh(queue: AnnounceQueueState, key: string, item: AnnounceQueueItem) {
   if (isStaleItem(queue, item)) {
-    defaultRuntime.warn?.(`announce stale dropped for ${key}`);
+    defaultRuntime.log?.(`announce stale dropped for ${key}`);
     return;
   }
   await queue.send(item);
