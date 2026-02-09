@@ -432,9 +432,12 @@ export async function compactEmbeddedPiSessionDirect(
         const validated = transcriptPolicy.validateAnthropicTurns
           ? validateAnthropicTurns(validatedGemini)
           : validatedGemini;
+        // Apply validated transcript to the live session even when no history limit is configured,
+        // so compaction and hook metrics are based on the same message set.
+        session.agent.replaceMessages(validated);
         // "Original" compaction metrics should describe the validated transcript that enters
         // limiting/compaction, not the raw on-disk session snapshot.
-        const originalMessages = validated.slice();
+        const originalMessages = session.messages.slice();
         const missingSessionKey = !params.sessionKey || !params.sessionKey.trim();
         const hookSessionKey = params.sessionKey?.trim() || params.sessionId;
         const hookRunner = getGlobalHookRunner();
@@ -449,12 +452,10 @@ export async function compactEmbeddedPiSessionDirect(
           tokenCountOriginal = undefined;
         }
         const limited = limitHistoryTurns(
-          validated,
+          session.messages,
           getDmHistoryLimitFromSessionKey(params.sessionKey, params.config),
         );
-        if (limited.length > 0) {
-          session.agent.replaceMessages(limited);
-        }
+        session.agent.replaceMessages(limited);
         const messageCountBefore = session.messages.length;
         let tokenCountBefore: number | undefined;
         try {
