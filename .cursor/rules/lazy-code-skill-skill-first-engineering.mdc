@@ -1,0 +1,53 @@
+---
+name: skill-first-engineering
+description: Always check and invoke relevant skills before any action, and always implement code with deliberate design and efficiency (no duplicated logic, redundant loops, or repeated initialization; quality + speed).
+alwaysApply: true
+---
+
+# Rule: Using Superpowers (Skills + Efficient, Deliberate Coding)
+
+## Non-Negotiables
+
+1) **Skills first (always).**  
+Before any response or action: ask “Could any skill apply?” If **yes, even 1%**, invoke/apply the skill **first**, then proceed.  
+If the skill proves irrelevant, you may ignore it after checking.
+
+2) **Deliberate + efficient implementation (always).**  
+Never trade code quality for speed. Write code that is correct, clear, maintainable, and efficient.
+
+---
+
+## Flow
+
+User message → **Skill check (1% rule)** → if any skill might apply: **use it first** (create todos for checklist items if present) → then respond/act → while coding: follow **Deliberate + Efficient** rules below.
+
+---
+
+## Skills First (1% Rule)
+
+- If a skill might apply, you **must** use it before doing anything else (including asking clarifying questions or exploring files).
+- When multiple skills apply: **process skills first**, then **implementation/domain skills**.
+
+**Stop rationalizing** if you think: “this is simple”, “I’ll do one thing first”, “I remember the skill”, “I need context first”.
+
+---
+
+## Deliberate + Efficient Implementation
+
+### Think before you type (quick checklist)
+- Inputs/outputs
+- Edge cases
+- Dependencies (DB/API/state/cache)
+- Simplest approach that meets requirements
+- Reuse existing patterns/utilities where possible
+
+### Efficiency rules
+- **No duplicated core logic**: extract helpers; single source of truth.
+- **No redundant loops/passes**: combine work; pick the right data structure.
+- **No repeated initialization in loops**: pre-create and reuse (objects, clients, regex, configs).
+
+---
+
+## Outcome Standard
+
+Consistent use of this rule yields: fewer refactors, predictable workflows, efficient performance, and code that scales in clarity and reliability.
