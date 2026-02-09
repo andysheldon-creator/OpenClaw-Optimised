@@ -49,6 +49,8 @@ export interface ProcessSession {
   exited: boolean;
   truncated: boolean;
   backgrounded: boolean;
+  // Cleanup callback for temp files/resources - called when session exits
+  onExit?: () => void;
 }
 
 export interface FinishedSession {
@@ -148,6 +150,14 @@ export function markExited(
   session.exitCode = exitCode;
   session.exitSignal = exitSignal;
   session.tail = tail(session.aggregated, 2000);
+  // Call cleanup callback if registered
+  if (session.onExit) {
+    try {
+      session.onExit();
+    } catch {
+      // Ignore cleanup errors
+    }
+  }
   moveToFinished(session, status);
 }
 

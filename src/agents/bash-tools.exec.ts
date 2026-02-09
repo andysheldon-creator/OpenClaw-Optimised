@@ -1060,8 +1060,10 @@ export function createExecTool(
         // For sandbox or gateway, we can use temp files (sandbox mounts workspace)
         if (host === "gateway" || sandbox) {
           // Auto-convert script to temp file execution
-          // Detect interpreter from shebang or default to bash
-          let interpreterCmd = "bash";
+          // Parse interpreter and arguments separately to handle shebangs with args correctly
+          // e.g., #!/usr/bin/env python3 -u -> interpreter="python3", args=["-u"]
+          let interpreter = "bash";
+          let interpreterArgs: string[] = [];
           const trimmedCommand = params.command.trim();
           if (trimmedCommand.startsWith("#!/")) {
             const shebangMatch = trimmedCommand.match(/^#!(.+)$/m);
@@ -1069,20 +1071,33 @@ export function createExecTool(
               // Extract interpreter and arguments from shebang
               // Handle: /usr/bin/python3, /usr/bin/env python3, /usr/bin/env python3 -u
               const shebang = shebangMatch[1].trim();
-              const envMatch = shebang.match(/env\s+(.+)$/);
+              const envMatch = shebang.match(/^env\s+(.+)$/);
               if (envMatch) {
-                // /usr/bin/env python3 [args] -> python3 [args]
-                interpreterCmd = envMatch[1];
+                // /usr/bin/env python3 [args] -> parse "python3 [args]"
+                const afterEnv = envMatch[1].trim();
+                // Split by whitespace to separate command from args
+                const parts = afterEnv.split(/\s+/);
+                interpreter = parts[0];
+                interpreterArgs = parts.slice(1);
               } else {
-                // /usr/bin/python3 [args] -> /usr/bin/python3 [args]
-                interpreterCmd = shebang;
+                // /usr/bin/python3 [args] -> parse "[/usr/bin/python3] [args]"
+                const parts = shebang.split(/\s+/);
+                interpreter = parts[0];
+                interpreterArgs = parts.slice(1);
               }
             }
           } else if (/^(import\s|from\s+\w+\s+import|def\s|class\s)/m.test(trimmedCommand)) {
             // Auto-detect python via PATH resolution, not hardcoded paths
-            // Prefer python3, fall back to python for compatibility
-            interpreterCmd = "python3";
+            interpreter = "python3";
+            interpreterArgs = [];
           }
+
+          // Build command with proper shell escaping
+          // interpreterArgs are kept separate and shell-quoted
+          const buildCommand = (scriptPath: string): string => {
+            const escapedArgs = interpreterArgs.map((arg) => `"${arg.replace(/"/g, '\\"')}"`);
+            return `"${interpreter}" ${escapedArgs.join(" ")} "${scriptPath}"`.trim();
+          };
 
           // For sandbox, use workspace root so the temp file is accessible in the container
           const scriptFileName = `openclaw-script-${crypto.randomUUID()}`;
@@ -1098,12 +1113,12 @@ export function createExecTool(
             // the path matches what the sandbox actually sees
             const resolvedContainerWorkdir = containerWorkdir ?? sandbox.containerWorkdir;
             const containerTempFile = path.posix.join(resolvedContainerWorkdir, scriptFileName);
-            command = `${interpreterCmd} "${containerTempFile}"`;
+            command = buildCommand(containerTempFile);
           } else {
             // For gateway, use system temp directory
             tempScriptFile = path.join(os.tmpdir(), scriptFileName);
             fs.writeFileSync(tempScriptFile, params.command, { mode: 0o700 });
-            command = `${interpreterCmd} "${tempScriptFile}"`;
+            command = buildCommand(tempScriptFile);
           }
 
           warnings.push(
@@ -1584,6 +1599,17 @@ export function createExecTool(
               return;
             }
 
+            // Register cleanup callback for guaranteed temp file cleanup
+            if (tempScriptFile && run) {
+              run.session.onExit = () => {
+                try {
+                  fs.unlinkSync(tempScriptFile);
+                } catch {
+                  // Ignore cleanup errors
+                }
+              };
+            }
+
             markBackgrounded(run.session);
 
             let runningTimer: NodeJS.Timeout | null = null;
@@ -1759,6 +1785,11 @@ export function createExecTool(
             }
           }
         };
+
+        // Register cleanup callback on session for guaranteed cleanup on exit/kill
+        if (tempScriptFile) {
+          run.session.onExit = cleanupTempFile;
+        }
 
         run.promise
           .then((outcome) => {
