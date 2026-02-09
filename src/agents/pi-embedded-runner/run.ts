@@ -661,7 +661,7 @@ export async function runEmbeddedPiAgent(
               promptFailoverReason === "auth" &&
               lastProfileId &&
               !authRefreshAttempted &&
-              apiKeyInfo?.mode === "oauth"
+              (apiKeyInfo as ApiKeyInfo | null)?.mode === "oauth"
             ) {
               authRefreshAttempted = true;
               try {
@@ -761,7 +761,7 @@ export async function runEmbeddedPiAgent(
             assistantFailoverReason === "auth" &&
             lastProfileId &&
             !authRefreshAttempted &&
-            apiKeyInfo?.mode === "oauth"
+            (apiKeyInfo as ApiKeyInfo | null)?.mode === "oauth"
           ) {
             authRefreshAttempted = true;
             try {
