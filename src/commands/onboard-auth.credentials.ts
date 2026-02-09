@@ -1,26 +1,96 @@
 import type { OAuthCredentials } from "@mariozechner/pi-ai";
+import fs from "node:fs";
+import path from "node:path";
 import { resolveOpenClawAgentDir } from "../agents/agent-paths.js";
 import { upsertAuthProfile } from "../agents/auth-profiles.js";
+import { resolveStateDir } from "../config/paths.js";
 export { CLOUDFLARE_AI_GATEWAY_DEFAULT_MODEL_REF } from "../agents/cloudflare-ai-gateway.js";
 
 const resolveAuthAgentDir = (agentDir?: string) => agentDir ?? resolveOpenClawAgentDir();
 
-export async function writeOAuthCredentials(
+export type WriteOAuthCredentialsOptions = {
+  syncSiblingAgents?: boolean;
+};
+
+function resolveSiblingAgentDirs(primaryAgentDir: string): string[] {
+  const normalized = path.resolve(primaryAgentDir);
+
+  // Derive agentsRoot from primaryAgentDir when it matches the standard
+  // layout (.../agents/<name>/agent). Falls back to global state dir.
+  const parentOfAgent = path.dirname(normalized);
+  const candidateAgentsRoot = path.dirname(parentOfAgent);
+  const looksLikeStandardLayout =
+    path.basename(normalized) === "agent" && path.basename(candidateAgentsRoot) === "agents";
+
+  const agentsRoot = looksLikeStandardLayout
+    ? candidateAgentsRoot
+    : path.join(resolveStateDir(), "agents");
+
+  const entries = (() => {
+    try {
+      return fs.readdirSync(agentsRoot, { withFileTypes: true });
+    } catch {
+      return [];
+    }
+  })();
+  const discovered = entries
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => path.join(agentsRoot, entry.name, "agent"));
+
+  const candidateDirs = [...new Set<string>([normalized, ...discovered])];
+
+  return candidateDirs.filter((dir) => {
+    try {
+      return fs.statSync(dir).isDirectory();
+    } catch {
+      return false;
+    }
+  });
+}
+
+export function writeOAuthCredentials(
   provider: string,
   creds: OAuthCredentials,
   agentDir?: string,
-): Promise<void> {
+  options?: WriteOAuthCredentialsOptions,
+): void {
   const email =
     typeof creds.email === "string" && creds.email.trim() ? creds.email.trim() : "default";
+  const resolvedAgentDir = path.resolve(resolveAuthAgentDir(agentDir));
+  const targetAgentDirs = options?.syncSiblingAgents
+    ? resolveSiblingAgentDirs(resolvedAgentDir)
+    : [resolvedAgentDir];
+
+  const credential = {
+    type: "oauth" as const,
+    provider,
+    ...creds,
+  };
+
+  // Primary write must succeed — let it throw on failure.
   upsertAuthProfile({
     profileId: `${provider}:${email}`,
-    credential: {
-      type: "oauth",
-      provider,
-      ...creds,
-    },
-    agentDir: resolveAuthAgentDir(agentDir),
+    credential,
+    agentDir: resolvedAgentDir,
   });
+
+  // Sibling sync is best-effort — ignore individual failures.
+  if (options?.syncSiblingAgents) {
+    for (const targetAgentDir of targetAgentDirs) {
+      if (targetAgentDir === resolvedAgentDir) {
+        continue;
+      }
+      try {
+        upsertAuthProfile({
+          profileId: `${provider}:${email}`,
+          credential,
+          agentDir: targetAgentDir,
+        });
+      } catch {
+        // Ignore sibling sync failures so primary onboarding can continue.
+      }
+    }
+  }
 }
 
 export async function setAnthropicApiKey(key: string, agentDir?: string) {

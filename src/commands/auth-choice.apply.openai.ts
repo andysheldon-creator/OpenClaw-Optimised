@@ -116,7 +116,9 @@ export async function applyAuthChoiceOpenAI(
       });
       spin.stop("OpenAI OAuth complete");
       if (creds) {
-        await writeOAuthCredentials("openai-codex", creds, params.agentDir);
+        writeOAuthCredentials("openai-codex", creds, params.agentDir, {
+          syncSiblingAgents: true,
+        });
         nextConfig = applyAuthProfileConfig(nextConfig, {
           profileId: "openai-codex:default",
           provider: "openai-codex",
