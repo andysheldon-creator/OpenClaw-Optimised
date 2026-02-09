@@ -1,0 +1,123 @@
+graph TD
+    %% ═══════════════════════════════════════════════
+    %% OpenClaw Platform
+    %% ═══════════════════════════════════════════════
+    subgraph OPENCLAW ["OpenClaw (upstream fork)"]
+        direction TB
+        OC_CORE["OpenClaw Core<br/>Gateway · Channels · Sessions"]
+
+        subgraph OC_SKILLS ["skills/ (contributed)"]
+            direction LR
+            SCANNER["sentinel-scanner<br/>Input sanitization<br/>17 injection patterns"]
+            GUARD["sentinel-guard<br/>Policy engine · Circuit breaker<br/>Audit log · Executor"]
+            ROUTER["model-router<br/>Tier selection<br/>Financial + General presets"]
+        end
+
+        subgraph OC_EXISTING ["skills/ (existing)"]
+            direction LR
+            OC_GH["github"]
+            OC_DISC["discord"]
+            OC_HEALTH["healthcheck"]
+            OC_MORE["50+ others..."]
+        end
+    end
+
+    %% ═══════════════════════════════════════════════
+    %% agent-os Monorepo
+    %% ═══════════════════════════════════════════════
+    subgraph AGENT_OS ["agent-os (private monorepo)"]
+        direction TB
+
+        subgraph SENTINEL ["sentinel — Autonomous Financial Agent"]
+            direction TB
+            ORCH["Orchestrator<br/>Pipeline controller"]
+            TGBOT["Telegram Bot<br/>grammY · Commands · HITL"]
+            REASON["Reasoning Layer<br/>Claude Agent SDK · Read-only tools"]
+            BANKR["BankrDispatcher<br/>Bankr wallet client adapter"]
+            MON["Monitoring<br/>DeFi yields · Health checks"]
+            SCHED["Scheduler<br/>Cron tasks · Reports"]
+
+            subgraph REEXPORT ["Re-exports from OpenClaw skills"]
+                RE_SCAN["sentinel-scanner<br/>(workspace:*)"]
+                RE_GUARD["sentinel-guard<br/>(workspace:*)"]
+            end
+        end
+
+        subgraph PLATFORM ["platform — Multi-Agent Runtime"]
+            direction LR
+            PLAT_ORCH["Agent Orchestrator"]
+            SCOUT["Scout Agent<br/>DeFi opportunities"]
+            RESEARCH["Research Agent<br/>Web search"]
+        end
+
+        subgraph OTHER ["Other Packages"]
+            direction LR
+            RE_ROUTER["model-router<br/>(workspace:*)"]
+            SHARED["shared<br/>Zod types"]
+            WEB["web<br/>React dashboard"]
+        end
+
+        DEFI_SKILLS["17 DeFi Skills<br/>bankr · clanker · veil · neynar<br/>onchainkit · erc-8004 · ..."]
+        AGENT_DEFS["Agent Definitions<br/>sentinel.md · sentinel-reviewer.md<br/>scout.yaml · research.yaml"]
+    end
+
+    %% ═══════════════════════════════════════════════
+    %% Unified Dev Tooling
+    %% ═══════════════════════════════════════════════
+    subgraph DEV_TOOLS [".shared/ — Unified AI Dev Tooling"]
+        direction LR
+        CLAUDE_CODE["Claude Code"]
+        OPENCODE_T["OpenCode"]
+        ANTIGRAV["Antigravity"]
+    end
+
+    %% ═══════════════════════════════════════════════
+    %% Edges: OpenClaw ↔ agent-os
+    %% ═══════════════════════════════════════════════
+    SCANNER -.->|"workspace:*<br/>re-export"| RE_SCAN
+    GUARD -.->|"workspace:*<br/>re-export"| RE_GUARD
+    ROUTER -.->|"workspace:*"| RE_ROUTER
+
+    RE_SCAN --> ORCH
+    RE_GUARD --> ORCH
+    ORCH --> REASON
+    REASON -->|"proposeTransaction"| RE_GUARD
+    RE_GUARD -->|"approved verdict"| BANKR
+    TGBOT --> ORCH
+    MON --> ORCH
+    SCHED --> ORCH
+
+    RE_ROUTER --> REASON
+
+    PLAT_ORCH --> SCOUT
+    PLAT_ORCH --> RESEARCH
+
+    %% ═══════════════════════════════════════════════
+    %% Edges: Dev tools
+    %% ═══════════════════════════════════════════════
+    DEV_TOOLS -.->|"develops"| AGENT_OS
+    DEV_TOOLS -.->|"contributes skills"| OPENCLAW
+
+    %% ═══════════════════════════════════════════════
+    %% Upstream sync
+    %% ═══════════════════════════════════════════════
+    OC_CORE -.->|"git fetch upstream<br/>merge main"| OPENCLAW
+
+    %% ═══════════════════════════════════════════════
+    %% Styling
+    %% ═══════════════════════════════════════════════
+    classDef openclaw fill:#1f6feb,stroke:#0d419d,color:#fff
+    classDef skill fill:#238636,stroke:#196c2e,color:#fff
+    classDef sentinel fill:#f78166,stroke:#da5526,color:#fff
+    classDef platform fill:#8957e5,stroke:#6639ba,color:#fff
+    classDef other fill:#30363d,stroke:#8b949e,color:#c9d1d9
+    classDef reexport fill:#388bfd,stroke:#1f6feb,color:#fff
+    classDef devtools fill:#d29922,stroke:#9a6f00,color:#fff
+
+    class OC_CORE,OC_GH,OC_DISC,OC_HEALTH,OC_MORE openclaw
+    class SCANNER,GUARD,ROUTER skill
+    class ORCH,TGBOT,REASON,BANKR,MON,SCHED sentinel
+    class PLAT_ORCH,SCOUT,RESEARCH platform
+    class SHARED,WEB,DEFI_SKILLS,AGENT_DEFS other
+    class RE_SCAN,RE_GUARD,RE_ROUTER reexport
+    class CLAUDE_CODE,OPENCODE_T,ANTIGRAV devtools

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenClaw Architecture Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card-bg: rgba(22, 27, 34, 0.8);
+      --border: #30363d;
+      --text: #c9d1d9;
+      --text-dim: #8b949e;
+      --accent: #58a6ff;
+      --gateway: #f78166;
+      --agent: #8957e5;
+      --channel: #238636;
+      --memory: #388bfd;
+      --skill: #d29922;
+      --security: #f85149;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, sans-serif;
+      line-height: 1.6;
+      padding-bottom: 5rem;
+    }
+
+    header {
+      padding: 4rem 2rem;
+      background: radial-gradient(circle at top right, rgba(88, 166, 255, 0.1), transparent);
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 3rem;
+    }
+
+    h1 {
+      font-weight: 600;
+      font-size: 2.2rem;
+      color: #f0f6fc;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle { color: var(--text-dim); font-size: 1rem; }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 2rem; }
+
+    .legend {
+      display: flex;
+      gap: 1.5rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 3rem;
+      background: var(--card-bg);
+      padding: 1rem;
+      border-radius: 99px;
+      border: 1px solid var(--border);
+      backdrop-filter: blur(10px);
+    }
+
+    .legend-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; font-weight: 500; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; box-shadow: 0 0 10px currentColor; }
+
+    .diagram-section {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2.5rem;
+      margin-bottom: 3rem;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+    }
+
+    .diagram-section h2 { font-weight: 600; color: var(--accent); margin-bottom: 0.5rem; font-size: 1.25rem; }
+    .diagram-section p { color: var(--text-dim); margin-bottom: 2rem; font-size: 0.95rem; }
+
+    .diagram-img {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+      border-radius: 8px;
+      padding: 1rem;
+      overflow-x: auto;
+    }
+
+    .diagram-img img { max-width: 100%; height: auto; }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+    }
+
+    .source-note {
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 0.8rem;
+      margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .source-note code { color: var(--accent); }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <h1>OpenClaw Architecture</h1>
+    <p class="subtitle">curtitoo/openclaw — Multi-Channel AI Gateway</p>
+  </header>
+
+  <div class="container">
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-dot" style="background:var(--gateway); color:var(--gateway)"></div> Gateway
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:var(--agent); color:var(--agent)"></div> Agent Engine
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:var(--channel); color:var(--channel)"></div> Channels
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:var(--memory); color:var(--memory)"></div> Memory
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:var(--skill); color:var(--skill)"></div> Skills
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:var(--security); color:var(--security)"></div> Security (contributed)
+      </div>
+    </div>
+
+    <section class="diagram-section">
+      <h2>Platform Architecture</h2>
+      <p>Full stack view: client apps, gateway core, agent engine (312 files), 40 built-in + 36 extension channels, vector memory, and 69 skills including contributed sentinel security and DeFi skills.</p>
+      <div class="diagram-img">
+        <img src="diagrams/openclaw-architecture.svg" alt="OpenClaw Platform Architecture" />
+      </div>
+    </section>
+
+    <section class="diagram-section">
+      <h2>agent-os Integration</h2>
+      <p>How <code>agent-os</code> skills flow into OpenClaw and are re-exported back via <code>workspace:*</code> references. Sentinel security layer and model-router are shared between both projects.</p>
+      <div class="diagram-img">
+        <img src="diagrams/openclaw-integration.svg" alt="OpenClaw ↔ agent-os Integration" />
+      </div>
+    </section>
+
+    <div class="source-note">
+      Diagrams generated from <code>.shared/diagrams/*.mmd</code> via <code>mermaid-cli</code>.
+      <br />Re-render with <code>/show-openclaw --render</code>.
+    </div>
+  </div>
+
+</body>
+
+</html>

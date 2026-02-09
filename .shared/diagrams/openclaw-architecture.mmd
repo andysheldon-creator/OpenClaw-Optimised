@@ -1,0 +1,226 @@
+graph TD
+    %% ═══════════════════════════════════════════════
+    %% OpenClaw Architecture — curtitoo/openclaw fork
+    %% ═══════════════════════════════════════════════
+
+    %% ─────────────────────────────────────────────
+    %% Client Layer
+    %% ─────────────────────────────────────────────
+    subgraph CLIENTS ["Client Apps (apps/)"]
+        direction LR
+        MAC["macOS<br/>SwiftUI menubar app"]
+        IOS["iOS<br/>SwiftUI · OpenClawKit"]
+        ANDROID["Android<br/>Gradle · Kotlin"]
+        WEBUI["Web UI<br/>React · Vite SPA"]
+    end
+
+    %% ─────────────────────────────────────────────
+    %% Gateway Core
+    %% ─────────────────────────────────────────────
+    subgraph GATEWAY ["Gateway Core (src/gateway/)"]
+        direction TB
+        BOOT["boot.ts<br/>Startup & init"]
+        AUTH["auth.ts<br/>Device pairing"]
+        OPENAI_HTTP["openai-http.ts<br/>OpenAI-compat API"]
+        OPENRESP["openresponses-http.ts<br/>Open Responses API"]
+        WS_CLIENT["client.ts<br/>WebSocket management"]
+        CTRL_UI["control-ui.ts<br/>Control panel"]
+        PROTOCOL["protocol/<br/>Schema & definitions"]
+    end
+
+    %% ─────────────────────────────────────────────
+    %% Agent System
+    %% ─────────────────────────────────────────────
+    subgraph AGENTS ["Agent Engine (src/agents/ — 312 files)"]
+        direction TB
+        PI_RUNNER["pi-embedded-runner<br/>Core agent execution"]
+        PI_SUB["pi-embedded-subscribe<br/>Event streaming"]
+        PI_TOOLS["pi-tools<br/>Tool definitions"]
+        PI_EXT["pi-extensions<br/>Extension points"]
+        TOOLS["tools/ (62 modules)<br/>bash · file I/O · coding"]
+        SYS_PROMPT["system-prompt.ts<br/>Dynamic prompt gen"]
+        SUBAGENT["subagent-registry.ts<br/>Sub-agent spawning"]
+        MODEL_SEL["model-selection.ts<br/>LLM routing & fallback"]
+        COMPACT["compaction.ts<br/>History compression"]
+        SANDBOX["sandbox/<br/>Docker · exec isolation"]
+
+        PI_RUNNER --> PI_TOOLS
+        PI_RUNNER --> PI_SUB
+        PI_RUNNER --> PI_EXT
+        PI_TOOLS --> TOOLS
+        PI_RUNNER --> SYS_PROMPT
+        PI_RUNNER --> SUBAGENT
+        PI_RUNNER --> MODEL_SEL
+        PI_RUNNER --> COMPACT
+        TOOLS --> SANDBOX
+    end
+
+    %% ─────────────────────────────────────────────
+    %% Channel System
+    %% ─────────────────────────────────────────────
+    subgraph CHANNELS ["Channels (src/channels/ + extensions/)"]
+        direction TB
+        DOCK["dock.ts<br/>Channel registry & routing"]
+        CMD_GATE["command-gating.ts<br/>Authorization"]
+
+        subgraph BUILTIN ["Built-in Plugins (40)"]
+            direction LR
+            CH_TG["telegram<br/>(86 files)"]
+            CH_DISC["discord<br/>(44 files)"]
+            CH_SLACK["slack<br/>(36 files)"]
+            CH_WEB["web"]
+            CH_IMSG["imessage"]
+            CH_SIG["signal"]
+        end
+
+        subgraph EXTENSIONS ["Extensions (36)"]
+            direction LR
+            EXT_WA["whatsapp"]
+            EXT_MATRIX["matrix"]
+            EXT_NOSTR["nostr"]
+            EXT_LINE["line"]
+            EXT_VOICE["voice-call<br/>talk-voice"]
+            EXT_MORE["28 more..."]
+        end
+
+        DOCK --> BUILTIN
+        DOCK --> EXTENSIONS
+        DOCK --> CMD_GATE
+    end
+
+    %% ─────────────────────────────────────────────
+    %% Memory System
+    %% ─────────────────────────────────────────────
+    subgraph MEMORY ["Memory (src/memory/)"]
+        direction LR
+        MEM_MGR["manager.ts<br/>Orchestration"]
+        QMD["qmd-manager.ts<br/>Quantum dedup"]
+        EMBED["embeddings.ts<br/>OpenAI · Gemini · Voyage"]
+        SEARCH["search-manager.ts<br/>Semantic search"]
+        SQLITE_VEC["sqlite-vec<br/>Vector DB"]
+
+        MEM_MGR --> QMD
+        MEM_MGR --> EMBED
+        MEM_MGR --> SEARCH
+        SEARCH --> SQLITE_VEC
+    end
+
+    %% ─────────────────────────────────────────────
+    %% Skills
+    %% ─────────────────────────────────────────────
+    subgraph SKILLS ["Skills (skills/ — 69 total)"]
+        direction TB
+
+        subgraph SK_WEB3 ["Web3 / DeFi (15)"]
+            direction LR
+            SK_BANKR["bankr"]
+            SK_CLANK["clanker"]
+            SK_VEIL["veil"]
+            SK_MORE_W3["+ 12 more"]
+        end
+
+        subgraph SK_SECURITY ["Security (contributed)"]
+            direction LR
+            SK_SCAN["sentinel-scanner<br/>17 injection patterns"]
+            SK_GUARD["sentinel-guard<br/>Policy · circuit breaker"]
+            SK_MROUTER["model-router<br/>Tier selection"]
+        end
+
+        subgraph SK_MEDIA ["Media (8)"]
+            direction LR
+            SK_CAM["camsnap"]
+            SK_WHISP["openai-whisper"]
+            SK_TTS["sherpa-onnx-tts"]
+            SK_MORE_M["+ 5 more"]
+        end
+
+        subgraph SK_INTEG ["Integrations (15)"]
+            direction LR
+            SK_GH["github"]
+            SK_NOTION["notion"]
+            SK_OBSID["obsidian"]
+            SK_MORE_I["+ 12 more"]
+        end
+
+        subgraph SK_UTIL ["Utilities (10+)"]
+            direction LR
+            SK_HEALTH["healthcheck"]
+            SK_WEATHER["weather"]
+            SK_MORE_U["+ 8 more"]
+        end
+    end
+
+    %% ─────────────────────────────────────────────
+    %% Infrastructure
+    %% ─────────────────────────────────────────────
+    subgraph INFRA ["Infrastructure"]
+        direction LR
+        CLI["CLI (107 files)<br/>commander · clack"]
+        CRON["Cron Scheduler<br/>Scheduled tasks"]
+        HOOKS["Hooks System<br/>Lifecycle events"]
+        PLUGINS["Plugin Loader<br/>Dynamic extensions"]
+        BROWSER["Browser Automation<br/>Playwright"]
+        LOGGING["Logging<br/>Diagnostics · OTel"]
+    end
+
+    %% ─────────────────────────────────────────────
+    %% Deployment
+    %% ─────────────────────────────────────────────
+    subgraph DEPLOY ["Deployment"]
+        direction LR
+        DOCKER["Docker<br/>node:22-bookworm"]
+        FLY["Fly.io<br/>iad · 2GB RAM"]
+        COMPOSE["docker-compose<br/>gateway + cli"]
+    end
+
+    %% ─────────────────────────────────────────────
+    %% Packages
+    %% ─────────────────────────────────────────────
+    subgraph PACKAGES ["Bot Packages"]
+        direction LR
+        CLAWDBOT["clawdbot"]
+        MOLTBOT["moltbot"]
+    end
+
+    %% ═══════════════════════════════════════════════
+    %% Edges
+    %% ═══════════════════════════════════════════════
+    CLIENTS -->|"HTTP · WS"| GATEWAY
+    GATEWAY --> AGENTS
+    GATEWAY --> CHANNELS
+    AGENTS --> MEMORY
+    AGENTS -->|"loads"| SKILLS
+    AGENTS --> INFRA
+    CHANNELS -->|"messages"| AGENTS
+    CLI -->|"commands"| GATEWAY
+    CRON --> AGENTS
+    HOOKS --> AGENTS
+    PLUGINS --> CHANNELS
+    BROWSER --> AGENTS
+    GATEWAY --> DEPLOY
+    PACKAGES -->|"wraps"| GATEWAY
+
+    %% ═══════════════════════════════════════════════
+    %% Styling
+    %% ═══════════════════════════════════════════════
+    classDef client fill:#1f6feb,stroke:#0d419d,color:#fff
+    classDef gateway fill:#f78166,stroke:#da5526,color:#fff
+    classDef agent fill:#8957e5,stroke:#6639ba,color:#fff
+    classDef channel fill:#238636,stroke:#196c2e,color:#fff
+    classDef memory fill:#388bfd,stroke:#1f6feb,color:#fff
+    classDef skill fill:#d29922,stroke:#9a6f00,color:#fff
+    classDef security fill:#f85149,stroke:#da3633,color:#fff
+    classDef infra fill:#30363d,stroke:#8b949e,color:#c9d1d9
+    classDef deploy fill:#3fb950,stroke:#238636,color:#fff
+    classDef pkg fill:#6e7681,stroke:#484f58,color:#fff
+
+    class MAC,IOS,ANDROID,WEBUI client
+    class BOOT,AUTH,OPENAI_HTTP,OPENRESP,WS_CLIENT,CTRL_UI,PROTOCOL gateway
+    class PI_RUNNER,PI_SUB,PI_TOOLS,PI_EXT,TOOLS,SYS_PROMPT,SUBAGENT,MODEL_SEL,COMPACT,SANDBOX agent
+    class DOCK,CMD_GATE,CH_TG,CH_DISC,CH_SLACK,CH_WEB,CH_IMSG,CH_SIG,EXT_WA,EXT_MATRIX,EXT_NOSTR,EXT_LINE,EXT_VOICE,EXT_MORE channel
+    class MEM_MGR,QMD,EMBED,SEARCH,SQLITE_VEC memory
+    class SK_BANKR,SK_CLANK,SK_VEIL,SK_MORE_W3,SK_CAM,SK_WHISP,SK_TTS,SK_MORE_M,SK_GH,SK_NOTION,SK_OBSID,SK_MORE_I,SK_HEALTH,SK_WEATHER,SK_MORE_U skill
+    class SK_SCAN,SK_GUARD,SK_MROUTER security
+    class CLI,CRON,HOOKS,PLUGINS,BROWSER,LOGGING infra
+    class DOCKER,FLY,COMPOSE deploy
+    class CLAWDBOT,MOLTBOT pkg
