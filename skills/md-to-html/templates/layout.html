@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{TITLE}}</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <header class="header">
+            <div class="logo-container">
+                <span class="main-title-inline">{{DATE_TITLE}}</span>
+            </div>
+            <p class="subtitle">过去24小时，硅谷AI大佬在讨论什么</p>
+            <p class="data-source">数据来源：X(twitter)平台实时推文</p>
+
+            <div class="creators-container">
+                <div class="creator-badge">
+                    <img src="../assets/小禾说AI logo.png" class="creator-logo-small">
+                    <span class="creator-name">小禾说AI (公众号)</span>
+                </div>
+                <div class="creator-badge">
+                    <img src="../assets/小禾说AI logo.png" class="creator-logo-small">
+                    <span class="creator-name">清华小禾说AI (视频号)</span>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+        </header>
+
+        <!-- 概览 -->
+        <section class="overview-card">
+            <h2 class="overview-title">📊 总览</h2>
+            <p class="overview-text">{{OVERVIEW_TEXT}}</p>
+
+            <table class="event-table">
+                <thead>
+                    <tr>
+                        <th>主题</th>
+                        <th>关键事件</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- OVERVIEW_ROWS_PLACEHOLDER -->
+                </tbody>
+            </table>
+        </section>
+
+        <!-- 详情卡片区域 -->
+        <!-- DETAIL_CARDS_PLACEHOLDER -->
+
+        <!-- 底部 -->
+        <footer class="footer">
+            <div class="qr-section">
+                <h3>✨ 加入「小禾AI交流群」</h3>
+                <p class="qr-subtitle">不错过 <硅谷AI圈动态> 每日更新</p>
+                <p class="qr-subtitle">长按或扫码上方二维码 · 备注「入群」</p>
+                <div class="qr-grid">
+                    <div class="qr-item">
+                        <div class="qr-image">
+                            <img src="../assets/0116_1.JPG" alt="扫码加群">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <p class="copyright">© 2026 小禾说AI · AI Today Daily · All Rights Reserved</p>
+        </footer>
+    </div>
+</body>
+
+</html>
