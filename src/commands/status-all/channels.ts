@@ -191,6 +191,19 @@ const buildAccountNotes = (params: {
   return notes;
 };
 
+function maskPhoneNumber(value: string): string {
+  const trimmed = value.trim();
+  const hasPlus = trimmed.startsWith("+");
+  const digits = trimmed.replace(/\D/g, "");
+  if (digits.length <= 4) {
+    return hasPlus ? `+${digits}` : digits;
+  }
+  const head = digits.slice(0, Math.min(3, Math.max(1, digits.length - 2)));
+  const tail = digits.slice(-2);
+  const stars = "*".repeat(Math.max(2, digits.length - head.length - tail.length));
+  return `${hasPlus ? "+" : ""}${head}${stars}${tail}`;
+}
+
 function resolveLinkFields(summary: unknown): {
   linked: boolean | null;
   authAgeMs: number | null;
@@ -433,7 +446,7 @@ export async function buildChannelsTable(
         const base = link.linked ? "linked" : "not linked";
         const extra: string[] = [];
         if (link.linked && link.selfE164) {
-          extra.push(link.selfE164);
+          extra.push(maskPhoneNumber(link.selfE164));
         }
         if (link.linked && link.authAgeMs != null && link.authAgeMs >= 0) {
           extra.push(`auth ${formatTimeAgo(link.authAgeMs)}`);

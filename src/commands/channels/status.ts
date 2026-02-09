@@ -18,6 +18,28 @@ export type ChannelsStatusOptions = {
   timeout?: string;
 };
 
+function maskPhoneNumber(value: string): string {
+  const trimmed = value.trim();
+  const hasPlus = trimmed.startsWith("+");
+  const digits = trimmed.replace(/\D/g, "");
+  if (digits.length <= 4) {
+    return hasPlus ? `+${digits}` : digits;
+  }
+  const head = digits.slice(0, Math.min(3, Math.max(1, digits.length - 2)));
+  const tail = digits.slice(-2);
+  const stars = "*".repeat(Math.max(2, digits.length - head.length - tail.length));
+  return `${hasPlus ? "+" : ""}${head}${stars}${tail}`;
+}
+
+function maskLikelyPhone(value: string): string {
+  const trimmed = value.trim();
+  const digits = trimmed.replace(/\D/g, "");
+  if (digits.length < 7) {
+    return trimmed;
+  }
+  return maskPhoneNumber(trimmed);
+}
+
 export function formatGatewayChannelsStatusLines(payload: Record<string, unknown>): string[] {
   const lines: string[] = [];
   lines.push(theme.success("Gateway reachable."));
@@ -76,7 +98,10 @@ export function formatGatewayChannelsStatusLines(payload: Record<string, unknown
         bits.push(`dm:${account.dmPolicy}`);
       }
       if (Array.isArray(account.allowFrom) && account.allowFrom.length > 0) {
-        bits.push(`allow:${account.allowFrom.slice(0, 2).join(",")}`);
+        const sample = account.allowFrom
+          .slice(0, 2)
+          .map((entry) => maskLikelyPhone(String(entry)));
+        bits.push(`allow:${sample.join(",")}`);
       }
       if (typeof account.tokenSource === "string" && account.tokenSource) {
         bits.push(`token:${account.tokenSource}`);
