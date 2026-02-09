@@ -60,4 +60,31 @@ describe("sanitizeUserFacingText", () => {
     const text = "Hello there!\n\nDifferent line.";
     expect(sanitizeUserFacingText(text)).toBe(text);
   });
+
+  it("does not replace currency amounts containing 402", () => {
+    // Issue #12711: $402.55 was being replaced with billing error warning
+    expect(sanitizeUserFacingText("The total cost is $402.55")).toBe("The total cost is $402.55");
+    expect(sanitizeUserFacingText("You spent $402 on groceries")).toBe(
+      "You spent $402 on groceries",
+    );
+    expect(sanitizeUserFacingText("Invoice #402: $150.00")).toBe("Invoice #402: $150.00");
+    expect(sanitizeUserFacingText("Room 402 is available")).toBe("Room 402 is available");
+    expect(sanitizeUserFacingText("The year 1402 was significant")).toBe(
+      "The year 1402 was significant",
+    );
+    expect(sanitizeUserFacingText("Order #1402 shipped")).toBe("Order #1402 shipped");
+  });
+
+  it("still catches actual 402 billing errors in error payloads", () => {
+    // Real API error payloads should still be caught
+    const apiError =
+      '{"type":"error","error":{"message":"Payment Required","type":"billing_error"}}';
+    expect(sanitizeUserFacingText(apiError)).toContain("billing");
+  });
+
+  it("still catches HTTP 402 errors", () => {
+    // HTTP status format errors should still be caught
+    expect(sanitizeUserFacingText("402 Payment Required")).toContain("billing");
+    expect(sanitizeUserFacingText("HTTP 402 Payment Required")).toContain("billing");
+  });
 });

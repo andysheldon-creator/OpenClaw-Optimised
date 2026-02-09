@@ -87,6 +87,7 @@ const HTTP_ERROR_HINTS = [
   "timed out",
   "invalid",
   "too many requests",
+  "payment required",
   "permission",
 ];
 
@@ -137,6 +138,22 @@ function isLikelyHttpErrorText(raw: string): boolean {
   }
   const message = match[2].toLowerCase();
   return HTTP_ERROR_HINTS.some((hint) => message.includes(hint));
+}
+
+/**
+ * Checks if text looks like an error message rather than normal assistant output.
+ * Used to guard error-specific rewrites from matching numbers in conversational text.
+ */
+function looksLikeErrorText(raw: string): boolean {
+  if (!raw) {
+    return false;
+  }
+  return (
+    isRawApiErrorPayload(raw) ||
+    isLikelyHttpErrorText(raw) ||
+    ERROR_PREFIX_RE.test(raw) ||
+    CONTEXT_OVERFLOW_ERROR_HEAD_RE.test(raw)
+  );
 }
 
 function shouldRewriteContextOverflowText(raw: string): boolean {
@@ -426,7 +443,9 @@ export function sanitizeUserFacingText(text: string): string {
     );
   }
 
-  if (isBillingErrorMessage(trimmed)) {
+  // Only apply billing error detection when text looks like an error message,
+  // not on normal assistant output that might contain numbers like "$402.55"
+  if (looksLikeErrorText(trimmed) && isBillingErrorMessage(trimmed)) {
     return BILLING_ERROR_USER_MESSAGE;
   }
 

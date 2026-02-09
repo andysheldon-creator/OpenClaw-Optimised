@@ -28,4 +28,12 @@ describe("isBillingErrorMessage", () => {
     expect(isBillingErrorMessage("invalid api key")).toBe(false);
     expect(isBillingErrorMessage("context length exceeded")).toBe(false);
   });
+
+  it("matches bare 402 (for use in error context)", () => {
+    // Note: isBillingErrorMessage itself still matches 402,
+    // but sanitizeUserFacingText guards against false positives
+    // by only applying it to error-like text
+    expect(isBillingErrorMessage("402")).toBe(true);
+    expect(isBillingErrorMessage("error 402")).toBe(true);
+  });
 });
