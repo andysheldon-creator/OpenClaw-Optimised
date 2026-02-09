@@ -425,29 +425,6 @@ export async function runMissedJobs(state: CronServiceState) {
   }
 }
 
-export async function runDueJobs(state: CronServiceState) {
-  if (!state.store) {
-    return;
-  }
-  const now = state.deps.nowMs();
-  const due = state.store.jobs.filter((j) => {
-    if (!j.state) {
-      j.state = {};
-    }
-    if (!j.enabled) {
-      return false;
-    }
-    if (typeof j.state.runningAtMs === "number") {
-      return false;
-    }
-    const next = j.state.nextRunAtMs;
-    return typeof next === "number" && now >= next;
-  });
-  for (const job of due) {
-    await executeJob(state, job, now, { forced: false });
-  }
-}
-
 async function executeJobCore(
   state: CronServiceState,
   job: CronJob,
