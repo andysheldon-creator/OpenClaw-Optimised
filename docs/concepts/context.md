@@ -111,6 +111,9 @@ By default, OpenClaw injects a fixed set of workspace files (if present):
 - `USER.md`
 - `HEARTBEAT.md`
 - `BOOTSTRAP.md` (first-run only)
+- `MEMORY.md` (optional)
+
+`memory/*.md` files are not auto-injected into Project Context. They are available through memory tools and indexing.
 
 Large files are truncated per-file using `agents.defaults.bootstrapMaxChars` (default `20000` chars). `/context` shows **raw vs injected** sizes and whether truncation happened.
 
