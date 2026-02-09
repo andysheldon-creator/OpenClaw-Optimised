@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { ChatInterface } from "./components/ChatInterface";
 import { Settings } from "./components/Settings";
@@ -9,6 +9,7 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
 
   const toggleTheme = () => {
     setTheme((prev) => (prev === "dark" ? "light" : "dark"));
@@ -17,13 +18,17 @@ export default function App() {
   const handleSelectChat = (chatId: string) => {
     setCurrentChatId(chatId);
     setShowHistory(false);
-    // TODO: Load chat messages for this chatId
   };
 
   const handleNewChat = () => {
     setCurrentChatId(null);
     setShowHistory(false);
   };
+
+  // Called when a conversation is created or updated
+  const handleConversationUpdate = useCallback(() => {
+    setHistoryRefreshKey((k) => k + 1);
+  }, []);
 
   const isDark = theme === "dark";
 
@@ -47,10 +52,15 @@ export default function App() {
         onClose={() => setShowHistory(false)}
         theme={theme}
         onSelectChat={handleSelectChat}
+        refreshKey={historyRefreshKey}
       />
       
       <div className="w-full flex justify-center py-20 px-6">
-        <ChatInterface theme={theme} chatId={currentChatId} />
+        <ChatInterface 
+          theme={theme} 
+          chatId={currentChatId} 
+          onConversationUpdate={handleConversationUpdate}
+        />
       </div>
 
       {/* Settings Modal */}

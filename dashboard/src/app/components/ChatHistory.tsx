@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { X, Trash2, MessageSquare, Search } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { loadConversations, deleteConversation } from "../lib/chat";
+import type { Conversation } from "../lib/types";
 
 interface ChatHistoryProps {
   isOpen: boolean;
   onClose: () => void;
   theme: "dark" | "light";
   onSelectChat: (chatId: string) => void;
+  refreshKey?: number;
 }
 
 interface ChatItem {
@@ -15,59 +18,41 @@ interface ChatItem {
   preview: string;
   timestamp: Date;
   messageCount: number;
+  model?: string;
 }
 
-export const ChatHistory: React.FC<ChatHistoryProps> = ({ isOpen, onClose, theme, onSelectChat }) => {
+export const ChatHistory: React.FC<ChatHistoryProps> = ({ 
+  isOpen, 
+  onClose, 
+  theme, 
+  onSelectChat,
+  refreshKey = 0 
+}) => {
   const isDark = theme === "dark";
   const [searchQuery, setSearchQuery] = useState("");
   const [chats, setChats] = useState<ChatItem[]>([]);
 
   // Load chat history from localStorage
   useEffect(() => {
-    const savedChats = localStorage.getItem("easyhub_chat_history");
-    if (savedChats) {
-      const parsed = JSON.parse(savedChats);
-      setChats(parsed.map((c: any) => ({ ...c, timestamp: new Date(c.timestamp) })));
-    } else {
-      // Demo data
-      setChats([
-        {
-          id: "1",
-          title: "Dashboard UI Setup",
-          preview: "Let's create a Perplexity-style layout with...",
-          timestamp: new Date(Date.now() - 1000 * 60 * 30),
-          messageCount: 24,
-        },
-        {
-          id: "2",
-          title: "Fork OpenClaw Repo",
-          preview: "I want you to clone openclaw repo to my...",
-          timestamp: new Date(Date.now() - 1000 * 60 * 60),
-          messageCount: 8,
-        },
-        {
-          id: "3",
-          title: "Odoo Local Development",
-          preview: "Setting up Docker environment with Enterprise...",
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24),
-          messageCount: 45,
-        },
-        {
-          id: "4",
-          title: "React vs Svelte Discussion",
-          preview: "We need React from now on...",
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2),
-          messageCount: 12,
-        },
-      ]);
-    }
-  }, []);
+    const conversations = loadConversations();
+    const chatItems: ChatItem[] = Object.values(conversations)
+      .map((conv: Conversation) => ({
+        id: conv.id,
+        title: conv.title,
+        preview: conv.messages?.[conv.messages.length - 1]?.content?.slice(0, 80) || "Empty conversation",
+        timestamp: new Date(conv.updatedAt || conv.createdAt),
+        messageCount: conv.messages?.length || 0,
+        model: conv.model,
+      }))
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    
+    setChats(chatItems);
+  }, [isOpen, refreshKey]);
 
-  const deleteChat = (chatId: string, e: React.MouseEvent) => {
+  const handleDeleteChat = (chatId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const updatedChats = chats.filter((c) => c.id !== chatId);
-    setChats(updatedChats);
-    localStorage.setItem("easyhub_chat_history", JSON.stringify(updatedChats));
+    deleteConversation(chatId);
+    setChats(prev => prev.filter(c => c.id !== chatId));
   };
 
   const formatDate = (date: Date) => {
@@ -77,6 +62,7 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({ isOpen, onClose, theme
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
+    if (diffMins < 1) return "Just now";
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
     if (diffDays < 7) return `${diffDays}d ago`;
@@ -105,6 +91,9 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({ isOpen, onClose, theme
     groups[group].push(chat);
     return groups;
   }, {} as Record<string, ChatItem[]>);
+
+  // Order for groups
+  const groupOrder = ["Today", "Yesterday", "This Week", "Older"];
 
   return (
     <AnimatePresence>
@@ -157,14 +146,16 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({ isOpen, onClose, theme
 
           {/* Chat List */}
           <div className="overflow-y-auto h-[calc(100%-120px)] px-2">
-            {Object.entries(groupedChats).map(([group, groupChats]) => (
+            {groupOrder
+              .filter(group => groupedChats[group]?.length > 0)
+              .map((group) => (
               <div key={group} className="mb-4">
                 <div className={`px-2 py-2 text-xs font-medium uppercase tracking-wider ${
                   isDark ? "text-gray-500" : "text-gray-400"
                 }`}>
                   {group}
                 </div>
-                {groupChats.map((chat) => (
+                {groupedChats[group].map((chat) => (
                   <motion.div
                     key={chat.id}
                     whileHover={{ scale: 1.02 }}
@@ -207,7 +198,7 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({ isOpen, onClose, theme
                     
                     {/* Delete button */}
                     <button
-                      onClick={(e) => deleteChat(chat.id, e)}
+                      onClick={(e) => handleDeleteChat(chat.id, e)}
                       className={`absolute right-2 top-2 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all ${
                         isDark 
                           ? "hover:bg-red-500/20 text-gray-500 hover:text-red-400" 
@@ -224,7 +215,12 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({ isOpen, onClose, theme
             {filteredChats.length === 0 && (
               <div className={`text-center py-12 ${isDark ? "text-gray-500" : "text-gray-400"}`}>
                 <MessageSquare size={32} className="mx-auto mb-3 opacity-50" />
-                <p className="text-sm">No conversations found</p>
+                <p className="text-sm">
+                  {chats.length === 0 
+                    ? "No conversations yet. Start chatting!" 
+                    : "No conversations found"
+                  }
+                </p>
               </div>
             )}
           </div>
