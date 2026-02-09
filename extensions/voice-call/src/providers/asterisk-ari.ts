@@ -735,8 +735,8 @@ export class AsteriskAriProvider implements VoiceCallProvider {
     if (!sipChannelId) return;
 
     const providerCallId = sipChannelId;
-    const from = evt.channel?.caller?.number || "unknown";
-    const to = evt.channel?.name || "unknown";
+    const from = evt.channel?.caller?.number;
+    const to = evt.channel?.name;
 
     this.manager.processEvent(
       makeEvent({
