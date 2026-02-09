@@ -321,7 +321,12 @@ export function renderApp(state: AppViewState) {
                     void loadDeletedSessions(state);
                   }
                 },
-                onRefresh: () => loadSessions(state),
+                onRefresh: () => {
+                  void loadSessions(state);
+                  if (state.sessionsShowDeleted) {
+                    void loadDeletedSessions(state);
+                  }
+                },
                 onPatch: (key, patch) => patchSession(state, key, patch),
                 onDelete: (key) => deleteSession(state, key),
                 onRestore: (sessionId) => restoreSession(state, sessionId),
