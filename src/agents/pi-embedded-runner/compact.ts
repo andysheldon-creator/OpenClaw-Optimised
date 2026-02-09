@@ -495,7 +495,9 @@ export async function compactEmbeddedPiSessionDirect(
             log.warn(`before_compaction hook failed: ${String(err)}`);
           }
         }
-        const messageCountCompactionInput = session.messages.length;
+        // Measure compactedCount from the original pre-limiting transcript so compaction
+        // lifecycle metrics represent total reduction through the compaction pipeline.
+        const messageCountCompactionInput = messageCountOriginal;
         const result = await session.compact(params.customInstructions);
         // Estimate tokens after compaction by summing token estimates for remaining messages
         let tokensAfter: number | undefined;
