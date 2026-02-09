@@ -51,6 +51,7 @@ See [Venice AI](/providers/venice).
 - [Venice (Venice AI, privacy-focused)](/providers/venice)
 - [Ollama (local models)](/providers/ollama)
 - [Qianfan](/providers/qianfan)
+- [Huawei Cloud MAAS](/providers/huawei)
 
 ## Transcription providers
 
