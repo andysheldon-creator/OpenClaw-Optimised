@@ -6,23 +6,30 @@ Inspired by Simon Willison's [Running OpenClaw in Docker](https://til.simonwilli
 
 - [Quickstart](#quickstart)
 - [Available Commands](#available-commands)
+  - [Basic Operations](#basic-operations)
+  - [Container Access](#container-access)
+  - [Web UI \& Devices](#web-ui--devices)
+  - [Setup \& Configuration](#setup--configuration)
+  - [Maintenance](#maintenance)
+  - [Utilities](#utilities)
 - [Common Workflows](#common-workflows)
-- [Troubleshooting](#troubleshooting)
+  - [Check Status and Logs](#check-status-and-logs)
+  - [Set Up WhatsApp Bot](#set-up-whatsapp-bot)
+  - [Troubleshooting Device Pairing](#troubleshooting-device-pairing)
+  - [Fix Token Mismatch Issues](#fix-token-mismatch-issues)
+  - [Permission Denied](#permission-denied)
 - [Requirements](#requirements)
-- [Contributing](#contributing)
 
 ## Quickstart
 
-**Try it out:**
+**Install:**
 
 ```bash
-source <(curl -sL https://raw.githubusercontent.com/openclaw/openclaw/main/scripts/shell-helpers/clawdock-helpers.sh)
+mkdir -p ~/.clawdock && curl -sL https://raw.githubusercontent.com/openclaw/openclaw/main/scripts/shell-helpers/clawdock-helpers.sh -o ~/.clawdock/clawdock-helpers.sh
 ```
 
-**Make it permanent:**
-
 ```bash
-echo 'source <(curl -sL https://raw.githubusercontent.com/openclaw/openclaw/main/scripts/shell-helpers/clawdock-helpers.sh)' >> ~/.zshrc
+echo 'source ~/.clawdock/clawdock-helpers.sh' >> ~/.zshrc && source ~/.zshrc
 ```
 
 **See what you get:**
@@ -30,6 +37,11 @@ echo 'source <(curl -sL https://raw.githubusercontent.com/openclaw/openclaw/main
 ```bash
 clawdock-help
 ```
+
+On first command, ClawDock auto-detects your OpenClaw directory:
+- Checks common paths (`~/openclaw`, `~/workspace/openclaw`, etc.)
+- If found, asks you to confirm
+- Saves to `~/.clawdock/config`
 
 **First time setup:**
 
@@ -51,6 +63,8 @@ If you see "pairing required":
 clawdock-devices
 ```
 
+And approve the request for the specific device:
+
 ```bash
 clawdock-approve <request-id>
 ```
@@ -59,57 +73,63 @@ clawdock-approve <request-id>
 
 ### Basic Operations
 
-| Command | Description |
-|---------|-------------|
-| `clawdock-start` | Start the gateway |
-| `clawdock-stop` | Stop the gateway |
-| `clawdock-restart` | Restart the gateway |
-| `clawdock-status` | Check container status |
-| `clawdock-logs` | View live logs (follows output) |
+| Command            | Description                     |
+| ------------------ | ------------------------------- |
+| `clawdock-start`   | Start the gateway               |
+| `clawdock-stop`    | Stop the gateway                |
+| `clawdock-restart` | Restart the gateway             |
+| `clawdock-status`  | Check container status          |
+| `clawdock-logs`    | View live logs (follows output) |
 
 ### Container Access
 
-| Command | Description |
-|---------|-------------|
-| `clawdock-shell` | Interactive shell inside the gateway container |
-| `clawdock-cli <command>` | Run OpenClaw CLI commands |
-| `clawdock-exec <command>` | Execute arbitrary commands in the container |
+| Command                   | Description                                    |
+| ------------------------- | ---------------------------------------------- |
+| `clawdock-shell`          | Interactive shell inside the gateway container |
+| `clawdock-cli <command>`  | Run OpenClaw CLI commands                      |
+| `clawdock-exec <command>` | Execute arbitrary commands in the container    |
 
 ### Web UI & Devices
 
-| Command | Description |
-|---------|-------------|
-| `clawdock-dashboard` | Open web UI in browser with authentication |
-| `clawdock-devices` | List device pairing requests |
-| `clawdock-approve <id>` | Approve a device pairing request |
+| Command                 | Description                                |
+| ----------------------- | ------------------------------------------ |
+| `clawdock-dashboard`    | Open web UI in browser with authentication |
+| `clawdock-devices`      | List device pairing requests               |
+| `clawdock-approve <id>` | Approve a device pairing request           |
 
 ### Setup & Configuration
 
-| Command | Description |
-|---------|-------------|
+| Command              | Description                                       |
+| -------------------- | ------------------------------------------------- |
 | `clawdock-fix-token` | Configure gateway authentication token (run once) |
 
 ### Maintenance
 
-| Command | Description |
-|---------|-------------|
-| `clawdock-rebuild` | Rebuild the Docker image |
-| `clawdock-clean` | Remove all containers and volumes (destructive!) |
+| Command            | Description                                      |
+| ------------------ | ------------------------------------------------ |
+| `clawdock-rebuild` | Rebuild the Docker image                         |
+| `clawdock-clean`   | Remove all containers and volumes (destructive!) |
 
 ### Utilities
 
-| Command | Description |
-|---------|-------------|
-| `clawdock-health` | Run gateway health check |
-| `clawdock-token` | Display the gateway authentication token |
-| `clawdock-cd` | Jump to the OpenClaw project directory |
-| `clawdock-config` | Open the OpenClaw config directory |
-| `clawdock-workspace` | Open the workspace directory |
-| `clawdock-help` | Show all available commands with examples |
+| Command              | Description                               |
+| -------------------- | ----------------------------------------- |
+| `clawdock-health`    | Run gateway health check                  |
+| `clawdock-token`     | Display the gateway authentication token  |
+| `clawdock-cd`        | Jump to the OpenClaw project directory    |
+| `clawdock-config`    | Open the OpenClaw config directory        |
+| `clawdock-workspace` | Open the workspace directory              |
+| `clawdock-help`      | Show all available commands with examples |
 
 ## Common Workflows
 
 ### Check Status and Logs
+
+**Restart the gateway:**
+
+```bash
+clawdock-restart
+```
 
 **Check container status:**
 
@@ -118,20 +138,6 @@ clawdock-status
 ```
 
 **View live logs:**
-
-```bash
-clawdock-logs
-```
-
-### Restart After Configuration Changes
-
-**Restart the gateway:**
-
-```bash
-clawdock-restart
-```
-
-**Watch the logs:**
 
 ```bash
 clawdock-logs
@@ -170,7 +176,7 @@ clawdock-devices
 **Copy the Request ID from the "Pending" table, then approve:**
 
 ```bash
-clawdock-approve 6f9db1bd-a1cc-4d3f-b643-2c195262464e
+clawdock-approve <request-id>
 ```
 
 Then refresh your browser.
@@ -184,30 +190,11 @@ clawdock-fix-token
 ```
 
 This will:
+
 1. Read the token from your `.env` file
 2. Configure it in the OpenClaw config
 3. Restart the gateway
 4. Verify the configuration
-
-## Troubleshooting
-
-### Commands Not Found
-
-**Source the helpers file:**
-
-```bash
-source <(curl -sL https://raw.githubusercontent.com/openclaw/openclaw/main/scripts/shell-helpers/clawdock-helpers.sh)
-```
-
-Add this line to your `~/.zshrc` or `~/.bashrc` for persistence.
-
-### Token Mismatch Errors
-
-**Run the token fixer:**
-
-```bash
-clawdock-fix-token
-```
 
 ### Permission Denied
 
@@ -217,31 +204,22 @@ clawdock-fix-token
 docker ps
 ```
 
-### Container Not Starting
-
-**Check the logs:**
-
-```bash
-clawdock-logs
-```
-
-Common issues:
-- Port 18789 or 18790 already in use
-- Missing environment variables in `.env`
-- Docker daemon not running
-
 ## Requirements
 
 - Docker and Docker Compose installed
 - Bash or Zsh shell
 - OpenClaw project (from `docker-setup.sh`)
 
-## Contributing
+## Development
 
-Found a bug or want to add a new helper? Contributions welcome!
+**Test with fresh config (mimics first-time install):**
 
-1. Test your changes locally
-2. Ensure helpers work in both bash and zsh
-3. Follow the naming convention (`clawdock-*`)
-4. Add documentation for new commands
-5. Submit a pull request
+```bash
+unset CLAWDOCK_DIR && rm -f ~/.clawdock/config && source scripts/shell-helpers/clawdock-helpers.sh
+```
+
+Then run any command to trigger auto-detect:
+
+```bash
+clawdock-start
+```
