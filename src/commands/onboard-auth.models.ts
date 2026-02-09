@@ -121,7 +121,7 @@ export function buildXaiModelDefinition(): ModelDefinitionConfig {
   };
 }
 
-export const DIGITALOCEAN_GRADIENT_BASE_URL = "https://api.digitalocean.com/v2/ai";
+export const DIGITALOCEAN_GRADIENT_BASE_URL = "https://api.gradient_ai.com/api/v1";
 export const DIGITALOCEAN_GRADIENT_DEFAULT_MODEL_ID = "meta-llama-3.3-70b-instruct";
 export const DIGITALOCEAN_GRADIENT_DEFAULT_MODEL_REF = `digitalocean/${DIGITALOCEAN_GRADIENT_DEFAULT_MODEL_ID}`;
 export const DIGITALOCEAN_GRADIENT_DEFAULT_CONTEXT_WINDOW = 128000;
