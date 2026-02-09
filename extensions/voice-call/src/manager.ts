@@ -586,8 +586,11 @@ export class CallManager {
         event.to || this.config.fromNumber || "unknown",
       );
 
-      // Update the event's callId to use our internal ID
-      event.callId = call.callId;
+    }
+
+    let evt = event;
+    if (call && call.callId !== event.callId) {
+      evt = { ...event, callId: call.callId };
     }
 
     if (!call) {
@@ -596,10 +599,10 @@ export class CallManager {
     }
 
     // Update provider call ID if we got it
-    if (event.providerCallId && event.providerCallId !== call.providerCallId) {
+    if (evt.providerCallId && evt.providerCallId !== call.providerCallId) {
       const previousProviderCallId = call.providerCallId;
-      call.providerCallId = event.providerCallId;
-      this.providerCallIdMap.set(event.providerCallId, call.callId);
+      call.providerCallId = evt.providerCallId;
+      this.providerCallIdMap.set(evt.providerCallId, call.callId);
       if (previousProviderCallId) {
         const mapped = this.providerCallIdMap.get(previousProviderCallId);
         if (mapped === call.callId) {
@@ -609,10 +612,10 @@ export class CallManager {
     }
 
     // Track processed event
-    call.processedEventIds.push(event.id);
+    call.processedEventIds.push(evt.id);
 
     // Process event based on type
-    switch (event.type) {
+    switch (evt.type) {
       case "call.initiated":
         this.transitionState(call, "initiated");
         break;
@@ -622,7 +625,7 @@ export class CallManager {
         break;
 
       case "call.answered":
-        call.answeredAt = event.timestamp;
+        call.answeredAt = evt.timestamp;
         this.transitionState(call, "answered");
         // Start max duration timer when call is answered
         this.startMaxDurationTimer(call.callId);
@@ -640,19 +643,19 @@ export class CallManager {
         break;
 
       case "call.speech":
-        if (event.isFinal) {
-          this.addTranscriptEntry(call, "user", event.transcript);
-          this.resolveTranscriptWaiter(call.callId, event.transcript);
+        if (evt.isFinal) {
+          this.addTranscriptEntry(call, "user", evt.transcript);
+          this.resolveTranscriptWaiter(call.callId, evt.transcript);
         }
         this.transitionState(call, "listening");
         break;
 
       case "call.ended":
-        call.endedAt = event.timestamp;
-        call.endReason = event.reason;
-        this.transitionState(call, event.reason as CallState);
+        call.endedAt = evt.timestamp;
+        call.endReason = evt.reason;
+        this.transitionState(call, evt.reason as CallState);
         this.clearMaxDurationTimer(call.callId);
-        this.rejectTranscriptWaiter(call.callId, `Call ended: ${event.reason}`);
+        this.rejectTranscriptWaiter(call.callId, `Call ended: ${evt.reason}`);
         this.activeCalls.delete(call.callId);
         if (call.providerCallId) {
           this.providerCallIdMap.delete(call.providerCallId);
@@ -660,12 +663,12 @@ export class CallManager {
         break;
 
       case "call.error":
-        if (!event.retryable) {
-          call.endedAt = event.timestamp;
+        if (!evt.retryable) {
+          call.endedAt = evt.timestamp;
           call.endReason = "error";
           this.transitionState(call, "error");
           this.clearMaxDurationTimer(call.callId);
-          this.rejectTranscriptWaiter(call.callId, `Call error: ${event.error}`);
+          this.rejectTranscriptWaiter(call.callId, `Call error: ${evt.error}`);
           this.activeCalls.delete(call.callId);
           if (call.providerCallId) {
             this.providerCallIdMap.delete(call.providerCallId);

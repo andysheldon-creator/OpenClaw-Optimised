@@ -172,7 +172,16 @@ export class AsteriskAriProvider implements VoiceCallProvider {
   async hangupCall(input: HangupCallInput): Promise<void> {
     const state = this.calls.get(input.providerCallId);
     if (!state) {
-      await this.client.safeHangupChannel(input.providerCallId).catch(() => {});
+      const call = this.manager.getCall(input.callId);
+      const channelId = call?.providerCallId ?? input.providerCallId;
+      if (!channelId) {
+        console.warn("[ari] hangup skipped; missing channel id", {
+          callId: input.callId,
+          providerCallId: input.providerCallId,
+        });
+        return;
+      }
+      await this.client.safeHangupChannel(channelId).catch(() => {});
       return;
     }
 
