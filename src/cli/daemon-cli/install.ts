@@ -79,8 +79,14 @@ export async function runDaemonInstall(opts: DaemonInstallOptions) {
     // Validate that the currently configured entrypoint actually exists.
     // This catches stale LaunchAgent/systemd configs pointing to removed npm installs,
     // moved git checkouts, or outdated pnpm store paths.
-    const currentConfig = await service.readCommand(process.env);
-    if (currentConfig?.programArguments && currentConfig.programArguments.length >= 2) {
+    let currentConfig: Awaited<ReturnType<typeof service.readCommand>> | undefined;
+    try {
+      currentConfig = await service.readCommand(process.env);
+    } catch {
+      // Can't read service config - proceed with reinstall to be safe
+      loaded = false;
+    }
+    if (loaded && currentConfig?.programArguments && currentConfig.programArguments.length >= 2) {
       const entrypoint = currentConfig.programArguments[1];
       try {
         await fs.access(entrypoint);

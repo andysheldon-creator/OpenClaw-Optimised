@@ -145,7 +145,15 @@ export async function runDaemonStart(opts: DaemonLifecycleOptions = {}) {
 
   // Validate that the configured entrypoint exists before attempting to start.
   // This provides a clear error instead of letting the service crash repeatedly.
-  const currentConfig = await service.readCommand(process.env);
+  let currentConfig: Awaited<ReturnType<typeof service.readCommand>> | undefined;
+  try {
+    currentConfig = await service.readCommand(process.env);
+  } catch {
+    // Can't read service config - suggest reinstall
+    const hints = [`Run: openclaw gateway install --force`];
+    fail(`Gateway service config unreadable. Reinstall the service.`, hints);
+    return;
+  }
   if (currentConfig?.programArguments && currentConfig.programArguments.length >= 2) {
     const entrypoint = currentConfig.programArguments[1];
     try {
