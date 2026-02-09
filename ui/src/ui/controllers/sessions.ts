@@ -61,12 +61,16 @@ export async function loadSessions(
     }
     const res = await state.client.request<SessionsListResult | undefined>("sessions.list", params);
     if (res) {
+      console.log("[loadSessions] Got response with", res.sessions?.length, "sessions");
       state.sessionsResult = res;
+      console.log("[loadSessions] Updated state.sessionsResult");
     }
   } catch (err) {
     state.sessionsError = String(err);
+    console.error("[loadSessions] Error:", err);
   } finally {
     state.sessionsLoading = false;
+    console.log("[loadSessions] Calling onUpdate");
     onUpdate?.();
   }
 }
@@ -131,12 +135,20 @@ export async function loadDeletedSessions(state: SessionsState, onUpdate?: () =>
       }>;
     }>("sessions.list.deleted", { limit: 100 });
     if (res && res.ok) {
+      console.log(
+        "[loadDeletedSessions] Got response with",
+        res.deleted?.length,
+        "deleted sessions",
+      );
       state.sessionsDeletedList = res.deleted;
+      console.log("[loadDeletedSessions] Updated state.sessionsDeletedList");
     }
   } catch (err) {
     state.sessionsError = String(err);
+    console.error("[loadDeletedSessions] Error:", err);
   } finally {
     state.sessionsLoading = false;
+    console.log("[loadDeletedSessions] Calling onUpdate");
     onUpdate?.();
   }
 }
@@ -163,17 +175,22 @@ export async function restoreSession(
   state.sessionsLoading = true;
   state.sessionsError = null;
   try {
+    console.log("[restoreSession] Restoring session:", sessionId);
     await state.client.request("sessions.restore", { sessionId });
+    console.log("[restoreSession] Restore successful, refreshing lists...");
 
     // Refresh both lists after restore
     await Promise.all([
       loadSessions(state, undefined, onUpdate),
       state.sessionsShowDeleted ? loadDeletedSessions(state, onUpdate) : Promise.resolve(),
     ]);
+    console.log("[restoreSession] Lists refreshed");
   } catch (err) {
     state.sessionsError = String(err);
+    console.error("[restoreSession] Error:", err);
   } finally {
     state.sessionsLoading = false;
+    console.log("[restoreSession] Final onUpdate call");
     onUpdate?.();
   }
 }
@@ -206,10 +223,13 @@ export async function deleteSession(state: SessionsState, key: string, onUpdate?
   state.sessionsLoading = true;
   state.sessionsError = null;
   try {
+    console.log("[deleteSession] Deleting session:", key);
     await state.client.request("sessions.delete", { key, deleteTranscript: true });
+    console.log("[deleteSession] Delete successful");
 
     // Redirect to main session if we deleted the active one
     if (isActiveSession) {
+      console.log("[deleteSession] Was active session, redirecting...");
       const url = new URL(window.location.href);
       url.searchParams.delete("session");
       url.pathname = "/";
@@ -217,15 +237,19 @@ export async function deleteSession(state: SessionsState, key: string, onUpdate?
       return;
     }
 
+    console.log("[deleteSession] Refreshing lists, showDeleted:", state.sessionsShowDeleted);
     // Refresh both lists after deletion
     await Promise.all([
       loadSessions(state, undefined, onUpdate),
       state.sessionsShowDeleted ? loadDeletedSessions(state, onUpdate) : Promise.resolve(),
     ]);
+    console.log("[deleteSession] Lists refreshed");
   } catch (err) {
     state.sessionsError = String(err);
+    console.error("[deleteSession] Error:", err);
   } finally {
     state.sessionsLoading = false;
+    console.log("[deleteSession] Final onUpdate call");
     onUpdate?.();
   }
 }

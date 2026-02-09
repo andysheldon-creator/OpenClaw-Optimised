@@ -300,7 +300,10 @@ export function renderApp(state: AppViewState & { requestUpdate?: () => void }) 
         ${
           state.tab === "sessions"
             ? (() => {
-                const onUpdate = () => state.requestUpdate?.();
+                const onUpdate = () => {
+                  console.log("[onUpdate] Called, requestUpdate available:", !!state.requestUpdate);
+                  state.requestUpdate?.();
+                };
                 return renderSessions({
                   loading: state.sessionsLoading,
                   result: state.sessionsResult,
