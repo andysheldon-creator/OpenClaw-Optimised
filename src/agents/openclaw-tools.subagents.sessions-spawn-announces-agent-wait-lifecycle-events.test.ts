@@ -23,10 +23,10 @@ vi.mock("../config/config.js", async (importOriginal) => {
 
 import "./test-helpers/fast-core-tools.js";
 import { sleep } from "../utils.js";
-import { createOpenClawTools } from "./openclaw-tools.js";
+import { createEasyHubTools } from "./EasyHub-tools.js";
 import { resetSubagentRegistryForTests } from "./subagent-registry.js";
 
-describe("openclaw-tools: subagents", () => {
+describe("EasyHub-tools: subagents", () => {
   beforeEach(() => {
     configOverride = {
       session: {
@@ -100,7 +100,7 @@ describe("openclaw-tools: subagents", () => {
       return {};
     });
 
-    const tool = createOpenClawTools({
+    const tool = createEasyHubTools({
       agentSessionKey: "discord:group:req",
       agentChannel: "discord",
     }).find((candidate) => candidate.name === "sessions_spawn");

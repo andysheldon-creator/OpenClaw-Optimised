@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { sendMessageStream } from "../lib/chat";
 import { generateId, generateTitle, type Message, type Conversation, type ChatSettings } from "../lib/types";
 import { saveConversation, getConversation } from "../lib/chat";
-import { PROVIDERS, type ProviderKey } from "../lib/openclaw";
+import { PROVIDERS, type ProviderKey } from "../lib/EasyHub";
 
 interface ChatInterfaceProps {
   theme: "dark" | "light";

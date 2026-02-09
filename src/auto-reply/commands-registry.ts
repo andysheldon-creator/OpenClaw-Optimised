@@ -1,5 +1,5 @@
 import type { SkillCommandSpec } from "../agents/skills.js";
-import type { OpenClawConfig } from "../config/types.js";
+import type { EasyHubConfig } from "../config/types.js";
 import type {
   ChatCommandDefinition,
   CommandArgChoiceContext,
@@ -97,7 +97,7 @@ export function listChatCommands(params?: {
   return [...commands, ...buildSkillCommandDefinitions(params.skillCommands)];
 }
 
-export function isCommandEnabled(cfg: OpenClawConfig, commandKey: string): boolean {
+export function isCommandEnabled(cfg: EasyHubConfig, commandKey: string): boolean {
   if (commandKey === "config") {
     return cfg.commands?.config === true;
   }
@@ -111,7 +111,7 @@ export function isCommandEnabled(cfg: OpenClawConfig, commandKey: string): boole
 }
 
 export function listChatCommandsForConfig(
-  cfg: OpenClawConfig,
+  cfg: EasyHubConfig,
   params?: { skillCommands?: SkillCommandSpec[] },
 ): ChatCommandDefinition[] {
   const base = getChatCommands().filter((command) => isCommandEnabled(cfg, command.key));
@@ -155,7 +155,7 @@ export function listNativeCommandSpecs(params?: {
 }
 
 export function listNativeCommandSpecsForConfig(
-  cfg: OpenClawConfig,
+  cfg: EasyHubConfig,
   params?: { skillCommands?: SkillCommandSpec[]; provider?: string },
 ): NativeCommandSpec[] {
   return listChatCommandsForConfig(cfg, params)
@@ -280,12 +280,12 @@ export function buildCommandTextFromArgs(
   return buildCommandText(commandName, serializeCommandArgs(command, args));
 }
 
-function resolveDefaultCommandContext(cfg?: OpenClawConfig): {
+function resolveDefaultCommandContext(cfg?: EasyHubConfig): {
   provider: string;
   model: string;
 } {
   const resolved = resolveConfiguredModelRef({
-    cfg: cfg ?? ({} as OpenClawConfig),
+    cfg: cfg ?? ({} as EasyHubConfig),
     defaultProvider: DEFAULT_PROVIDER,
     defaultModel: DEFAULT_MODEL,
   });
@@ -300,7 +300,7 @@ export type ResolvedCommandArgChoice = { value: string; label: string };
 export function resolveCommandArgChoices(params: {
   command: ChatCommandDefinition;
   arg: CommandArgDefinition;
-  cfg?: OpenClawConfig;
+  cfg?: EasyHubConfig;
   provider?: string;
   model?: string;
 }): ResolvedCommandArgChoice[] {
@@ -330,7 +330,7 @@ export function resolveCommandArgChoices(params: {
 export function resolveCommandArgMenu(params: {
   command: ChatCommandDefinition;
   args?: CommandArgs;
-  cfg?: OpenClawConfig;
+  cfg?: EasyHubConfig;
 }): { arg: CommandArgDefinition; choices: ResolvedCommandArgChoice[]; title?: string } | null {
   const { command, args, cfg } = params;
   if (!command.args || !command.argsMenu) {
@@ -421,7 +421,7 @@ export function isCommandMessage(raw: string): boolean {
   return trimmed.startsWith("/");
 }
 
-export function getCommandDetection(_cfg?: OpenClawConfig): CommandDetection {
+export function getCommandDetection(_cfg?: EasyHubConfig): CommandDetection {
   const commands = getChatCommands();
   if (cachedDetection && cachedDetectionCommands === commands) {
     return cachedDetection;
@@ -454,7 +454,7 @@ export function getCommandDetection(_cfg?: OpenClawConfig): CommandDetection {
   return cachedDetection;
 }
 
-export function maybeResolveTextAlias(raw: string, cfg?: OpenClawConfig) {
+export function maybeResolveTextAlias(raw: string, cfg?: EasyHubConfig) {
   const trimmed = normalizeCommandBody(raw).trim();
   if (!trimmed.startsWith("/")) {
     return null;
@@ -477,7 +477,7 @@ export function maybeResolveTextAlias(raw: string, cfg?: OpenClawConfig) {
 
 export function resolveTextCommand(
   raw: string,
-  cfg?: OpenClawConfig,
+  cfg?: EasyHubConfig,
 ): {
   command: ChatCommandDefinition;
   args?: string;

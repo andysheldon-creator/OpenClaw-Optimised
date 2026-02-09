@@ -1,5 +1,5 @@
-// OpenClaw Gateway Integration
-// Connects dashboard to OpenClaw's config system
+// EasyHub Gateway Integration
+// Connects dashboard to EasyHub's config system
 
 const GATEWAY_URL = "http://localhost:18789";
 
@@ -9,7 +9,7 @@ interface GatewayResponse<T = any> {
   error?: string;
 }
 
-interface OpenClawConfig {
+interface EasyHubConfig {
   agents?: {
     defaults?: {
       model?: {
@@ -70,7 +70,7 @@ async function gatewayRequest<T = any>(
   } catch (error: any) {
     return { 
       ok: false, 
-      error: error.message || "Failed to connect to OpenClaw gateway" 
+      error: error.message || "Failed to connect to EasyHub gateway" 
     };
   }
 }
@@ -93,13 +93,13 @@ export async function checkGatewayStatus(): Promise<{
   } catch (error: any) {
     return { 
       connected: false, 
-      error: "Gateway not running. Start with: openclaw gateway" 
+      error: "Gateway not running. Start with: EasyHub gateway" 
     };
   }
 }
 
-// Get current OpenClaw configuration
-export async function getOpenClawConfig(): Promise<GatewayResponse<OpenClawConfig>> {
+// Get current EasyHub configuration
+export async function getEasyHubConfig(): Promise<GatewayResponse<EasyHubConfig>> {
   const token = getGatewayToken();
   
   try {
@@ -124,9 +124,9 @@ export async function getOpenClawConfig(): Promise<GatewayResponse<OpenClawConfi
   }
 }
 
-// Update OpenClaw configuration (partial patch)
-export async function patchOpenClawConfig(
-  patch: Partial<OpenClawConfig>
+// Update EasyHub configuration (partial patch)
+export async function patchEasyHubConfig(
+  patch: Partial<EasyHubConfig>
 ): Promise<GatewayResponse> {
   const token = getGatewayToken();
   
@@ -166,17 +166,17 @@ export function buildModelString(provider: string, model: string): string {
 }
 
 // Get current model from config
-export function getCurrentModel(config: OpenClawConfig): string | null {
+export function getCurrentModel(config: EasyHubConfig): string | null {
   return config?.agents?.defaults?.model?.primary || null;
 }
 
 // Get auth profiles from config
-export function getAuthProfiles(config: OpenClawConfig): Record<string, AuthProfile> {
+export function getAuthProfiles(config: EasyHubConfig): Record<string, AuthProfile> {
   return config?.auth?.profiles || {};
 }
 
 // Check if a provider has auth configured
-export function hasProviderAuth(config: OpenClawConfig, provider: string): boolean {
+export function hasProviderAuth(config: EasyHubConfig, provider: string): boolean {
   const profiles = getAuthProfiles(config);
   return Object.keys(profiles).some(key => key.startsWith(`${provider}:`));
 }

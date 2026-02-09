@@ -63,7 +63,7 @@ const DEFAULT_PROVIDERS: AIProvider[] = [
 ];
 
 // Config URL - can be changed to point to a remote JSON file
-const CONFIG_URL = "https://raw.githubusercontent.com/KBS-Dev1/openclaw/main/dashboard/models.json";
+const CONFIG_URL = "https://raw.githubusercontent.com/KBS-Dev1/EasyHub/main/dashboard/models.json";
 
 let cachedProviders: AIProvider[] | null = null;
 let lastFetch: number = 0;

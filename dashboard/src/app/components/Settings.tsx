@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { X, Eye, EyeOff, Check, RefreshCw, Link2, AlertCircle, Info } from "lucide-react";
-import { PROVIDERS, type ProviderKey, buildModelString, parseModelString, checkGatewayStatus, setGatewayToken } from "../lib/openclaw";
+import { PROVIDERS, type ProviderKey, buildModelString, parseModelString, checkGatewayStatus, setGatewayToken } from "../lib/EasyHub";
 
 interface SettingsProps {
   isOpen: boolean;
@@ -8,7 +8,7 @@ interface SettingsProps {
   theme: "dark" | "light";
 }
 
-type TabType = "models" | "advanced" | "openclaw";
+type TabType = "models" | "advanced" | "EasyHub";
 
 export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, theme }) => {
   const isDark = theme === "dark";
@@ -25,7 +25,7 @@ export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, theme }) =>
   const [maxTokens, setMaxTokens] = useState(4096);
   const [systemPrompt, setSystemPrompt] = useState("");
 
-  // OpenClaw integration
+  // EasyHub integration
   const [gatewayToken, setGatewayTokenState] = useState("");
   const [gatewayStatus, setGatewayStatus] = useState<{ connected: boolean; error?: string } | null>(null);
   const [checkingGateway, setCheckingGateway] = useState(false);
@@ -137,7 +137,7 @@ export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, theme }) =>
           {[
             { id: "models" as TabType, label: "Models" },
             { id: "advanced" as TabType, label: "Advanced" },
-            { id: "openclaw" as TabType, label: "Gateway" },
+            { id: "EasyHub" as TabType, label: "Gateway" },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -355,7 +355,7 @@ export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, theme }) =>
             </>
           )}
 
-          {activeTab === "openclaw" && (
+          {activeTab === "EasyHub" && (
             <>
               {/* Gateway Status */}
               <div className={`p-4 rounded-xl border ${
