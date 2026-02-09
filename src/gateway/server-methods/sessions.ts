@@ -796,8 +796,8 @@ export const sessionsHandlers: GatewayRequestHandlers = {
       );
 
       // Delete ALL archived files for this sessionId to prevent duplicates
-      const files = fs.readdirSync(sessionsDir);
-      const allDeleted = files.filter((f) => f.startsWith(`${sessionId}.jsonl.deleted.`));
+      const allFiles = fs.readdirSync(sessionsDir);
+      const allDeleted = allFiles.filter((f) => f.startsWith(`${sessionId}.jsonl.deleted.`));
       for (const oldFile of allDeleted) {
         try {
           fs.unlinkSync(path.join(sessionsDir, oldFile));
