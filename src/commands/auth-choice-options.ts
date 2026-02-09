@@ -82,7 +82,7 @@ const AUTH_CHOICE_GROUP_DEFS: {
   {
     value: "digitalocean",
     label: "DigitalOcean Gradient",
-    hint: "OpenAI-compatible LLMs",
+    hint: "API key",
     choices: ["digitalocean-gradient-api-key"],
   },
   {
@@ -198,7 +198,7 @@ export function buildAuthChoiceOptions(params: {
   options.push({
     value: "digitalocean-gradient-api-key",
     label: "DigitalOcean Gradient API key",
-    hint: "OpenAI-compatible inference",
+    hint: "API key",
   });
   options.push({ value: "openrouter-api-key", label: "OpenRouter API key" });
   options.push({
