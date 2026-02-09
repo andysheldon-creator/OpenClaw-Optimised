@@ -366,24 +366,37 @@ export const sessionsHandlers: GatewayRequestHandlers = {
 
     const archived: string[] = [];
     if (deleteTranscript && sessionId) {
-      for (const candidate of resolveSessionTranscriptCandidates(
+      const candidates = resolveSessionTranscriptCandidates(
         sessionId,
         storePath,
         entry?.sessionFile,
         target.agentId,
-      )) {
-        if (!fs.existsSync(candidate)) {
-          continue;
-        }
+      );
+
+      // If no transcript files exist but we have metadata, create one with just the metadata
+      const existingFiles = candidates.filter((c) => fs.existsSync(c));
+      if (existingFiles.length === 0 && entry && candidates.length > 0) {
+        const metadataFile = candidates[0];
         try {
-          // Append session metadata to the transcript file before archiving
-          if (entry) {
-            const metadataLine = JSON.stringify({ __session_metadata__: entry }) + "\n";
-            fs.appendFileSync(candidate, metadataLine, "utf-8");
-          }
-          archived.push(archiveFileOnDisk(candidate, "deleted"));
+          const metadataLine = JSON.stringify({ __session_metadata__: entry }) + "\n";
+          fs.writeFileSync(metadataFile, metadataLine, "utf-8");
+          archived.push(archiveFileOnDisk(metadataFile, "deleted"));
         } catch {
           // Best-effort.
+        }
+      } else {
+        // Archive existing transcript files
+        for (const candidate of existingFiles) {
+          try {
+            // Append session metadata to the transcript file before archiving
+            if (entry) {
+              const metadataLine = JSON.stringify({ __session_metadata__: entry }) + "\n";
+              fs.appendFileSync(candidate, metadataLine, "utf-8");
+            }
+            archived.push(archiveFileOnDisk(candidate, "deleted"));
+          } catch {
+            // Best-effort.
+          }
         }
       }
     }
