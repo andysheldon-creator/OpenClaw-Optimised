@@ -34,7 +34,7 @@ export interface ApprovalEvent {
 
 const AUDIT_LOG_PATH = process.env.AUDIT_LOG_PATH || "~/.openclaw/logs/model-approval-audit.jsonl";
 const APPROVAL_TIMEOUT_MS = 60_000; // 60 second timeout
-const _SLACK_CHANNEL = process.env.SLACK_APPROVAL_CHANNEL || "D0ADHLY5WJE"; // DM with Trevor
+const _SLACK_CHANNEL = process.env.SLACK_APPROVAL_CHANNEL || "C0ADLAX5PBM"; // #alfred-approvals channel
 
 /**
  * Detect model divergence: when auto-routing picks Sonnet/Opus instead of Haiku.
