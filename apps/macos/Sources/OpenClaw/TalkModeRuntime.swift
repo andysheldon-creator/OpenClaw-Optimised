@@ -1,7 +1,7 @@
 import AVFoundation
+import Foundation
 import OpenClawChatUI
 import OpenClawKit
-import Foundation
 import OSLog
 import Speech
 
@@ -94,6 +94,9 @@ actor TalkModeRuntime {
             self.lastHeard = nil
             self.lastSpeechEnergyAt = nil
             await self.stopRecognition()
+            if self.phase == .speaking {
+                await self.stopSpeaking(reason: .manual)
+            }
             return
         }
 

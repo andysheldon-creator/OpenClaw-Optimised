@@ -1,0 +1,36 @@
+# Zep Configuration File
+server:
+  port: 8000
+
+store:
+  type: "postgres"
+  postgres:
+    dsn: "postgres://zep:password@zep-db:5432/zep?sslmode=disable"
+
+auth:
+  secret: "mindbot-10293847"
+
+nlp:
+  embeddings:
+    service: "openai"
+    dimensions: 1536
+
+extractors:
+  messages:
+    summarizer:
+      enabled: true
+    embeddings:
+      enabled: true
+      service: "openai"
+      model: "text-embedding-3-small"
+      dimensions: 1536
+  documents:
+    embeddings:
+      enabled: true
+      service: "openai"
+      model: "text-embedding-3-small"
+      dimensions: 1536
+
+llm:
+  service: "openai"
+  model: "gpt-4o-mini"

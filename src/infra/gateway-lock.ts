@@ -8,7 +8,7 @@ const DEFAULT_TIMEOUT_MS = 5000;
 const DEFAULT_POLL_INTERVAL_MS = 100;
 const DEFAULT_STALE_MS = 30_000;
 
-type LockPayload = {
+export type LockPayload = {
   pid: number;
   createdAt: string;
   configPath: string;
@@ -40,9 +40,9 @@ export class GatewayLockError extends Error {
   }
 }
 
-type LockOwnerStatus = "alive" | "dead" | "unknown";
+export type LockOwnerStatus = "alive" | "dead" | "unknown";
 
-function isAlive(pid: number): boolean {
+export function isAlive(pid: number): boolean {
   if (!Number.isFinite(pid) || pid <= 0) {
     return false;
   }
@@ -111,7 +111,7 @@ function readLinuxStartTime(pid: number): number | null {
   }
 }
 
-function resolveGatewayOwnerStatus(
+export function resolveGatewayOwnerStatus(
   pid: number,
   payload: LockPayload | null,
   platform: NodeJS.Platform,
@@ -139,7 +139,7 @@ function resolveGatewayOwnerStatus(
   return isGatewayArgv(args) ? "alive" : "dead";
 }
 
-async function readLockPayload(lockPath: string): Promise<LockPayload | null> {
+export async function readLockPayload(lockPath: string): Promise<LockPayload | null> {
   try {
     const raw = await fs.readFile(lockPath, "utf8");
     const parsed = JSON.parse(raw) as Partial<LockPayload>;
@@ -164,7 +164,7 @@ async function readLockPayload(lockPath: string): Promise<LockPayload | null> {
   }
 }
 
-function resolveGatewayLockPath(env: NodeJS.ProcessEnv) {
+export function resolveGatewayLockPath(env: NodeJS.ProcessEnv) {
   const stateDir = resolveStateDir(env);
   const configPath = resolveConfigPath(env, stateDir);
   const hash = createHash("sha1").update(configPath).digest("hex").slice(0, 8);

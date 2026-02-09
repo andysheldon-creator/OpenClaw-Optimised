@@ -1,8 +1,15 @@
+import fs from "node:fs/promises";
 import type { DaemonLifecycleOptions } from "./types.js";
 import { resolveIsNixMode } from "../../config/paths.js";
 import { resolveGatewayService } from "../../daemon/service.js";
 import { renderSystemdUnavailableHints } from "../../daemon/systemd-hints.js";
 import { isSystemdUserServiceAvailable } from "../../daemon/systemd.js";
+import {
+  isAlive,
+  readLockPayload,
+  resolveGatewayLockPath,
+  resolveGatewayOwnerStatus,
+} from "../../infra/gateway-lock.js";
 import { isWSL } from "../../infra/wsl.js";
 import { defaultRuntime } from "../../runtime.js";
 import { buildDaemonServiceSnapshot, createNullWriter, emitDaemonActionJson } from "./response.js";
@@ -200,6 +207,68 @@ export async function runDaemonStop(opts: DaemonLifecycleOptions = {}) {
     return;
   }
   if (!loaded) {
+    // If the primary service is not loaded, check for legacy services first.
+    if (process.platform === "darwin") {
+      const { uninstallLegacyLaunchAgents } = await import("../../daemon/launchd.js");
+      const uninstalled = await uninstallLegacyLaunchAgents({ env: process.env, stdout });
+      if (uninstalled.length > 0) {
+        emit({
+          ok: true,
+          result: "stopped",
+          message: `Stopped and removed ${uninstalled.length} legacy gateway service(s).`,
+          service: buildDaemonServiceSnapshot(service, false),
+        });
+        if (!json) {
+          defaultRuntime.log(
+            `Stopped and removed ${uninstalled.length} legacy gateway service(s).`,
+          );
+        }
+        return;
+      }
+    }
+
+    const { lockPath } = resolveGatewayLockPath(process.env);
+    const payload = await readLockPayload(lockPath);
+    if (payload?.pid) {
+      const status = resolveGatewayOwnerStatus(payload.pid, payload, process.platform);
+      if (status === "alive") {
+        if (!json) {
+          defaultRuntime.log(`Stopping manual gateway process (pid ${payload.pid})…`);
+        }
+        try {
+          process.kill(payload.pid, "SIGTERM");
+          // Best effort: wait a bit and check
+          for (let i = 0; i < 10; i++) {
+            await new Promise((r) => setTimeout(r, 200));
+            if (!isAlive(payload.pid)) {
+              break;
+            }
+          }
+          if (isAlive(payload.pid)) {
+            process.kill(payload.pid, "SIGKILL");
+          }
+        } catch {
+          // ignore kill errors (e.g. already dead)
+        }
+        await fs.rm(lockPath, { force: true }).catch(() => {});
+        emit({
+          ok: true,
+          result: "stopped",
+          message: `Stopped manual gateway process (pid ${payload.pid}).`,
+          service: buildDaemonServiceSnapshot(service, false),
+        });
+        if (!json) {
+          defaultRuntime.log(`Stopped manual gateway process (pid ${payload.pid}).`);
+        }
+        return;
+      } else if (status === "dead") {
+        await fs.rm(lockPath, { force: true }).catch(() => {});
+        if (!json) {
+          defaultRuntime.log("Cleaned up stale lock file.");
+        }
+      }
+    }
+
     emit({
       ok: true,
       result: "not-loaded",

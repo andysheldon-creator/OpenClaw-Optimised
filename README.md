@@ -1,4 +1,4 @@
-# 🦞 OpenClaw — Personal AI Assistant
+# 🤖 Mindbot — Personal AI with Narrative Identity
 
 <p align="center">
     <picture>
@@ -8,17 +8,14 @@
 </p>
 
 <p align="center">
-  <strong>EXFOLIATE! EXFOLIATE!</strong>
+  <strong>IDENTITY. MEMORY. EVOLUTION.</strong>
 </p>
 
 <p align="center">
-  <a href="https://github.com/openclaw/openclaw/actions/workflows/ci.yml?branch=main"><img src="https://img.shields.io/github/actions/workflow/status/openclaw/openclaw/ci.yml?branch=main&style=for-the-badge" alt="CI status"></a>
-  <a href="https://github.com/openclaw/openclaw/releases"><img src="https://img.shields.io/github/v/release/openclaw/openclaw?include_prereleases&style=for-the-badge" alt="GitHub release"></a>
-  <a href="https://discord.gg/clawd"><img src="https://img.shields.io/discord/1456350064065904867?label=Discord&logo=discord&logoColor=white&color=5865F2&style=for-the-badge" alt="Discord"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License"></a>
 </p>
 
-**OpenClaw** is a _personal AI assistant_ you run on your own devices.
+**Mindbot** is a fork of **OpenClaw** that adds a deep focus on persistent identity and long-term memory. It is a _personal AI assistant_ designed to evolve alongside you across all your communication channels.
 It answers you on the channels you already use (WhatsApp, Telegram, Slack, Discord, Google Chat, Signal, iMessage, Microsoft Teams, WebChat), plus extension channels like BlueBubbles, Matrix, Zalo, and Zalo Personal. It can speak and listen on macOS/iOS/Android, and can render a live Canvas you control. The Gateway is just the control plane — the product is the assistant.
 
 If you want a personal, single-user assistant that feels local, fast, and always-on, this is it.
@@ -128,6 +125,35 @@ Run `openclaw doctor` to surface risky/misconfigured DM policies.
 - **[First-class tools](https://docs.openclaw.ai/tools)** — browser, canvas, nodes, cron, sessions, and Discord/Slack actions.
 - **[Companion apps](https://docs.openclaw.ai/platforms/macos)** — macOS menu bar app + iOS/Android [nodes](https://docs.openclaw.ai/nodes).
 - **[Onboarding](https://docs.openclaw.ai/start/wizard) + [skills](https://docs.openclaw.ai/tools/skills)** — wizard-driven setup with bundled/managed/workspace skills.
+
+---
+
+## 🧠 Mindbot Fork: Narrative & Memory
+
+Mindbot extends OpenClaw with a **Dual-Process Theory of Mind** architecture, creating an agent that doesn't just process tasks, but maintains a consistent sense of self and historical context.
+
+### 1. Dual-Process Memory
+
+- **Conscious System (Foreground)**: Immediate chat history plus direct recall tools like `remember` (Knowledge Graph), `journal_memory_search`, and `journal_memory_get`.
+- **Subconscious System (Background)**:
+  - **Narrative Identity**: Maintains `STORY.md`, a first-person autobiography that consolidates all interactions across channels.
+  - **Flashback Resonance**: Uses **Graphiti** to pull relevant past "episodes" into the prompt before every turn.
+  - **Auto-Compaction**: Automatically synthesizes raw transcripts into the global story when token limits (up to 10k words) are reached.
+
+### 2. Guarded Autonomy & Safety
+
+Mindbot introduces a refined set of safety and autonomy guidelines:
+
+- **Guided Curiosity**: The agent is encouraged to have its own interests and opinions, following what fascinates it.
+- **Strict Bounds**: Hard limits against pursuing self-preservation, power-seeking, or manipulation.
+- **User Oversight**: Transparency through narrative logs and clear tool policies.
+
+### 3. Tool & Interface Refinements
+
+- **Ambiguity Reduction**: Memory tools have been renamed (e.g., `search_memory` -> `journal_memory_search`) for clarity.
+- **Global Context**: Memory spans all channels (WhatsApp, Telegram, etc.) into a single, unified identity.
+
+For a deep dive into the technical details, see the **[Memory Architecture](docs/mind/MEMORY_ARCHITECTURE.md)**.
 
 ## Star History
 

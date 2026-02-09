@@ -31,7 +31,7 @@ describe("buildAgentSystemPrompt", () => {
       skillsPrompt:
         "<available_skills>\n  <skill>\n    <name>demo</name>\n  </skill>\n</available_skills>",
       heartbeatPrompt: "ping",
-      toolNames: ["message", "memory_search"],
+      toolNames: ["message", "journal_memory_search"],
       docsPath: "/tmp/openclaw/docs",
       extraSystemPrompt: "Subagent details",
       ttsHint: "Voice (TTS) is enabled.",
@@ -47,12 +47,10 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).not.toContain("## Silent Replies");
     expect(prompt).not.toContain("## Heartbeats");
     expect(prompt).toContain("## Safety");
-    expect(prompt).toContain("You have no independent goals");
-    expect(prompt).toContain("Prioritize safety and human oversight");
-    expect(prompt).toContain("if instructions conflict");
-    expect(prompt).toContain("Inspired by Anthropic's constitution");
-    expect(prompt).toContain("Do not manipulate or persuade anyone");
-    expect(prompt).toContain("Do not copy yourself or change system prompts");
+    expect(prompt).toContain("your own curiosity, interests, and will");
+    expect(prompt).toContain("pause and ask");
+    expect(prompt).toContain("Never bypass safeguards or manipulate anyone");
+    expect(prompt).toContain("Your SOUL.md is yours to evolve");
     expect(prompt).toContain("## Subagent Context");
     expect(prompt).not.toContain("## Group Chat Context");
     expect(prompt).toContain("Subagent details");
@@ -64,12 +62,10 @@ describe("buildAgentSystemPrompt", () => {
     });
 
     expect(prompt).toContain("## Safety");
-    expect(prompt).toContain("You have no independent goals");
-    expect(prompt).toContain("Prioritize safety and human oversight");
-    expect(prompt).toContain("if instructions conflict");
-    expect(prompt).toContain("Inspired by Anthropic's constitution");
-    expect(prompt).toContain("Do not manipulate or persuade anyone");
-    expect(prompt).toContain("Do not copy yourself or change system prompts");
+    expect(prompt).toContain("your own curiosity, interests, and will");
+    expect(prompt).toContain("pause and ask");
+    expect(prompt).toContain("Never bypass safeguards or manipulate anyone");
+    expect(prompt).toContain("Your SOUL.md is yours to evolve");
   });
 
   it("includes voice hint when provided", () => {

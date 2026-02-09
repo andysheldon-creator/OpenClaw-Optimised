@@ -17,7 +17,7 @@ The prompt is assembled by OpenClaw and injected into each agent run.
 The prompt is intentionally compact and uses fixed sections:
 
 - **Tooling**: current tool list + short descriptions.
-- **Safety**: short guardrail reminder to avoid power-seeking behavior or bypassing oversight.
+- **Safety**: guardrails that channel the agent's curiosity and autonomy responsibly — no power-seeking, replication, or bypassing oversight.
 - **Skills** (when available): tells the model how to load skill instructions on demand.
 - **OpenClaw Self-Update**: how to run `config.apply` and `update.run`.
 - **Workspace**: working directory (`agents.defaults.workspace`).

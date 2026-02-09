@@ -42,4 +42,11 @@ export default defineConfig([
     fixedExtension: false,
     platform: "node",
   },
+  {
+    entry: "src/plugins/mind-memory/index.ts",
+    outDir: "dist/plugins/mind-memory",
+    env,
+    fixedExtension: false,
+    platform: "node",
+  },
 ]);

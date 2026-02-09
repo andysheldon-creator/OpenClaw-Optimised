@@ -87,6 +87,8 @@ export type EmbeddedRunAttemptParams = {
   /** If true, omit the message tool from the tool list. */
   disableMessageTool?: boolean;
   extraSystemPrompt?: string;
+  narrativeStory?: string;
+  onHistoryTruncated?: (dropped: AgentMessage[]) => Promise<void>;
   streamParams?: AgentStreamParams;
   ownerNumbers?: string[];
   enforceFinalTag?: boolean;

@@ -21,7 +21,8 @@ The default workspace layout uses two memory layers:
   - Daily log (append-only).
   - Read today + yesterday at session start.
 - `MEMORY.md` (optional)
-  - Curated long-term memory.
+  - **Structured facts and data only** — decisions, preferences, people, projects, key dates.
+  - No narrative prose (narrative belongs in `STORY.md`).
   - **Only load in the main, private session** (never in group contexts).
 
 These files live under the workspace (`agents.defaults.workspace`, default
@@ -29,10 +30,11 @@ These files live under the workspace (`agents.defaults.workspace`, default
 
 ## When to write memory
 
-- Decisions, preferences, and durable facts go to `MEMORY.md`.
+- **Facts, decisions, preferences, and durable data** go to `MEMORY.md` as concise bullet points.
 - Day-to-day notes and running context go to `memory/YYYY-MM-DD.md`.
+- **Narrative and story** go to `STORY.md` (managed by Mind’s consolidation).
 - If someone says "remember this," write it down (do not keep it in RAM).
-- This area is still evolving. It helps to remind the model to store memories; it will know what to do.
+- `MEMORY.md` format: structured lists grouped by section (Personas, Hechos, Proyectos, Decisiones, Hitos). No prose.
 - If you want something to stick, **ask the bot to write it** into memory.
 
 ## Automatic memory flush (pre-compaction ping)

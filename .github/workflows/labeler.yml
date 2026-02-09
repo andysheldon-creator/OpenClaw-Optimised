@@ -10,6 +10,7 @@ permissions: {}
 
 jobs:
   label:
+    if: github.repository == 'openclaw/openclaw'
     permissions:
       contents: read
       pull-requests: write
@@ -48,6 +49,7 @@ jobs:
             });
 
   label-issues:
+    if: github.repository == 'openclaw/openclaw'
     permissions:
       issues: write
     runs-on: ubuntu-latest
