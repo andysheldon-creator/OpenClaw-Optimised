@@ -2,6 +2,7 @@ import { parseAgentSessionKey, type ParsedAgentSessionKey } from "../sessions/se
 
 export {
   isAcpSessionKey,
+  isGroupChannelSessionKey,
   isSubagentSessionKey,
   parseAgentSessionKey,
   type ParsedAgentSessionKey,

@@ -7,6 +7,7 @@ import { resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { loadConfig } from "../config/config.js";
 import { resolveStateDir } from "../config/paths.js";
 import { resolveSessionTranscriptsDirForAgent } from "../config/sessions/paths.js";
+import { resolveContinuityRollupPath } from "../continuity/rollup.js";
 import { setVerbose } from "../globals.js";
 import { getMemorySearchManager, type MemorySearchManagerResult } from "../memory/index.js";
 import { listMemoryFiles, normalizeExtraMemoryPaths } from "../memory/internal.js";
@@ -15,6 +16,7 @@ import { formatDocsLink } from "../terminal/links.js";
 import { colorize, isRich, theme } from "../terminal/theme.js";
 import { shortenHomeInString, shortenHomePath } from "../utils.js";
 import { formatErrorMessage, withManager } from "./cli-utils.js";
+import { addGatewayClientOptions, callGatewayFromCli } from "./gateway-rpc.js";
 import { withProgress, withProgressTotals } from "./progress.js";
 
 type MemoryCommandOptions = {
@@ -708,4 +710,285 @@ export function registerMemoryCli(program: Command) {
         });
       },
     );
+
+  const rollup = memory
+    .command("rollup")
+    .description("Manage continuity rollup (memory distillation)");
+
+  rollup
+    .command("path")
+    .description("Print the continuity rollup file path")
+    .option("--agent <id>", "Agent id (default: main)")
+    .action(async (opts: { agent?: string }) => {
+      const cfg = loadConfig();
+      const agentId = resolveAgent(cfg, opts.agent);
+      const rollupPath = resolveContinuityRollupPath(agentId);
+      defaultRuntime.log(rollupPath);
+    });
+
+  rollup
+    .command("show")
+    .description("Show the current continuity rollup content")
+    .option("--agent <id>", "Agent id (default: main)")
+    .option("--json", "Output JSON", false)
+    .action(async (opts: { agent?: string; json?: boolean }) => {
+      const cfg = loadConfig();
+      const agentId = resolveAgent(cfg, opts.agent);
+      const rollupPath = resolveContinuityRollupPath(agentId);
+      try {
+        const content = await fs.readFile(rollupPath, "utf-8");
+        if (opts.json) {
+          defaultRuntime.log(JSON.stringify({ path: rollupPath, content }, null, 2));
+        } else {
+          defaultRuntime.log(content);
+        }
+      } catch (err) {
+        const code = (err as NodeJS.ErrnoException).code;
+        if (code === "ENOENT") {
+          if (opts.json) {
+            defaultRuntime.log(JSON.stringify({ path: rollupPath, content: null }, null, 2));
+          } else {
+            defaultRuntime.log(`No rollup file at ${shortenHomePath(rollupPath)}`);
+          }
+          return;
+        }
+        defaultRuntime.error(`Failed to read rollup: ${formatErrorMessage(err)}`);
+        process.exitCode = 1;
+      }
+    });
+
+  rollup
+    .command("clear")
+    .description("Delete the continuity rollup file")
+    .option("--agent <id>", "Agent id (default: main)")
+    .action(async (opts: { agent?: string }) => {
+      const cfg = loadConfig();
+      const agentId = resolveAgent(cfg, opts.agent);
+      const rollupPath = resolveContinuityRollupPath(agentId);
+      try {
+        await fs.unlink(rollupPath);
+        defaultRuntime.log(`Deleted ${shortenHomePath(rollupPath)}`);
+      } catch (err) {
+        const code = (err as NodeJS.ErrnoException).code;
+        if (code === "ENOENT") {
+          defaultRuntime.log(`No rollup file at ${shortenHomePath(rollupPath)}`);
+          return;
+        }
+        defaultRuntime.error(`Failed to delete rollup: ${formatErrorMessage(err)}`);
+        process.exitCode = 1;
+      }
+    });
+
+  const ROLLUP_CRON_JOB_NAME = "Memory continuity distiller";
+  const ROLLUP_DISTILLER_PROMPT = `You are a memory distiller. Your job is to create a concise continuity rollup.
+
+TASK:
+1. Use memory_search to find recent important items:
+   - "important decisions made today"
+   - "action items and todos"
+   - "key context and ongoing work"
+2. Synthesize into a brief rollup (max 2000 chars) with sections:
+   - **Active Context**: What we're working on right now
+   - **Recent Decisions**: Key choices made (with dates)
+   - **Pending Actions**: Open items needing attention
+3. Write the rollup to the ROLLUP.md path using the write tool
+
+OUTPUT FORMAT (write this exact structure):
+---
+# Continuity Rollup
+Updated: [current timestamp]
+
+## Active Context
+[1-3 bullet points of current focus]
+
+## Recent Decisions
+[2-5 bullet points with dates]
+
+## Pending Actions
+- [ ] [action item]
+---
+
+Keep it concise. This file is injected into every session for continuity.`;
+
+  addGatewayClientOptions(
+    rollup
+      .command("install")
+      .description("Install hourly continuity distiller cron job")
+      .option("--agent <id>", "Agent id for the job (default: main)")
+      .option("--every <duration>", "Run interval (e.g., 1h, 30m)", "1h")
+      .option("--model <model>", "Model override for distiller")
+      .option("--thinking <level>", "Thinking level (off|minimal|low|medium|high)", "off")
+      .option("--timeout <seconds>", "Job timeout in seconds", "180")
+      .option("--json", "Output JSON", false)
+      .action(async (opts: Record<string, unknown>) => {
+        const cfg = loadConfig();
+        const agentId = resolveAgent(cfg, opts.agent as string | undefined);
+        const rollupPath = resolveContinuityRollupPath(agentId);
+
+        const everyRaw = String(opts.every ?? "1h");
+        const everyMs = parseDurationToMs(everyRaw);
+        if (!everyMs) {
+          defaultRuntime.error(`Invalid --every duration: ${everyRaw}`);
+          process.exitCode = 1;
+          return;
+        }
+
+        const timeoutSeconds = Number(opts.timeout) || 180;
+
+        try {
+          // Check if job already exists
+          const listRes = (await callGatewayFromCli("cron.list", opts, {
+            includeDisabled: true,
+          })) as { jobs?: Array<{ id: string; name: string }> };
+          const existing = listRes.jobs?.find((job) => job.name === ROLLUP_CRON_JOB_NAME);
+
+          const jobPayload = {
+            name: ROLLUP_CRON_JOB_NAME,
+            description: `Distill memory into ${shortenHomePath(rollupPath)} for session continuity`,
+            enabled: true,
+            agentId,
+            schedule: {
+              kind: "every" as const,
+              everyMs,
+              anchorMs: getTopOfHourAnchor(),
+            },
+            sessionTarget: "isolated" as const,
+            wakeMode: "now" as const,
+            payload: {
+              kind: "agentTurn" as const,
+              message: ROLLUP_DISTILLER_PROMPT,
+              model: opts.model ? String(opts.model) : undefined,
+              thinking: opts.thinking ? String(opts.thinking) : "off",
+              timeoutSeconds,
+            },
+            delivery: {
+              mode: "none" as const,
+            },
+          };
+
+          let result: unknown;
+          if (existing) {
+            result = await callGatewayFromCli("cron.update", opts, {
+              id: existing.id,
+              patch: jobPayload,
+            });
+            if (opts.json) {
+              defaultRuntime.log(JSON.stringify(result, null, 2));
+            } else {
+              defaultRuntime.log(`Updated cron job: ${ROLLUP_CRON_JOB_NAME} (${existing.id})`);
+            }
+          } else {
+            result = await callGatewayFromCli("cron.add", opts, jobPayload);
+            if (opts.json) {
+              defaultRuntime.log(JSON.stringify(result, null, 2));
+            } else {
+              const jobId = (result as { id?: string })?.id ?? "unknown";
+              defaultRuntime.log(`Created cron job: ${ROLLUP_CRON_JOB_NAME} (${jobId})`);
+            }
+          }
+
+          if (!opts.json) {
+            defaultRuntime.log(`Rollup path: ${shortenHomePath(rollupPath)}`);
+            defaultRuntime.log(`Schedule: every ${everyRaw}`);
+          }
+        } catch (err) {
+          defaultRuntime.error(`Failed to install rollup job: ${formatErrorMessage(err)}`);
+          process.exitCode = 1;
+        }
+      }),
+  );
+
+  addGatewayClientOptions(
+    rollup
+      .command("remove")
+      .alias("uninstall")
+      .description("Remove the continuity distiller cron job")
+      .option("--json", "Output JSON", false)
+      .action(async (opts: Record<string, unknown>) => {
+        try {
+          const listRes = (await callGatewayFromCli("cron.list", opts, {
+            includeDisabled: true,
+          })) as { jobs?: Array<{ id: string; name: string }> };
+          const existing = listRes.jobs?.find((job) => job.name === ROLLUP_CRON_JOB_NAME);
+
+          if (!existing) {
+            if (opts.json) {
+              defaultRuntime.log(JSON.stringify({ removed: false, reason: "not found" }, null, 2));
+            } else {
+              defaultRuntime.log(`No cron job named "${ROLLUP_CRON_JOB_NAME}" found.`);
+            }
+            return;
+          }
+
+          const result = await callGatewayFromCli("cron.remove", opts, { id: existing.id });
+          if (opts.json) {
+            defaultRuntime.log(JSON.stringify(result, null, 2));
+          } else {
+            defaultRuntime.log(`Removed cron job: ${ROLLUP_CRON_JOB_NAME} (${existing.id})`);
+          }
+        } catch (err) {
+          defaultRuntime.error(`Failed to remove rollup job: ${formatErrorMessage(err)}`);
+          process.exitCode = 1;
+        }
+      }),
+  );
+
+  addGatewayClientOptions(
+    rollup
+      .command("run")
+      .description("Run the continuity distiller now (one-shot)")
+      .option("--json", "Output JSON", false)
+      .action(async (opts: Record<string, unknown>) => {
+        try {
+          const listRes = (await callGatewayFromCli("cron.list", opts, {
+            includeDisabled: true,
+          })) as { jobs?: Array<{ id: string; name: string }> };
+          const existing = listRes.jobs?.find((job) => job.name === ROLLUP_CRON_JOB_NAME);
+
+          if (!existing) {
+            defaultRuntime.error(
+              `No cron job named "${ROLLUP_CRON_JOB_NAME}" found. Run "openclaw memory rollup install" first.`,
+            );
+            process.exitCode = 1;
+            return;
+          }
+
+          const result = await callGatewayFromCli("cron.run", opts, {
+            id: existing.id,
+            mode: "force",
+          });
+          if (opts.json) {
+            defaultRuntime.log(JSON.stringify(result, null, 2));
+          } else {
+            defaultRuntime.log(`Triggered: ${ROLLUP_CRON_JOB_NAME}`);
+          }
+        } catch (err) {
+          defaultRuntime.error(`Failed to run rollup job: ${formatErrorMessage(err)}`);
+          process.exitCode = 1;
+        }
+      }),
+  );
+}
+
+function parseDurationToMs(duration: string): number | null {
+  const match = duration.match(/^(\d+(?:\.\d+)?)(ms|s|m|h|d)$/i);
+  if (!match) {
+    return null;
+  }
+  const value = Number.parseFloat(match[1]);
+  const unit = match[2].toLowerCase();
+  const multipliers: Record<string, number> = {
+    ms: 1,
+    s: 1000,
+    m: 60 * 1000,
+    h: 60 * 60 * 1000,
+    d: 24 * 60 * 60 * 1000,
+  };
+  return Math.floor(value * (multipliers[unit] ?? 1));
+}
+
+function getTopOfHourAnchor(): number {
+  const now = new Date();
+  now.setMinutes(0, 0, 0);
+  return now.getTime();
 }
