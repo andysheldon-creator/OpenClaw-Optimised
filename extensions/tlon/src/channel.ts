@@ -9,14 +9,13 @@ import {
   DEFAULT_ACCOUNT_ID,
   normalizeAccountId,
 } from "openclaw/plugin-sdk";
-
-import { resolveTlonAccount, listTlonAccountIds } from "./types.js";
+import { tlonChannelConfigSchema } from "./config-schema.js";
+import { monitorTlonProvider } from "./monitor/index.js";
+import { tlonOnboardingAdapter } from "./onboarding.js";
 import { formatTargetHint, normalizeShip, parseTlonTarget } from "./targets.js";
+import { resolveTlonAccount, listTlonAccountIds } from "./types.js";
 import { ensureUrbitConnectPatched, Urbit } from "./urbit/http-api.js";
 import { buildMediaText, sendDm, sendGroupMessage } from "./urbit/send.js";
-import { monitorTlonProvider } from "./monitor/index.js";
-import { tlonChannelConfigSchema } from "./config-schema.js";
-import { tlonOnboardingAdapter } from "./onboarding.js";
 
 const TLON_CHANNEL_ID = "tlon" as const;
 
@@ -102,7 +101,7 @@ const tlonOutbound: ChannelOutboundAdapter = {
         error: new Error(`Invalid Tlon target. Use ${formatTargetHint()}`),
       };
     }
-    if (parsed.kind === "dm") {
+    if (parsed.kind === "direct") {
       return { ok: true, to: parsed.ship };
     }
     return { ok: true, to: parsed.nest };
@@ -128,7 +127,7 @@ const tlonOutbound: ChannelOutboundAdapter = {
 
     try {
       const fromShip = normalizeShip(account.ship);
-      if (parsed.kind === "dm") {
+      if (parsed.kind === "direct") {
         return await sendDm({
           api,
           fromShip,
@@ -299,7 +298,7 @@ export const tlonPlugin: ChannelPlugin = {
       if (!parsed) {
         return target.trim();
       }
-      if (parsed.kind === "dm") {
+      if (parsed.kind === "direct") {
         return parsed.ship;
       }
       return parsed.nest;
@@ -356,7 +355,7 @@ export const tlonPlugin: ChannelPlugin = {
         } finally {
           await api.delete();
         }
-      } catch (error: any) {
+      } catch (error) {
         return { ok: false, error: error?.message ?? String(error) };
       }
     },

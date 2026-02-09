@@ -1,5 +1,4 @@
 import type { RequestClient } from "@buape/carbon";
-
 import type { RetryConfig } from "../infra/retry.js";
 
 export class DiscordSendError extends Error {
@@ -72,6 +71,7 @@ export type DiscordThreadCreate = {
   messageId?: string;
   name: string;
   autoArchiveMinutes?: number;
+  content?: string;
 };
 
 export type DiscordThreadList = {

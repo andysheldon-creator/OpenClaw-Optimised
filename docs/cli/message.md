@@ -3,6 +3,7 @@ summary: "CLI reference for `openclaw message` (send + channel actions)"
 read_when:
   - Adding or modifying message CLI actions
   - Changing outbound channel behavior
+title: "message"
 ---
 
 # `openclaw message`
@@ -117,7 +118,7 @@ Name lookup:
 - `thread create`
   - Channels: Discord
   - Required: `--thread-name`, `--target` (channel id)
-  - Optional: `--message-id`, `--auto-archive-min`
+  - Optional: `--message-id`, `--message`, `--auto-archive-min`
 
 - `thread list`
   - Channels: Discord

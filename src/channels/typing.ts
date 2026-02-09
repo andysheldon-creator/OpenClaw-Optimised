@@ -5,6 +5,8 @@ const TYPING_HEARTBEAT_INTERVAL_MS = 8000;
 export type TypingCallbacks = {
   onReplyStart: () => Promise<void>;
   onIdle?: () => void;
+  /** Called when the typing controller is cleaned up (e.g., on NO_REPLY). */
+  onCleanup?: () => void;
 };
 
 export function createTypingCallbacks(params: {
@@ -53,7 +55,7 @@ export function createTypingCallbacks(params: {
     }
   };
 
-  const onIdle = stop
+  const fireStop = stop
     ? () => {
         stopHeartbeat();
         void stop().catch((err) => (params.onStopError ?? params.onStartError)(err));
@@ -62,5 +64,5 @@ export function createTypingCallbacks(params: {
         stopHeartbeat();
       };
 
-  return { onReplyStart, onIdle };
+  return { onReplyStart, onIdle: fireStop, onCleanup: fireStop };
 }

@@ -1,9 +1,8 @@
+import JSON5 from "json5";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-
-import JSON5 from "json5";
-import { getFileMtimeMs, isCacheEnabled, resolveCacheTtlMs } from "../cache-utils.js";
+import type { MsgContext } from "../../auto-reply/templating.js";
 import {
   deliveryContextFromSession,
   mergeDeliveryContext,
@@ -11,7 +10,7 @@ import {
   normalizeSessionDeliveryFields,
   type DeliveryContext,
 } from "../../utils/delivery-context.js";
-import type { MsgContext } from "../../auto-reply/templating.js";
+import { getFileMtimeMs, isCacheEnabled, resolveCacheTtlMs } from "../cache-utils.js";
 import { deriveSessionMetaPatch } from "./metadata.js";
 import { mergeSessionEntry, type SessionEntry } from "./types.js";
 
@@ -85,6 +84,15 @@ function normalizeSessionEntryDelivery(entry: SessionEntry): SessionEntry {
     lastAccountId: normalized.lastAccountId,
     lastThreadId: normalized.lastThreadId,
   };
+}
+
+function removeThreadFromDeliveryContext(context?: DeliveryContext): DeliveryContext | undefined {
+  if (!context || context.threadId == null) {
+    return context;
+  }
+  const next: DeliveryContext = { ...context };
+  delete next.threadId;
+  return next;
 }
 
 function normalizeSessionStore(store: Record<string, SessionEntry>): void {
@@ -431,7 +439,26 @@ export async function updateLastRoute(params: {
       threadId,
     });
     const mergedInput = mergeDeliveryContext(explicitContext, inlineContext);
-    const merged = mergeDeliveryContext(mergedInput, deliveryContextFromSession(existing));
+    const explicitDeliveryContext = params.deliveryContext;
+    const explicitThreadFromDeliveryContext =
+      explicitDeliveryContext != null &&
+      Object.prototype.hasOwnProperty.call(explicitDeliveryContext, "threadId")
+        ? explicitDeliveryContext.threadId
+        : undefined;
+    const explicitThreadValue =
+      explicitThreadFromDeliveryContext ??
+      (threadId != null && threadId !== "" ? threadId : undefined);
+    const explicitRouteProvided = Boolean(
+      explicitContext?.channel ||
+      explicitContext?.to ||
+      inlineContext?.channel ||
+      inlineContext?.to,
+    );
+    const clearThreadFromFallback = explicitRouteProvided && explicitThreadValue == null;
+    const fallbackContext = clearThreadFromFallback
+      ? removeThreadFromDeliveryContext(deliveryContextFromSession(existing))
+      : deliveryContextFromSession(existing);
+    const merged = mergeDeliveryContext(mergedInput, fallbackContext);
     const normalized = normalizeSessionDeliveryFields({
       deliveryContext: {
         channel: merged?.channel,
