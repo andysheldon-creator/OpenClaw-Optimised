@@ -123,14 +123,17 @@ export class AsteriskAriProvider implements VoiceCallProvider {
 
       const calls = this.manager.getActiveCalls().filter((call) => call.provider === this.name);
       for (const call of calls) {
-        this.manager.processEvent(
-          makeEvent({
-            type: "call.ended",
-            callId: call.callId,
-            providerCallId: call.providerCallId,
-            reason: "hangup-bot",
-          }),
-        );
+        const result = await this.manager.endCall(call.callId);
+        if (!result.success) {
+          this.manager.processEvent(
+            makeEvent({
+              type: "call.ended",
+              callId: call.callId,
+              providerCallId: call.providerCallId,
+              reason: "hangup-bot",
+            }),
+          );
+        }
       }
     } catch (err) {
       console.warn("[ari] Failed to reconcile lingering calls", err);
