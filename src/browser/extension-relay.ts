@@ -139,12 +139,17 @@ function parseBaseUrl(raw: string): {
   baseUrl: string;
 } {
   const parsed = new URL(raw.trim().replace(/\/$/, ""));
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    throw new Error(`extension relay cdpUrl must be http(s), got ${parsed.protocol}`);
+  if (
+    parsed.protocol !== "http:" &&
+    parsed.protocol !== "https:" &&
+    parsed.protocol !== "ws:" &&
+    parsed.protocol !== "wss:"
+  ) {
+    throw new Error(`extension relay cdpUrl must be http(s) or ws(s), got ${parsed.protocol}`);
   }
   const host = parsed.hostname;
-  const port =
-    parsed.port?.trim() !== "" ? Number(parsed.port) : parsed.protocol === "https:" ? 443 : 80;
+  const isSecure = parsed.protocol === "https:" || parsed.protocol === "wss:";
+  const port = parsed.port?.trim() !== "" ? Number(parsed.port) : isSecure ? 443 : 80;
   if (!Number.isFinite(port) || port <= 0 || port > 65535) {
     throw new Error(`extension relay cdpUrl has invalid port: ${parsed.port || "(empty)"}`);
   }

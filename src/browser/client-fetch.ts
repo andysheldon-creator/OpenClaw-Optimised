@@ -5,12 +5,12 @@ import {
 } from "./control-service.js";
 import { createBrowserRouteDispatcher } from "./routes/dispatcher.js";
 
-function isAbsoluteHttp(url: string): boolean {
-  return /^https?:\/\//i.test(url.trim());
+function isAbsoluteUrl(url: string): boolean {
+  return /^(https?|wss?):\/\//i.test(url.trim());
 }
 
 function enhanceBrowserFetchError(url: string, err: unknown, timeoutMs: number): Error {
-  const hint = isAbsoluteHttp(url)
+  const hint = isAbsoluteUrl(url)
     ? "If this is a sandboxed session, ensure the sandbox browser is running and try again."
     : `Start (or restart) the OpenClaw gateway (OpenClaw.app menubar, or \`${formatCliCommand("openclaw gateway")}\`) and try again.`;
   const msg = String(err);
@@ -54,7 +54,7 @@ export async function fetchBrowserJson<T>(
 ): Promise<T> {
   const timeoutMs = init?.timeoutMs ?? 5000;
   try {
-    if (isAbsoluteHttp(url)) {
+    if (isAbsoluteUrl(url)) {
       return await fetchHttpJson<T>(url, { ...init, timeoutMs });
     }
     const started = await startBrowserControlServiceFromConfig();
