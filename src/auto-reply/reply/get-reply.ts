@@ -281,12 +281,13 @@ export async function getReplyFromConfig(
   abortedLastRun = inlineActionResult.abortedLastRun ?? abortedLastRun;
 
   // Apply approval interlay routing if model routing is enabled
+  // Note: systemPromptLength is estimated (actual system prompt not available at this stage)
   const routingDecision = await routeModel({
     cfg,
     inputText: cleanedBody,
     messageHistoryDepth: sessionEntry?.compactionCount ?? 0, // Use compaction count as proxy for history depth
     hasToolCalls: false, // Tool calls detected dynamically during execution
-    systemPromptLength: agentCfg?.systemPrompt?.length ?? 0,
+    systemPromptLength: 3000, // Typical system prompt ~3KB; actual value computed during execution
     hasSessionModelOverride: Boolean(sessionEntry?.modelOverride),
     sessionKey,
     userId: ctx.SenderId ?? "unknown",
