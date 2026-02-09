@@ -79,7 +79,9 @@ export async function waitForAgentJob(params: {
   if (cached) {
     return cached;
   }
-  if (timeoutMs <= 0) {
+  // timeoutMs === 0 means "no timeout" — wait indefinitely for the agent
+  // to finish.  Only bail out for truly invalid (negative) values.
+  if (timeoutMs < 0) {
     return null;
   }
 
