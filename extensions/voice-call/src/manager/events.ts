@@ -94,7 +94,21 @@ export function processEvent(ctx: CallManagerContext, event: NormalizedEvent): v
 
   if (!call && event.direction === "inbound" && event.providerCallId) {
     if (!shouldAcceptInbound(ctx.config, event.from)) {
-      // TODO: Could hang up the call here.
+      if (ctx.provider && event.providerCallId) {
+        void ctx.provider
+          .hangupCall({
+            callId: event.providerCallId ?? event.callId,
+            providerCallId: event.providerCallId,
+            reason: "rejected",
+          })
+          .catch((err) => {
+            console.warn(
+              `[voice-call] Failed to reject inbound call ${event.providerCallId}: ${
+                err instanceof Error ? err.message : String(err)
+              }`,
+            );
+          });
+      }
       return;
     }
 
@@ -104,23 +118,25 @@ export function processEvent(ctx: CallManagerContext, event: NormalizedEvent): v
       from: event.from || "unknown",
       to: event.to || ctx.config.fromNumber || "unknown",
     });
+  }
 
-    // Normalize event to internal ID for downstream consumers.
-    event.callId = call.callId;
+  let evt = event;
+  if (call && call.callId !== event.callId) {
+    evt = { ...event, callId: call.callId };
   }
 
   if (!call) {
     return;
   }
 
-  if (event.providerCallId && !call.providerCallId) {
-    call.providerCallId = event.providerCallId;
-    ctx.providerCallIdMap.set(event.providerCallId, call.callId);
+  if (evt.providerCallId && !call.providerCallId) {
+    call.providerCallId = evt.providerCallId;
+    ctx.providerCallIdMap.set(evt.providerCallId, call.callId);
   }
 
-  call.processedEventIds.push(event.id);
+  call.processedEventIds.push(evt.id);
 
-  switch (event.type) {
+  switch (evt.type) {
     case "call.initiated":
       transitionState(call, "initiated");
       break;
@@ -130,7 +146,7 @@ export function processEvent(ctx: CallManagerContext, event: NormalizedEvent): v
       break;
 
     case "call.answered":
-      call.answeredAt = event.timestamp;
+      call.answeredAt = evt.timestamp;
       transitionState(call, "answered");
       startMaxDurationTimer({
         ctx,
@@ -150,19 +166,19 @@ export function processEvent(ctx: CallManagerContext, event: NormalizedEvent): v
       break;
 
     case "call.speech":
-      if (event.isFinal) {
-        addTranscriptEntry(call, "user", event.transcript);
-        resolveTranscriptWaiter(ctx, call.callId, event.transcript);
+      if (evt.isFinal) {
+        addTranscriptEntry(call, "user", evt.transcript);
+        resolveTranscriptWaiter(ctx, call.callId, evt.transcript);
       }
       transitionState(call, "listening");
       break;
 
     case "call.ended":
-      call.endedAt = event.timestamp;
-      call.endReason = event.reason;
-      transitionState(call, event.reason as CallState);
+      call.endedAt = evt.timestamp;
+      call.endReason = evt.reason;
+      transitionState(call, evt.reason as CallState);
       clearMaxDurationTimer(ctx, call.callId);
-      rejectTranscriptWaiter(ctx, call.callId, `Call ended: ${event.reason}`);
+      rejectTranscriptWaiter(ctx, call.callId, `Call ended: ${evt.reason}`);
       ctx.activeCalls.delete(call.callId);
       if (call.providerCallId) {
         ctx.providerCallIdMap.delete(call.providerCallId);
@@ -170,12 +186,12 @@ export function processEvent(ctx: CallManagerContext, event: NormalizedEvent): v
       break;
 
     case "call.error":
-      if (!event.retryable) {
-        call.endedAt = event.timestamp;
+      if (!evt.retryable) {
+        call.endedAt = evt.timestamp;
         call.endReason = "error";
         transitionState(call, "error");
         clearMaxDurationTimer(ctx, call.callId);
-        rejectTranscriptWaiter(ctx, call.callId, `Call error: ${event.error}`);
+        rejectTranscriptWaiter(ctx, call.callId, `Call error: ${evt.error}`);
         ctx.activeCalls.delete(call.callId);
         if (call.providerCallId) {
           ctx.providerCallIdMap.delete(call.providerCallId);
