@@ -50,10 +50,9 @@ export function isCompactionFailureError(errorMessage?: string): boolean {
   if (!errorMessage) {
     return false;
   }
-  if (!isContextOverflowError(errorMessage)) {
-    return false;
-  }
   const lower = errorMessage.toLowerCase();
+  // We don't strictly require isContextOverflowError() here because specific
+  // compaction failure messages are authoritative enough.
   return (
     lower.includes("summarization failed") ||
     lower.includes("auto-compaction") ||
