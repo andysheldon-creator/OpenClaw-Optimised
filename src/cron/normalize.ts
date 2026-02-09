@@ -18,6 +18,17 @@ function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function parseNumericStringToMs(value: string): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  // Handle numeric strings (e.g., "1234567890") by parsing as timestamp
+  const numeric = Number(trimmed);
+  if (Number.isFinite(numeric) && numeric > 0) {
+    return numeric;
+  }
+  return null;
+}
+
 function coerceSchedule(schedule: UnknownRecord) {
   const next: UnknownRecord = { ...schedule };
   const rawKind = typeof schedule.kind === "string" ? schedule.kind.trim().toLowerCase() : "";
@@ -29,7 +40,7 @@ function coerceSchedule(schedule: UnknownRecord) {
     typeof atMsRaw === "number"
       ? atMsRaw
       : typeof atMsRaw === "string"
-        ? parseAbsoluteTimeMs(atMsRaw)
+        ? parseAbsoluteTimeMs(atMsRaw) ?? parseNumericStringToMs(atMsRaw)
         : atString
           ? parseAbsoluteTimeMs(atString)
           : null;
