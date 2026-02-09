@@ -145,28 +145,36 @@ export async function postApprovalViaMessageSystem(params: {
 }): Promise<{ messageTs?: string }> {
   try {
     // Send to gateway via process IPC
-    if (process.send) {
+    if (typeof process?.send === "function") {
       return new Promise((resolve) => {
         const handler = (msg: Record<string, unknown>) => {
           if (msg.type === "message-posted" && msg.sessionKey === params.sessionKey) {
-            process.removeListener("message", handler as any);
+            if (typeof process?.removeListener === "function") {
+              process.removeListener("message", handler as NodeJS.MessageListener);
+            }
             resolve({ messageTs: msg.ts as string });
           }
         };
 
-        process.on("message", handler as any);
+        if (typeof process?.on === "function") {
+          process.on("message", handler as NodeJS.MessageListener);
+        }
 
-        process.send({
-          type: "post-approval",
-          channel: params.channel,
-          message: params.message,
-          sessionKey: params.sessionKey,
-          userId: params.userId,
-        });
+        if (typeof process?.send === "function") {
+          process.send({
+            type: "post-approval",
+            channel: params.channel,
+            message: params.message,
+            sessionKey: params.sessionKey,
+            userId: params.userId,
+          } as NodeJS.SendHandle);
+        }
 
         // Timeout after 5s
         setTimeout(() => {
-          process.removeListener("message", handler as any);
+          if (typeof process?.removeListener === "function") {
+            process.removeListener("message", handler as NodeJS.MessageListener);
+          }
           resolve({});
         }, 5000);
       });
