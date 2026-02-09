@@ -90,6 +90,14 @@ export const SessionSchema = z
       })
       .strict()
       .optional(),
+    files: z
+      .object({
+        enabled: z.boolean().optional(),
+        autoPersist: z.boolean().optional(),
+        retentionDays: z.number().int().positive().optional(),
+      })
+      .strict()
+      .optional(),
   })
   .strict()
   .optional();
