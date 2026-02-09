@@ -656,7 +656,13 @@ export async function runEmbeddedPiAgent(
             const promptFailoverReason = classifyFailoverReason(errorText);
             // Attempt reactive OAuth token refresh before applying cooldown on auth errors.
             // This avoids killing single-profile OAuth sessions when the token simply expired.
-            if (promptFailoverReason === "auth" && lastProfileId && !authRefreshAttempted) {
+            // Only attempt for OAuth profiles — api_key/token profiles would just re-apply the same credential.
+            if (
+              promptFailoverReason === "auth" &&
+              lastProfileId &&
+              !authRefreshAttempted &&
+              apiKeyInfo?.mode === "oauth"
+            ) {
               authRefreshAttempted = true;
               try {
                 await applyApiKeyInfo(lastProfileId);
@@ -749,11 +755,13 @@ export async function runEmbeddedPiAgent(
           const shouldRotate = (!aborted && failoverFailure) || timedOut;
 
           // Attempt reactive OAuth token refresh before applying cooldown on auth errors.
+          // Only attempt for OAuth profiles — api_key/token profiles would just re-apply the same credential.
           if (
             shouldRotate &&
             assistantFailoverReason === "auth" &&
             lastProfileId &&
-            !authRefreshAttempted
+            !authRefreshAttempted &&
+            apiKeyInfo?.mode === "oauth"
           ) {
             authRefreshAttempted = true;
             try {
