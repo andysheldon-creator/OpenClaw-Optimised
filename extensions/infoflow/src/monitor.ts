@@ -27,7 +27,7 @@ export type InfoflowMonitorOptions = {
 // ---------------------------------------------------------------------------
 
 /** webhook path for Infoflow. */
-const INFOFLOW_WEBHOOK_PATH = "/infoflow";
+const INFOFLOW_WEBHOOK_PATH = "/webhook/infoflow";
 
 // ---------------------------------------------------------------------------
 // Webhook target registry
