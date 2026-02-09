@@ -118,10 +118,18 @@ export { ToolPolicySchema } from "../config/zod-schema.agent-runtime.js";
 export type { RuntimeEnv } from "../runtime.js";
 export type { WizardPrompter } from "../wizard/prompts.js";
 export { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "../routing/session-key.js";
+export type { ChatType } from "../channels/chat-type.js";
+/** @deprecated Use ChatType instead */
+export type { RoutePeerKind } from "../routing/resolve-route.js";
 export { resolveAckReaction } from "../agents/identity.js";
 export type { ReplyPayload } from "../auto-reply/types.js";
 export type { ChunkMode } from "../auto-reply/chunk.js";
 export { SILENT_REPLY_TOKEN, isSilentReplyText } from "../auto-reply/tokens.js";
+export {
+  approveDevicePairing,
+  listDevicePairing,
+  rejectDevicePairing,
+} from "../infra/device-pairing.js";
 export { resolveToolsBySender } from "../config/group-policy.js";
 export {
   buildPendingHistoryContextFromMap,
@@ -369,23 +377,6 @@ export {
   stripMarkdown,
 } from "../line/markdown-to-line.js";
 export type { ProcessedLineMessage } from "../line/markdown-to-line.js";
-
-// Channel: Feishu
-export {
-  listFeishuAccountIds,
-  resolveDefaultFeishuAccountId,
-  resolveFeishuAccount,
-  type ResolvedFeishuAccount,
-} from "../feishu/accounts.js";
-export {
-  resolveFeishuConfig,
-  resolveFeishuGroupEnabled,
-  resolveFeishuGroupRequireMention,
-} from "../feishu/config.js";
-export { feishuOutbound } from "../channels/plugins/outbound/feishu.js";
-export { normalizeFeishuTarget } from "../channels/plugins/normalize/feishu.js";
-export { probeFeishu, type FeishuProbe } from "../feishu/probe.js";
-export { monitorFeishuProvider } from "../feishu/monitor.js";
 
 // Media utilities
 export { loadWebMedia, type WebMediaResult } from "../web/media.js";

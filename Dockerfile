@@ -20,8 +20,6 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY ui/package.json ./ui/package.json
 COPY patches ./patches
 COPY scripts ./scripts
-# Ensure startup script is executable
-RUN chmod +x scripts/render-start.sh
 
 RUN pnpm install --frozen-lockfile
 
@@ -46,6 +44,5 @@ USER node
 #
 # For container platforms requiring external health checks:
 #   1. Set OPENCLAW_GATEWAY_TOKEN or OPENCLAW_GATEWAY_PASSWORD env var
-#   2. Override CMD: ["node","dist/index.js","gateway","--allow-unconfigured","--bind","lan"]
-# For Render: override CMD with ["/bin/sh", "scripts/render-start.sh"] in dockerCommand.
-CMD ["node", "dist/index.js", "gateway", "--allow-unconfigured"]
+#   2. Override CMD: ["node","openclaw.mjs","gateway","--allow-unconfigured","--bind","lan"]
+CMD ["node", "openclaw.mjs", "gateway", "--allow-unconfigured"]

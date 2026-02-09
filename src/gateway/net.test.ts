@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
-import { isTrustedProxyAddress, resolveGatewayListenHosts } from "./net.js";
+import os from "node:os";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { pickPrimaryLanIPv4, resolveGatewayListenHosts } from "./net.js";
 
 describe("resolveGatewayListenHosts", () => {
   it("returns the input host when not loopback", async () => {
@@ -26,85 +27,53 @@ describe("resolveGatewayListenHosts", () => {
   });
 });
 
-describe("isTrustedProxyAddress", () => {
-  describe("exact IP matching (backward compatibility)", () => {
-    it("matches exact IP addresses", () => {
-      expect(isTrustedProxyAddress("10.0.0.1", ["10.0.0.1"])).toBe(true);
-      expect(isTrustedProxyAddress("10.0.0.1", ["10.0.0.2"])).toBe(false);
-      expect(isTrustedProxyAddress("192.168.1.1", ["192.168.1.1", "10.0.0.1"])).toBe(true);
-    });
-
-    it("returns false when trustedProxies is empty or undefined", () => {
-      expect(isTrustedProxyAddress("10.0.0.1", [])).toBe(false);
-      expect(isTrustedProxyAddress("10.0.0.1", undefined)).toBe(false);
-    });
-
-    it("returns false when IP is undefined", () => {
-      expect(isTrustedProxyAddress(undefined, ["10.0.0.1"])).toBe(false);
-    });
+describe("pickPrimaryLanIPv4", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
-  describe("CIDR notation support", () => {
-    it("matches IPs within /8 CIDR range", () => {
-      expect(isTrustedProxyAddress("10.0.0.1", ["10.0.0.0/8"])).toBe(true);
-      expect(isTrustedProxyAddress("10.17.42.3", ["10.0.0.0/8"])).toBe(true);
-      expect(isTrustedProxyAddress("10.255.255.255", ["10.0.0.0/8"])).toBe(true);
-      expect(isTrustedProxyAddress("11.0.0.1", ["10.0.0.0/8"])).toBe(false);
-      expect(isTrustedProxyAddress("192.168.1.1", ["10.0.0.0/8"])).toBe(false);
+  it("returns en0 IPv4 address when available", () => {
+    vi.spyOn(os, "networkInterfaces").mockReturnValue({
+      lo0: [
+        { address: "127.0.0.1", family: "IPv4", internal: true, netmask: "" },
+      ] as unknown as os.NetworkInterfaceInfo[],
+      en0: [
+        { address: "192.168.1.42", family: "IPv4", internal: false, netmask: "" },
+      ] as unknown as os.NetworkInterfaceInfo[],
     });
-
-    it("matches IPs within /12 CIDR range", () => {
-      expect(isTrustedProxyAddress("172.16.0.1", ["172.16.0.0/12"])).toBe(true);
-      expect(isTrustedProxyAddress("172.31.255.255", ["172.16.0.0/12"])).toBe(true);
-      expect(isTrustedProxyAddress("172.15.255.255", ["172.16.0.0/12"])).toBe(false);
-      expect(isTrustedProxyAddress("172.32.0.1", ["172.16.0.0/12"])).toBe(false);
-    });
-
-    it("matches IPs within /16 CIDR range", () => {
-      expect(isTrustedProxyAddress("192.168.0.1", ["192.168.0.0/16"])).toBe(true);
-      expect(isTrustedProxyAddress("192.168.255.255", ["192.168.0.0/16"])).toBe(true);
-      expect(isTrustedProxyAddress("192.169.0.1", ["192.168.0.0/16"])).toBe(false);
-    });
-
-    it("handles multiple CIDR ranges", () => {
-      const trustedProxies = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"];
-      expect(isTrustedProxyAddress("10.17.42.3", trustedProxies)).toBe(true);
-      expect(isTrustedProxyAddress("172.16.0.1", trustedProxies)).toBe(true);
-      expect(isTrustedProxyAddress("192.168.1.1", trustedProxies)).toBe(true);
-      expect(isTrustedProxyAddress("8.8.8.8", trustedProxies)).toBe(false);
-    });
-
-    it("handles mixed exact IPs and CIDR ranges", () => {
-      const trustedProxies = ["10.0.0.0/8", "192.168.1.100"];
-      expect(isTrustedProxyAddress("10.17.42.3", trustedProxies)).toBe(true);
-      expect(isTrustedProxyAddress("192.168.1.100", trustedProxies)).toBe(true);
-      expect(isTrustedProxyAddress("192.168.1.101", trustedProxies)).toBe(false);
-    });
-
-    it("handles edge cases", () => {
-      expect(isTrustedProxyAddress("0.0.0.0", ["0.0.0.0/0"])).toBe(true);
-      expect(isTrustedProxyAddress("255.255.255.255", ["0.0.0.0/0"])).toBe(true);
-      expect(isTrustedProxyAddress("10.0.0.1", ["10.0.0.0/32"])).toBe(false);
-      expect(isTrustedProxyAddress("10.0.0.0", ["10.0.0.0/32"])).toBe(true);
-    });
-
-    it("handles invalid CIDR gracefully", () => {
-      // Invalid prefix length should fall back to exact match
-      expect(isTrustedProxyAddress("10.0.0.0", ["10.0.0.0/33"])).toBe(true);
-      expect(isTrustedProxyAddress("10.0.0.1", ["10.0.0.0/33"])).toBe(false);
-      expect(isTrustedProxyAddress("10.0.0.0", ["10.0.0.0/-1"])).toBe(true);
-    });
+    expect(pickPrimaryLanIPv4()).toBe("192.168.1.42");
   });
 
-  describe("normalization", () => {
-    it("handles IPv4-mapped IPv6 addresses", () => {
-      expect(isTrustedProxyAddress("::ffff:10.0.0.1", ["10.0.0.0/8"])).toBe(true);
-      expect(isTrustedProxyAddress("::ffff:192.168.1.1", ["192.168.0.0/16"])).toBe(true);
+  it("returns eth0 IPv4 address when en0 is absent", () => {
+    vi.spyOn(os, "networkInterfaces").mockReturnValue({
+      lo: [
+        { address: "127.0.0.1", family: "IPv4", internal: true, netmask: "" },
+      ] as unknown as os.NetworkInterfaceInfo[],
+      eth0: [
+        { address: "10.0.0.5", family: "IPv4", internal: false, netmask: "" },
+      ] as unknown as os.NetworkInterfaceInfo[],
     });
+    expect(pickPrimaryLanIPv4()).toBe("10.0.0.5");
+  });
 
-    it("handles case-insensitive IPs", () => {
-      expect(isTrustedProxyAddress("10.0.0.1", ["10.0.0.0/8"])).toBe(true);
-      // IPv4 addresses don't have case, but normalization should still work
+  it("falls back to any non-internal IPv4 interface", () => {
+    vi.spyOn(os, "networkInterfaces").mockReturnValue({
+      lo: [
+        { address: "127.0.0.1", family: "IPv4", internal: true, netmask: "" },
+      ] as unknown as os.NetworkInterfaceInfo[],
+      wlan0: [
+        { address: "172.16.0.99", family: "IPv4", internal: false, netmask: "" },
+      ] as unknown as os.NetworkInterfaceInfo[],
     });
+    expect(pickPrimaryLanIPv4()).toBe("172.16.0.99");
+  });
+
+  it("returns undefined when only internal interfaces exist", () => {
+    vi.spyOn(os, "networkInterfaces").mockReturnValue({
+      lo: [
+        { address: "127.0.0.1", family: "IPv4", internal: true, netmask: "" },
+      ] as unknown as os.NetworkInterfaceInfo[],
+    });
+    expect(pickPrimaryLanIPv4()).toBeUndefined();
   });
 });
