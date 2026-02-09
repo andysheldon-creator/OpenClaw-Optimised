@@ -10,6 +10,12 @@ import {
   layoutNodes,
   validateFlow,
   analyzeFlow,
+  buildSimpleFlow,
+  buildHttpApiFlow,
+  buildSwitchFlow,
+  buildErrorHandlerFlow,
+  buildTransformPipeline,
+  buildParallelProcessFlow,
   type NodeJson,
 } from "./flow-builder.js";
 import {
@@ -45,6 +51,9 @@ const ACTIONS = [
   "nodes_connect",
   "flow_validate",
   "flow_analyze",
+  // Flow patterns
+  "pattern_build",
+  "node_types",
   // Templates
   "templates_list",
   "template_apply",
@@ -190,6 +199,32 @@ export const NodeRedToolSchema = Type.Object(
         description: "Interval in seconds for timer templates",
       }),
     ),
+    // Pattern params
+    patternType: Type.Optional(
+      stringEnum(["simple", "http-api", "switch", "error-handler", "transform", "parallel"], {
+        description: "Pattern type for pattern_build",
+      }),
+    ),
+    method: Type.Optional(
+      stringEnum(["get", "post", "put", "delete", "patch"], {
+        description: "HTTP method for http-api pattern",
+      }),
+    ),
+    conditions: Type.Optional(
+      Type.Array(Type.Object({ value: Type.String() }), {
+        description: "Conditions for switch pattern [{value: 'x'}, ...]",
+      }),
+    ),
+    transforms: Type.Optional(
+      Type.Array(Type.Object({ name: Type.String(), func: Type.String() }), {
+        description: "Transform functions for pipeline [{name, func}, ...]",
+      }),
+    ),
+    handlerFunc: Type.Optional(
+      Type.String({
+        description: "JavaScript function code for pattern handlers",
+      }),
+    ),
   },
   { additionalProperties: false },
 );
@@ -221,6 +256,12 @@ type ToolParams = {
   baseUrl?: string;
   mqttTopic?: string;
   interval?: string;
+  // Pattern params
+  patternType?: "simple" | "http-api" | "switch" | "error-handler" | "transform" | "parallel";
+  method?: "get" | "post" | "put" | "delete" | "patch";
+  conditions?: Array<{ value: string }>;
+  transforms?: Array<{ name: string; func: string }>;
+  handlerFunc?: string;
 };
 
 type ToolResult = {
@@ -506,6 +547,100 @@ export function createExecuteNodeRedTool(config: NodeRedToolConfig) {
           return json({
             success: true,
             ...analysis,
+          });
+        }
+
+        // ========================================
+        // Pattern Actions
+        // ========================================
+        case "pattern_build": {
+          if (!params.patternType) {
+            return json({
+              success: true,
+              availablePatterns: [
+                { id: "simple", description: "inject → function → debug" },
+                { id: "http-api", description: "http in → handler → http response" },
+                { id: "switch", description: "input → switch → multiple outputs" },
+                { id: "error-handler", description: "catch → handler → debug" },
+                { id: "transform", description: "input → [transforms...] → output" },
+                { id: "parallel", description: "split → process → join" },
+              ],
+              hint: "Specify patternType to generate a flow pattern",
+            });
+          }
+
+          let pattern;
+          const label = params.label || `${params.patternType} Flow`;
+
+          switch (params.patternType) {
+            case "simple":
+              pattern = buildSimpleFlow(label, params.handlerFunc, {
+                repeat: params.interval,
+              });
+              break;
+            case "http-api":
+              if (!params.baseUrl) {
+                throw new Error("baseUrl required for http-api pattern");
+              }
+              pattern = buildHttpApiFlow(label, params.baseUrl, params.method || "get", params.handlerFunc);
+              break;
+            case "switch":
+              pattern = buildSwitchFlow(
+                label,
+                params.properties?.property as string || "payload",
+                params.conditions || [{ value: "A" }, { value: "B" }],
+              );
+              break;
+            case "error-handler":
+              pattern = buildErrorHandlerFlow(label, params.handlerFunc);
+              break;
+            case "transform":
+              if (!params.transforms || params.transforms.length === 0) {
+                throw new Error("transforms array required for transform pattern");
+              }
+              pattern = buildTransformPipeline(label, params.transforms);
+              break;
+            case "parallel":
+              pattern = buildParallelProcessFlow(label, params.handlerFunc);
+              break;
+            default:
+              throw new Error(`Unknown pattern: ${params.patternType}`);
+          }
+
+          const flowItems = [pattern.tab, ...pattern.nodes];
+          return json({
+            success: true,
+            message: `Pattern "${params.patternType}" built successfully`,
+            tab: pattern.tab,
+            nodeCount: pattern.nodes.length,
+            flows: flowItems,
+            hint: "Use flows_deploy to deploy, or merge with existing flows",
+          });
+        }
+
+        case "node_types": {
+          // Return available NodeFactory types
+          const factoryTypes = Object.keys(NodeFactory).sort();
+          return json({
+            success: true,
+            message: "Available node types in NodeFactory",
+            nodeTypes: factoryTypes,
+            count: factoryTypes.length,
+            usage: "Use node_create with nodeType parameter",
+            examples: [
+              { nodeType: "inject", description: "Message injection/timer" },
+              { nodeType: "debug", description: "Debug output" },
+              { nodeType: "function", description: "JavaScript processing" },
+              { nodeType: "change", description: "Set/change message properties" },
+              { nodeType: "switch", description: "Route by condition" },
+              { nodeType: "httpIn", description: "HTTP endpoint" },
+              { nodeType: "httpRequest", description: "HTTP client" },
+              { nodeType: "split", description: "Split array/string" },
+              { nodeType: "join", description: "Join messages" },
+              { nodeType: "json", description: "JSON parse/stringify" },
+              { nodeType: "file", description: "Write to file" },
+              { nodeType: "fileIn", description: "Read from file" },
+            ],
           });
         }
 
