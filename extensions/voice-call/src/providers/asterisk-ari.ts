@@ -132,11 +132,12 @@ export class AsteriskAriProvider implements VoiceCallProvider {
     }
 
     // 2. Originate call
+    const callerId = input.fromName ? `${input.fromName} <${input.from}>` : input.from;
     const ch = await this.client.createChannel({
       endpoint,
       app: this.cfg.app,
       appArgs: providerCallId,
-      callerId: input.fromName ? `${input.fromName} <${input.from}>` : undefined,
+      callerId,
     });
 
     const state: CallState = {
