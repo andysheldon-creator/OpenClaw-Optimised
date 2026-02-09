@@ -1,3 +1,6 @@
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import type { MsgContext } from "../auto-reply/templating.js";
 import type { OpenClawConfig } from "../config/config.js";
 import type {
@@ -169,6 +172,48 @@ async function transcribeAudioBufferWithCore(params: {
       text: null,
       decision: { capability: "audio", outcome: "skipped", attachments: [] },
     };
+  }
+
+  const hasCliEntry = entries.some(
+    (entry) => (entry.type ?? (entry.command ? "cli" : "provider")) === "cli",
+  );
+  if (hasCliEntry) {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-audio-core-"));
+    const fileExt = params.fileName ? path.extname(params.fileName) : "";
+    const ext = fileExt || ".wav";
+    const baseName = params.fileName ? path.basename(params.fileName, fileExt) : "audio";
+    const fileName = `${baseName}${ext}`;
+    const filePath = path.join(tempDir, fileName);
+    try {
+      await fs.writeFile(filePath, params.buffer);
+      const attachments = [{ path: filePath, mime: params.mime, index: 0 }];
+      const cache = createMediaAttachmentCache(attachments);
+      const ctx: MsgContext = {
+        MediaPath: filePath,
+        MediaDir: tempDir,
+        MediaType: params.mime,
+        MediaPaths: [filePath],
+        MediaTypes: params.mime ? [params.mime] : undefined,
+      };
+      const result = await runCapability({
+        capability: "audio",
+        cfg: params.cfg,
+        ctx,
+        attachments: cache,
+        media: attachments,
+        providerRegistry,
+        config,
+      });
+      const output = result.outputs[0];
+      return {
+        text: output?.text ?? null,
+        provider: output?.provider,
+        model: output?.model,
+        decision: result.decision,
+      };
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+    }
   }
 
   for (const entry of entries) {
