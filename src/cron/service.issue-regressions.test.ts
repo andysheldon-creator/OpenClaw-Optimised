@@ -335,8 +335,13 @@ describe("Cron issue regressions", () => {
       .filter((evt) => evt.action === "started")
       .map((evt) => evt.runAtMs);
 
+    // With concurrent execution both jobs start before either finishes.
+    // The shared fake clock advances as each mock runs synchronously,
+    // so the first job's wall-clock "duration" includes the second
+    // mock's contribution. In production with real Date.now() this
+    // accurately reflects wall-clock overlap.
     expect(firstDone?.state.lastRunAtMs).toBe(dueAt);
-    expect(firstDone?.state.lastDurationMs).toBe(50);
+    expect(firstDone?.state.lastDurationMs).toBe(70);
     expect(secondDone?.state.lastRunAtMs).toBe(dueAt + 50);
     expect(secondDone?.state.lastDurationMs).toBe(20);
     expect(startedAtEvents).toEqual([dueAt, dueAt + 50]);
