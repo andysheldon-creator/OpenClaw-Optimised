@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../../config/config.js";
+import type { PluginHookRunner } from "../../plugins/hook-types.js";
 import { signalOutbound } from "../../channels/plugins/outbound/signal.js";
 import { telegramOutbound } from "../../channels/plugins/outbound/telegram.js";
 import { whatsappOutbound } from "../../channels/plugins/outbound/whatsapp.js";
@@ -343,7 +344,7 @@ describe("deliverOutboundPayloads", () => {
       .mockReturnValue({
         hasHooks: (name: string) => name === "message_sent",
         runMessageSent,
-      } as any);
+      } as unknown as PluginHookRunner);
 
     await deliverOutboundPayloads({
       cfg: {},
