@@ -152,19 +152,91 @@ export function publicKeyRawBase64UrlFromPem(publicKeyPem: string): string {
   return base64UrlEncode(derivePublicKeyRaw(publicKeyPem));
 }
 
+/**
+ * Extract raw 64-byte Ed25519 signature from DER-encoded format.
+ * Android KeyStore wraps Ed25519 sigs in DER SEQUENCE { INTEGER R, INTEGER S }
+ * instead of the standard raw R||S format.
+ */
+function derToRawEd25519(sig: Buffer): Buffer | null {
+  try {
+    if (sig[0] !== 0x30) {
+      return null;
+    }
+    let offset = 2; // skip SEQUENCE tag + length
+
+    // Read R
+    if (sig[offset] !== 0x02) {
+      return null;
+    }
+    offset++;
+    const rLen = sig[offset];
+    offset++;
+    const rBytes = sig.subarray(offset, offset + rLen);
+    offset += rLen;
+
+    // Read S
+    if (sig[offset] !== 0x02) {
+      return null;
+    }
+    offset++;
+    const sLen = sig[offset];
+    offset++;
+    const sBytes = sig.subarray(offset, offset + sLen);
+
+    // Trim/pad to 32 bytes each (DER INTEGER may have leading 0x00 for sign)
+    const r = padOrTrimTo32(rBytes);
+    const s = padOrTrimTo32(sBytes);
+    return Buffer.concat([r, s]);
+  } catch {
+    return null;
+  }
+}
+
+function padOrTrimTo32(bytes: Uint8Array): Buffer {
+  if (bytes.length === 32) {
+    return Buffer.from(bytes);
+  }
+  if (bytes.length > 32) {
+    return Buffer.from(bytes.subarray(bytes.length - 32));
+  }
+  const padded = Buffer.alloc(32);
+  Buffer.from(bytes).copy(padded, 32 - bytes.length);
+  return padded;
+}
+
+// ECDSA P-256 SPKI prefix (for uncompressed 65-byte public keys)
+const P256_SPKI_PREFIX = Buffer.from("3059301306072a8648ce3d020106082a8648ce3d030107034200", "hex");
+
 export function verifyDeviceSignature(
   publicKey: string,
   payload: string,
   signatureBase64Url: string,
 ): boolean {
   try {
-    const key = publicKey.includes("BEGIN")
-      ? crypto.createPublicKey(publicKey)
-      : crypto.createPublicKey({
-          key: Buffer.concat([ED25519_SPKI_PREFIX, base64UrlDecode(publicKey)]),
+    let key: crypto.KeyObject;
+    if (publicKey.includes("BEGIN")) {
+      key = crypto.createPublicKey(publicKey);
+    } else {
+      const raw = base64UrlDecode(publicKey);
+      if (raw.length === 32) {
+        // Ed25519: 32-byte raw public key
+        key = crypto.createPublicKey({
+          key: Buffer.concat([ED25519_SPKI_PREFIX, raw]),
           type: "spki",
           format: "der",
         });
+      } else if (raw.length === 65 && raw[0] === 0x04) {
+        // ECDSA P-256: 65-byte uncompressed point (0x04 + 32-byte X + 32-byte Y)
+        key = crypto.createPublicKey({
+          key: Buffer.concat([P256_SPKI_PREFIX, raw]),
+          type: "spki",
+          format: "der",
+        });
+      } else {
+        // Try as full SPKI DER (e.g., Android KeyStore P-256 sends full SPKI)
+        key = crypto.createPublicKey({ key: raw, type: "spki", format: "der" });
+      }
+    }
     const sig = (() => {
       try {
         return base64UrlDecode(signatureBase64Url);
@@ -172,7 +244,38 @@ export function verifyDeviceSignature(
         return Buffer.from(signatureBase64Url, "base64");
       }
     })();
-    return crypto.verify(null, Buffer.from(payload, "utf8"), key, sig);
+    const payloadBuf = Buffer.from(payload, "utf8");
+
+    const keyType = key.asymmetricKeyType;
+
+    if (keyType === "ec") {
+      // Try SHA-256 first (standard ECDSA P-256)
+      if (crypto.verify("sha256", payloadBuf, key, sig)) {
+        return true;
+      }
+      // Try without hash (NONEwithECDSA fallback)
+      try {
+        if (crypto.verify(null, payloadBuf, key, sig)) {
+          return true;
+        }
+      } catch {
+        // not supported for this key
+      }
+      return false;
+    }
+
+    // Ed25519: try raw signature first (64 bytes)
+    if (crypto.verify(null, payloadBuf, key, sig)) {
+      return true;
+    }
+
+    // Try DER-decoded signature (Android KeyStore Ed25519 workaround)
+    const rawSig = derToRawEd25519(sig);
+    if (rawSig && rawSig.length === 64) {
+      return crypto.verify(null, payloadBuf, key, rawSig);
+    }
+
+    return false;
   } catch {
     return false;
   }
