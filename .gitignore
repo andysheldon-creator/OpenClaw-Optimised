@@ -71,6 +71,9 @@ USER.md
 # local tooling
 .serena/
 
+# Similar search index (generated)
+.claude/similar-index.json
+
 # Agent credentials and memory (NEVER COMMIT)
 /memory/
 .agent/*.json

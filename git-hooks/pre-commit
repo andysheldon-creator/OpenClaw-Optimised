@@ -7,4 +7,7 @@ echo "$FILES" | xargs pnpm exec oxlint --fix 2>/dev/null || true
 echo "$FILES" | xargs pnpm exec oxfmt --write 2>/dev/null || true
 echo "$FILES" | xargs git add
 
+# Changeset check: src/** or extensions/** changes require a .changeset/*.md
+bash "$(git rev-parse --show-toplevel)/.claude/scripts/check-changeset.sh" || exit 1
+
 exit 0
