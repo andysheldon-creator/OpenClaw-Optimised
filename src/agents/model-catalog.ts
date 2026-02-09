@@ -1,3 +1,5 @@
+import fs from "node:fs/promises";
+import path from "node:path";
 import { type OpenClawConfig, loadConfig } from "../config/config.js";
 import { resolveOpenClawAgentDir } from "./agent-paths.js";
 import { ensureOpenClawModelsJson } from "./models-config.js";
@@ -93,6 +95,43 @@ export async function loadModelCatalog(params?: {
         const reasoning = typeof entry?.reasoning === "boolean" ? entry.reasoning : undefined;
         const input = Array.isArray(entry?.input) ? entry.input : undefined;
         models.push({ id, name, provider, contextWindow, reasoning, input });
+      }
+
+      // MANUALLY INJECT AIMLAPI MODELS if they exist in models.json but not in Pi SDK registry
+      const modelsJsonPath = path.join(agentDir, "models.json");
+      try {
+        const modelsJsonRaw = await fs.readFile(modelsJsonPath, "utf8");
+        const modelsJson = JSON.parse(modelsJsonRaw) as {
+          providers?: Record<string, { models?: unknown }>;
+        };
+        if (modelsJson.providers?.aimlapi?.models) {
+          const aimlapiModels = modelsJson.providers.aimlapi.models as Array<{
+            id: string;
+            name?: string;
+            reasoning?: boolean;
+            input?: Array<"text" | "image">;
+            contextWindow?: number;
+          }>;
+
+          // Only add AIMLAPI models if they're not already in the catalog
+          const existingKeys = new Set(models.map((m) => `${m.provider}/${m.id}`));
+
+          for (const model of aimlapiModels) {
+            const key = `aimlapi/${model.id}`;
+            if (!existingKeys.has(key)) {
+              models.push({
+                id: model.id,
+                name: model.name || model.id,
+                provider: "aimlapi",
+                reasoning: model.reasoning,
+                input: model.input,
+                contextWindow: model.contextWindow,
+              });
+            }
+          }
+        }
+      } catch (error) {
+        console.warn("[model-catalog] Failed to inject AIMLAPI models:", String(error));
       }
 
       if (models.length === 0) {

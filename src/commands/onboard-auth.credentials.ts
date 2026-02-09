@@ -119,6 +119,7 @@ export const ZAI_DEFAULT_MODEL_REF = "zai/glm-4.7";
 export const XIAOMI_DEFAULT_MODEL_REF = "xiaomi/mimo-v2-flash";
 export const OPENROUTER_DEFAULT_MODEL_REF = "openrouter/auto";
 export const VERCEL_AI_GATEWAY_DEFAULT_MODEL_REF = "vercel-ai-gateway/anthropic/claude-opus-4.6";
+export const AIMLAPI_DEFAULT_MODEL_REF = "aimlapi/openai/gpt-5-nano-2025-08-07";
 
 export async function setZaiApiKey(key: string, agentDir?: string) {
   // Write to resolved agent dir so gateway finds credentials on startup.
@@ -157,6 +158,20 @@ export async function setOpenrouterApiKey(key: string, agentDir?: string) {
   });
 }
 
+export async function setAimlapiApiKey(key: string, agentDir?: string) {
+  const normalizedKey = key.trim();
+
+  upsertAuthProfile({
+    profileId: "aimlapi:default",
+    credential: {
+      type: "api_key",
+      provider: "aimlapi",
+      key: normalizedKey,
+    },
+    agentDir: resolveAuthAgentDir(agentDir),
+  });
+}
+
 export async function setCloudflareAiGatewayConfig(
   accountId: string,
   gatewayId: string,
@@ -166,6 +181,7 @@ export async function setCloudflareAiGatewayConfig(
   const normalizedAccountId = accountId.trim();
   const normalizedGatewayId = gatewayId.trim();
   const normalizedKey = apiKey.trim();
+
   upsertAuthProfile({
     profileId: "cloudflare-ai-gateway:default",
     credential: {

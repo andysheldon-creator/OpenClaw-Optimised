@@ -46,6 +46,7 @@ import {
 } from "../pi-embedded-helpers.js";
 import { normalizeUsage, type UsageLike } from "../usage.js";
 import { redactRunIdentifier, resolveRunWorkspaceDir } from "../workspace-run.js";
+import { formatAimlapiToolSchemaError, isAimlapiInvalidToolSchemaError } from "./aimlapi.js";
 import { compactEmbeddedPiSessionDirect } from "./compact.js";
 import { resolveGlobalLane, resolveSessionLane } from "./lanes.js";
 import { log } from "./logger.js";
@@ -63,6 +64,11 @@ type ApiKeyInfo = ResolvedProviderAuth;
 // Avoid Anthropic's refusal test token poisoning session transcripts.
 const ANTHROPIC_MAGIC_STRING_TRIGGER_REFUSAL = "ANTHROPIC_MAGIC_STRING_TRIGGER_REFUSAL";
 const ANTHROPIC_MAGIC_STRING_REPLACEMENT = "ANTHROPIC MAGIC STRING TRIGGER REFUSAL (redacted)";
+
+function shouldLogAimlapiDiagnostics(): boolean {
+  const value = process.env.OPENCLAW_AIMLAPI_DEBUG_LOG?.trim().toLowerCase();
+  return value === "1" || value === "true" || value === "yes" || value === "on";
+}
 
 function scrubAnthropicRefusalMagic(prompt: string): string {
   if (!prompt.includes(ANTHROPIC_MAGIC_STRING_TRIGGER_REFUSAL)) {
@@ -251,29 +257,29 @@ export async function runEmbeddedPiAgent(
       let apiKeyInfo: ApiKeyInfo | null = null;
       let lastProfileId: string | undefined;
 
-      const resolveAuthProfileFailoverReason = (params: {
+      const resolveAuthProfileFailoverReason = (params2: {
         allInCooldown: boolean;
         message: string;
       }): FailoverReason => {
-        if (params.allInCooldown) {
+        if (params2.allInCooldown) {
           return "rate_limit";
         }
-        const classified = classifyFailoverReason(params.message);
+        const classified = classifyFailoverReason(params2.message);
         return classified ?? "auth";
       };
 
-      const throwAuthProfileFailover = (params: {
+      const throwAuthProfileFailover = (params2: {
         allInCooldown: boolean;
         message?: string;
         error?: unknown;
       }): never => {
         const fallbackMessage = `No available auth profile for ${provider} (all in cooldown or unavailable).`;
         const message =
-          params.message?.trim() ||
-          (params.error ? describeUnknownError(params.error).trim() : "") ||
+          params2.message?.trim() ||
+          (params2.error ? describeUnknownError(params2.error).trim() : "") ||
           fallbackMessage;
         const reason = resolveAuthProfileFailoverReason({
-          allInCooldown: params.allInCooldown,
+          allInCooldown: params2.allInCooldown,
           message,
         });
         if (fallbackConfigured) {
@@ -282,11 +288,11 @@ export async function runEmbeddedPiAgent(
             provider,
             model: modelId,
             status: resolveFailoverStatus(reason),
-            cause: params.error,
+            cause: params2.error,
           });
         }
-        if (params.error instanceof Error) {
-          throw params.error;
+        if (params2.error instanceof Error) {
+          throw params2.error;
         }
         throw new Error(message);
       };
@@ -388,6 +394,7 @@ export async function runEmbeddedPiAgent(
       let toolResultTruncationAttempted = false;
       const usageAccumulator = createUsageAccumulator();
       let autoCompactionCount = 0;
+
       try {
         while (true) {
           attemptedThinking.add(thinkLevel);
@@ -459,12 +466,14 @@ export async function runEmbeddedPiAgent(
             attempt.attemptUsage ?? normalizeUsage(lastAssistant?.usage as UsageLike),
           );
           autoCompactionCount += Math.max(0, attempt.compactionCount ?? 0);
+
           const formattedAssistantErrorText = lastAssistant
             ? formatAssistantErrorText(lastAssistant, {
                 cfg: params.config,
                 sessionKey: params.sessionKey ?? params.sessionId,
               })
             : undefined;
+
           const assistantErrorText =
             lastAssistant?.stopReason === "error"
               ? lastAssistant.errorMessage?.trim() || formattedAssistantErrorText
@@ -497,7 +506,9 @@ export async function runEmbeddedPiAgent(
                 `messages=${msgCount} sessionFile=${params.sessionFile} ` +
                 `compactionAttempts=${overflowCompactionAttempts} error=${errorText.slice(0, 200)}`,
             );
+
             const isCompactionFailure = isCompactionFailureError(errorText);
+
             // Attempt auto-compaction on context overflow (not compaction_failure)
             if (
               !isCompactionFailure &&
@@ -507,6 +518,7 @@ export async function runEmbeddedPiAgent(
               log.warn(
                 `context overflow detected (attempt ${overflowCompactionAttempts}/${MAX_OVERFLOW_COMPACTION_ATTEMPTS}); attempting auto-compaction for ${provider}/${modelId}`,
               );
+
               const compactResult = await compactEmbeddedPiSessionDirect({
                 sessionId: params.sessionId,
                 sessionKey: params.sessionKey,
@@ -528,15 +540,18 @@ export async function runEmbeddedPiAgent(
                 extraSystemPrompt: params.extraSystemPrompt,
                 ownerNumbers: params.ownerNumbers,
               });
+
               if (compactResult.compacted) {
                 autoCompactionCount += 1;
                 log.info(`auto-compaction succeeded for ${provider}/${modelId}; retrying prompt`);
                 continue;
               }
+
               log.warn(
                 `auto-compaction failed for ${provider}/${modelId}: ${compactResult.reason ?? "nothing to compact"}`,
               );
             }
+
             // Fallback: try truncating oversized tool results in the session.
             // This handles the case where a single tool result exceeds the
             // context window and compaction cannot reduce it further.
@@ -555,12 +570,14 @@ export async function runEmbeddedPiAgent(
                   `[context-overflow-recovery] Attempting tool result truncation for ${provider}/${modelId} ` +
                     `(contextWindow=${contextWindowTokens} tokens)`,
                 );
+
                 const truncResult = await truncateOversizedToolResultsInSession({
                   sessionFile: params.sessionFile,
                   contextWindowTokens,
                   sessionId: params.sessionId,
                   sessionKey: params.sessionKey,
                 });
+
                 if (truncResult.truncated) {
                   log.info(
                     `[context-overflow-recovery] Truncated ${truncResult.truncatedCount} tool result(s); retrying prompt`,
@@ -569,11 +586,13 @@ export async function runEmbeddedPiAgent(
                   overflowCompactionAttempts = 0;
                   continue;
                 }
+
                 log.warn(
                   `[context-overflow-recovery] Tool result truncation did not help: ${truncResult.reason ?? "unknown"}`,
                 );
               }
             }
+
             const kind = isCompactionFailure ? "compaction_failure" : "context_overflow";
             return {
               payloads: [
@@ -599,6 +618,48 @@ export async function runEmbeddedPiAgent(
 
           if (promptError && !aborted) {
             const errorText = describeUnknownError(promptError);
+
+            // AIMLAPI: return dedicated invalid-tool-schema payload (no retries)
+            if (provider === "aimlapi") {
+              if (shouldLogAimlapiDiagnostics()) {
+                log.warn("aimlapi run: prompt failed before assistant response", {
+                  runId: params.runId,
+                  sessionId: params.sessionId,
+                  model: `${provider}/${modelId}`,
+                  error: errorText.slice(0, 800),
+                });
+              }
+
+              if (isAimlapiInvalidToolSchemaError(errorText)) {
+                if (shouldLogAimlapiDiagnostics()) {
+                  log.warn("aimlapi run: returning dedicated invalid-tool-schema payload", {
+                    runId: params.runId,
+                    sessionId: params.sessionId,
+                    model: `${provider}/${modelId}`,
+                  });
+                }
+
+                return {
+                  payloads: [
+                    {
+                      text: formatAimlapiToolSchemaError(errorText),
+                      isError: true,
+                    },
+                  ],
+                  meta: {
+                    durationMs: Date.now() - started,
+                    agentMeta: {
+                      sessionId: sessionIdUsed,
+                      provider,
+                      model: model.id,
+                    },
+                    systemPromptReport: attempt.systemPromptReport,
+                    error: { kind: "aimlapi_invalid_tool_schema", message: errorText },
+                  },
+                };
+              }
+            }
+
             // Handle role ordering errors with a user-friendly message
             if (/incorrect role information|roles must alternate/i.test(errorText)) {
               return {
@@ -622,6 +683,7 @@ export async function runEmbeddedPiAgent(
                 },
               };
             }
+
             // Handle image size errors with a user-friendly message (no retry needed)
             const imageSizeError = parseImageSizeError(errorText);
             if (imageSizeError) {
@@ -650,6 +712,7 @@ export async function runEmbeddedPiAgent(
                 },
               };
             }
+
             const promptFailoverReason = classifyFailoverReason(errorText);
             if (promptFailoverReason && promptFailoverReason !== "timeout" && lastProfileId) {
               await markAuthProfileFailure({
@@ -660,6 +723,7 @@ export async function runEmbeddedPiAgent(
                 agentDir: params.agentDir,
               });
             }
+
             if (
               isFailoverErrorMessage(errorText) &&
               promptFailoverReason !== "timeout" &&
@@ -667,6 +731,7 @@ export async function runEmbeddedPiAgent(
             ) {
               continue;
             }
+
             const fallbackThinking = pickFallbackThinkingLevel({
               message: errorText,
               attempted: attemptedThinking,
@@ -678,6 +743,7 @@ export async function runEmbeddedPiAgent(
               thinkLevel = fallbackThinking;
               continue;
             }
+
             // FIX: Throw FailoverError for prompt errors when fallbacks configured
             // This enables model fallback for quota/rate limit errors during prompt submission
             if (fallbackConfigured && isFailoverErrorMessage(errorText)) {
@@ -689,6 +755,7 @@ export async function runEmbeddedPiAgent(
                 status: resolveFailoverStatus(promptFailoverReason ?? "unknown"),
               });
             }
+
             throw promptError;
           }
 
@@ -747,6 +814,7 @@ export async function runEmbeddedPiAgent(
                 cfg: params.config,
                 agentDir: params.agentDir,
               });
+
               if (timedOut && !isProbeSession) {
                 log.warn(
                   `Profile ${lastProfileId} timed out (possible rate limit). Trying next account...`,
@@ -821,6 +889,7 @@ export async function runEmbeddedPiAgent(
           log.debug(
             `embedded run done: runId=${params.runId} sessionId=${params.sessionId} durationMs=${Date.now() - started} aborted=${aborted}`,
           );
+
           if (lastProfileId) {
             await markAuthProfileGood({
               store: authStore,
@@ -834,6 +903,7 @@ export async function runEmbeddedPiAgent(
               agentDir: params.agentDir,
             });
           }
+
           return {
             payloads: payloads.length ? payloads : undefined,
             meta: {

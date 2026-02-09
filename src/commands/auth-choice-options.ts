@@ -13,6 +13,7 @@ export type AuthChoiceGroupId =
   | "google"
   | "copilot"
   | "openrouter"
+  | "aimlapi"
   | "ai-gateway"
   | "cloudflare-ai-gateway"
   | "moonshot"
@@ -80,6 +81,18 @@ const AUTH_CHOICE_GROUP_DEFS: {
     label: "OpenRouter",
     hint: "API key",
     choices: ["openrouter-api-key"],
+  },
+  {
+    value: "aimlapi",
+    label: "AI/ML API",
+    hint: "Supports 300+ models via 1 API key",
+    choices: ["aimlapi-api-key"],
+  },
+  {
+    value: "ai-gateway",
+    label: "Vercel AI Gateway",
+    hint: "API key",
+    choices: ["ai-gateway-api-key"],
   },
   {
     value: "qwen",
@@ -168,6 +181,7 @@ export function buildAuthChoiceOptions(params: {
     label: "Qianfan API key",
   });
   options.push({ value: "openrouter-api-key", label: "OpenRouter API key" });
+  options.push({ value: "aimlapi-api-key", label: "AI/ML API key" });
   options.push({
     value: "ai-gateway-api-key",
     label: "Vercel AI Gateway API key",

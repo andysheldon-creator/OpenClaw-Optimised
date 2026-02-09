@@ -80,6 +80,17 @@ const OLLAMA_DEFAULT_COST = {
   cacheWrite: 0,
 };
 
+export const AIMLAPI_BASE_URL = "https://api.aimlapi.com/v1";
+export const AIMLAPI_DEFAULT_MODEL_ID = "openai/gpt-5-nano-2025-08-07";
+const AIMLAPI_DEFAULT_CONTEXT_WINDOW = 128000;
+const AIMLAPI_DEFAULT_MAX_TOKENS = 16384;
+const AIMLAPI_DEFAULT_COST = {
+  input: 0,
+  output: 0,
+  cacheRead: 0,
+  cacheWrite: 0,
+};
+
 export const QIANFAN_BASE_URL = "https://qianfan.baidubce.com/v2";
 export const QIANFAN_DEFAULT_MODEL_ID = "deepseek-v3.2";
 const QIANFAN_DEFAULT_CONTEXT_WINDOW = 98304;
@@ -104,6 +115,24 @@ interface OllamaModel {
 
 interface OllamaTagsResponse {
   models: OllamaModel[];
+}
+
+interface AimlapiModel {
+  id: string;
+  type: string;
+  info?: {
+    name?: string;
+    developer?: string;
+    description?: string;
+    contextLength?: number;
+    maxTokens?: number;
+  };
+  features?: string[];
+}
+
+interface AimlapiModelsResponse {
+  object: string;
+  data: AimlapiModel[];
 }
 
 async function discoverOllamaModels(): Promise<ModelDefinitionConfig[]> {
@@ -145,6 +174,65 @@ async function discoverOllamaModels(): Promise<ModelDefinitionConfig[]> {
     });
   } catch (error) {
     console.warn(`Failed to discover Ollama models: ${String(error)}`);
+    return [];
+  }
+}
+
+async function discoverAimlapiModels(): Promise<ModelDefinitionConfig[]> {
+  // Skip AIMLAPI discovery in test environments
+  if (process.env.VITEST || process.env.NODE_ENV === "test") {
+    return [];
+  }
+  try {
+    const response = await fetch(`${AIMLAPI_BASE_URL}/models`, {
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!response.ok) {
+      console.warn(`Failed to discover AIMLAPI models: ${response.status}`);
+      return [];
+    }
+    const data = (await response.json()) as AimlapiModelsResponse;
+    if (!data.data || data.data.length === 0) {
+      console.warn("No AIMLAPI models found");
+      return [];
+    }
+
+    // Filter for chat-completion models only
+    return data.data
+      .filter((model) => model.type === "chat-completion")
+      .map((model) => {
+        const modelId = model.id;
+        const isReasoning =
+          model.features?.includes("openai/chat-completion.reasoning") ||
+          modelId.toLowerCase().includes("o1") ||
+          modelId.toLowerCase().includes("o3") ||
+          modelId.toLowerCase().includes("reasoning");
+        const hasVision =
+          model.features?.includes("openai/chat-completion.vision") ||
+          modelId.toLowerCase().includes("vision");
+
+        const input: ("text" | "image")[] = ["text"];
+        if (hasVision) {
+          input.push("image");
+        }
+        // Note: audio is not supported in ModelDefinitionConfig input type
+
+        // Cap maxTokens to reasonable limits to avoid Pi SDK validation errors
+        const rawMaxTokens = model.info?.maxTokens ?? AIMLAPI_DEFAULT_MAX_TOKENS;
+        const maxTokens = Math.max(1, Math.min(rawMaxTokens, 32768)); // Ensure at least 1, cap at 32k
+
+        return {
+          id: modelId,
+          name: model.info?.name || modelId,
+          reasoning: isReasoning,
+          input,
+          cost: AIMLAPI_DEFAULT_COST,
+          contextWindow: model.info?.contextLength ?? AIMLAPI_DEFAULT_CONTEXT_WINDOW,
+          maxTokens,
+        };
+      });
+  } catch (error) {
+    console.warn(`Failed to discover AIMLAPI models: ${String(error)}`);
     return [];
   }
 }
@@ -325,6 +413,26 @@ function buildMinimaxPortalProvider(): ProviderConfig {
   };
 }
 
+export function buildAimlapiModelDefinition(): ModelDefinitionConfig {
+  return {
+    id: AIMLAPI_DEFAULT_MODEL_ID,
+    name: "GPT-5 Nano (2025-08-07)",
+    reasoning: false,
+    input: ["text", "image"],
+    cost: AIMLAPI_DEFAULT_COST,
+    contextWindow: AIMLAPI_DEFAULT_CONTEXT_WINDOW,
+    maxTokens: AIMLAPI_DEFAULT_MAX_TOKENS,
+  };
+}
+
+export function buildAimlapiProvider(): ProviderConfig {
+  return {
+    baseUrl: AIMLAPI_BASE_URL,
+    api: "openai-completions",
+    models: [buildAimlapiModelDefinition()],
+  };
+}
+
 function buildMoonshotProvider(): ProviderConfig {
   return {
     baseUrl: MOONSHOT_BASE_URL,
@@ -441,6 +549,15 @@ export function buildQianfanProvider(): ProviderConfig {
   };
 }
 
+async function buildAimlapiProviderWithModels(): Promise<ProviderConfig> {
+  const models = await discoverAimlapiModels();
+  return {
+    baseUrl: AIMLAPI_BASE_URL,
+    api: "openai-completions",
+    models,
+  };
+}
+
 export async function resolveImplicitProviders(params: {
   agentDir: string;
 }): Promise<ModelsConfig["providers"]> {
@@ -541,6 +658,14 @@ export async function resolveImplicitProviders(params: {
     resolveApiKeyFromProfiles({ provider: "qianfan", store: authStore });
   if (qianfanKey) {
     providers.qianfan = { ...buildQianfanProvider(), apiKey: qianfanKey };
+  }
+
+  // AIMLAPI provider - only add if explicitly configured
+  const aimlapiKey =
+    resolveEnvApiKeyVarName("aimlapi") ??
+    resolveApiKeyFromProfiles({ provider: "aimlapi", store: authStore });
+  if (aimlapiKey) {
+    providers.aimlapi = { ...(await buildAimlapiProviderWithModels()), apiKey: aimlapiKey };
   }
 
   return providers;

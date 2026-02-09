@@ -4,7 +4,10 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  AIMLAPI_DEFAULT_MODEL_REF,
   applyAuthProfileConfig,
+  applyAimlapiConfig,
+  applyAimlapiProviderConfig,
   applyMinimaxApiConfig,
   applyMinimaxApiProviderConfig,
   applyOpencodeZenConfig,
@@ -519,6 +522,45 @@ describe("applyOpenrouterConfig", () => {
 
   it("preserves existing model fallbacks", () => {
     const cfg = applyOpenrouterConfig({
+      agents: {
+        defaults: {
+          model: { fallbacks: ["anthropic/claude-opus-4-5"] },
+        },
+      },
+    });
+    expect(cfg.agents?.defaults?.model?.fallbacks).toEqual(["anthropic/claude-opus-4-5"]);
+  });
+});
+
+describe("applyAimlapiProviderConfig", () => {
+  it("adds allowlist entry for the default model", () => {
+    const cfg = applyAimlapiProviderConfig({});
+    const models = cfg.agents?.defaults?.models ?? {};
+    expect(Object.keys(models)).toContain(AIMLAPI_DEFAULT_MODEL_REF);
+  });
+
+  it("preserves existing alias for the default model", () => {
+    const cfg = applyAimlapiProviderConfig({
+      agents: {
+        defaults: {
+          models: {
+            [AIMLAPI_DEFAULT_MODEL_REF]: { alias: "AIML" },
+          },
+        },
+      },
+    });
+    expect(cfg.agents?.defaults?.models?.[AIMLAPI_DEFAULT_MODEL_REF]?.alias).toBe("AIML");
+  });
+});
+
+describe("applyAimlapiConfig", () => {
+  it("sets correct primary model", () => {
+    const cfg = applyAimlapiConfig({});
+    expect(cfg.agents?.defaults?.model?.primary).toBe(AIMLAPI_DEFAULT_MODEL_REF);
+  });
+
+  it("preserves existing model fallbacks", () => {
+    const cfg = applyAimlapiConfig({
       agents: {
         defaults: {
           model: { fallbacks: ["anthropic/claude-opus-4-5"] },

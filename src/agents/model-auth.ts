@@ -276,6 +276,10 @@ export function resolveEnvApiKey(provider: string): EnvApiKeyResult | null {
     return pick("QWEN_OAUTH_TOKEN") ?? pick("QWEN_PORTAL_API_KEY");
   }
 
+  if (normalized === "aimlapi") {
+    return pick("AIMLAPI_API_KEY") ?? pick("AIML_API_KEY");
+  }
+
   if (normalized === "minimax-portal") {
     return pick("MINIMAX_OAUTH_TOKEN") ?? pick("MINIMAX_API_KEY");
   }
@@ -293,6 +297,7 @@ export function resolveEnvApiKey(provider: string): EnvApiKeyResult | null {
     cerebras: "CEREBRAS_API_KEY",
     xai: "XAI_API_KEY",
     openrouter: "OPENROUTER_API_KEY",
+    aimlapi: "AIMLAPI_API_KEY",
     "vercel-ai-gateway": "AI_GATEWAY_API_KEY",
     "cloudflare-ai-gateway": "CLOUDFLARE_AI_GATEWAY_API_KEY",
     moonshot: "MOONSHOT_API_KEY",

@@ -16,6 +16,10 @@ export const MOONSHOT_DEFAULT_CONTEXT_WINDOW = 256000;
 export const MOONSHOT_DEFAULT_MAX_TOKENS = 8192;
 export const KIMI_CODING_MODEL_ID = "k2p5";
 export const KIMI_CODING_MODEL_REF = `kimi-coding/${KIMI_CODING_MODEL_ID}`;
+export const AIMLAPI_BASE_URL = "https://api.aimlapi.com/v1";
+export const AIMLAPI_DEFAULT_MODEL_ID = "openai/gpt-5-nano-2025-08-07";
+export const AIMLAPI_DEFAULT_CONTEXT_WINDOW = 128000;
+export const AIMLAPI_DEFAULT_MAX_TOKENS = 16384;
 
 export { QIANFAN_BASE_URL, QIANFAN_DEFAULT_MODEL_ID };
 export const QIANFAN_DEFAULT_MODEL_REF = `qianfan/${QIANFAN_DEFAULT_MODEL_ID}`;
@@ -40,6 +44,12 @@ export const MINIMAX_LM_STUDIO_COST = {
   cacheWrite: 0,
 };
 export const MOONSHOT_DEFAULT_COST = {
+  input: 0,
+  output: 0,
+  cacheRead: 0,
+  cacheWrite: 0,
+};
+export const AIMLAPI_DEFAULT_COST = {
   input: 0,
   output: 0,
   cacheRead: 0,
@@ -118,5 +128,17 @@ export function buildXaiModelDefinition(): ModelDefinitionConfig {
     cost: XAI_DEFAULT_COST,
     contextWindow: XAI_DEFAULT_CONTEXT_WINDOW,
     maxTokens: XAI_DEFAULT_MAX_TOKENS,
+  };
+}
+
+export function buildAimlapiModelDefinition(): ModelDefinitionConfig {
+  return {
+    id: AIMLAPI_DEFAULT_MODEL_ID,
+    name: "GPT-5 Nano (2025-08-07)",
+    reasoning: false,
+    input: ["text", "image"],
+    cost: AIMLAPI_DEFAULT_COST,
+    contextWindow: AIMLAPI_DEFAULT_CONTEXT_WINDOW,
+    maxTokens: AIMLAPI_DEFAULT_MAX_TOKENS,
   };
 }

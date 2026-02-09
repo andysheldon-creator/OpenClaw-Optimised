@@ -169,6 +169,12 @@ describe("cli program (smoke)", () => {
         field: "openrouterApiKey",
       },
       {
+        authChoice: "aimlapi-api-key",
+        flag: "--aimlapi-api-key",
+        key: "sk-aimlapi-test",
+        field: "aimlapiApiKey",
+      },
+      {
         authChoice: "moonshot-api-key",
         flag: "--moonshot-api-key",
         key: "sk-moonshot-test",

@@ -5,6 +5,9 @@ import {
   resolveCloudflareAiGatewayBaseUrl,
 } from "../agents/cloudflare-ai-gateway.js";
 import {
+  AIMLAPI_BASE_URL,
+  AIMLAPI_DEFAULT_MODEL_ID,
+  buildAimlapiModelDefinition,
   buildQianfanProvider,
   buildXiaomiProvider,
   QIANFAN_DEFAULT_MODEL_ID,
@@ -29,6 +32,7 @@ import {
   XIAOMI_DEFAULT_MODEL_REF,
   ZAI_DEFAULT_MODEL_REF,
   XAI_DEFAULT_MODEL_REF,
+  AIMLAPI_DEFAULT_MODEL_REF,
 } from "./onboard-auth.credentials.js";
 import {
   buildMoonshotModelDefinition,
@@ -87,6 +91,49 @@ export function applyOpenrouterProviderConfig(cfg: OpenClawConfig): OpenClawConf
         ...cfg.agents?.defaults,
         models,
       },
+    },
+  };
+}
+
+export function applyAimlapiProviderConfig(cfg: OpenClawConfig): OpenClawConfig {
+  const models = { ...cfg.agents?.defaults?.models };
+  models[AIMLAPI_DEFAULT_MODEL_REF] = {
+    ...models[AIMLAPI_DEFAULT_MODEL_REF],
+    alias: models[AIMLAPI_DEFAULT_MODEL_REF]?.alias ?? "AI/ML API",
+  };
+
+  const providers = { ...cfg.models?.providers };
+  const existingProvider = providers.aimlapi;
+  const existingModels = Array.isArray(existingProvider?.models) ? existingProvider.models : [];
+  const defaultModel = buildAimlapiModelDefinition();
+  const hasDefaultModel = existingModels.some((model) => model.id === AIMLAPI_DEFAULT_MODEL_ID);
+  const mergedModels = hasDefaultModel ? existingModels : [...existingModels, defaultModel];
+  const { apiKey: existingApiKey, ...existingProviderRest } = (existingProvider ?? {}) as Record<
+    string,
+    unknown
+  > as { apiKey?: string };
+  const resolvedApiKey = typeof existingApiKey === "string" ? existingApiKey : undefined;
+  const normalizedApiKey = resolvedApiKey?.trim();
+  providers.aimlapi = {
+    ...existingProviderRest,
+    baseUrl: AIMLAPI_BASE_URL,
+    api: "openai-completions",
+    ...(normalizedApiKey ? { apiKey: normalizedApiKey } : {}),
+    models: mergedModels.length > 0 ? mergedModels : [defaultModel],
+  };
+
+  return {
+    ...cfg,
+    agents: {
+      ...cfg.agents,
+      defaults: {
+        ...cfg.agents?.defaults,
+        models,
+      },
+    },
+    models: {
+      mode: cfg.models?.mode ?? "merge",
+      providers,
     },
   };
 }
@@ -240,6 +287,28 @@ export function applyOpenrouterConfig(cfg: OpenClawConfig): OpenClawConfig {
               }
             : undefined),
           primary: OPENROUTER_DEFAULT_MODEL_REF,
+        },
+      },
+    },
+  };
+}
+
+export function applyAimlapiConfig(cfg: OpenClawConfig): OpenClawConfig {
+  const next = applyAimlapiProviderConfig(cfg);
+  const existingModel = next.agents?.defaults?.model;
+  return {
+    ...next,
+    agents: {
+      ...next.agents,
+      defaults: {
+        ...next.agents?.defaults,
+        model: {
+          ...(existingModel && "fallbacks" in (existingModel as Record<string, unknown>)
+            ? {
+                fallbacks: (existingModel as { fallbacks?: string[] }).fallbacks,
+              }
+            : undefined),
+          primary: AIMLAPI_DEFAULT_MODEL_REF,
         },
       },
     },

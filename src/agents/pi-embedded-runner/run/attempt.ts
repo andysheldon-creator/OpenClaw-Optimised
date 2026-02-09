@@ -20,6 +20,7 @@ import { normalizeMessageChannel } from "../../../utils/message-channel.js";
 import { isReasoningTagProvider } from "../../../utils/provider-utils.js";
 import { resolveOpenClawAgentDir } from "../../agent-paths.js";
 import { resolveSessionAgentIds } from "../../agent-scope.js";
+import { createAimlapiPayloadLogger } from "../../aimlapi-payload-log.js";
 import { createAnthropicPayloadLogger } from "../../anthropic-payload-log.js";
 import { makeBootstrapWarn, resolveBootstrapContextForRun } from "../../bootstrap-files.js";
 import { createCacheTrace } from "../../cache-trace.js";
@@ -61,6 +62,12 @@ import { buildSystemPromptReport } from "../../system-prompt-report.js";
 import { resolveTranscriptPolicy } from "../../transcript-policy.js";
 import { DEFAULT_BOOTSTRAP_FILENAME } from "../../workspace.js";
 import { isAbortError } from "../abort.js";
+import {
+  normalizeAimlapiAssistantNullContent,
+  normalizeAimlapiPayloadNullContent,
+  rollbackFailedAimlapiPrompt,
+  sanitizeToolsForAimlapi,
+} from "../aimlapi.js";
 import { appendCacheTtlTimestamp, isCacheTtlEligibleProvider } from "../cache-ttl.js";
 import { buildEmbeddedExtensionPaths } from "../extensions.js";
 import { applyExtraParamsToAgent } from "../extra-params.js";
@@ -88,6 +95,11 @@ import {
 import { splitSdkTools } from "../tool-split.js";
 import { describeUnknownError, mapThinkingLevel } from "../utils.js";
 import { detectAndLoadPromptImages } from "./images.js";
+
+function shouldLogAimlapiDiagnostics(): boolean {
+  const value = process.env.OPENCLAW_AIMLAPI_DEBUG_LOG?.trim().toLowerCase();
+  return value === "1" || value === "true" || value === "yes" || value === "on";
+}
 
 export function injectHistoryImagesIntoMessages(
   messages: AgentMessage[],
@@ -244,7 +256,14 @@ export async function runEmbeddedAttempt(
             params.requireExplicitMessageTarget ?? isSubagentSessionKey(params.sessionKey),
           disableMessageTool: params.disableMessageTool,
         });
-    const tools = sanitizeToolsForGoogle({ tools: toolsRaw, provider: params.provider });
+    const googleSanitizedTools = sanitizeToolsForGoogle({
+      tools: toolsRaw,
+      provider: params.provider,
+    });
+    const tools = sanitizeToolsForAimlapi({
+      tools: googleSanitizedTools,
+      provider: params.provider,
+    });
     logToolSchemasForGoogle({ tools, provider: params.provider });
 
     const machineName = await getMachineDisplayName();
@@ -513,6 +532,16 @@ export async function runEmbeddedAttempt(
         modelApi: params.model.api,
         workspaceDir: params.workspaceDir,
       });
+      const aimlapiPayloadLogger = createAimlapiPayloadLogger({
+        env: process.env,
+        runId: params.runId,
+        sessionId: activeSession.sessionId,
+        sessionKey: params.sessionKey,
+        provider: params.provider,
+        modelId: params.modelId,
+        modelApi: params.model.api,
+        workspaceDir: params.workspaceDir,
+      });
 
       // Force a stable streamFn reference so vitest can reliably mock @mariozechner/pi-ai.
       activeSession.agent.streamFn = streamSimple;
@@ -538,6 +567,56 @@ export async function runEmbeddedAttempt(
           activeSession.agent.streamFn,
         );
       }
+      if (params.provider === "aimlapi") {
+        const previousStreamFn = activeSession.agent.streamFn;
+        activeSession.agent.streamFn = (model, context, options) => {
+          if (context && typeof context === "object") {
+            const maybeMessages = (context as { messages?: unknown }).messages;
+            if (Array.isArray(maybeMessages)) {
+              const replacedCount = normalizeAimlapiAssistantNullContent({
+                provider: params.provider,
+                messages: maybeMessages as AgentMessage[],
+              }).replacedCount;
+              if (replacedCount > 0 && shouldLogAimlapiDiagnostics()) {
+                log.warn(
+                  "aimlapi stream guard: normalized null assistant content in stream context",
+                  {
+                    runId: params.runId,
+                    sessionId: params.sessionId,
+                    replacedCount,
+                  },
+                );
+              }
+            }
+          }
+          const nextOnPayload = (payload: unknown) => {
+            const normalized = normalizeAimlapiPayloadNullContent({
+              provider: params.provider,
+              payload,
+            });
+            if (normalized.replacedCount > 0 && shouldLogAimlapiDiagnostics()) {
+              log.warn(
+                "aimlapi stream guard: normalized null assistant content in outbound payload",
+                {
+                  runId: params.runId,
+                  sessionId: params.sessionId,
+                  replacedCount: normalized.replacedCount,
+                },
+              );
+            }
+            options?.onPayload?.(payload);
+          };
+          return previousStreamFn(model, context, {
+            ...options,
+            onPayload: nextOnPayload,
+          });
+        };
+      }
+      if (aimlapiPayloadLogger) {
+        activeSession.agent.streamFn = aimlapiPayloadLogger.wrapStreamFn(
+          activeSession.agent.streamFn,
+        );
+      }
 
       try {
         const prior = await sanitizeSessionHistory({
@@ -560,9 +639,13 @@ export async function runEmbeddedAttempt(
           validated,
           getDmHistoryLimitFromSessionKey(params.sessionKey, params.config),
         );
-        cacheTrace?.recordStage("session:limited", { messages: limited });
-        if (limited.length > 0) {
-          activeSession.agent.replaceMessages(limited);
+        const normalizedForAimlapi = normalizeAimlapiAssistantNullContent({
+          provider: params.provider,
+          messages: limited,
+        });
+        cacheTrace?.recordStage("session:limited", { messages: normalizedForAimlapi.messages });
+        if (normalizedForAimlapi.messages.length > 0 || normalizedForAimlapi.replacedCount > 0) {
+          activeSession.agent.replaceMessages(normalizedForAimlapi.messages);
         }
       } catch (err) {
         sessionManager.flushPendingToolResults?.();
@@ -816,6 +899,20 @@ export async function runEmbeddedAttempt(
 
           // Only pass images option if there are actually images to pass
           // This avoids potential issues with models that don't expect the images parameter
+          aimlapiPayloadLogger?.recordPromptStart({
+            prompt: effectivePrompt,
+            messageCount: activeSession.messages.length,
+            imageCount: imageResult.images.length,
+          });
+          log.info("embedded run: sending prompt to provider", {
+            runId: params.runId,
+            sessionId: params.sessionId,
+            provider: params.provider,
+            model: params.modelId,
+            promptChars: effectivePrompt.length,
+            messageCount: activeSession.messages.length,
+            imageCount: imageResult.images.length,
+          });
           if (imageResult.images.length > 0) {
             await abortable(activeSession.prompt(effectivePrompt, { images: imageResult.images }));
           } else {
@@ -823,9 +920,36 @@ export async function runEmbeddedAttempt(
           }
         } catch (err) {
           promptError = err;
+          aimlapiPayloadLogger?.recordPromptError(err);
+          if (params.provider === "aimlapi" && shouldLogAimlapiDiagnostics()) {
+            log.warn(
+              "aimlapi run attempt: prompt failed, evaluating invalid-tool-schema rollback",
+              {
+                runId: params.runId,
+                sessionId: params.sessionId,
+                error: describeUnknownError(err).slice(0, 600),
+              },
+            );
+          }
+          rollbackFailedAimlapiPrompt({
+            provider: params.provider,
+            promptError,
+            sessionManager,
+            activeMessages: activeSession.messages,
+            runId: params.runId,
+            sessionId: params.sessionId,
+            replaceMessages: (messages) => activeSession.agent.replaceMessages(messages),
+          });
         } finally {
+          const promptDurationMs = Date.now() - promptStartedAt;
+          aimlapiPayloadLogger?.recordPromptFinish({
+            durationMs: promptDurationMs,
+            messageCount: activeSession.messages.length,
+            aborted,
+            timedOut,
+          });
           log.debug(
-            `embedded run prompt end: runId=${params.runId} sessionId=${params.sessionId} durationMs=${Date.now() - promptStartedAt}`,
+            `embedded run prompt end: runId=${params.runId} sessionId=${params.sessionId} durationMs=${promptDurationMs}`,
           );
         }
 
@@ -848,6 +972,7 @@ export async function runEmbeddedAttempt(
           note: promptError ? "prompt error" : undefined,
         });
         anthropicPayloadLogger?.recordUsage(messagesSnapshot, promptError);
+        aimlapiPayloadLogger?.recordResponse(messagesSnapshot);
 
         // Run agent_end hooks to allow plugins to analyze the conversation
         // This is fire-and-forget, so we don't await
