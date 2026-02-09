@@ -23,6 +23,16 @@ vi.mock("../../hooks/internal-hooks.js", async () => {
   };
 });
 
+vi.mock("../../../hooks/internal-hooks.js", async () => {
+  const actual = await vi.importActual<typeof import("../../hooks/internal-hooks.js")>(
+    "../../hooks/internal-hooks.js",
+  );
+  return {
+    ...actual,
+    triggerInternalHook,
+  };
+});
+
 function toolText(msg: AgentMessage): string {
   if (msg.role !== "toolResult") {
     throw new Error("expected toolResult");
