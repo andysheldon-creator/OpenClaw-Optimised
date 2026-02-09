@@ -366,6 +366,7 @@ export function applyContextPruningDefaults(cfg: OpenClawConfig): OpenClawConfig
       mode: "cache-ttl",
       ttl: defaults.contextPruning?.ttl ?? "5m", // Aggressive 5m TTL
       softTrimRatio: 0.3,
+      hardClearRatio: 0.5, // Added hardClearRatio
     };
     mutated = true;
   }
@@ -375,6 +376,17 @@ export function applyContextPruningDefaults(cfg: OpenClawConfig): OpenClawConfig
     nextDefaults.heartbeat = {
       ...heartbeat,
       every: "55m",
+    };
+    mutated = true;
+  }
+
+  // Force local-first memory search if not configured
+  if (defaults.memorySearch?.provider === undefined) {
+    nextDefaults.memorySearch = {
+      ...defaults.memorySearch,
+      provider: "local",
+      fallback: "none",
+      cache: { enabled: true }
     };
     mutated = true;
   }
@@ -396,7 +408,7 @@ export function applyContextPruningDefaults(cfg: OpenClawConfig): OpenClawConfig
       }
       nextModels[key] = {
         ...(current as Record<string, unknown>),
-        params: { ...params, cacheRetention: "short" },
+        params: { ...params, cacheRetention: "long" },
       };
       modelsMutated = true;
     }
@@ -412,7 +424,7 @@ export function applyContextPruningDefaults(cfg: OpenClawConfig): OpenClawConfig
         if (typeof params.cacheRetention !== "string") {
           nextModels[key] = {
             ...(current as Record<string, unknown>),
-            params: { ...params, cacheRetention: "short" },
+            params: { ...params, cacheRetention: "long" },
           };
           modelsMutated = true;
         }
@@ -460,6 +472,12 @@ export function applyCompactionDefaults(cfg: OpenClawConfig): OpenClawConfig {
       enabled: true,
       softThresholdTokens: 4000
     };
+    mutated = true;
+  }
+
+  // Set default reserve tokens floor
+  if (nextCompaction.reserveTokensFloor === undefined) {
+    nextCompaction.reserveTokensFloor = 20000;
     mutated = true;
   }
 
