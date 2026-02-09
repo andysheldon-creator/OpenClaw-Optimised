@@ -558,7 +558,7 @@ Notes:
 - Outbound commands default to account `default` if present; otherwise the first configured account id (sorted).
 - The legacy single-account Baileys auth dir is migrated by `openclaw doctor` into `whatsapp/default`.
 
-### `channels.telegram.accounts` / `channels.discord.accounts` / `channels.googlechat.accounts` / `channels.slack.accounts` / `channels.mattermost.accounts` / `channels.signal.accounts` / `channels.imessage.accounts`
+### `channels.telegram.accounts` / `channels.discord.accounts` / `channels.googlechat.accounts` / `channels.slack.accounts` / `channels.mattermost.accounts` / `channels.signal.accounts` / `channels.imessage.accounts` / `channels.matrix.accounts`
 
 Run multiple accounts per channel (each account has its own `accountId` and optional `name`):
 
