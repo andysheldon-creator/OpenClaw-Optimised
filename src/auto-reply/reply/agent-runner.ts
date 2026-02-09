@@ -480,6 +480,13 @@ export async function runReplyAgent(params: {
         outputMessages.push(msg);
       }
 
+      // Extract simple prompt/completion for MLflow UI Request/Response columns
+      const prompt = commandBody;
+      const completion = payloadArray
+        .map((p) => p.text?.trim())
+        .filter((t): t is string => Boolean(t))
+        .join("\n");
+
       emitDiagnosticEvent({
         type: "run.completed",
         runId,
@@ -488,6 +495,8 @@ export async function runReplyAgent(params: {
         channel: replyToChannel,
         provider: providerUsed,
         model: modelUsed,
+        prompt,
+        completion,
         usage: {
           input,
           output,
