@@ -342,7 +342,7 @@ export function createMSTeamsMessageHandler(deps: MSTeamsMessageHandlerDeps) {
       cfg,
       channel: "msteams",
       peer: {
-        kind: isDirectMessage ? "dm" : isChannel ? "channel" : "group",
+        kind: isDirectMessage ? "direct" : isChannel ? "channel" : "group",
         id: isDirectMessage ? senderId : conversationId,
       },
     });
@@ -493,6 +493,7 @@ export function createMSTeamsMessageHandler(deps: MSTeamsMessageHandlerDeps) {
     const { dispatcher, replyOptions, markDispatchIdle } = createMSTeamsReplyDispatcher({
       cfg,
       agentId: route.agentId,
+      accountId: route.accountId,
       runtime,
       log,
       adapter,
