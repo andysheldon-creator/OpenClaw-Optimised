@@ -120,3 +120,27 @@ export function buildXaiModelDefinition(): ModelDefinitionConfig {
     maxTokens: XAI_DEFAULT_MAX_TOKENS,
   };
 }
+
+export const DIGITALOCEAN_GRADIENT_BASE_URL = "https://api.digitalocean.com/v2/ai";
+export const DIGITALOCEAN_GRADIENT_DEFAULT_MODEL_ID = "meta-llama-3.3-70b-instruct";
+export const DIGITALOCEAN_GRADIENT_DEFAULT_MODEL_REF = `digitalocean/${DIGITALOCEAN_GRADIENT_DEFAULT_MODEL_ID}`;
+export const DIGITALOCEAN_GRADIENT_DEFAULT_CONTEXT_WINDOW = 128000;
+export const DIGITALOCEAN_GRADIENT_DEFAULT_MAX_TOKENS = 32000;
+export const DIGITALOCEAN_GRADIENT_DEFAULT_COST = {
+  input: 0.75,
+  output: 0.75,
+  cacheRead: 0,
+  cacheWrite: 0,
+};
+
+export function buildDigitalOceanGradientModelDefinition(): ModelDefinitionConfig {
+  return {
+    id: DIGITALOCEAN_GRADIENT_DEFAULT_MODEL_ID,
+    name: "Meta Llama 3.3 70B Instruct",
+    reasoning: false,
+    input: ["text"],
+    cost: DIGITALOCEAN_GRADIENT_DEFAULT_COST,
+    contextWindow: DIGITALOCEAN_GRADIENT_DEFAULT_CONTEXT_WINDOW,
+    maxTokens: DIGITALOCEAN_GRADIENT_DEFAULT_MAX_TOKENS,
+  };
+}

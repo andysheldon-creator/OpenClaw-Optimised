@@ -27,6 +27,7 @@ export type AuthChoiceGroupId =
   | "together"
   | "qianfan"
   | "xai"
+  | "digitalocean"
   | "custom";
 
 export type AuthChoiceGroup = {
@@ -77,6 +78,12 @@ const AUTH_CHOICE_GROUP_DEFS: {
     label: "xAI (Grok)",
     hint: "API key",
     choices: ["xai-api-key"],
+  },
+  {
+    value: "digitalocean",
+    label: "DigitalOcean Gradient",
+    hint: "OpenAI-compatible LLMs",
+    choices: ["digitalocean-gradient-api-key"],
   },
   {
     value: "openrouter",
@@ -187,6 +194,11 @@ export function buildAuthChoiceOptions(params: {
   options.push({
     value: "qianfan-api-key",
     label: "Qianfan API key",
+  });
+  options.push({
+    value: "digitalocean-gradient-api-key",
+    label: "DigitalOcean Gradient API key",
+    hint: "OpenAI-compatible inference",
   });
   options.push({ value: "openrouter-api-key", label: "OpenRouter API key" });
   options.push({
