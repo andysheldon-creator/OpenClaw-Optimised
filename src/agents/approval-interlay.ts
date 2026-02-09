@@ -126,6 +126,8 @@ React with:
 /**
  * Pause session and prompt user for approval (blocks execution).
  * Waits for user input or timeout.
+ *
+ * In test environments (when NOT connected to a real session), auto-proceeds after timeout.
  */
 export async function pauseAndPromptApproval(params: {
   event: ApprovalEvent;
@@ -138,21 +140,29 @@ export async function pauseAndPromptApproval(params: {
 
   event.sessionPauseSent = true;
 
-  // In production, this would integrate with the session runner
-  // to pause and wait for user input. For now, simulate timeout.
-  return new Promise((resolve) => {
-    const timeoutHandle = setTimeout(() => {
-      console.log("[ApprovalInterlay] Approval timeout. Auto-proceeding with proposed model.");
-      resolve("timeout");
-    }, APPROVAL_TIMEOUT_MS);
+  // Check if we're in a test environment (no real session communication)
+  const isTestEnv = process.env.NODE_ENV === "test" || !process.send;
 
-    // Placeholder: in real implementation, listen for session input
-    process.on("message", (msg) => {
-      if (msg.type === "approval-response") {
-        clearTimeout(timeoutHandle);
-        resolve(msg.decision);
-      }
-    });
+  return new Promise((resolve) => {
+    const timeoutHandle = setTimeout(
+      () => {
+        console.log("[ApprovalInterlay] Approval timeout. Auto-proceeding with proposed model.");
+        resolve("timeout");
+      },
+      isTestEnv ? 100 : APPROVAL_TIMEOUT_MS,
+    ); // Fast timeout in tests
+
+    // Only listen for messages if we have process communication
+    if (process.send && typeof process.on === "function") {
+      const messageHandler = (msg: Record<string, unknown>) => {
+        if (msg.type === "approval-response") {
+          clearTimeout(timeoutHandle);
+          process.removeListener("message", messageHandler);
+          resolve(msg.decision as DivergenceDecision);
+        }
+      };
+      process.on("message", messageHandler);
+    }
   });
 }
 

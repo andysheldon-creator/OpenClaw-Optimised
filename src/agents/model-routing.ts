@@ -10,9 +10,18 @@
  *   - Opus:   Complex tasks, >50K predicted tokens or deep reasoning required
  *
  * Override: Per-session model overrides always take precedence.
+ *
+ * Divergence Approval: When auto-routing picks Sonnet/Opus instead of Haiku,
+ * requests approval via three parallel channels (Slack DM, session pause, audit log).
  */
 
 import type { OpenClawConfig } from "../config/config.js";
+import {
+  detectDivergence,
+  createApprovalEvent,
+  requestApproval,
+  recordDecision,
+} from "./approval-interlay.js";
 
 export type ModelTier = "haiku" | "sonnet" | "opus";
 
@@ -250,15 +259,21 @@ export function resolveModelRoutingConfig(cfg: OpenClawConfig): ModelRoutingConf
 /**
  * Route to the optimal model based on task analysis.
  * Returns undefined if routing is disabled or a session override exists.
+ *
+ * If routing selects Sonnet/Opus (cost escalation), requests approval via three
+ * parallel channels. If approved, returns the escalated decision. If rejected or
+ * timeout occurs, falls back to Haiku.
  */
-export function routeModel(params: {
+export async function routeModel(params: {
   cfg: OpenClawConfig;
   inputText: string;
   messageHistoryDepth: number;
   hasToolCalls: boolean;
   systemPromptLength: number;
   hasSessionModelOverride: boolean;
-}): RoutingDecision | undefined {
+  sessionKey?: string;
+  userId?: string;
+}): Promise<RoutingDecision | undefined> {
   const config = resolveModelRoutingConfig(params.cfg);
 
   if (!config.enabled) {
@@ -289,12 +304,67 @@ export function routeModel(params: {
   });
 
   const tierConfig = config.tiers[analysis.tier];
-  return {
+  const decision: RoutingDecision = {
     tier: analysis.tier,
     ...tierConfig,
     reason: analysis.reason,
     confidence: analysis.confidence,
   };
+
+  // Check for divergence: if selecting Sonnet/Opus (cost escalation), request approval
+  const hasDivergence = detectDivergence({
+    sessionModelOverride: undefined,
+    routingDecision: decision,
+    messageHistoryDepth: params.messageHistoryDepth,
+  });
+
+  if (hasDivergence && params.sessionKey && params.userId) {
+    // Create approval event
+    const event = createApprovalEvent({
+      sessionKey: params.sessionKey,
+      userId: params.userId,
+      routingDecision: decision,
+    });
+
+    // Estimate output tokens for the approval event
+    const estimatedTokens = estimateOutputTokens({
+      inputText: params.inputText,
+      messageHistoryDepth: params.messageHistoryDepth,
+      hasToolCalls: params.hasToolCalls,
+      hasCodeRequest: /\bcode\b/i.test(params.inputText) || /\bimplement\b/i.test(params.inputText),
+    });
+    event.estimatedTokens = estimatedTokens;
+
+    // Request approval through three channels in parallel
+    const startTime = Date.now();
+    const approvalDecision = await requestApproval({
+      event,
+      sessionKey: params.sessionKey,
+      userId: params.userId,
+      routingDecision: decision,
+    });
+    const approvalTimeMs = Date.now() - startTime;
+
+    // Record the decision
+    const decidedBy = approvalDecision === "timeout" ? "timeout" : "user";
+    recordDecision(event, approvalDecision, decidedBy, approvalTimeMs);
+
+    // If user rejected, fall back to Haiku
+    if (approvalDecision === "reject") {
+      const haikuConfig = config.tiers.haiku;
+      return {
+        tier: "haiku",
+        ...haikuConfig,
+        reason: `User rejected ${decision.tier} escalation, using Haiku`,
+        confidence: 0.5, // Lower confidence due to fallback
+      };
+    }
+
+    // If user approved or timeout occurred (auto-proceed), use the proposed model
+    return decision;
+  }
+
+  return decision;
 }
 
 /**

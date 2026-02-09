@@ -174,8 +174,8 @@ describe("model-routing", () => {
       },
     } as unknown as OpenClawConfig;
 
-    it("returns undefined when disabled", () => {
-      const result = routeModel({
+    it("returns undefined when disabled", async () => {
+      const result = await routeModel({
         cfg: {} as OpenClawConfig,
         inputText: "hello",
         messageHistoryDepth: 0,
@@ -186,8 +186,8 @@ describe("model-routing", () => {
       expect(result).toBeUndefined();
     });
 
-    it("returns undefined when session override exists", () => {
-      const result = routeModel({
+    it("returns undefined when session override exists", async () => {
+      const result = await routeModel({
         cfg: baseCfg,
         inputText: "hello",
         messageHistoryDepth: 0,
@@ -198,27 +198,31 @@ describe("model-routing", () => {
       expect(result).toBeUndefined();
     });
 
-    it("routes simple input to haiku", () => {
-      const result = routeModel({
+    it("routes simple input to haiku", async () => {
+      const result = await routeModel({
         cfg: baseCfg,
         inputText: "hi",
         messageHistoryDepth: 0,
         hasToolCalls: false,
         systemPromptLength: 500,
         hasSessionModelOverride: false,
+        sessionKey: "test-session",
+        userId: "test-user",
       });
       expect(result?.tier).toBe("haiku");
       expect(result?.model).toContain("haiku");
     });
 
-    it("routes complex input to opus", () => {
-      const result = routeModel({
+    it("routes complex input to opus", async () => {
+      const result = await routeModel({
         cfg: baseCfg,
         inputText: "Analyze and architect a comprehensive security audit of the entire codebase",
         messageHistoryDepth: 15,
         hasToolCalls: true,
         systemPromptLength: 15000,
         hasSessionModelOverride: false,
+        sessionKey: "test-session",
+        userId: "test-user",
       });
       expect(result?.tier).toBe("opus");
     });
