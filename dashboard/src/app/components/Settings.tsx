@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { X, Eye, EyeOff, Check } from "lucide-react";
+import { X, Eye, EyeOff, Check, RefreshCw } from "lucide-react";
+import { fetchProviders, getDefaultProviders, type AIProvider } from "../lib/models";
 
 interface SettingsProps {
   isOpen: boolean;
@@ -7,54 +8,26 @@ interface SettingsProps {
   theme: "dark" | "light";
 }
 
-interface AIProvider {
-  id: string;
-  name: string;
-  models: { id: string; name: string }[];
-}
-
-const AI_PROVIDERS: AIProvider[] = [
-  {
-    id: "anthropic",
-    name: "Anthropic",
-    models: [
-      { id: "claude-3-5-sonnet-20241022", name: "Claude 3.5 Sonnet" },
-      { id: "claude-3-opus-20240229", name: "Claude 3 Opus" },
-      { id: "claude-3-haiku-20240307", name: "Claude 3 Haiku" },
-    ],
-  },
-  {
-    id: "openai",
-    name: "OpenAI",
-    models: [
-      { id: "gpt-4o", name: "GPT-4o" },
-      { id: "gpt-4-turbo", name: "GPT-4 Turbo" },
-      { id: "gpt-3.5-turbo", name: "GPT-3.5 Turbo" },
-    ],
-  },
-  {
-    id: "google",
-    name: "Google",
-    models: [
-      { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro" },
-      { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash" },
-    ],
-  },
-];
-
 export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, theme }) => {
   const isDark = theme === "dark";
   
+  const [providers, setProviders] = useState<AIProvider[]>(getDefaultProviders());
   const [activeProvider, setActiveProvider] = useState("anthropic");
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
-  const [defaultModel, setDefaultModel] = useState("claude-3-5-sonnet-20241022");
+  const [defaultModel, setDefaultModel] = useState("claude-sonnet-4-20250514");
   const [showApiKey, setShowApiKey] = useState<Record<string, boolean>>({});
   const [saved, setSaved] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   
   // Advanced settings
   const [temperature, setTemperature] = useState(0.7);
   const [maxTokens, setMaxTokens] = useState(4096);
   const [systemPrompt, setSystemPrompt] = useState("");
+
+  // Fetch providers on mount
+  useEffect(() => {
+    loadProviders();
+  }, []);
 
   // Load settings from localStorage
   useEffect(() => {
@@ -72,6 +45,23 @@ export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, theme }) =>
     if (savedMaxTokens) setMaxTokens(parseInt(savedMaxTokens));
     if (savedSystemPrompt) setSystemPrompt(savedSystemPrompt);
   }, []);
+
+  const loadProviders = async () => {
+    try {
+      const fetched = await fetchProviders();
+      setProviders(fetched);
+    } catch (error) {
+      console.warn("Using default providers");
+    }
+  };
+
+  const handleRefreshModels = async () => {
+    setRefreshing(true);
+    // Clear cache
+    localStorage.removeItem("easyhub_models_cache");
+    await loadProviders();
+    setTimeout(() => setRefreshing(false), 500);
+  };
 
   const handleSave = () => {
     localStorage.setItem("easyhub_api_keys", JSON.stringify(apiKeys));
@@ -92,7 +82,7 @@ export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, theme }) =>
     setShowApiKey((prev) => ({ ...prev, [providerId]: !prev[providerId] }));
   };
 
-  const currentProvider = AI_PROVIDERS.find((p) => p.id === activeProvider);
+  const currentProvider = providers.find((p) => p.id === activeProvider);
 
   if (!isOpen) return null;
 
@@ -131,18 +121,30 @@ export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, theme }) =>
         <div className="p-6 space-y-6 overflow-y-auto flex-1">
           {/* Provider Selection */}
           <div>
-            <label className={`block text-sm font-medium mb-3 ${
-              isDark ? "text-gray-300" : "text-gray-700"
-            }`}>
-              AI Provider
-            </label>
+            <div className="flex items-center justify-between mb-3">
+              <label className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                AI Provider
+              </label>
+              <button
+                onClick={handleRefreshModels}
+                disabled={refreshing}
+                className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium transition-colors ${
+                  isDark
+                    ? "text-gray-400 hover:bg-white/5 hover:text-gray-300"
+                    : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                }`}
+              >
+                <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
+                Refresh Models
+              </button>
+            </div>
             <div className="flex flex-wrap gap-2">
-              {AI_PROVIDERS.map((provider) => (
+              {providers.map((provider) => (
                 <button
                   key={provider.id}
                   onClick={() => {
                     setActiveProvider(provider.id);
-                    setDefaultModel(provider.models[0].id);
+                    setDefaultModel(provider.models[0]?.id || "");
                   }}
                   className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                     activeProvider === provider.id
@@ -170,8 +172,8 @@ export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, theme }) =>
                 type={showApiKey[activeProvider] ? "text" : "password"}
                 value={apiKeys[activeProvider] || ""}
                 onChange={(e) => handleApiKeyChange(activeProvider, e.target.value)}
-                placeholder={`Enter your ${currentProvider?.name} API key`}
-                className={`w-full px-4 py-3 pr-12 rounded-xl border text-sm transition-colors ${
+                placeholder={currentProvider?.apiKeyPlaceholder || `Enter your ${currentProvider?.name} API key`}
+                className={`w-full px-4 py-3 pr-12 rounded-xl border text-sm transition-colors font-mono ${
                   isDark
                     ? "bg-white/5 border-white/10 text-white placeholder-gray-500 focus:border-[#2dd4bf]/50"
                     : "bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400 focus:border-[#2dd4bf]"
@@ -209,7 +211,7 @@ export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, theme }) =>
             >
               {currentProvider?.models.map((model) => (
                 <option key={model.id} value={model.id} className={isDark ? "bg-[#111]" : ""}>
-                  {model.name}
+                  {model.name} {model.contextWindow ? `(${(model.contextWindow / 1000).toFixed(0)}K)` : ""}
                 </option>
               ))}
             </select>
