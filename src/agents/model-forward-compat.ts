@@ -14,163 +14,163 @@ const ANTHROPIC_OPUS_TEMPLATE_MODEL_IDS = ["claude-opus-4-5", "claude-opus-4.5"]
 const ANTIGRAVITY_OPUS_46_THINKING_MODEL_ID = "claude-opus-4-6-thinking";
 const ANTIGRAVITY_OPUS_46_DOT_THINKING_MODEL_ID = "claude-opus-4.6-thinking";
 const ANTIGRAVITY_OPUS_THINKING_TEMPLATE_MODEL_IDS = [
-	"claude-opus-4-5-thinking",
-	"claude-opus-4.5-thinking",
+  "claude-opus-4-5-thinking",
+  "claude-opus-4.5-thinking",
 ] as const;
 
 function resolveOpenAICodexGpt53FallbackModel(
-	provider: string,
-	modelId: string,
-	modelRegistry: ModelRegistry,
+  provider: string,
+  modelId: string,
+  modelRegistry: ModelRegistry,
 ): Model<Api> | undefined {
-	const normalizedProvider = normalizeProviderId(provider);
-	const trimmedModelId = modelId.trim();
-	if (normalizedProvider !== "openai-codex") {
-		return undefined;
-	}
-	if (trimmedModelId.toLowerCase() !== OPENAI_CODEX_GPT_53_MODEL_ID) {
-		return undefined;
-	}
+  const normalizedProvider = normalizeProviderId(provider);
+  const trimmedModelId = modelId.trim();
+  if (normalizedProvider !== "openai-codex") {
+    return undefined;
+  }
+  if (trimmedModelId.toLowerCase() !== OPENAI_CODEX_GPT_53_MODEL_ID) {
+    return undefined;
+  }
 
-	for (const templateId of OPENAI_CODEX_TEMPLATE_MODEL_IDS) {
-		const template = modelRegistry.find(normalizedProvider, templateId) as Model<Api> | null;
-		if (!template) {
-			continue;
-		}
-		return normalizeModelCompat({
-			...template,
-			id: trimmedModelId,
-			name: trimmedModelId,
-		} as Model<Api>);
-	}
+  for (const templateId of OPENAI_CODEX_TEMPLATE_MODEL_IDS) {
+    const template = modelRegistry.find(normalizedProvider, templateId) as Model<Api> | null;
+    if (!template) {
+      continue;
+    }
+    return normalizeModelCompat({
+      ...template,
+      id: trimmedModelId,
+      name: trimmedModelId,
+    } as Model<Api>);
+  }
 
-	return normalizeModelCompat({
-		id: trimmedModelId,
-		name: trimmedModelId,
-		api: "openai-codex-responses",
-		provider: normalizedProvider,
-		baseUrl: "https://chatgpt.com/backend-api",
-		reasoning: true,
-		input: ["text", "image"],
-		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-		contextWindow: DEFAULT_CONTEXT_TOKENS,
-		maxTokens: DEFAULT_CONTEXT_TOKENS,
-	} as Model<Api>);
+  return normalizeModelCompat({
+    id: trimmedModelId,
+    name: trimmedModelId,
+    api: "openai-codex-responses",
+    provider: normalizedProvider,
+    baseUrl: "https://chatgpt.com/backend-api",
+    reasoning: true,
+    input: ["text", "image"],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: DEFAULT_CONTEXT_TOKENS,
+    maxTokens: DEFAULT_CONTEXT_TOKENS,
+  } as Model<Api>);
 }
 
 function resolveAnthropicOpus46ForwardCompatModel(
-	provider: string,
-	modelId: string,
-	modelRegistry: ModelRegistry,
+  provider: string,
+  modelId: string,
+  modelRegistry: ModelRegistry,
 ): Model<Api> | undefined {
-	const normalizedProvider = normalizeProviderId(provider);
-	if (normalizedProvider !== "anthropic") {
-		return undefined;
-	}
+  const normalizedProvider = normalizeProviderId(provider);
+  if (normalizedProvider !== "anthropic") {
+    return undefined;
+  }
 
-	const trimmedModelId = modelId.trim();
-	const lower = trimmedModelId.toLowerCase();
-	const isOpus46 =
-		lower === ANTHROPIC_OPUS_46_MODEL_ID ||
-		lower === ANTHROPIC_OPUS_46_DOT_MODEL_ID ||
-		lower.startsWith(`${ANTHROPIC_OPUS_46_MODEL_ID}-`) ||
-		lower.startsWith(`${ANTHROPIC_OPUS_46_DOT_MODEL_ID}-`);
-	if (!isOpus46) {
-		return undefined;
-	}
+  const trimmedModelId = modelId.trim();
+  const lower = trimmedModelId.toLowerCase();
+  const isOpus46 =
+    lower === ANTHROPIC_OPUS_46_MODEL_ID ||
+    lower === ANTHROPIC_OPUS_46_DOT_MODEL_ID ||
+    lower.startsWith(`${ANTHROPIC_OPUS_46_MODEL_ID}-`) ||
+    lower.startsWith(`${ANTHROPIC_OPUS_46_DOT_MODEL_ID}-`);
+  if (!isOpus46) {
+    return undefined;
+  }
 
-	const templateIds: string[] = [];
-	if (lower.startsWith(ANTHROPIC_OPUS_46_MODEL_ID)) {
-		templateIds.push(lower.replace(ANTHROPIC_OPUS_46_MODEL_ID, "claude-opus-4-5"));
-	}
-	if (lower.startsWith(ANTHROPIC_OPUS_46_DOT_MODEL_ID)) {
-		templateIds.push(lower.replace(ANTHROPIC_OPUS_46_DOT_MODEL_ID, "claude-opus-4.5"));
-	}
-	templateIds.push(...ANTHROPIC_OPUS_TEMPLATE_MODEL_IDS);
+  const templateIds: string[] = [];
+  if (lower.startsWith(ANTHROPIC_OPUS_46_MODEL_ID)) {
+    templateIds.push(lower.replace(ANTHROPIC_OPUS_46_MODEL_ID, "claude-opus-4-5"));
+  }
+  if (lower.startsWith(ANTHROPIC_OPUS_46_DOT_MODEL_ID)) {
+    templateIds.push(lower.replace(ANTHROPIC_OPUS_46_DOT_MODEL_ID, "claude-opus-4.5"));
+  }
+  templateIds.push(...ANTHROPIC_OPUS_TEMPLATE_MODEL_IDS);
 
-	for (const templateId of [...new Set(templateIds)].filter(Boolean)) {
-		const template = modelRegistry.find(normalizedProvider, templateId) as Model<Api> | null;
-		if (!template) {
-			continue;
-		}
-		return normalizeModelCompat({
-			...template,
-			id: trimmedModelId,
-			name: trimmedModelId,
-		} as Model<Api>);
-	}
+  for (const templateId of [...new Set(templateIds)].filter(Boolean)) {
+    const template = modelRegistry.find(normalizedProvider, templateId) as Model<Api> | null;
+    if (!template) {
+      continue;
+    }
+    return normalizeModelCompat({
+      ...template,
+      id: trimmedModelId,
+      name: trimmedModelId,
+    } as Model<Api>);
+  }
 
-	return undefined;
+  return undefined;
 }
 
 function resolveAntigravityOpus46ThinkingForwardCompatModel(
-	provider: string,
-	modelId: string,
-	modelRegistry: ModelRegistry,
+  provider: string,
+  modelId: string,
+  modelRegistry: ModelRegistry,
 ): Model<Api> | undefined {
-	const normalizedProvider = normalizeProviderId(provider);
-	if (normalizedProvider !== "google-antigravity") {
-		return undefined;
-	}
+  const normalizedProvider = normalizeProviderId(provider);
+  if (normalizedProvider !== "google-antigravity") {
+    return undefined;
+  }
 
-	const trimmedModelId = modelId.trim();
-	const lower = trimmedModelId.toLowerCase();
-	const isOpus46Thinking =
-		lower === ANTIGRAVITY_OPUS_46_THINKING_MODEL_ID ||
-		lower === ANTIGRAVITY_OPUS_46_DOT_THINKING_MODEL_ID ||
-		lower.startsWith(`${ANTIGRAVITY_OPUS_46_THINKING_MODEL_ID}-`) ||
-		lower.startsWith(`${ANTIGRAVITY_OPUS_46_DOT_THINKING_MODEL_ID}-`);
-	if (!isOpus46Thinking) {
-		return undefined;
-	}
+  const trimmedModelId = modelId.trim();
+  const lower = trimmedModelId.toLowerCase();
+  const isOpus46Thinking =
+    lower === ANTIGRAVITY_OPUS_46_THINKING_MODEL_ID ||
+    lower === ANTIGRAVITY_OPUS_46_DOT_THINKING_MODEL_ID ||
+    lower.startsWith(`${ANTIGRAVITY_OPUS_46_THINKING_MODEL_ID}-`) ||
+    lower.startsWith(`${ANTIGRAVITY_OPUS_46_DOT_THINKING_MODEL_ID}-`);
+  if (!isOpus46Thinking) {
+    return undefined;
+  }
 
-	const templateIds: string[] = [];
-	if (lower.startsWith(ANTIGRAVITY_OPUS_46_THINKING_MODEL_ID)) {
-		templateIds.push(
-			lower.replace(ANTIGRAVITY_OPUS_46_THINKING_MODEL_ID, "claude-opus-4-5-thinking"),
-		);
-	}
-	if (lower.startsWith(ANTIGRAVITY_OPUS_46_DOT_THINKING_MODEL_ID)) {
-		templateIds.push(
-			lower.replace(ANTIGRAVITY_OPUS_46_DOT_THINKING_MODEL_ID, "claude-opus-4.5-thinking"),
-		);
-	}
-	templateIds.push(...ANTIGRAVITY_OPUS_THINKING_TEMPLATE_MODEL_IDS);
+  const templateIds: string[] = [];
+  if (lower.startsWith(ANTIGRAVITY_OPUS_46_THINKING_MODEL_ID)) {
+    templateIds.push(
+      lower.replace(ANTIGRAVITY_OPUS_46_THINKING_MODEL_ID, "claude-opus-4-5-thinking"),
+    );
+  }
+  if (lower.startsWith(ANTIGRAVITY_OPUS_46_DOT_THINKING_MODEL_ID)) {
+    templateIds.push(
+      lower.replace(ANTIGRAVITY_OPUS_46_DOT_THINKING_MODEL_ID, "claude-opus-4.5-thinking"),
+    );
+  }
+  templateIds.push(...ANTIGRAVITY_OPUS_THINKING_TEMPLATE_MODEL_IDS);
 
-	for (const templateId of [...new Set(templateIds)].filter(Boolean)) {
-		const template = modelRegistry.find(normalizedProvider, templateId) as Model<Api> | null;
-		if (!template) {
-			continue;
-		}
-		return normalizeModelCompat({
-			...template,
-			id: trimmedModelId,
-			name: trimmedModelId,
-		} as Model<Api>);
-	}
+  for (const templateId of [...new Set(templateIds)].filter(Boolean)) {
+    const template = modelRegistry.find(normalizedProvider, templateId) as Model<Api> | null;
+    if (!template) {
+      continue;
+    }
+    return normalizeModelCompat({
+      ...template,
+      id: trimmedModelId,
+      name: trimmedModelId,
+    } as Model<Api>);
+  }
 
-	return normalizeModelCompat({
-		id: trimmedModelId,
-		name: trimmedModelId,
-		api: "google-gemini-cli",
-		provider: normalizedProvider,
-		baseUrl: "https://daily-cloudcode-pa.sandbox.googleapis.com",
-		reasoning: true,
-		input: ["text", "image"],
-		cost: { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 },
-		contextWindow: 200000,
-		maxTokens: 64000,
-	} as Model<Api>);
+  return normalizeModelCompat({
+    id: trimmedModelId,
+    name: trimmedModelId,
+    api: "google-gemini-cli",
+    provider: normalizedProvider,
+    baseUrl: "https://daily-cloudcode-pa.sandbox.googleapis.com",
+    reasoning: true,
+    input: ["text", "image"],
+    cost: { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 },
+    contextWindow: 200000,
+    maxTokens: 64000,
+  } as Model<Api>);
 }
 
 export function resolveForwardCompatModel(
-	provider: string,
-	modelId: string,
-	modelRegistry: ModelRegistry,
+  provider: string,
+  modelId: string,
+  modelRegistry: ModelRegistry,
 ): Model<Api> | undefined {
-	return (
-		resolveOpenAICodexGpt53FallbackModel(provider, modelId, modelRegistry) ??
-		resolveAnthropicOpus46ForwardCompatModel(provider, modelId, modelRegistry) ??
-		resolveAntigravityOpus46ThinkingForwardCompatModel(provider, modelId, modelRegistry)
-	);
+  return (
+    resolveOpenAICodexGpt53FallbackModel(provider, modelId, modelRegistry) ??
+    resolveAnthropicOpus46ForwardCompatModel(provider, modelId, modelRegistry) ??
+    resolveAntigravityOpus46ThinkingForwardCompatModel(provider, modelId, modelRegistry)
+  );
 }
