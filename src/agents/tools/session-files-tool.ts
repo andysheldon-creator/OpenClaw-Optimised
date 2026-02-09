@@ -150,7 +150,7 @@ export function createSessionFilesQueryCsvTool(options: {
         }
         const selectColumns =
           Array.isArray(selectColumnsRaw) && selectColumnsRaw.every((c) => typeof c === "string")
-            ? (selectColumnsRaw as string[])
+            ? selectColumnsRaw
             : undefined;
 
         const result = queryCsv({

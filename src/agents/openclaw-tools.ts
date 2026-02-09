@@ -19,6 +19,12 @@ import {
 } from "./tools/jira-list-tool.js";
 import { createMessageTool } from "./tools/message-tool.js";
 import { createNodesTool } from "./tools/nodes-tool.js";
+import {
+  createSessionFilesGetTool,
+  createSessionFilesListTool,
+  createSessionFilesQueryCsvTool,
+  createSessionFilesSearchTool,
+} from "./tools/session-files-tool.js";
 import { createSessionStatusTool } from "./tools/session-status-tool.js";
 import { createSessionsHistoryTool } from "./tools/sessions-history-tool.js";
 import { createSessionsListTool } from "./tools/sessions-list-tool.js";
@@ -96,6 +102,22 @@ export function createOpenClawTools(options?: {
         sandboxRoot: options?.sandboxRoot,
         requireExplicitTarget: options?.requireExplicitMessageTarget,
       });
+  const sessionFilesList = createSessionFilesListTool({
+    config: options?.config,
+    agentSessionKey: options?.agentSessionKey,
+  });
+  const sessionFilesGet = createSessionFilesGetTool({
+    config: options?.config,
+    agentSessionKey: options?.agentSessionKey,
+  });
+  const sessionFilesQueryCsv = createSessionFilesQueryCsvTool({
+    config: options?.config,
+    agentSessionKey: options?.agentSessionKey,
+  });
+  const sessionFilesSearch = createSessionFilesSearchTool({
+    config: options?.config,
+    agentSessionKey: options?.agentSessionKey,
+  });
   const tools: AnyAgentTool[] = [
     createBrowserTool({
       sandboxBridgeUrl: options?.sandboxBrowserBridgeUrl,
@@ -151,6 +173,10 @@ export function createOpenClawTools(options?: {
       agentSessionKey: options?.agentSessionKey,
       config: options?.config,
     }),
+    ...(sessionFilesList ? [sessionFilesList] : []),
+    ...(sessionFilesGet ? [sessionFilesGet] : []),
+    ...(sessionFilesQueryCsv ? [sessionFilesQueryCsv] : []),
+    ...(sessionFilesSearch ? [sessionFilesSearch] : []),
     ...(webSearchTool ? [webSearchTool] : []),
     ...(webFetchTool ? [webFetchTool] : []),
     ...(imageTool ? [imageTool] : []),
