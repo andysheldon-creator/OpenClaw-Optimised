@@ -1,4 +1,4 @@
-export type { DmPolicy, GroupPolicy } from "openclaw/plugin-sdk";
+export type { BlockStreamingCoalesceConfig, DmPolicy, GroupPolicy } from "openclaw/plugin-sdk";
 
 export type ReplyToMode = "off" | "first" | "all";
 
@@ -77,8 +77,8 @@ export type MatrixConfig = {
   mediaMaxMb?: number;
   /** Enable block streaming (send messages as they arrive instead of batching). */
   blockStreaming?: boolean;
-  /** Block streaming coalesce config (minChars, idleMs). */
-  blockStreamingCoalesce?: { minChars?: number; idleMs?: number };
+  /** Merge streamed block replies before sending (minChars, maxChars, idleMs). */
+  blockStreamingCoalesce?: BlockStreamingCoalesceConfig;
   /** Auto-join invites (always|allowlist|off). Default: always. */
   autoJoin?: "always" | "allowlist" | "off";
   /** Allowlist for auto-join invites (room IDs, aliases). */
