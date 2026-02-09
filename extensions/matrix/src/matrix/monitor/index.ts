@@ -279,7 +279,7 @@ export async function monitorMatrixProvider(opts: MonitorMatrixOpts = {}): Promi
     directTracker,
     getRoomInfo,
     getMemberDisplayName,
-    blockStreaming: accountConfig.blockStreaming,
+    blockStreaming: cfg.channels?.matrix?.blockStreaming,
   });
 
   registerMatrixMonitorEvents({
