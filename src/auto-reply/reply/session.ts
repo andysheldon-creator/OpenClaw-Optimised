@@ -372,6 +372,17 @@ export async function initSessionState(params: {
     IsNewSession: isNewSession ? "true" : "false",
   };
 
+  // Cleanup expired session files (non-blocking, lazy cleanup)
+  if (sessionId) {
+    const { cleanupExpiredFiles } = await import("../../sessions/files/cleanup.js");
+    cleanupExpiredFiles({
+      sessionId,
+      agentId,
+    }).catch(() => {
+      // Don't block on cleanup errors
+    });
+  }
+
   return {
     sessionCtx,
     sessionEntry,
