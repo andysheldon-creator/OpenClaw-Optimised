@@ -257,6 +257,30 @@ describe("getApiKeyForModel", () => {
     }
   });
 
+  it("resolves Qianfan API key from env", async () => {
+    const previous = process.env.QIANFAN_API_KEY;
+
+    try {
+      process.env.QIANFAN_API_KEY = "qianfan-test-key";
+
+      vi.resetModules();
+      const { resolveApiKeyForProvider } = await import("./model-auth.js");
+
+      const resolved = await resolveApiKeyForProvider({
+        provider: "qianfan",
+        store: { version: 1, profiles: {} },
+      });
+      expect(resolved.apiKey).toBe("qianfan-test-key");
+      expect(resolved.source).toContain("QIANFAN_API_KEY");
+    } finally {
+      if (previous === undefined) {
+        delete process.env.QIANFAN_API_KEY;
+      } else {
+        process.env.QIANFAN_API_KEY = previous;
+      }
+    }
+  });
+
   it("resolves Vercel AI Gateway API key from env", async () => {
     const previousGatewayKey = process.env.AI_GATEWAY_API_KEY;
 
@@ -484,6 +508,27 @@ describe("getApiKeyForModel", () => {
         delete process.env.VOYAGE_API_KEY;
       } else {
         process.env.VOYAGE_API_KEY = previous;
+      }
+    }
+  });
+
+  it("strips embedded CR/LF from ANTHROPIC_API_KEY", async () => {
+    const previous = process.env.ANTHROPIC_API_KEY;
+
+    try {
+      process.env.ANTHROPIC_API_KEY = "sk-ant-test-\r\nkey";
+
+      vi.resetModules();
+      const { resolveEnvApiKey } = await import("./model-auth.js");
+
+      const resolved = resolveEnvApiKey("anthropic");
+      expect(resolved?.apiKey).toBe("sk-ant-test-key");
+      expect(resolved?.source).toContain("ANTHROPIC_API_KEY");
+    } finally {
+      if (previous === undefined) {
+        delete process.env.ANTHROPIC_API_KEY;
+      } else {
+        process.env.ANTHROPIC_API_KEY = previous;
       }
     }
   });

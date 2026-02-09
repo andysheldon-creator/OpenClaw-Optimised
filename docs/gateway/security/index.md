@@ -203,7 +203,7 @@ Plugins run **in-process** with the Gateway. Treat them as trusted code:
   - OpenClaw uses `npm pack` and then runs `npm install --omit=dev` in that directory (npm lifecycle scripts can execute code during install).
   - Prefer pinned, exact versions (`@scope/pkg@1.2.3`), and inspect the unpacked code on disk before enabling.
 
-Details: [Plugins](/plugin)
+Details: [Plugins](/tools/plugin)
 
 ## DM access model (pairing / allowlist / open / disabled)
 
@@ -221,7 +221,7 @@ openclaw pairing list <channel>
 openclaw pairing approve <channel> <code>
 ```
 
-Details + files on disk: [Pairing](/start/pairing)
+Details + files on disk: [Pairing](/channels/pairing)
 
 ## DM session isolation (multi-user mode)
 
@@ -257,7 +257,7 @@ OpenClaw has two separate “who can trigger me?” layers:
     - `channels.discord.guilds` / `channels.slack.channels`: per-surface allowlists + mention defaults.
   - **Security note:** treat `dmPolicy="open"` and `groupPolicy="open"` as last-resort settings. They should be barely used; prefer pairing + allowlists unless you fully trust every member of the room.
 
-Details: [Configuration](/gateway/configuration) and [Groups](/concepts/groups)
+Details: [Configuration](/gateway/configuration) and [Groups](/channels/groups)
 
 ## Prompt injection (what it is, why it matters)
 
@@ -655,7 +655,7 @@ access those accounts and data. Treat browser profiles as **sensitive state**:
 
 With multi-agent routing, each agent can have its own sandbox + tool policy:
 use this to give **full access**, **read-only**, or **no access** per agent.
-See [Multi-Agent Sandbox & Tools](/multi-agent-sandbox-tools) for full details
+See [Multi-Agent Sandbox & Tools](/tools/multi-agent-sandbox-tools) for full details
 and precedence rules.
 
 Common use cases:
@@ -825,21 +825,33 @@ Commit the updated `.secrets.baseline` once it reflects the intended state.
 
 ## The Trust Hierarchy
 
-```
-Owner (Peter)
-  │ Full trust
-  ▼
-AI (Clawd)
-  │ Trust but verify
-  ▼
-Friends in allowlist
-  │ Limited trust
-  ▼
-Strangers
-  │ No trust
-  ▼
-Mario asking for find ~
-  │ Definitely no trust 😏
+```mermaid
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#ffffff',
+    'primaryTextColor': '#000000',
+    'primaryBorderColor': '#000000',
+    'lineColor': '#000000',
+    'secondaryColor': '#f9f9fb',
+    'tertiaryColor': '#ffffff',
+    'clusterBkg': '#f9f9fb',
+    'clusterBorder': '#000000',
+    'nodeBorder': '#000000',
+    'mainBkg': '#ffffff',
+    'edgeLabelBackground': '#ffffff'
+  }
+}}%%
+flowchart TB
+    A["Owner (Peter)"] -- Full trust --> B["AI (Clawd)"]
+    B -- Trust but verify --> C["Friends in allowlist"]
+    C -- Limited trust --> D["Strangers"]
+    D -- No trust --> E["Mario asking for find ~"]
+    E -- Definitely no trust 😏 --> F[" "]
+
+     %% The transparent box is needed to show the bottom-most label correctly
+     F:::Class_transparent_box
+    classDef Class_transparent_box fill:transparent, stroke:transparent
 ```
 
 ## Reporting Security Issues
