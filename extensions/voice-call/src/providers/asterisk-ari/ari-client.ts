@@ -45,6 +45,10 @@ export class AriClient {
     return this.fetchJson<AriBridge>("/bridges", { method: "POST", query: { type } });
   }
 
+  async listChannels(): Promise<AriChannel[]> {
+    return this.fetchJson<AriChannel[]>("/channels");
+  }
+
   async getBridge(bridgeId: string): Promise<AriBridge> {
     return this.fetchJson<AriBridge>(`/bridges/${encodeURIComponent(bridgeId)}`);
   }

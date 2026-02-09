@@ -736,6 +736,18 @@ export class CallManager {
   }
 
   /**
+   * Update metadata for an active call (best-effort).
+   */
+  updateCallMetadata(callId: CallId, patch: Record<string, unknown>): void {
+    const call = this.activeCalls.get(callId);
+    if (!call) {
+      return;
+    }
+    call.metadata = { ...(call.metadata ?? {}), ...patch };
+    this.persistCallRecord(call);
+  }
+
+  /**
    * Get call history (from persisted logs).
    */
   async getCallHistory(limit = 50): Promise<CallRecord[]> {

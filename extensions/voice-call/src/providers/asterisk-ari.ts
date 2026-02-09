@@ -105,6 +105,33 @@ export class AsteriskAriProvider implements VoiceCallProvider {
     this.ttsProvider = provider;
   }
 
+  async reconcileLingeringCalls(): Promise<void> {
+    try {
+      const channels = await this.client.listChannels();
+      const appChannels = channels.filter((ch) => {
+        const appData = ch.dialplan?.app_data ?? "";
+        return ch.dialplan?.app_name === "Stasis" && appData.includes(this.cfg.app);
+      });
+      for (const channel of appChannels) {
+        await this.client.safeHangupChannel(channel.id).catch(() => {});
+      }
+
+      const calls = this.manager.getActiveCalls().filter((call) => call.provider === this.name);
+      for (const call of calls) {
+        this.manager.processEvent(
+          makeEvent({
+            type: "call.ended",
+            callId: call.callId,
+            providerCallId: call.providerCallId,
+            reason: "hangup-provider",
+          }),
+        );
+      }
+    } catch (err) {
+      console.warn("[ari] Failed to reconcile lingering calls", err);
+    }
+  }
+
   verifyWebhook(_ctx: WebhookContext): WebhookVerificationResult {
     return { ok: true };
   }
@@ -150,6 +177,7 @@ export class AsteriskAriProvider implements VoiceCallProvider {
       speaking: false,
     };
     this.calls.set(providerCallId, state);
+    this.manager.updateCallMetadata(input.callId, { sipChannelId: ch.id });
 
     this.manager.processEvent(
       makeEvent({
@@ -872,6 +900,7 @@ export class AsteriskAriProvider implements VoiceCallProvider {
       speaking: false,
     };
     this.calls.set(providerCallId, state);
+    this.manager.updateCallMetadata(call.callId, { sipChannelId });
 
     try {
       await this.client.answerChannel(sipChannelId);

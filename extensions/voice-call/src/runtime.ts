@@ -218,6 +218,17 @@ export async function createVoiceCallRuntime(params: {
 
   manager.initialize(provider, webhookUrl);
 
+  if (provider.name === "asterisk-ari") {
+    const ariProvider = provider as AsteriskAriProvider;
+    ariProvider.reconcileLingeringCalls().catch((err) => {
+      log.warn(
+        `[voice-call] Failed to reconcile lingering ARI calls: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    });
+  }
+
   const stop = async () => {
     if (tunnelResult) {
       await tunnelResult.stop();
