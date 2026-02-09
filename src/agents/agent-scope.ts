@@ -167,13 +167,14 @@ export function resolveAgentWorkspaceDir(cfg: OpenClawConfig, agentId: string) {
   const id = normalizeAgentId(agentId);
   const configured = resolveAgentConfig(cfg, id)?.workspace?.trim();
   if (configured) {
-    return resolveUserPath(configured);
+    // Strip null bytes that may leak from config sources (#12919).
+    return resolveUserPath(configured).replaceAll("\0", "");
   }
   const defaultAgentId = resolveDefaultAgentId(cfg);
   if (id === defaultAgentId) {
     const fallback = cfg.agents?.defaults?.workspace?.trim();
     if (fallback) {
-      return resolveUserPath(fallback);
+      return resolveUserPath(fallback).replaceAll("\0", "");
     }
     return resolveDefaultAgentWorkspaceDir(process.env);
   }

@@ -228,10 +228,13 @@ function resolveDefaultCollections(
   if (!include) {
     return [];
   }
+  // Strip null bytes from workspace path — some config sources introduce
+  // trailing \0 which causes ENOTDIR when QMD opens the file (#12919).
+  const sanitizedDir = workspaceDir.replaceAll("\0", "");
   const entries: Array<{ path: string; pattern: string; base: string }> = [
-    { path: workspaceDir, pattern: "MEMORY.md", base: "memory-root" },
-    { path: workspaceDir, pattern: "memory.md", base: "memory-alt" },
-    { path: path.join(workspaceDir, "memory"), pattern: "**/*.md", base: "memory-dir" },
+    { path: sanitizedDir, pattern: "MEMORY.md", base: "memory-root" },
+    { path: sanitizedDir, pattern: "memory.md", base: "memory-alt" },
+    { path: path.join(sanitizedDir, "memory"), pattern: "**/*.md", base: "memory-dir" },
   ];
   return entries.map((entry) => ({
     name: ensureUniqueName(entry.base, existing),
