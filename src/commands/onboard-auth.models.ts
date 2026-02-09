@@ -121,8 +121,8 @@ export function buildXaiModelDefinition(): ModelDefinitionConfig {
   };
 }
 
-export const DIGITALOCEAN_GRADIENT_BASE_URL = "https://api.gradient_ai.com/api/v1";
-export const DIGITALOCEAN_GRADIENT_DEFAULT_MODEL_ID = "meta-llama-3.3-70b-instruct";
+export const DIGITALOCEAN_GRADIENT_BASE_URL = "https://inference.do-ai.run/v1";
+export const DIGITALOCEAN_GRADIENT_DEFAULT_MODEL_ID = "llama3.3-70b-instruct";
 export const DIGITALOCEAN_GRADIENT_DEFAULT_MODEL_REF = `digitalocean/${DIGITALOCEAN_GRADIENT_DEFAULT_MODEL_ID}`;
 export const DIGITALOCEAN_GRADIENT_DEFAULT_CONTEXT_WINDOW = 128000;
 export const DIGITALOCEAN_GRADIENT_DEFAULT_MAX_TOKENS = 32000;
@@ -136,7 +136,7 @@ export const DIGITALOCEAN_GRADIENT_DEFAULT_COST = {
 export function buildDigitalOceanGradientModelDefinition(): ModelDefinitionConfig {
   return {
     id: DIGITALOCEAN_GRADIENT_DEFAULT_MODEL_ID,
-    name: "Meta Llama 3.3 70B Instruct",
+    name: "Llama 3.3 70B Instruct",
     reasoning: false,
     input: ["text"],
     cost: DIGITALOCEAN_GRADIENT_DEFAULT_COST,

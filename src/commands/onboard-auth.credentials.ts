@@ -267,4 +267,4 @@ export function setDigitalOceanGradientApiKey(key: string, agentDir?: string) {
   });
 }
 
-export const DIGITALOCEAN_GRADIENT_DEFAULT_MODEL_REF = "digitalocean/meta-llama-3.3-70b-instruct";
+export const DIGITALOCEAN_GRADIENT_DEFAULT_MODEL_REF = "digitalocean/llama3.3-70b-instruct";
