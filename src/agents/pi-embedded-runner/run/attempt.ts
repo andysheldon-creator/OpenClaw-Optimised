@@ -188,7 +188,7 @@ export async function runEmbeddedAttempt(
     });
 
     const sessionLabel = params.sessionKey ?? params.sessionId;
-    const { bootstrapFiles: hookAdjustedBootstrapFiles, contextFiles } =
+    const { bootstrapFiles: hookAdjustedBootstrapFiles, contextFiles: bootstrapContextFiles } =
       await resolveBootstrapContextForRun({
         workspaceDir: effectiveWorkspace,
         config: params.config,
@@ -196,6 +196,20 @@ export async function runEmbeddedAttempt(
         sessionId: params.sessionId,
         warn: makeBootstrapWarn({ sessionLabel, warn: (message) => log.warn(message) }),
       });
+
+    // Append injected skill content (inject: true) as context files alongside bootstrap files.
+    const injectedSkills = params.skillsSnapshot?.injectedSkills ?? [];
+    const contextFiles =
+      injectedSkills.length > 0
+        ? [
+            ...bootstrapContextFiles,
+            ...injectedSkills.map((skill) => ({
+              path: `skill:${skill.name}`,
+              content: skill.content,
+            })),
+          ]
+        : bootstrapContextFiles;
+
     const workspaceNotes = hookAdjustedBootstrapFiles.some(
       (file) => file.name === DEFAULT_BOOTSTRAP_FILENAME && !file.missing,
     )
