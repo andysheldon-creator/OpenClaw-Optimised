@@ -52,6 +52,23 @@ openclaw pairing approve telegram <CODE>
 नोड्स Gateway से **डिवाइस** के रूप में `role: node` के साथ कनेक्ट होते हैं। Gateway
 एक डिवाइस पेयरिंग अनुरोध बनाता है जिसे स्वीकृत करना आवश्यक है।
 
+### Pair via Telegram (recommended for iOS)
+
+If you use the `device-pair` plugin, you can do first-time device pairing entirely from Telegram:
+
+1. In Telegram, message your bot: `/pair`
+2. The bot replies with two messages: an instruction message and a separate **setup code** message (easy to copy/paste in Telegram).
+3. On your phone, open the OpenClaw iOS app → Settings → Gateway.
+4. Paste the setup code and connect.
+5. Back in Telegram: `/pair approve`
+
+The setup code is a base64-encoded JSON payload that contains:
+
+- `url`: the Gateway WebSocket URL (`ws://...` or `wss://...`)
+- `token`: a short-lived pairing token
+
+Treat the setup code like a password while it is valid.
+
 ### किसी नोड डिवाइस को स्वीकृत करें
 
 ```bash

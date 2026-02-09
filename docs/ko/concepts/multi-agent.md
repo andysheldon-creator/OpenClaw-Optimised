@@ -83,8 +83,7 @@ openclaw agents list --bindings
 ## 하나의 WhatsApp 번호, 여러 사람(DM 분리)
 
 **하나의 WhatsApp 계정**을 유지한 채로 **서로 다른 WhatsApp 다이렉트 메시지**를
-각기 다른 에이전트로 라우팅할 수 있습니다. 발신자 E.164(예: `+15551234567`)를
-`peer.kind: "dm"` 로 매칭합니다. 응답은 동일한 WhatsApp 번호에서 전송됩니다
+각기 다른 에이전트로 라우팅할 수 있습니다. Match on sender E.164 (like `+15551234567`) with `peer.kind: "direct"`. 응답은 동일한 WhatsApp 번호에서 전송됩니다
 (에이전트별 발신자 식별은 없음).
 
 중요한 세부 사항: 다이렉트 채팅은 에이전트의 **메인 세션 키**로 병합되므로,
@@ -101,8 +100,14 @@ openclaw agents list --bindings
     ],
   },
   bindings: [
-    { agentId: "alex", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551230001" } } },
-    { agentId: "mia", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551230002" } } },
+    {
+      agentId: "alex",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551230001" } },
+    },
+    {
+      agentId: "mia",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551230002" } },
+    },
   ],
   channels: {
     whatsapp: {
@@ -267,7 +272,10 @@ WhatsApp 은 빠른 에이전트에 유지하되, 하나의 DM 만 Opus 로 라�
     ],
   },
   bindings: [
-    { agentId: "opus", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551234567" } } },
+    {
+      agentId: "opus",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551234567" } },
+    },
     { agentId: "chat", match: { channel: "whatsapp" } },
   ],
 }

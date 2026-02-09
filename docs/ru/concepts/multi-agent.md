@@ -81,7 +81,7 @@ openclaw agents list --bindings
 
 ## Один номер WhatsApp, несколько людей (разделение личных сообщений)
 
-Вы можете маршрутизировать **разные личные сообщения WhatsApp** к разным агентам, оставаясь в рамках **одного аккаунта WhatsApp**. Сопоставление выполняется по E.164 отправителя (например, `+15551234567`) с помощью `peer.kind: "dm"`. Ответы по‑прежнему приходят с одного и того же номера WhatsApp (нет идентификации отправителя на агента).
+Вы можете маршрутизировать **разные личные сообщения WhatsApp** к разным агентам, оставаясь в рамках **одного аккаунта WhatsApp**. Сопоставляйте по E.164 отправителя (например, `+15551234567`) с `peer.kind: "direct"`. Ответы по‑прежнему приходят с одного и того же номера WhatsApp (нет идентификации отправителя на агента).
 
 Важная деталь: прямые чаты сворачиваются к **основному ключу сеанса** агента, поэтому для истинной изоляции требуется **один агент на человека**.
 
@@ -96,8 +96,14 @@ openclaw agents list --bindings
     ],
   },
   bindings: [
-    { agentId: "alex", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551230001" } } },
-    { agentId: "mia", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551230002" } } },
+    {
+      agentId: "alex",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551230001" } },
+    },
+    {
+      agentId: "mia",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551230002" } },
+    },
   ],
   channels: {
     whatsapp: {
@@ -259,7 +265,10 @@ openclaw agents list --bindings
     ],
   },
   bindings: [
-    { agentId: "opus", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551234567" } } },
+    {
+      agentId: "opus",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551234567" } },
+    },
     { agentId: "chat", match: { channel: "whatsapp" } },
   ],
 }

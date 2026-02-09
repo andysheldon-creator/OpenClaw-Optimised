@@ -175,6 +175,8 @@ BM25 + 벡터 + 재랭킹을 결합한 로컬 우선 검색 사이드카입니�
   (`maxResults`, `maxSnippetChars`, `maxInjectedChars`, `timeoutMs`).
 - `scope`: [`session.sendPolicy`](/gateway/configuration#session)과 동일한 스키마입니다.
   기본값은 다이렉트 메시지 전용입니다 (`deny` 전체, `allow` 다이렉트 채팅). 이를 완화하면 그룹/채널에서 QMD 결과를 노출할 수 있습니다.
+- When `scope` denies a search, OpenClaw logs a warning with the derived
+  `channel`/`chatType` so empty results are easier to debug.
 - 워크스페이스 외부에서 가져온 스니펫은 `memory_search` 결과에서
   `qmd/<collection>/<relative-path>` 로 표시됩니다. `memory_get` 는 이 접두사를 이해하고
   구성된 QMD 컬렉션 루트에서 읽습니다.

@@ -181,6 +181,7 @@ eder; OpenClaw getirim için QMD’yi çağırır. Öne çıkan noktalar:
 - `scope`: [`session.sendPolicy`](/gateway/configuration#session) ile aynı şema.
   Varsayılan DM-only’dir (`deny` tümü, `allow` doğrudan sohbetler);
   grup/kanallarda QMD sonuçlarını göstermek için gevşetin.
+- `scope` bir aramayı reddettiğinde, OpenClaw türetilmiş `channel`/`chatType` ile bir uyarı kaydeder; böylece boş sonuçların hata ayıklaması kolaylaşır.
 - Çalışma alanı dışından kaynaklanan parçalar, `memory_search` sonuçlarında
   `qmd/<collection>/<relative-path>` olarak görünür; `memory_get` bu öneki anlar ve yapılandırılmış
   QMD koleksiyon kökünden okur.

@@ -181,6 +181,8 @@ out to QMD for retrieval. Key points:
 - `scope`: same schema as [`session.sendPolicy`](/gateway/configuration#session).
   Default is DM-only (`deny` all, `allow` direct chats); loosen it to surface QMD
   hits in groups/channels.
+- When `scope` denies a search, OpenClaw logs a warning with the derived
+  `channel`/`chatType` so empty results are easier to debug.
 - ورک اسپیس کے باہر سے آنے والے اسنیپٹس
   `qmd/<collection>/<relative-path>` کے طور پر `memory_search` نتائج میں دکھائی دیتے ہیں؛
   `memory_get` اس پریفکس کو سمجھتا ہے اور کنفیگرڈ QMD کلیکشن روٹ سے پڑھتا ہے۔

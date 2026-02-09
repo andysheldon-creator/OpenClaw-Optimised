@@ -804,7 +804,7 @@ without WhatsApp/Telegram.
 
 ### 複数の人が異なるOpenClawインスタンスで1つのWhatsApp番号を使用することができます。
 
-はい、**マルチエージェントルーティング**を介して。 各送信者のWhatsApp **DM** (peer `kind: "dm"`, sender E. 64 は `+15551234567` のように異なる `agentId` になっているので、各人はそれぞれ独自のワークスペースとセッションストアを取得します。 返信はまだ**同じWhatsAppアカウント**から来ており、DMアクセス制御(`channels.whatsapp.dmPolicy` / `channels.whatsapp.allowFrom`)はWhatsAppアカウントごとにグローバルです。 [マルチエージェントルーティング](/concepts/multi-agent) と [WhatsApp](/channels/whatsapp) を参照してください。
+はい、**マルチエージェントルーティング**を介して。 各送信者の WhatsApp **DM**（peer `kind: "direct"`、送信者は `+15551234567` のような E.164 形式）を異なる `agentId` にバインドし、各人が独自のワークスペースとセッションストアを持つようにします。 返信はまだ**同じWhatsAppアカウント**から来ており、DMアクセス制御(`channels.whatsapp.dmPolicy` / `channels.whatsapp.allowFrom`)はWhatsAppアカウントごとにグローバルです。 [マルチエージェントルーティング](/concepts/multi-agent) と [WhatsApp](/channels/whatsapp) を参照してください。
 
 ### 高速チャットエージェントとコーディングエージェントの Opus を実行できますか?
 

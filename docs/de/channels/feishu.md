@@ -491,14 +491,14 @@ Verwenden Sie `bindings`, um Feishu-Direktnachrichten oder -Gruppen an unterschi
       agentId: "main",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_xxx" },
+        peer: { kind: "direct", id: "ou_xxx" },
       },
     },
     {
       agentId: "clawd-fan",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_yyy" },
+        peer: { kind: "direct", id: "ou_yyy" },
       },
     },
     {
@@ -515,7 +515,7 @@ Verwenden Sie `bindings`, um Feishu-Direktnachrichten oder -Gruppen an unterschi
 Routing-Felder:
 
 - `match.channel`: `"feishu"`
-- `match.peer.kind`: `"dm"` oder `"group"`
+- `match.peer.kind`: `"direct"` or `"group"`
 - `match.peer.id`: Benutzer-Open-ID (`ou_xxx`) oder Gruppen-ID (`oc_xxx`)
 
 Siehe [Gruppen-/Benutzer-IDs abrufen](#get-groupuser-ids) für Hinweise zur Ermittlung.

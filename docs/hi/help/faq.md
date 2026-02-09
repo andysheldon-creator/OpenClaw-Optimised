@@ -777,7 +777,7 @@ Third-party (कम निजी):
 
 ### 39. क्या कई लोग एक ही WhatsApp नंबर को अलग‑अलग OpenClaw इंस्टेंस के साथ उपयोग कर सकते हैं
 
-40. हाँ, **multi‑agent routing** के माध्यम से। 41. प्रत्येक प्रेषक के WhatsApp **DM** (peer `kind: "dm"`, प्रेषक E.164 जैसे `+15551234567`) को अलग `agentId` से बाँधें, ताकि हर व्यक्ति को अपना अलग workspace और session store मिले। उत्तर अब भी **उसी WhatsApp अकाउंट** से आते हैं, और DM एक्सेस कंट्रोल (`channels.whatsapp.dmPolicy` / `channels.whatsapp.allowFrom`) प्रति WhatsApp अकाउंट वैश्विक होता है। 43. देखें [Multi-Agent Routing](/concepts/multi-agent) और [WhatsApp](/channels/whatsapp)।
+40. हाँ, **multi‑agent routing** के माध्यम से। Bind each sender's WhatsApp **DM** (peer `kind: "direct"`, sender E.164 like `+15551234567`) to a different `agentId`, so each person gets their own workspace and session store. उत्तर अब भी **उसी WhatsApp अकाउंट** से आते हैं, और DM एक्सेस कंट्रोल (`channels.whatsapp.dmPolicy` / `channels.whatsapp.allowFrom`) प्रति WhatsApp अकाउंट वैश्विक होता है। 43. देखें [Multi-Agent Routing](/concepts/multi-agent) और [WhatsApp](/channels/whatsapp)।
 
 ### 44. क्या मैं एक तेज़ chat agent और coding के लिए एक Opus agent चला सकता हूँ
 

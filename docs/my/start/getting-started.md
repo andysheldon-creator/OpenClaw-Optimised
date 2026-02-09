@@ -106,6 +106,16 @@ Control UI ကို ဖွင့်လို့ရပါက သင့် Gatewa
   </Accordion>
 </AccordionGroup>
 
+## 33. အသုံးဝင်သော environment variable များ
+
+34. OpenClaw ကို service account အဖြစ် အသုံးပြုနေပါက သို့မဟုတ် စိတ်ကြိုက် config/state တည်နေရာများ လိုအပ်ပါက:
+
+- 35. `OPENCLAW_HOME` သည် အတွင်းပိုင်း လမ်းကြောင်း ဖြေရှင်းမှုအတွက် အသုံးပြုသော home directory ကို သတ်မှတ်ပေးသည်။
+- 36. `OPENCLAW_STATE_DIR` သည် state directory ကို အစားထိုး သတ်မှတ်ပေးသည်။
+- 37. `OPENCLAW_CONFIG_PATH` သည် config ဖိုင် လမ်းကြောင်းကို အစားထိုး သတ်မှတ်ပေးသည်။
+
+38. Environment variable အပြည့်အစုံကို ကိုးကားရန်: [Environment vars](/help/environment).
+
 ## ပိုမိုလေ့လာရန်
 
 <Columns>

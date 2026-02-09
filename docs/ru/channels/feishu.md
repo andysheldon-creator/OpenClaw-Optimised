@@ -491,14 +491,14 @@ Feishu поддерживает потоковые ответы через ин�
       agentId: "main",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_xxx" },
+        peer: { kind: "direct", id: "ou_xxx" },
       },
     },
     {
       agentId: "clawd-fan",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_yyy" },
+        peer: { kind: "direct", id: "ou_yyy" },
       },
     },
     {
@@ -515,7 +515,7 @@ Feishu поддерживает потоковые ответы через ин�
 Поля маршрутизации:
 
 - `match.channel`: `"feishu"`
-- `match.peer.kind`: `"dm"` или `"group"`
+- `match.peer.kind`: "direct" или "group"
 - `match.peer.id`: Open ID пользователя (`ou_xxx`) или ID группы (`oc_xxx`)
 
 См. [Получение ID групп и пользователей](#get-groupuser-ids) для советов по поиску.

@@ -155,9 +155,20 @@ OpenClaw स्टार्टअप पर Telegram के बॉट मेन�
 Notes:
 
 - Custom commands **केवल menu entries** हैं; OpenClaw उन्हें तब तक लागू नहीं करता जब तक आप उन्हें कहीं और हैंडल न करें।
+- Some commands can be handled by plugins/skills without being registered in Telegram’s command menu. These still work when typed (they just won't show up in `/commands` / the menu).
 - Command नाम normalize किए जाते हैं (leading `/` हटाया जाता है, lowercased) और `a-z`, `0-9`, `_` (1–32 chars) से मेल खाने चाहिए।
 - कस्टम कमांड **नेटिव कमांड को ओवरराइड नहीं कर सकते**। कॉन्फ्लिक्ट्स को अनदेखा किया जाता है और लॉग किया जाता है।
 - यदि `commands.native` अक्षम है, तो केवल custom commands रजिस्टर किए जाते हैं (या यदि कोई नहीं, तो साफ़ कर दिए जाते हैं)।
+
+### Device pairing commands (`device-pair` plugin)
+
+If the `device-pair` plugin is installed, it adds a Telegram-first flow for pairing a new phone:
+
+1. `/pair` generates a setup code (sent as a separate message for easy copy/paste).
+2. Paste the setup code in the iOS app to connect.
+3. `/pair approve` approves the latest pending device request.
+
+More details: [Pairing](/channels/pairing#pair-via-telegram-recommended-for-ios).
 
 ## Limits
 
@@ -449,6 +460,25 @@ message tool भेजने के लिए, voice-compatible audio `media` UR
   asVoice: true,
 }
 ```
+
+## Video messages (video vs video note)
+
+Telegram distinguishes **video notes** (round bubble) from **video files** (rectangular).
+OpenClaw defaults to video files.
+
+For message tool sends, set `asVideoNote: true` with a video `media` URL:
+
+```json5
+{
+  action: "send",
+  channel: "telegram",
+  to: "123456789",
+  media: "https://example.com/video.mp4",
+  asVideoNote: true,
+}
+```
+
+(Note: Video notes do not support captions. If you provide a message text, it will be sent as a separate message.)
 
 ## Stickers
 

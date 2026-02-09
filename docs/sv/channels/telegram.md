@@ -157,9 +157,20 @@ Mer hjälp: [Felsökning av kanal](/channels/troubleshooting).
 Noteringar:
 
 - Egna kommandon är **endast menyval**; OpenClaw implementerar dem inte om du inte hanterar dem någon annanstans.
+- Some commands can be handled by plugins/skills without being registered in Telegram’s command menu. These still work when typed (they just won't show up in `/commands` / the menu).
 - Kommandonamn normaliseras (inledande `/` tas bort, gemener) och måste matcha `a-z`, `0-9`, `_` (1–32 tecken).
 - Anpassade kommandon **kan inte åsidosätta infödda kommandon**. Konflikter ignoreras och loggas.
 - Om `commands.native` är inaktiverat registreras endast egna kommandon (eller rensas om inga finns).
+
+### Device pairing commands (`device-pair` plugin)
+
+If the `device-pair` plugin is installed, it adds a Telegram-first flow for pairing a new phone:
+
+1. `/pair` generates a setup code (sent as a separate message for easy copy/paste).
+2. Paste the setup code in the iOS app to connect.
+3. `/pair approve` approves the latest pending device request.
+
+More details: [Pairing](/channels/pairing#pair-via-telegram-recommended-for-ios).
 
 ## Begränsningar
 
@@ -451,6 +462,25 @@ För meddelandeverktygssändningar, sätt `asVoice: true` med en röstkompatibel
   asVoice: true,
 }
 ```
+
+## Video messages (video vs video note)
+
+Telegram distinguishes **video notes** (round bubble) from **video files** (rectangular).
+OpenClaw defaults to video files.
+
+For message tool sends, set `asVideoNote: true` with a video `media` URL:
+
+```json5
+{
+  action: "send",
+  channel: "telegram",
+  to: "123456789",
+  media: "https://example.com/video.mp4",
+  asVideoNote: true,
+}
+```
+
+(Note: Video notes do not support captions. If you provide a message text, it will be sent as a separate message.)
 
 ## Klistermärken
 

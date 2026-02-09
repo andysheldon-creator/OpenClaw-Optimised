@@ -491,14 +491,14 @@ Gamitin ang `bindings` para i-route ang mga Feishu DM o group sa iba’t ibang a
       agentId: "main",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_xxx" },
+        peer: { kind: "direct", id: "ou_xxx" },
       },
     },
     {
       agentId: "clawd-fan",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_yyy" },
+        peer: { kind: "direct", id: "ou_yyy" },
       },
     },
     {
@@ -515,7 +515,7 @@ Gamitin ang `bindings` para i-route ang mga Feishu DM o group sa iba’t ibang a
 Mga field ng routing:
 
 - `match.channel`: `"feishu"`
-- `match.peer.kind`: `"dm"` o `"group"`
+- `match.peer.kind`: "direct" o "group"
 - `match.peer.id`: user Open ID (`ou_xxx`) o group ID (`oc_xxx`)
 
 Tingnan ang [Get group/user IDs](#get-groupuser-ids) para sa mga tip sa pag-lookup.

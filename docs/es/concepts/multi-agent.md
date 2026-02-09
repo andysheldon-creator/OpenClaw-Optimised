@@ -82,7 +82,7 @@ Esto permite que **múltiples personas** compartan un servidor de Gateway manten
 
 ## Un número de WhatsApp, múltiples personas (división de DM)
 
-Puede enrutar **diferentes DM de WhatsApp** a diferentes agentes manteniéndose en **una sola cuenta de WhatsApp**. Haga la coincidencia por E.164 del remitente (como `+15551234567`) con `peer.kind: "dm"`. Las respuestas siguen saliendo del mismo número de WhatsApp (sin identidad de remitente por agente).
+Puede enrutar **diferentes DM de WhatsApp** a diferentes agentes manteniéndose en **una sola cuenta de WhatsApp**. Match on sender E.164 (like `+15551234567`) with `peer.kind: "direct"`. Las respuestas siguen saliendo del mismo número de WhatsApp (sin identidad de remitente por agente).
 
 Detalle importante: los chats directos colapsan en la **clave de sesión principal** del agente, por lo que el aislamiento real requiere **un agente por persona**.
 
@@ -97,8 +97,14 @@ Ejemplo:
     ],
   },
   bindings: [
-    { agentId: "alex", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551230001" } } },
-    { agentId: "mia", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551230002" } } },
+    {
+      agentId: "alex",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551230001" } },
+    },
+    {
+      agentId: "mia",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551230002" } },
+    },
   ],
   channels: {
     whatsapp: {
@@ -260,7 +266,10 @@ Mantenga WhatsApp en el agente rápido, pero enrute un DM a Opus:
     ],
   },
   bindings: [
-    { agentId: "opus", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551234567" } } },
+    {
+      agentId: "opus",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551234567" } },
+    },
     { agentId: "chat", match: { channel: "whatsapp" } },
   ],
 }

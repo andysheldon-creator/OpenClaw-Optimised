@@ -106,7 +106,7 @@ l’espace de travail est accessible en ecriture. Voir [Memory](/concepts/memory
 - Reinitialisation quotidienne : par defaut **4:00 du matin, heure locale de l’hote de la gateway**. Une session est perimee des que sa derniere mise a jour est anterieure a la derniere heure de reinitialisation quotidienne.
 - Reinitialisation par inactivite (optionnelle) : `idleMinutes` ajoute une fenetre glissante d’inactivite. Lorsque la reinitialisation quotidienne et celle par inactivite sont configurees, **celle qui expire en premier** force une nouvelle session.
 - Mode historique inactivite seule : si vous definissez `session.idleMinutes` sans aucune configuration `session.reset`/`resetByType`, OpenClaw reste en mode inactivite seule pour la retrocompatibilite.
-- Remplacements par type (optionnels) : `resetByType` vous permet de remplacer la politique pour les sessions `dm`, `group` et `thread` (thread = fils Slack/Discord, sujets Telegram, fils Matrix lorsqu’ils sont fournis par le connecteur).
+- Per-type overrides (optional): `resetByType` lets you override the policy for `direct`, `group`, and `thread` sessions (thread = Slack/Discord threads, Telegram topics, Matrix threads when provided by the connector).
 - Remplacements par canal (optionnels) : `resetByChannel` remplace la politique de reinitialisation pour un canal (s’applique a tous les types de session pour ce canal et a priorite sur `reset`/`resetByType`).
 - Declencheurs de reinitialisation : les `/new` ou `/reset` exacts (plus tout supplement dans `resetTriggers`) demarrent un nouvel identifiant de session et transmettent le reste du message. `/new <model>` accepte un alias de modele, `provider/model` ou un nom de fournisseur (correspondance approximative) pour definir le nouveau modele de session. Si `/new` ou `/reset` est envoye seul, OpenClaw execute un court tour de salutation « hello » pour confirmer la reinitialisation.
 - Reinitialisation manuelle : supprimez des cles specifiques du stockage ou retirez la transcription JSONL ; le message suivant les recree.
@@ -157,7 +157,7 @@ Remplacement a l’execution (proprietaire uniquement) :
     },
     resetByType: {
       thread: { mode: "daily", atHour: 4 },
-      dm: { mode: "idle", idleMinutes: 240 },
+      direct: { mode: "idle", idleMinutes: 240 },
       group: { mode: "idle", idleMinutes: 120 },
     },
     resetByChannel: {

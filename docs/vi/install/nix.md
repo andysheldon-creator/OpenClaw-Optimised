@@ -64,7 +64,9 @@ defaults write bot.molt.mac openclaw.nixMode -bool true
 ### Đường dẫn cấu hình + trạng thái
 
 OpenClaw đọc cấu hình JSON5 từ `OPENCLAW_CONFIG_PATH` và lưu dữ liệu có thể thay đổi trong `OPENCLAW_STATE_DIR`.
+When needed, you can also set `OPENCLAW_HOME` to control the base home directory used for internal path resolution.
 
+- `OPENCLAW_HOME` (default precedence: `HOME` / `USERPROFILE` / `os.homedir()`)
 - `OPENCLAW_STATE_DIR` (mặc định: `~/.openclaw`)
 - `OPENCLAW_CONFIG_PATH` (mặc định: `$OPENCLAW_STATE_DIR/openclaw.json`)
 

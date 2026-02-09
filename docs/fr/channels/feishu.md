@@ -491,14 +491,14 @@ Utilisez `bindings` pour router les Messages prives ou groupes Feishu vers diff√
       agentId: "main",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_xxx" },
+        peer: { kind: "direct", id: "ou_xxx" },
       },
     },
     {
       agentId: "clawd-fan",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_yyy" },
+        peer: { kind: "direct", id: "ou_yyy" },
       },
     },
     {
@@ -515,7 +515,7 @@ Utilisez `bindings` pour router les Messages prives ou groupes Feishu vers diff√
 Champs de routage :
 
 - `match.channel` : `"feishu"`
-- `match.peer.kind` : `"dm"` ou `"group"`
+- `match.peer.kind`: `"direct"` or `"group"`
 - `match.peer.id` : Open ID utilisateur (`ou_xxx`) ou identifiant de groupe (`oc_xxx`)
 
 Voir [Obtenir les identifiants de groupe/utilisateur](#get-groupuser-ids) pour des conseils de recherche.

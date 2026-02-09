@@ -34,17 +34,17 @@ title: "macOS रिलीज़"
 # From repo root; set release IDs so Sparkle feed is enabled.
 # APP_BUILD must be numeric + monotonic for Sparkle compare.
 BUNDLE_ID=bot.molt.mac \
-APP_VERSION=2026.2.6 \
+APP_VERSION=2026.2.9 \
 APP_BUILD="$(git rev-list --count HEAD)" \
 BUILD_CONFIG=release \
 SIGN_IDENTITY="Developer ID Application: <Developer Name> (<TEAMID>)" \
 scripts/package-mac-app.sh
 
 # Zip for distribution (includes resource forks for Sparkle delta support)
-ditto -c -k --sequesterRsrc --keepParent dist/OpenClaw.app dist/OpenClaw-2026.2.6.zip
+ditto -c -k --sequesterRsrc --keepParent dist/OpenClaw.app dist/OpenClaw-2026.2.9.zip
 
 # Optional: also build a styled DMG for humans (drag to /Applications)
-scripts/create-dmg.sh dist/OpenClaw.app dist/OpenClaw-2026.2.6.dmg
+scripts/create-dmg.sh dist/OpenClaw.app dist/OpenClaw-2026.2.9.dmg
 
 # Recommended: build + notarize/staple zip + DMG
 # First, create a keychain profile once:
@@ -52,14 +52,14 @@ scripts/create-dmg.sh dist/OpenClaw.app dist/OpenClaw-2026.2.6.dmg
 #     --apple-id "<apple-id>" --team-id "<team-id>" --password "<app-specific-password>"
 NOTARIZE=1 NOTARYTOOL_PROFILE=openclaw-notary \
 BUNDLE_ID=bot.molt.mac \
-APP_VERSION=2026.2.6 \
+APP_VERSION=2026.2.9 \
 APP_BUILD="$(git rev-list --count HEAD)" \
 BUILD_CONFIG=release \
 SIGN_IDENTITY="Developer ID Application: <Developer Name> (<TEAMID>)" \
 scripts/package-mac-dist.sh
 
 # Optional: ship dSYM alongside the release
-ditto -c -k --keepParent apps/macos/.build/release/OpenClaw.app.dSYM dist/OpenClaw-2026.2.6.dSYM.zip
+ditto -c -k --keepParent apps/macos/.build/release/OpenClaw.app.dSYM dist/OpenClaw-2026.2.9.dSYM.zip
 ```
 
 ## ऐपकास्ट एंट्री
@@ -67,7 +67,7 @@ ditto -c -k --keepParent apps/macos/.build/release/OpenClaw.app.dSYM dist/OpenCl
 Sparkle द्वारा फ़ॉर्मैटेड HTML नोट्स रेंडर करने के लिए रिलीज़ नोट जेनरेटर का उपयोग करें:
 
 ```bash
-SPARKLE_PRIVATE_KEY_FILE=/path/to/ed25519-private-key scripts/make_appcast.sh dist/OpenClaw-2026.2.6.zip https://raw.githubusercontent.com/openclaw/openclaw/main/appcast.xml
+SPARKLE_PRIVATE_KEY_FILE=/path/to/ed25519-private-key scripts/make_appcast.sh dist/OpenClaw-2026.2.9.zip https://raw.githubusercontent.com/openclaw/openclaw/main/appcast.xml
 ```
 
 Generates HTML release notes from `CHANGELOG.md` (via [`scripts/changelog-to-html.sh`](https://github.com/openclaw/openclaw/blob/main/scripts/changelog-to-html.sh)) and embeds them in the appcast entry.
@@ -75,7 +75,7 @@ Commit the updated `appcast.xml` alongside the release assets (zip + dSYM) when 
 
 ## प्रकाशित करें और सत्यापित करें
 
-- टैग `v2026.2.6` के लिए GitHub रिलीज़ में `OpenClaw-2026.2.6.zip` (और `OpenClaw-2026.2.6.dSYM.zip`) अपलोड करें।
+- Upload `OpenClaw-2026.2.9.zip` (and `OpenClaw-2026.2.9.dSYM.zip`) to the GitHub release for tag `v2026.2.9`.
 - सुनिश्चित करें कि रॉ ऐपकास्ट URL बेक्ड फ़ीड से मेल खाता है: `https://raw.githubusercontent.com/openclaw/openclaw/main/appcast.xml`।
 - सैनीटी जाँच:
   - `curl -I https://raw.githubusercontent.com/openclaw/openclaw/main/appcast.xml` 200 लौटाता है।

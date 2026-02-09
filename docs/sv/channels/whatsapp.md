@@ -195,8 +195,8 @@ Parning är en DM‑grind för okända avsändare:
 - Godkänn med: `openclaw pairing approve whatsapp <code>` (lista med `openclaw pairing list whatsapp`).
 - Koder upphör efter 1 timme; väntande förfrågningar är begränsade till 3 per kanal.
 
-\*\*Kan flera personer använda olika OpenClaw-instanser på en WhatsApp-nummer? \*  
-Ja, genom att dirigera varje avsändare till en annan agent via `bindings` (peer `kind: "dm"`, avsändare E. 64 som `+15551234567`). Svaren kommer fortfarande från **samma WhatsApp-konto**, och direkta chattar kollapsar till varje agents huvudsession, så använd **en agent per person**. DM åtkomstkontroll (`dmPolicy`/`allowFrom`) är global per WhatsApp-konto. Se [Multi-Agent Routing](/concepts/multi-agent).
+**Can multiple people use different OpenClaw instances on one WhatsApp number?**  
+Yes, by routing each sender to a different agent via `bindings` (peer `kind: "direct"`, sender E.164 like `+15551234567`). Replies still come from the **same WhatsApp account**, and direct chats collapse to each agent's main session, so use **one agent per person**. DM åtkomstkontroll (`dmPolicy`/`allowFrom`) är global per WhatsApp-konto. Se [Multi-Agent Routing](/concepts/multi-agent).
 
 \*\*Varför ber du om mitt telefonnummer i guiden? \*  
 Guiden använder den för att ställa in din **allowlist/owner** så att dina egna DMs är tillåtna. Det används inte för automatisk sändning. Om du kör på ditt personliga WhatsApp-nummer, använd samma nummer och aktivera `channels.whatsapp.selfChatMode`.

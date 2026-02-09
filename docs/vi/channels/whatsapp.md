@@ -195,8 +195,8 @@ Ghép cặp là cổng DM cho người gửi không xác định:
 - Phê duyệt bằng: `openclaw pairing approve whatsapp <code>` (liệt kê với `openclaw pairing list whatsapp`).
 - Mã hết hạn sau 1 giờ; yêu cầu chờ xử lý bị giới hạn 3 mỗi kênh.
 
-**Nhiều người có thể dùng các instance OpenClaw khác nhau trên một số WhatsApp không?**  
-Có, bằng cách định tuyến mỗi người gửi tới một agent khác nhau qua `bindings` (peer `kind: "dm"`, sender E.164 như `+15551234567`). Phản hồi vẫn đến từ **cùng một tài khoản WhatsApp**, và các cuộc chat trực tiếp sẽ gộp vào phiên chính của từng agent, vì vậy hãy dùng **một agent cho mỗi người**. DM access control (`dmPolicy`/`allowFrom`) is global per WhatsApp account. Xem [Multi-Agent Routing](/concepts/multi-agent).
+**Can multiple people use different OpenClaw instances on one WhatsApp number?**  
+Yes, by routing each sender to a different agent via `bindings` (peer `kind: "direct"`, sender E.164 like `+15551234567`). Replies still come from the **same WhatsApp account**, and direct chats collapse to each agent's main session, so use **one agent per person**. DM access control (`dmPolicy`/`allowFrom`) is global per WhatsApp account. Xem [Multi-Agent Routing](/concepts/multi-agent).
 
 **Vì sao bạn hỏi số điện thoại của tôi trong trình hướng dẫn?**  
 Trình hướng dẫn dùng nó để thiết lập **allowlist/owner** để các DM của chính bạn được cho phép. Nó không được dùng cho việc gửi tự động. If you run on your personal WhatsApp number, use that same number and enable `channels.whatsapp.selfChatMode`.

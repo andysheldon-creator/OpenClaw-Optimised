@@ -195,8 +195,8 @@ Ang pairing ay DM gate para sa mga hindi kilalang sender:
 - Aprubahan gamit ang: `openclaw pairing approve whatsapp <code>` (listahan gamit ang `openclaw pairing list whatsapp`).
 - Nag-e-expire ang mga code pagkalipas ng 1 oras; ang mga pending request ay may limit na 3 bawat channel.
 
-**Can multiple people use different OpenClaw instances on one WhatsApp number?**  
-Yes, by routing each sender to a different agent via `bindings` (peer `kind: "dm"`, sender E.164 like `+15551234567`). Replies still come from the **same WhatsApp account**, and direct chats collapse to each agent’s main session, so use **one agent per person**. DM access control (`dmPolicy`/`allowFrom`) is global per WhatsApp account. See [Multi-Agent Routing](/concepts/multi-agent).
+**Maaari bang gumamit ang maraming tao ng magkakaibang OpenClaw instance sa iisang WhatsApp number?**  
+Oo, sa pamamagitan ng pag-route ng bawat sender sa ibang agent gamit ang `bindings` (peer `kind: "direct"`, sender E.164 tulad ng `+15551234567`). Magmumula pa rin ang mga reply sa **parehong WhatsApp account**, at ang mga direct chat ay magsasama sa pangunahing session ng bawat agent, kaya gumamit ng **isang agent bawat tao**. DM access control (`dmPolicy`/`allowFrom`) is global per WhatsApp account. See [Multi-Agent Routing](/concepts/multi-agent).
 
 **Why do you ask for my phone number in the wizard?**  
 The wizard uses it to set your **allowlist/owner** so your own DMs are permitted. It’s not used for auto-sending. If you run on your personal WhatsApp number, use that same number and enable `channels.whatsapp.selfChatMode`.

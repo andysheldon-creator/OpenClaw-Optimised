@@ -491,14 +491,14 @@ Use `bindings` para rotear DMs ou grupos do Feishu para diferentes agentes.
       agentId: "main",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_xxx" },
+        peer: { kind: "direct", id: "ou_xxx" },
       },
     },
     {
       agentId: "clawd-fan",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_yyy" },
+        peer: { kind: "direct", id: "ou_yyy" },
       },
     },
     {
@@ -515,7 +515,7 @@ Use `bindings` para rotear DMs ou grupos do Feishu para diferentes agentes.
 Campos de roteamento:
 
 - `match.channel`: `"feishu"`
-- `match.peer.kind`: `"dm"` ou `"group"`
+- `match.peer.kind`: `"direct"` or `"group"`
 - `match.peer.id`: Open ID do usuário (`ou_xxx`) ou ID do grupo (`oc_xxx`)
 
 Consulte [Obter IDs de grupo/usuário](#get-groupuser-ids) para dicas de consulta.

@@ -106,7 +106,7 @@ wenn der Workspace beschreibbar ist. Siehe [Memory](/concepts/memory) und
 - Täglicher Reset: Standardmäßig **4:00 Uhr Ortszeit auf dem Gateway-Host**. Eine Sitzung ist veraltet, sobald ihr letztes Update vor der zuletzt erfolgten täglichen Reset-Zeit liegt.
 - Leerlauf-Reset (optional): `idleMinutes` fügt ein gleitendes Leerlauffenster hinzu. Wenn tägliche und Leerlauf-Resets konfiguriert sind, erzwingt **der zuerst ablaufende** eine neue Sitzung.
 - Legacy nur Leerlauf: Wenn Sie `session.idleMinutes` ohne irgendeine `session.reset`/`resetByType`-Konfiguration setzen, bleibt OpenClaw aus Gründen der Abwärtskompatibilität im Nur-Leerlauf-Modus.
-- Überschreibungen pro Typ (optional): `resetByType` ermöglicht es, die Richtlinie für `dm`-, `group`- und `thread`-Sitzungen zu überschreiben (Thread = Slack/Discord-Threads, Telegram-Themen, Matrix-Threads, wenn vom Connector bereitgestellt).
+- Per-type overrides (optional): `resetByType` lets you override the policy for `direct`, `group`, and `thread` sessions (thread = Slack/Discord threads, Telegram topics, Matrix threads when provided by the connector).
 - Überschreibungen pro Kanal (optional): `resetByChannel` überschreibt die Reset-Richtlinie für einen Kanal (gilt für alle Sitzungstypen dieses Kanals und hat Vorrang vor `reset`/`resetByType`).
 - Reset-Auslöser: Exakte `/new` oder `/reset` (plus beliebige Extras in `resetTriggers`) starten eine frische Sitzungs-ID und leiten den Rest der Nachricht weiter. `/new <model>` akzeptiert einen Modell-Alias, `provider/model` oder einen Anbieternamen (unscharfe Übereinstimmung), um das neue Sitzungsmodell zu setzen. Wenn `/new` oder `/reset` allein gesendet wird, führt OpenClaw einen kurzen „Hallo“-Begrüßungszug aus, um den Reset zu bestätigen.
 - Manueller Reset: Löschen Sie bestimmte Schlüssel aus dem Store oder entfernen Sie das JSONL-Transkript; die nächste Nachricht erstellt sie neu.
@@ -157,7 +157,7 @@ Laufzeit-Override (nur Eigentümer):
     },
     resetByType: {
       thread: { mode: "daily", atHour: 4 },
-      dm: { mode: "idle", idleMinutes: 240 },
+      direct: { mode: "idle", idleMinutes: 240 },
       group: { mode: "idle", idleMinutes: 120 },
     },
     resetByChannel: {

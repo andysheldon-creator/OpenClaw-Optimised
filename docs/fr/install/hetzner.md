@@ -113,12 +113,10 @@ Les conteneurs Docker sont éphémères.
 Tout l’état de longue durée doit résider sur l’hôte.
 
 ```bash
-mkdir -p /root/.openclaw
 mkdir -p /root/.openclaw/workspace
 
-# Set ownership to the container user (uid 1000):
+# Définir le propriétaire sur l’utilisateur du conteneur (uid 1000) :
 chown -R 1000:1000 /root/.openclaw
-chown -R 1000:1000 /root/.openclaw/workspace
 ```
 
 ---
@@ -176,12 +174,12 @@ services:
       - ${OPENCLAW_CONFIG_DIR}:/home/node/.openclaw
       - ${OPENCLAW_WORKSPACE_DIR}:/home/node/.openclaw/workspace
     ports:
-      # Recommended: keep the Gateway loopback-only on the VPS; access via SSH tunnel.
-      # To expose it publicly, remove the `127.0.0.1:` prefix and firewall accordingly.
+      # Recommandé : garder la Gateway accessible uniquement en loopback sur le VPS ; accès via tunnel SSH.
+      # Pour l’exposer publiquement, supprimez le préfixe `127.0.0.1:` et configurez le pare-feu en conséquence.
       - "127.0.0.1:${OPENCLAW_GATEWAY_PORT}:18789"
 
-      # Optional: only if you run iOS/Android nodes against this VPS and need Canvas host.
-      # If you expose this publicly, read /gateway/security and firewall accordingly.
+      # Optionnel : uniquement si vous exécutez des nœuds iOS/Android contre ce VPS et avez besoin de l’hôte Canvas.
+      # Si vous l’exposez publiquement, lisez /gateway/security et configurez le pare-feu en conséquence.
       # - "18793:18793"
     command:
       [
@@ -192,8 +190,11 @@ services:
         "${OPENCLAW_GATEWAY_BIND}",
         "--port",
         "${OPENCLAW_GATEWAY_PORT}",
+        "--allow-unconfigured",
       ]
 ```
+
+`--allow-unconfigured` est uniquement destiné à faciliter l’amorçage, ce n’est pas un remplacement d’une configuration de passerelle appropriée. Configurez toujours l’authentification (`gateway.auth.token` ou mot de passe) et utilisez des paramètres de bind sûrs pour votre déploiement.
 
 ---
 

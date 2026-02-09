@@ -775,7 +775,7 @@ Inbound messages are routed to an agent via bindings.
 - `bindings[]`: กำหนดเส้นทางข้อความขาเข้าไปยัง `agentId`
   - `match.channel` (จำเป็น)
   - `match.accountId` (ไม่บังคับ; `*` = บัญชีใดก็ได้)
-  - `match.peer` (ไม่บังคับ; `{ kind: dm|group|channel, id }`)
+  - `match.peer` (ไม่บังคับ; `{ kind: direct|group|channel, id }`)
   - `match.guildId` / `match.teamId` (ไม่บังคับ; เฉพาะช่องทาง)
 
 ลำดับการจับคู่แบบกำหนดแน่นอน:
@@ -2807,7 +2807,7 @@ See [/gateway/local-models](/gateway/local-models) for the current local guidanc
 14. ควบคุมขอบเขตเซสชัน นโยบายการรีเซ็ต ตัวกระตุ้นการรีเซ็ต และตำแหน่งที่บันทึกที่เก็บเซสชัน
 
 ```json5
-15. {
+{
   session: {
     scope: "per-sender",
     dmScope: "main",
@@ -2821,17 +2821,17 @@ See [/gateway/local-models](/gateway/local-models) for the current local guidanc
     },
     resetByType: {
       thread: { mode: "daily", atHour: 4 },
-      dm: { mode: "idle", idleMinutes: 240 },
+      direct: { mode: "idle", idleMinutes: 240 },
       group: { mode: "idle", idleMinutes: 120 },
     },
     resetTriggers: ["/new", "/reset"],
-    // Default is already per-agent under ~/.openclaw/agents/<agentId>/sessions/sessions.json
-    // You can override with {agentId} templating:
+    // ค่าเริ่มต้นเป็น per-agent อยู่แล้วภายใต้ ~/.openclaw/agents/<agentId>/sessions/sessions.json
+    // คุณสามารถแทนที่ด้วยการใช้เทมเพลต {agentId}:
     store: "~/.openclaw/agents/{agentId}/sessions/sessions.json",
-    // Direct chats collapse to agent:<agentId>:<mainKey> (default: "main").
+    // แชตแบบตรงจะถูกรวมเป็น agent:<agentId>:<mainKey> (ค่าเริ่มต้น: "main").
     mainKey: "main",
     agentToAgent: {
-      // Max ping-pong reply turns between requester/target (0–5).
+      // จำนวนรอบการตอบกลับไปมาสูงสุดระหว่างผู้ร้องขอ/เป้าหมาย (0–5)
       maxPingPongTurns: 5,
     },
     sendPolicy: {
@@ -2858,7 +2858,7 @@ See [/gateway/local-models](/gateway/local-models) for the current local guidanc
   - 30. `mode`: `daily` หรือ `idle` (ค่าเริ่มต้น: `daily` เมื่อมี `reset`).
   - 31. `atHour`: ชั่วโมงท้องถิ่น (0–23) สำหรับขอบเขตการรีเซ็ตรายวัน
   - 32. `idleMinutes`: หน้าต่างเวลาว่างแบบเลื่อน หน่วยเป็นนาที 33. เมื่อกำหนดทั้ง daily + idle ค่าใดหมดอายุก่อนจะถูกใช้
-- `resetByType`: per-session overrides for `dm`, `group`, and `thread`.
+- `resetByType`: การแทนที่ระดับเซสชันสำหรับ `direct`, `group` และ `thread`. คีย์ `dm` แบบเดิม (Legacy) สามารถใช้เป็นชื่อแทนของ `direct` ได้
   - 35. หากคุณตั้งค่าเฉพาะ `session.idleMinutes` แบบเดิมโดยไม่มี `reset`/`resetByType`, OpenClaw จะคงโหมด idle-only เพื่อความเข้ากันได้ย้อนหลัง
 - 36. `heartbeatIdleMinutes`: การเขียนทับ idle แบบเลือกได้สำหรับการตรวจ heartbeat (การรีเซ็ตรายวันยังคงมีผลเมื่อเปิดใช้งาน)
 - 37. `agentToAgent.maxPingPongTurns`: จำนวนรอบการตอบกลับไปมา ระหว่างผู้ร้องขอ/เป้าหมาย สูงสุด (0–5, ค่าเริ่มต้น 5)

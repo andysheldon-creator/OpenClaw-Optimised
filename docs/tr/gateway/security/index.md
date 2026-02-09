@@ -772,21 +772,33 @@ Amaçlanan durumu yansıttığında güncellenmiş `.secrets.baseline`’ü comm
 
 ## Güven Hiyerarşisi
 
-```
-Owner (Peter)
-  │ Full trust
-  ▼
-AI (Clawd)
-  │ Trust but verify
-  ▼
-Friends in allowlist
-  │ Limited trust
-  ▼
-Strangers
-  │ No trust
-  ▼
-Mario asking for find ~
-  │ Definitely no trust 😏
+```mermaid
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#ffffff',
+    'primaryTextColor': '#000000',
+    'primaryBorderColor': '#000000',
+    'lineColor': '#000000',
+    'secondaryColor': '#f9f9fb',
+    'tertiaryColor': '#ffffff',
+    'clusterBkg': '#f9f9fb',
+    'clusterBorder': '#000000',
+    'nodeBorder': '#000000',
+    'mainBkg': '#ffffff',
+    'edgeLabelBackground': '#ffffff'
+  }
+}}%%
+flowchart TB
+    A["Sahip (Peter)"] -- Tam güven --> B["AI (Clawd)"]
+    B -- Güven ama doğrula --> C["Allowlist’teki arkadaşlar"]
+    C -- Sınırlı güven --> D["Yabancılar"]
+    D -- Güven yok --> E["~ bulmamı isteyen Mario"]
+    E -- Kesinlikle güven yok 😏 --> F[" "]
+
+     %% En alttaki etiketin doğru gösterilmesi için şeffaf kutu gerekir
+     F:::Class_transparent_box
+    classDef Class_transparent_box fill:transparent, stroke:transparent
 ```
 
 ## Güvenlik Sorunlarını Bildirme

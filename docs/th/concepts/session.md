@@ -109,7 +109,7 @@ workspace สามารถเขียนได้ การคอมแพค
 - รีเซ็ตรายวัน: ค่าเริ่มต้นคือ **04:00 น. ตามเวลาท้องถิ่นบนโฮสต์Gateway** เซสชันจะถือว่าเก่าหากการอัปเดตล่าสุดก่อนเวลารีเซ็ตรายวันล่าสุด
 - `/new <model>` รองรับนามแฝงของโมเดล, `provider/model` หรือชื่อผู้ให้บริการ (จับคู่แบบคลุมเครือ) เพื่อกำหนดโมเดลของเซสชันใหม่ รีเซ็ตเมื่อว่าง (ไม่บังคับ): `idleMinutes` เพิ่มหน้าต่างเวลาว่างแบบเลื่อน เมื่อกำหนดทั้งรีเซ็ตรายวันและรีเซ็ตเมื่อว่าง **อย่างใดอย่างหนึ่งที่หมดก่อน** จะบังคับเริ่มเซสชันใหม่
 - โหมดเดิมแบบว่างอย่างเดียว: หากคุณตั้งค่า `session.idleMinutes` โดยไม่มีคอนฟิก `session.reset`/`resetByType` ใดๆ OpenClaw จะคงอยู่ในโหมดว่างอย่างเดียวเพื่อความเข้ากันได้ย้อนหลัง
-- การแทนที่ตามประเภท (ไม่บังคับ): `resetByType` ให้คุณแทนที่นโยบายสำหรับเซสชัน `dm`, `group`, และ `thread` (thread = เธรด Slack/Discord, หัวข้อ Telegram, เธรด Matrix เมื่อคอนเน็กเตอร์รองรับ)
+- การแทนที่ตามประเภท (ไม่บังคับ): `resetByType` ช่วยให้คุณแทนที่นโยบายสำหรับเซสชัน `direct`, `group` และ `thread` (thread = เธรดของ Slack/Discord, หัวข้อ Telegram, Matrix threads เมื่อคอนเนกเตอร์รองรับ)
 - การแทนที่ตามช่องทาง (ไม่บังคับ): `resetByChannel` แทนที่นโยบายรีเซ็ตสำหรับช่องทางหนึ่งๆ (มีผลกับทุกประเภทเซสชันของช่องทางนั้น และมีลำดับความสำคัญเหนือ `reset`/`resetByType`)
 - ทริกเกอร์การรีเซ็ต: ข้อความ `/new` หรือ `/reset` แบบตรงตัว (รวมส่วนเพิ่มเติมใน `resetTriggers`) จะเริ่ม session id ใหม่และส่งต่อข้อความที่เหลือ `/new <model>` ยอมรับนามแฝงโมเดล, `provider/model`, หรือชื่อผู้ให้บริการ (จับคู่แบบคลุมเครือ) เพื่อกำหนดโมเดลของเซสชันใหม่ หากส่ง `/new` หรือ `/reset` เพียงอย่างเดียว OpenClaw จะรันรอบทักทายสั้นๆ เพื่อยืนยันการรีเซ็ต หากส่ง `/new` หรือ `/reset` เพียงอย่างเดียว OpenClaw จะรันเทิร์นทักทายสั้น ๆ ว่า “hello” เพื่อยืนยันการรีเซ็ต ดู [/concepts/compaction](/concepts/compaction)
 - รีเซ็ตด้วยตนเอง: ลบคีย์เฉพาะจากสโตร์หรือลบทรานสคริปต์ JSONL ข้อความถัดไปจะสร้างใหม่
@@ -146,21 +146,21 @@ workspace สามารถเขียนได้ การคอมแพค
 // ~/.openclaw/openclaw.json
 {
   session: {
-    scope: "per-sender", // keep group keys separate
-    dmScope: "main", // DM continuity (set per-channel-peer/per-account-channel-peer for shared inboxes)
+    scope: "per-sender", // แยกคีย์ของกลุ่มออกจากกัน
+    dmScope: "main", // ความต่อเนื่องของ DM (ตั้งค่าเป็น per-channel-peer/per-account-channel-peer สำหรับกล่องข้อความที่ใช้ร่วมกัน)
     identityLinks: {
       alice: ["telegram:123456789", "discord:987654321012345678"],
     },
     reset: {
-      // Defaults: mode=daily, atHour=4 (gateway host local time).
-      // If you also set idleMinutes, whichever expires first wins.
+      // ค่าเริ่มต้น: mode=daily, atHour=4 (เวลาท้องถิ่นของโฮสต์เกตเวย์)
+      // หากตั้งค่า idleMinutes ด้วย ตัวที่หมดอายุก่อนจะถูกใช้
       mode: "daily",
       atHour: 4,
       idleMinutes: 120,
     },
     resetByType: {
       thread: { mode: "daily", atHour: 4 },
-      dm: { mode: "idle", idleMinutes: 240 },
+      direct: { mode: "idle", idleMinutes: 240 },
       group: { mode: "idle", idleMinutes: 120 },
     },
     resetByChannel: {

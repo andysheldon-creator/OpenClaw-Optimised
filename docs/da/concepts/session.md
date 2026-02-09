@@ -106,7 +106,7 @@ arbejdsområdet er skrivbart. Se [Memory](/concepts/memory) og
 - Daglig nulstilling: standard **4:00 AM lokal tid på gateway vært**. En session er forsvundet, når dens sidste opdatering er tidligere end den seneste daglige nulstillingstid.
 - Idle reset (valgfri): `idleMinutes` tilføjer et glidende tomgangsvindue. Når både daglig og inaktiv nulstilling er konfigureret, **afhængigt af hvad der udløber først** tvinger en ny session.
 - Ældre kun-inaktiv: hvis du sætter `session.idleMinutes` uden nogen `session.reset`/`resetByType`-konfiguration, forbliver OpenClaw i kun-inaktiv-tilstand af hensyn til bagudkompatibilitet.
-- Tilsidesættelser pr. type (valgfrit): `resetByType` lader dig tilsidesætte politikken for `dm`, `group` og `thread`-sessioner (thread = Slack/Discord-tråde, Telegram-emner, Matrix-tråde når leveret af connectoren).
+- Overrides pr. type (valgfrit): `resetByType` lader dig tilsidesætte politikken for `direct`, `group` og `thread`-sessioner (thread = Slack/Discord-tråde, Telegram-emner, Matrix-tråde når leveret af connectoren).
 - Tilsidesættelser pr. kanal (valgfrit): `resetByChannel` tilsidesætter nulstillingspolitikken for en kanal (gælder for alle sessionstyper for den kanal og har forrang over `reset`/`resetByType`).
 - Nulstil udløsere: eksakt `/new` eller `/reset` (plus eventuelle ekstras i `resetTriggers`) starte en ny session id og videregive resten af meddelelsen gennem. `/new <model>` accept a model alias, `provider/model`, or provider name (fuzzy match) to set the new session model. Hvis `/new` eller `/reset` er sendt alene, OpenClaw kører en kort “hello” hilsen tur for at bekræfte nulstillingen.
 - Manuel nulstilling: slet specifikke nøgler fra lageret eller fjern JSONL-transskriptet; den næste besked genskaber dem.
@@ -143,21 +143,21 @@ Runtime-tilsidesættelse (kun ejer):
 // ~/.openclaw/openclaw.json
 {
   session: {
-    scope: "per-sender", // keep group keys separate
-    dmScope: "main", // DM continuity (set per-channel-peer/per-account-channel-peer for shared inboxes)
+    scope: "per-sender", // hold gruppenøgler adskilt
+    dmScope: "main", // DM-kontinuitet (sæt per-channel-peer/per-account-channel-peer for delte indbakker)
     identityLinks: {
       alice: ["telegram:123456789", "discord:987654321012345678"],
     },
     reset: {
-      // Defaults: mode=daily, atHour=4 (gateway host local time).
-      // If you also set idleMinutes, whichever expires first wins.
+      // Standarder: mode=daily, atHour=4 (gateway-værtens lokale tid).
+      // Hvis du også sætter idleMinutes, vinder den, der udløber først.
       mode: "daily",
       atHour: 4,
       idleMinutes: 120,
     },
     resetByType: {
       thread: { mode: "daily", atHour: 4 },
-      dm: { mode: "idle", idleMinutes: 240 },
+      direct: { mode: "idle", idleMinutes: 240 },
       group: { mode: "idle", idleMinutes: 120 },
     },
     resetByChannel: {

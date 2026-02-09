@@ -156,6 +156,7 @@ OpenClaw は `MEMORY.md` と `memory/*.md` 上に小さなベクター インデ
 - `scope`: [`session.sendPolicy`](/gateway/configuration#session) と同一のスキーマ。デフォルトは DM のみ（`deny` はすべて、`allow` はダイレクト チャット）。グループ／チャンネルで QMD ヒットを表示するには緩和します。
   デフォルトは DMのみ (`deny` all, `allow` directチャット) です。グループ/チャンネルで QMD
   がヒットするように緩めます。
+- `scope` によって検索が拒否されると、OpenClaw は派生した `channel` / `chatType` を含む警告をログに記録するため、空の結果をデバッグしやすくなります。
 - ワークスペース外から取得したスニペットは、`memory_search` の結果で `qmd/<collection>/<relative-path>` として表示されます。`memory_get` はそのプレフィックスを理解し、設定された QMD コレクション ルートから読み取ります。
 - `memory.qmd.sessions.enabled = true` の場合、OpenClaw はサニタイズ済みのセッション トランスクリプト（ユーザー／アシスタントのターン）を `~/.openclaw/agents/<id>/qmd/sessions/` 配下の専用 QMD コレクションにエクスポートし、組み込み SQLite インデックスに触れずに `memory_search` が最近の会話を想起できるようにします。
 - `memory_search` スニペットには、`memory.citations` が `auto`/`on` の場合、`Source: <path#line>` フッターが含まれます。`memory.citations = "off"` を設定するとパス メタデータを内部扱いにできます（エージェントは `memory_get` のためにパスを受け取りますが、スニペット本文からはフッターが省かれ、システム プロンプトで引用しないよう警告されます）。

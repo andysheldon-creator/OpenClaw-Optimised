@@ -52,6 +52,23 @@ openclaw pairing approve telegram <CODE>
 Nodes များသည် Gateway သို့ **devices** အဖြစ် `role: node` ဖြင့် ချိတ်ဆက်ပါသည်။ Gateway သည်
 အတည်ပြုရမည့် device pairing request တစ်ခုကို ဖန်တီးပါသည်။
 
+### Telegram မှတဆင့် Pair လုပ်ပါ (iOS အတွက် အကြံပြုထားသည်)
+
+`device-pair` plugin ကို အသုံးပြုပါက ပထမအကြိမ် device pairing ကို Telegram ထဲမှတဆင့် အပြည့်အစုံ ပြုလုပ်နိုင်ပါသည်။
+
+1. Telegram တွင် သင့် bot ကို မက်ဆေ့ချ်ပို့ပါ: `/pair`
+2. Bot သည် မက်ဆေ့ချ် ၂ ခုဖြင့် ပြန်လည်ဖြေကြားပါသည် — လမ်းညွှန်ချက် မက်ဆေ့ချ်တစ်ခုနှင့် Telegram တွင် copy/paste လုပ်ရ လွယ်ကူသော သီးခြား **setup code** မက်ဆေ့ချ်တစ်ခု။
+3. သင့်ဖုန်းတွင် OpenClaw iOS app ကို ဖွင့်ပါ → Settings → Gateway။
+4. Setup code ကို paste လုပ်ပြီး ချိတ်ဆက်ပါ။
+5. Telegram သို့ ပြန်သွားပြီး: `/pair approve`
+
+Setup code သည် အောက်ပါအချက်များ ပါဝင်သည့် base64-encoded JSON payload ဖြစ်ပါသည် —
+
+- `url`: Gateway WebSocket URL (`ws://...` သို့မဟုတ် `wss://...`)
+- `token`: အချိန်ကန့်သတ်ထားသော pairing token
+
+Setup code ကို အသက်ဝင်နေသည့်အချိန်အတွင်း စကားဝှက်တစ်ခုလို သဘောထားပါ။
+
 ### Node စက်ပစ္စည်းကို အတည်ပြုခြင်း
 
 ```bash

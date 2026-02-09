@@ -74,6 +74,32 @@ Du kan referere til miljøvariabler direkte i konfigurations-strengværdier ved 
 
 Se [Konfiguration: Substitution af miljøvariabler](/gateway/configuration#env-var-substitution-in-config) for fulde detaljer.
 
+## Sti-relaterede miljøvariabler
+
+| Variabel               | Formål                                                                                                                                                                                                                                              |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `OPENCLAW_HOME`        | Tilsidesæt hjemmemappen, der bruges til al intern sti-opløsning (`~/.openclaw/`, agent-mapper, sessioner, legitimationsoplysninger). Nyttigt, når OpenClaw køres som en dedikeret servicebruger. |
+| `OPENCLAW_STATE_DIR`   | Tilsidesæt state-mappen (standard `~/.openclaw`).                                                                                                                                                                |
+| `OPENCLAW_CONFIG_PATH` | Override the config file path (default `~/.openclaw/openclaw.json`).                                                                                                                                             |
+
+### `OPENCLAW_HOME`
+
+When set, `OPENCLAW_HOME` replaces the system home directory (`$HOME` / `os.homedir()`) for all internal path resolution. This enables full filesystem isolation for headless service accounts.
+
+**Precedence:** `OPENCLAW_HOME` > `$HOME` > `USERPROFILE` > `os.homedir()`
+
+**Example** (macOS LaunchDaemon):
+
+```xml
+<key>EnvironmentVariables</key>
+<dict>
+  <key>OPENCLAW_HOME</key>
+  <string>/Users/kira</string>
+</dict>
+```
+
+`OPENCLAW_HOME` can also be set to a tilde path (e.g. `~/svc`), which gets expanded using `$HOME` before use.
+
 ## Relateret
 
 - [Gateway-konfiguration](/gateway/configuration)

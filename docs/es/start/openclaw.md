@@ -33,19 +33,26 @@ Empiece de forma conservadora:
 
 Quiere esto:
 
-```
-Your Phone (personal)          Second Phone (assistant)
-┌─────────────────┐           ┌─────────────────┐
-│  Your WhatsApp  │  ──────▶  │  Assistant WA   │
-│  +1-555-YOU     │  message  │  +1-555-ASSIST  │
-└─────────────────┘           └────────┬────────┘
-                                       │ linked via QR
-                                       ▼
-                              ┌─────────────────┐
-                              │  Your Mac       │
-                              │  (openclaw)      │
-                              │    Pi agent     │
-                              └─────────────────┘
+```mermaid
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#ffffff',
+    'primaryTextColor': '#000000',
+    'primaryBorderColor': '#000000',
+    'lineColor': '#000000',
+    'secondaryColor': '#f9f9fb',
+    'tertiaryColor': '#ffffff',
+    'clusterBkg': '#f9f9fb',
+    'clusterBorder': '#000000',
+    'nodeBorder': '#000000',
+    'mainBkg': '#ffffff',
+    'edgeLabelBackground': '#ffffff'
+  }
+}}%%
+flowchart TB
+    A["<b>Your Phone (personal)<br></b><br>Your WhatsApp<br>+1-555-YOU"] -- message --> B["<b>Second Phone (assistant)<br></b><br>Assistant WA<br>+1-555-ASSIST"]
+    B -- linked via QR --> C["<b>Your Mac (openclaw)<br></b><br>Pi agent"]
 ```
 
 Si vincula su WhatsApp personal a OpenClaw, cada mensaje hacia usted se convierte en “entrada del agente”. Eso rara vez es lo que quiere.

@@ -156,9 +156,20 @@ You can add custom commands to the menu via config:
 မှတ်ချက်များ:
 
 - Custom commands များသည် **menu entries သာ** ဖြစ်ပြီး OpenClaw သည် အခြားနေရာတွင် handle မလုပ်ပါက အကောင်အထည်မဖော်ပါ။
+- အချို့သော command များကို Telegram ၏ command menu တွင် register မလုပ်ဘဲ plugins/skills များမှ ကိုင်တွယ်နိုင်ပါသည်။ ဤ command များကို ရိုက်ထည့်ပါက အလုပ်လုပ်ပါမည် (သို့သော် `/commands` / menu တွင် မပေါ်ပါ)။
 - Command အမည်များကို normalize လုပ်ပြီး (ရှေ့က `/` ဖယ်ရှား၊ အောက်စာလုံးပြောင်း) `a-z`, `0-9`, `_` (၁–၃၂ လုံး) နှင့် ကိုက်ညီရမည်။
 - Custom commands **cannot override native commands**. Conflicts are ignored and logged.
 - `commands.native` ကို ပိတ်ထားပါက custom commands များသာ မှတ်ပုံတင်မည် (မရှိပါက ဖယ်ရှားမည်)။
+
+### Device pairing command များ (`device-pair` plugin)
+
+`device-pair` plugin ကို တပ်ဆင်ထားပါက ဖုန်းအသစ်တစ်လုံးကို pairing လုပ်ရန် Telegram-first flow ကို ထည့်ပေးပါသည် —
+
+1. `/pair` သည် setup code တစ်ခုကို ထုတ်ပေးပါသည် (copy/paste လွယ်စေရန် သီးခြား မက်ဆေ့ချ်အဖြစ် ပို့ပါသည်)။
+2. iOS app ထဲတွင် setup code ကို paste လုပ်ပြီး ချိတ်ဆက်ပါ။
+3. `/pair approve` သည် နောက်ဆုံး pending device request ကို အတည်ပြုပါသည်။
+
+အသေးစိတ်များ: [Pairing](/channels/pairing#pair-via-telegram-recommended-for-ios)။
 
 ## Limits
 
@@ -451,6 +462,25 @@ Message tool ဖြင့် ပို့ရာတွင် voice-compatible aud
 }
 ```
 
+## ဗီဒီယို မက်ဆေ့ချ်များ (video vs video note)
+
+Telegram သည် **video notes** (စက်ဝိုင်းပုံ bubble) နှင့် **video files** (လေးထောင့်ပုံ) ကို ခွဲခြားပါသည်။
+OpenClaw သည် ပုံမှန်အားဖြင့် video files ကို အသုံးပြုပါသည်။
+
+Message tool ဖြင့် ပို့ရန်အတွက် video `media` URL နှင့်အတူ `asVideoNote: true` ကို သတ်မှတ်ပါ —
+
+```json5
+{
+  action: "send",
+  channel: "telegram",
+  to: "123456789",
+  media: "https://example.com/video.mp4",
+  asVideoNote: true,
+}
+```
+
+(မှတ်ချက်: Video notes တွင် caption မထောက်ပံ့ပါ။ Message စာသား ပေးထားပါက သီးခြား မက်ဆေ့ချ်အဖြစ် ပို့ပါမည်။)
+
 ## Stickers
 
 OpenClaw သည် Telegram stickers များကို လက်ခံခြင်းနှင့် ပို့ခြင်းကို intelligent caching ဖြင့် ပံ့ပိုးသည်။
@@ -728,12 +758,12 @@ Provider options-
 - `channels.telegram.groupPolicy`: `open | allowlist | disabled` (default: allowlist)။
 - `channels.telegram.groupAllowFrom`: group sender allowlist (ids/usernames)။
 - `channels.telegram.groups`: per-group defaults + allowlist (global defaults အတွက် `"*"` ကို အသုံးပြုပါ)။
-  - 42. `channels.telegram.groups.<id>`43. `.groupPolicy`: groupPolicy (`open | allowlist | disabled`) အတွက် group တစ်ခုချင်းစီအလိုက် override။
-  - 44. `channels.telegram.groups.<id>`45. `.requireMention`: mention gating မူလသတ်မှတ်ချက်။
-  - 46. `channels.telegram.groups.<id>`47. `.skills`: skill filter (မထည့်ပါက = skill အားလုံး, အလွတ် = မရှိ)။
-  - 48. `channels.telegram.groups.<id>`49. `.allowFrom`: group တစ်ခုချင်းစီအတွက် sender allowlist override။
-  - 50. `channels.telegram.groups.<id>`.systemPrompt\`: extra system prompt for the group.
-  - `channels.telegram.groups.<id>.enabled`: disable the group when `false`.
+  - 44. `channels.telegram.groups.<id>`43. `.groupPolicy`: groupPolicy (`open | allowlist | disabled`) အတွက် group တစ်ခုချင်းစီအလိုက် override။
+  - 42. `channels.telegram.groups.<id>`45. `.requireMention`: mention gating မူလသတ်မှတ်ချက်။
+  - 44. `channels.telegram.groups.<id>`47. `.skills`: skill filter (မထည့်ပါက = skill အားလုံး, အလွတ် = မရှိ)။
+  - 46. `channels.telegram.groups.<id>`49. `.allowFrom`: group တစ်ခုချင်းစီအတွက် sender allowlist override။
+  - 48. `channels.telegram.groups.<id>`.systemPrompt\`: extra system prompt for the group.
+  - 50. `channels.telegram.groups.<id>`.enabled`: disable the group when `false\`.
   - `channels.telegram.groups.<id>.topics.<threadId>.*`: per-topic overrides (same fields as group).
   - `channels.telegram.groups.<id>.topics.<threadId>.groupPolicy`: per-topic override for groupPolicy (`open | allowlist | disabled`).
   - `channels.telegram.groups.<id>.topics.<threadId>.requireMention`: per-topic mention gating override.

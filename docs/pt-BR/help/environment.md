@@ -74,6 +74,32 @@ Você pode referenciar variáveis de ambiente diretamente em valores de string d
 
 Veja [Configuração: Substituição de variáveis de ambiente](/gateway/configuration#env-var-substitution-in-config) para todos os detalhes.
 
+## Path-related env vars
+
+| Variável               | Propósito                                                                                                                                                                                                                           |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `OPENCLAW_HOME`        | Override the home directory used for all internal path resolution (`~/.openclaw/`, agent dirs, sessions, credentials). Useful when running OpenClaw as a dedicated service user. |
+| `OPENCLAW_STATE_DIR`   | Override the state directory (default `~/.openclaw`).                                                                                                                                            |
+| `OPENCLAW_CONFIG_PATH` | Substitua o caminho do arquivo de configuração (padrão `~/.openclaw/openclaw.json`).                                                                                                             |
+
+### `OPENCLAW_HOME`
+
+Quando definido, `OPENCLAW_HOME` substitui o diretório home do sistema (`$HOME` / `os.homedir()`) para toda a resolução interna de caminhos. Isso habilita isolamento completo do sistema de arquivos para contas de serviço headless.
+
+**Precedência:** `OPENCLAW_HOME` > `$HOME` > `USERPROFILE` > `os.homedir()`
+
+**Exemplo** (LaunchDaemon no macOS):
+
+```xml
+<key>EnvironmentVariables</key>
+<dict>
+  <key>OPENCLAW_HOME</key>
+  <string>/Users/kira</string>
+</dict>
+```
+
+`OPENCLAW_HOME` também pode ser definido como um caminho com til (por exemplo, `~/svc`), que é expandido usando `$HOME` antes do uso.
+
 ## Relacionados
 
 - [Configuração do Gateway](/gateway/configuration)

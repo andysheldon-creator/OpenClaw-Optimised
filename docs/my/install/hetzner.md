@@ -113,12 +113,10 @@ Docker containers များသည် ephemeral ဖြစ်ပါသည်။
 အချိန်ကြာရှည်အသုံးပြုမည့် state အားလုံးကို host ပေါ်တွင်သာ ထားရမည်။
 
 ```bash
-mkdir -p /root/.openclaw
-mkdir -p /root/.openclaw/workspace
+10. mkdir -p /root/.openclaw/workspace
 
 # Set ownership to the container user (uid 1000):
 chown -R 1000:1000 /root/.openclaw
-chown -R 1000:1000 /root/.openclaw/workspace
 ```
 
 ---
@@ -155,7 +153,7 @@ openssl rand -hex 32
 `docker-compose.yml` ကို ဖန်တီးပါ သို့မဟုတ် အပ်ဒိတ်လုပ်ပါ။
 
 ```yaml
-services:
+11. services:
   openclaw-gateway:
     image: ${OPENCLAW_IMAGE}
     build: .
@@ -192,8 +190,11 @@ services:
         "${OPENCLAW_GATEWAY_BIND}",
         "--port",
         "${OPENCLAW_GATEWAY_PORT}",
+        "--allow-unconfigured",
       ]
 ```
+
+12. `--allow-unconfigured` သည် bootstrap အတွက် အဆင်ပြေစေရန်သာ ဖြစ်ပြီး သင့်တော်သော gateway configuration ကို အစားထိုးနိုင်ခြင်း မရှိပါ။ 13. သင့် deployment အတွက် auth (`gateway.auth.token` သို့မဟုတ် password) ကို သတ်မှတ်ထားပြီး လုံခြုံသော bind setting များကို အသုံးပြုပါ။
 
 ---
 

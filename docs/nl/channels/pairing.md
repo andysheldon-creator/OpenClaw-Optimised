@@ -52,6 +52,23 @@ Behandel deze als gevoelig (ze bepalen de toegang tot je assistent).
 Nodes verbinden met de Gateway als **apparaten** met `role: node`. De Gateway
 maakt een apparaat-pairingverzoek aan dat moet worden goedgekeurd.
 
+### Koppelen via Telegram (aanbevolen voor iOS)
+
+Als je de `device-pair`-plugin gebruikt, kun je de eerste apparaatkoppeling volledig vanuit Telegram doen:
+
+1. Stuur in Telegram een bericht naar je bot: `/pair`
+2. De bot antwoordt met twee berichten: een instructiebericht en een afzonderlijk bericht met de **setupcode** (makkelijk te kopiëren/plakken in Telegram).
+3. Open op je telefoon de OpenClaw iOS-app → Instellingen → Gateway.
+4. Plak de setupcode en maak verbinding.
+5. Terug in Telegram: `/pair approve`
+
+De setupcode is een base64-gecodeerde JSON-payload die bevat:
+
+- `url`: de Gateway WebSocket-URL (`ws://...` of `wss://...`)
+- `token`: een kortlevende pairing-token
+
+Behandel de setupcode als een wachtwoord zolang deze geldig is.
+
 ### Keur een node apparaat goed
 
 ```bash

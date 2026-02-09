@@ -789,7 +789,7 @@ without WhatsApp/Telegram.
 
 ### 여러 사람이 하나의 WhatsApp 번호를 서로 다른 OpenClaw 인스턴스로 사용할 수 있나요?
 
-네, **멀티 에이전트 라우팅**을 통해 가능합니다. 각 발신자의 WhatsApp **DM**(피어 `kind: "dm"`, 발신자 E.164 형식 `+15551234567`)을 서로 다른 `agentId`에 바인딩하여 각 사람이 자신의 워크스페이스와 세션 저장소를 갖도록 하세요. 응답은 여전히 **같은 WhatsApp 계정**에서 오며, DM 접근 제어(`channels.whatsapp.dmPolicy` / `channels.whatsapp.allowFrom`)는 WhatsApp 계정별로 전역 적용됩니다. [멀티 에이전트 라우팅](/concepts/multi-agent)과 [WhatsApp](/channels/whatsapp)을 참조하세요.
+네, **멀티 에이전트 라우팅**을 통해 가능합니다. 9. 각 발신자의 WhatsApp **DM**(피어 `kind: "direct"`, 발신자 E.164 형식 `+15551234567`)을 서로 다른 `agentId`에 바인딩하여, 각 사람이 자신의 워크스페이스와 세션 저장소를 갖도록 합니다. 응답은 여전히 **같은 WhatsApp 계정**에서 오며, DM 접근 제어(`channels.whatsapp.dmPolicy` / `channels.whatsapp.allowFrom`)는 WhatsApp 계정별로 전역 적용됩니다. [멀티 에이전트 라우팅](/concepts/multi-agent)과 [WhatsApp](/channels/whatsapp)을 참조하세요.
 
 ### 빠른 채팅 에이전트와 코딩용 Opus 에이전트를 함께 실행할 수 있나요?
 

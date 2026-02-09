@@ -193,8 +193,8 @@ OpenClaw 전용으로 **별도의 전화번호**를 사용하십시오. 최상�
 - 다음으로 승인합니다: `openclaw pairing approve whatsapp <code>` (`openclaw pairing list whatsapp`로 목록 확인).
 - 코드는 1시간 후 만료되며, 대기 요청은 채널당 최대 3개로 제한됩니다.
 
-**하나의 WhatsApp 번호에서 여러 사람이 서로 다른 OpenClaw 인스턴스를 사용할 수 있나요?**  
-예, `bindings`를 통해 각 발신자를 서로 다른 에이전트로 라우팅하면 됩니다(피어 `kind: "dm"`, 발신자 E.164 예: `+15551234567`). 답장은 **같은 WhatsApp 계정**에서 오며, 다이렉트 채팅은 각 에이전트의 메인 세션으로 합쳐지므로 **사람당 하나의 에이전트**를 사용하십시오. 다이렉트 메시지 접근 제어(`dmPolicy`/`allowFrom`)는 WhatsApp 계정별 전역 설정입니다. [Multi-Agent Routing](/concepts/multi-agent)을 참고하십시오.
+**Can multiple people use different OpenClaw instances on one WhatsApp number?**  
+Yes, by routing each sender to a different agent via `bindings` (peer `kind: "direct"`, sender E.164 like `+15551234567`). Replies still come from the **same WhatsApp account**, and direct chats collapse to each agent's main session, so use **one agent per person**. 다이렉트 메시지 접근 제어(`dmPolicy`/`allowFrom`)는 WhatsApp 계정별 전역 설정입니다. [Multi-Agent Routing](/concepts/multi-agent)을 참고하십시오.
 
 **마법사에서 왜 전화번호를 묻나요?**  
 마법사는 본인 다이렉트 메시지를 허용하도록 **허용 목록/소유자**를 설정하는 데 사용합니다. 자동 전송에는 사용되지 않습니다. 개인 WhatsApp 번호로 실행하는 경우 동일한 번호를 사용하고 `channels.whatsapp.selfChatMode`을 활성화하십시오.

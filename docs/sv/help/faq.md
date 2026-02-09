@@ -805,7 +805,7 @@ Se [/channels/telegram](/channels/telegram#access-control-dms--groups).
 
 ### Kan flera personer använda ett WhatsApp-nummer med olika OpenClaw instanser
 
-Ja, via **multi-agent routing**. Bind varje avsändares WhatsApp **DM** (peer `kind: "dm" `, avsändare E. 64 som `+15551234567`) till en annan `agentId`, så varje person får sin egen arbetsyta och session butik. Svaren kommer fortfarande från **samma WhatsApp-konto**, och DM åtkomstkontroll (`channels.whatsapp.dmPolicy` / `channels.whatsapp.allowFrom`) är global per WhatsApp-konto. Se [Multi-Agent Routing](/concepts/multi-agent) och [WhatsApp](/channels/whatsapp).
+Ja, via **multi-agent routing**. Bind each sender's WhatsApp **DM** (peer `kind: "direct"`, sender E.164 like `+15551234567`) to a different `agentId`, so each person gets their own workspace and session store. Svaren kommer fortfarande från **samma WhatsApp-konto**, och DM åtkomstkontroll (`channels.whatsapp.dmPolicy` / `channels.whatsapp.allowFrom`) är global per WhatsApp-konto. Se [Multi-Agent Routing](/concepts/multi-agent) och [WhatsApp](/channels/whatsapp).
 
 ### Kan jag köra en snabb chattagent och en Opus för kodningsagent
 

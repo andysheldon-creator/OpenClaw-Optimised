@@ -169,6 +169,14 @@ openclaw status         # gateway status
 openclaw dashboard      # open the browser UI
 ```
 
+Wenn Sie benutzerdefinierte Laufzeitpfade benötigen, verwenden Sie:
+
+- `OPENCLAW_HOME` für homeverzeichnisbasierte interne Pfade
+- `OPENCLAW_STATE_DIR` für den Speicherort veränderlicher Zustände
+- `OPENCLAW_CONFIG_PATH` für den Speicherort der Konfigurationsdatei
+
+Siehe [Environment vars](/help/environment) für Prioritäten und vollständige Details.
+
 ## Fehlerbehebung: `openclaw` nicht gefunden
 
 <Accordion title="PATH diagnosis and fix">

@@ -491,14 +491,14 @@ Feishu 透過互動式卡片支援串流回覆。啟用後，機器人會在產�
       agentId: "main",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_xxx" },
+        peer: { kind: "direct", id: "ou_xxx" },
       },
     },
     {
       agentId: "clawd-fan",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_yyy" },
+        peer: { kind: "direct", id: "ou_yyy" },
       },
     },
     {
@@ -515,7 +515,7 @@ Feishu 透過互動式卡片支援串流回覆。啟用後，機器人會在產�
 路由欄位：
 
 - `match.channel`：`"feishu"`
-- `match.peer.kind`：`"dm"` 或 `"group"`
+- `match.peer.kind`: `"direct"` or `"group"`
 - `match.peer.id`：使用者 Open ID（`ou_xxx`）或群組 ID（`oc_xxx`）
 
 查詢技巧請參考 [取得群組／使用者 ID](#get-groupuser-ids)。

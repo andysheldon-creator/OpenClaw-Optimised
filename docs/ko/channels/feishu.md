@@ -491,14 +491,14 @@ Feishu 는 인터랙티브 카드를 통한 스트리밍 응답을 지원합니�
       agentId: "main",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_xxx" },
+        peer: { kind: "direct", id: "ou_xxx" },
       },
     },
     {
       agentId: "clawd-fan",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_yyy" },
+        peer: { kind: "direct", id: "ou_yyy" },
       },
     },
     {
@@ -515,7 +515,7 @@ Feishu 는 인터랙티브 카드를 통한 스트리밍 응답을 지원합니�
 라우팅 필드:
 
 - `match.channel`: `"feishu"`
-- `match.peer.kind`: `"dm"` 또는 `"group"`
+- `match.peer.kind`: `"direct"` or `"group"`
 - `match.peer.id`: 사용자 Open ID (`ou_xxx`) 또는 그룹 ID (`oc_xxx`)
 
 조회 팁은 [그룹/사용자 ID 가져오기](#get-groupuser-ids) 를 참고하십시오.

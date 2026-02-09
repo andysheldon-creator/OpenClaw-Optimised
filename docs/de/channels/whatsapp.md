@@ -195,8 +195,8 @@ Pairing ist ein DM-Gate für unbekannte Absender:
 - Genehmigen mit: `openclaw pairing approve whatsapp <code>` (Liste mit `openclaw pairing list whatsapp`).
 - Codes laufen nach 1 Stunde ab; ausstehende Anfragen sind auf 3 pro Kanal begrenzt.
 
-**Können mehrere Personen verschiedene OpenClaw-Instanzen mit einer WhatsApp-Nummer nutzen?**  
-Ja, indem jeder Absender über `bindings` zu einem anderen Agenten geroutet wird (Peer `kind: "dm"`, Absender E.164 wie `+15551234567`). Antworten kommen weiterhin vom **gleichen WhatsApp-Konto**, und Direktchats kollabieren zur Hauptsitzung jedes Agenten, daher **ein Agent pro Person** verwenden. Die DM-Zugriffskontrolle (`dmPolicy`/`allowFrom`) ist global pro WhatsApp-Konto. Siehe [Multi-Agent Routing](/concepts/multi-agent).
+**Can multiple people use different OpenClaw instances on one WhatsApp number?**  
+Yes, by routing each sender to a different agent via `bindings` (peer `kind: "direct"`, sender E.164 like `+15551234567`). Replies still come from the **same WhatsApp account**, and direct chats collapse to each agent's main session, so use **one agent per person**. Die DM-Zugriffskontrolle (`dmPolicy`/`allowFrom`) ist global pro WhatsApp-Konto. Siehe [Multi-Agent Routing](/concepts/multi-agent).
 
 **Warum fragt der Assistent nach meiner Telefonnummer?**  
 Der Assistent verwendet sie, um Ihre **Allowlist/Eigentümer** zu setzen, damit Ihre eigenen DMs erlaubt sind. Sie wird nicht für automatisches Senden verwendet. Wenn Sie mit Ihrer persönlichen WhatsApp-Nummer arbeiten, verwenden Sie dieselbe Nummer und aktivieren Sie `channels.whatsapp.selfChatMode`.

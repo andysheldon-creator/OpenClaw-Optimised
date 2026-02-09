@@ -169,6 +169,14 @@ openclaw status         # gateway status
 openclaw dashboard      # open the browser UI
 ```
 
+Si necesitas rutas de ejecución personalizadas, utiliza:
+
+- `OPENCLAW_HOME` para rutas internas basadas en el directorio home
+- `OPENCLAW_STATE_DIR` para la ubicación del estado mutable
+- `OPENCLAW_CONFIG_PATH` para la ubicación del archivo de configuración
+
+Consulta [Environment vars](/help/environment) para conocer la precedencia y todos los detalles.
+
 ## Solución de problemas: `openclaw` no encontrado
 
 <Accordion title="PATH diagnosis and fix">

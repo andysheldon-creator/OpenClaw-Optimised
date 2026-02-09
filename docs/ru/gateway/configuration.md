@@ -766,7 +766,7 @@ Allowlist номеров E.164, которые могут запускать а�
 - `bindings[]`: направляет входящие сообщения к `agentId`.
   - `match.channel` (обязательно)
   - `match.accountId` (опционально; `*` = любой аккаунт; пропущен = аккаунт по умолчанию)
-  - `match.peer` (опционально; `{ kind: dm|group|channel, id }`)
+  - `match.peer` (опционально; `{ kind: direct|group|channel, id }`)
   - `match.guildId` / `match.teamId` (опционально; канал конкретный)
 
 Порядок совпадения с определениями:
@@ -2740,27 +2740,27 @@ Notes:
     },
     reset: {
       mode: "daily",
-      Часа: 4,
+      atHour: 4,
       idleMinutes: 60,
     },
     resetByType: {
       thread: { mode: "daily", atHour: 4 },
-      dm: { mode: "idle", idleMinutes: 240 },
+      direct: { mode: "idle", idleMinutes: 240 },
       group: { mode: "idle", idleMinutes: 120 },
     },
     resetTriggers: ["/new", "/reset"],
-    // По умолчанию уже per-agent под ~/. penclaw/agents/<agentId>/sessions/sessions.json
-    // Вы можете переопределить шаблоны {agentId} :
-    store: "~/. penclaw/agents/{agentId}/sessions/sessions.json",
-    // Прямой чат свернуть к агенту:<agentId>:<mainKey> (по умолчанию: "main").
+    // Default is already per-agent under ~/.openclaw/agents/<agentId>/sessions/sessions.json
+    // You can override with {agentId} templating:
+    store: "~/.openclaw/agents/{agentId}/sessions/sessions.json",
+    // Direct chats collapse to agent:<agentId>:<mainKey> (default: "main").
     mainKey: "main",
     agentToAgent: {
-      // Макс. ответ ping-pong между запросом/целевой (0–5).
+      // Max ping-pong reply turns between requester/target (0–5).
       maxPingPongTurns: 5,
     },
     sendPolicy: {
       rules: [{ action: "deny", match: { channel: "discord", chatType: "group" } }],
-      по умолчанию: "allow",
+      default: "allow",
     },
   },
 }
@@ -2782,7 +2782,7 @@ Notes:
   - `mode`: `daily` или `idle` (по умолчанию: `daily` когда `reset` присутствует).
   - `atHour`: локальный час (0-23) для ежедневной границы сброса.
   - `idleMinutes`: скользящее простое окно в минутах. Если настроены и ежедневный сброс, и бездействие, срабатывает то, что истекает раньше.
-- `resetByType`: per-session overrides for `dm`, `group` and `thread`.
+- `resetByType`: переопределения для каждой сессии для `direct`, `group` и `thread`. Устаревший ключ `dm` принимается как алиас для `direct`.
   - Если вы установите только старый `session.idleMinutes` без каких-либо `reset`/`resetByType`, OpenClaw остается в режиме ожидания для обратной совместимости.
 - `heartbeatIdleMinutes`: опциональное простое переопределение для проверки heartbeat (ежедневный сброс по-прежнему применяется когда включено).
 - `agentToAgent.maxPingPongTurns`: max reply-back поворачивает между запросом/целью (0–5, по умолчанию 5).

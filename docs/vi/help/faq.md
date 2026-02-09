@@ -800,7 +800,7 @@ See [/channels/telegram](/channels/telegram#access-control-dms--groups).
 
 ### 31. Nhiều người có thể dùng chung một số WhatsApp với các instance OpenClaw khác nhau không
 
-Yes, via **multi-agent routing**. 33. Gắn mỗi WhatsApp **DM** của người gửi (peer `kind: "dm"`, sender E.164 như `+15551234567`) với một `agentId` khác nhau, để mỗi người có workspace và session store riêng. Replies still come from the **same WhatsApp account**, and DM access control (`channels.whatsapp.dmPolicy` / `channels.whatsapp.allowFrom`) is global per WhatsApp account. See [Multi-Agent Routing](/concepts/multi-agent) and [WhatsApp](/channels/whatsapp).
+Yes, via **multi-agent routing**. Bind each sender's WhatsApp **DM** (peer `kind: "direct"`, sender E.164 like `+15551234567`) to a different `agentId`, so each person gets their own workspace and session store. Replies still come from the **same WhatsApp account**, and DM access control (`channels.whatsapp.dmPolicy` / `channels.whatsapp.allowFrom`) is global per WhatsApp account. See [Multi-Agent Routing](/concepts/multi-agent) and [WhatsApp](/channels/whatsapp).
 
 ### 36. Tôi có thể chạy một chat agent nhanh và một agent Opus để code không
 

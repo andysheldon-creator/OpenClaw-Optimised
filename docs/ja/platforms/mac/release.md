@@ -34,17 +34,17 @@ title: "macOS リリース"
 # From repo root; set release IDs so Sparkle feed is enabled.
 # APP_BUILD must be numeric + monotonic for Sparkle compare.
 BUNDLE_ID=bot.molt.mac \
-APP_VERSION=2026.2.6 \
+APP_VERSION=2026.2.9 \
 APP_BUILD="$(git rev-list --count HEAD)" \
 BUILD_CONFIG=release \
 SIGN_IDENTITY="Developer ID Application: <Developer Name> (<TEAMID>)" \
 scripts/package-mac-app.sh
 
 # Zip for distribution (includes resource forks for Sparkle delta support)
-ditto -c -k --sequesterRsrc --keepParent dist/OpenClaw.app dist/OpenClaw-2026.2.6.zip
+ditto -c -k --sequesterRsrc --keepParent dist/OpenClaw.app dist/OpenClaw-2026.2.9.zip
 
 # Optional: also build a styled DMG for humans (drag to /Applications)
-scripts/create-dmg.sh dist/OpenClaw.app dist/OpenClaw-2026.2.6.dmg
+scripts/create-dmg.sh dist/OpenClaw.app dist/OpenClaw-2026.2.9.dmg
 
 # Recommended: build + notarize/staple zip + DMG
 # First, create a keychain profile once:
@@ -52,14 +52,14 @@ scripts/create-dmg.sh dist/OpenClaw.app dist/OpenClaw-2026.2.6.dmg
 #     --apple-id "<apple-id>" --team-id "<team-id>" --password "<app-specific-password>"
 NOTARIZE=1 NOTARYTOOL_PROFILE=openclaw-notary \
 BUNDLE_ID=bot.molt.mac \
-APP_VERSION=2026.2.6 \
+APP_VERSION=2026.2.9 \
 APP_BUILD="$(git rev-list --count HEAD)" \
 BUILD_CONFIG=release \
 SIGN_IDENTITY="Developer ID Application: <Developer Name> (<TEAMID>)" \
 scripts/package-mac-dist.sh
 
 # Optional: ship dSYM alongside the release
-ditto -c -k --keepParent apps/macos/.build/release/OpenClaw.app.dSYM dist/OpenClaw-2026.2.6.dSYM.zip
+ditto -c -k --keepParent apps/macos/.build/release/OpenClaw.app.dSYM dist/OpenClaw-2026.2.9.dSYM.zip
 ```
 
 ## Appcast エントリー
@@ -67,7 +67,7 @@ ditto -c -k --keepParent apps/macos/.build/release/OpenClaw.app.dSYM dist/OpenCl
 Sparkle が整形された HTML リリースノートをレンダリングできるよう、リリースノート生成ツールを使用してください:
 
 ```bash
-SPARKLE_PRIVATE_KEY_FILE=/path/to/ed25519-private-key scripts/make_appcast.sh dist/OpenClaw-2026.2.6.zip https://raw.githubusercontent.com/openclaw/openclaw/main/appcast.xml
+SPARKLE_PRIVATE_KEY_FILE=/path/to/ed25519-private-key scripts/make_appcast.sh dist/OpenClaw-2026.2.9.zip https://raw.githubusercontent.com/openclaw/openclaw/main/appcast.xml
 ```
 
 これは [`scripts/changelog-to-html.sh`](https://github.com/openclaw/openclaw/blob/main/scripts/changelog-to-html.sh) を介して `CHANGELOG.md` から HTML リリースノートを生成し、appcast エントリーに埋め込みます。
@@ -76,7 +76,7 @@ SPARKLE_PRIVATE_KEY_FILE=/path/to/ed25519-private-key scripts/make_appcast.sh di
 
 ## 公開と検証
 
-- タグ `v2026.2.6` の GitHub リリースに `OpenClaw-2026.2.6.zip`（および `OpenClaw-2026.2.6.dSYM.zip`）をアップロードしてください。
+- `OpenClaw-2026.2.9.zip`（および `OpenClaw-2026.2.9.dSYM.zip`）をタグ `v2026.2.9` の GitHub リリースにアップロードしてください。
 - 生の appcast URL がビルド時に組み込まれたフィードと一致していることを確認してください: `https://raw.githubusercontent.com/openclaw/openclaw/main/appcast.xml`。
 - 簡易チェック:
   - `curl -I https://raw.githubusercontent.com/openclaw/openclaw/main/appcast.xml` が 200 を返すこと。

@@ -82,7 +82,7 @@ Dit laat **meerdere mensen** één Gateway-server delen terwijl hun AI-“breine
 
 ## Eén WhatsApp-nummer, meerdere mensen (DM-splitsing)
 
-Je kunt **verschillende WhatsApp-DM’s** naar verschillende agents routeren terwijl je op **één WhatsApp-account** blijft. Match op afzender E.164 (zoals `+15551234567`) met `peer.kind: "dm"`. Antwoorden komen nog steeds van hetzelfde WhatsApp-nummer (geen per-agent afzenderidentiteit).
+Je kunt **verschillende WhatsApp-DM’s** naar verschillende agents routeren terwijl je op **één WhatsApp-account** blijft. Match op afzender E.164 (zoals `+15551234567`) met `peer.kind: "direct"`. Antwoorden komen nog steeds van hetzelfde WhatsApp-nummer (geen per-agent afzenderidentiteit).
 
 Belangrijk detail: directe chats vallen samen tot de **hoofdsessiesleutel** van de agent, dus echte isolatie vereist **één agent per persoon**.
 
@@ -97,8 +97,14 @@ Voorbeeld:
     ],
   },
   bindings: [
-    { agentId: "alex", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551230001" } } },
-    { agentId: "mia", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551230002" } } },
+    {
+      agentId: "alex",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551230001" } },
+    },
+    {
+      agentId: "mia",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551230002" } },
+    },
   ],
   channels: {
     whatsapp: {
@@ -260,7 +266,10 @@ Houd WhatsApp op de snelle agent, maar routeer één DM naar Opus:
     ],
   },
   bindings: [
-    { agentId: "opus", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551234567" } } },
+    {
+      agentId: "opus",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551234567" } },
+    },
     { agentId: "chat", match: { channel: "whatsapp" } },
   ],
 }

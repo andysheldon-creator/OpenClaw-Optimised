@@ -45,7 +45,7 @@ title: "플러그인 SDK 리팩터링"
 제안된 표면 (최소이지만 완전함):
 
 ```ts
-export type PluginRuntime = {
+25. export type PluginRuntime = {
   channel: {
     text: {
       chunkMarkdownText(text: string, limit: number): string[];
@@ -65,14 +65,14 @@ export type PluginRuntime = {
           onError?: (err: unknown, info: { kind: string }) => void;
         };
       }): Promise<void>;
-      createReplyDispatcherWithTyping?: unknown; // adapter for Teams-style flows
+      createReplyDispatcherWithTyping?: unknown; // Teams 스타일 플로우를 위한 어댑터
     };
     routing: {
       resolveAgentRoute(params: {
         cfg: unknown;
         channel: string;
         accountId: string;
-        peer: { kind: "dm" | "group" | "channel"; id: string };
+        peer: { kind: RoutePeerKind; id: string };
       }): { sessionKey: string; accountId: string };
     };
     pairing: {

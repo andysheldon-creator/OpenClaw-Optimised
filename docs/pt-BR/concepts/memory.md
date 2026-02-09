@@ -183,6 +183,8 @@ chama o QMD para recuperação. Pontos-chave:
 - `scope`: mesmo esquema de [`session.sendPolicy`](/gateway/configuration#session).
   O padrão é apenas DM (`deny` todos, `allow` chats diretos); afrouxe para expor
   resultados do QMD em grupos/canais.
+- When `scope` denies a search, OpenClaw logs a warning with the derived
+  `channel`/`chatType` so empty results are easier to debug.
 - Trechos originados fora do workspace aparecem como
   `qmd/<collection>/<relative-path>` nos resultados de `memory_search`; `memory_get`
   entende esse prefixo e lê a partir da raiz da coleção QMD configurada.

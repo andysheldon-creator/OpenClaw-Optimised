@@ -169,6 +169,14 @@ openclaw status         # gateway status
 openclaw dashboard      # open the browser UI
 ```
 
+If you need custom runtime paths, use:
+
+- `OPENCLAW_HOME` for home-directory based internal paths
+- `OPENCLAW_STATE_DIR` for mutable state location
+- `OPENCLAW_CONFIG_PATH` for config file location
+
+See [Environment vars](/help/environment) for precedence and full details.
+
 ## समस्या-निवारण: `openclaw` नहीं मिला
 
 <Accordion title="PATH diagnosis and fix">

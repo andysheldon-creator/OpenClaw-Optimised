@@ -82,7 +82,7 @@ openclaw agents list --bindings
 
 ## ایک WhatsApp نمبر، متعدد افراد (DM تقسیم)
 
-You can route **different WhatsApp DMs** to different agents while staying on **one WhatsApp account**. 2. جوابات اب بھی اسی WhatsApp نمبر سے آتے ہیں (ہر ایجنٹ کے لیے الگ بھیجنے والی شناخت نہیں)۔ 3. وہ چینلز جو **متعدد اکاؤنٹس** کو سپورٹ کرتے ہیں (مثلاً WhatsApp) ہر لاگ اِن کی شناخت کے لیے `accountId` استعمال کرتے ہیں۔
+You can route **different WhatsApp DMs** to different agents while staying on **one WhatsApp account**. Match on sender E.164 (like `+15551234567`) with `peer.kind: "direct"`. 3. وہ چینلز جو **متعدد اکاؤنٹس** کو سپورٹ کرتے ہیں (مثلاً WhatsApp) ہر لاگ اِن کی شناخت کے لیے `accountId` استعمال کرتے ہیں۔
 
 اہم تفصیل: براہِ راست چیٹس ایجنٹ کی **مرکزی سیشن کلید** میں ضم ہو جاتی ہیں،
 لہٰذا حقیقی علیحدگی کے لیے **ہر فرد کے لیے ایک ایجنٹ** درکار ہے۔
@@ -98,8 +98,14 @@ You can route **different WhatsApp DMs** to different agents while staying on **
     ],
   },
   bindings: [
-    { agentId: "alex", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551230001" } } },
-    { agentId: "mia", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551230002" } } },
+    {
+      agentId: "alex",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551230001" } },
+    },
+    {
+      agentId: "mia",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551230002" } },
+    },
   ],
   channels: {
     whatsapp: {
@@ -262,7 +268,10 @@ WhatsApp کو تیز ایجنٹ پر رکھیں، لیکن ایک DM کو Opus �
     ],
   },
   bindings: [
-    { agentId: "opus", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551234567" } } },
+    {
+      agentId: "opus",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551234567" } },
+    },
     { agentId: "chat", match: { channel: "whatsapp" } },
   ],
 }

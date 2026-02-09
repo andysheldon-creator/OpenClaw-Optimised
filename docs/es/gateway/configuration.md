@@ -765,7 +765,7 @@ Los mensajes entrantes se enrutan a un agente mediante enlaces.
 - `bindings[]`: enruta mensajes entrantes a un `agentId`.
   - `match.channel` (requerido)
   - `match.accountId` (opcional; `*` = cualquier cuenta; omitido = cuenta predeterminada)
-  - `match.peer` (opcional; `{ kind: dm|group|channel, id }`)
+  - `match.peer` (opcional; `{ kind: direct|group|channel, id }`)
   - `match.guildId` / `match.teamId` (opcional; específico del canal)
 
 Orden de coincidencia determinista:
@@ -2754,28 +2754,28 @@ Controla el alcance de la sesión, restablece la política, restablece los activ
       alice: ["telegram:123456789", "discord:987654321012345678"],
     },
     reset: {
-      modo: "daily",
-      hora: 4,
+      mode: "daily",
+      atHour: 4,
       idleMinutes: 60,
     },
     resetByType: {
-      hilo: { mode: "daily", atHour: 4 },
-      dm: { mode: "idle", idleMinutes: 240 },
-      grupo: { mode: "idle", idleMinutes: 120 },
+      thread: { mode: "daily", atHour: 4 },
+      direct: { mode: "idle", idleMinutes: 240 },
+      group: { mode: "idle", idleMinutes: 120 },
     },
     resetTriggers: ["/new", "/reset"],
-    // Por defecto ya es por agente en ~/. penclaw/agents/<agentId>/sessions/sessions.json
-    // Puedes reemplazar con {agentId} templating:
-    store: "~/. penclaw/agents/{agentId}/sessions/sessions.json",
-    // Dirigir chats directamente al agente:<agentId>:<mainKey> (por defecto: "main").
+    // Default is already per-agent under ~/.openclaw/agents/<agentId>/sessions/sessions.json
+    // You can override with {agentId} templating:
+    store: "~/.openclaw/agents/{agentId}/sessions/sessions.json",
+    // Direct chats collapse to agent:<agentId>:<mainKey> (default: "main").
     mainKey: "main",
     agentToAgent: {
-      // Respuesta máxima de ping-pong entre requester/target (0–5).
+      // Max ping-pong reply turns between requester/target (0–5).
       maxPingPongTurns: 5,
     },
     sendPolicy: {
-      rules: [{ action: "deny", coincidencia: { channel: "discord", chatType: "group" } }],
-      por defecto: "permitir",
+      rules: [{ action: "deny", match: { channel: "discord", chatType: "group" } }],
+      default: "allow",
     },
   },
 }
@@ -2797,7 +2797,7 @@ Campos:
   - `mode`: `daily` o `idle` (por defecto: `daily` cuando `reset` está presente).
   - `atHour`: hora local (0-23) para el límite diario de reinicio.
   - `idleMinutes`: desliza la ventana inactiva en minutos. Cuando se configuran tanto el reinicio diario como la inactividad, gana el que expire primero.
-- `resetByType`: sobreescritura por sesión para `dm`, `group`, y `thread`.
+- `resetByType`: per-session overrides for `direct`, `group`, and `thread`. Legacy `dm` key is accepted as an alias for `direct`.
   - Si solo estableces `session.idleMinutes` legado sin ningún `reset`/`resetByType`, OpenClaw permanece en modo de sólo idle-only para compatibilidad con versiones anteriores.
 - `heartbeatIdleMinutes`: anulación opcional de inactividad para las comprobaciones de latido cardiaco (restablecimiento diario aún se aplica cuando está activado).
 - `agentToAgent.maxPingPongTurns`: vueltas máximas de respuesta entre solicitante/objetivo (0–5, por defecto 5).

@@ -106,6 +106,16 @@ Control UI yükleniyorsa, Gateway'iniz kullanıma hazırdır.
   </Accordion>
 </AccordionGroup>
 
+## Kullanışlı ortam değişkenleri
+
+OpenClaw’u bir servis hesabı olarak çalıştırıyorsanız veya özel yapılandırma/durum konumları istiyorsanız:
+
+- `OPENCLAW_HOME`, dahili yol çözümlemesi için kullanılan ana dizini ayarlar.
+- `OPENCLAW_STATE_DIR`, durum dizinini geçersiz kılar.
+- `OPENCLAW_CONFIG_PATH`, yapılandırma dosyası yolunu geçersiz kılar.
+
+Tüm ortam değişkenleri referansı: [Environment vars](/help/environment).
+
 ## Daha derine in
 
 <Columns>

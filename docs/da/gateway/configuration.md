@@ -765,7 +765,7 @@ Indgående beskeder sendes til en agent via bindinger.
 - `bindings[]`: ruter indgående beskeder til en `agentId`.
   - `match.channel` (påkrævet)
   - `match.accountId` (valgfri; `*` = enhver konto; udeladt = standardkonto)
-  - `match.peer` (valgfri; `{ kind: dm|group|channel, id }`)
+  - `match.peer` (valgfri; `{ kind: direct|group|channel, id }`)
   - `match.guildId` / `match.teamId` (valgfri; kanalspecifikt)
 
 Deterministisk match rækkefølge:
@@ -2758,28 +2758,28 @@ Styrer session scoping, reset politik, reset triggers, og hvor session butikken 
       alice: ["telegram:123456789", "discord:987654321012345678"],
     },
     reset: {
-      tilstand: "daily"
-      påTime: 4,
+      mode: "daily",
+      atHour: 4,
       idleMinutes: 60,
     },
     resetByType: {
-      tråd: { mode: "daily", atTime: 4 },
-      dm: { mode: "idle", idleMinutes: 240 },
-      gruppe: { tilstand: "idle", idleMinutes: 120 },
+      thread: { mode: "daily", atHour: 4 },
+      direct: { mode: "idle", idleMinutes: 240 },
+      group: { mode: "idle", idleMinutes: 120 },
     },
-    resetTriggers: ["/ny", "/reset"],
-    // Standard er allerede per-agent under ~ /. penclaw/agents/<agentId>/sessions/sessions.json
-    // Du kan tilsidesætte med {agentId} skabelon:
-    butik: "~/. penclaw/agents/{agentId}/sessions/sessions.json",
-    // Direkte chats collapse to agent:<agentId>:<mainKey> (default: "main").
+    resetTriggers: ["/new", "/reset"],
+    // Standard er allerede pr. agent under ~/.openclaw/agents/<agentId>/sessions/sessions.json
+    // Du kan tilsidesætte med {agentId}-templating:
+    store: "~/.openclaw/agents/{agentId}/sessions/sessions.json",
+    // Direkte chats samles til agent:<agentId>:<mainKey> (standard: "main").
     mainKey: "main",
     agentToAgent: {
-      // Max ping-pong svar vender sig mellem requester/target (0–5).
+      // Maks. ping-pong-svaromgange mellem anmoder/mål (0–5).
       maxPingPongTurns: 5,
     },
     sendPolicy: {
-      regler: [{ action: "deny", match: { channel: "discord", chatType: "group" } }],
-      standard: "allow",
+      rules: [{ action: "deny", match: { channel: "discord", chatType: "group" } }],
+      default: "allow",
     },
   },
 }
@@ -2801,7 +2801,7 @@ Felter:
   - `mode`: `daily` eller `idle` (standard: `daily` når `reset` er til stede).
   - `atTime`: lokal time (0-23) for den daglige nulstillingsgrænse.
   - `idleMinutes`: glidende tomgangsvindue på få minutter. Når dagligt + inaktiv begge er konfigureret, alt efter hvad der udløber første gevinst.
-- `resetByType`: per-session tilsidesættelser for `dm`, `group`, og `thread`.
+- `resetByType`: pr.-session overrides for `direct`, `group` og `thread`. Legacy-`dm`-nøglen accepteres som et alias for `direct`.
   - Hvis du kun indstille arven `session.idleMinutes` uden nogen `reset`/`resetByType`, OpenClaw forbliver i tomgangstilstand for bagudkompatibilitet.
 - `heartbeatIdleMinutes`: valgfri tomgang for hjerteslag checks (daglig nulstilling gælder stadig, når aktiveret).
 - `agentToAgent.maxPingPongTurns`: max reply-back sving mellem requester/target (0–5, standard 5).

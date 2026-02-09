@@ -169,6 +169,14 @@ openclaw status         # gateway status
 openclaw dashboard      # open the browser UI
 ```
 
+14. 사용자 정의 런타임 경로가 필요한 경우 다음을 사용하세요:
+
+- 15. 홈 디렉터리 기반 내부 경로에는 `OPENCLAW_HOME`
+- 16. 변경 가능한 상태 위치에는 `OPENCLAW_STATE_DIR`
+- 17. 설정 파일 위치에는 `OPENCLAW_CONFIG_PATH`
+
+18. 우선순위와 전체 세부 정보는 [Environment vars](/help/environment)를 참조하세요.
+
 ## 문제 해결: `openclaw` 을(를) 찾을 수 없음
 
 <Accordion title="PATH diagnosis and fix">

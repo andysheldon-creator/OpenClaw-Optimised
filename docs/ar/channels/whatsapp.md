@@ -195,8 +195,38 @@ title: "WhatsApp"
 - وافق عبر: `openclaw pairing approve whatsapp <code>` (اعرض القائمة بـ `openclaw pairing list whatsapp`).
 - تنتهي الرموز بعد ساعة؛ وتُحدّد الطلبات المعلّقة بثلاثة لكل قناة.
 
-**هل يمكن لعدة أشخاص استخدام مثيلات OpenClaw مختلفة على رقم WhatsApp واحد؟**  
-نعم، عبر توجيه كل مرسل إلى وكيل مختلف باستخدام `bindings` (نظير `kind: "dm"`، مرسل E.164 مثل `+15551234567`). تظل الردود صادرة من **حساب WhatsApp نفسه**، وتنهار الدردشات المباشرة إلى الجلسة الرئيسية لكل وكيل، لذا استخدم **وكيلًا واحدًا لكل شخص**. التحكم في وصول DM (`dmPolicy`/`allowFrom`) عالمي لكل حساب WhatsApp. راجع [توجيه متعدد الوكلاء](/concepts/multi-agent).
+ستظل الردود قادمة من **نفس حساب WhatsApp**، وستندمج الدردشات المباشرة في الجلسة الرئيسية لكل وكيل، لذا استخدم **وكيلًا واحدًا لكل شخص**. %%{init: {
+'theme': 'base',
+'themeVariables': {
+'primaryColor': '#ffffff',
+'primaryTextColor': '#000000',
+'primaryBorderColor': '#000000',
+'lineColor': '#000000',
+'secondaryColor': '#f9f9fb',
+'tertiaryColor': '#ffffff',
+'clusterBkg': '#f9f9fb',
+'clusterBorder': '#000000',
+'nodeBorder': '#000000',
+'mainBkg': '#ffffff',
+'edgeLabelBackground': '#ffffff'
+}
+}}%%
+sequenceDiagram
+participant Client
+participant Gateway```
+Client->>Gateway: req:connect
+Gateway-->>Client: res (ok)
+Note right of Gateway: or res error + close
+Note left of Client: payload=hello-ok<br>snapshot: presence + health
+
+Gateway-->>Client: event:presence
+Gateway-->>Client: event:tick
+
+Client->>Gateway: req:agent
+Gateway-->>Client: res:agent<br>ack {runId, status:"accepted"}
+Gateway-->>Client: event:agent<br>(streaming)
+Gateway-->>Client: res:agent<br>final {runId, status, summary} التحكم في وصول DM (`dmPolicy`/`allowFrom`) عالمي لكل حساب WhatsApp. راجع [توجيه متعدد الوكلاء](/concepts/multi-agent).
+```
 
 **لماذا تطلبون رقم هاتفي في المعالج؟**  
 يستخدمه المعالج لضبط **قائمة السماح/المالك** بحيث تُسمح رسائل DM الخاصة بك. لا يُستخدم للإرسال التلقائي. إذا شغّلت على رقم WhatsApp الشخصي، استخدم الرقم نفسه وفعّل `channels.whatsapp.selfChatMode`.

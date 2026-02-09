@@ -195,8 +195,8 @@ Pairing نامعلوم ارسال کنندگان کے لیے DM گیٹ ہے:
 - منظوری دیں: `openclaw pairing approve whatsapp <code>` (فہرست: `openclaw pairing list whatsapp`)۔
 - کوڈز 1 گھنٹے بعد ختم؛ زیرِ التوا درخواستیں ہر چینل پر 3 تک محدود۔
 
-**کیا ایک WhatsApp نمبر پر مختلف OpenClaw انسٹینسز متعدد لوگ استعمال کر سکتے ہیں؟**  
-ہاں، `bindings` کے ذریعے ہر بھیجنے والے کو مختلف agent پر روٹ کر کے (peer `kind: "dm"`, sender E.164 جیسے `+15551234567`)۔ جوابات اب بھی **اسی WhatsApp اکاؤنٹ** سے آتے ہیں، اور ڈائریکٹ چیٹس ہر agent کے مین سیشن میں ضم ہو جاتی ہیں، اس لیے **فی شخص ایک agent** استعمال کریں۔ DM رسائی کنٹرول (`dmPolicy`/`allowFrom`) فی WhatsApp اکاؤنٹ گلوبل ہوتا ہے۔ [Multi-Agent Routing](/concepts/multi-agent) دیکھیں۔
+**Can multiple people use different OpenClaw instances on one WhatsApp number?**  
+Yes, by routing each sender to a different agent via `bindings` (peer `kind: "direct"`, sender E.164 like `+15551234567`). Replies still come from the **same WhatsApp account**, and direct chats collapse to each agent's main session, so use **one agent per person**. DM رسائی کنٹرول (`dmPolicy`/`allowFrom`) فی WhatsApp اکاؤنٹ گلوبل ہوتا ہے۔ [Multi-Agent Routing](/concepts/multi-agent) دیکھیں۔
 
 **وزرڈ میرا فون نمبر کیوں پوچھتا ہے؟**  
 وزرڈ اسے آپ کی **allowlist/owner** سیٹ کرنے کے لیے استعمال کرتا ہے تاکہ آپ کی اپنی DMs کی اجازت ہو۔ It’s not used for auto-sending. اگر آپ اپنے ذاتی WhatsApp نمبر پر چلاتے ہیں تو وہی نمبر استعمال کریں اور `channels.whatsapp.selfChatMode` کو فعال کریں۔

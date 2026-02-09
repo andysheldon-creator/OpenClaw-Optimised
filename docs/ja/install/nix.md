@@ -64,8 +64,10 @@ defaults write bot.molt.mac openclaw.nixMode -bool true
 
 ### 設定 + 状態パス
 
-OpenClaw は、`OPENCLAW_CONFIG_PATH` から JSON5 設定を読み込み、可変データを `OPENCLAW_STATE_DIR` に保存します。
+OpenClaw は `OPENCLAW_CONFIG_PATH` から JSON5 設定を読み込み、可変データを `OPENCLAW_STATE_DIR` に保存します。
+必要に応じて、内部パス解決に使用されるベースのホームディレクトリを制御するために `OPENCLAW_HOME` を設定することもできます。
 
+- `OPENCLAW_HOME`（デフォルトの優先順位: `HOME` / `USERPROFILE` / `os.homedir()`）
 - `OPENCLAW_STATE_DIR`（デフォルト: `~/.openclaw`）
 - `OPENCLAW_CONFIG_PATH`（デフォルト: `$OPENCLAW_STATE_DIR/openclaw.json`）
 

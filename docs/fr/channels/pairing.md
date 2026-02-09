@@ -52,6 +52,23 @@ Traitez ces éléments comme sensibles (ils conditionnent l’accès à votre as
 Les nœuds se connectent à la Gateway (passerelle) en tant qu’**appareils** avec `role: node`. La Gateway
 crée une demande de pairing d’appareil qui doit être approuvée.
 
+### Pair via Telegram (recommended for iOS)
+
+If you use the `device-pair` plugin, you can do first-time device pairing entirely from Telegram:
+
+1. In Telegram, message your bot: `/pair`
+2. The bot replies with two messages: an instruction message and a separate **setup code** message (easy to copy/paste in Telegram).
+3. On your phone, open the OpenClaw iOS app → Settings → Gateway.
+4. Paste the setup code and connect.
+5. Back in Telegram: `/pair approve`
+
+The setup code is a base64-encoded JSON payload that contains:
+
+- `url`: the Gateway WebSocket URL (`ws://...` or `wss://...`)
+- `token`: a short-lived pairing token
+
+Treat the setup code like a password while it is valid.
+
 ### Approuver un appareil nœud
 
 ```bash

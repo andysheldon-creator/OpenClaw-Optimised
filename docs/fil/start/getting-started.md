@@ -106,6 +106,16 @@ Kung naglo-load ang Control UI, handa na ang iyong Gateway para gamitin.
   </Accordion>
 </AccordionGroup>
 
+## Mga kapaki-pakinabang na environment variable
+
+Kung pinapatakbo mo ang OpenClaw bilang isang service account o gusto mo ng custom na lokasyon ng config/state:
+
+- `OPENCLAW_HOME` nagtatakda ng home directory na ginagamit para sa internal na path resolution.
+- `OPENCLAW_STATE_DIR` ino-override ang state directory.
+- `OPENCLAW_CONFIG_PATH` ino-override ang path ng config file.
+
+Buong sanggunian ng environment variable: [Environment vars](/help/environment).
+
 ## Lumalim pa
 
 <Columns>

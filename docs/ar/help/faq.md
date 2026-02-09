@@ -798,7 +798,7 @@ API الروبوت الرسمي:
 
 ### يمكن لأشخاص متعددين استخدام رقم واحد من WhatsApp مع مثيلات OpenClaw مختلفة
 
-نعم، عبر **توجيه متعدد العوامل**. ربط كل مرسل WhatsApp **DM** (ند `نوع: "dm"`، المرسل E. 64 مثل `+15551234567`) إلى `وكيل مختلف`، لذلك يحصل كل شخص على مساحة عمل ومتجر جلسات خاصة به. لا تزال الردود تأتي من **نفس حساب WhatsApp**، والتحكم في الدخول إلى DM (`channels.whatsapp.dmPolicy` / `channels.whatsapp.allowFrom`) هو عام في حساب WhatsApp. انظر [خط العميل المتعدد](/concepts/multi-agent) و [WhatsApp](/channels/whatsapp).
+نعم، عبر **توجيه متعدد العوامل**. 9. اربط رسالة WhatsApp **DM** لكل مُرسِل (النظير `kind: "direct"`، ومعرّف المرسل بصيغة E.164 مثل `+15551234567`) بمعرّف `agentId` مختلف، بحيث يحصل كل شخص على مساحة عمل ومخزن جلسات خاص به. لا تزال الردود تأتي من **نفس حساب WhatsApp**، والتحكم في الدخول إلى DM (`channels.whatsapp.dmPolicy` / `channels.whatsapp.allowFrom`) هو عام في حساب WhatsApp. انظر [خط العميل المتعدد](/concepts/multi-agent) و [WhatsApp](/channels/whatsapp).
 
 ### هل يمكنني تشغيل وكيل الدردشة السريع و Opus لوكيل البرمجة
 

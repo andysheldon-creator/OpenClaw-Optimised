@@ -106,7 +106,7 @@ the workspace is writable. See [Memory](/concepts/memory) and
 - Daily reset: defaults to **4:00 AM local time on the gateway host**. A session is stale once its last update is earlier than the most recent daily reset time.
 - Idle reset (optional): `idleMinutes` adds a sliding idle window. When both daily and idle resets are configured, **whichever expires first** forces a new session.
 - Legacy idle-only: kung itatakda mo ang `session.idleMinutes` nang walang anumang `session.reset`/`resetByType` config, mananatili ang OpenClaw sa idle-only mode para sa backward compatibility.
-- Per-type override (opsyonal): hinahayaan ka ng `resetByType` na i-override ang policy para sa mga `dm`, `group`, at `thread` na session (thread = mga Slack/Discord thread, mga Telegram topic, Matrix thread kapag ibinigay ng connector).
+- Mga override kada uri (opsyonal): Hinahayaan ng `resetByType` na i-override ang policy para sa mga session na `direct`, `group`, at `thread` (thread = mga Slack/Discord thread, Telegram topic, Matrix thread kapag ibinigay ng connector).
 - Per-channel override (opsyonal): ini-override ng `resetByChannel` ang reset policy para sa isang channel (naaangkop sa lahat ng uri ng session para sa channel na iyon at may mas mataas na prioridad kaysa sa `reset`/`resetByType`).
 - Reset triggers: exact `/new` or `/reset` (plus any extras in `resetTriggers`) start a fresh session id and pass the remainder of the message through. `/new <model>` accepts a model alias, `provider/model`, or provider name (fuzzy match) to set the new session model. If `/new` or `/reset` is sent alone, OpenClaw runs a short “hello” greeting turn to confirm the reset.
 - Manual reset: burahin ang mga partikular na key mula sa store o alisin ang JSONL transcript; muling lilikhain ng susunod na mensahe ang mga ito.
@@ -143,21 +143,21 @@ Runtime override (owner lamang):
 // ~/.openclaw/openclaw.json
 {
   session: {
-    scope: "per-sender", // keep group keys separate
-    dmScope: "main", // DM continuity (set per-channel-peer/per-account-channel-peer for shared inboxes)
+    scope: "per-sender", // panatilihing hiwalay ang mga group key
+    dmScope: "main", // pagpapatuloy ng DM (itakda sa per-channel-peer/per-account-channel-peer para sa mga shared inbox)
     identityLinks: {
       alice: ["telegram:123456789", "discord:987654321012345678"],
     },
     reset: {
-      // Defaults: mode=daily, atHour=4 (gateway host local time).
-      // If you also set idleMinutes, whichever expires first wins.
+      // Mga default: mode=daily, atHour=4 (lokal na oras ng gateway host).
+      // Kung itatakda mo rin ang idleMinutes, ang unang mag-expire ang mananaig.
       mode: "daily",
       atHour: 4,
       idleMinutes: 120,
     },
     resetByType: {
       thread: { mode: "daily", atHour: 4 },
-      dm: { mode: "idle", idleMinutes: 240 },
+      direct: { mode: "idle", idleMinutes: 240 },
       group: { mode: "idle", idleMinutes: 120 },
     },
     resetByChannel: {

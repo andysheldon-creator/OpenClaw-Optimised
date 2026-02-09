@@ -74,6 +74,32 @@ Puede referenciar variables de entorno directamente en valores de cadena de la c
 
 Consulte [Configuración: Sustitución de variables de entorno](/gateway/configuration#env-var-substitution-in-config) para conocer todos los detalles.
 
+## Path-related env vars
+
+| Variable               | Propósito                                                                                                                                                                                                                           |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `OPENCLAW_HOME`        | Override the home directory used for all internal path resolution (`~/.openclaw/`, agent dirs, sessions, credentials). Useful when running OpenClaw as a dedicated service user. |
+| `OPENCLAW_STATE_DIR`   | Override the state directory (default `~/.openclaw`).                                                                                                                                            |
+| `OPENCLAW_CONFIG_PATH` | Anula la ruta del archivo de configuración (por defecto `~/.openclaw/openclaw.json`).                                                                                                            |
+
+### `OPENCLAW_HOME`
+
+Cuando se establece, `OPENCLAW_HOME` reemplaza el directorio home del sistema (`$HOME` / `os.homedir()`) para toda la resolución interna de rutas. Esto permite un aislamiento completo del sistema de archivos para cuentas de servicio sin interfaz gráfica.
+
+**Precedencia:** `OPENCLAW_HOME` > `$HOME` > `USERPROFILE` > `os.homedir()`
+
+**Ejemplo** (LaunchDaemon de macOS):
+
+```xml
+<key>EnvironmentVariables</key>
+<dict>
+  <key>OPENCLAW_HOME</key>
+  <string>/Users/kira</string>
+</dict>
+```
+
+`OPENCLAW_HOME` también puede establecerse como una ruta con tilde (por ejemplo `~/svc`), que se expande usando `$HOME` antes de su uso.
+
 ## Relacionado
 
 - [Configuración del Gateway](/gateway/configuration)

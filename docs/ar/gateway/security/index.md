@@ -763,21 +763,8 @@ openclaw pairing approve <channel> <code>
 
 ## تسلسل الثقة
 
-```
-Owner (Peter)
-  │ Full trust
-  ▼
-AI (Clawd)
-  │ Trust but verify
-  ▼
-Friends in allowlist
-  │ Limited trust
-  ▼
-Strangers
-  │ No trust
-  ▼
-Mario asking for find ~
-  │ Definitely no trust 😏
+```mermaid
+متغيرات البيئة المتعلقة بالمسارات
 ```
 
 ## الإبلاغ عن مشكلات الأمان

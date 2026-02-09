@@ -157,9 +157,20 @@ Karagdagang tulong: [Pag-troubleshoot ng channel](/channels/troubleshooting).
 Mga tala:
 
 - Ang mga custom na command ay **menu entries lamang**; hindi sila ipinapatupad ng OpenClaw maliban kung hahawakan mo sila sa ibang lugar.
+- May ilang command na maaaring asikasuhin ng mga plugin/skill nang hindi nairehistro sa command menu ng Telegram. Gumagana pa rin ang mga ito kapag tinype (hindi lang sila lalabas sa `/commands` / menu).
 - Ang mga pangalan ng command ay kino-normalize (inaalis ang leading `/`, ginagawang lowercase) at dapat tumugma sa `a-z`, `0-9`, `_` (1–32 na karakter).
 - Ang mga custom command ay **hindi maaaring mag-override ng mga native command**. Ang mga conflict ay binabalewala at nilolog.
 - Kung naka-disable ang `commands.native`, ang mga custom na command lamang ang nirerehistro (o nililinis kung wala).
+
+### Mga command para sa device pairing (`device-pair` plugin)
+
+Kung naka-install ang `device-pair` plugin, nagdaragdag ito ng Telegram-first na daloy para sa pag-pair ng bagong telepono:
+
+1. `/pair` ay bumubuo ng setup code (ipinapadala bilang hiwalay na mensahe para madaling kopyahin/i-paste).
+2. I-paste ang setup code sa iOS app para kumonekta.
+3. `/pair approve` ay inaaprubahan ang pinakabagong nakabinbing kahilingan ng device.
+
+Karagdagang detalye: [Pairing](/channels/pairing#pair-via-telegram-recommended-for-ios).
 
 ## Mga limitasyon
 
@@ -451,6 +462,25 @@ Para sa mga send ng message tool, itakda ang `asVoice: true` na may voice-compat
   asVoice: true,
 }
 ```
+
+## Mga video message (video vs video note)
+
+Ipinagkaiba ng Telegram ang **video notes** (bilog na bubble) at **video files** (parihaba).
+Default ng OpenClaw ang video files.
+
+Para sa message tool sends, itakda ang `asVideoNote: true` kasama ang isang video `media` URL:
+
+```json5
+{
+  action: "send",
+  channel: "telegram",
+  to: "123456789",
+  media: "https://example.com/video.mp4",
+  asVideoNote: true,
+}
+```
+
+(Tandaan: Hindi suportado ng video notes ang captions. Kung magbibigay ka ng text ng mensahe, ipapadala ito bilang hiwalay na mensahe.)
 
 ## Mga Sticker
 

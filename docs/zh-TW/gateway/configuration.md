@@ -764,7 +764,7 @@ Group messages default to **require mention** (either metadata mention or regex 
 - `bindings[]`：將入站訊息路由到某個 `agentId`。
   - `match.channel`（必填）
   - `match.accountId`（選填；`*` = 任一帳號；省略 = 預設帳號）
-  - `match.peer`（選填；`{ kind: dm|group|channel, id }`）
+  - `match.peer`（選填；`{ kind: direct|group|channel, id }`）
   - `match.guildId` / `match.teamId`（選填；特定於頻道）
 
 確定性的匹配順序：
@@ -2752,7 +2752,7 @@ Controls session scoping, reset policy, reset triggers, and where the session st
     },
     resetByType: {
       thread: { mode: "daily", atHour: 4 },
-      dm: { mode: "idle", idleMinutes: 240 },
+      direct: { mode: "idle", idleMinutes: 240 },
       group: { mode: "idle", idleMinutes: 120 },
     },
     resetTriggers: ["/new", "/reset"],
@@ -2789,7 +2789,7 @@ Controls session scoping, reset policy, reset triggers, and where the session st
   - `mode`: `daily` or `idle` (default: `daily` when `reset` is present).
   - `atHour`: local hour (0-23) for the daily reset boundary.
   - `idleMinutes`: sliding idle window in minutes. When daily + idle are both configured, whichever expires first wins.
-- `resetByType`: per-session overrides for `dm`, `group`, and `thread`.
+- `resetByType`: per-session overrides for `direct`, `group`, and `thread`. Legacy `dm` key is accepted as an alias for `direct`.
   - 若只設定舊版的 `session.idleMinutes`，且未設定任何 `reset`／`resetByType`，OpenClaw 會為了向後相容而維持僅閒置模式。
 - `heartbeatIdleMinutes`：用於心跳檢查的選用閒置覆寫（啟用時仍會套用每日重置）。
 - `agentToAgent.maxPingPongTurns`：請求者／目標之間允許的最大來回回覆次數（0–5，預設 5）。

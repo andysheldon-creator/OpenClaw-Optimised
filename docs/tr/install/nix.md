@@ -64,7 +64,9 @@ defaults write bot.molt.mac openclaw.nixMode -bool true
 ### Yapılandırma + durum yolları
 
 OpenClaw, JSON5 yapılandırmasını `OPENCLAW_CONFIG_PATH` konumundan okur ve değiştirilebilir verileri `OPENCLAW_STATE_DIR` konumunda saklar.
+When needed, you can also set `OPENCLAW_HOME` to control the base home directory used for internal path resolution.
 
+- `OPENCLAW_HOME` (default precedence: `HOME` / `USERPROFILE` / `os.homedir()`)
 - `OPENCLAW_STATE_DIR` (varsayılan: `~/.openclaw`)
 - `OPENCLAW_CONFIG_PATH` (varsayılan: `$OPENCLAW_STATE_DIR/openclaw.json`)
 

@@ -45,7 +45,7 @@ title: "Plugin SDK ပြန်လည်ဖွဲ့စည်းခြင်း"
 အဆိုပြုထားသော surface (နည်းသော်လည်း ပြည့်စုံ):
 
 ```ts
-export type PluginRuntime = {
+24. export type PluginRuntime = {
   channel: {
     text: {
       chunkMarkdownText(text: string, limit: number): string[];
@@ -72,7 +72,7 @@ export type PluginRuntime = {
         cfg: unknown;
         channel: string;
         accountId: string;
-        peer: { kind: "dm" | "group" | "channel"; id: string };
+        peer: { kind: RoutePeerKind; id: string };
       }): { sessionKey: string; accountId: string };
     };
     pairing: {

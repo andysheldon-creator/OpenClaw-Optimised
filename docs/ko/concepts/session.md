@@ -106,7 +106,7 @@ OpenClaw 는 기본적으로 LLM 호출 직전에 인메모리 컨텍스트에�
 - 일일 재설정: 기본값은 **게이트웨이 호스트의 로컬 시간 오전 4:00** 입니다. 마지막 업데이트가 가장 최근의 일일 재설정 시각보다 이전이면 세션은 오래된 것으로 간주됩니다.
 - 유휴 재설정(선택): `idleMinutes` 이(가) 슬라이딩 유휴 윈도우를 추가합니다. 일일 및 유휴 재설정이 모두 구성된 경우, **먼저 만료되는 쪽**이 새 세션을 강제합니다.
 - 레거시 유휴 전용: `session.idleMinutes` 만 설정하고 `session.reset`/`resetByType` 구성이 없으면, 하위 호환성을 위해 OpenClaw 는 유휴 전용 모드를 유지합니다.
-- 유형별 재정의(선택): `resetByType` 을(를) 사용하여 `dm`, `group`, `thread` 세션의 정책을 재정의할 수 있습니다(스레드 = Slack/Discord 스레드, Telegram 토픽, 커넥터가 제공하는 경우 Matrix 스레드).
+- Per-type overrides (optional): `resetByType` lets you override the policy for `direct`, `group`, and `thread` sessions (thread = Slack/Discord threads, Telegram topics, Matrix threads when provided by the connector).
 - 채널별 재정의(선택): `resetByChannel` 이(가) 채널의 재설정 정책을 재정의합니다(해당 채널의 모든 세션 유형에 적용되며 `reset`/`resetByType` 보다 우선).
 - 재설정 트리거: 정확한 `/new` 또는 `/reset` (그리고 `resetTriggers` 의 추가 항목)가 새 세션 id 를 시작하고 메시지의 나머지를 전달합니다. `/new <model>` 는 모델 별칭, `provider/model`, 또는 프로바이더 이름(퍼지 매치)을 받아 새 세션 모델을 설정합니다. `/new` 또는 `/reset` 만 단독으로 전송되면, OpenClaw 는 재설정을 확인하기 위해 짧은 “hello” 인사 턴을 실행합니다.
 - 수동 재설정: 저장소에서 특정 키를 삭제하거나 JSONL 트랜스크립트를 제거하면, 다음 메시지에서 다시 생성됩니다.
@@ -157,7 +157,7 @@ OpenClaw 는 기본적으로 LLM 호출 직전에 인메모리 컨텍스트에�
     },
     resetByType: {
       thread: { mode: "daily", atHour: 4 },
-      dm: { mode: "idle", idleMinutes: 240 },
+      direct: { mode: "idle", idleMinutes: 240 },
       group: { mode: "idle", idleMinutes: 120 },
     },
     resetByChannel: {

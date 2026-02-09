@@ -157,9 +157,20 @@ Thêm trợ giúp: [Channel troubleshooting](/channels/troubleshooting).
 Ghi chú:
 
 - Lệnh tùy chỉnh **chỉ là mục menu**; OpenClaw không triển khai logic cho chúng trừ khi bạn xử lý ở nơi khác.
+- Some commands can be handled by plugins/skills without being registered in Telegram’s command menu. These still work when typed (they just won't show up in `/commands` / the menu).
 - Tên lệnh được chuẩn hóa (loại bỏ `/` ở đầu, chuyển chữ thường) và phải khớp `a-z`, `0-9`, `_` (1–32 ký tự).
 - Custom commands **cannot override native commands**. Conflicts are ignored and logged.
 - Nếu `commands.native` bị tắt, chỉ các lệnh tùy chỉnh được đăng ký (hoặc bị xóa nếu không có).
+
+### Device pairing commands (`device-pair` plugin)
+
+If the `device-pair` plugin is installed, it adds a Telegram-first flow for pairing a new phone:
+
+1. `/pair` generates a setup code (sent as a separate message for easy copy/paste).
+2. Paste the setup code in the iOS app to connect.
+3. `/pair approve` approves the latest pending device request.
+
+More details: [Pairing](/channels/pairing#pair-via-telegram-recommended-for-ios).
 
 ## Giới hạn
 
@@ -452,6 +463,25 @@ Với message tool, đặt `asVoice: true` cùng URL `media` âm thanh tương t
   asVoice: true,
 }
 ```
+
+## Video messages (video vs video note)
+
+Telegram distinguishes **video notes** (round bubble) from **video files** (rectangular).
+OpenClaw defaults to video files.
+
+For message tool sends, set `asVideoNote: true` with a video `media` URL:
+
+```json5
+{
+  action: "send",
+  channel: "telegram",
+  to: "123456789",
+  media: "https://example.com/video.mp4",
+  asVideoNote: true,
+}
+```
+
+(Note: Video notes do not support captions. If you provide a message text, it will be sent as a separate message.)
 
 ## Stickers
 

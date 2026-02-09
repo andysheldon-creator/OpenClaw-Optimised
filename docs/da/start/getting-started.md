@@ -106,6 +106,16 @@ Hvis Control UI indlæses, er din Gateway klar til brug.
   </Accordion>
 </AccordionGroup>
 
+## Nyttige miljøvariabler
+
+Hvis du kører OpenClaw som en servicekonto eller ønsker brugerdefinerede konfigurations-/tilstandsplaceringer:
+
+- `OPENCLAW_HOME` angiver den hjemmemappe, der bruges til intern stipløsning.
+- `OPENCLAW_STATE_DIR` overrides the state directory.
+- `OPENCLAW_CONFIG_PATH` tilsidesætter stien til konfigurationsfilen.
+
+Fuld reference for miljøvariabler: [Environment vars](/help/environment).
+
 ## Gå mere i dybden
 
 <Columns>

@@ -763,7 +763,7 @@ Ang mga inbound na mensahe ay niruruta sa isang agent sa pamamagitan ng bindings
 - `bindings[]`: niruruta ang mga papasok na mensahe papunta sa isang `agentId`.
   - `match.channel` (kinakailangan)
   - `match.accountId` (opsyonal; `*` = anumang account; kapag wala = default na account)
-  - `match.peer` (opsyonal; `{ kind: dm|group|channel, id }`)
+  - `match.peer` (opsyonal; `{ kind: direct|group|channel, id }`)
   - `match.guildId` / `match.teamId` (opsyonal; partikular sa channel)
 
 Deterministikong pagkakasunud-sunod ng pagtutugma:
@@ -2735,17 +2735,17 @@ Kinokontrol ang session scoping, reset policy, reset triggers, at kung saan isin
     },
     resetByType: {
       thread: { mode: "daily", atHour: 4 },
-      dm: { mode: "idle", idleMinutes: 240 },
+      direct: { mode: "idle", idleMinutes: 240 },
       group: { mode: "idle", idleMinutes: 120 },
     },
     resetTriggers: ["/new", "/reset"],
-    // Default is already per-agent under ~/.openclaw/agents/<agentId>/sessions/sessions.json
-    // You can override with {agentId} templating:
+    // Default ay per-agent na sa ilalim ng ~/.openclaw/agents/<agentId>/sessions/sessions.json
+    // Maaari mong i-override gamit ang {agentId} templating:
     store: "~/.openclaw/agents/{agentId}/sessions/sessions.json",
-    // Direct chats collapse to agent:<agentId>:<mainKey> (default: "main").
+    // Ang mga direct chat ay nagsasama sa agent:<agentId>:<mainKey> (default: "main").
     mainKey: "main",
     agentToAgent: {
-      // Max ping-pong reply turns between requester/target (0–5).
+      // Max na ping-pong na reply turn sa pagitan ng requester/target (0–5).
       maxPingPongTurns: 5,
     },
     sendPolicy: {
@@ -2772,7 +2772,7 @@ Mga field:
   - `mode`: `daily` o `idle` (default: `daily` kapag may `reset`).
   - `atHour`: lokal na oras (0–23) para sa hangganan ng araw-araw na reset.
   - `idleMinutes`: sliding idle window sa minuto. Kapag parehong naka-configure ang daily + idle, kung alin ang unang mag-expire ang masusunod.
-- `resetByType`: mga override kada session para sa `dm`, `group`, at `thread`.
+- `resetByType`: mga override kada session para sa `direct`, `group`, at `thread`. Ang legacy na `dm` key ay tinatanggap bilang alias para sa `direct`.
   - Kung itatakda mo lamang ang legacy `session.idleMinutes` nang walang anumang `reset`/`resetByType`, mananatili ang OpenClaw sa idle-only mode para sa backward compatibility.
 - `heartbeatIdleMinutes`: opsyonal na idle override para sa heartbeat checks (nalalapat pa rin ang daily reset kapag naka-enable).
 - `agentToAgent.maxPingPongTurns`: pinakamataas na bilang ng reply-back turns sa pagitan ng requester/target (0–5, default 5).

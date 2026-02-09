@@ -34,17 +34,17 @@ title: "Выпуск macOS"
 # From repo root; set release IDs so Sparkle feed is enabled.
 # APP_BUILD must be numeric + monotonic for Sparkle compare.
 BUNDLE_ID=bot.molt.mac \
-APP_VERSION=2026.2.6 \
+APP_VERSION=2026.2.9 \
 APP_BUILD="$(git rev-list --count HEAD)" \
 BUILD_CONFIG=release \
 SIGN_IDENTITY="Developer ID Application: <Developer Name> (<TEAMID>)" \
 scripts/package-mac-app.sh
 
 # Zip for distribution (includes resource forks for Sparkle delta support)
-ditto -c -k --sequesterRsrc --keepParent dist/OpenClaw.app dist/OpenClaw-2026.2.6.zip
+ditto -c -k --sequesterRsrc --keepParent dist/OpenClaw.app dist/OpenClaw-2026.2.9.zip
 
 # Optional: also build a styled DMG for humans (drag to /Applications)
-scripts/create-dmg.sh dist/OpenClaw.app dist/OpenClaw-2026.2.6.dmg
+scripts/create-dmg.sh dist/OpenClaw.app dist/OpenClaw-2026.2.9.dmg
 
 # Recommended: build + notarize/staple zip + DMG
 # First, create a keychain profile once:
@@ -52,14 +52,14 @@ scripts/create-dmg.sh dist/OpenClaw.app dist/OpenClaw-2026.2.6.dmg
 #     --apple-id "<apple-id>" --team-id "<team-id>" --password "<app-specific-password>"
 NOTARIZE=1 NOTARYTOOL_PROFILE=openclaw-notary \
 BUNDLE_ID=bot.molt.mac \
-APP_VERSION=2026.2.6 \
+APP_VERSION=2026.2.9 \
 APP_BUILD="$(git rev-list --count HEAD)" \
 BUILD_CONFIG=release \
 SIGN_IDENTITY="Developer ID Application: <Developer Name> (<TEAMID>)" \
 scripts/package-mac-dist.sh
 
 # Optional: ship dSYM alongside the release
-ditto -c -k --keepParent apps/macos/.build/release/OpenClaw.app.dSYM dist/OpenClaw-2026.2.6.dSYM.zip
+ditto -c -k --keepParent apps/macos/.build/release/OpenClaw.app.dSYM dist/OpenClaw-2026.2.9.dSYM.zip
 ```
 
 ## Запись appcast
@@ -67,7 +67,7 @@ ditto -c -k --keepParent apps/macos/.build/release/OpenClaw.app.dSYM dist/OpenCl
 Используйте генератор заметок о выпуске, чтобы Sparkle отображал форматированные HTML-заметки:
 
 ```bash
-SPARKLE_PRIVATE_KEY_FILE=/path/to/ed25519-private-key scripts/make_appcast.sh dist/OpenClaw-2026.2.6.zip https://raw.githubusercontent.com/openclaw/openclaw/main/appcast.xml
+SPARKLE_PRIVATE_KEY_FILE=/path/to/ed25519-private-key scripts/make_appcast.sh dist/OpenClaw-2026.2.9.zip https://raw.githubusercontent.com/openclaw/openclaw/main/appcast.xml
 ```
 
 Генерирует HTML-заметки о выпуске из `CHANGELOG.md` (через [`scripts/changelog-to-html.sh`](https://github.com/openclaw/openclaw/blob/main/scripts/changelog-to-html.sh)) и встраивает их в запись appcast.
@@ -75,7 +75,7 @@ SPARKLE_PRIVATE_KEY_FILE=/path/to/ed25519-private-key scripts/make_appcast.sh di
 
 ## Публикация и проверка
 
-- Загрузите `OpenClaw-2026.2.6.zip` (и `OpenClaw-2026.2.6.dSYM.zip`) в релиз GitHub для тега `v2026.2.6`.
+- Upload `OpenClaw-2026.2.9.zip` (and `OpenClaw-2026.2.9.dSYM.zip`) to the GitHub release for tag `v2026.2.9`.
 - Убедитесь, что сырой URL appcast соответствует встроенному фиду: `https://raw.githubusercontent.com/openclaw/openclaw/main/appcast.xml`.
 - Быстрые проверки:
   - `curl -I https://raw.githubusercontent.com/openclaw/openclaw/main/appcast.xml` возвращает 200.

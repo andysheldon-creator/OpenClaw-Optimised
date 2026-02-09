@@ -157,9 +157,20 @@ Mere hjælp: [Kanal-fejlfinding](/channels/troubleshooting).
 Noter:
 
 - Brugerdefinerede kommandoer er **kun menupunkter**; OpenClaw implementerer dem ikke, medmindre du håndterer dem andetsteds.
+- Nogle kommandoer kan håndteres af plugins/skills uden at være registreret i Telegrams kommandomeny. Disse virker stadig, når de indtastes (de vises bare ikke i `/commands` / menuen).
 - Kommandonavne normaliseres (førende `/` fjernes, gøres til små bogstaver) og skal matche `a-z`, `0-9`, `_` (1–32 tegn).
 - Brugerdefinerede kommandoer **kan ikke tilsidesætte lokale kommandoer**. Konflikter ignoreres og logges.
 - Hvis `commands.native` er deaktiveret, registreres kun brugerdefinerede kommandoer (eller ryddes, hvis ingen).
+
+### Kommandoer til enheds-parring (`device-pair`-plugin)
+
+Hvis `device-pair`-pluginet er installeret, tilføjer det et Telegram-først-flow til parring af en ny telefon:
+
+1. `/pair` genererer en opsætningskode (sendt som en separat besked for nem kopiering/indsætning).
+2. Indsæt opsætningskoden i iOS-appen for at oprette forbindelse.
+3. `/pair approve` godkender den seneste afventende enhedsanmodning.
+
+Flere detaljer: [Parring](/channels/pairing#pair-via-telegram-recommended-for-ios).
 
 ## Grænser
 
@@ -451,6 +462,25 @@ For message-værktøjsafsendelser, sæt `asVoice: true` med en stemme-kompatibel
   asVoice: true,
 }
 ```
+
+## Videobeskeder (video vs. videonote)
+
+Telegram skelner mellem **videonoter** (runde bobler) og **videofiler** (rektangulære).
+OpenClaw bruger som standard videofiler.
+
+Ved afsendelse via message tool skal du sætte `asVideoNote: true` med en video-`media`-URL:
+
+```json5
+{
+  action: "send",
+  channel: "telegram",
+  to: "123456789",
+  media: "https://example.com/video.mp4",
+  asVideoNote: true,
+}
+```
+
+(Bemærk: Videonoter understøtter ikke billedtekster. Hvis du angiver en beskedtekst, sendes den som en separat besked.)
 
 ## Klistermærker
 

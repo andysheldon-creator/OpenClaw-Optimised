@@ -113,12 +113,10 @@ Docker 컨테이너는 일시적입니다.
 모든 장기 상태는 호스트에 존재해야 합니다.
 
 ```bash
-mkdir -p /root/.openclaw
-mkdir -p /root/.openclaw/workspace
+10. mkdir -p /root/.openclaw/workspace
 
-# Set ownership to the container user (uid 1000):
+# 컨테이너 사용자(uid 1000)로 소유권 설정:
 chown -R 1000:1000 /root/.openclaw
-chown -R 1000:1000 /root/.openclaw/workspace
 ```
 
 ---
@@ -155,7 +153,7 @@ openssl rand -hex 32
 `docker-compose.yml` 을 생성하거나 업데이트합니다.
 
 ```yaml
-services:
+11. services:
   openclaw-gateway:
     image: ${OPENCLAW_IMAGE}
     build: .
@@ -176,12 +174,12 @@ services:
       - ${OPENCLAW_CONFIG_DIR}:/home/node/.openclaw
       - ${OPENCLAW_WORKSPACE_DIR}:/home/node/.openclaw/workspace
     ports:
-      # Recommended: keep the Gateway loopback-only on the VPS; access via SSH tunnel.
-      # To expose it publicly, remove the `127.0.0.1:` prefix and firewall accordingly.
+      # 권장: VPS에서는 Gateway를 루프백 전용으로 유지하고, SSH 터널을 통해 접근하세요.
+      # 공개적으로 노출하려면 `127.0.0.1:` 접두사를 제거하고 방화벽을 적절히 설정하세요.
       - "127.0.0.1:${OPENCLAW_GATEWAY_PORT}:18789"
 
-      # Optional: only if you run iOS/Android nodes against this VPS and need Canvas host.
-      # If you expose this publicly, read /gateway/security and firewall accordingly.
+      # 선택 사항: 이 VPS에 대해 iOS/Android 노드를 실행하고 Canvas 호스트가 필요한 경우에만 사용.
+      # 이를 공개적으로 노출하는 경우 /gateway/security를 읽고 방화벽을 적절히 설정하세요.
       # - "18793:18793"
     command:
       [
@@ -192,8 +190,11 @@ services:
         "${OPENCLAW_GATEWAY_BIND}",
         "--port",
         "${OPENCLAW_GATEWAY_PORT}",
+        "--allow-unconfigured",
       ]
 ```
+
+12. `--allow-unconfigured`는 부트스트랩 편의를 위한 옵션일 뿐이며, 적절한 게이트웨이 구성의 대체물이 아닙니다. 13. 배포 환경에 맞게 인증(`gateway.auth.token` 또는 비밀번호)을 설정하고 안전한 바인드 설정을 사용하세요.
 
 ---
 

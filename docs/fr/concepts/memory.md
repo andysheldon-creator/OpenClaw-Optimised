@@ -180,6 +180,8 @@ récupération à QMD. Points clés :
   `maxInjectedChars`, `timeoutMs`).
 - `scope` : même schéma que [`session.sendPolicy`](/gateway/configuration#session).
   La valeur par défaut est DM‑only (`deny` tout, `allow` discussions directes) ; assouplissez‑la pour faire remonter les résultats QMD dans les groupes/canaux.
+- When `scope` denies a search, OpenClaw logs a warning with the derived
+  `channel`/`chatType` so empty results are easier to debug.
 - Les extraits provenant de l’extérieur de l’espace de travail apparaissent comme
   `qmd/<collection>/<relative-path>` dans les résultats `memory_search` ; `memory_get`
   comprend ce préfixe et lit depuis la racine de collection QMD configurée.

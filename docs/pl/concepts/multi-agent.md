@@ -82,7 +82,7 @@ Pozwala to **wielu osobom** współdzielić jeden serwer Gateway, zachowując iz
 
 ## Jeden numer WhatsApp, wiele osób (podział DM)
 
-Możesz kierować **różne DM-y WhatsApp** do różnych agentów, pozostając przy **jednym koncie WhatsApp**. Dopasuj po nadawcy E.164 (np. `+15551234567`) za pomocą `peer.kind: "dm"`. Odpowiedzi nadal wychodzą z tego samego numeru WhatsApp (brak tożsamości nadawcy per agent).
+Możesz kierować **różne DM-y WhatsApp** do różnych agentów, pozostając przy **jednym koncie WhatsApp**. Match on sender E.164 (like `+15551234567`) with `peer.kind: "direct"`. Odpowiedzi nadal wychodzą z tego samego numeru WhatsApp (brak tożsamości nadawcy per agent).
 
 Ważny szczegół: czaty bezpośrednie zapadają się do **głównego klucza sesji** agenta, więc prawdziwa izolacja wymaga **jednego agenta na osobę**.
 
@@ -97,8 +97,14 @@ Przykład:
     ],
   },
   bindings: [
-    { agentId: "alex", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551230001" } } },
-    { agentId: "mia", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551230002" } } },
+    {
+      agentId: "alex",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551230001" } },
+    },
+    {
+      agentId: "mia",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551230002" } },
+    },
   ],
   channels: {
     whatsapp: {
@@ -260,7 +266,10 @@ Pozostaw WhatsApp na szybkim agencie, ale skieruj jeden DM do Opus:
     ],
   },
   bindings: [
-    { agentId: "opus", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551234567" } } },
+    {
+      agentId: "opus",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551234567" } },
+    },
     { agentId: "chat", match: { channel: "whatsapp" } },
   ],
 }

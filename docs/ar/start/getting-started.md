@@ -106,6 +106,16 @@ title: "بدء الاستخدام"
   </Accordion>
 </AccordionGroup>
 
+## متغيرات البيئة المفيدة
+
+إذا قمت بتشغيل OpenClaw كحساب خدمة أو كنت تريد مواقع مخصصة للإعداد/الحالة:
+
+- `OPENCLAW_HOME` يحدد الدليل الرئيسي المستخدم لحل المسارات الداخلية.
+- `OPENCLAW_STATE_DIR` يتجاوز دليل الحالة.
+- `OPENCLAW_CONFIG_PATH` يتجاوز مسار ملف الإعداد.
+
+مرجع كامل لمتغيرات البيئة: [Environment vars](/help/environment).
+
 ## اذهب أعمق
 
 <Columns>

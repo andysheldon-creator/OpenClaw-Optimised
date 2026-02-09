@@ -196,8 +196,8 @@ the prefix (use `""` to remove it).
 - อนุมัติด้วย: `openclaw pairing approve whatsapp <code>`(ดูรายการด้วย `openclaw pairing list whatsapp`)
 - โค้ดหมดอายุใน1ชั่วโมง; คำขอที่รออยู่จำกัดที่3ต่อช่องทาง
 
-**หลายคนใช้OpenClawหลายอินสแตนซ์บนหมายเลขWhatsAppเดียวได้ไหม?**  
-ได้ โดยกำหนดเส้นทางผู้ส่งแต่ละรายไปยังเอเจนต์ต่างกันผ่าน `bindings`(peer `kind: "dm"`, ผู้ส่งE.164เช่น `+15551234567`) การตอบกลับยังคงมาจาก **บัญชีWhatsAppเดียวกัน** และแชตตรงจะรวมเข้ากับเซสชันหลักของแต่ละเอเจนต์ ดังนั้นควรใช้ **หนึ่งเอเจนต์ต่อหนึ่งคน** การควบคุมการเข้าถึงDM(`dmPolicy`/`allowFrom`)เป็นแบบส่วนกลางต่อบัญชีWhatsApp ดู [Multi-Agent Routing](/concepts/multi-agent) Replies still come from the **same WhatsApp account**, and direct chats collapse to each agent’s main session, so use **one agent per person**. การควบคุมการเข้าถึง DM (`dmPolicy`/`allowFrom`) เป็นแบบโกลบอลต่อบัญชี WhatsApp ดู [Multi-Agent Routing](/concepts/multi-agent)
+**หลายคนสามารถใช้ OpenClaw คนละอินสแตนซ์บนหมายเลข WhatsApp เดียวกันได้หรือไม่?**  
+ได้ โดยกำหนดเส้นทางผู้ส่งแต่ละคนไปยังเอเจนต์ที่ต่างกันผ่าน `bindings` (peer `kind: "direct"`, ผู้ส่งแบบ E.164 เช่น `+15551234567`). การตอบกลับยังคงมาจาก **บัญชี WhatsApp เดียวกัน** และแชตแบบตรงจะถูกรวมเข้ากับเซสชันหลักของแต่ละเอเจนต์ ดังนั้นควรใช้ **หนึ่งเอเจนต์ต่อหนึ่งคน** การควบคุมการเข้าถึง DM (`dmPolicy`/`allowFrom`) เป็นแบบโกลบอลต่อบัญชี WhatsApp ดู [Multi-Agent Routing](/concepts/multi-agent)
 
 **ทำไมวิซาร์ดถึงขอหมายเลขโทรศัพท์ของฉัน?**  
 วิซาร์ดใช้หมายเลขนี้เพื่อตั้งค่า **allowlist/owner** เพื่ออนุญาต DM ของคุณเอง It’s not used for auto-sending. **ทำไมวิซาร์ดจึงขอหมายเลขโทรศัพท์ของฉัน?**  

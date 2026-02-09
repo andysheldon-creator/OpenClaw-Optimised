@@ -65,7 +65,9 @@ defaults write bot.molt.mac openclaw.nixMode -bool true
 ### เส้นทางคอนฟิกและสถานะ
 
 OpenClaw อ่านคอนฟิก JSON5 จาก `OPENCLAW_CONFIG_PATH` และเก็บข้อมูลที่เปลี่ยนแปลงได้ไว้ที่ `OPENCLAW_STATE_DIR`.
+When needed, you can also set `OPENCLAW_HOME` to control the base home directory used for internal path resolution.
 
+- `OPENCLAW_HOME` (default precedence: `HOME` / `USERPROFILE` / `os.homedir()`)
 - `OPENCLAW_STATE_DIR` (ค่าเริ่มต้น: `~/.openclaw`)
 - `OPENCLAW_CONFIG_PATH` (ค่าเริ่มต้น: `$OPENCLAW_STATE_DIR/openclaw.json`)
 

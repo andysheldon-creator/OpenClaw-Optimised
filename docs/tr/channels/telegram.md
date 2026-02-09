@@ -155,9 +155,20 @@ Daha fazla yardım: [Kanal sorun giderme](/channels/troubleshooting).
 Notlar:
 
 - Özel komutlar **yalnızca menü girdileridir**; OpenClaw bunları başka yerde ele almadıkça uygulamaz.
+- Bazı komutlar Telegram’ın komut menüsüne kaydedilmeden eklentiler/yetenekler tarafından işlenebilir. Yazıldıklarında yine çalışırlar (sadece `/commands` / menüde görünmezler).
 - Komut adları normalize edilir (başta gelen `/` kaldırılır, küçük harfe çevrilir) ve `a-z`, `0-9`, `_` ile eşleşmelidir (1–32 karakter).
 - Özel komutlar **yerel komutların üzerine yazamaz**. Çakışmalar yok sayılır ve kayda alınır.
 - `commands.native` devre dışıysa, yalnızca özel komutlar kaydedilir (yoksa temizlenir).
+
+### Cihaz eşleştirme komutları (`device-pair` eklentisi)
+
+`device-pair` eklentisi yüklüyse, yeni bir telefonu eşleştirmek için Telegram-öncelikli bir akış ekler:
+
+1. `/pair` bir kurulum kodu üretir (kolay kopyala/yapıştır için ayrı bir mesaj olarak gönderilir).
+2. Bağlanmak için kurulum kodunu iOS uygulamasına yapıştırın.
+3. `/pair approve` en son bekleyen cihaz isteğini onaylar.
+
+Daha fazla ayrıntı: [Pairing](/channels/pairing#pair-via-telegram-recommended-for-ios).
 
 ## Sınırlar
 
@@ -449,6 +460,25 @@ Mesaj aracıyla gönderimler için, ses uyumlu bir `media` URL’si ile `asVoice
   asVoice: true,
 }
 ```
+
+## Video mesajları (video vs video notu)
+
+Telegram **video notlarını** (yuvarlak balon) **video dosyalarından** (dikdörtgen) ayırt eder.
+OpenClaw varsayılan olarak video dosyalarını kullanır.
+
+Mesaj aracı gönderimleri için, bir video `media` URL’si ile `asVideoNote: true` ayarlayın:
+
+```json5
+{
+  action: "send",
+  channel: "telegram",
+  to: "123456789",
+  media: "https://example.com/video.mp4",
+  asVideoNote: true,
+}
+```
+
+(Not: Video notları altyazıları desteklemez. Bir mesaj metni sağlarsanız, ayrı bir mesaj olarak gönderilir.)
 
 ## Çıkartmalar
 

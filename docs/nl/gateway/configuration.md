@@ -766,7 +766,7 @@ Binnenkomende berichten worden naar een agent doorgestuurd via bindingen.
 - `bindings[]`: stuurt inkomende berichten door naar een `agentId`.
   - `match.channel` (verplicht)
   - `match.accountId` (optioneel; `*` = elk account; weggelaten = standaard account)
-  - `match.peer` (optioneel; `{ kind: dm|group|channel, id }`)
+  - `match.peer` (optioneel; `{ kind: direct|group|channel, id }`)
   - `match.guildId` / `match.teamId` (optioneel; channel-specific)
 
 Deterministische match volgorde:
@@ -2757,31 +2757,31 @@ Bepaalt sessiesscope, reset beleid, reset triggers, en waar de sessie-winkel is 
     scope: "per-sender",
     dmScope: "main",
     identityLinks: {
-      altijd: ["telegram:123456789", "discord:987654321012345678"],
+      alice: ["telegram:123456789", "discord:987654321012345678"],
     },
     reset: {
-      mode: "dagelijkse",
-      atUur: 4,
-      idleMinuts: 60,
+      mode: "daily",
+      atHour: 4,
+      idleMinutes: 60,
     },
     resetByType: {
-      thread: { mode: "dagelijkse", atUur: 4 },
-      dm: { mode: "idle", idleMinutes: 240 },
-      groep: { mode: "inactief", idleMinutes: 120 },
+      thread: { mode: "daily", atHour: 4 },
+      direct: { mode: "idle", idleMinutes: 240 },
+      group: { mode: "idle", idleMinutes: 120 },
     },
     resetTriggers: ["/new", "/reset"],
-    // standaard is al per-agent onder ~/. penclaw/agents/<agentId>/sessions.json
-    // Je kunt overschrijven met {agentId} template:
-    winkel: "~/. penclaw/agents/{agentId}/sessions.json",
-    // Direct chats collapse to agent:<agentId>:<mainKey> (standaard: "main").
+    // Standaard is dit al per-agent onder ~/.openclaw/agents/<agentId>/sessions/sessions.json
+    // Je kunt dit overschrijven met {agentId}-templating:
+    store: "~/.openclaw/agents/{agentId}/sessions/sessions.json",
+    // Directe chats klappen samen naar agent:<agentId>:<mainKey> (standaard: "main").
     mainKey: "main",
     agentToAgent: {
-      // Max ping-pong-antwoord draait tussen aanvrager/doel (0–5).
+      // Maximaal aantal ping-pong-antwoordbeurten tussen aanvrager/doel (0–5).
       maxPingPongTurns: 5,
     },
-    verzendbeleid: {
-      regels: [{ actie: "deny", match: { channel: "discord", chatType: "groep" } }],
-      standaard: "toestaan",
+    sendPolicy: {
+      rules: [{ action: "deny", match: { channel: "discord", chatType: "group" } }],
+      default: "allow",
     },
   },
 }
@@ -2803,7 +2803,7 @@ Velden
   - `mode`: `daily` or `idle` (standaard: `daily` wanneer `reset` aanwezig is).
   - `atHour`: lokaal uur (0-23) voor de dagelijkse reset grens.
   - `idleMinutes`: glijden inactief venster in minuten. Als dagelijkse + inactiviteit beide zijn geconfigureerd, wint degene die het eerst verloopt.
-- `resetByType`: per-session overrides voor `dm`, `group`, and `thread`.
+- `resetByType`: per-sessie overrides voor `direct`, `group` en `thread`. De legacy-sleutel `dm` wordt geaccepteerd als alias voor `direct`.
   - Als u alleen oudere `session.idleMinutes` hebt ingesteld zonder `reset`/`resetByType`, blijft OpenClaw in idle-only modus voor backward compatibiliteit.
 - `heartbeatIdleMinutes`: optionele inactieve overschrijving voor hartebeat controles (dagelijkse reset is nog steeds van toepassing wanneer ingeschakeld).
 - `agentToAgent.maxPingPongTurns`: max Reply-back draait tussen aanvrager/doel (0–5, standaard 5).

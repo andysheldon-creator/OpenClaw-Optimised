@@ -763,7 +763,7 @@ scripts/sandbox-setup.sh
 - `ملزمات]`: توجّه الرسائل الواردة إلى `وكيل هوية`.
   - \`match.channel' (مطلوب)
   - `match.accountId` (اختياري؛ `*` = أي حساب؛ حذف = الحساب الافتراضي)
-  - `match.peer` (اختياري؛ `{ kind: dm|group|channel, id }`)
+  - `match.peer` (اختياري؛ `{ kind: direct|group|channel, id }`)
   - `match.guildId` / `match.teamId` (اختياري؛ قناة محددة)
 
 ترتيب المباراة الوزيرية:
@@ -2744,39 +2744,7 @@ sandboxed أن تستهدف صراحة خادم **المضيف** للتحكم ف
 التحكم في نطاق الجلسة، إعادة تعيين السياسة، إعادة تعيين المشغلات، وحيثما يتم كتابة متجر الجلسة.
 
 ```json5
-30. {
-  session: {
-    scope: "per-sender",
-    dmScope: "main",
-    identityLinks: {
-      alice: ["telegram:123456789", "discord:987654321012345678"],
-    },
-    reset: {
-      mode: "daily",
-      atHour: 4,
-      idleMinutes: 60,
-    },
-    resetByType: {
-      thread: { mode: "daily", atHour: 4 },
-      dm: { mode: "idle", idleMinutes: 240 },
-      group: { mode: "idle", idleMinutes: 120 },
-    },
-    resetTriggers: ["/new", "/reset"],
-    // Default is already per-agent under ~/.openclaw/agents/<agentId>/sessions/sessions.json
-    // You can override with {agentId} templating:
-    store: "~/.openclaw/agents/{agentId}/sessions/sessions.json",
-    // Direct chats collapse to agent:<agentId>:<mainKey> (default: "main").
-    mainKey: "main",
-    agentToAgent: {
-      // Max ping-pong reply turns between requester/target (0–5).
-      maxPingPongTurns: 5,
-    },
-    sendPolicy: {
-      rules: [{ action: "deny", match: { channel: "discord", chatType: "group" } }],
-      default: "allow",
-    },
-  },
-}
+`resetByType`: تجاوزات لكل جلسة لأنواع `direct` و`group` و`thread`.
 ```
 
 الحقول:
@@ -2795,7 +2763,40 @@ sandboxed أن تستهدف صراحة خادم **المضيف** للتحكم ف
   - `mode`: `daily` أو `idle` (الافتراضي: `daily` عندما يكون `reset` موجوداً).
   - `ساعة`: الساعة المحلية (0-23) لإعادة تعيين الحدود اليومية.
   - `idleMinutes`: نافذة خاملة منزلة في دقائق. عند تفعيل اليومي + الخمول معًا، يفوز أيّهما ينتهي أولًا.
-- `resetByType`: تجاوز لكل جلسة ل `dm` و`group` و`thread`.
+- يتم قبول المفتاح القديم `dm` كاسم مستعار لـ `direct`. %%{init: {
+  'theme': 'base',
+  'themeVariables': {
+  'primaryColor': '#ffffff',
+  'primaryTextColor': '#000000',
+  'primaryBorderColor': '#000000',
+  'lineColor': '#000000',
+  'secondaryColor': '#f9f9fb',
+  'tertiaryColor': '#ffffff',
+  'clusterBkg': '#f9f9fb',
+  'clusterBorder': '#000000',
+  'nodeBorder': '#000000',
+  'mainBkg': '#ffffff',
+  'edgeLabelBackground': '#ffffff'
+  }
+  }}%%
+  flowchart TB
+  subgraph Client["Client Machine"]
+  direction TB
+  A["OpenClaw.app"]
+  B["ws://127.0.0.1:18789\n(local port)"]
+  T["SSH Tunnel"]```
+      A --> B
+      B --> T
+  end
+  subgraph Remote["Remote Machine"]
+      direction TB
+      C["Gateway WebSocket"]
+      D["ws://127.0.0.1:18789"]
+
+      C --> D
+  end
+  T --> C
+  ```
   - إذا قمت فقط بتعيين الإرث 'session.idleMinutes' دون أي 'reset\`/'resetByType'، يبقى OpenClaw في وضع الخمول فقط لتحقيق التوافق الخلفي.
 - `قلب إدليمينوتس`: تجاوز خامل اختياري لفحوص نبض القلب (إعادة الضبط اليومية لا تزال تنطبق عند التمكين).
 - 'agentToAgent.maxPingPongTurns': الحد الأقصى لدوران الرد - الظهر بين الطالب/الهدف (0-5، الافتراضي 5).

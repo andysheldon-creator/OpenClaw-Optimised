@@ -157,9 +157,20 @@ Więcej pomocy: [Rozwiązywanie problemów kanałów](/channels/troubleshooting)
 Uwagi:
 
 - Niestandardowe polecenia to **wyłącznie wpisy menu**; OpenClaw ich nie implementuje, chyba że obsłużysz je gdzie indziej.
+- Some commands can be handled by plugins/skills without being registered in Telegram’s command menu. These still work when typed (they just won't show up in `/commands` / the menu).
 - Nazwy poleceń są normalizowane (usuwany wiodący `/`, zamieniane na małe litery) i muszą pasować do `a-z`, `0-9`, `_` (1–32 znaki).
 - Niestandardowe polecenia **nie mogą nadpisywać poleceń natywnych**. Konflikty są ignorowane i logowane.
 - Jeśli `commands.native` jest wyłączone, rejestrowane są tylko niestandardowe polecenia (lub czyszczone, jeśli ich brak).
+
+### Device pairing commands (`device-pair` plugin)
+
+If the `device-pair` plugin is installed, it adds a Telegram-first flow for pairing a new phone:
+
+1. `/pair` generates a setup code (sent as a separate message for easy copy/paste).
+2. Paste the setup code in the iOS app to connect.
+3. `/pair approve` approves the latest pending device request.
+
+More details: [Pairing](/channels/pairing#pair-via-telegram-recommended-for-ios).
 
 ## Limity
 
@@ -451,6 +462,25 @@ Dla wysyłek narzędziem wiadomości ustaw `asVoice: true` z kompatybilnym z gł
   asVoice: true,
 }
 ```
+
+## Video messages (video vs video note)
+
+Telegram distinguishes **video notes** (round bubble) from **video files** (rectangular).
+OpenClaw defaults to video files.
+
+For message tool sends, set `asVideoNote: true` with a video `media` URL:
+
+```json5
+{
+  action: "send",
+  channel: "telegram",
+  to: "123456789",
+  media: "https://example.com/video.mp4",
+  asVideoNote: true,
+}
+```
+
+(Note: Video notes do not support captions. If you provide a message text, it will be sent as a separate message.)
 
 ## Naklejki
 

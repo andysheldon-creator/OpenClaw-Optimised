@@ -78,7 +78,7 @@ Với **nhiều tác tử**, mỗi `agentId` trở thành một **persona cô l�
 
 ## Một số WhatsApp, nhiều người (tách DM)
 
-Bạn có thể định tuyến **các DM WhatsApp khác nhau** đến các agent khác nhau trong khi vẫn dùng **một tài khoản WhatsApp**. Khớp theo E.164 của người gửi (như `+15551234567`) với `peer.kind: "dm"`. Phản hồi vẫn đến từ cùng một số WhatsApp (không có danh tính người gửi theo từng agent).
+Bạn có thể định tuyến **các DM WhatsApp khác nhau** đến các agent khác nhau trong khi vẫn dùng **một tài khoản WhatsApp**. Match on sender E.164 (like `+15551234567`) with `peer.kind: "direct"`. Phản hồi vẫn đến từ cùng một số WhatsApp (không có danh tính người gửi theo từng agent).
 
 Chi tiết quan trọng: chat trực tiếp được gộp về **khóa phiên chính** của tác tử, vì vậy để cô lập thực sự cần **mỗi người một tác tử**.
 
@@ -93,8 +93,14 @@ Ví dụ:
     ],
   },
   bindings: [
-    { agentId: "alex", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551230001" } } },
-    { agentId: "mia", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551230002" } } },
+    {
+      agentId: "alex",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551230001" } },
+    },
+    {
+      agentId: "mia",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551230002" } },
+    },
   ],
   channels: {
     whatsapp: {
@@ -254,7 +260,10 @@ Giữ WhatsApp trên tác tử nhanh, nhưng định tuyến một DM tới Opus
     ],
   },
   bindings: [
-    { agentId: "opus", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551234567" } } },
+    {
+      agentId: "opus",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551234567" } },
+    },
     { agentId: "chat", match: { channel: "whatsapp" } },
   ],
 }

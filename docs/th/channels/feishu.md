@@ -491,14 +491,14 @@ Feishuรองรับการตอบกลับแบบสตรีม�
       agentId: "main",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_xxx" },
+        peer: { kind: "direct", id: "ou_xxx" },
       },
     },
     {
       agentId: "clawd-fan",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_yyy" },
+        peer: { kind: "direct", id: "ou_yyy" },
       },
     },
     {
@@ -515,7 +515,7 @@ Feishuรองรับการตอบกลับแบบสตรีม�
 ฟิลด์การกำหนดเส้นทาง:
 
 - `match.channel`: `"feishu"`
-- `match.peer.kind`: `"dm"`หรือ`"group"`
+- `match.peer.kind`: "direct" หรือ "group"
 - `match.peer.id`: Open IDผู้ใช้(`ou_xxx`)หรือIDกลุ่ม(`oc_xxx`)
 
 ดู[รับIDของกลุ่ม/ผู้ใช้](#get-groupuser-ids)สำหรับเคล็ดลับการค้นหา

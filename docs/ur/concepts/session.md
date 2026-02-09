@@ -107,7 +107,7 @@ UI کلائنٹس (macOS ایپ، WebChat، وغیرہ) 31. UI کلائنٹس (m
 - کوئی سیشن اس وقت stale سمجھا جاتا ہے جب اس کی آخری اپ ڈیٹ تازہ ترین روزانہ ری سیٹ وقت سے پہلے کی ہو۔ 36. ایک سیشن اس وقت باسی (stale) ہو جاتا ہے جب اس کی آخری اپڈیٹ حالیہ ترین روزانہ ری سیٹ وقت سے پہلے ہو۔
 - جب روزانہ اور آئیڈل دونوں ری سیٹس کنفیگر ہوں، تو **جو پہلے ایکسپائر ہو** وہ نیا سیشن مجبور کرتا ہے۔ 37. جب روزانہ اور آئیڈل دونوں ری سیٹس کنفیگر ہوں، تو **جو بھی پہلے ایکسپائر ہو** نیا سیشن مجبور کرتا ہے۔
 - لیگیسی صرف اِن ایکٹیو: اگر آپ `session.idleMinutes` کو بغیر کسی `session.reset`/`resetByType` کنفیگ کے سیٹ کریں، تو بیک ورڈ کمپیٹیبلٹی کے لیے OpenClaw صرف اِن ایکٹیو موڈ میں رہتا ہے۔
-- فی-ٹائپ اوور رائیڈز (اختیاری): `resetByType` آپ کو `dm`، `group`، اور `thread` سیشنز کے لیے پالیسی اوور رائیڈ کرنے دیتا ہے (thread = Slack/Discord تھریڈز، Telegram ٹاپکس، Matrix تھریڈز جب کنیکٹر فراہم کرے)۔
+- Per-type overrides (optional): `resetByType` lets you override the policy for `direct`, `group`, and `thread` sessions (thread = Slack/Discord threads, Telegram topics, Matrix threads when provided by the connector).
 - فی-چینل اوور رائیڈز (اختیاری): `resetByChannel` کسی چینل کے لیے ری سیٹ پالیسی اوور رائیڈ کرتا ہے (اس چینل کے تمام سیشن اقسام پر لاگو ہوتا ہے اور `reset`/`resetByType` پر فوقیت رکھتا ہے)۔
 - `/new <model>` ایک ماڈل alias، `provider/model`، یا provider نام (فزی میچ) قبول کرتا ہے تاکہ نئے سیشن کا ماڈل سیٹ ہو سکے۔ 38. `/new <model>` ایک ماڈل عرف، `provider/model`، یا فراہم کنندہ کا نام (فزی میچ) قبول کرتا ہے تاکہ نئے سیشن کا ماڈل سیٹ کیا جا سکے۔ `/compact` (اختیاری ہدایات کے ساتھ) کو بطور ایک علیحدہ پیغام بھیجیں تاکہ پرانے کانٹیکسٹ کا خلاصہ ہو اور ونڈو اسپیس خالی ہو۔
 - دستی ری سیٹ: اسٹور سے مخصوص کلیدیں حذف کریں یا JSONL ٹرانسکرپٹ ہٹا دیں؛ اگلا پیغام انہیں دوبارہ بنا دیتا ہے۔
@@ -158,7 +158,7 @@ UI کلائنٹس (macOS ایپ، WebChat، وغیرہ) 31. UI کلائنٹس (m
     },
     resetByType: {
       thread: { mode: "daily", atHour: 4 },
-      dm: { mode: "idle", idleMinutes: 240 },
+      direct: { mode: "idle", idleMinutes: 240 },
       group: { mode: "idle", idleMinutes: 120 },
     },
     resetByChannel: {

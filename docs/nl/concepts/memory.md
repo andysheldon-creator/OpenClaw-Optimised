@@ -184,6 +184,8 @@ roept QMD aan voor retrieval. Belangrijke punten:
 - `scope`: hetzelfde schema als [`session.sendPolicy`](/gateway/configuration#session).
   Standaard is alleen DM (`deny` alles, `allow` directe chats); versoepel dit om QMD-
   treffers in groepen/kanalen te tonen.
+- Wanneer `scope` een zoekopdracht weigert, logt OpenClaw een waarschuwing met het afgeleide
+  `channel`/`chatType`, zodat lege resultaten makkelijker te debuggen zijn.
 - Snippets die buiten de werkruimte zijn gesourced verschijnen als
   `qmd/<collection>/<relative-path>` in `memory_search`-resultaten; `memory_get`
   begrijpt die prefix en leest uit de geconfigureerde QMD-collectiewortel.

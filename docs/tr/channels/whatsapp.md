@@ -196,7 +196,7 @@ Eşleştirme, bilinmeyen gönderenler için bir DM kapısıdır:
 - Kodlar 1 saat sonra dolar; bekleyen istekler kanal başına 3 ile sınırlıdır.
 
 **Bir WhatsApp numarası üzerinde birden fazla kişi farklı OpenClaw örneklerini kullanabilir mi?**  
-Evet, her göndericiyi `bindings` ile farklı bir ajana yönlendirerek (eş `kind: "dm"`, gönderen E.164 örn. `+15551234567`). Yanıtlar yine **aynı WhatsApp hesabından** gelir ve direkt sohbetler her ajanın ana oturumuna çöker; bu nedenle kişi başına **bir ajan** kullanın. DM erişim denetimi (`dmPolicy`/`allowFrom`) WhatsApp hesabı başına globaldir. [Çoklu Ajan Yönlendirme](/concepts/multi-agent) bölümüne bakın.
+Evet, her göndericiyi `bindings` üzerinden farklı bir agente yönlendirerek (peer `kind: "direct"`, gönderici E.164 örn. `+15551234567`). Yanıtlar yine **aynı WhatsApp hesabından** gelir ve direkt sohbetler her agentin ana oturumuna çöker; bu nedenle **kişi başına bir agent** kullanın. DM erişim denetimi (`dmPolicy`/`allowFrom`) WhatsApp hesabı başına globaldir. [Çoklu Ajan Yönlendirme](/concepts/multi-agent) bölümüne bakın.
 
 **Sihirbaz neden telefon numaramı istiyor?**  
 Sihirbaz bunu **izin listesi/sahip** ayarlamak için kullanır; böylece kendi DM’lerinize izin verilir. Otomatik gönderim için kullanılmaz. Kişisel WhatsApp numaranızda çalıştırıyorsanız, aynı numarayı kullanın ve `channels.whatsapp.selfChatMode`’yi etkinleştirin.

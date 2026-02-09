@@ -115,12 +115,10 @@ Docker 容器是短暫的。
 所有長期存在的狀態都必須存放在主機上。
 
 ```bash
-mkdir -p /root/.openclaw
-mkdir -p /root/.openclaw/workspace
+10. mkdir -p /root/.openclaw/workspace
 
 # Set ownership to the container user (uid 1000):
 chown -R 1000:1000 /root/.openclaw
-chown -R 1000:1000 /root/.openclaw/workspace
 ```
 
 ---
@@ -157,7 +155,7 @@ openssl rand -hex 32
 建立或更新 `docker-compose.yml`。
 
 ```yaml
-services:
+11. services:
   openclaw-gateway:
     image: ${OPENCLAW_IMAGE}
     build: .
@@ -194,8 +192,11 @@ services:
         "${OPENCLAW_GATEWAY_BIND}",
         "--port",
         "${OPENCLAW_GATEWAY_PORT}",
+        "--allow-unconfigured",
       ]
 ```
+
+12. `--allow-unconfigured` 僅用於啟動時的便利性，不能取代正確的 Gateway 設定。 13. 仍請設定驗證（`gateway.auth.token` 或密碼），並為你的部署使用安全的綁定設定。
 
 ---
 

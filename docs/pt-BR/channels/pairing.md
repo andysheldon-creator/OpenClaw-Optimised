@@ -52,6 +52,23 @@ Trate-os como sensíveis (eles controlam o acesso ao seu assistente).
 Os nós se conectam ao Gateway como **dispositivos** com `role: node`. O Gateway
 cria uma solicitação de pareamento de dispositivo que deve ser aprovada.
 
+### Pair via Telegram (recommended for iOS)
+
+If you use the `device-pair` plugin, you can do first-time device pairing entirely from Telegram:
+
+1. In Telegram, message your bot: `/pair`
+2. The bot replies with two messages: an instruction message and a separate **setup code** message (easy to copy/paste in Telegram).
+3. On your phone, open the OpenClaw iOS app → Settings → Gateway.
+4. Paste the setup code and connect.
+5. Back in Telegram: `/pair approve`
+
+The setup code is a base64-encoded JSON payload that contains:
+
+- `url`: the Gateway WebSocket URL (`ws://...` or `wss://...`)
+- `token`: a short-lived pairing token
+
+Treat the setup code like a password while it is valid.
+
 ### Aprovar um dispositivo de nó
 
 ```bash

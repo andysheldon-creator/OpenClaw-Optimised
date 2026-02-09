@@ -172,16 +172,35 @@ Gateway(게이트웨이)가 Linux 호스트/VM 에서 실행되지만 iMessage �
 
 아키텍처:
 
-```
-┌──────────────────────────────┐          SSH (imsg rpc)          ┌──────────────────────────┐
-│ Gateway host (Linux/VM)      │──────────────────────────────────▶│ Mac with Messages + imsg │
-│ - openclaw gateway           │          SCP (attachments)        │ - Messages signed in     │
-│ - channels.imessage.cliPath  │◀──────────────────────────────────│ - Remote Login enabled   │
-└──────────────────────────────┘                                   └──────────────────────────┘
-              ▲
-              │ Tailscale tailnet (hostname or 100.x.y.z)
-              ▼
-        user@gateway-host
+```mermaid
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#ffffff',
+    'primaryTextColor': '#000000',
+    'primaryBorderColor': '#000000',
+    'lineColor': '#000000',
+    'secondaryColor': '#f9f9fb',
+    'tertiaryColor': '#ffffff',
+    'clusterBkg': '#f9f9fb',
+    'clusterBorder': '#000000',
+    'nodeBorder': '#000000',
+    'mainBkg': '#ffffff',
+    'edgeLabelBackground': '#ffffff'
+  }
+}}%%
+flowchart TB
+ subgraph T[" "]
+ subgraph Tailscale[" "]
+    direction LR
+      Gateway["<b>Gateway host (Linux/VM)<br></b><br>openclaw gateway<br>channels.imessage.cliPath"]
+      Mac["<b>Mac with Messages + imsg<br></b><br>Messages signed in<br>Remote Login enabled"]
+  end
+    Gateway -- SSH (imsg rpc) --> Mac
+    Mac -- SCP (attachments) --> Gateway
+    direction BT
+    User["user@gateway-host"] -- "Tailscale tailnet (hostname or 100.x.y.z)" --> Gateway
+end
 ```
 
 구체적인 설정 예제(Tailscale 호스트명):

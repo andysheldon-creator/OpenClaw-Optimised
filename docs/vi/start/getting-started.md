@@ -106,6 +106,16 @@ Nếu Control UI tải được, Gateway của bạn đã sẵn sàng sử dụn
   </Accordion>
 </AccordionGroup>
 
+## Các biến môi trường hữu ích
+
+Nếu bạn chạy OpenClaw dưới dạng tài khoản dịch vụ hoặc muốn các vị trí cấu hình/trạng thái tùy chỉnh:
+
+- `OPENCLAW_HOME` đặt thư mục home được sử dụng cho việc phân giải đường dẫn nội bộ.
+- `OPENCLAW_STATE_DIR` ghi đè thư mục trạng thái.
+- `OPENCLAW_CONFIG_PATH` ghi đè đường dẫn tệp cấu hình.
+
+Tham chiếu đầy đủ về biến môi trường: [Environment vars](/help/environment).
+
 ## Tìm hiểu sâu hơn
 
 <Columns>

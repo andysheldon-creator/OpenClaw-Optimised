@@ -106,6 +106,16 @@ Docs: [Dashboard](/web/dashboard) and [Control UI](/web/control-ui).
   </Accordion>
 </AccordionGroup>
 
+## Useful environment variables
+
+If you run OpenClaw as a service account or want custom config/state locations:
+
+- `OPENCLAW_HOME` sets the home directory used for internal path resolution.
+- `OPENCLAW_STATE_DIR` overrides the state directory.
+- `OPENCLAW_CONFIG_PATH` overrides the config file path.
+
+Full environment variable reference: [Environment vars](/help/environment).
+
 ## مزید گہرائی میں جائیں
 
 <Columns>

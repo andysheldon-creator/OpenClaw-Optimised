@@ -172,6 +172,8 @@ QMD 進行擷取。重點如下： 17. Markdown 仍是唯一可信來源；OpenC
 - `scope`：與 [`session.sendPolicy`](/gateway/configuration#session) 相同的結構描述。
   預設僅限私訊（`deny` 全部、`allow` 直接聊天）；放寬後可在群組／頻道中顯示 QMD 命中。
   23. 預設為僅 DM（全部 `deny`，僅 `allow` 直接聊天）；放寬設定即可在群組/頻道中顯示 QMD 命中結果。
+- When `scope` denies a search, OpenClaw logs a warning with the derived
+  `channel`/`chatType` so empty results are easier to debug.
 - 來自工作區外的片段會以
   `qmd/<collection>/<relative-path>` 顯示於 `memory_search` 結果中；`memory_get`
   會理解該前綴並從設定的 QMD 集合根目錄讀取。

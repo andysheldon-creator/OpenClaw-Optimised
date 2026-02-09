@@ -491,14 +491,14 @@ Użyj `bindings` do kierowania DM-ów lub grup Feishu do różnych agentów.
       agentId: "main",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_xxx" },
+        peer: { kind: "direct", id: "ou_xxx" },
       },
     },
     {
       agentId: "clawd-fan",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_yyy" },
+        peer: { kind: "direct", id: "ou_yyy" },
       },
     },
     {
@@ -515,7 +515,7 @@ Użyj `bindings` do kierowania DM-ów lub grup Feishu do różnych agentów.
 Pola routowania:
 
 - `match.channel`: `"feishu"`
-- `match.peer.kind`: `"dm"` lub `"group"`
+- `match.peer.kind`: `"direct"` or `"group"`
 - `match.peer.id`: Open ID użytkownika (`ou_xxx`) lub ID grupy (`oc_xxx`)
 
 Zobacz [Uzyskiwanie identyfikatorów grup/użytkowników](#get-groupuser-ids), aby uzyskać wskazówki.

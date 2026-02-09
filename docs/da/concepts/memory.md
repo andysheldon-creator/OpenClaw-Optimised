@@ -184,6 +184,8 @@ ud til QMD for at hente. Nøglepunkter:
 - `scope`: samme skema som [`session.sendPolicy`](/gateway/configuration#session).
   Standard er kun DM-only (`deny` all, `allow` direkte chats); løsn det til overflade QMD
   hits i grupper/kanaler.
+- Når `scope` afviser en søgning, logger OpenClaw en advarsel med det afledte
+  `channel`/`chatType`, så tomme resultater er nemmere at fejlfinde.
 - Snippets hentet uden for arbejdsområdet vises som
   `qmd/<collection>/<relative-path>` i `memory_search`-resultater; `memory_get`
   forstår dette præfiks og læser fra den konfigurerede QMD-samlingsrod.

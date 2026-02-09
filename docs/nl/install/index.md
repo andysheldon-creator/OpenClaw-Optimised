@@ -169,6 +169,14 @@ openclaw status         # gateway status
 openclaw dashboard      # open the browser UI
 ```
 
+Als je aangepaste runtimepaden nodig hebt, gebruik:
+
+- `OPENCLAW_HOME` voor op de homemap gebaseerde interne paden
+- `OPENCLAW_STATE_DIR` voor de locatie van wijzigbare status
+- `OPENCLAW_CONFIG_PATH` voor de locatie van het configuratiebestand
+
+Zie [Environment vars](/help/environment) voor voorrang en alle details.
+
 ## Problemen oplossen: `openclaw` niet gevonden
 
 <Accordion title="PATH diagnosis and fix">

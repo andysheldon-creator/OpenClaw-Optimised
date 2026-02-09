@@ -31,20 +31,20 @@ title: "macOS ထုတ်ဝေမှု"
 - Release artifact များ (zip + DMG + notarization) အတွက် `scripts/package-mac-dist.sh` ကို အသုံးပြုပါ။ Local / dev packaging အတွက် `scripts/package-mac-app.sh` ကို အသုံးပြုပါ။
 
 ```bash
-# From repo root; set release IDs so Sparkle feed is enabled.
+21. # From repo root; set release IDs so Sparkle feed is enabled.
 # APP_BUILD must be numeric + monotonic for Sparkle compare.
 BUNDLE_ID=bot.molt.mac \
-APP_VERSION=2026.2.6 \
+APP_VERSION=2026.2.9 \
 APP_BUILD="$(git rev-list --count HEAD)" \
 BUILD_CONFIG=release \
 SIGN_IDENTITY="Developer ID Application: <Developer Name> (<TEAMID>)" \
 scripts/package-mac-app.sh
 
 # Zip for distribution (includes resource forks for Sparkle delta support)
-ditto -c -k --sequesterRsrc --keepParent dist/OpenClaw.app dist/OpenClaw-2026.2.6.zip
+ditto -c -k --sequesterRsrc --keepParent dist/OpenClaw.app dist/OpenClaw-2026.2.9.zip
 
 # Optional: also build a styled DMG for humans (drag to /Applications)
-scripts/create-dmg.sh dist/OpenClaw.app dist/OpenClaw-2026.2.6.dmg
+scripts/create-dmg.sh dist/OpenClaw.app dist/OpenClaw-2026.2.9.dmg
 
 # Recommended: build + notarize/staple zip + DMG
 # First, create a keychain profile once:
@@ -52,14 +52,14 @@ scripts/create-dmg.sh dist/OpenClaw.app dist/OpenClaw-2026.2.6.dmg
 #     --apple-id "<apple-id>" --team-id "<team-id>" --password "<app-specific-password>"
 NOTARIZE=1 NOTARYTOOL_PROFILE=openclaw-notary \
 BUNDLE_ID=bot.molt.mac \
-APP_VERSION=2026.2.6 \
+APP_VERSION=2026.2.9 \
 APP_BUILD="$(git rev-list --count HEAD)" \
 BUILD_CONFIG=release \
 SIGN_IDENTITY="Developer ID Application: <Developer Name> (<TEAMID>)" \
 scripts/package-mac-dist.sh
 
 # Optional: ship dSYM alongside the release
-ditto -c -k --keepParent apps/macos/.build/release/OpenClaw.app.dSYM dist/OpenClaw-2026.2.6.dSYM.zip
+ditto -c -k --keepParent apps/macos/.build/release/OpenClaw.app.dSYM dist/OpenClaw-2026.2.9.dSYM.zip
 ```
 
 ## Appcast entry
@@ -67,7 +67,7 @@ ditto -c -k --keepParent apps/macos/.build/release/OpenClaw.app.dSYM dist/OpenCl
 Sparkle မှ ဖော်မတ်ထားသော HTML မှတ်စုများကို ပြသနိုင်ရန် release note generator ကို အသုံးပြုပါ—
 
 ```bash
-SPARKLE_PRIVATE_KEY_FILE=/path/to/ed25519-private-key scripts/make_appcast.sh dist/OpenClaw-2026.2.6.zip https://raw.githubusercontent.com/openclaw/openclaw/main/appcast.xml
+22. SPARKLE_PRIVATE_KEY_FILE=/path/to/ed25519-private-key scripts/make_appcast.sh dist/OpenClaw-2026.2.9.zip https://raw.githubusercontent.com/openclaw/openclaw/main/appcast.xml
 ```
 
 `CHANGELOG.md` မှ HTML release notes များကို (`scripts/changelog-to-html.sh` မှတစ်ဆင့်) ဖန်တီးပြီး appcast entry ထဲတွင် ထည့်သွင်းပါသည်။
@@ -75,7 +75,7 @@ Publish လုပ်ရာတွင် update လုပ်ထားသော `ap
 
 ## ထုတ်ဝေခြင်း & အတည်ပြုခြင်း
 
-- `OpenClaw-2026.2.6.zip` (နှင့် `OpenClaw-2026.2.6.dSYM.zip`) ကို tag `v2026.2.6` အတွက် GitHub release သို့ တင်ပါ။
+- 23. `OpenClaw-2026.2.9.zip` (နှင့် `OpenClaw-2026.2.9.dSYM.zip`) ကို tag `v2026.2.9` အတွက် GitHub release သို့ တင်ပါ။
 - raw appcast URL သည် baked feed နှင့် ကိုက်ညီကြောင်း သေချာပါစေ—`https://raw.githubusercontent.com/openclaw/openclaw/main/appcast.xml`။
 - Sanity checks—
   - `curl -I https://raw.githubusercontent.com/openclaw/openclaw/main/appcast.xml` သည် 200 ပြန်ရပါသည်။

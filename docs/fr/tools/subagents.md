@@ -8,143 +8,470 @@ title: "Sous-agents"
 
 # Sous-agents
 
-Les sous-agents sont des exécutions d’agents en arrière-plan lancées à partir d’une exécution d’agent existante. Ils s’exécutent dans leur propre session (`agent:<agentId>:subagent:<uuid>`) et, une fois terminés, **annoncent** leur résultat au canal de chat du demandeur.
+Les sous-agents vous permettent d’exécuter des tâches en arrière-plan sans bloquer la conversation principale. Lorsque vous créez un sous-agent, il s’exécute dans sa propre session isolée, effectue son travail et annonce le résultat dans le chat une fois terminé.
 
-## Commande slash
+**Cas d’utilisation :**
 
-Utilisez `/subagents` pour inspecter ou contrôler les exécutions de sous-agents pour la **session actuelle** :
+- Rechercher un sujet pendant que l’agent principal continue de répondre aux questions
+- Exécuter plusieurs tâches longues en parallèle (scraping web, analyse de code, traitement de fichiers)
+- Déléguer des tâches à des agents spécialisés dans une configuration multi-agents
 
-- `/subagents list`
-- `/subagents stop <id|#|all>`
-- `/subagents log <id|#> [limit] [tools]`
-- `/subagents info <id|#>`
-- `/subagents send <id|#> <message>`
+## Demarrage rapide
 
-`/subagents info` affiche les métadonnées d’exécution (statut, horodatages, identifiant de session, chemin de la transcription, nettoyage).
+La manière la plus simple d’utiliser des sous-agents est de demander naturellement à votre agent :
 
-Objectifs principaux :
+> "Créer un sous-agent pour rechercher les dernières notes de version de Node.js"
 
-- Paralléliser le travail de « recherche / tâche longue / outil lent » sans bloquer l’exécution principale.
-- Garder les sous-agents isolés par défaut (séparation des sessions + sandboxing optionnel).
-- Rendre la surface des outils difficile à utiliser à mauvais escient : les sous-agents n’obtiennent **pas** les outils de session par défaut.
-- Éviter l’éventail imbriqué : les sous-agents ne peuvent pas lancer de sous-agents.
+L’agent appellera l’outil `sessions_spawn` en arrière-plan. Lorsque le sous-agent a terminé, il annonce ses conclusions dans votre chat.
 
-Note sur les coûts : chaque sous-agent possède **son propre** contexte et sa propre consommation de tokens. Pour les tâches lourdes ou répétitives, définissez un modèle moins coûteux pour les sous-agents et conservez votre agent principal sur un modèle de meilleure qualité.
-Vous pouvez configurer cela via `agents.defaults.subagents.model` ou via des surcharges par agent.
+Vous pouvez également être explicite sur les options :
 
-## Outil
+> "Créer un sous-agent pour analyser les journaux du serveur d’aujourd’hui. Utilisez gpt-5.2 et définissez un délai d’expiration de 5 minutes."
 
-Utilisez `sessions_spawn` :
+## Fonctionnement
 
-- Démarre une exécution de sous-agent (`deliver: false`, voie globale : `subagent`)
-- Puis exécute une étape d’annonce et publie la réponse d’annonce dans le canal de chat du demandeur
-- Modèle par défaut : hérite de l’appelant, sauf si vous définissez `agents.defaults.subagents.model` (ou par agent `agents.list[].subagents.model`) ; un `sessions_spawn.model` explicite prévaut toujours.
-- Raisonnement par défaut : hérite de l’appelant, sauf si vous définissez `agents.defaults.subagents.thinking` (ou par agent `agents.list[].subagents.thinking`) ; un `sessions_spawn.thinking` explicite prévaut toujours.
+<Steps>
+  <Step title="Main agent spawns">
+    L’agent principal appelle `sessions_spawn` avec une description de la tâche. L’appel est **non bloquant** — l’agent principal reçoit immédiatement `{ status: "accepted", runId, childSessionKey }`.
+  </Step>
+  <Step title="Sub-agent runs in the background"> 
+    Une nouvelle session isolée est créée (`agent:
+    :subagent:
+    `) sur la voie de file d’attente dédiée `subagent`.
+  <agentId>Lorsque le sous-agent a terminé, il annonce ses conclusions au chat demandeur.<uuid>L’agent principal publie un résumé en langage naturel.</Step>
+  <Step title="Result is announced">
+    La session du sous-agent est automatiquement archivée après 60 minutes (configurable). Les transcriptions sont conservées.
+  </Step>
+  <Step title="Session is archived">
+    Chaque sous-agent possède **son propre** contexte et sa propre consommation de jetons. Définissez un modèle moins coûteux pour les sous-agents afin d’économiser des coûts — voir [Définir un modèle par défaut](#setting-a-default-model) ci-dessous.
+  </Step>
+</Steps>
 
-Tool params:
+<Tip>
+Les sous-agents fonctionnent immédiatement sans configuration. Modèle : sélection normale du modèle de l’agent cible (sauf si `subagents.model` est défini)
+</Tip>
 
-- `task` (requis)
-- `label?` (optionnel)
-- `agentId?` (optionnel ; lancer sous un autre identifiant d’agent si autorisé)
-- `model?` (optionnel ; remplace le modèle du sous-agent ; les valeurs invalides sont ignorées et le sous-agent s’exécute sur le modèle par défaut avec un avertissement dans le résultat de l’outil)
-- `thinking?` (optionnel ; remplace le niveau de raisonnement pour l’exécution du sous-agent)
-- `runTimeoutSeconds?` (par défaut `0` ; lorsqu’il est défini, l’exécution du sous-agent est interrompue après N secondes)
-- `cleanup?` (`delete|keep`, par défaut `keep`)
+## Configuration
 
-Liste d’autorisation :
+Raisonnement : aucune surcharge spécifique au sous-agent (sauf si `subagents.thinking` est défini) Valeurs par défaut :
 
-- `agents.list[].subagents.allowAgents` : liste des identifiants d’agents pouvant être ciblés via `agentId` (`["*"]` pour autoriser tous). Par défaut : uniquement l’agent demandeur.
+- Concurrence maximale : 8
+- Archivage automatique : après 60 minutes
+- Définir un modèle par défaut
+- Utilisez un modèle moins coûteux pour les sous-agents afin de réduire les coûts de jetons :
 
-Découverte :
+### {&#xA;agents: {&#xA;defaults: {&#xA;subagents: {&#xA;model: "minimax/MiniMax-M2.1",&#xA;},&#xA;},&#xA;},&#xA;}
 
-- Utilisez `agents_list` pour voir quels identifiants d’agents sont actuellement autorisés pour `sessions_spawn`.
-
-Archivage automatique :
-
-- Les sessions de sous-agents sont automatiquement archivées après `agents.defaults.subagents.archiveAfterMinutes` (par défaut : 60).
-- L’archivage utilise `sessions.delete` et renomme la transcription en `*.deleted.<timestamp>` (même dossier).
-- `cleanup: "delete"` archive immédiatement après l’annonce (tout en conservant la transcription via le renommage).
-- L’archivage automatique est réalisé au mieux ; les minuteurs en attente sont perdus si la Gateway (passerelle) redémarre.
-- `runTimeoutSeconds` n’archive **pas** automatiquement ; il se contente d’arrêter l’exécution. La session demeure jusqu’à l’archivage automatique.
-
-## Authentification
-
-L’authentification des sous-agents est résolue par **identifiant d’agent**, et non par type de session :
-
-- La clé de session du sous-agent est `agent:<agentId>:subagent:<uuid>`.
-- Le magasin d’authentification est chargé depuis `agentDir` de cet agent.
-- Les profils d’authentification de l’agent principal sont fusionnés comme **solution de repli** ; les profils de l’agent priment sur ceux du principal en cas de conflit.
-
-Remarque : la fusion est additive, donc les profils du principal sont toujours disponibles comme solutions de repli. Une authentification entièrement isolée par agent n’est pas encore prise en charge.
-
-## Annonce
-
-Les sous-agents rendent compte via une étape d’annonce :
-
-- L’étape d’annonce s’exécute dans la session du sous-agent (et non dans la session du demandeur).
-- Si le sous-agent répond exactement `ANNOUNCE_SKIP`, rien n’est publié.
-- Sinon, la réponse d’annonce est publiée dans le canal de chat du demandeur via un appel de suivi `agent` (`deliver=true`).
-- Les réponses d’annonce conservent l’acheminement par fil/sujet lorsque disponible (fils Slack, sujets Telegram, fils Matrix).
-- Les messages d’annonce sont normalisés selon un modèle stable :
-  - `Status:` dérivé du résultat de l’exécution (`success`, `error`, `timeout` ou `unknown`).
-  - `Result:` le contenu de résumé de l’étape d’annonce (ou `(not available)` s’il est manquant).
-  - `Notes:` détails d’erreur et autre contexte utile.
-- `Status` n’est pas inféré à partir de la sortie du modèle ; il provient des signaux de résultat à l’exécution.
-
-Les charges utiles d’annonce incluent une ligne de statistiques à la fin (même lorsqu’elles sont encapsulées) :
-
-- Durée d’exécution (p. ex., `runtime 5m12s`)
-- Consommation de tokens (entrée/sortie/total)
-- Coût estimé lorsque la tarification du modèle est configurée (`models.providers.*.models[].cost`)
-- `sessionKey`, `sessionId` et chemin de la transcription (afin que l’agent principal puisse récupérer l’historique via `sessions_history` ou inspecter le fichier sur le disque)
-
-## Politique d’outils (outils de sous-agent)
-
-Par défaut, les sous-agents obtiennent **tous les outils sauf les outils de session** :
-
-- `sessions_list`
-- `sessions_history`
-- `sessions_send`
-- `sessions_spawn`
-
-Remplacement via la configuration :
+Use a cheaper model for sub-agents to save on token costs:
 
 ```json5
 {
   agents: {
     defaults: {
       subagents: {
-        maxConcurrent: 1,
-      },
-    },
-  },
-  tools: {
-    subagents: {
-      tools: {
-        // deny wins
-        deny: ["gateway", "cron"],
-        // if allow is set, it becomes allow-only (deny still wins)
-        // allow: ["read", "exec", "process"]
+        model: "minimax/MiniMax-M2.1",
       },
     },
   },
 }
 ```
 
-## Concurrence
+### Setting a Default Thinking Level
 
-Les sous-agents utilisent une voie de file d’attente dédiée en processus :
+```json5
+{
+  agents: {
+    defaults: {
+      subagents: {
+        thinking: "low",
+      },
+    },
+  },
+}
+```
 
-- Nom de la voie : `subagent`
-- Concurrence : `agents.defaults.subagents.maxConcurrent` (par défaut `8`)
+### 3. Surcharges par agent
 
-## Arrêt
+4. Dans une configuration multi-agents, vous pouvez définir des valeurs par défaut de sous-agents pour chaque agent :
 
-- L’envoi de `/stop` dans le chat du demandeur interrompt la session du demandeur et arrête toute exécution active de sous-agent lancée depuis celle-ci.
+```json5
+5. {
+  agents: {
+    list: [
+      {
+        id: "researcher",
+        subagents: {
+          model: "anthropic/claude-sonnet-4",
+        },
+      },
+      {
+        id: "assistant",
+        subagents: {
+          model: "minimax/MiniMax-M2.1",
+        },
+      },
+    ],
+  },
+}
+```
+
+### Concurrence
+
+6. Contrôlez combien de sous-agents peuvent s’exécuter en même temps :
+
+```json5
+7. {
+  agents: {
+    defaults: {
+      subagents: {
+        maxConcurrent: 4, // default: 8
+      },
+    },
+  },
+}
+```
+
+8. Les sous-agents utilisent une voie de file d’attente dédiée (`subagent`) distincte de la file d’attente de l’agent principal, de sorte que les exécutions des sous-agents ne bloquent pas les réponses entrantes.
+
+### 9. Archivage automatique
+
+Sub-agent sessions are automatically archived after a configurable period:
+
+```json5
+11. {
+  agents: {
+    defaults: {
+      subagents: {
+        archiveAfterMinutes: 120, // default: 60
+      },
+    },
+  },
+}
+```
+
+<Note>12. L’archivage renomme la transcription en `*.deleted.<timestamp>` (same folder) — transcripts are preserved, not deleted. 14. Les minuteurs d’archivage automatique sont exécutés au mieux ; les minuteurs en attente sont perdus si la passerelle redémarre.
+</Note>
+
+## The `sessions_spawn` Tool
+
+16. Il s’agit de l’outil que l’agent appelle pour créer des sous-agents.
+
+### Parametres
+
+| 17. Paramètre           | Type                                              | Par défaut                                                        | Description                                                                                                                           |
+| ---------------------------------------------- | ------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| 18. `task`              | string                                            | 19. _(obligatoire)_     | 20. Ce que le sous-agent doit faire                                                                            |
+| 21. `label`             | string                                            | 22. —                                      | 23. Libellé court pour l’identification                                                                        |
+| 24. `agentId`           | string                                            | 25. _(agent appelant)_  | 26. Créer sous un identifiant d’agent différent (doit être autorisé)                        |
+| `modèle`                                       | string                                            | 27. _(optionnel)_       | 28. Remplacer le modèle pour ce sous-agent                                                                     |
+| 29. `thinking`          | string                                            | 30. _(optionnel)_       | 31. Remplacer le niveau de réflexion (`off`, `low`, `medium`, `high`, etc.) |
+| 32. `runTimeoutSeconds` | 33. nombre                 | 34. `0` (aucune limite) | 35. Interrompre le sous-agent après N secondes                                                                 |
+| `nettoyage`                                    | 36. `"delete"` \| `"keep"` | 37. `"keep"`                               | 38. `"delete"` archive immédiatement après l’annonce                                                           |
+
+### 39. Ordre de résolution du modèle
+
+40. Le modèle du sous-agent est résolu dans cet ordre (la première correspondance l’emporte) :
+
+1. 41. Paramètre `model` explicite dans l’appel `sessions_spawn`
+2. 42. Configuration par agent : `agents.list[].subagents.model`
+3. 43. Valeur par défaut globale : `agents.defaults.subagents.model`
+4. 44. Résolution normale du modèle de l’agent cible pour cette nouvelle session
+
+45) Le niveau de réflexion est résolu dans cet ordre :
+
+1. 46. Paramètre `thinking` explicite dans l’appel `sessions_spawn`
+2. 47. Configuration par agent : `agents.list[].subagents.thinking`
+3. 48. Valeur par défaut globale : `agents.defaults.subagents.thinking`
+4. 49. Sinon, aucune surcharge de réflexion spécifique au sous-agent n’est appliquée
+
+<Note>50. Les valeurs de modèle invalides sont ignorées silencieusement — le sous-agent s’exécute avec la prochaine valeur par défaut valide, avec un avertissement dans le résultat de l’outil.</Note>
+
+### Cross-Agent Spawning
+
+By default, sub-agents can only spawn under their own agent id. To allow an agent to spawn sub-agents under other agent ids:
+
+```json5
+{
+  agents: {
+    list: [
+      {
+        id: "orchestrator",
+        subagents: {
+          allowAgents: ["researcher", "coder"], // or ["*"] to allow any
+        },
+      },
+    ],
+  },
+}
+```
+
+<Tip>
+Use the `agents_list` tool to discover which agent ids are currently allowed for `sessions_spawn`.
+</Tip>
+
+## Managing Sub-Agents (`/subagents`)
+
+Use the `/subagents` slash command to inspect and control sub-agent runs for the current session:
+
+| Commande                                   | Description                                                       |
+| ------------------------------------------ | ----------------------------------------------------------------- |
+| `/subagents list`                          | List all sub-agent runs (active and completed) |
+| `/subagents stop <id\\|#\\|all>`         | Stop a running sub-agent                                          |
+| `/subagents log <id\\|#> [limit] [tools]` | View sub-agent transcript                                         |
+| `/subagents info <id\\|#>`                | Show detailed run metadata                                        |
+| `/subagents send <id\\|#> <message>`      | Send a message to a running sub-agent                             |
+
+You can reference sub-agents by list index (`1`, `2`), run id prefix, full session key, or `last`.
+
+<AccordionGroup>
+  <Accordion title="Example: list and stop a sub-agent">
+    ```
+    /subagents list
+    ```
+
+    ````
+    ```
+    🧭 Subagents (current session)
+    Active: 1 · Done: 2
+    1) ✅ · research logs · 2m31s · run a1b2c3d4 · agent:main:subagent:...
+    2) ✅ · check deps · 45s · run e5f6g7h8 · agent:main:subagent:...
+    3) 🔄 · deploy staging · 1m12s · run i9j0k1l2 · agent:main:subagent:...
+    ```
+    
+    ```
+    /subagents stop 3
+    ```
+    
+    ```
+    ⚙️ Stop requested for deploy staging.
+    ```
+    ````
+
+  </Accordion>
+  <Accordion title="Example: inspect a sub-agent">
+    ```
+    /subagents info 1
+    ```
+
+    ````
+    ```
+    ℹ️ Subagent info
+    Status: ✅
+    Label: research logs
+    Task: Research the latest server error logs and summarize findings
+    Run: a1b2c3d4-...
+    Session: agent:main:subagent:...
+    Runtime: 2m31s
+    Cleanup: keep
+    Outcome: ok
+    ```
+    ````
+
+  </Accordion>
+  <Accordion title="Example: view sub-agent log">
+    ```
+    /subagents log 1 10
+    ```
+
+    ````
+    Shows the last 10 messages from the sub-agent's transcript. Add `tools` to include tool call messages:
+    
+    ```
+    /subagents log 1 10 tools
+    ```
+    ````
+
+  </Accordion>
+  <Accordion title="Example: send a follow-up message">
+    ```
+    /subagents send 3 "Also check the staging environment"
+    ```
+
+    ```
+    Sends a message into the running sub-agent's session and waits up to 30 seconds for a reply.
+    ```
+
+  </Accordion>
+</AccordionGroup>
+
+## Announce (How Results Come Back)
+
+When a sub-agent finishes, it goes through an **announce** step:
+
+1. The sub-agent's final reply is captured
+2. A summary message is sent to the main agent's session with the result, status, and stats
+3. The main agent posts a natural-language summary to your chat
+
+Les réponses d’annonce conservent l’acheminement par fil/sujet lorsque disponible (fils Slack, sujets Telegram, fils Matrix).
+
+### Announce Stats
+
+Each announce includes a stats line with:
+
+- Runtime duration
+- Consommation de tokens (entrée/sortie/total)
+- Estimated cost (when model pricing is configured via `models.providers.*.models[].cost`)
+- Session key, session id, and transcript path
+
+### Announce Status
+
+The announce message includes a status derived from the runtime outcome (not from model output):
+
+- **successful completion** (`ok`) — task completed normally
+- **error** — task failed (error details in notes)
+- **timeout** — task exceeded `runTimeoutSeconds`
+- **unknown** — status could not be determined
+
+<Tip>
+If no user-facing announcement is needed, the main-agent summarize step can return `NO_REPLY` and nothing is posted.
+This is different from `ANNOUNCE_SKIP`, which is used in agent-to-agent announce flow (`sessions_send`).
+</Tip>
+
+## Tool Policy
+
+By default, sub-agents get **all tools except** a set of denied tools that are unsafe or unnecessary for background tasks:
+
+<AccordionGroup>
+  <Accordion title="Default denied tools">
+    | Denied tool | Reason |
+    |-------------|--------|
+    | `sessions_list` | Session management — main agent orchestrates |
+    | `sessions_history` | Session management — main agent orchestrates |
+    | `sessions_send` | Session management — main agent orchestrates |
+    | `sessions_spawn` | No nested fan-out (sub-agents cannot spawn sub-agents) |
+    | `gateway` | System admin — dangerous from sub-agent |
+    | `agents_list` | System admin |
+    | `whatsapp_login` | Interactive setup — not a task |
+    | `session_status` | Status/scheduling — main agent coordinates |
+    | `cron` | Status/scheduling — main agent coordinates |
+    | `memory_search` | Pass relevant info in spawn prompt instead |
+    | `memory_get` | Pass relevant info in spawn prompt instead |
+  </Accordion>
+</AccordionGroup>
+
+### Customizing Sub-Agent Tools
+
+You can further restrict sub-agent tools:
+
+```json5
+{
+  tools: {
+    subagents: {
+      tools: {
+        // deny always wins over allow
+        deny: ["browser", "firecrawl"],
+      },
+    },
+  },
+}
+```
+
+To restrict sub-agents to **only** specific tools:
+
+```json5
+{
+  tools: {
+    subagents: {
+      tools: {
+        allow: ["read", "exec", "process", "write", "edit", "apply_patch"],
+        // deny still wins if set
+      },
+    },
+  },
+}
+```
+
+<Note>
+Custom deny entries are **added to** the default deny list. If `allow` is set, only those tools are available (the default deny list still applies on top).
+</Note>
+
+## Authentification
+
+L’authentification des sous-agents est résolue par **identifiant d’agent**, et non par type de session :
+
+- The auth store is loaded from the target agent's `agentDir`
+- The main agent's auth profiles are merged in as a **fallback** (agent profiles win on conflicts)
+- The merge is additive — main profiles are always available as fallbacks
+
+<Note>
+Fully isolated auth per sub-agent is not currently supported.
+</Note>
+
+## Context and System Prompt
+
+Sub-agents receive a reduced system prompt compared to the main agent:
+
+- **Included:** Tooling, Workspace, Runtime sections, plus `AGENTS.md` and `TOOLS.md`
+- **Not included:** `SOUL.md`, `IDENTITY.md`, `USER.md`, `HEARTBEAT.md`, `BOOTSTRAP.md`
+
+The sub-agent also receives a task-focused system prompt that instructs it to stay focused on the assigned task, complete it, and not act as the main agent.
+
+## Stopping Sub-Agents
+
+| Method                 | Effect                                                                    |
+| ---------------------- | ------------------------------------------------------------------------- |
+| `/stop` in the chat    | Aborts the main session **and** all active sub-agent runs spawned from it |
+| `/subagents stop <id>` | Stops a specific sub-agent without affecting the main session             |
+| `runTimeoutSeconds`    | Automatically aborts the sub-agent run after the specified time           |
+
+<Note>
+`runTimeoutSeconds` does **not** auto-archive the session. The session remains until the normal archive timer fires.
+</Note>
+
+## Full Configuration Example
+
+<Accordion title="Complete sub-agent configuration">
+```json5
+{
+  agents: {
+    defaults: {
+      model: { primary: "anthropic/claude-sonnet-4" },
+      subagents: {
+        model: "minimax/MiniMax-M2.1",
+        thinking: "low",
+        maxConcurrent: 4,
+        archiveAfterMinutes: 30,
+      },
+    },
+    list: [
+      {
+        id: "main",
+        default: true,
+        name: "Personal Assistant",
+      },
+      {
+        id: "ops",
+        name: "Ops Agent",
+        subagents: {
+          model: "anthropic/claude-sonnet-4",
+          allowAgents: ["main"], // ops can spawn sub-agents under "main"
+        },
+      },
+    ],
+  },
+  tools: {
+    subagents: {
+      tools: {
+        deny: ["browser"], // sub-agents can't use the browser
+      },
+    },
+  },
+}
+```
+</Accordion>
 
 ## Limitations
 
-- L’annonce des sous-agents est réalisée **au mieux**. Si la Gateway (passerelle) redémarre, les travaux « d’annonce de retour » en attente sont perdus.
-- Les sous-agents partagent toujours les mêmes ressources de processus de la Gateway (passerelle) ; considérez `maxConcurrent` comme une soupape de sécurité.
-- `sessions_spawn` est toujours non bloquant : il renvoie immédiatement `{ status: "accepted", runId, childSessionKey }`.
-- Le contexte du sous-agent n’injecte que `AGENTS.md` + `TOOLS.md` (pas de `SOUL.md`, `IDENTITY.md`, `USER.md`, `HEARTBEAT.md` ni `BOOTSTRAP.md`).
+<Warning>
+- **Best-effort announce:** If the gateway restarts, pending announce work is lost.
+- **No nested spawning:** Sub-agents cannot spawn their own sub-agents.
+- **Shared resources:** Sub-agents share the gateway process; use `maxConcurrent` as a safety valve.
+- **Auto-archive is best-effort:** Pending archive timers are lost on gateway restart.
+</Warning>
+
+## Voir aussi
+
+- [Session Tools](/concepts/session-tool) — details on `sessions_spawn` and other session tools
+- [Multi-Agent Sandbox and Tools](/tools/multi-agent-sandbox-tools) — per-agent tool restrictions and sandboxing
+- [Configuration](/gateway/configuration) — `agents.defaults.subagents` reference
+- [Queue](/concepts/queue) — how the `subagent` lane works

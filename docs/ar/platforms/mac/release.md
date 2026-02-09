@@ -31,35 +31,35 @@ title: "إصدار macOS"
 - استخدم `scripts/package-mac-dist.sh` لأصول الإصدار (zip + DMG + التوثيق). استخدم `scripts/package-mac-app.sh` للتغليف المحلي/التطويري.
 
 ```bash
-# From repo root; set release IDs so Sparkle feed is enabled.
-# APP_BUILD must be numeric + monotonic for Sparkle compare.
+21. # من جذر المستودع؛ عيّن معرفات الإصدار لتمكين تغذية Sparkle.
+# يجب أن يكون APP_BUILD رقمياً ومتزايداً لمقارنة Sparkle.
 BUNDLE_ID=bot.molt.mac \
-APP_VERSION=2026.2.6 \
+APP_VERSION=2026.2.9 \
 APP_BUILD="$(git rev-list --count HEAD)" \
 BUILD_CONFIG=release \
 SIGN_IDENTITY="Developer ID Application: <Developer Name> (<TEAMID>)" \
 scripts/package-mac-app.sh
 
-# Zip for distribution (includes resource forks for Sparkle delta support)
-ditto -c -k --sequesterRsrc --keepParent dist/OpenClaw.app dist/OpenClaw-2026.2.6.zip
+# ضغط للتوزيع (يتضمن resource forks لدعم Sparkle delta)
+ditto -c -k --sequesterRsrc --keepParent dist/OpenClaw.app dist/OpenClaw-2026.2.9.zip
 
-# Optional: also build a styled DMG for humans (drag to /Applications)
-scripts/create-dmg.sh dist/OpenClaw.app dist/OpenClaw-2026.2.6.dmg
+# اختياري: أيضاً أنشئ DMG مُنسّق للبشر (سحب إلى /Applications)
+scripts/create-dmg.sh dist/OpenClaw.app dist/OpenClaw-2026.2.9.dmg
 
-# Recommended: build + notarize/staple zip + DMG
-# First, create a keychain profile once:
+# موصى به: البناء + التوثيق/notarize وإرفاق zip + DMG
+# أولاً، أنشئ ملف تعريف لسلسلة المفاتيح مرة واحدة:
 #   xcrun notarytool store-credentials "openclaw-notary" \
 #     --apple-id "<apple-id>" --team-id "<team-id>" --password "<app-specific-password>"
 NOTARIZE=1 NOTARYTOOL_PROFILE=openclaw-notary \
 BUNDLE_ID=bot.molt.mac \
-APP_VERSION=2026.2.6 \
+APP_VERSION=2026.2.9 \
 APP_BUILD="$(git rev-list --count HEAD)" \
 BUILD_CONFIG=release \
 SIGN_IDENTITY="Developer ID Application: <Developer Name> (<TEAMID>)" \
 scripts/package-mac-dist.sh
 
-# Optional: ship dSYM alongside the release
-ditto -c -k --keepParent apps/macos/.build/release/OpenClaw.app.dSYM dist/OpenClaw-2026.2.6.dSYM.zip
+# اختياري: شحن dSYM إلى جانب الإصدار
+ditto -c -k --keepParent apps/macos/.build/release/OpenClaw.app.dSYM dist/OpenClaw-2026.2.9.dSYM.zip
 ```
 
 ## إدخال Appcast
@@ -67,7 +67,7 @@ ditto -c -k --keepParent apps/macos/.build/release/OpenClaw.app.dSYM dist/OpenCl
 استخدم مولّد ملاحظات الإصدار لكي يعرض Sparkle ملاحظات HTML منسّقة:
 
 ```bash
-SPARKLE_PRIVATE_KEY_FILE=/path/to/ed25519-private-key scripts/make_appcast.sh dist/OpenClaw-2026.2.6.zip https://raw.githubusercontent.com/openclaw/openclaw/main/appcast.xml
+22. SPARKLE_PRIVATE_KEY_FILE=/path/to/ed25519-private-key scripts/make_appcast.sh dist/OpenClaw-2026.2.9.zip https://raw.githubusercontent.com/openclaw/openclaw/main/appcast.xml
 ```
 
 يُنشئ ملاحظات إصدار HTML من `CHANGELOG.md` (عبر [`scripts/changelog-to-html.sh`](https://github.com/openclaw/openclaw/blob/main/scripts/changelog-to-html.sh)) ويضمّنها في إدخال appcast.
@@ -75,7 +75,7 @@ SPARKLE_PRIVATE_KEY_FILE=/path/to/ed25519-private-key scripts/make_appcast.sh di
 
 ## النشر والتحقق
 
-- ارفع `OpenClaw-2026.2.6.zip` (و`OpenClaw-2026.2.6.dSYM.zip`) إلى إصدار GitHub للوسم `v2026.2.6`.
+- 23. ارفع `OpenClaw-2026.2.9.zip` (و `OpenClaw-2026.2.9.dSYM.zip`) إلى إصدار GitHub للوسم `v2026.2.9`.
 - تأكّد من أن رابط appcast الخام يطابق الخلاصة المضمّنة: `https://raw.githubusercontent.com/openclaw/openclaw/main/appcast.xml`.
 - التحقق من المتعة:
   - `curl -I https://raw.githubusercontent.com/openclaw/openclaw/main/appcast.xml` يُرجع 200.

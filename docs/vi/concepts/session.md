@@ -106,7 +106,7 @@ the workspace is writable. See [Memory](/concepts/memory) and
 - Daily reset: defaults to **4:00 AM local time on the gateway host**. A session is stale once its last update is earlier than the most recent daily reset time.
 - Đặt lại khi nhàn rỗi (tùy chọn): `idleMinutes` thêm một cửa sổ nhàn rỗi trượt. Khi cả đặt lại theo ngày và theo nhàn rỗi đều được cấu hình, **cái nào hết hạn trước** sẽ buộc tạo phiên mới.
 - Chỉ nhàn rỗi (cũ): nếu bạn đặt `session.idleMinutes` mà không có bất kỳ cấu hình `session.reset`/`resetByType` nào, OpenClaw sẽ ở chế độ chỉ nhàn rỗi để tương thích ngược.
-- Ghi đè theo loại (tùy chọn): `resetByType` cho phép ghi đè chính sách cho các phiên `dm`, `group` và `thread` (thread = thread Slack/Discord, chủ đề Telegram, thread Matrix khi connector cung cấp).
+- Per-type overrides (optional): `resetByType` lets you override the policy for `direct`, `group`, and `thread` sessions (thread = Slack/Discord threads, Telegram topics, Matrix threads when provided by the connector).
 - Ghi đè theo kênh (tùy chọn): `resetByChannel` ghi đè chính sách đặt lại cho một kênh (áp dụng cho mọi loại phiên của kênh đó và ưu tiên hơn `reset`/`resetByType`).
 - Reset triggers: exact `/new` or `/reset` (plus any extras in `resetTriggers`) start a fresh session id and pass the remainder of the message through. `/new <model>` accepts a model alias, `provider/model`, or provider name (fuzzy match) to set the new session model. Nếu gửi `/new` hoặc `/reset` riêng lẻ, OpenClaw sẽ chạy một lượt chào ngắn “hello” để xác nhận việc đặt lại.
 - Đặt lại thủ công: xóa các khóa cụ thể khỏi kho hoặc xóa transcript JSONL; tin nhắn tiếp theo sẽ tạo lại chúng.
@@ -157,7 +157,7 @@ Ghi đè lúc chạy (chỉ chủ sở hữu):
     },
     resetByType: {
       thread: { mode: "daily", atHour: 4 },
-      dm: { mode: "idle", idleMinutes: 240 },
+      direct: { mode: "idle", idleMinutes: 240 },
       group: { mode: "idle", idleMinutes: 120 },
     },
     resetByChannel: {

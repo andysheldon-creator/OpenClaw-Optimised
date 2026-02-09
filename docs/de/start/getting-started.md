@@ -106,6 +106,16 @@ Wenn die Control UI lädt, ist Ihr Gateway einsatzbereit.
   </Accordion>
 </AccordionGroup>
 
+## Nützliche Umgebungsvariablen
+
+Wenn Sie OpenClaw als Dienstkonto ausführen oder benutzerdefinierte Konfigurations-/Statusspeicherorte verwenden möchten:
+
+- `OPENCLAW_HOME` legt das Home-Verzeichnis fest, das für die interne Pfadauflösung verwendet wird.
+- `OPENCLAW_STATE_DIR` überschreibt das Statusverzeichnis.
+- `OPENCLAW_CONFIG_PATH` überschreibt den Pfad zur Konfigurationsdatei.
+
+Vollständige Referenz der Umgebungsvariablen: [Environment vars](/help/environment).
+
 ## Tiefer gehen
 
 <Columns>

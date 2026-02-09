@@ -107,7 +107,7 @@ JSONL 履歴は **書き換えられません** 。 [/concepts/session-pruning](
 - 毎日のリセット: ゲートウェイホストでは、デフォルトは **4:00 AM ローカル時間** に設定します。 デイリーリセット: デフォルトは **Gateway ホストのローカル時刻で午前 4:00** です。最終更新が直近のデイリーリセット時刻より前の場合、セッションは古いとみなされます。
 - アイドルリセット(オプション):`idleMinutes`はスライドアイドルウィンドウを追加します。 デイリーリセットとアイドルリセットの両方が設定されている場合、**どちらかの有効期限が切れる**は新しいセッションを強制します。
 - 従来のアイドルのみモード: `session.idleMinutes` を設定し、`session.reset`/`resetByType` の設定がない場合、後方互換性のため OpenClaw はアイドルのみモードのまま動作します。
-- タイプ別オーバーライド（任意）: `resetByType` により、`dm`、`group`、および `thread` セッションのポリシーを上書きできます（thread = Slack/Discord スレッド、Telegram トピック、コネクターが提供する場合は Matrix スレッド）。
+- タイプ別の上書き（任意）: `resetByType` を使うと、`direct`、`group`、`thread` セッション（thread = Slack/Discord のスレッド、Telegram トピック、コネクタが提供する場合の Matrix スレッド）ごとにポリシーを上書きできます。
 - チャンネル別オーバーライド（任意）: `resetByChannel` はチャンネル単位でリセットポリシーを上書きします（そのチャンネルのすべてのセッションタイプに適用され、`reset`/`resetByType` より優先されます）。
 - リセットトリガー: 正確な `/new` または `/reset`（および `resetTriggers` 内の追加要素）に一致すると、新しいセッション ID が開始され、残りのメッセージが処理されます。`/new <model>` はモデルエイリアス、`provider/model`、またはプロバイダー名（あいまい一致）を受け取り、新しいセッションモデルを設定します。`/new` または `/reset` のみが送信された場合、OpenClaw は短い「hello」挨拶ターンを実行してリセットを確認します。 `/new <model>`はモデルエイリアス、`provider/model`、またはプロバイダ名（ファジーマッチ）を受け付け、新しいセッションモデルを設定します。 `/new`または`/reset`が単独で送信された場合、OpenClawはリセットを確認するために短い「hello」グリーティングターンを実行します。
 - 手動リセット: ストアから特定のキーを削除するか、JSONL トランスクリプトを削除します。次のメッセージで再作成されます。
@@ -144,21 +144,21 @@ JSONL 履歴は **書き換えられません** 。 [/concepts/session-pruning](
 // ~/.openclaw/openclaw.json
 {
   session: {
-    scope: "per-sender", // keep group keys separate
-    dmScope: "main", // DM continuity (set per-channel-peer/per-account-channel-peer for shared inboxes)
+    scope: "per-sender", // グループキーを分離
+    dmScope: "main", // DM の継続性（共有受信箱では per-channel-peer / per-account-channel-peer を設定）
     identityLinks: {
       alice: ["telegram:123456789", "discord:987654321012345678"],
     },
     reset: {
-      // Defaults: mode=daily, atHour=4 (gateway host local time).
-      // If you also set idleMinutes, whichever expires first wins.
+      // 既定: mode=daily, atHour=4（ゲートウェイホストのローカル時間）。
+      // idleMinutes も設定した場合、先に期限が来た方が有効。
       mode: "daily",
       atHour: 4,
       idleMinutes: 120,
     },
     resetByType: {
       thread: { mode: "daily", atHour: 4 },
-      dm: { mode: "idle", idleMinutes: 240 },
+      direct: { mode: "idle", idleMinutes: 240 },
       group: { mode: "idle", idleMinutes: 120 },
     },
     resetByChannel: {

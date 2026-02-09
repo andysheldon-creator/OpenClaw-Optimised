@@ -74,6 +74,32 @@ Env var equalents:
 
 詳細は「[Configuration: Env var substitution](/gateway/configuration#env-var-substitution-in-config)」を参照してください。
 
+## パス関連の環境変数
+
+| 変数                     | 目的                                                                                                              |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `OPENCLAW_HOME`        | すべての内部パス解決（`~/.openclaw/`、エージェントディレクトリ、セッション、認証情報）で使用されるホームディレクトリを上書きします。 専用のサービスユーザーとして OpenClaw を実行する場合に便利です。 |
+| `OPENCLAW_STATE_DIR`   | 状態ディレクトリを上書きします（デフォルトは `~/.openclaw`）。                                                                          |
+| `OPENCLAW_CONFIG_PATH` | 設定ファイルのパスを上書きします（デフォルトは `~/.openclaw/openclaw.json`）。                                                           |
+
+### `OPENCLAW_HOME`
+
+設定されている場合、`OPENCLAW_HOME` はすべての内部パス解決において、システムのホームディレクトリ（`$HOME` / `os.homedir()`）を置き換えます。 これにより、ヘッドレスなサービスアカウント向けに完全なファイルシステム分離が可能になります。
+
+**優先順位:** `OPENCLAW_HOME` > `$HOME` > `USERPROFILE` > `os.homedir()`
+
+**例**（macOS LaunchDaemon）:
+
+```xml
+<key>EnvironmentVariables</key>
+<dict>
+  <key>OPENCLAW_HOME</key>
+  <string>/Users/kira</string>
+</dict>
+```
+
+`OPENCLAW_HOME` はチルダパス（例: `~/svc`）にも設定でき、その場合は使用前に `$HOME` を用いて展開されます。
+
 ## 関連
 
 - [Gateway 設定](/gateway/configuration)

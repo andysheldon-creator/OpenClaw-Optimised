@@ -74,6 +74,32 @@ Sie können Umgebungsvariablen direkt in Konfigurations-Stringwerten referenzier
 
 Siehe [Konfiguration: Ersetzung von Umgebungsvariablen](/gateway/configuration#env-var-substitution-in-config) für vollständige Details.
 
+## Path-related env vars
+
+| Variable               | Zweck                                                                                                                                                                                                                               |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `OPENCLAW_HOME`        | Override the home directory used for all internal path resolution (`~/.openclaw/`, agent dirs, sessions, credentials). Useful when running OpenClaw as a dedicated service user. |
+| `OPENCLAW_STATE_DIR`   | Override the state directory (default `~/.openclaw`).                                                                                                                                            |
+| `OPENCLAW_CONFIG_PATH` | Überschreiben des Pfads zur Konfigurationsdatei (Standard `~/.openclaw/openclaw.json`).                                                                                                          |
+
+### `OPENCLAW_HOME`
+
+Wenn gesetzt, ersetzt `OPENCLAW_HOME` das System-Home-Verzeichnis (`$HOME` / `os.homedir()`) für die gesamte interne Pfadauflösung. Dies ermöglicht eine vollständige Dateisystem-Isolation für headless Service-Accounts.
+
+**Priorität:** `OPENCLAW_HOME` > `$HOME` > `USERPROFILE` > `os.homedir()`
+
+**Beispiel** (macOS LaunchDaemon):
+
+```xml
+<key>EnvironmentVariables</key>
+<dict>
+  <key>OPENCLAW_HOME</key>
+  <string>/Users/kira</string>
+</dict>
+```
+
+`OPENCLAW_HOME` kann auch auf einen Tilde-Pfad gesetzt werden (z. B. `~/svc`), der vor der Verwendung mithilfe von `$HOME` expandiert wird.
+
 ## Verwandt
 
 - [Gateway-Konfiguration](/gateway/configuration)

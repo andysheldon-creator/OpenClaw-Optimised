@@ -52,6 +52,23 @@ Behandl disse som følsomme (de styrer adgangen til din assistent).
 Knuder forbinder til Gateway som **enheder** med `rolle: node`. Gateway
 opretter en enhedsparringsanmodning, der skal godkendes.
 
+### Par via Telegram (anbefalet til iOS)
+
+Hvis du bruger `device-pair`-pluginet, kan du foretage førstegangs-parring af enhed helt fra Telegram:
+
+1. I Telegram, send en besked til din bot: `/pair`
+2. Botten svarer med to beskeder: en instruktionsbesked og en separat **opsætningskode** (nem at kopiere/indsætte i Telegram).
+3. På din telefon skal du åbne OpenClaw iOS-appen → Indstillinger → Gateway.
+4. Indsæt opsætningskoden og opret forbindelse.
+5. Tilbage i Telegram: `/pair approve`
+
+Opsætningskoden er en base64-kodet JSON-payload, der indeholder:
+
+- `url`: Gateway WebSocket-URL'en (`ws://...` eller `wss://...`)
+- `token`: en kortlivet parrings-token
+
+Behandl opsætningskoden som en adgangskode, mens den er gyldig.
+
 ### Godkend en node-enhed
 
 ```bash

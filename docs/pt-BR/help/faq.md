@@ -805,7 +805,7 @@ Veja [/channels/telegram](/channels/telegram#access-control-dms--groups).
 
 ### Pode várias pessoas usar um número de WhatsApp com diferentes instâncias OpenClaw
 
-Sim, através de **roteamento com vários agentes**. Vincule o WhatsApp de cada remetente **DM** (`tyd: "dm"`, remetente E. 64 como `+15551234567`) para um `agentId` diferente, para que cada pessoa obtenha sua própria área de trabalho e loja de sessão. As respostas ainda vêm da **mesma conta do WhatsApp** e do controle de acesso do DM (`channels.whatsapp.dmPolicy` / `channels.whatsapp.allowFrom`) é global por conta do WhatsApp. Veja [Roteamento do Multiagente](/concepts/multi-agent) e [WhatsApp](/channels/whatsapp).
+Sim, através de **roteamento com vários agentes**. Associe o **DM** do WhatsApp de cada remetente (peer `kind: "direct"`, remetente em E.164 como `+15551234567`) a um `agentId` diferente, para que cada pessoa tenha seu próprio workspace e armazenamento de sessão. As respostas ainda vêm da **mesma conta do WhatsApp** e do controle de acesso do DM (`channels.whatsapp.dmPolicy` / `channels.whatsapp.allowFrom`) é global por conta do WhatsApp. Veja [Roteamento do Multiagente](/concepts/multi-agent) e [WhatsApp](/channels/whatsapp).
 
 ### Posso executar um rápido agente de bate-papo e um Opus para codificar
 

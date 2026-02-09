@@ -106,7 +106,7 @@ el espacio de trabajo es escribible. Consulte [Memory](/concepts/memory) y
 - Reinicio diario: predetermina a **4:00 AM hora local en el host del Gateway**. Una sesión está obsoleta una vez que su última actualización es anterior al tiempo de reinicio diario más reciente.
 - Reinicio por inactividad (opcional): `idleMinutes` agrega una ventana deslizante de inactividad. Cuando se configuran reinicios diarios e inactividad, **el que expire primero** fuerza una nueva sesión.
 - Solo inactividad heredado: si configura `session.idleMinutes` sin ninguna configuración de `session.reset`/`resetByType`, OpenClaw permanece en modo solo inactividad por compatibilidad hacia atrás.
-- Anulaciones por tipo (opcional): `resetByType` le permite anular la política para sesiones `dm`, `group` y `thread` (hilo = hilos de Slack/Discord, temas de Telegram, hilos de Matrix cuando el conector los proporciona).
+- Per-type overrides (optional): `resetByType` lets you override the policy for `direct`, `group`, and `thread` sessions (thread = Slack/Discord threads, Telegram topics, Matrix threads when provided by the connector).
 - Anulaciones por canal (opcional): `resetByChannel` anula la política de reinicio para un canal (se aplica a todos los tipos de sesión para ese canal y tiene prioridad sobre `reset`/`resetByType`).
 - Disparadores de reinicio: los `/new` o `/reset` exactos (más cualquier extra en `resetTriggers`) inician un id de sesión nuevo y pasan el resto del mensaje. `/new <model>` acepta un alias de modelo, `provider/model` o nombre de proveedor (coincidencia difusa) para establecer el modelo de la nueva sesión. Si `/new` o `/reset` se envía solo, OpenClaw ejecuta un breve turno de saludo “hola” para confirmar el reinicio.
 - Reinicio manual: elimine claves específicas del almacén o quite la transcripción JSONL; el siguiente mensaje las recrea.
@@ -157,7 +157,7 @@ Anulación en tiempo de ejecución (solo propietario):
     },
     resetByType: {
       thread: { mode: "daily", atHour: 4 },
-      dm: { mode: "idle", idleMinutes: 240 },
+      direct: { mode: "idle", idleMinutes: 240 },
       group: { mode: "idle", idleMinutes: 120 },
     },
     resetByChannel: {

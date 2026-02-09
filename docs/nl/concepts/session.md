@@ -106,7 +106,7 @@ alleen wanneer de werkruimte schrijfbaar is. Zie [Memory](/concepts/memory) en
 - Dagelijkse reset: standaard **04:00 lokale tijd op de Gateway-host**. Een sessie is verouderd zodra de laatste update eerder is dan het meest recente dagelijkse resetmoment.
 - Inactiviteitsreset (optioneel): `idleMinutes` voegt een schuivend inactiviteitsvenster toe. Wanneer zowel dagelijkse als inactiviteitsresets zijn geconfigureerd, **dwingt degene die het eerst verloopt** een nieuwe sessie af.
 - Legacy alleen-inactiviteit: als je `session.idleMinutes` instelt zonder enige `session.reset`/`resetByType`-configuratie, blijft OpenClaw omwille van achterwaartse compatibiliteit in alleen-inactiviteitsmodus.
-- Overrides per type (optioneel): `resetByType` laat je het beleid overschrijven voor `dm`-, `group`- en `thread`-sessies (thread = Slack/Discord-threads, Telegram-onderwerpen, Matrix-threads wanneer geleverd door de connector).
+- Per-type overrides (optioneel): `resetByType` laat je het beleid overschrijven voor `direct`, `group` en `thread`-sessies (thread = Slack/Discord-threads, Telegram-topics, Matrix-threads wanneer geleverd door de connector).
 - Overrides per kanaal (optioneel): `resetByChannel` overschrijft het resetbeleid voor een kanaal (geldt voor alle sessietypen voor dat kanaal en heeft voorrang op `reset`/`resetByType`).
 - Reset-triggers: exact `/new` of `/reset` (plus eventuele extra's in `resetTriggers`) starten een nieuwe sessie-id en geven de rest van het bericht door. `/new <model>` accepteert een model-alias, `provider/model` of providernaam (fuzzy match) om het nieuwe sessiemodel in te stellen. Als `/new` of `/reset` alleen wordt verzonden, voert OpenClaw een korte “hallo”-groetbeurt uit om de reset te bevestigen.
 - Handmatige reset: verwijder specifieke sleutels uit de opslag of verwijder het JSONL-transcript; het volgende bericht maakt ze opnieuw aan.
@@ -143,21 +143,21 @@ Runtime-override (alleen eigenaar):
 // ~/.openclaw/openclaw.json
 {
   session: {
-    scope: "per-sender", // keep group keys separate
-    dmScope: "main", // DM continuity (set per-channel-peer/per-account-channel-peer for shared inboxes)
+    scope: "per-sender", // groepssleutels gescheiden houden
+    dmScope: "main", // DM-continuïteit (instellen per-channel-peer/per-account-channel-peer voor gedeelde inboxen)
     identityLinks: {
       alice: ["telegram:123456789", "discord:987654321012345678"],
     },
     reset: {
-      // Defaults: mode=daily, atHour=4 (gateway host local time).
-      // If you also set idleMinutes, whichever expires first wins.
+      // Standaarden: mode=daily, atHour=4 (lokale tijd van de gateway-host).
+      // Als je ook idleMinutes instelt, wint degene die het eerst verloopt.
       mode: "daily",
       atHour: 4,
       idleMinutes: 120,
     },
     resetByType: {
       thread: { mode: "daily", atHour: 4 },
-      dm: { mode: "idle", idleMinutes: 240 },
+      direct: { mode: "idle", idleMinutes: 240 },
       group: { mode: "idle", idleMinutes: 120 },
     },
     resetByChannel: {

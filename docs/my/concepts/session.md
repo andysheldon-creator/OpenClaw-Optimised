@@ -103,7 +103,7 @@ OpenClaw သည် LLM ခေါ်ဆိုမှုမတိုင်မီ �
 - နေ့စဉ် reset: မူလတန်ဖိုးမှာ **gateway host ၏ local time အရ မနက် 4:00 နာရီ** ဖြစ်ပါသည်။ စက်ရှင်၏ နောက်ဆုံးအပ်ဒိတ်သည် နောက်ဆုံးနေ့စဉ် ပြန်လည်သတ်မှတ်ချိန်ထက် စောပါက စက်ရှင်ကို stale ဟု သတ်မှတ်သည်။
 - မလှုပ်ရှားမှုအပေါ် အခြေခံသည့် ပြန်လည်သတ်မှတ်ခြင်း (ရွေးချယ်နိုင်): `idleMinutes` သည် လှိုင်းလျှော မလှုပ်ရှားမှု ပြတင်းပေါက်တစ်ခု ထည့်ပေါင်းသည်။ နေ့စဉ်နှင့် မလှုပ်ရှားမှု ပြန်လည်သတ်မှတ်ချက် နှစ်ခုလုံးကို သတ်မှတ်ထားပါက **အရင်ဆုံး သက်တမ်းကုန်သည့်အရာ** သည် စက်ရှင်အသစ်ကို အတင်းအကျပ် စတင်စေသည်။
 - Legacy idle-only: `session.idleMinutes` ကို `session.reset`/`resetByType` မပါဘဲ သတ်မှတ်ထားပါက backward compatibility အတွက် OpenClaw သည် idle-only mode တွင် ဆက်လက် ရှိနေမည်ဖြစ်သည်။
-- Per-type override (ရွေးချယ်နိုင်): `resetByType` သည် `dm`, `group`, နှင့် `thread` ဆက်ရှင်များအတွက် မူဝါဒကို ပြန်လည်သတ်မှတ်နိုင်စေသည် (thread = Slack/Discord threads, Telegram topics, Matrix threads ကို connector မှ ပံ့ပိုးပေးသည့်အခါ)။
+- Type အလိုက် override (ရွေးချယ်နိုင်): `resetByType` သည် `direct`, `group`, နှင့် `thread` session များအတွက် policy ကို override လုပ်ခွင့်ပေးပါသည် (thread = Slack/Discord threads, Telegram topics, Matrix threads ကို connector က ပေးသောအခါ)။
 - Per-channel override (ရွေးချယ်နိုင်): `resetByChannel` သည် ချန်နယ်တစ်ခုအတွက် reset မူဝါဒကို ပြန်လည်သတ်မှတ်ပြီး (`reset`/`resetByType` ထက် ဦးစားပေး အသက်ဝင်သည်) ချန်နယ်အတွက် ဆက်ရှင်အမျိုးအစားအားလုံးတွင် အသက်ဝင်သည်။
 - Reset triggers: တိတိကျကျ `/new` သို့မဟုတ် `/reset` (နှင့် `resetTriggers` ထဲရှိ အပိုများ) သည် session id အသစ်ကို စတင်ပြီး မက်ဆေ့ချ်၏ ကျန်ရှိသော အပိုင်းကို ဆက်လက်ပို့ဆောင်ပါသည်။ `/new <model>` သည် မော်ဒယ် alias၊ `provider/model` သို့မဟုတ် provider အမည် (fuzzy match) ကို လက်ခံပြီး စက်ရှင်အသစ်၏ မော်ဒယ်ကို သတ်မှတ်သည်။ `/new` သို့မဟုတ် `/reset` ကို တစ်ခုတည်းပို့ပါက OpenClaw သည် ပြန်လည်သတ်မှတ်မှုကို အတည်ပြုရန် အတိုချုံး “မင်္ဂလာပါ” နှုတ်ဆက်အလှည့်ကို လုပ်ဆောင်သည်။
 - Manual reset: Store ထဲမှ သီးခြားကီးများကို ဖျက်ခြင်း သို့မဟုတ် JSONL transcript ကို ဖယ်ရှားပါ။ နောက်လာမည့် မက်ဆေ့ချ်တွင် ၎င်းတို့ကို ပြန်လည်ဖန်တီးမည်ဖြစ်သည်။
@@ -154,7 +154,7 @@ Runtime override (ပိုင်ရှင်သာ):
     },
     resetByType: {
       thread: { mode: "daily", atHour: 4 },
-      dm: { mode: "idle", idleMinutes: 240 },
+      direct: { mode: "idle", idleMinutes: 240 },
       group: { mode: "idle", idleMinutes: 120 },
     },
     resetByChannel: {

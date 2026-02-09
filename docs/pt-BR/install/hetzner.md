@@ -113,12 +113,10 @@ Contêineres Docker são efêmeros.
 Todo estado de longa duração deve viver no host.
 
 ```bash
-mkdir -p /root/.openclaw
 mkdir -p /root/.openclaw/workspace
 
 # Set ownership to the container user (uid 1000):
 chown -R 1000:1000 /root/.openclaw
-chown -R 1000:1000 /root/.openclaw/workspace
 ```
 
 ---
@@ -192,8 +190,11 @@ services:
         "${OPENCLAW_GATEWAY_BIND}",
         "--port",
         "${OPENCLAW_GATEWAY_PORT}",
+        "--allow-unconfigured",
       ]
 ```
+
+`--allow-unconfigured` é apenas para conveniência de bootstrap; não substitui uma configuração adequada do gateway. Ainda configure a autenticação (`gateway.auth.token` ou senha) e use configurações de bind seguras para sua implantação.
 
 ---
 

@@ -491,14 +491,14 @@ Använd `bindings` för att routa Feishu-DM eller grupper till olika agenter.
       agentId: "main",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_xxx" },
+        peer: { kind: "direct", id: "ou_xxx" },
       },
     },
     {
       agentId: "clawd-fan",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_yyy" },
+        peer: { kind: "direct", id: "ou_yyy" },
       },
     },
     {
@@ -515,7 +515,7 @@ Använd `bindings` för att routa Feishu-DM eller grupper till olika agenter.
 Routningsfält:
 
 - `match.channel`: `"feishu"`
-- `match.peer.kind`: `"dm"` eller `"group"`
+- `match.peer.kind`: `"direct"` or `"group"`
 - `match.peer.id`: användarens Open ID (`ou_xxx`) eller grupp-ID (`oc_xxx`)
 
 Se [Hämta grupp-/användar-ID:n](#get-groupuser-ids) för tips om uppslagning.

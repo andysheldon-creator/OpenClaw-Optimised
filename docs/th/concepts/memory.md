@@ -157,6 +157,7 @@ out to QMD for retrieval. Key points:
 - `scope`: same schema as [`session.sendPolicy`](/gateway/configuration#session).
   `scope`:สคีมาเดียวกับ[`session.sendPolicy`](/gateway/configuration#session)
   ค่าเริ่มต้นคือDMเท่านั้น(`deny`ทั้งหมด,`allow`แชตตรง)ผ่อนคลายเพื่อแสดงผลQMDในกลุ่ม/ช่องทาง
+- เมื่อ `scope` ปฏิเสธการค้นหา OpenClaw จะบันทึกคำเตือนพร้อมค่า `channel`/`chatType` ที่คำนวณได้ เพื่อให้การดีบักผลลัพธ์ว่างทำได้ง่ายขึ้น
 - สแนิปเพ็ตที่มาจากนอกเวิร์กสเปซจะแสดงเป็น`qmd/<collection>/<relative-path>`ในผลลัพธ์`memory_search`;`memory_get`เข้าใจพรีฟิกซ์นั้นและอ่านจากรูทคอลเลกชันQMDที่ตั้งค่าไว้
 - เมื่อ`memory.qmd.sessions.enabled = true`,OpenClawจะส่งออกทรานสคริปต์เซสชันที่ผ่านการทำความสะอาด(รอบผู้ใช้/ผู้ช่วย)ไปยังคอลเลกชันQMDเฉพาะภายใต้`~/.openclaw/agents/<id>/qmd/sessions/`,เพื่อให้`memory_search`สามารถเรียกคืนบทสนทนาล่าสุดได้โดยไม่แตะดัชนีSQLiteในตัว
 - สแนิปเพ็ต`memory_search`จะมีฟุตเตอร์`Source: <path#line>`เมื่อ`memory.citations`เป็น`auto`/`on`;ตั้งค่า`memory.citations = "off"`เพื่อเก็บเมทาดาทาพาธไว้ภายใน(เอเจนต์ยังคงได้รับพาธสำหรับ`memory_get`แต่ข้อความสแนิปเพ็ตจะละฟุตเตอร์และพรอมป์ต์ระบบจะเตือนเอเจนต์ไม่ให้อ้างอิง)

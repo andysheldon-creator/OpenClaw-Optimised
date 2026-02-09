@@ -79,7 +79,7 @@ openclaw agents list --bindings
 
 ## 1 つの WhatsApp 番号、複数人（DM 分割）
 
-**1 つの WhatsApp アカウント** のまま、**異なる WhatsApp DM** を異なるエージェントへルーティングできます。送信者の E.164（例：`+15551234567`）に一致させて `peer.kind: "dm"` を行います。返信は同じ WhatsApp 番号から送信されます（エージェントごとの送信者 ID はありません）。 送信者E.164（`+15551234567`のように）に`peer.kind: "dm"`をマッチさせます。 返信は依然として同じWhatsApp番号(エージェントごとの送信者IDなし)から来ます。
+**1 つの WhatsApp アカウント** のまま、**異なる WhatsApp DM** を異なるエージェントへルーティングできます。送信者の E.164（例：`+15551234567`）に一致させて `peer.kind: "dm"` を行います。返信は同じ WhatsApp 番号から送信されます（エージェントごとの送信者 ID はありません）。 `peer.kind: "direct"` を使用して、送信者の E.164（例: `+15551234567`）にマッチさせます。 返信は依然として同じWhatsApp番号(エージェントごとの送信者IDなし)から来ます。
 
 重要な注意：ダイレクト チャットはエージェントの **メイン セッション キー** に集約されるため、真の分離には **1 人につき 1 エージェント** が必要です。
 
@@ -94,8 +94,14 @@ openclaw agents list --bindings
     ],
   },
   bindings: [
-    { agentId: "alex", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551230001" } } },
-    { agentId: "mia", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551230002" } } },
+    {
+      agentId: "alex",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551230001" } },
+    },
+    {
+      agentId: "mia",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551230002" } },
+    },
   ],
   channels: {
     whatsapp: {
@@ -256,7 +262,10 @@ WhatsApp は高速エージェントのままにし、1 つの DM だけを Opus
     ],
   },
   bindings: [
-    { agentId: "opus", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551234567" } } },
+    {
+      agentId: "opus",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551234567" } },
+    },
     { agentId: "chat", match: { channel: "whatsapp" } },
   ],
 }

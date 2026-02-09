@@ -805,7 +805,7 @@ Zobacz [/channels/telegram](/channels/telegram#access-control-dms--groups).
 
 ### Można używać jednego numeru WhatsApp z różnymi instancjami OpenClaw
 
-Tak, przez **przekierowywanie wielu agentów**. Powiąż **DM** każdego nadawcy WhatsApp (partner: "dm", nadawca E. 64 takie jak `+15551234567`) w innym `agentId`, więc każda osoba ma własny obszar roboczy i sklep sesyjny. Odpowiedzi nadal pochodzą z **tego samego konta WhatsApp**, a kontrola dostępu DM (`channels.whatsapp.dmPolicy` / `channels.whatsapp.allowFrom`) jest globalna dla konta WhatsApp. Zobacz [dzwonienie wielu agentów](/concepts/multi-agent) i [WhatsApp](/channels/whatsapp).
+Tak, przez **przekierowywanie wielu agentów**. Bind each sender's WhatsApp **DM** (peer `kind: "direct"`, sender E.164 like `+15551234567`) to a different `agentId`, so each person gets their own workspace and session store. Odpowiedzi nadal pochodzą z **tego samego konta WhatsApp**, a kontrola dostępu DM (`channels.whatsapp.dmPolicy` / `channels.whatsapp.allowFrom`) jest globalna dla konta WhatsApp. Zobacz [dzwonienie wielu agentów](/concepts/multi-agent) i [WhatsApp](/channels/whatsapp).
 
 ### Czy mogę uruchomić szybki agent czatu i Opus dla agenta kodującego
 

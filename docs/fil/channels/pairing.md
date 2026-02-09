@@ -52,6 +52,23 @@ Ituring ang mga ito bilang sensitibo (sila ang nagba-block o nagpapahintulot ng 
 25. Kumokonekta ang mga node sa Gateway bilang mga **device** na may `role: node`. 26. Ang Gateway ay
     lumilikha ng device pairing request na kailangang aprubahan.
 
+### Ipares sa pamamagitan ng Telegram (inirerekomenda para sa iOS)
+
+Kung gagamitin mo ang `device-pair` plugin, maaari mong gawin ang unang beses na pag-pair ng device nang buo mula sa Telegram:
+
+1. Sa Telegram, i-message ang iyong bot: `/pair`
+2. Sumasagot ang bot ng dalawang mensahe: isang mensahe ng tagubilin at isang hiwalay na mensahe ng **setup code** (madaling kopyahin/i-paste sa Telegram).
+3. Sa iyong telepono, buksan ang OpenClaw iOS app → Settings → Gateway.
+4. I-paste ang setup code at kumonekta.
+5. Bumalik sa Telegram: `/pair approve`
+
+Ang setup code ay isang base64-encoded na JSON payload na naglalaman ng:
+
+- `url`: ang Gateway WebSocket URL (`ws://...` o `wss://...`)
+- `token`: isang panandaliang pairing token
+
+Ituring ang setup code na parang password habang ito ay balido.
+
 ### Aprubahan ang isang node device
 
 ```bash

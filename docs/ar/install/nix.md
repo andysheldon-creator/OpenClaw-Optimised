@@ -64,7 +64,9 @@ defaults write bot.molt.mac openclaw.nixMode -bool true
 ### مسارات التهيئة والحالة
 
 يقرأ OpenClaw تهيئة JSON5 من `OPENCLAW_CONFIG_PATH` ويخزّن البيانات القابلة للتغيير في `OPENCLAW_STATE_DIR`.
+19. عند الحاجة، يمكنك أيضاً تعيين `OPENCLAW_HOME` للتحكم في دليل المنزل الأساسي المستخدم لحل المسارات الداخلية.
 
+- 20. `OPENCLAW_HOME` (أولوية افتراضية: `HOME` / `USERPROFILE` / `os.homedir()`)
 - `OPENCLAW_STATE_DIR` (الافتراضي: `~/.openclaw`)
 - `OPENCLAW_CONFIG_PATH` (الافتراضي: `$OPENCLAW_STATE_DIR/openclaw.json`)
 

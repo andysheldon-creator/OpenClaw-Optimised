@@ -74,6 +74,32 @@ Env var эквиваленты:
 
 Подробности см. в разделе [Конфигурация: подстановка переменных окружения](/gateway/configuration#env-var-substitution-in-config).
 
+## Переменные окружения, связанные с путями
+
+| Переменная             | Назначение                                                                                                                                                                                                                                                              |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `OPENCLAW_HOME`        | Переопределяет домашний каталог, используемый для всего внутреннего разрешения путей (`~/.openclaw/`, каталоги агентов, сессии, учётные данные). Полезно при запуске OpenClaw под отдельным сервисным пользователем. |
+| `OPENCLAW_STATE_DIR`   | Переопределяет каталог состояния (по умолчанию `~/.openclaw`).                                                                                                                                                                       |
+| `OPENCLAW_CONFIG_PATH` | Override the config file path (default `~/.openclaw/openclaw.json`).                                                                                                                                                                 |
+
+### `OPENCLAW_HOME`
+
+When set, `OPENCLAW_HOME` replaces the system home directory (`$HOME` / `os.homedir()`) for all internal path resolution. This enables full filesystem isolation for headless service accounts.
+
+**Precedence:** `OPENCLAW_HOME` > `$HOME` > `USERPROFILE` > `os.homedir()`
+
+**Example** (macOS LaunchDaemon):
+
+```xml
+<key>EnvironmentVariables</key>
+<dict>
+  <key>OPENCLAW_HOME</key>
+  <string>/Users/kira</string>
+</dict>
+```
+
+`OPENCLAW_HOME` can also be set to a tilde path (e.g. `~/svc`), which gets expanded using `$HOME` before use.
+
 ## Связанное
 
 - [Конфигурация Gateway](/gateway/configuration)

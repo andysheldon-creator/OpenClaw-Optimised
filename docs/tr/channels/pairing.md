@@ -52,6 +52,23 @@ Treat these as sensitive (they gate access to your assistant).
 Düğümler, `role: node` ile **cihaz** olarak Gateway’e bağlanır. Gateway (Ağ Geçidi),
 onaylanması gereken bir cihaz eşleştirme isteği oluşturur.
 
+### Telegram üzerinden eşleştirme (iOS için önerilir)
+
+`device-pair` eklentisini kullanırsanız, ilk kez cihaz eşleştirmesini tamamen Telegram üzerinden yapabilirsiniz:
+
+1. Telegram’da botunuza mesaj gönderin: `/pair`
+2. Bot iki mesajla yanıt verir: bir talimat mesajı ve ayrı bir **kurulum kodu** mesajı (Telegram’da kolayca kopyala/yapıştır için).
+3. Telefonunuzda OpenClaw iOS uygulamasını açın → Ayarlar → Gateway.
+4. Kurulum kodunu yapıştırın ve bağlanın.
+5. Tekrar Telegram’a dönün: `/pair approve`
+
+Kurulum kodu, aşağıdakileri içeren base64 kodlu bir JSON yüküdür:
+
+- `url`: Gateway WebSocket URL’si (`ws://...` veya `wss://...`)
+- `token`: kısa ömürlü bir eşleştirme belirteci
+
+Geçerli olduğu sürece kurulum kodunu bir parola gibi değerlendirin.
+
 ### Bir düğüm cihazını onaylayın
 
 ```bash

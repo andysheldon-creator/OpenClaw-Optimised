@@ -491,14 +491,14 @@ Feishu DMs یا گروپس کو مختلف ایجنٹس کی طرف روٹ کر�
       agentId: "main",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_xxx" },
+        peer: { kind: "direct", id: "ou_xxx" },
       },
     },
     {
       agentId: "clawd-fan",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_yyy" },
+        peer: { kind: "direct", id: "ou_yyy" },
       },
     },
     {
@@ -515,7 +515,7 @@ Feishu DMs یا گروپس کو مختلف ایجنٹس کی طرف روٹ کر�
 روٹنگ فیلڈز:
 
 - `match.channel`: `"feishu"`
-- `match.peer.kind`: `"dm"` یا `"group"`
+- `match.peer.kind`: `"direct"` or `"group"`
 - `match.peer.id`: صارف Open ID (`ou_xxx`) یا گروپ ID (`oc_xxx`)
 
 تلاش کے نکات کے لیے [Get group/user IDs](#get-groupuser-ids) دیکھیں۔

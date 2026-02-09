@@ -64,7 +64,9 @@ defaults write bot.molt.mac openclaw.nixMode -bool true
 ### विन्यास + स्थिति पथ
 
 OpenClaw JSON5 विन्यास को `OPENCLAW_CONFIG_PATH` से पढ़ता है और परिवर्तनीय डेटा को `OPENCLAW_STATE_DIR` में संग्रहीत करता है।
+When needed, you can also set `OPENCLAW_HOME` to control the base home directory used for internal path resolution.
 
+- `OPENCLAW_HOME` (default precedence: `HOME` / `USERPROFILE` / `os.homedir()`)
 - `OPENCLAW_STATE_DIR` (डिफ़ॉल्ट: `~/.openclaw`)
 - `OPENCLAW_CONFIG_PATH` (डिफ़ॉल्ट: `$OPENCLAW_STATE_DIR/openclaw.json`)
 

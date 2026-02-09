@@ -81,7 +81,7 @@ openclaw agents list --bindings
 
 ## WhatsApp နံပါတ်တစ်ခု၊ လူများစွာ (DM ခွဲခြားခြင်း)
 
-၃။ **WhatsApp account တစ်ခုတည်း** ကို အသုံးပြုပြီး **မတူညီသော WhatsApp DMs များကို မတူညီသော agents များဆီသို့ route လုပ်နိုင်ပါသည်**။ ၄။ `peer.kind: "dm"` ဖြင့် sender E.164 (ဥပမာ `+15551234567`) ကို match လုပ်ပါ။ ၅။ Replies များသည် အတူတူသော WhatsApp နံပါတ်မှသာ ပြန်လာပါသည် (agent တစ်ခုချင်းစီအလိုက် sender identity မရှိပါ)။
+၃။ **WhatsApp account တစ်ခုတည်း** ကို အသုံးပြုပြီး **မတူညီသော WhatsApp DMs များကို မတူညီသော agents များဆီသို့ route လုပ်နိုင်ပါသည်**။ sender E.164 (ဥပမာ `+15551234567`) အပေါ် `peer.kind: "direct"` ဖြင့် match လုပ်ပါ။ ၅။ Replies များသည် အတူတူသော WhatsApp နံပါတ်မှသာ ပြန်လာပါသည် (agent တစ်ခုချင်းစီအလိုက် sender identity မရှိပါ)။
 
 အရေးကြီးသော အသေးစိတ်ချက်: direct chats များသည် agent ၏ **main session key** သို့ ပေါင်းစည်းသွားသဖြင့် စစ်မှန်သော သီးခြားခွဲခြားမှုအတွက် **လူတစ်ယောက်လျှင် agent တစ်ခု** လိုအပ်သည်။
 
@@ -96,8 +96,14 @@ openclaw agents list --bindings
     ],
   },
   bindings: [
-    { agentId: "alex", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551230001" } } },
-    { agentId: "mia", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551230002" } } },
+    {
+      agentId: "alex",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551230001" } },
+    },
+    {
+      agentId: "mia",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551230002" } },
+    },
   ],
   channels: {
     whatsapp: {
@@ -257,7 +263,10 @@ WhatsApp ကို အမြန် agent ပေါ်တွင်ထားပြ
     ],
   },
   bindings: [
-    { agentId: "opus", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551234567" } } },
+    {
+      agentId: "opus",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551234567" } },
+    },
     { agentId: "chat", match: { channel: "whatsapp" } },
   ],
 }

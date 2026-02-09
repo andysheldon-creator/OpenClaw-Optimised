@@ -740,7 +740,7 @@ Inbound messages are routed to an agent via bindings.
 - `bindings[]`: routes inbound messages to an `agentId`.
   - `match.channel` (required)
   - `match.accountId` (optional; `*` = any account; omitted = default account)
-  - `match.peer` (اختیاری؛ `{ kind: dm|group|channel, id }`)
+  - `match.peer` (اختیاری؛ `{ kind: direct|group|channel, id }`)
   - `match.guildId` / `match.teamId` (optional; channel-specific)
 
 Deterministic match order:
@@ -2707,7 +2707,7 @@ Cerebras کو ان کے OpenAI-مطابقت پذیر اینڈپوائنٹ کے �
     },
     resetByType: {
       thread: { mode: "daily", atHour: 4 },
-      dm: { mode: "idle", idleMinutes: 240 },
+      direct: { mode: "idle", idleMinutes: 240 },
       group: { mode: "idle", idleMinutes: 120 },
     },
     resetTriggers: ["/new", "/reset"],
@@ -2744,7 +2744,7 @@ Cerebras کو ان کے OpenAI-مطابقت پذیر اینڈپوائنٹ کے �
   - `mode`: `daily` یا `idle` (ڈیفالٹ: جب `reset` موجود ہو تو `daily`)۔
   - `atHour`: روزانہ ری سیٹ کی حد کے لیے مقامی گھنٹہ (0-23)۔
   - `idleMinutes`: منٹوں میں سلائیڈنگ آئڈل ونڈو۔ جب daily اور idle دونوں کنفیگر ہوں، تو جو پہلے ایکسپائر ہو وہ لاگو ہوتا ہے۔
-- `resetByType`: `dm`, `group`, اور `thread` کے لیے فی سیشن اووررائیڈز۔
+- `resetByType`: per-session overrides for `direct`, `group`, and `thread`. Legacy `dm` key is accepted as an alias for `direct`.
   - اگر آپ صرف لیگیسی `session.idleMinutes` سیٹ کریں اور کوئی `reset`/`resetByType` نہ ہو تو بیک ورڈ کمپیٹیبلٹی کے لیے OpenClaw صرف idle موڈ میں رہتا ہے۔
 - `heartbeatIdleMinutes`: ہارٹ بیٹ چیکس کے لیے اختیاری idle اووررائیڈ (جب فعال ہو تو daily ری سیٹ لاگو رہتا ہے)۔
 - `agentToAgent.maxPingPongTurns`: ریکوئسٹر/ٹارگٹ کے درمیان زیادہ سے زیادہ جوابی تبادلے (0–5، ڈیفالٹ 5)۔

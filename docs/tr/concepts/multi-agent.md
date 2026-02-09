@@ -81,7 +81,7 @@ Bu, **birden fazla kişinin** tek bir Gateway sunucusunu paylaşmasına olanak t
 
 ## Tek WhatsApp numarası, birden fazla kişi (DM bölme)
 
-**Tek bir WhatsApp hesabı** üzerinde kalırken **farklı WhatsApp DM’lerini** farklı ajanlara yönlendirebilirsiniz. Gönderen E.164 (örn. `+15551234567`) ile `peer.kind: "dm"` üzerinden eşleştirin. Yanıtlar yine aynı WhatsApp numarasından gelir (ajan başına gönderici kimliği yoktur).
+**Tek bir WhatsApp hesabı** üzerinde kalırken **farklı WhatsApp DM’lerini** farklı ajanlara yönlendirebilirsiniz. Gönderici E.164 (örn. `+15551234567`) üzerinde `peer.kind: "direct"` ile eşleştirin. Yanıtlar yine aynı WhatsApp numarasından gelir (ajan başına gönderici kimliği yoktur).
 
 Önemli ayrıntı: doğrudan sohbetler ajanın **ana oturum anahtarına** çöker; gerçek yalıtım için **kişi başına bir ajan** gerekir.
 
@@ -96,8 +96,14 @@ Bu, **birden fazla kişinin** tek bir Gateway sunucusunu paylaşmasına olanak t
     ],
   },
   bindings: [
-    { agentId: "alex", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551230001" } } },
-    { agentId: "mia", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551230002" } } },
+    {
+      agentId: "alex",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551230001" } },
+    },
+    {
+      agentId: "mia",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551230002" } },
+    },
   ],
   channels: {
     whatsapp: {
@@ -258,7 +264,10 @@ WhatsApp’ı hızlı ajan üzerinde tutun, ancak tek bir DM’yi Opus’a yönl
     ],
   },
   bindings: [
-    { agentId: "opus", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551234567" } } },
+    {
+      agentId: "opus",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551234567" } },
+    },
     { agentId: "chat", match: { channel: "whatsapp" } },
   ],
 }

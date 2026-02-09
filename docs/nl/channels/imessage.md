@@ -172,16 +172,35 @@ Als de Gateway op een Linux-host/VM draait maar iMessage op een Mac moet draaien
 
 Architectuur:
 
-```
-┌──────────────────────────────┐          SSH (imsg rpc)          ┌──────────────────────────┐
-│ Gateway host (Linux/VM)      │──────────────────────────────────▶│ Mac with Messages + imsg │
-│ - openclaw gateway           │          SCP (attachments)        │ - Messages signed in     │
-│ - channels.imessage.cliPath  │◀──────────────────────────────────│ - Remote Login enabled   │
-└──────────────────────────────┘                                   └──────────────────────────┘
-              ▲
-              │ Tailscale tailnet (hostname or 100.x.y.z)
-              ▼
-        user@gateway-host
+```mermaid
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#ffffff',
+    'primaryTextColor': '#000000',
+    'primaryBorderColor': '#000000',
+    'lineColor': '#000000',
+    'secondaryColor': '#f9f9fb',
+    'tertiaryColor': '#ffffff',
+    'clusterBkg': '#f9f9fb',
+    'clusterBorder': '#000000',
+    'nodeBorder': '#000000',
+    'mainBkg': '#ffffff',
+    'edgeLabelBackground': '#ffffff'
+  }
+}}%%
+flowchart TB
+ subgraph T[" "]
+ subgraph Tailscale[" "]
+    direction LR
+      Gateway["<b>Gateway-host (Linux/VM)<br></b><br>openclaw gateway<br>channels.imessage.cliPath"]
+      Mac["<b>Mac met Berichten + imsg<br></b><br>Berichten aangemeld<br>Remote Login ingeschakeld"]
+  end
+    Gateway -- SSH (imsg rpc) --> Mac
+    Mac -- SCP (bijlagen) --> Gateway
+    direction BT
+    User["user@gateway-host"] -- "Tailscale tailnet (hostname of 100.x.y.z)" --> Gateway
+end
 ```
 
 Concreet configvoorbeeld (Tailscale-hostnaam):

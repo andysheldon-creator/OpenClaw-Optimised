@@ -74,6 +74,32 @@ Yapılandırmadaki dize değerlerinde ortam değişkenlerine `${VAR_NAME}` sözd
 
 Ayrıntılar için [Configuration: Env var substitution](/gateway/configuration#env-var-substitution-in-config) bölümüne bakın.
 
+## Yol ile ilgili ortam değişkenleri
+
+| Değişken               | Amaç                                                                                                                                                                                                                                                               |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `OPENCLAW_HOME`        | Tüm dahili yol çözümlemesi için kullanılan ana dizini geçersiz kılar (`~/.openclaw/`, agent dizinleri, oturumlar, kimlik bilgileri). OpenClaw’ı özel bir servis kullanıcısı olarak çalıştırırken kullanışlıdır. |
+| `OPENCLAW_STATE_DIR`   | Durum dizinini geçersiz kılar (varsayılan `~/.openclaw`).                                                                                                                                                                       |
+| `OPENCLAW_CONFIG_PATH` | Override the config file path (default `~/.openclaw/openclaw.json`).                                                                                                                                                            |
+
+### `OPENCLAW_HOME`
+
+When set, `OPENCLAW_HOME` replaces the system home directory (`$HOME` / `os.homedir()`) for all internal path resolution. This enables full filesystem isolation for headless service accounts.
+
+**Precedence:** `OPENCLAW_HOME` > `$HOME` > `USERPROFILE` > `os.homedir()`
+
+**Example** (macOS LaunchDaemon):
+
+```xml
+<key>EnvironmentVariables</key>
+<dict>
+  <key>OPENCLAW_HOME</key>
+  <string>/Users/kira</string>
+</dict>
+```
+
+`OPENCLAW_HOME` can also be set to a tilde path (e.g. `~/svc`), which gets expanded using `$HOME` before use.
+
 ## İlgili
 
 - [Gateway yapılandırması](/gateway/configuration)

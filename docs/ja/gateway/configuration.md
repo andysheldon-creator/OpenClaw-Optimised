@@ -760,7 +760,7 @@ DM の会話は、エージェントが管理するセッションベースの�
 - `bindings[]`: `agentId` にインバウンドメッセージをルーティングします。
   - `match.channel` (必須)
   - `match.accountId` (省略可能; `*` = 任意のアカウント; 省略された = デフォルトのアカウント)
-  - `match.peer` (optional; `{ kind: dm|group|channel, id }`)
+  - `match.peer` (optional; `{ kind: direct|group|channel, id }`)
   - `match.guildId` / `match.teamId` (オプション; channel-specific)
 
 決定的な一致順序:
@@ -2736,7 +2736,7 @@ OpenAI対応エンドポイント経由でCerebraを使用:
 セッションスコープ、リセットポリシー、リセットトリガー、およびセッションストアが書き込まれる場所を制御します。
 
 ```json5
-39. {
+{
   session: {
     scope: "per-sender",
     dmScope: "main",
@@ -2750,17 +2750,17 @@ OpenAI対応エンドポイント経由でCerebraを使用:
     },
     resetByType: {
       thread: { mode: "daily", atHour: 4 },
-      dm: { mode: "idle", idleMinutes: 240 },
+      direct: { mode: "idle", idleMinutes: 240 },
       group: { mode: "idle", idleMinutes: 120 },
     },
     resetTriggers: ["/new", "/reset"],
-    // Default is already per-agent under ~/.openclaw/agents/<agentId>/sessions/sessions.json
-    // You can override with {agentId} templating:
+    // 既定では ~/.openclaw/agents/<agentId>/sessions/sessions.json のエージェント単位
+    // {agentId} テンプレートで上書きできます:
     store: "~/.openclaw/agents/{agentId}/sessions/sessions.json",
-    // Direct chats collapse to agent:<agentId>:<mainKey> (default: "main").
+    // ダイレクトチャットは agent:<agentId>:<mainKey> に集約されます（既定: "main"）。
     mainKey: "main",
     agentToAgent: {
-      // Max ping-pong reply turns between requester/target (0–5).
+      // リクエスター／ターゲット間の最大ピンポン返信ターン数（0–5）。
       maxPingPongTurns: 5,
     },
     sendPolicy: {
@@ -2787,7 +2787,7 @@ OpenAI対応エンドポイント経由でCerebraを使用:
   - `mode`: `daily` または `idle` (デフォルト: `reset` が存在する場合は`daily` )。
   - `atHour`: 毎日のリセット境界の ローカル時間 (0-23) 。
   - `idleMinutes`: アイドルウィンドウを分単位でスライドする 毎日+アイドルが設定されている場合、いずれかの方が最初の勝利に失効します。
-- `resetByType`: セッションごとに `dm`、`group`、および `thread` をオーバーライドします。
+- `resetByType`: `direct`、`group`、`thread` ごとのセッション単位の上書き。 レガシーの `dm` キーは `direct` のエイリアスとして受け付けられます。
   - レガシーの `session.idleMinutes` を`reset`/`resetByType`を設定しない場合、後方互換性のためにOpenClawはアイドルのみのモードに留まります。
 - `heartbeatIdleMinutes`: ハートビートチェックのアイドルオーバーライドオプション（有効にするとデイリーリセットが適用されます）。
 - `agentToAgent.maxPingPongTurns`: requester/target (0–5, default 5) の間で最大応答が返されます。

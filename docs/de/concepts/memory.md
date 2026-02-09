@@ -183,6 +183,8 @@ ruft QMD für die Abfrage auf. Wichtige Punkte:
 - `scope`: gleiches Schema wie [`session.sendPolicy`](/gateway/configuration#session).
   Standard ist nur DM (`deny` alle, `allow` Direktchats); lockern Sie dies, um QMD-Treffer
   in Gruppen/Kanälen anzuzeigen.
+- When `scope` denies a search, OpenClaw logs a warning with the derived
+  `channel`/`chatType` so empty results are easier to debug.
 - Snippets aus Quellen außerhalb des Workspace erscheinen als
   `qmd/<collection>/<relative-path>` in `memory_search`-Ergebnissen; `memory_get`
   versteht dieses Präfix und liest aus dem konfigurierten QMD-Collection-Root.

@@ -156,9 +156,20 @@ You can add custom commands to the menu via config:
 نوٹس:
 
 - کسٹم کمانڈز **صرف مینو اندراجات** ہیں؛ OpenClaw انہیں نافذ نہیں کرتا جب تک آپ کہیں اور ہینڈل نہ کریں۔
+- Some commands can be handled by plugins/skills without being registered in Telegram’s command menu. These still work when typed (they just won't show up in `/commands` / the menu).
 - کمانڈ نام نارملائز ہوتے ہیں (ابتدائی `/` ہٹا دیا جاتا ہے، لوئر کیس) اور انہیں `a-z`, `0-9`, `_` (1–32 حروف) سے میچ کرنا چاہیے۔
 - Custom commands **cannot override native commands**. Conflicts are ignored and logged.
 - اگر `commands.native` غیرفعال ہو تو صرف کسٹم کمانڈز رجسٹر ہوتی ہیں (یا اگر کوئی نہ ہوں تو کلیئر ہو جاتی ہیں)۔
+
+### Device pairing commands (`device-pair` plugin)
+
+If the `device-pair` plugin is installed, it adds a Telegram-first flow for pairing a new phone:
+
+1. `/pair` generates a setup code (sent as a separate message for easy copy/paste).
+2. Paste the setup code in the iOS app to connect.
+3. `/pair approve` approves the latest pending device request.
+
+More details: [Pairing](/channels/pairing#pair-via-telegram-recommended-for-ios).
 
 ## حدود
 
@@ -451,6 +462,25 @@ Telegram ٹیگز کے ذریعے اختیاری تھریڈڈ جوابات سپ�
 }
 ```
 
+## Video messages (video vs video note)
+
+Telegram distinguishes **video notes** (round bubble) from **video files** (rectangular).
+OpenClaw defaults to video files.
+
+For message tool sends, set `asVideoNote: true` with a video `media` URL:
+
+```json5
+{
+  action: "send",
+  channel: "telegram",
+  to: "123456789",
+  media: "https://example.com/video.mp4",
+  asVideoNote: true,
+}
+```
+
+(Note: Video notes do not support captions. If you provide a message text, it will be sent as a separate message.)
+
 ## اسٹیکرز
 
 OpenClaw ذہین کیشنگ کے ساتھ Telegram اسٹیکرز وصول اور بھیجنے کی سپورٹ کرتا ہے۔
@@ -730,23 +760,22 @@ Telegram ری ایکشنز **الگ `message_reaction` ایونٹس کے طور 
 - `channels.telegram.groupPolicy`: `open | allowlist | disabled` (ڈیفالٹ: allowlist)۔
 - `channels.telegram.groupAllowFrom`: گروپ سینڈر اجازت فہرست (IDs/یوزرنیمز)۔
 - `channels.telegram.groups`: فی گروپ ڈیفالٹس + اجازت فہرست (عالمی ڈیفالٹس کے لیے `"*"` استعمال کریں)۔
+  - `channels.telegram.groups.<id>`channels.telegram.groups.<id>
+    .requireMention\`: مینشن گیٹنگ کی ڈیفالٹ۔
   - `channels.telegram.groups.<id>
     .groupPolicy`: گروپ کے لیے groupPolicy اووررائیڈ (`open | allowlist | disabled`)۔`channels.telegram.groups.<id>
-    .requireMention`: مینشن گیٹنگ کی ڈیفالٹ۔
-  - `channels.telegram.groups.<id>`channels.telegram.groups.<id>
-    .allowFrom\`: فی گروپ بھیجنے والے کی اجازت فہرست کا اووررائیڈ۔
+    .allowFrom`: فی گروپ بھیجنے والے کی اجازت فہرست کا اووررائیڈ۔
   - `channels.telegram.groups.<id>`channels.telegram.groups.<id>
     .enabled`: جب `false\` ہو تو گروپ کو غیر فعال کریں۔
   - `channels.telegram.groups.<id>`channels.telegram.groups.<id>
     .topics.<threadId>
     .groupPolicy`: groupPolicy کے لیے فی موضوع اووررائیڈ (`open | allowlist | disabled\`)۔
+  - `channels.telegram.groups.<id>.systemPrompt`: extra system prompt for the group.
   - `channels.telegram.groups.<id>
     .topics.<threadId>
-    .requireMention`: فی موضوع مینشن گیٹنگ اووررائیڈ۔.systemPrompt\`: extra system prompt for the group.
-  - `channels.telegram.network.autoSelectFamily`: Node کے autoSelectFamily کو اووررائیڈ کریں (true=فعال، false=غیر فعال)۔Happy Eyeballs ٹائم آؤٹس سے بچنے کے لیے Node 22 پر ڈیفالٹ طور پر غیر فعال ہے۔
-  - `commands.native` (ڈیفالٹ `"auto"` → Telegram/Discord کے لیے آن، Slack کے لیے آف)، `commands.text`, `commands.useAccessGroups` (کمانڈ رویّہ)۔`channels.telegram.commands.native` کے ساتھ اووررائیڈ کریں۔Tlon ایک غیر مرکزی میسنجر ہے جو Urbit پر بنایا گیا ہے۔
-  - OpenClaw آپ کے Urbit شپ سے جڑتا ہے اور
-    DMs اور گروپ چیٹ پیغامات کا جواب دے سکتا ہے۔گروپ جوابات کے لیے ڈیفالٹ طور پر @ مینشن درکار ہوتا ہے اور انہیں اجازت فہرستوں کے ذریعے مزید محدود کیا جا سکتا ہے۔اسٹیٹس: پلگ اِن کے ذریعے سپورٹڈ۔
+    .requireMention`: فی موضوع مینشن گیٹنگ اووررائیڈ۔Happy Eyeballs ٹائم آؤٹس سے بچنے کے لیے Node 22 پر ڈیفالٹ طور پر غیر فعال ہے۔
+  - `channels.telegram.network.autoSelectFamily`: Node کے autoSelectFamily کو اووررائیڈ کریں (true=فعال، false=غیر فعال)۔`channels.telegram.commands.native` کے ساتھ اووررائیڈ کریں۔Tlon ایک غیر مرکزی میسنجر ہے جو Urbit پر بنایا گیا ہے۔
+  - `commands.native` (ڈیفالٹ `"auto"` → Telegram/Discord کے لیے آن، Slack کے لیے آف)، `commands.text`, `commands.useAccessGroups` (کمانڈ رویّہ)۔گروپ جوابات کے لیے ڈیفالٹ طور پر @ مینشن درکار ہوتا ہے اور انہیں اجازت فہرستوں کے ذریعے مزید محدود کیا جا سکتا ہے۔اسٹیٹس: پلگ اِن کے ذریعے سپورٹڈ۔
   - DMs، گروپ مینشنز، تھریڈ ریپلائیز، اور صرف متن والا میڈیا فال بیک
     (کیپشن کے ساتھ URL شامل کیا جاتا ہے)۔ری ایکشنز، پولز، اور نیٹو میڈیا اپ لوڈز سپورٹڈ نہیں ہیں۔آٹو ڈسکوری ڈیفالٹ طور پر فعال ہے۔
 - `channels.telegram.capabilities.inlineButtons`: `off | dm | group | all | allowlist` (ڈیفالٹ: allowlist)۔

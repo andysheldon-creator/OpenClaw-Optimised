@@ -64,7 +64,9 @@ defaults write bot.molt.mac openclaw.nixMode -bool true
 ### 구성 + 상태 경로
 
 OpenClaw 는 `OPENCLAW_CONFIG_PATH` 에서 JSON5 구성을 읽고, 변경 가능한 데이터는 `OPENCLAW_STATE_DIR` 에 저장합니다.
+20. 필요할 경우 내부 경로 해석에 사용되는 기본 홈 디렉터리를 제어하기 위해 `OPENCLAW_HOME`을 설정할 수도 있습니다.
 
+- 21. `OPENCLAW_HOME` (기본 우선순위: `HOME` / `USERPROFILE` / `os.homedir()`)
 - `OPENCLAW_STATE_DIR` (기본값: `~/.openclaw`)
 - `OPENCLAW_CONFIG_PATH` (기본값: `$OPENCLAW_STATE_DIR/openclaw.json`)
 

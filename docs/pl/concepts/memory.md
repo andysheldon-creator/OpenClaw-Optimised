@@ -182,6 +182,8 @@ QMD do pobierania wyników. Kluczowe punkty:
 - `scope`: ten sam schemat co [`session.sendPolicy`](/gateway/configuration#session).
   Domyślnie tylko DM-y (`deny` wszystkie, `allow` czaty bezpośrednie); poluzuj,
   aby ujawniać trafienia QMD w grupach/kanałach.
+- When `scope` denies a search, OpenClaw logs a warning with the derived
+  `channel`/`chatType` so empty results are easier to debug.
 - Fragmenty pochodzące spoza obszaru roboczego pojawiają się jako
   `qmd/<collection>/<relative-path>` w wynikach `memory_search`; `memory_get`
   rozumie ten prefiks i czyta z skonfigurowanego katalogu głównego kolekcji QMD.

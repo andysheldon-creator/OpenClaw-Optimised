@@ -74,6 +74,32 @@ Two equivalent ways to set inline env vars (both are non-overriding):
 
 完整細節請參閱［Configuration: Env var substitution］(/gateway/configuration#env-var-substitution-in-config)。
 
+## Path-related env vars
+
+| 變數                     | 目的                                                                                                                                                                                                                                  |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `OPENCLAW_HOME`        | Override the home directory used for all internal path resolution (`~/.openclaw/`, agent dirs, sessions, credentials). Useful when running OpenClaw as a dedicated service user. |
+| `OPENCLAW_STATE_DIR`   | Override the state directory (default `~/.openclaw`).                                                                                                                                            |
+| `OPENCLAW_CONFIG_PATH` | 1. 覆寫設定檔路徑（預設為 `~/.openclaw/openclaw.json`）。                                                                                                                                                                 |
+
+### 2. `OPENCLAW_HOME`
+
+3. 設定後，`OPENCLAW_HOME` 會取代系統家目錄（`$HOME` / `os.homedir()`）以進行所有內部路徑解析。 4. 這可為無頭服務帳號啟用完整的檔案系統隔離。
+
+5. **優先順序：** `OPENCLAW_HOME` > `$HOME` > `USERPROFILE` > `os.homedir()`
+
+6. **範例**（macOS LaunchDaemon）：
+
+```xml
+7. <key>EnvironmentVariables</key>
+<dict>
+  <key>OPENCLAW_HOME</key>
+  <string>/Users/kira</string>
+</dict>
+```
+
+8. `OPENCLAW_HOME` 也可以設定為波浪號路徑（例如 `~/svc`），在使用前會先以 `$HOME` 展開。
+
 ## 12. 相關
 
 - [Gateway configuration](/gateway/configuration)

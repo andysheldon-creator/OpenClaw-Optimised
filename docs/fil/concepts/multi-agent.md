@@ -82,7 +82,7 @@ Pinapahintulutan nito ang **maraming tao** na magbahagi ng isang Gateway server 
 
 ## Isang WhatsApp number, maraming tao (DM split)
 
-You can route **different WhatsApp DMs** to different agents while staying on **one WhatsApp account**. Match on sender E.164 (like `+15551234567`) with `peer.kind: "dm"`. Replies still come from the same WhatsApp number (no per‑agent sender identity).
+You can route **different WhatsApp DMs** to different agents while staying on **one WhatsApp account**. I-match sa sender E.164 (tulad ng `+15551234567`) gamit ang `peer.kind: "direct"`. Replies still come from the same WhatsApp number (no per‑agent sender identity).
 
 Mahalagang detalye: ang mga direct chat ay nagsasama sa **pangunahing session key** ng agent, kaya ang tunay na isolation ay nangangailangan ng **isang agent bawat tao**.
 
@@ -97,8 +97,14 @@ Halimbawa:
     ],
   },
   bindings: [
-    { agentId: "alex", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551230001" } } },
-    { agentId: "mia", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551230002" } } },
+    {
+      agentId: "alex",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551230001" } },
+    },
+    {
+      agentId: "mia",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551230002" } },
+    },
   ],
   channels: {
     whatsapp: {
@@ -260,7 +266,10 @@ Panatilihin ang WhatsApp sa mabilis na agent, ngunit i-route ang isang DM sa Opu
     ],
   },
   bindings: [
-    { agentId: "opus", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551234567" } } },
+    {
+      agentId: "opus",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551234567" } },
+    },
     { agentId: "chat", match: { channel: "whatsapp" } },
   ],
 }

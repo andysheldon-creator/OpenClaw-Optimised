@@ -195,8 +195,8 @@ El emparejamiento es una puerta de acceso de DM para remitentes desconocidos:
 - Apruebe con: `openclaw pairing approve whatsapp <code>` (liste con `openclaw pairing list whatsapp`).
 - Los códigos expiran después de 1 hora; las solicitudes pendientes se limitan a 3 por canal.
 
-**¿Pueden varias personas usar distintas instancias de OpenClaw con un solo número de WhatsApp?**  
-Sí, enrute cada remitente a un agente distinto mediante `bindings` (par `kind: "dm"`, remitente E.164 como `+15551234567`). Las respuestas siguen saliendo de la **misma cuenta de WhatsApp**, y los chats directos colapsan a la sesión principal de cada agente, así que use **un agente por persona**. El control de acceso a DM (`dmPolicy`/`allowFrom`) es global por cuenta de WhatsApp. Consulte [Enrutamiento multiagente](/concepts/multi-agent).
+**Can multiple people use different OpenClaw instances on one WhatsApp number?**  
+Yes, by routing each sender to a different agent via `bindings` (peer `kind: "direct"`, sender E.164 like `+15551234567`). Replies still come from the **same WhatsApp account**, and direct chats collapse to each agent's main session, so use **one agent per person**. El control de acceso a DM (`dmPolicy`/`allowFrom`) es global por cuenta de WhatsApp. Consulte [Enrutamiento multiagente](/concepts/multi-agent).
 
 **¿Por qué el asistente me pide mi número de teléfono?**  
 El asistente lo usa para establecer su **lista de permitidos/propietario** y permitir sus propios DM. No se usa para envíos automáticos. Si ejecuta con su número personal de WhatsApp, use ese mismo número y habilite `channels.whatsapp.selfChatMode`.

@@ -106,7 +106,7 @@ dönüşü çalıştırarak modele kalıcı notları diske yazmasını hatırlat
 - Günlük sıfırlama: varsayılan olarak **gateway ana makinesinin yerel saatine göre 04:00**. Son güncellemesi en son günlük sıfırlama zamanından önce olan bir oturum bayattır.
 - Boşta sıfırlama (isteğe bağlı): `idleMinutes` kayan bir boşta penceresi ekler. Günlük ve boşta sıfırlamalar birlikte yapılandırıldığında, **hangisi önce dolarsa** yeni bir oturumu zorlar.
 - Eski yalnızca-boşta: herhangi bir `session.reset`/`resetByType` yapılandırması olmadan `session.idleMinutes` ayarlarsanız, OpenClaw geriye dönük uyumluluk için yalnızca-boşta modunda kalır.
-- Tür başına geçersiz kılmalar (isteğe bağlı): `resetByType`, `dm`, `group` ve `thread` oturumları için politikayı geçersiz kılmanıza izin verir (thread = Slack/Discord thread’leri, Telegram konuları, bağlayıcı tarafından sağlandığında Matrix thread’leri).
+- Türe göre geçersiz kılmalar (isteğe bağlı): `resetByType`, `direct`, `group` ve `thread` oturumları için politikayı geçersiz kılmanıza olanak tanır (thread = Slack/Discord thread’leri, Telegram konuları, bağlayıcı tarafından sağlandığında Matrix thread’leri).
 - Kanal başına geçersiz kılmalar (isteğe bağlı): `resetByChannel`, bir kanal için sıfırlama politikasını geçersiz kılar (o kanalın tüm oturum türlerine uygulanır ve `reset`/`resetByType`’in önüne geçer).
 - Sıfırlama tetikleyicileri: tam `/new` veya `/reset` (artı `resetTriggers`’teki ekler) yeni bir oturum kimliği başlatır ve mesajın kalanını iletir. `/new <model>`, yeni oturum modelini ayarlamak için bir model takma adı, `provider/model` veya sağlayıcı adını (yaklaşık eşleşme) kabul eder. `/new` veya `/reset` tek başına gönderilirse, OpenClaw sıfırlamayı doğrulamak için kısa bir “merhaba” selamlaması çalıştırır.
 - Manuel sıfırlama: depodan belirli anahtarları silin veya JSONL dökümünü kaldırın; bir sonraki mesaj bunları yeniden oluşturur.
@@ -143,21 +143,21 @@ Runtime override (owner only):
 // ~/.openclaw/openclaw.json
 {
   session: {
-    scope: "per-sender", // keep group keys separate
-    dmScope: "main", // DM continuity (set per-channel-peer/per-account-channel-peer for shared inboxes)
+    scope: "per-sender", // grup anahtarlarını ayrı tut
+    dmScope: "main", // DM sürekliliği (paylaşılan gelen kutuları için per-channel-peer/per-account-channel-peer olarak ayarlayın)
     identityLinks: {
       alice: ["telegram:123456789", "discord:987654321012345678"],
     },
     reset: {
-      // Defaults: mode=daily, atHour=4 (gateway host local time).
-      // If you also set idleMinutes, whichever expires first wins.
+      // Varsayılanlar: mode=daily, atHour=4 (gateway ana makinesinin yerel saati).
+      // idleMinutes da ayarlarsanız, hangisi önce dolarsa o kazanır.
       mode: "daily",
       atHour: 4,
       idleMinutes: 120,
     },
     resetByType: {
       thread: { mode: "daily", atHour: 4 },
-      dm: { mode: "idle", idleMinutes: 240 },
+      direct: { mode: "idle", idleMinutes: 240 },
       group: { mode: "idle", idleMinutes: 120 },
     },
     resetByChannel: {

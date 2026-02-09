@@ -197,8 +197,8 @@ By default, the gateway marks inbound WhatsApp messages as read (blue ticks) onc
 - 使用：`openclaw pairing approve whatsapp <code>` 核准（清單使用 `openclaw pairing list whatsapp`）。
 - Codes expire after 1 hour; pending requests are capped at 3 per channel.
 
-**多人能否在同一個 WhatsApp 號碼上使用不同的 OpenClaw 實例？**  
-可以，透過 `bindings` 將每位寄件者路由到不同的代理程式（對等 `kind: "dm"`，寄件者 E.164 如 `+15551234567`）。回覆仍來自**同一個 WhatsApp 帳號**，且私聊會收斂到各代理程式的主要工作階段，因此請**每人使用一個代理程式**。私訊存取控制（`dmPolicy`/`allowFrom`）在每個 WhatsApp 帳號層級是全域的。請參閱 [Multi-Agent Routing](/concepts/multi-agent)。 Replies still come from the **same WhatsApp account**, and direct chats collapse to each agent’s main session, so use **one agent per person**. DM access control (`dmPolicy`/`allowFrom`) is global per WhatsApp account. See [Multi-Agent Routing](/concepts/multi-agent).
+**Can multiple people use different OpenClaw instances on one WhatsApp number?**  
+Yes, by routing each sender to a different agent via `bindings` (peer `kind: "direct"`, sender E.164 like `+15551234567`). Replies still come from the **same WhatsApp account**, and direct chats collapse to each agent's main session, so use **one agent per person**. DM access control (`dmPolicy`/`allowFrom`) is global per WhatsApp account. See [Multi-Agent Routing](/concepts/multi-agent).
 
 **Why do you ask for my phone number in the wizard?**  
 The wizard uses it to set your **allowlist/owner** so your own DMs are permitted. It’s not used for auto-sending. If you run on your personal WhatsApp number, use that same number and enable `channels.whatsapp.selfChatMode`.

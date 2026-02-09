@@ -169,6 +169,14 @@ openclaw status         # gateway status
 openclaw dashboard      # open the browser UI
 ```
 
+14. 若需要自訂執行期路徑，請使用：
+
+- 15. `OPENCLAW_HOME` 用於以家目錄為基礎的內部路徑
+- 16. `OPENCLAW_STATE_DIR` 用於可變狀態的位置
+- 17. `OPENCLAW_CONFIG_PATH` 用於設定檔位置
+
+18. 請參閱 [Environment vars](/help/environment) 以了解優先順序與完整細節。
+
 ## 疑難排解：找不到 `openclaw`
 
 <Accordion title="PATH diagnosis and fix">

@@ -108,6 +108,16 @@ Fastest chat: open the Control UI (no channel setup needed).
   </Accordion>
 </AccordionGroup>
 
+## ตัวแปรสภาพแวดล้อมที่มีประโยชน์
+
+หากคุณรัน OpenClaw ด้วยบัญชีบริการ หรือ ต้องการตำแหน่งคอนฟิก/สถานะที่กำหนดเอง:
+
+- `OPENCLAW_HOME` กำหนดไดเรกทอรีหลักที่ใช้สำหรับการอ้างอิงพาธภายใน
+- `OPENCLAW_STATE_DIR` ใช้แทนไดเรกทอรีสถานะ
+- `OPENCLAW_CONFIG_PATH` ใช้แทนพาธไฟล์คอนฟิก
+
+เอกสารอ้างอิงตัวแปรสภาพแวดล้อมทั้งหมด: [Environment vars](/help/environment)
+
 ## เจาะลึกเพิ่มเติม
 
 <Columns>

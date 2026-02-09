@@ -491,14 +491,14 @@ Dùng `bindings` để định tuyến DM hoặc nhóm Feishu đến các tác t
       agentId: "main",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_xxx" },
+        peer: { kind: "direct", id: "ou_xxx" },
       },
     },
     {
       agentId: "clawd-fan",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_yyy" },
+        peer: { kind: "direct", id: "ou_yyy" },
       },
     },
     {
@@ -515,7 +515,7 @@ Dùng `bindings` để định tuyến DM hoặc nhóm Feishu đến các tác t
 Các trường định tuyến:
 
 - `match.channel`: `"feishu"`
-- `match.peer.kind`: `"dm"` hoặc `"group"`
+- `match.peer.kind`: `"direct"` or `"group"`
 - `match.peer.id`: Open ID người dùng (`ou_xxx`) hoặc ID nhóm (`oc_xxx`)
 
 Xem [Lấy ID nhóm/người dùng](#get-groupuser-ids) để biết mẹo tra cứu.

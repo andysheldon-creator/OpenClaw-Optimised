@@ -756,7 +756,7 @@ Gelen mesajlar bağlamalar yoluyla bir ajana yönlendirilir.
 - `bindings[]`: gelen mesajları bir `agentId`’e yönlendirir.
   - `match.channel` (gerekli)
   - `match.accountId` (isteğe bağlı; `*` = herhangi bir hesap; atlanırsa = varsayılan hesap)
-  - `match.peer` (isteğe bağlı; `{ kind: dm|group|channel, id }`)
+  - `match.peer` (isteğe bağlı; `{ kind: direct|group|channel, id }`)
   - `match.guildId` / `match.teamId` (isteğe bağlı; kanala özgü)
 
 Belirleyici eşleşme sırası:
@@ -2739,17 +2739,17 @@ Controls session scoping, reset policy, reset triggers, and where the session st
     },
     resetByType: {
       thread: { mode: "daily", atHour: 4 },
-      dm: { mode: "idle", idleMinutes: 240 },
+      direct: { mode: "idle", idleMinutes: 240 },
       group: { mode: "idle", idleMinutes: 120 },
     },
     resetTriggers: ["/new", "/reset"],
-    // Default is already per-agent under ~/.openclaw/agents/<agentId>/sessions/sessions.json
-    // You can override with {agentId} templating:
+    // Varsayılan zaten ~/.openclaw/agents/<agentId>/sessions/sessions.json altında agent başınadır
+    // {agentId} şablonlaması ile geçersiz kılabilirsiniz:
     store: "~/.openclaw/agents/{agentId}/sessions/sessions.json",
-    // Direct chats collapse to agent:<agentId>:<mainKey> (default: "main").
+    // Direkt sohbetler agent:<agentId>:<mainKey> (varsayılan: "main") içine çöker.
     mainKey: "main",
     agentToAgent: {
-      // Max ping-pong reply turns between requester/target (0–5).
+      // İstekçi/hedef arasında en fazla ping-pong yanıt dönüşü (0–5).
       maxPingPongTurns: 5,
     },
     sendPolicy: {
@@ -2776,7 +2776,7 @@ Alanlar:
   - `mode`: `daily` or `idle` (default: `daily` when `reset` is present).
   - `atHour`: local hour (0-23) for the daily reset boundary.
   - `idleMinutes`: sliding idle window in minutes. Günlük + boşta birlikte yapılandırıldığında, önce süresi dolan kazanır.
-- `resetByType`: per-session overrides for `dm`, `group`, and `thread`.
+- `resetByType`: `direct`, `group` ve `thread` için oturum başına geçersiz kılmalar. Eski `dm` anahtarı, `direct` için bir takma ad olarak kabul edilir.
   - If you only set legacy `session.idleMinutes` without any `reset`/`resetByType`, OpenClaw stays in idle-only mode for backward compatibility.
 - `heartbeatIdleMinutes`: optional idle override for heartbeat checks (daily reset still applies when enabled).
 - `agentToAgent.maxPingPongTurns`: max reply-back turns between requester/target (0–5, default 5).

@@ -31,35 +31,35 @@ title: "macOS 릴리스"
 - 릴리스 산출물 (zip + DMG + 공증)에는 `scripts/package-mac-dist.sh` 를 사용하십시오. 로컬/개발용 패키징에는 `scripts/package-mac-app.sh` 를 사용하십시오.
 
 ```bash
-# From repo root; set release IDs so Sparkle feed is enabled.
-# APP_BUILD must be numeric + monotonic for Sparkle compare.
+22. # 저장소 루트에서 실행; Sparkle 피드를 활성화하기 위해 릴리스 ID 설정.
+# Sparkle 비교를 위해 APP_BUILD는 숫자이며 단조 증가해야 합니다.
 BUNDLE_ID=bot.molt.mac \
-APP_VERSION=2026.2.6 \
+APP_VERSION=2026.2.9 \
 APP_BUILD="$(git rev-list --count HEAD)" \
 BUILD_CONFIG=release \
 SIGN_IDENTITY="Developer ID Application: <Developer Name> (<TEAMID>)" \
 scripts/package-mac-app.sh
 
-# Zip for distribution (includes resource forks for Sparkle delta support)
-ditto -c -k --sequesterRsrc --keepParent dist/OpenClaw.app dist/OpenClaw-2026.2.6.zip
+# 배포용 ZIP 생성(Sparkle 델타 지원을 위한 리소스 포크 포함)
+ditto -c -k --sequesterRsrc --keepParent dist/OpenClaw.app dist/OpenClaw-2026.2.9.zip
 
-# Optional: also build a styled DMG for humans (drag to /Applications)
-scripts/create-dmg.sh dist/OpenClaw.app dist/OpenClaw-2026.2.6.dmg
+# 선택 사항: 사용자용 스타일드 DMG도 빌드(/Applications로 드래그)
+scripts/create-dmg.sh dist/OpenClaw.app dist/OpenClaw-2026.2.9.dmg
 
-# Recommended: build + notarize/staple zip + DMG
-# First, create a keychain profile once:
+# 권장: ZIP + DMG 빌드 후 공증 및 스테이플
+# 먼저 키체인 프로필을 한 번 생성:
 #   xcrun notarytool store-credentials "openclaw-notary" \
 #     --apple-id "<apple-id>" --team-id "<team-id>" --password "<app-specific-password>"
 NOTARIZE=1 NOTARYTOOL_PROFILE=openclaw-notary \
 BUNDLE_ID=bot.molt.mac \
-APP_VERSION=2026.2.6 \
+APP_VERSION=2026.2.9 \
 APP_BUILD="$(git rev-list --count HEAD)" \
 BUILD_CONFIG=release \
 SIGN_IDENTITY="Developer ID Application: <Developer Name> (<TEAMID>)" \
 scripts/package-mac-dist.sh
 
-# Optional: ship dSYM alongside the release
-ditto -c -k --keepParent apps/macos/.build/release/OpenClaw.app.dSYM dist/OpenClaw-2026.2.6.dSYM.zip
+# 선택 사항: 릴리스와 함께 dSYM 제공
+ditto -c -k --keepParent apps/macos/.build/release/OpenClaw.app.dSYM dist/OpenClaw-2026.2.9.dSYM.zip
 ```
 
 ## 35. Appcast 항목
@@ -67,7 +67,7 @@ ditto -c -k --keepParent apps/macos/.build/release/OpenClaw.app.dSYM dist/OpenCl
 Sparkle 이 서식이 지정된 HTML 릴리스 노트를 렌더링하도록 릴리스 노트 생성기를 사용하십시오:
 
 ```bash
-SPARKLE_PRIVATE_KEY_FILE=/path/to/ed25519-private-key scripts/make_appcast.sh dist/OpenClaw-2026.2.6.zip https://raw.githubusercontent.com/openclaw/openclaw/main/appcast.xml
+23. SPARKLE_PRIVATE_KEY_FILE=/path/to/ed25519-private-key scripts/make_appcast.sh dist/OpenClaw-2026.2.9.zip https://raw.githubusercontent.com/openclaw/openclaw/main/appcast.xml
 ```
 
 [`scripts/changelog-to-html.sh`](https://github.com/openclaw/openclaw/blob/main/scripts/changelog-to-html.sh) 를 통해 `CHANGELOG.md` 에서 HTML 릴리스 노트를 생성하고, 이를 앱캐스트 항목에 포함합니다.
@@ -75,7 +75,7 @@ SPARKLE_PRIVATE_KEY_FILE=/path/to/ed25519-private-key scripts/make_appcast.sh di
 
 ## 게시 및 검증
 
-- 태그 `v2026.2.6` 의 GitHub 릴리스에 `OpenClaw-2026.2.6.zip` (및 `OpenClaw-2026.2.6.dSYM.zip`) 를 업로드하십시오.
+- 24. `OpenClaw-2026.2.9.zip`(및 `OpenClaw-2026.2.9.dSYM.zip`)을 태그 `v2026.2.9`의 GitHub 릴리스에 업로드하세요.
 - 원시 앱캐스트 URL 이 내장된 피드와 일치하는지 확인하십시오: `https://raw.githubusercontent.com/openclaw/openclaw/main/appcast.xml`.
 - 기본 점검:
   - `curl -I https://raw.githubusercontent.com/openclaw/openclaw/main/appcast.xml` 이 200 을 반환합니다.

@@ -162,6 +162,7 @@ Defaults —
   `maxInjectedChars`, `timeoutMs`)။
 - ၁၀။ `scope`: [`session.sendPolicy`](/gateway/configuration#session) နှင့် တူညီသော schema ဖြစ်သည်။
   ၁၁။ မူလသတ်မှတ်ချက်မှာ DM-only ဖြစ်သည် (`deny` အားလုံး၊ `allow` direct chats) ဖြစ်ပြီး group/channel များတွင် QMD hits များ ပြသလိုပါက လျော့ပေါ့နိုင်သည်။
+- `scope` သည် search ကို ငြင်းပယ်ပါက OpenClaw သည် derived `channel`/`chatType` နှင့်အတူ warning ကို log ထားပြီး အလွတ်ရလဒ်များကို debug လုပ်ရန် လွယ်ကူစေပါသည်။
 - Workspace ပြင်ပမှ ရင်းမြစ်ယူသော snippet များသည်
   `memory_search` ရလဒ်များတွင် `qmd/<collection>/<relative-path>` အဖြစ် ပေါ်လာသည်။ `memory_get` သည် ထို prefix ကို နားလည်ပြီး
   သတ်မှတ်ထားသော QMD collection root မှ ဖတ်သည်။

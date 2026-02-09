@@ -82,7 +82,7 @@ Detta gör att **flera personer** kan dela en Gateway-server samtidigt som deras
 
 ## Ett WhatsApp-nummer, flera personer (DM-delning)
 
-Du kan dirigera **olika WhatsApp DMs** till olika agenter medan du stannar på **ett WhatsApp konto**. Matcha på avsändare E.164 (som `+15551234567`) med `peer.kind: "dm"`. Svaren kommer fortfarande från samma WhatsApp nummer (ingen per-agent avsändare identitet).
+Du kan dirigera **olika WhatsApp DMs** till olika agenter medan du stannar på **ett WhatsApp konto**. Match on sender E.164 (like `+15551234567`) with `peer.kind: "direct"`. Svaren kommer fortfarande från samma WhatsApp nummer (ingen per-agent avsändare identitet).
 
 Viktig detalj: direktchattar kollapsar till agentens **huvudsessionnyckel**, så verklig isolering kräver **en agent per person**.
 
@@ -97,8 +97,14 @@ Exempel:
     ],
   },
   bindings: [
-    { agentId: "alex", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551230001" } } },
-    { agentId: "mia", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551230002" } } },
+    {
+      agentId: "alex",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551230001" } },
+    },
+    {
+      agentId: "mia",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551230002" } },
+    },
   ],
   channels: {
     whatsapp: {
@@ -260,7 +266,10 @@ Behåll WhatsApp på den snabba agenten, men routa en DM till Opus:
     ],
   },
   bindings: [
-    { agentId: "opus", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551234567" } } },
+    {
+      agentId: "opus",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551234567" } },
+    },
     { agentId: "chat", match: { channel: "whatsapp" } },
   ],
 }

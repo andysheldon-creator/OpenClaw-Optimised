@@ -82,7 +82,7 @@ openclaw agents list --bindings
 
 你可以在**同一個 WhatsApp 帳號**下，將**不同的 WhatsApp 私訊**路由到不同代理。
 透過 `peer.kind: "dm"` 依寄件者的 E.164（例如 `+15551234567`）進行比對。
-回覆仍會從相同的 WhatsApp 號碼送出（不支援每代理的寄件者身分）。 34. 使用 `peer.kind: "dm"` 比對寄件者的 E.164（例如 `+15551234567`）。 35. 回覆仍會來自同一個 WhatsApp 號碼（沒有每個代理獨立的寄件者身分）。
+回覆仍會從相同的 WhatsApp 號碼送出（不支援每代理的寄件者身分）。 Match on sender E.164 (like `+15551234567`) with `peer.kind: "direct"`. 35. 回覆仍會來自同一個 WhatsApp 號碼（沒有每個代理獨立的寄件者身分）。
 
 重要細節：直接聊天會合併到代理的**主要工作階段鍵**，
 因此若要真正隔離，必須**每人一個代理**。
@@ -98,8 +98,14 @@ openclaw agents list --bindings
     ],
   },
   bindings: [
-    { agentId: "alex", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551230001" } } },
-    { agentId: "mia", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551230002" } } },
+    {
+      agentId: "alex",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551230001" } },
+    },
+    {
+      agentId: "mia",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551230002" } },
+    },
   ],
   channels: {
     whatsapp: {
@@ -263,7 +269,10 @@ openclaw agents list --bindings
     ],
   },
   bindings: [
-    { agentId: "opus", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551234567" } } },
+    {
+      agentId: "opus",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551234567" } },
+    },
     { agentId: "chat", match: { channel: "whatsapp" } },
   ],
 }

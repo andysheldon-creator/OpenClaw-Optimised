@@ -105,7 +105,34 @@ title: "إدارة الجلسات"
 - إعادة ضبط يومية: الافتراضي **الساعة 4:00 صباحًا بالتوقيت المحلي على مضيف Gateway**. تُعد الجلسة قديمة إذا كان آخر تحديث لها أقدم من أحدث وقت لإعادة الضبط اليومية.
 - إعادة ضبط الخمول (اختياري): يضيف `idleMinutes` نافذة خمول منزلقة. عند تكوين كلٍ من إعادة الضبط اليومية والخمول، فإن **الأقرب انتهاءً** يفرض جلسة جديدة.
 - الخمول فقط (قديم): إذا ضبطت `session.idleMinutes` دون أي تهيئة `session.reset`/`resetByType`، يبقى OpenClaw في وضع الخمول فقط للتوافق العكسي.
-- تجاوزات حسب النوع (اختياري): يتيح `resetByType` تجاوز السياسة لجلسات `dm` و`group` و`thread` (thread = سلاسل Slack/Discord، مواضيع Telegram، وسلاسل Matrix عندما يوفّرها الموصل).
+- // ~/.openclaw/openclaw.json
+  {
+  session: {
+  scope: "per-sender", // keep group keys separate
+  dmScope: "main", // DM continuity (set per-channel-peer/per-account-channel-peer for shared inboxes)
+  identityLinks: {
+  alice: ["telegram:123456789", "discord:987654321012345678"],
+  },
+  reset: {
+  // Defaults: mode=daily, atHour=4 (gateway host local time).
+  // If you also set idleMinutes, whichever expires first wins.
+  mode: "daily",
+  atHour: 4,
+  idleMinutes: 120,
+  },
+  resetByType: {
+  thread: { mode: "daily", atHour: 4 },
+  direct: { mode: "idle", idleMinutes: 240 },
+  group: { mode: "idle", idleMinutes: 120 },
+  },
+  resetByChannel: {
+  discord: { mode: "idle", idleMinutes: 10080 },
+  },
+  resetTriggers: ["/new", "/reset"],
+  store: "~/.openclaw/agents/{agentId}/sessions/sessions.json",
+  mainKey: "main",
+  },
+  }
 - تجاوزات حسب القناة (اختياري): يتجاوز `resetByChannel` سياسة إعادة الضبط لقناة ما (ينطبق على جميع أنواع الجلسات لتلك القناة ويتقدّم على `reset`/`resetByType`).
 - محفزات إعادة الضبط: يؤدّي وجود `/new` أو `/reset` حرفيًا (بالإضافة إلى أي إضافات في `resetTriggers`) إلى بدء معرّف جلسة جديد وتمرير بقية الرسالة. يقبل `/new <model>` اسمًا مستعارًا للنموذج أو `provider/model` أو اسم الموفّر (مطابقة تقريبية) لتعيين نموذج الجلسة الجديدة. إذا أُرسِل `/new` أو `/reset` بمفرده، يُجري OpenClaw دورة تحية «مرحبًا» قصيرة لتأكيد إعادة الضبط.
 - إعادة الضبط اليدوية: احذف مفاتيح محددة من المخزن أو أزل نص JSONL؛ تعيد الرسالة التالية إنشاءها.
@@ -139,32 +166,37 @@ title: "إدارة الجلسات"
 ## التهيئة (مثال إعادة تسمية اختياري)
 
 ```json5
-// ~/.openclaw/openclaw.json
 {
   session: {
-    scope: "per-sender", // keep group keys separate
-    dmScope: "main", // DM continuity (set per-channel-peer/per-account-channel-peer for shared inboxes)
+    scope: "per-sender",
+    dmScope: "main",
     identityLinks: {
       alice: ["telegram:123456789", "discord:987654321012345678"],
     },
     reset: {
-      // Defaults: mode=daily, atHour=4 (gateway host local time).
-      // If you also set idleMinutes, whichever expires first wins.
       mode: "daily",
       atHour: 4,
-      idleMinutes: 120,
+      idleMinutes: 60,
     },
     resetByType: {
       thread: { mode: "daily", atHour: 4 },
-      dm: { mode: "idle", idleMinutes: 240 },
+      direct: { mode: "idle", idleMinutes: 240 },
       group: { mode: "idle", idleMinutes: 120 },
     },
-    resetByChannel: {
-      discord: { mode: "idle", idleMinutes: 10080 },
-    },
     resetTriggers: ["/new", "/reset"],
+    // Default is already per-agent under ~/.openclaw/agents/<agentId>/sessions/sessions.json
+    // You can override with {agentId} templating:
     store: "~/.openclaw/agents/{agentId}/sessions/sessions.json",
+    // Direct chats collapse to agent:<agentId>:<mainKey> (default: "main").
     mainKey: "main",
+    agentToAgent: {
+      // Max ping-pong reply turns between requester/target (0–5).
+      maxPingPongTurns: 5,
+    },
+    sendPolicy: {
+      rules: [{ action: "deny", match: { channel: "discord", chatType: "group" } }],
+      default: "allow",
+    },
   },
 }
 ```

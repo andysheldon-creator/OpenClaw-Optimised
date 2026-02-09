@@ -64,7 +64,9 @@ defaults write bot.molt.mac openclaw.nixMode -bool true
 ### Caminhos de configuracao + estado
 
 O OpenClaw le configuracao JSON5 de `OPENCLAW_CONFIG_PATH` e armazena dados mutaveis em `OPENCLAW_STATE_DIR`.
+Quando necessário, você também pode definir `OPENCLAW_HOME` para controlar o diretório home base usado para a resolução interna de caminhos.
 
+- `OPENCLAW_HOME` (precedência padrão: `HOME` / `USERPROFILE` / `os.homedir()`)
 - `OPENCLAW_STATE_DIR` (padrao: `~/.openclaw`)
 - `OPENCLAW_CONFIG_PATH` (padrao: `$OPENCLAW_STATE_DIR/openclaw.json`)
 

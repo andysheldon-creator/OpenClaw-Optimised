@@ -171,6 +171,14 @@ openclaw status         # gateway status
 openclaw dashboard      # open the browser UI
 ```
 
+カスタムの実行時パスが必要な場合は、以下を使用してください:
+
+- ホームディレクトリ基準の内部パスには `OPENCLAW_HOME`
+- 可変状態の保存場所には `OPENCLAW_STATE_DIR`
+- 設定ファイルの場所には `OPENCLAW_CONFIG_PATH`
+
+優先順位および詳細については [Environment vars](/help/environment) を参照してください。
+
 ## トラブルシューティング：`openclaw` が見つからない
 
 <Accordion title="PATH diagnosis and fix">

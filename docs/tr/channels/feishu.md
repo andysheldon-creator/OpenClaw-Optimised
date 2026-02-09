@@ -491,14 +491,14 @@ Feishu DM’lerini veya gruplarını farklı ajanlara yönlendirmek için `bindi
       agentId: "main",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_xxx" },
+        peer: { kind: "direct", id: "ou_xxx" },
       },
     },
     {
       agentId: "clawd-fan",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_yyy" },
+        peer: { kind: "direct", id: "ou_yyy" },
       },
     },
     {
@@ -515,7 +515,7 @@ Feishu DM’lerini veya gruplarını farklı ajanlara yönlendirmek için `bindi
 Yönlendirme alanları:
 
 - `match.channel`: `"feishu"`
-- `match.peer.kind`: `"dm"` veya `"group"`
+- `match.peer.kind`: `"direct"` veya `"group"`
 - `match.peer.id`: kullanıcı Open ID’si (`ou_xxx`) veya grup ID’si (`oc_xxx`)
 
 Arama ipuçları için [Grup/kullanıcı ID’lerini alma](#get-groupuser-ids) bölümüne bakın.

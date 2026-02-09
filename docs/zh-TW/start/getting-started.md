@@ -111,6 +111,16 @@ and chat in the browser, or open `http://127.0.0.1:18789/` on the
   </Accordion>
 </AccordionGroup>
 
+## 33. 有用的環境變數
+
+34. 如果你以服務帳戶執行 OpenClaw，或需要自訂設定／狀態位置：
+
+- 35. `OPENCLAW_HOME` 設定用於內部路徑解析的主目錄。
+- 36. `OPENCLAW_STATE_DIR` 覆寫狀態目錄。
+- 37. `OPENCLAW_CONFIG_PATH` 覆寫設定檔路徑。
+
+38. 完整的環境變數參考：[Environment vars](/help/environment)。
+
 ## 深入了解
 
 <Columns>

@@ -74,6 +74,32 @@ Env var equivalents:
 
 자세한 내용은 [Configuration: Env var substitution](/gateway/configuration#env-var-substitution-in-config) 을 참고하십시오.
 
+## Path-related env vars
+
+| 변수                     | 목적                                                                                                                                                                                                                                  |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `OPENCLAW_HOME`        | Override the home directory used for all internal path resolution (`~/.openclaw/`, agent dirs, sessions, credentials). Useful when running OpenClaw as a dedicated service user. |
+| `OPENCLAW_STATE_DIR`   | Override the state directory (default `~/.openclaw`).                                                                                                                                            |
+| `OPENCLAW_CONFIG_PATH` | 1. 설정 파일 경로를 재정의합니다(기본값 `~/.openclaw/openclaw.json`).                                                                                                                     |
+
+### 2. `OPENCLAW_HOME`
+
+3. 설정되면 `OPENCLAW_HOME`은 모든 내부 경로 해석에서 시스템 홈 디렉터리(`$HOME` / `os.homedir()`)를 대체합니다. 4. 이를 통해 헤드리스 서비스 계정에 대해 완전한 파일시스템 격리를 활성화할 수 있습니다.
+
+5. **우선순위:** `OPENCLAW_HOME` > `$HOME` > `USERPROFILE` > `os.homedir()`
+
+6. **예시** (macOS LaunchDaemon):
+
+```xml
+7. <key>EnvironmentVariables</key>
+<dict>
+  <key>OPENCLAW_HOME</key>
+  <string>/Users/kira</string>
+</dict>
+```
+
+8. `OPENCLAW_HOME`은 틸드 경로(예: `~/svc`)로도 설정할 수 있으며, 사용 전에 `$HOME`을 기준으로 확장됩니다.
+
 ## 관련 항목
 
 - [Gateway 구성](/gateway/configuration)

@@ -765,7 +765,7 @@ DM 대화는 에이전트가 관리하는 세션 기반 히스토리를 사용�
 - `bindings[]`: 수신 메시지를 `agentId`로 라우팅합니다.
   - `match.channel` (필수)
   - `match.accountId` (선택 사항; `*` = 모든 계정; 생략 = 기본 계정)
-  - `match.peer` (선택 사항; `{ kind: dm|group|channel, id }`)
+  - `match.peer` (선택 사항; `{ kind: direct|group|channel, id }`)
   - `match.guildId` / `match.teamId` (선택 사항; 채널별)
 
 결정적 매칭 순서:
@@ -2678,7 +2678,7 @@ Cerebras의 OpenAI 호환 엔드포인트를 사용하세요:
     },
     resetByType: {
       thread: { mode: "daily", atHour: 4 },
-      dm: { mode: "idle", idleMinutes: 240 },
+      direct: { mode: "idle", idleMinutes: 240 },
       group: { mode: "idle", idleMinutes: 120 },
     },
     resetTriggers: ["/new", "/reset"],
@@ -2715,7 +2715,7 @@ Cerebras의 OpenAI 호환 엔드포인트를 사용하세요:
   - `mode`: `daily` or `idle` (default: `daily` when `reset` is present).
   - `atHour`: local hour (0-23) for the daily reset boundary.
   - `idleMinutes`: sliding idle window in minutes. 일일 + 유휴가 모두 구성된 경우 먼저 만료되는 쪽이 우선합니다.
-- `resetByType`: per-session overrides for `dm`, `group`, and `thread`.
+- `resetByType`: per-session overrides for `direct`, `group`, and `thread`. Legacy `dm` key is accepted as an alias for `direct`.
   - If you only set legacy `session.idleMinutes` without any `reset`/`resetByType`, OpenClaw stays in idle-only mode for backward compatibility.
 - `heartbeatIdleMinutes`: optional idle override for heartbeat checks (daily reset still applies when enabled).
 - `agentToAgent.maxPingPongTurns`: max reply-back turns between requester/target (0–5, default 5).

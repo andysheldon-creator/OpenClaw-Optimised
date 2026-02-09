@@ -33,19 +33,26 @@ OpenClaw هو Gateway لـ WhatsApp + Telegram + Discord + iMessage لوكلاء
 
 هذا ما تريده:
 
-```
-Your Phone (personal)          Second Phone (assistant)
-┌─────────────────┐           ┌─────────────────┐
-│  Your WhatsApp  │  ──────▶  │  Assistant WA   │
-│  +1-555-YOU     │  message  │  +1-555-ASSIST  │
-└─────────────────┘           └────────┬────────┘
-                                       │ linked via QR
-                                       ▼
-                              ┌─────────────────┐
-                              │  Your Mac       │
-                              │  (openclaw)      │
-                              │    Pi agent     │
-                              └─────────────────┘
+```mermaid
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#ffffff',
+    'primaryTextColor': '#000000',
+    'primaryBorderColor': '#000000',
+    'lineColor': '#000000',
+    'secondaryColor': '#f9f9fb',
+    'tertiaryColor': '#ffffff',
+    'clusterBkg': '#f9f9fb',
+    'clusterBorder': '#000000',
+    'nodeBorder': '#000000',
+    'mainBkg': '#ffffff',
+    'edgeLabelBackground': '#ffffff'
+  }
+}}%%
+flowchart TB
+    A["<b>هاتفك (شخصي)<br></b><br>واتسابك<br>+1-555-YOU"] -- رسالة --> B["<b>هاتف ثانٍ (مساعد)<br></b><br>واتساب المساعد<br>+1-555-ASSIST"]
+    B -- مرتبط عبر QR --> C["<b>جهاز Mac الخاص بك (openclaw)<br></b><br>وكيل Pi"]
 ```
 
 إذا ربطت WhatsApp الشخصي بـ OpenClaw، فكل رسالة تصلك تصبح «مدخلات للوكيل». نادرًا ما يكون هذا ما تريده.

@@ -491,14 +491,14 @@ openclaw pairing list feishu
       agentId: "main",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_xxx" },
+        peer: { kind: "direct", id: "ou_xxx" },
       },
     },
     {
       agentId: "clawd-fan",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_yyy" },
+        peer: { kind: "direct", id: "ou_yyy" },
       },
     },
     {
@@ -515,7 +515,7 @@ openclaw pairing list feishu
 حقول التوجيه:
 
 - `match.channel`: `"feishu"`
-- `match.peer.kind`: `"dm"` أو `"group"`
+- `match.peer.kind`: "direct" أو "group"
 - `match.peer.id`: Open ID للمستخدم (`ou_xxx`) أو معرّف المجموعة (`oc_xxx`)
 
 انظر [الحصول على معرّفات المجموعات/المستخدمين](#get-groupuser-ids) لنصائح البحث.

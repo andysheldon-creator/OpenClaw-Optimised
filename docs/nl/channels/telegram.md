@@ -157,9 +157,20 @@ Meer hulp: [Kanaalproblemen oplossen](/channels/troubleshooting).
 Notities:
 
 - Aangepaste opdrachten zijn **alleen menu-items**; OpenClaw implementeert ze niet tenzij je ze elders afhandelt.
+- Sommige opdrachten kunnen door plugins/skills worden afgehandeld zonder in Telegrams opdrachtenmenu te zijn geregistreerd. Deze werken nog steeds wanneer ze worden getypt (ze verschijnen alleen niet in `/commands` / het menu).
 - Opdrachtnamen worden genormaliseerd (leidende `/` verwijderd, naar kleine letters) en moeten overeenkomen met `a-z`, `0-9`, `_` (1–32 tekens).
 - Aangepaste opdrachten **kunnen native opdrachten niet overschrijven**. Conflicten worden genegeerd en gelogd.
 - Als `commands.native` is uitgeschakeld, worden alleen aangepaste opdrachten geregistreerd (of gewist als er geen zijn).
+
+### Opdrachten voor apparaatkoppeling (`device-pair`-plugin)
+
+Als de `device-pair`-plugin is geïnstalleerd, voegt deze een Telegram-eerst-flow toe voor het koppelen van een nieuwe telefoon:
+
+1. `/pair` genereert een setupcode (verzonden als een apart bericht voor eenvoudig kopiëren/plakken).
+2. Plak de setupcode in de iOS-app om te verbinden.
+3. `/pair approve` keurt het meest recente openstaande apparaataanvraag goed.
+
+Meer details: [Pairing](/channels/pairing#pair-via-telegram-recommended-for-ios).
 
 ## Beperkingen
 
@@ -451,6 +462,25 @@ Voor verzendingen via de message-tool, stel `asVoice: true` in met een spraak-co
   asVoice: true,
 }
 ```
+
+## Videoberichten (video vs. videonotitie)
+
+Telegram maakt onderscheid tussen **videonotities** (ronde bubbel) en **videobestanden** (rechthoekig).
+OpenClaw gebruikt standaard videobestanden.
+
+Voor het verzenden via message tools, stel `asVideoNote: true` in met een video-`media`-URL:
+
+```json5
+{
+  action: "send",
+  channel: "telegram",
+  to: "123456789",
+  media: "https://example.com/video.mp4",
+  asVideoNote: true,
+}
+```
+
+(Let op: videonotities ondersteunen geen bijschriften. Als je een berichttekst opgeeft, wordt deze als een afzonderlijk bericht verzonden.)
 
 ## Stickers
 

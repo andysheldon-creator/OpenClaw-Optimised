@@ -6,146 +6,470 @@ read_when:
 title: "子代理程式"
 ---
 
-# Sub-agents
+# 子代理程式
 
-50. 子代理是從既有代理執行中衍生的背景代理執行。 They run in their own session (`agent:<agentId>:subagent:<uuid>`) and, when finished, **announce** their result back to the requester chat channel.
+40. 子代理可讓你在不阻塞主對話的情況下執行背景任務。 41. 當你產生一個子代理時，它會在自己獨立的工作階段中執行、完成工作，並在結束時將結果回報到聊天中。
 
-## 斜線指令
+42. **使用案例：**
 
-使用 `/subagents` 來檢視或控制**目前工作階段**的子代理程式執行：
+- 43. 在主代理持續回答問題的同時研究一個主題
+- 44. 並行執行多個長時間任務（網頁擷取、程式碼分析、檔案處理）
+- 45. 在多代理架構中將任務委派給專門化的代理
 
-- `/subagents list`
-- `/subagents stop <id|#|all>`
-- `/subagents log <id|#> [limit] [tools]`
-- `/subagents info <id|#>`
-- `/subagents send <id|#> <message>`
+## 快速開始
 
-`/subagents info` shows run metadata (status, timestamps, session id, transcript path, cleanup).
+46. 使用子代理最簡單的方式是自然地向你的代理提出要求：
 
-主要目標：
+> 47. "產生一個子代理來研究最新的 Node.js 發行說明"
 
-- 在不阻塞主要執行的情況下，將「研究／長時間任務／慢速工具」的工作平行化。
-- 預設保持子代理程式的隔離（工作階段分離＋可選的沙箱隔離）。
-- Keep the tool surface hard to misuse: sub-agents do **not** get session tools by default.
-- Avoid nested fan-out: sub-agents cannot spawn sub-agents.
+48. 代理會在幕後呼叫 `sessions_spawn` 工具。 49. 當子代理完成時，會將其發現回報到你的聊天中。
 
-Cost note: each sub-agent has its **own** context and token usage. For heavy or repetitive
-tasks, set a cheaper model for sub-agents and keep your main agent on a higher-quality model.
-You can configure this via `agents.defaults.subagents.model` or per-agent overrides.
+50. 你也可以明確指定選項：
 
-## 工具
+> "Spawn a sub-agent to analyze the server logs from today. Use gpt-5.2 and set a 5-minute timeout."
 
-使用 `sessions_spawn`：
+## How It Works
 
-- 啟動一個子代理程式執行（`deliver: false`，全域佇列通道：`subagent`）
-- Then runs an announce step and posts the announce reply to the requester chat channel
-- 預設模型：繼承呼叫者，除非你設定 `agents.defaults.subagents.model`（或逐代理程式的 `agents.list[].subagents.model`）；明確指定的 `sessions_spawn.model` 仍然優先。
-- 預設思考層級：繼承呼叫者，除非你設定 `agents.defaults.subagents.thinking`（或逐代理程式的 `agents.list[].subagents.thinking`）；明確指定的 `sessions_spawn.thinking` 仍然優先。
+<Steps>
+  <Step title="Main agent spawns">
+    The main agent calls `sessions_spawn` with a task description. The call is **non-blocking** — the main agent gets back `{ status: "accepted", runId, childSessionKey }` immediately.
+  </Step>
+  <Step title="Sub-agent runs in the background">
+    A new isolated session is created (`agent:<agentId>:subagent:<uuid>`) on the dedicated `subagent` queue lane.
+  </Step>
+  <Step title="Result is announced">
+    When the sub-agent finishes, it announces its findings back to the requester chat. The main agent posts a natural-language summary.
+  </Step>
+  <Step title="Session is archived">
+    The sub-agent session is auto-archived after 60 minutes (configurable). Transcripts are preserved.
+  </Step>
+</Steps>
 
-工具參數：
+<Tip>
+Each sub-agent has its **own** context and token usage. Set a cheaper model for sub-agents to save costs — see [Setting a Default Model](#setting-a-default-model) below.
+</Tip>
 
-- `task`（必填）
-- `label?`（選填）
-- `agentId?`（選填；若允許，則在另一個代理程式 id 底下產生）
-- `model?`（選填；覆寫子代理程式模型；無效值會被略過，子代理程式將以預設模型執行，並在工具結果中顯示警告）
-- `thinking?`（選填；覆寫子代理程式執行的思考層級）
-- `runTimeoutSeconds?`（預設 `0`；設定後，子代理程式執行會在 N 秒後中止）
-- `cleanup?`（`delete|keep`，預設 `keep`）
+## 設定
 
-允許清單：
+Sub-agents work out of the box with no configuration. 預設值：
 
-- `agents.list[].subagents.allowAgents`：可透過 `agentId` 指定的代理程式 id 清單（`["*"]` 以允許任何）。預設：僅請求者代理程式。 Default: only the requester agent.
+- Model: target agent’s normal model selection (unless `subagents.model` is set)
+- Thinking: no sub-agent override (unless `subagents.thinking` is set)
+- Max concurrent: 8
+- Auto-archive: after 60 minutes
 
-探索：
+### Setting a Default Model
 
-- 使用 `agents_list` 查看目前允許用於 `sessions_spawn` 的代理程式 id。
-
-自動封存：
-
-- 子代理程式工作階段會在 `agents.defaults.subagents.archiveAfterMinutes` 後自動封存（預設：60）。
-- 封存會使用 `sessions.delete`，並將逐字稿重新命名為 `*.deleted.<timestamp>`（同一資料夾）。
-- `cleanup: "delete"` 會在公告後立即封存（仍會透過重新命名保留逐字稿）。
-- Auto-archive is best-effort; pending timers are lost if the gateway restarts.
-- `runTimeoutSeconds` **不會**自動封存；它只會停止執行。工作階段會保留直到自動封存。 工作階段會一直存在直到自動封存。
-
-## Authentication
-
-Sub-agent auth is resolved by **agent id**, not by session type:
-
-- 子代理程式的工作階段金鑰為 `agent:<agentId>:subagent:<uuid>`。
-- The auth store is loaded from that agent’s `agentDir`.
-- The main agent’s auth profiles are merged in as a **fallback**; agent profiles override main profiles on conflicts.
-
-Note: the merge is additive, so main profiles are always available as fallbacks. Fully isolated auth per agent is not supported yet.
-
-## 公告
-
-Sub-agents report back via an announce step:
-
-- The announce step runs inside the sub-agent session (not the requester session).
-- If the sub-agent replies exactly `ANNOUNCE_SKIP`, nothing is posted.
-- 否則，公告回覆會透過後續的 `agent` 呼叫（`deliver=true`）張貼到請求者聊天頻道。
-- 在可用時，公告回覆會保留執行緒／主題路由（Slack 執行緒、Telegram 主題、Matrix 執行緒）。
-- 公告訊息會正規化為穩定的範本：
-  - `Status:` 依據執行結果推導（`success`、`error`、`timeout`，或 `unknown`）。
-  - `Result:` 為公告步驟的摘要內容（若缺失則為 `(not available)`）。
-  - `Notes:` 為錯誤細節與其他有用的脈絡。
-- `Status` 並非從模型輸出推斷；它來自執行期的結果訊號。
-
-公告承載內容在結尾會包含一行統計資訊（即使被包裝）：
-
-- 執行時間（例如：`runtime 5m12s`）
-- Token usage (input/output/total)
-- 在設定模型定價時的估計成本（`models.providers.*.models[].cost`）
-- `sessionKey`、`sessionId`，以及逐字稿路徑（因此主要代理程式可透過 `sessions_history` 取得歷史紀錄，或在磁碟上檢視檔案）
-
-## 工具政策（子代理程式工具）
-
-預設情況下，子代理程式會取得**除工作階段工具以外的所有工具**：
-
-- `sessions_list`
-- `sessions_history`
-- `sessions_send`
-- `sessions_spawn`
-
-Override via config:
+Use a cheaper model for sub-agents to save on token costs:
 
 ```json5
 {
   agents: {
     defaults: {
       subagents: {
-        maxConcurrent: 1,
-      },
-    },
-  },
-  tools: {
-    subagents: {
-      tools: {
-        // deny wins
-        deny: ["gateway", "cron"],
-        // if allow is set, it becomes allow-only (deny still wins)
-        // allow: ["read", "exec", "process"]
+        model: "minimax/MiniMax-M2.1",
       },
     },
   },
 }
 ```
 
-## 併發
+### Setting a Default Thinking Level
 
-子代理程式使用專用的行程內佇列通道：
+```json5
+{
+  agents: {
+    defaults: {
+      subagents: {
+        thinking: "low",
+      },
+    },
+  },
+}
+```
 
-- 通道名稱：`subagent`
-- 併發數：`agents.defaults.subagents.maxConcurrent`（預設 `8`）
+### Per-Agent Overrides
 
-## 停止
+In a multi-agent setup, you can set sub-agent defaults per agent:
 
-- 在請求者聊天中送出 `/stop` 會中止請求者工作階段，並停止由其產生的任何活動中子代理程式執行。
+```json5
+{
+  agents: {
+    list: [
+      {
+        id: "researcher",
+        subagents: {
+          model: "anthropic/claude-sonnet-4",
+        },
+      },
+      {
+        id: "assistant",
+        subagents: {
+          model: "minimax/MiniMax-M2.1",
+        },
+      },
+    ],
+  },
+}
+```
+
+### 併發
+
+Control how many sub-agents can run at the same time:
+
+```json5
+{
+  agents: {
+    defaults: {
+      subagents: {
+        maxConcurrent: 4, // default: 8
+      },
+    },
+  },
+}
+```
+
+Sub-agents use a dedicated queue lane (`subagent`) separate from the main agent queue, so sub-agent runs don't block inbound replies.
+
+### Auto-Archive
+
+Sub-agent sessions are automatically archived after a configurable period:
+
+```json5
+{
+  agents: {
+    defaults: {
+      subagents: {
+        archiveAfterMinutes: 120, // default: 60
+      },
+    },
+  },
+}
+```
+
+<Note>
+Archive renames the transcript to `*.deleted.<timestamp>` (same folder) — transcripts are preserved, not deleted. Auto-archive timers are best-effort; pending timers are lost if the gateway restarts.
+</Note>
+
+## The `sessions_spawn` Tool
+
+This is the tool the agent calls to create sub-agents.
+
+### 參數
+
+| Parameter           | 類型                       | Default                               | Description                                                                                       |
+| ------------------- | ------------------------ | ------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `task`              | string                   | _(required)_       | What the sub-agent should do                                                                      |
+| `label`             | string                   | —                                     | Short label for identification                                                                    |
+| `agentId`           | string                   | _(caller's agent)_ | Spawn under a different agent id (must be allowed)                             |
+| `模型`                | string                   | _(optional)_       | Override the model for this sub-agent                                                             |
+| `thinking`          | string                   | _(optional)_       | Override thinking level (`off`, `low`, `medium`, `high`, etc.) |
+| `runTimeoutSeconds` | number                   | `0` (no limit)     | Abort the sub-agent after N seconds                                                               |
+| `清理`                | `"delete"` \\| `"keep"` | `"keep"`                              | `"delete"` archives immediately after announce                                                    |
+
+### Model Resolution Order
+
+The sub-agent model is resolved in this order (first match wins):
+
+1. Explicit `model` parameter in the `sessions_spawn` call
+2. Per-agent config: `agents.list[].subagents.model`
+3. Global default: `agents.defaults.subagents.model`
+4. Target agent’s normal model resolution for that new session
+
+Thinking level is resolved in this order:
+
+1. Explicit `thinking` parameter in the `sessions_spawn` call
+2. Per-agent config: `agents.list[].subagents.thinking`
+3. Global default: `agents.defaults.subagents.thinking`
+4. Otherwise no sub-agent-specific thinking override is applied
+
+<Note>
+Invalid model values are silently skipped — the sub-agent runs on the next valid default with a warning in the tool result.
+</Note>
+
+### Cross-Agent Spawning
+
+By default, sub-agents can only spawn under their own agent id. To allow an agent to spawn sub-agents under other agent ids:
+
+```json5
+{
+  agents: {
+    list: [
+      {
+        id: "orchestrator",
+        subagents: {
+          allowAgents: ["researcher", "coder"], // or ["*"] to allow any
+        },
+      },
+    ],
+  },
+}
+```
+
+<Tip>
+Use the `agents_list` tool to discover which agent ids are currently allowed for `sessions_spawn`.
+</Tip>
+
+## Managing Sub-Agents (`/subagents`)
+
+Use the `/subagents` slash command to inspect and control sub-agent runs for the current session:
+
+| 指令                                         | Description                                                       |
+| ------------------------------------------ | ----------------------------------------------------------------- |
+| `/subagents list`                          | List all sub-agent runs (active and completed) |
+| `/subagents stop <id\\|#\\|all>`         | Stop a running sub-agent                                          |
+| `/subagents log <id\\|#> [limit] [tools]` | View sub-agent transcript                                         |
+| `/subagents info <id\\|#>`                | Show detailed run metadata                                        |
+| `/subagents send <id\\|#> <message>`      | Send a message to a running sub-agent                             |
+
+You can reference sub-agents by list index (`1`, `2`), run id prefix, full session key, or `last`.
+
+<AccordionGroup>
+  <Accordion title="Example: list and stop a sub-agent">
+    ```
+    /subagents list
+    ```
+
+    ````
+    ```
+    🧭 Subagents (current session)
+    Active: 1 · Done: 2
+    1) ✅ · research logs · 2m31s · run a1b2c3d4 · agent:main:subagent:...
+    2) ✅ · check deps · 45s · run e5f6g7h8 · agent:main:subagent:...
+    3) 🔄 · deploy staging · 1m12s · run i9j0k1l2 · agent:main:subagent:...
+    ```
+    
+    ```
+    /subagents stop 3
+    ```
+    
+    ```
+    ⚙️ Stop requested for deploy staging.
+    ```
+    ````
+
+  </Accordion>
+  <Accordion title="Example: inspect a sub-agent">
+    ```
+    /subagents info 1
+    ```
+
+    ````
+    ```
+    ℹ️ Subagent info
+    Status: ✅
+    Label: research logs
+    Task: Research the latest server error logs and summarize findings
+    Run: a1b2c3d4-...
+    Session: agent:main:subagent:...
+    Runtime: 2m31s
+    Cleanup: keep
+    Outcome: ok
+    ```
+    ````
+
+  </Accordion>
+  <Accordion title="Example: view sub-agent log">
+    ```
+    /subagents log 1 10
+    ```
+
+    ````
+    Shows the last 10 messages from the sub-agent's transcript. Add `tools` to include tool call messages:
+    
+    ```
+    /subagents log 1 10 tools
+    ```
+    ````
+
+  </Accordion>
+  <Accordion title="Example: send a follow-up message">
+    ```
+    /subagents send 3 "Also check the staging environment"
+    ```
+
+    ```
+    Sends a message into the running sub-agent's session and waits up to 30 seconds for a reply.
+    ```
+
+  </Accordion>
+</AccordionGroup>
+
+## Announce (How Results Come Back)
+
+When a sub-agent finishes, it goes through an **announce** step:
+
+1. The sub-agent's final reply is captured
+2. A summary message is sent to the main agent's session with the result, status, and stats
+3. The main agent posts a natural-language summary to your chat
+
+在可用時，公告回覆會保留執行緒／主題路由（Slack 執行緒、Telegram 主題、Matrix 執行緒）。
+
+### Announce Stats
+
+Each announce includes a stats line with:
+
+- Runtime duration
+- Token usage (input/output/total)
+- 1. 預估成本（當模型定價透過 `models.providers.*.models[].cost` 設定時）
+- 2. 工作階段金鑰、工作階段 ID，以及逐字稿路徑
+
+### 3. 公告狀態
+
+4. 公告訊息包含一個從執行階段結果（而非模型輸出）推導出的狀態：
+
+- 5. **成功完成**（`ok`）— 任務正常完成
+- 6. **錯誤** — 任務失敗（錯誤細節在備註中）
+- 7. **逾時** — 任務超過 `runTimeoutSeconds`
+- 8. **未知** — 無法判定狀態
+
+<Tip>
+9. 若不需要對使用者公告，主代理的摘要步驟可以回傳 `NO_REPLY`，且不會張貼任何內容。
+10. 這與 `ANNOUNCE_SKIP` 不同，後者用於代理對代理的公告流程（`sessions_send`）。
+</Tip>
+
+## 11. 工具政策
+
+12. 預設情況下，子代理可使用 **除了一組被拒絕的工具之外的所有工具**，這些工具對背景任務而言不安全或不必要：
+
+<AccordionGroup>
+  <Accordion title="Default denied tools">13. 
+    | 被拒絕的工具 | 原因 |
+    |-------------|--------|
+    | `sessions_list` | 工作階段管理 — 由主代理協調 |
+    | `sessions_history` | 工作階段管理 — 由主代理協調 |
+    | `sessions_send` | 工作階段管理 — 由主代理協調 |
+    | `sessions_spawn` | 不允許巢狀擴散（子代理不能再產生子代理） |
+    | `gateway` | 系統管理 — 子代理使用具危險性 |
+    | `agents_list` | 系統管理 |
+    | `whatsapp_login` | 互動式設定 — 非任務 |
+    | `session_status` | 狀態／排程 — 由主代理協調 |
+    | `cron` | 狀態／排程 — 由主代理協調 |
+    | `memory_search` | 改為在 spawn 提示中傳遞相關資訊 |
+    | `memory_get` | 改為在 spawn 提示中傳遞相關資訊 |</Accordion>
+</AccordionGroup>
+
+### 14. 自訂子代理工具
+
+15. 你可以進一步限制子代理工具：
+
+```json5
+16. {
+  tools: {
+    subagents: {
+      tools: {
+        // deny 永遠優先於 allow
+        deny: ["browser", "firecrawl"],
+      },
+    },
+  },
+}
+```
+
+17. 若要將子代理限制為 **僅能** 使用特定工具：
+
+```json5
+18. {
+  tools: {
+    subagents: {
+      tools: {
+        allow: ["read", "exec", "process", "write", "edit", "apply_patch"],
+        // 若設定 deny，仍然以 deny 為優先
+      },
+    },
+  },
+}
+```
+
+<Note>
+19. 自訂的 deny 項目會 **加入到** 預設的拒絕清單中。 20. 若設定了 `allow`，則僅有這些工具可用（仍會套用預設的拒絕清單）。
+</Note>
+
+## Authentication
+
+Sub-agent auth is resolved by **agent id**, not by session type:
+
+- 21. 驗證存放區會從目標代理的 `agentDir` 載入
+- 22. 主代理的驗證設定檔會作為 **備援** 合併進來（發生衝突時以代理本身的設定為準）
+- 23. 合併是累加式的 — 主代理的設定檔永遠可作為備援使用
+
+<Note>24. 
+目前尚未支援每個子代理完全隔離的驗證。</Note>
+
+## 25. 情境與系統提示
+
+26. 與主代理相比，子代理會收到較精簡的系統提示：
+
+- 27. **包含：** Tooling、Workspace、Runtime 區段，以及 `AGENTS.md` 與 `TOOLS.md`
+- 28. **不包含：** `SOUL.md`、`IDENTITY.md`、`USER.md`、`HEARTBEAT.md`、`BOOTSTRAP.md`
+
+29. 子代理也會收到一個以任務為導向的系統提示，指示其專注於被指派的任務、完成任務，且不要充當主代理。
+
+## 30. 停止子代理
+
+| 31. 方法                     | 32. 效果                              |
+| ------------------------------------------------- | ---------------------------------------------------------- |
+| 33. 在聊天中輸入 `/stop`         | 34. 中止主工作階段 **以及** 從其產生的所有進行中的子代理執行 |
+| 35. `/subagents stop <id>` | 36. 停止特定子代理而不影響主工作階段                |
+| 37. `runTimeoutSeconds`    | 38. 在指定時間後自動中止子代理執行                 |
+
+<Note>
+39. `runTimeoutSeconds` **不會** 自動封存工作階段。 40. 工作階段會保留，直到一般的封存計時器觸發。
+</Note>
+
+## 41. 完整設定範例
+
+<Accordion title="Complete sub-agent configuration">42. 
+```json5
+{
+  agents: {
+    defaults: {
+      model: { primary: "anthropic/claude-sonnet-4" },
+      subagents: {
+        model: "minimax/MiniMax-M2.1",
+        thinking: "low",
+        maxConcurrent: 4,
+        archiveAfterMinutes: 30,
+      },
+    },
+    list: [
+      {
+        id: "main",
+        default: true,
+        name: "Personal Assistant",
+      },
+      {
+        id: "ops",
+        name: "Ops Agent",
+        subagents: {
+          model: "anthropic/claude-sonnet-4",
+          allowAgents: ["main"], // ops 可以在 "main" 之下產生子代理
+        },
+      },
+    ],
+  },
+  tools: {
+    subagents: {
+      tools: {
+        deny: ["browser"], // 子代理不能使用瀏覽器
+      },
+    },
+  },
+}
+```</Accordion>
 
 ## 限制
 
-- Sub-agent announce is **best-effort**. If the gateway restarts, pending “announce back” work is lost.
-- Sub-agents still share the same gateway process resources; treat `maxConcurrent` as a safety valve.
-- `sessions_spawn` 一律為非阻塞：它會立即回傳 `{ status: "accepted", runId, childSessionKey }`。
-- 子代理程式脈絡只會注入 `AGENTS.md` ＋ `TOOLS.md`（不包含 `SOUL.md`、`IDENTITY.md`、`USER.md`、`HEARTBEAT.md`，或 `BOOTSTRAP.md`）。
+<Warning>
+43. - **盡力而為的公告：** 若 gateway 重新啟動，尚未完成的公告工作將會遺失。
+44. - **不允許巢狀產生：** 子代理不能產生自己的子代理。
+45. - **共享資源：** 子代理共用 gateway 行程；請使用 `maxConcurrent` 作為安全閥。
+46. - **自動封存為盡力而為：** gateway 重新啟動時，尚未觸發的封存計時器將會遺失。
+</Warning>
+
+## 19. 另請參閱
+
+- 47. [Session Tools](/concepts/session-tool) — 關於 `sessions_spawn` 與其他工作階段工具的詳細說明
+- 48. [Multi-Agent Sandbox and Tools](/tools/multi-agent-sandbox-tools) — 每個代理的工具限制與沙箱機制
+- 49. [Configuration](/gateway/configuration) — `agents.defaults.subagents` 參考
+- 50. [Queue](/concepts/queue) — `subagent` 佇列的運作方式

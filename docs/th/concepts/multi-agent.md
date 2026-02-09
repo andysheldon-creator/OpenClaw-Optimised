@@ -81,7 +81,7 @@ openclaw agents list --bindings
 
 ## หมายเลขWhatsAppเดียว หลายคน(DM split)
 
-คุณสามารถกำหนดเส้นทาง**DMของWhatsAppที่ต่างกัน**ไปยังเอเจนต์ต่างกันได้ ขณะใช้**บัญชีWhatsAppเดียว** จับคู่ตามผู้ส่งแบบE.164(เช่น`+15551234567`)ด้วย`peer.kind: "dm"` การตอบกลับยังคงมาจากหมายเลขWhatsAppเดียวกัน(ไม่มีตัวตนผู้ส่งต่อเอเจนต์) 5. จับคู่จากผู้ส่งตามรูปแบบ E.164 (เช่น `+15551234567`) โดยใช้ `peer.kind: "dm"` 6. การตอบกลับยังคงมาจากหมายเลข WhatsApp เดิม (ไม่มีตัวตนผู้ส่งแยกตามเอเจนต์)
+คุณสามารถกำหนดเส้นทาง**DMของWhatsAppที่ต่างกัน**ไปยังเอเจนต์ต่างกันได้ ขณะใช้**บัญชีWhatsAppเดียว** จับคู่ตามผู้ส่งแบบE.164(เช่น`+15551234567`)ด้วย`peer.kind: "dm"` การตอบกลับยังคงมาจากหมายเลขWhatsAppเดียวกัน(ไม่มีตัวตนผู้ส่งต่อเอเจนต์) จับคู่ตามผู้ส่งแบบ E.164 (เช่น `+15551234567`) ด้วย `peer.kind: "direct"`. 6. การตอบกลับยังคงมาจากหมายเลข WhatsApp เดิม (ไม่มีตัวตนผู้ส่งแยกตามเอเจนต์)
 
 รายละเอียดสำคัญ: แชตตรงจะถูกรวมไปยัง**คีย์เซสชันหลัก**ของเอเจนต์ ดังนั้นการแยกอย่างแท้จริงต้องใช้**หนึ่งเอเจนต์ต่อหนึ่งคน**
 
@@ -96,8 +96,14 @@ openclaw agents list --bindings
     ],
   },
   bindings: [
-    { agentId: "alex", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551230001" } } },
-    { agentId: "mia", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551230002" } } },
+    {
+      agentId: "alex",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551230001" } },
+    },
+    {
+      agentId: "mia",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551230002" } },
+    },
   ],
   channels: {
     whatsapp: {
@@ -258,7 +264,10 @@ openclaw agents list --bindings
     ],
   },
   bindings: [
-    { agentId: "opus", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551234567" } } },
+    {
+      agentId: "opus",
+      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551234567" } },
+    },
     { agentId: "chat", match: { channel: "whatsapp" } },
   ],
 }

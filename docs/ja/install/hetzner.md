@@ -117,12 +117,10 @@ Dockerコンテナは一時的です。
 すべての長生きの状態は、ホスト上で生きなければなりません。
 
 ```bash
-mkdir -p /root/.openclaw
 mkdir -p /root/.openclaw/workspace
 
 # Set ownership to the container user (uid 1000):
 chown -R 1000:1000 /root/.openclaw
-chown -R 1000:1000 /root/.openclaw/workspace
 ```
 
 ---
@@ -196,8 +194,11 @@ services:
         "${OPENCLAW_GATEWAY_BIND}",
         "--port",
         "${OPENCLAW_GATEWAY_PORT}",
+        "--allow-unconfigured",
       ]
 ```
+
+`--allow-unconfigured` はブートストラップの利便性のためだけのものであり、適切なゲートウェイ設定の代替にはなりません。 引き続き認証（`gateway.auth.token` またはパスワード）を設定し、デプロイメントに適した安全なバインド設定を使用してください。
 
 ---
 

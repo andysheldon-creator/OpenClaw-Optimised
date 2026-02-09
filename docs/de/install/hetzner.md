@@ -113,12 +113,10 @@ Docker‑Container sind ephemer.
 Jeglicher langlebige Zustand muss auf dem Host liegen.
 
 ```bash
-mkdir -p /root/.openclaw
 mkdir -p /root/.openclaw/workspace
 
 # Set ownership to the container user (uid 1000):
 chown -R 1000:1000 /root/.openclaw
-chown -R 1000:1000 /root/.openclaw/workspace
 ```
 
 ---
@@ -176,12 +174,12 @@ services:
       - ${OPENCLAW_CONFIG_DIR}:/home/node/.openclaw
       - ${OPENCLAW_WORKSPACE_DIR}:/home/node/.openclaw/workspace
     ports:
-      # Recommended: keep the Gateway loopback-only on the VPS; access via SSH tunnel.
-      # To expose it publicly, remove the `127.0.0.1:` prefix and firewall accordingly.
+      # Empfohlen: Das Gateway auf dem VPS nur an Loopback binden; Zugriff per SSH-Tunnel.
+      # Um es öffentlich bereitzustellen, entfernen Sie das Präfix `127.0.0.1:` und konfigurieren Sie die Firewall entsprechend.
       - "127.0.0.1:${OPENCLAW_GATEWAY_PORT}:18789"
 
-      # Optional: only if you run iOS/Android nodes against this VPS and need Canvas host.
-      # If you expose this publicly, read /gateway/security and firewall accordingly.
+      # Optional: nur wenn Sie iOS/Android-Nodes gegen diesen VPS betreiben und einen Canvas-Host benötigen.
+      # Wenn Sie dies öffentlich exponieren, lesen Sie /gateway/security und konfigurieren Sie die Firewall entsprechend.
       # - "18793:18793"
     command:
       [
@@ -192,8 +190,11 @@ services:
         "${OPENCLAW_GATEWAY_BIND}",
         "--port",
         "${OPENCLAW_GATEWAY_PORT}",
+        "--allow-unconfigured",
       ]
 ```
+
+`--allow-unconfigured` dient nur der bequemen Erstinbetriebnahme und ersetzt keine ordnungsgemäße Gateway-Konfiguration. Setzen Sie weiterhin die Authentifizierung (`gateway.auth.token` oder Passwort) und verwenden Sie sichere Bind-Einstellungen für Ihre Bereitstellung.
 
 ---
 

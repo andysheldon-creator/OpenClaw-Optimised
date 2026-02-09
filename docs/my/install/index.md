@@ -169,6 +169,14 @@ openclaw status         # gateway status
 openclaw dashboard      # open the browser UI
 ```
 
+14. custom runtime path များ လိုအပ်ပါက အောက်ပါအတိုင်း အသုံးပြုပါ:
+
+- 15. home-directory အခြေပြု အတွင်းပိုင်း path များအတွက် `OPENCLAW_HOME`
+- 16. mutable state တည်နေရာအတွက် `OPENCLAW_STATE_DIR`
+- 17. config ဖိုင်တည်နေရာအတွက် `OPENCLAW_CONFIG_PATH`
+
+18. precedence နှင့် အသေးစိတ် အချက်အလက်များအတွက် [Environment vars](/help/environment) ကို ကြည့်ပါ။
+
 ## ပြဿနာဖြေရှင်းခြင်း: `openclaw` မတွေ့ပါ
 
 <Accordion title="PATH diagnosis and fix">

@@ -53,21 +53,9 @@ title: "معمارية Gateway"
 
 ## دورة حياة الاتصال (عميل واحد)
 
-```
-Client                    Gateway
-  |                          |
-  |---- req:connect -------->|
-  |<------ res (ok) ---------|   (or res error + close)
-  |   (payload=hello-ok carries snapshot: presence + health)
-  |                          |
-  |<------ event:presence ---|
-  |<------ event:tick -------|
-  |                          |
-  |------- req:agent ------->|
-  |<------ res:agent --------|   (ack: {runId,status:"accepted"})
-  |<------ event:agent ------|   (streaming)
-  |<------ res:agent --------|   (final: {runId,status,summary})
-  |                          |
+```mermaid
+عندما يمنع `scope` عملية بحث، يقوم OpenClaw بتسجيل تحذير يتضمن
+`channel`/`chatType` المشتقين، مما يجعل نتائج الفراغ أسهل في التصحيح.
 ```
 
 ## بروتوكول الأسلاك (ملخّص)

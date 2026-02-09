@@ -491,14 +491,14 @@ Brug `bindings` til at route Feishu-DM’er eller -grupper til forskellige agent
       agentId: "main",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_xxx" },
+        peer: { kind: "direct", id: "ou_xxx" },
       },
     },
     {
       agentId: "clawd-fan",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_yyy" },
+        peer: { kind: "direct", id: "ou_yyy" },
       },
     },
     {
@@ -515,7 +515,7 @@ Brug `bindings` til at route Feishu-DM’er eller -grupper til forskellige agent
 Routing-felter:
 
 - `match.channel`: `"feishu"`
-- `match.peer.kind`: `"dm"` eller `"group"`
+- `match.peer.kind`: "direct" eller "group"
 - `match.peer.id`: bruger-Open ID (`ou_xxx`) eller gruppe-ID (`oc_xxx`)
 
 Se [Hent gruppe-/bruger-ID’er](#get-groupuser-ids) for opslagstips.

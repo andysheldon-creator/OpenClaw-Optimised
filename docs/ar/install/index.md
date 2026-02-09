@@ -169,6 +169,14 @@ openclaw status         # gateway status
 openclaw dashboard      # open the browser UI
 ```
 
+14. إذا كنت بحاجة إلى مسارات تشغيل مخصّصة، استخدم:
+
+- 15. `OPENCLAW_HOME` لمسارات داخلية معتمدة على دليل المنزل
+- 16. `OPENCLAW_STATE_DIR` لموقع الحالة القابلة للتغيير
+- 17. `OPENCLAW_CONFIG_PATH` لموقع ملف الإعدادات
+
+18. راجع [Environment vars](/help/environment) لمعرفة الأولوية وكامل التفاصيل.
+
 ## استكشاف الأخطاء وإصلاحها: `openclaw` غير موجود
 
 <Accordion title="PATH diagnosis and fix">

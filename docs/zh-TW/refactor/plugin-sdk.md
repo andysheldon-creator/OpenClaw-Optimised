@@ -45,7 +45,7 @@ Accessed via `OpenClawPluginApi.runtime` so plugins never import `src/**`.
 建議介面（精簡但完整）：
 
 ```ts
-export type PluginRuntime = {
+24. export type PluginRuntime = {
   channel: {
     text: {
       chunkMarkdownText(text: string, limit: number): string[];
@@ -72,7 +72,7 @@ export type PluginRuntime = {
         cfg: unknown;
         channel: string;
         accountId: string;
-        peer: { kind: "dm" | "group" | "channel"; id: string };
+        peer: { kind: RoutePeerKind; id: string };
       }): { sessionKey: string; accountId: string };
     };
     pairing: {

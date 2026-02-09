@@ -106,6 +106,16 @@ Control UI 가 로드되면 Gateway 는 사용 준비가 완료된 것입니다.
   </Accordion>
 </AccordionGroup>
 
+## 유용한 환경 변수
+
+OpenClaw를 서비스 계정으로 실행하거나 사용자 정의 구성/상태 위치를 원하는 경우:
+
+- `OPENCLAW_HOME`은 내부 경로 해석에 사용되는 홈 디렉터리를 설정합니다.
+- `OPENCLAW_STATE_DIR`는 상태 디렉터리를 재정의합니다.
+- `OPENCLAW_CONFIG_PATH`는 구성 파일 경로를 재정의합니다.
+
+전체 환경 변수 참조: [Environment vars](/help/environment).
+
 ## 더 깊이 알아보기
 
 <Columns>

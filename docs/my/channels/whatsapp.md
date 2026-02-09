@@ -194,8 +194,8 @@ Pairing သည် မသိသော ပို့သူများအတွက�
 - `openclaw pairing approve whatsapp <code>` ဖြင့် အတည်ပြုနိုင်သည် (`openclaw pairing list whatsapp` ဖြင့် စာရင်းကြည့်နိုင်သည်)။
 - ကုဒ်များသည် ၁ နာရီအကြာတွင် သက်တမ်းကုန်ပြီး pending request များကို ချန်နယ်တစ်ခုလျှင် ၃ ခုအထိသာ ခွင့်ပြုထားသည်။
 
-20. **WhatsApp နံပါတ်တစ်ခုတည်းပေါ်တွင် လူများစွာက OpenClaw instance မတူညီဘဲ အသုံးပြုနိုင်ပါသလား?**  
-    ရနိုင်ပါသည် — `bindings` မှတဆင့် ပို့သူတစ်ဦးစီကို agent မတူညီစွာ လမ်းကြောင်းချခြင်းဖြင့် (peer `kind: "dm"`, sender E.164 ကဲ့သို့ `+15551234567`)။ 21. အဖြေများသည် **WhatsApp account တစ်ခုတည်း** မှပဲ ထွက်လာပြီး direct chats များသည် agent တစ်ခုစီ၏ အဓိက session သို့ ပေါင်းစည်းသွားသောကြောင့် **လူတစ်ဦးလျှင် agent တစ်ခု** ကို အသုံးပြုပါ။ 22. DM ဝင်ရောက်ခွင့် ထိန်းချုပ်မှု (`dmPolicy`/`allowFrom`) သည် WhatsApp account တစ်ခုလုံးအတွက် global ဖြစ်ပါသည်။ 23. [Multi-Agent Routing](/concepts/multi-agent) ကို ကြည့်ပါ။
+**WhatsApp နံပါတ်တစ်ခုတွင် လူများစွာက OpenClaw instance မတူညီဘဲ အသုံးပြုနိုင်ပါသလား?**  
+ဟုတ်ပါသည် — sender တစ်ဦးချင်းစီကို `bindings` ဖြင့် agent မတူညီအောင် route လုပ်ခြင်းဖြင့် (peer `kind: "direct"`, sender E.164 ဥပမာ `+15551234567`)။ Reply များသည် **WhatsApp account တစ်ခုတည်း** မှသာ ထွက်လာမည်ဖြစ်ပြီး direct chat များသည် agent တစ်ဦးချင်း၏ main session သို့ ပေါင်းသွားသဖြင့် **လူတစ်ဦးလျှင် agent တစ်ခု** ကို အသုံးပြုပါ။ 22. DM ဝင်ရောက်ခွင့် ထိန်းချုပ်မှု (`dmPolicy`/`allowFrom`) သည် WhatsApp account တစ်ခုလုံးအတွက် global ဖြစ်ပါသည်။ 23. [Multi-Agent Routing](/concepts/multi-agent) ကို ကြည့်ပါ။
 
 24. **Wizard မှာ ဖုန်းနံပါတ်ကို ဘာကြောင့် မေးတာလဲ?**  
     Wizard သည် သင့်ကိုယ်ပိုင် DM များကို ခွင့်ပြုနိုင်ရန် **allowlist/owner** ကို သတ်မှတ်ရန် အသုံးပြုပါသည်။ 25. အလိုအလျောက် စာပို့ရန်အတွက် မသုံးပါ။ 26. သင့်ကိုယ်ရေး WhatsApp နံပါတ်ပေါ်တွင် chạy ပါက ထိုနံပါတ်တစ်ခုတည်းကို အသုံးပြုပြီး `channels.whatsapp.selfChatMode` ကို ဖွင့်ပါ။

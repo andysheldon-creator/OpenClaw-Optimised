@@ -74,6 +74,32 @@ Je kunt omgevingsvariabelen direct refereren in stringwaarden van de config met 
 
 Zie [Configuratie: substitutie van omgevingsvariabelen](/gateway/configuration#env-var-substitution-in-config) voor alle details.
 
+## Pad-gerelateerde omgevingsvariabelen
+
+| Variabele              | Doel                                                                                                                                                                                                                                                               |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `OPENCLAW_HOME`        | Overschrijf de homedirectory die wordt gebruikt voor alle interne padresolutie (`~/.openclaw/`, agentmappen, sessies, referenties). Handig wanneer OpenClaw wordt uitgevoerd als een speciale servicegebruiker. |
+| `OPENCLAW_STATE_DIR`   | Overschrijf de state-directory (standaard `~/.openclaw`).                                                                                                                                                                       |
+| `OPENCLAW_CONFIG_PATH` | Overschrijf het pad naar het configuratiebestand (standaard `~/.openclaw/openclaw.json`).                                                                                                                                       |
+
+### `OPENCLAW_HOME`
+
+Wanneer ingesteld, vervangt `OPENCLAW_HOME` de systeem-homemap (`$HOME` / `os.homedir()`) voor alle interne padresolutie. Dit maakt volledige bestandsysteemisolatie mogelijk voor headless serviceaccounts.
+
+**Voorrang:** `OPENCLAW_HOME` > `$HOME` > `USERPROFILE` > `os.homedir()`
+
+**Voorbeeld** (macOS LaunchDaemon):
+
+```xml
+<key>EnvironmentVariables</key>
+<dict>
+  <key>OPENCLAW_HOME</key>
+  <string>/Users/kira</string>
+</dict>
+```
+
+`OPENCLAW_HOME` kan ook worden ingesteld op een tilde-pad (bijv. `~/svc`), dat vóór gebruik wordt uitgebreid met `$HOME`.
+
 ## Gerelateerd
 
 - [Gateway-configuratie](/gateway/configuration)

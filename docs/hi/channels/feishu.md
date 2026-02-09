@@ -492,14 +492,14 @@ Feishu DMs या समूहों को विभिन्न एजें�
       agentId: "main",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_xxx" },
+        peer: { kind: "direct", id: "ou_xxx" },
       },
     },
     {
       agentId: "clawd-fan",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_yyy" },
+        peer: { kind: "direct", id: "ou_yyy" },
       },
     },
     {
@@ -516,7 +516,7 @@ Feishu DMs या समूहों को विभिन्न एजें�
 रूटिंग फ़ील्ड्स:
 
 - `match.channel`: `"feishu"`
-- `match.peer.kind`: `"dm"` या `"group"`
+- `match.peer.kind`: `"direct"` or `"group"`
 - `match.peer.id`: उपयोगकर्ता Open ID (`ou_xxx`) या समूह ID (`oc_xxx`)
 
 लुकअप सुझावों के लिए [Get group/user IDs](#get-groupuser-ids) देखें।

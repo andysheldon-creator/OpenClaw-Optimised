@@ -762,7 +762,7 @@ Inbound messages are routed to an agent via bindings.
 - `bindings[]`: routes inbound messages to an `agentId`.
   - `match.channel` (required)
   - `match.accountId` (optional; `*` = any account; omitted = default account)
-  - `match.peer` (optional; `{ kind: dm|group|channel, id }`)
+  - `match.peer` (optional; `{ kind: direct|group|channel, id }`)
   - `match.guildId` / `match.teamId` (optional; channel-specific)
 
 Deterministic match order:
@@ -2701,7 +2701,7 @@ scripts/sandbox-browser-setup.sh
 28. सेशन स्कोपिंग, रीसेट पॉलिसी, रीसेट ट्रिगर्स, और सेशन स्टोर कहाँ लिखा जाता है, को नियंत्रित करता है।
 
 ```json5
-29. {
+{
   session: {
     scope: "per-sender",
     dmScope: "main",
@@ -2715,7 +2715,7 @@ scripts/sandbox-browser-setup.sh
     },
     resetByType: {
       thread: { mode: "daily", atHour: 4 },
-      dm: { mode: "idle", idleMinutes: 240 },
+      direct: { mode: "idle", idleMinutes: 240 },
       group: { mode: "idle", idleMinutes: 120 },
     },
     resetTriggers: ["/new", "/reset"],
@@ -2752,7 +2752,7 @@ scripts/sandbox-browser-setup.sh
   - 44. `mode`: `daily` या `idle` (डिफ़ॉल्ट: `reset` मौजूद होने पर `daily`)।
   - 45. `atHour`: दैनिक रीसेट सीमा के लिए लोकल घंटा (0-23)।
   - 46. `idleMinutes`: मिनटों में स्लाइडिंग आइडल विंडो। 47. जब दैनिक + आइडल दोनों कॉन्फ़िगर हों, तो जो पहले समाप्त होता है वही लागू होता है।
-- 48. `resetByType`: `dm`, `group`, और `thread` के लिए प्रति-सेशन ओवरराइड्स।
+- `resetByType`: per-session overrides for `direct`, `group`, and `thread`. Legacy `dm` key is accepted as an alias for `direct`.
   - 49. यदि आप केवल लेगेसी `session.idleMinutes` सेट करते हैं और कोई `reset`/`resetByType` नहीं है, तो बैकवर्ड कम्पैटिबिलिटी के लिए OpenClaw आइडल-ओनली मोड में रहता है।
 - 50. `heartbeatIdleMinutes`: हार्टबीट चेक्स के लिए वैकल्पिक आइडल ओवरराइड (सक्रिय होने पर दैनिक रीसेट फिर भी लागू होता है)।
 - `agentToAgent.maxPingPongTurns`: max reply-back turns between requester/target (0–5, default 5).

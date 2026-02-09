@@ -758,21 +758,33 @@ Commit de bijgewerkte `.secrets.baseline` zodra deze de beoogde toestand weerspi
 
 ## De vertrouwenshiërarchie
 
-```
-Owner (Peter)
-  │ Full trust
-  ▼
-AI (Clawd)
-  │ Trust but verify
-  ▼
-Friends in allowlist
-  │ Limited trust
-  ▼
-Strangers
-  │ No trust
-  ▼
-Mario asking for find ~
-  │ Definitely no trust 😏
+```mermaid
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#ffffff',
+    'primaryTextColor': '#000000',
+    'primaryBorderColor': '#000000',
+    'lineColor': '#000000',
+    'secondaryColor': '#f9f9fb',
+    'tertiaryColor': '#ffffff',
+    'clusterBkg': '#f9f9fb',
+    'clusterBorder': '#000000',
+    'nodeBorder': '#000000',
+    'mainBkg': '#ffffff',
+    'edgeLabelBackground': '#ffffff'
+  }
+}}%%
+flowchart TB
+    A["Eigenaar (Peter)"] -- Volledig vertrouwen --> B["AI (Clawd)"]
+    B -- Vertrouwen maar verifiëren --> C["Vrienden in allowlist"]
+    C -- Beperkt vertrouwen --> D["Vreemden"]
+    D -- Geen vertrouwen --> E["Mario die vraagt om find ~"]
+    E -- Absoluut geen vertrouwen 😏 --> F[" "]
+
+     %% Het transparante vak is nodig om het onderste label correct weer te geven
+     F:::Class_transparent_box
+    classDef Class_transparent_box fill:transparent, stroke:transparent
 ```
 
 ## Beveiligingsproblemen melden

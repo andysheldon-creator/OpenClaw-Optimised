@@ -106,6 +106,16 @@ Si la Control UI carga, su Gateway está listo para usarse.
   </Accordion>
 </AccordionGroup>
 
+## Useful environment variables
+
+If you run OpenClaw as a service account or want custom config/state locations:
+
+- `OPENCLAW_HOME` sets the home directory used for internal path resolution.
+- `OPENCLAW_STATE_DIR` overrides the state directory.
+- `OPENCLAW_CONFIG_PATH` overrides the config file path.
+
+Full environment variable reference: [Environment vars](/help/environment).
+
 ## Más profundo
 
 <Columns>

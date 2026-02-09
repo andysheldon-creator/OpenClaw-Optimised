@@ -491,14 +491,14 @@ Feishu DM များ သို့မဟုတ် အုပ်စုမျာ�
       agentId: "main",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_xxx" },
+        peer: { kind: "direct", id: "ou_xxx" },
       },
     },
     {
       agentId: "clawd-fan",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_yyy" },
+        peer: { kind: "direct", id: "ou_yyy" },
       },
     },
     {
@@ -515,7 +515,7 @@ Feishu DM များ သို့မဟုတ် အုပ်စုမျာ�
 Routing အကွက်များ—
 
 - `match.channel`: `"feishu"`
-- `match.peer.kind`: `"dm"` သို့မဟုတ် `"group"`
+- `match.peer.kind`: "direct" သို့မဟုတ် "group"
 - `match.peer.id`: အသုံးပြုသူ Open ID (`ou_xxx`) သို့မဟုတ် Group ID (`oc_xxx`)
 
 ရှာဖွေရန် အကြံပြုချက်များအတွက် [Get group/user IDs](#get-groupuser-ids) ကို ကြည့်ပါ။

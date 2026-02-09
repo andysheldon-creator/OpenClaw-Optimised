@@ -64,7 +64,9 @@ defaults write bot.molt.mac openclaw.nixMode -bool true
 ### کنفیگ + اسٹیٹ کے راستے
 
 OpenClaw JSON5 کنفیگ `OPENCLAW_CONFIG_PATH` سے پڑھتا ہے اور قابلِ تغیر ڈیٹا `OPENCLAW_STATE_DIR` میں محفوظ کرتا ہے۔
+When needed, you can also set `OPENCLAW_HOME` to control the base home directory used for internal path resolution.
 
+- `OPENCLAW_HOME` (default precedence: `HOME` / `USERPROFILE` / `os.homedir()`)
 - `OPENCLAW_STATE_DIR` (بطورِ طے شدہ: `~/.openclaw`)
 - `OPENCLAW_CONFIG_PATH` (بطورِ طے شدہ: `$OPENCLAW_STATE_DIR/openclaw.json`)
 

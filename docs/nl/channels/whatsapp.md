@@ -196,7 +196,7 @@ Koppelen is een DM-poort voor onbekende afzenders:
 - Codes verlopen na 1 uur; openstaande verzoeken zijn beperkt tot 3 per kanaal.
 
 **Kunnen meerdere mensen verschillende OpenClaw-instanties gebruiken op één WhatsApp-nummer?**  
-Ja, door elke afzender naar een andere agent te routeren via `bindings` (peer `kind: "dm"`, afzender E.164 zoals `+15551234567`). Antwoorden komen nog steeds van **hetzelfde WhatsApp-account**, en directe chats worden samengevoegd tot de hoofdsessie van elke agent, dus gebruik **één agent per persoon**. DM-toegangsbeheer (`dmPolicy`/`allowFrom`) is globaal per WhatsApp-account. Zie [Multi-Agent Routing](/concepts/multi-agent).
+Ja, door elke afzender via `bindings` naar een andere agent te routeren (peer `kind: "direct"`, afzender E.164 zoals `+15551234567`). Antwoorden komen nog steeds van **hetzelfde WhatsApp-account**, en directe chats klappen samen naar de hoofdsessie van elke agent, dus gebruik **één agent per persoon**. DM-toegangsbeheer (`dmPolicy`/`allowFrom`) is globaal per WhatsApp-account. Zie [Multi-Agent Routing](/concepts/multi-agent).
 
 **Waarom vraagt de wizard om mijn telefoonnummer?**  
 De wizard gebruikt dit om je **toegestane lijst/eigenaar** in te stellen zodat je eigen DM’s zijn toegestaan. Het wordt niet gebruikt voor automatisch verzenden. Als je op je persoonlijke WhatsApp-nummer draait, gebruik datzelfde nummer en schakel `channels.whatsapp.selfChatMode` in.

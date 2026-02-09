@@ -158,9 +158,20 @@ You can add custom commands to the menu via config:
 注意事項：
 
 - 自訂指令僅是 **選單項目**；除非你在其他地方處理，否則 OpenClaw 不會實作其行為。
+- Some commands can be handled by plugins/skills without being registered in Telegram’s command menu. These still work when typed (they just won't show up in `/commands` / the menu).
 - 指令名稱會被正規化（移除前導 `/`、轉為小寫），且必須符合 `a-z`、`0-9`、`_`（1–32 字元）。
 - Custom commands **cannot override native commands**. Conflicts are ignored and logged.
 - 若停用 `commands.native`，只會註冊自訂指令（若沒有則清空）。
+
+### Device pairing commands (`device-pair` plugin)
+
+If the `device-pair` plugin is installed, it adds a Telegram-first flow for pairing a new phone:
+
+1. `/pair` generates a setup code (sent as a separate message for easy copy/paste).
+2. Paste the setup code in the iOS app to connect.
+3. `/pair approve` approves the latest pending device request.
+
+More details: [Pairing](/channels/pairing#pair-via-telegram-recommended-for-ios).
 
 ## 限制
 
@@ -454,6 +465,25 @@ The tag is stripped from the delivered text. Other channels ignore this tag.
   asVoice: true,
 }
 ```
+
+## Video messages (video vs video note)
+
+Telegram distinguishes **video notes** (round bubble) from **video files** (rectangular).
+OpenClaw defaults to video files.
+
+For message tool sends, set `asVideoNote: true` with a video `media` URL:
+
+```json5
+{
+  action: "send",
+  channel: "telegram",
+  to: "123456789",
+  media: "https://example.com/video.mp4",
+  asVideoNote: true,
+}
+```
+
+(Note: Video notes do not support captions. If you provide a message text, it will be sent as a separate message.)
 
 ## Stickers
 

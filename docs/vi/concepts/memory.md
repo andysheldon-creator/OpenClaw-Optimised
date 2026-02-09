@@ -168,6 +168,8 @@ Mặc định:
   `maxInjectedChars`, `timeoutMs`).
 - `scope`: same schema as [`session.sendPolicy`](/gateway/configuration#session).
   41. Mặc định là chỉ DM (từ chối tất cả, cho phép chat trực tiếp); nới lỏng để hiển thị kết quả QMD trong nhóm/kênh.
+- When `scope` denies a search, OpenClaw logs a warning with the derived
+  `channel`/`chatType` so empty results are easier to debug.
 - Đoạn trích lấy từ ngoài workspace hiển thị là
   `qmd/<collection>/<relative-path>` trong kết quả `memory_search`; `memory_get`
   hiểu tiền tố đó và đọc từ root collection QMD đã cấu hình.

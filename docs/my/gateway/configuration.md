@@ -757,7 +757,7 @@ Inbound မက်ဆေ့ချ်များကို bindings များ�
 - `bindings[]`: routes inbound messages to an `agentId`.
   - `match.channel` (required)
   - `match.accountId` (optional; `*` = any account; omitted = default account)
-  - `match.peer` (optional; `{ kind: dm|group|channel, id }`)
+  - `match.peer` (optional; `{ kind: direct|group|channel, id }`)
   - `match.guildId` / `match.teamId` (optional; channel-specific)
 
 Deterministic match order:
@@ -2720,7 +2720,7 @@ Synthetic ၏ Anthropic-compatible endpoint ကို အသုံးပြု�
 15. session scope, reset policy, reset triggers နှင့် session store ကို ဘယ်မှာ ရေးသားမလဲကို ထိန်းချုပ်ပါသည်။
 
 ```json5
-16. {
+{
   session: {
     scope: "per-sender",
     dmScope: "main",
@@ -2734,7 +2734,7 @@ Synthetic ၏ Anthropic-compatible endpoint ကို အသုံးပြု�
     },
     resetByType: {
       thread: { mode: "daily", atHour: 4 },
-      dm: { mode: "idle", idleMinutes: 240 },
+      direct: { mode: "idle", idleMinutes: 240 },
       group: { mode: "idle", idleMinutes: 120 },
     },
     resetTriggers: ["/new", "/reset"],
@@ -2771,7 +2771,7 @@ Fields —
   - 31. `mode`: `daily` သို့မဟုတ် `idle` (`reset` ရှိပါက default သည် `daily`)။
   - 32. `atHour`: နေ့စဉ် reset boundary အတွက် local hour (0-23)။
   - 33. `idleMinutes`: sliding idle window ကို မိနစ်ဖြင့် သတ်မှတ်ပါသည်။ 34. daily + idle နှစ်ခုစလုံးကို သတ်မှတ်ထားပါက အရင်ဆုံး သက်တမ်းကုန်တဲ့ အရာက အနိုင်ရပါသည်။
-- 35. `resetByType`: `dm`, `group`, နှင့် `thread` အတွက် per-session override များ။
+- `resetByType`: `direct`, `group`, နှင့် `thread` အတွက် session တစ်ခုချင်းစီအလိုက် override များ။ Legacy `dm` key ကို `direct` ၏ alias အဖြစ် လက်ခံပါသည်။
   - 36. legacy `session.idleMinutes` ကိုသာ သတ်မှတ်ပြီး `reset`/`resetByType` မရှိပါက backward compatibility အတွက် OpenClaw သည် idle-only mode အဖြစ် ဆက်လက် လုပ်ဆောင်ပါသည်။
 - 37. `heartbeatIdleMinutes`: heartbeat စစ်ဆေးမှုများအတွက် optional idle override (enable ဖြစ်ပါက daily reset သည် ဆက်လက် သက်ရောက်ပါသည်)။
 - 38. `agentToAgent.maxPingPongTurns`: requester/target အကြား reply-back turns အများဆုံး (0–5, default 5)။

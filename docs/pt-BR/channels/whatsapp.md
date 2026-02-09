@@ -195,8 +195,8 @@ Pareamento é um bloqueio de DM para remetentes desconhecidos:
 - Aprove com: `openclaw pairing approve whatsapp <code>` (liste com `openclaw pairing list whatsapp`).
 - Os códigos expiram após 1 hora; solicitações pendentes são limitadas a 3 por canal.
 
-**Várias pessoas podem usar instâncias diferentes do OpenClaw em um único número do WhatsApp?**  
-Sim, roteando cada remetente para um agente diferente via `bindings` (peer `kind: "dm"`, remetente E.164 como `+15551234567`). As respostas ainda vêm da **mesma conta do WhatsApp**, e chats diretos colapsam para a sessão principal de cada agente, então use **um agente por pessoa**. O controle de acesso a DM (`dmPolicy`/`allowFrom`) é global por conta do WhatsApp. Veja [Roteamento Multi‑Agente](/concepts/multi-agent).
+**Can multiple people use different OpenClaw instances on one WhatsApp number?**  
+Yes, by routing each sender to a different agent via `bindings` (peer `kind: "direct"`, sender E.164 like `+15551234567`). Replies still come from the **same WhatsApp account**, and direct chats collapse to each agent's main session, so use **one agent per person**. O controle de acesso a DM (`dmPolicy`/`allowFrom`) é global por conta do WhatsApp. Veja [Roteamento Multi‑Agente](/concepts/multi-agent).
 
 **Por que você pede meu número de telefone no assistente?**  
 O assistente o usa para definir sua **allowlist/proprietário** para que suas próprias DMs sejam permitidas. Não é usado para envio automático. Se você executar no seu número pessoal do WhatsApp, use esse mesmo número e habilite `channels.whatsapp.selfChatMode`.

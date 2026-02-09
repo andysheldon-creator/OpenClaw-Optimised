@@ -801,7 +801,7 @@ without WhatsApp/Telegram.
 
 ### Can multiple people use one WhatsApp number with different OpenClaw instances
 
-Yes, via **multi-agent routing**. Bind each sender's WhatsApp **DM** (peer `kind: "dm"`, sender E.164 like `+15551234567`) to a different `agentId`, so each person gets their own workspace and session store. 42. 回覆仍會來自 **同一個 WhatsApp 帳號**，而 DM 的存取控制（`channels.whatsapp.dmPolicy` / `channels.whatsapp.allowFrom`）是以 WhatsApp 帳號為單位的全域設定。 See [Multi-Agent Routing](/concepts/multi-agent) and [WhatsApp](/channels/whatsapp).
+Yes, via **multi-agent routing**. 9. 將每個傳送者的 WhatsApp **DM**（對等 `kind: "direct"`，傳送者 E.164 如 `+15551234567`）綁定到不同的 `agentId`，讓每個人都有自己的工作區與工作階段儲存。 42. 回覆仍會來自 **同一個 WhatsApp 帳號**，而 DM 的存取控制（`channels.whatsapp.dmPolicy` / `channels.whatsapp.allowFrom`）是以 WhatsApp 帳號為單位的全域設定。 See [Multi-Agent Routing](/concepts/multi-agent) and [WhatsApp](/channels/whatsapp).
 
 ### 44. 我可以同時跑一個快速聊天代理，以及一個用於寫程式的 Opus 代理嗎
 

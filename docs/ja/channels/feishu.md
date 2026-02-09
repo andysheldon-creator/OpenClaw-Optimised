@@ -491,14 +491,14 @@ Feishu はインタラクティブカードによるストリーミング返信�
       agentId: "main",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_xxx" },
+        peer: { kind: "direct", id: "ou_xxx" },
       },
     },
     {
       agentId: "clawd-fan",
       match: {
         channel: "feishu",
-        peer: { kind: "dm", id: "ou_yyy" },
+        peer: { kind: "direct", id: "ou_yyy" },
       },
     },
     {
@@ -515,7 +515,7 @@ Feishu はインタラクティブカードによるストリーミング返信�
 ルーティングフィールド:
 
 - `match.channel`: `"feishu"`
-- `match.peer.kind`: `"dm"` または `"group"`
+- `match.peer.kind`: "direct" または "group"
 - `match.peer.id`: ユーザー Open ID（`ou_xxx`）またはグループ ID（`oc_xxx`）
 
 取得方法のヒントについては、[グループ / ユーザー ID の取得](#get-groupuser-ids) を参照してください。

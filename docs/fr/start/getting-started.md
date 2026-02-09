@@ -106,6 +106,16 @@ Si l’interface de controle se charge, votre Gateway est prete a l’emploi.
   </Accordion>
 </AccordionGroup>
 
+## Variables d’environnement utiles
+
+Si vous exécutez OpenClaw en tant que compte de service ou souhaitez des emplacements personnalisés pour la configuration/l’état :
+
+- `OPENCLAW_HOME` définit le répertoire personnel utilisé pour la résolution interne des chemins.
+- `OPENCLAW_STATE_DIR` remplace le répertoire d’état.
+- `OPENCLAW_CONFIG_PATH` remplace le chemin du fichier de configuration.
+
+Référence complète des variables d’environnement : [Variables d’environnement](/help/environment).
+
 ## Aller plus loin
 
 <Columns>

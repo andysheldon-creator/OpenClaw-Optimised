@@ -155,9 +155,20 @@ OpenClaw 는 시작 시 `/status`, `/reset`, `/model` 와 같은 기본 명령�
 참고 사항:
 
 - 사용자 정의 명령어는 **메뉴 항목 전용**입니다. OpenClaw 는 별도로 처리하지 않으면 이를 구현하지 않습니다.
+- Some commands can be handled by plugins/skills without being registered in Telegram’s command menu. These still work when typed (they just won't show up in `/commands` / the menu).
 - 명령어 이름은 정규화됩니다 (선행 `/` 제거, 소문자화) 그리고 `a-z`, `0-9`, `_` (1–32 자)와 일치해야 합니다.
 - 사용자 정의 명령어는 **기본 명령어를 재정의할 수 없습니다**. 충돌은 무시되고 로그에 기록됩니다.
 - `commands.native` 가 비활성화되면 사용자 정의 명령어만 등록됩니다 (없으면 제거).
+
+### Device pairing commands (`device-pair` plugin)
+
+If the `device-pair` plugin is installed, it adds a Telegram-first flow for pairing a new phone:
+
+1. `/pair` generates a setup code (sent as a separate message for easy copy/paste).
+2. Paste the setup code in the iOS app to connect.
+3. `/pair approve` approves the latest pending device request.
+
+More details: [Pairing](/channels/pairing#pair-via-telegram-recommended-for-ios).
 
 ## 제한 사항
 
@@ -449,6 +460,25 @@ OpenClaw 는 하위 호환성을 위해 기본적으로 오디오 파일을 사�
   asVoice: true,
 }
 ```
+
+## Video messages (video vs video note)
+
+Telegram distinguishes **video notes** (round bubble) from **video files** (rectangular).
+OpenClaw defaults to video files.
+
+For message tool sends, set `asVideoNote: true` with a video `media` URL:
+
+```json5
+{
+  action: "send",
+  channel: "telegram",
+  to: "123456789",
+  media: "https://example.com/video.mp4",
+  asVideoNote: true,
+}
+```
+
+(Note: Video notes do not support captions. If you provide a message text, it will be sent as a separate message.)
 
 ## 스티커
 

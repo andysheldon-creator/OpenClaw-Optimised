@@ -769,7 +769,7 @@ Wiadomości przychodzące są kierowane do agenta za pośrednictwem powiązań.
 - `bindings[]`: kieruje przychodzące wiadomości do `agentId`.
   - `match.channel` (wymagane)
   - `match.accountId` (opcjonalne; `*` = dowolne konto; pominięte = domyślne konto)
-  - `match.peer` (opcjonalne; `{ kind: dm|group|channel, id }`)
+  - `match.peer` (opcjonalne; `{ kind: direct|group|channel, id }`)
   - `match.guildId` / `match.teamId` (opcjonalne; specyficzne dla kanału)
 
 Deterministyczna kolejność meczu:
@@ -2755,35 +2755,35 @@ Kontroluje punktację sesji, resetowanie reguły, wyzwalacze resetowania i miejs
 
 ```json5
 {
-  sesja: {
-    zakres: "per-sender",
+  session: {
+    scope: "per-sender",
     dmScope: "main",
     identityLinks: {
       alice: ["telegram:123456789", "discord:987654321012345678"],
     },
     reset: {
-      mode: "daily", Godzina
-      : 4,
-      bezczynność: 60,
+      mode: "daily",
+      atHour: 4,
+      idleMinutes: 60,
     },
     resetByType: {
-      wątek: { mode: "daily", atHour: 4 },
-      dm: { mode: "idle", idleMinutes: 240 }, Grupa
-      : { mode: "idle", idleMinutes: 120 },
+      thread: { mode: "daily", atHour: 4 },
+      direct: { mode: "idle", idleMinutes: 240 },
+      group: { mode: "idle", idleMinutes: 120 },
     },
-    Wyzwalacze resetowania: ["/new", "/reset"],
-    // Domyślnie jest już na agenta pod ~/. penclaw/agents/<agentId>/sessions/sessions.json
-    // Możesz zastąpić szablon {agentId}
-    sklep "~/. penclaw/agents/{agentId}/sessions/sessions.json",
-    // czaty bezpośrednie zwijają się do agenta:<agentId>:<mainKey> (domyślnie: "main").
-    główny klawisz: "main",
+    resetTriggers: ["/new", "/reset"],
+    // Default is already per-agent under ~/.openclaw/agents/<agentId>/sessions/sessions.json
+    // You can override with {agentId} templating:
+    store: "~/.openclaw/agents/{agentId}/sessions/sessions.json",
+    // Direct chats collapse to agent:<agentId>:<mainKey> (default: "main").
+    mainKey: "main",
     agentToAgent: {
       // Max ping-pong reply turns between requester/target (0–5).
       maxPingPongTurns: 5,
     },
     sendPolicy: {
-      reguły: [{ action: "deny", dopasowanie: { channel: "discord", chatType: "group" } }],
-      domyślnie: "allow",
+      rules: [{ action: "deny", match: { channel: "discord", chatType: "group" } }],
+      default: "allow",
     },
   },
 }
@@ -2805,7 +2805,7 @@ Pola:
   - `mode`: `daily` lub `idle` (domyślnie: `daily` gdy `reset` jest obecny).
   - `atHour`: lokalna godzina (0-23) dla dziennej granicy resetowania.
   - `idleMinutes`: przesuwanie bezczynnego okna w kilka minut. Gdy skonfigurowane są oba (dzienny + bezczynność), wygrywa to, które wygaśnie pierwsze.
-- `resetByType`: nadpisywanie sesji dla `dm`, `group`, i `wątk`.
+- `resetByType`: per-session overrides for `direct`, `group`, and `thread`. Legacy `dm` key is accepted as an alias for `direct`.
   - Jeśli ustawisz tylko starszy `session.idleMinutes` bez żadnego `reset`/`resetByType`, OpenClaw pozostaje w trybie bezczynności dla kompatybilności wstecz.
 - `heartbeatIdleMinutes`: opcjonalna bezczynność dla kontroli bicia serca (codzienne resetowanie nadal obowiązuje, gdy włączone).
 - `agentToAgent.maxPingPongTurns`: maksymalna odpowiedź zwrotna między żądającym/docelowym (0–5, domyślnie 5).

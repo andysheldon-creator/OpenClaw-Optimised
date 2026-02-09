@@ -113,12 +113,10 @@ cd openclaw
 يجب أن تعيش كل الحالة طويلة الأمد على المضيف.
 
 ```bash
-mkdir -p /root/.openclaw
-mkdir -p /root/.openclaw/workspace
+10. mkdir -p /root/.openclaw/workspace
 
-# Set ownership to the container user (uid 1000):
+# تعيين الملكية لمستخدم الحاوية (uid 1000):
 chown -R 1000:1000 /root/.openclaw
-chown -R 1000:1000 /root/.openclaw/workspace
 ```
 
 ---
@@ -155,7 +153,7 @@ openssl rand -hex 32
 أنشئ أو حدّث `docker-compose.yml`.
 
 ```yaml
-services:
+11. services:
   openclaw-gateway:
     image: ${OPENCLAW_IMAGE}
     build: .
@@ -176,12 +174,12 @@ services:
       - ${OPENCLAW_CONFIG_DIR}:/home/node/.openclaw
       - ${OPENCLAW_WORKSPACE_DIR}:/home/node/.openclaw/workspace
     ports:
-      # Recommended: keep the Gateway loopback-only on the VPS; access via SSH tunnel.
-      # To expose it publicly, remove the `127.0.0.1:` prefix and firewall accordingly.
+      # موصى به: إبقاء البوابة مقصورة على loopback فقط على الـ VPS؛ الوصول عبر نفق SSH.
+      # لعرضها علناً، أزل بادئة `127.0.0.1:` واضبط الجدار الناري وفقاً لذلك.
       - "127.0.0.1:${OPENCLAW_GATEWAY_PORT}:18789"
 
-      # Optional: only if you run iOS/Android nodes against this VPS and need Canvas host.
-      # If you expose this publicly, read /gateway/security and firewall accordingly.
+      # اختياري: فقط إذا كنت تشغّل عقد iOS/Android مقابل هذا الـ VPS وتحتاج إلى Canvas host.
+      # إذا عرضته علناً، اقرأ /gateway/security واضبط الجدار الناري وفقاً لذلك.
       # - "18793:18793"
     command:
       [
@@ -192,8 +190,11 @@ services:
         "${OPENCLAW_GATEWAY_BIND}",
         "--port",
         "${OPENCLAW_GATEWAY_PORT}",
+        "--allow-unconfigured",
       ]
 ```
+
+12. الخيار `--allow-unconfigured` مخصّص فقط لتسهيل الإقلاع الأولي، وليس بديلاً عن إعداد بوابة مناسب. 13. لا تزال بحاجة إلى تعيين المصادقة (`gateway.auth.token` أو كلمة المرور) واستخدام إعدادات ربط آمنة لنشرِك.
 
 ---
 
