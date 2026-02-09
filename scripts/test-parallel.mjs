@@ -8,10 +8,12 @@ const runs = [
     name: "unit",
     args: ["vitest", "run", "--config", "vitest.unit.config.ts"],
   },
-  {
-    name: "extensions",
-    args: ["vitest", "run", "--config", "vitest.extensions.config.ts"],
-  },
+  // Extension tests are opt-in: set OPENCLAW_TEST_EXTENSIONS=1 to include them.
+  // Many extensions require optional native/third-party deps (nostr-tools, @twurple/auth, openai)
+  // that are not installed on a minimal dev or CI node.
+  ...(process.env.OPENCLAW_TEST_EXTENSIONS === "1"
+    ? [{ name: "extensions", args: ["vitest", "run", "--config", "vitest.extensions.config.ts"] }]
+    : []),
   {
     name: "gateway",
     args: ["vitest", "run", "--config", "vitest.gateway.config.ts"],
