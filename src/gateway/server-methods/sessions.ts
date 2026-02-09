@@ -623,7 +623,7 @@ export const sessionsHandlers: GatewayRequestHandlers = {
           const timestamp = timestampMatch ? timestampMatch[1] : null;
 
           // Try to read metadata from the file
-          let metadata: any = null;
+          let metadata: unknown = null;
           try {
             const content = fs.readFileSync(fullPath, "utf-8");
             const lines = content.split("\n").filter((line) => line.trim());
@@ -642,6 +642,10 @@ export const sessionsHandlers: GatewayRequestHandlers = {
             // File read error, skip this file
           }
 
+          const isValidMetadata =
+            metadata && typeof metadata === "object" && !Array.isArray(metadata);
+          const metadataObj = isValidMetadata ? (metadata as Record<string, unknown>) : null;
+
           return {
             sessionId,
             file,
@@ -649,10 +653,17 @@ export const sessionsHandlers: GatewayRequestHandlers = {
             size: stat.size,
             deletedAt: timestamp,
             mtime: stat.mtimeMs,
-            metadata,
-            label: metadata?.label,
-            description: metadata?.description,
-            persistent: metadata?.persistent,
+            metadata: metadataObj,
+            label:
+              metadataObj && typeof metadataObj.label === "string" ? metadataObj.label : undefined,
+            description:
+              metadataObj && typeof metadataObj.description === "string"
+                ? metadataObj.description
+                : undefined,
+            persistent:
+              metadataObj && typeof metadataObj.persistent === "boolean"
+                ? metadataObj.persistent
+                : undefined,
           };
         })
         .filter((item) => item.sessionId != null && item.metadata != null)
@@ -730,7 +741,7 @@ export const sessionsHandlers: GatewayRequestHandlers = {
       const lines = fileContent.split("\n").filter((line) => line.trim());
 
       // Look for metadata line at the end
-      let metadata: any = null;
+      let metadata: unknown = null;
       let transcriptLines = lines;
 
       if (lines.length > 0) {
@@ -762,10 +773,12 @@ export const sessionsHandlers: GatewayRequestHandlers = {
       const storePath = path.join(sessionsDir, "sessions.json");
 
       await updateSessionStore(storePath, (store) => {
-        if (metadata) {
+        const isValidMetadata =
+          metadata && typeof metadata === "object" && !Array.isArray(metadata);
+        if (isValidMetadata) {
           // Restore full metadata
           store[sessionKey] = {
-            ...metadata,
+            ...(metadata as Record<string, unknown>),
             updatedAt: Date.now(),
             sessionFile: restoredPath,
           };
