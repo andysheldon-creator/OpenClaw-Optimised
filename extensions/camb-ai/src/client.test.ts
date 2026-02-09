@@ -112,11 +112,11 @@ describe("CambClientWrapper", () => {
       expect(getResult).toHaveBeenCalledWith(42);
     });
 
-    it("throws error when status is FAILED", async () => {
+    it("throws error when status is ERROR", async () => {
       const config = createConfig();
       const wrapper = new CambClientWrapper(config);
 
-      const checkStatus = vi.fn().mockResolvedValue({ status: "FAILED" });
+      const checkStatus = vi.fn().mockResolvedValue({ status: "ERROR" });
       const getResult = vi.fn();
 
       // Attach rejection handler immediately to prevent unhandled rejection

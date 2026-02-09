@@ -46,7 +46,7 @@ export class CambClientWrapper {
         return await getResult(status.run_id);
       }
 
-      if (status.status === "FAILED") {
+      if (status.status === "ERROR") {
         throw new Error("Task failed");
       }
 

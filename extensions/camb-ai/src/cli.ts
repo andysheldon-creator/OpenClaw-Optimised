@@ -87,10 +87,10 @@ export function registerCambAiCli(params: CambAiCliParams) {
   root
     .command("voices")
     .description("List available TTS voices")
-    .option("-l, --language <code>", "Filter by language code (e.g., en-us)")
+    .option("-l, --language <id>", "Filter by language ID (use 'camb languages' to see IDs)", parseInt)
     .option("-g, --gender <gender>", "Filter by gender (male, female)")
     .option("--json", "Output as JSON")
-    .action(async (options: { language?: string; gender?: string; json?: boolean }) => {
+    .action(async (options: { language?: number; gender?: string; json?: boolean }) => {
       try {
         const client = ensureClient();
         let voices = await client.getClient().voiceCloning.listVoices();
@@ -99,6 +99,10 @@ export function registerCambAiCli(params: CambAiCliParams) {
         if (options.gender) {
           const genderNum = options.gender.toLowerCase() === "male" ? 1 : 2;
           voices = voices.filter((v) => v.gender === genderNum);
+        }
+
+        if (options.language !== undefined) {
+          voices = voices.filter((v) => v.language === options.language);
         }
 
         if (options.json) {
@@ -271,7 +275,7 @@ export function registerCambAiCli(params: CambAiCliParams) {
 
         // Poll for completion
         let status = result;
-        while (status.status !== "SUCCESS" && status.status !== "FAILURE") {
+        while (status.status !== "SUCCESS" && status.status !== "ERROR") {
           await new Promise((r) => setTimeout(r, config.pollingIntervalMs));
           status = await client
             .getClient()
@@ -279,7 +283,7 @@ export function registerCambAiCli(params: CambAiCliParams) {
           console.log(`Status: ${status.status}`);
         }
 
-        if (status.status === "FAILURE") {
+        if (status.status === "ERROR") {
           console.error("Transcription failed");
           process.exit(1);
         }
@@ -370,7 +374,7 @@ export function registerCambAiCli(params: CambAiCliParams) {
 
         // Poll for completion
         let status = result as { status?: string; run_id?: number };
-        while (status.status !== "SUCCESS" && status.status !== "FAILURE") {
+        while (status.status !== "SUCCESS" && status.status !== "ERROR") {
           await new Promise((r) => setTimeout(r, config.pollingIntervalMs));
           status = await client
             .getClient()
@@ -378,7 +382,7 @@ export function registerCambAiCli(params: CambAiCliParams) {
           console.log(`Status: ${status.status}`);
         }
 
-        if (status.status === "FAILURE") {
+        if (status.status === "ERROR") {
           console.error("Translation failed");
           process.exit(1);
         }
@@ -449,13 +453,13 @@ export function registerCambAiCli(params: CambAiCliParams) {
 
         // Poll for completion
         let status = result as { status?: string; run_id?: number };
-        while (status.status !== "SUCCESS" && status.status !== "FAILURE") {
+        while (status.status !== "SUCCESS" && status.status !== "ERROR") {
           await new Promise((r) => setTimeout(r, config.pollingIntervalMs));
           status = await client.getClient().textToAudio.getTextToAudioStatus({ task_id: taskId });
           console.log(`Status: ${status.status}`);
         }
 
-        if (status.status === "FAILURE") {
+        if (status.status === "ERROR") {
           console.error("Sound generation failed");
           process.exit(1);
         }
@@ -572,13 +576,13 @@ export function registerCambAiCli(params: CambAiCliParams) {
 
         // Poll for completion
         let status = result as { status?: string; run_id?: number };
-        while (status.status !== "SUCCESS" && status.status !== "FAILURE") {
+        while (status.status !== "SUCCESS" && status.status !== "ERROR") {
           await new Promise((r) => setTimeout(r, config.pollingIntervalMs));
           status = await client.getClient().textToVoice.getTextToVoiceStatus({ task_id: taskId });
           console.log(`Status: ${status.status}`);
         }
 
-        if (status.status === "FAILURE") {
+        if (status.status === "ERROR") {
           console.error("Voice creation failed");
           process.exit(1);
         }
@@ -645,7 +649,7 @@ export function registerCambAiCli(params: CambAiCliParams) {
 
           // Poll for completion
           let status: { status?: string; run_id?: number } = { status: "PENDING" };
-          while (status.status !== "SUCCESS" && status.status !== "FAILURE") {
+          while (status.status !== "SUCCESS" && status.status !== "ERROR") {
             await new Promise((r) => setTimeout(r, config.pollingIntervalMs));
             status = await client
               .getClient()
@@ -653,7 +657,7 @@ export function registerCambAiCli(params: CambAiCliParams) {
             console.log(`Status: ${status.status}`);
           }
 
-          if (status.status === "FAILURE") {
+          if (status.status === "ERROR") {
             console.error("Translated TTS failed");
             process.exit(1);
           }
@@ -725,7 +729,7 @@ export function registerCambAiCli(params: CambAiCliParams) {
 
         // Poll for completion
         let status = result as { status?: string; run_id?: number };
-        while (status.status !== "SUCCESS" && status.status !== "FAILURE") {
+        while (status.status !== "SUCCESS" && status.status !== "ERROR") {
           await new Promise((r) => setTimeout(r, config.pollingIntervalMs));
           status = await client
             .getClient()
@@ -733,7 +737,7 @@ export function registerCambAiCli(params: CambAiCliParams) {
           console.log(`Status: ${status.status}`);
         }
 
-        if (status.status === "FAILURE") {
+        if (status.status === "ERROR") {
           console.error("Audio separation failed");
           process.exit(1);
         }
