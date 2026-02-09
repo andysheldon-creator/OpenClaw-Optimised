@@ -42,6 +42,14 @@
       "timeoutMs": {
         "type": "number",
         "description": "Request timeout in milliseconds"
+      },
+      "identityServiceUrl": {
+        "type": "string",
+        "description": "Base URL for the Identity-Service API"
+      },
+      "identityServiceServerKey": {
+        "type": "string",
+        "description": "Server key for Identity-Service system calls"
       }
     }
   }

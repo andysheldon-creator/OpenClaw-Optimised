@@ -187,8 +187,18 @@ export function loadSessionEntry(sessionKey: string) {
   const agentId = resolveSessionStoreAgentId(cfg, canonicalKey);
   const storePath = resolveStorePath(sessionCfg?.store, { agentId });
   const store = loadSessionStore(storePath);
-  const entry = store[canonicalKey];
-  return { cfg, storePath, store, entry, canonicalKey };
+  let entry = store[canonicalKey];
+  let resolvedKey = canonicalKey;
+  // Fallback: if canonical key not found, try the raw key (for backwards compatibility
+  // with sessions stored before canonicalization was enforced).
+  if (!entry && canonicalKey !== sessionKey) {
+    const rawKey = sessionKey.trim().toLowerCase();
+    if (rawKey && store[rawKey]) {
+      entry = store[rawKey];
+      resolvedKey = rawKey;
+    }
+  }
+  return { cfg, storePath, store, entry, canonicalKey: resolvedKey };
 }
 
 export function classifySessionKey(key: string, entry?: SessionEntry): GatewaySessionRow["kind"] {

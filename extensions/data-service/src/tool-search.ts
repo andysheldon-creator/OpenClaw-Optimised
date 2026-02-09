@@ -2,10 +2,14 @@
  * connector_search tool -- STEP 1 of the workflow.
  *
  * Searches for a connector, checks user configuration, and returns the action schema.
+ *
+ * For Wexa Coworker Web integration:
+ * - User context (orgId/userId) MUST be set via data-service.setContext
  */
 
 import { jsonResult, readStringParam } from "openclaw/plugin-sdk";
 import type { DataServiceConfig } from "./config.js";
+import { hasUserContext, MISSING_CONTEXT_ERROR } from "./config.js";
 import { lookupUserConnector, makeDataServiceRequest } from "./http.js";
 import { ConnectorSearchSchema } from "./schemas.js";
 
@@ -34,7 +38,7 @@ If you don't know the action name, call this WITHOUT the action first to see ava
 
 **IF the action is not found:**
 - Check the available_actions list in the response — it shows EXACT action names.
-- IMMEDIATELY retry with the correct action name from that list. Do NOT give up.
+- Retry once with the correct action name from that list.
 
 **Usage:**
 - query: The connector category (e.g., "email", "linkedin", "jira")
@@ -48,6 +52,11 @@ If you don't know the action name, call this WITHOUT the action first to see ava
 5. For push actions → show draft, confirm, then execute`,
     parameters: ConnectorSearchSchema,
     execute: async (_toolCallId: string, args: unknown) => {
+      // Check if user context is set
+      if (!hasUserContext()) {
+        return jsonResult({ success: false, error: MISSING_CONTEXT_ERROR });
+      }
+
       const params = args as Record<string, unknown>;
       const query = readStringParam(params, "query", { required: true });
       const action = readStringParam(params, "action", { required: false });
@@ -95,12 +104,10 @@ If you don't know the action name, call this WITHOUT the action first to see ava
       let userConfigured = false;
       let connectorId: string | null = null;
 
-      if (dsConfig.orgId && dsConfig.userId) {
-        const lookup = await lookupUserConnector(connectorCategory, dsConfig);
-        if (lookup.connectorId) {
-          userConfigured = true;
-          connectorId = lookup.connectorId;
-        }
+      const lookup = await lookupUserConnector(connectorCategory, dsConfig);
+      if (lookup.connectorId) {
+        userConfigured = true;
+        connectorId = lookup.connectorId;
       }
 
       // STEP 3: If action specified, fetch the schema

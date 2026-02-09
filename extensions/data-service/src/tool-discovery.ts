@@ -1,11 +1,15 @@
 /**
  * Discovery tools: connector_list, connector_actions, connector_schema,
  * connector_lookup, and user_connectors.
+ *
+ * For Wexa Coworker Web integration:
+ * - User context (orgId/userId) MUST be set via data-service.setContext
+ * - Tools that require user context will fail with clear error if not set
  */
 
 import { jsonResult, readStringParam } from "openclaw/plugin-sdk";
 import type { DataServiceConfig } from "./config.js";
-import { getEffectiveUserContext } from "./config.js";
+import { getEffectiveUserContext, hasUserContext, MISSING_CONTEXT_ERROR } from "./config.js";
 import { makeDataServiceRequest } from "./http.js";
 import {
   ConnectorActionsSchema,
@@ -242,21 +246,32 @@ export function createConnectorLookupTool(dsConfig: DataServiceConfig) {
       "Look up if a user has a specific connector configured and get its connector_id. Read-only — execute autonomously. Useful when chaining connectors: check if the user has a connector before trying to use it.",
     parameters: ConnectorLookupSchema,
     execute: async (_toolCallId: string, args: unknown) => {
-      const params = args as Record<string, unknown>;
-      const connector = readStringParam(params, "connector", { required: true });
-      const orgId = readStringParam(params, "org_id", { required: false }) ?? dsConfig.orgId;
-      const userId = readStringParam(params, "user_id", { required: false }) ?? dsConfig.userId;
-
-      if (!orgId || !userId) {
-        return jsonResult({
-          success: false,
-          error:
-            "Missing org_id or user_id. Please configure DATA_SERVICE_ORG_ID and DATA_SERVICE_USER_ID.",
-        });
+      // Check if user context is set
+      if (!hasUserContext()) {
+        return jsonResult({ success: false, error: MISSING_CONTEXT_ERROR });
       }
 
-      const endpoint = `/retrieve/connectors/${orgId}/user/${userId}/category/${connector}`;
-      const result = await makeDataServiceRequest(endpoint, { method: "POST", config: dsConfig });
+      const params = args as Record<string, unknown>;
+      const connector = readStringParam(params, "connector", { required: true });
+
+      const userCtx = getEffectiveUserContext();
+      const { orgId, userId, projectId } = userCtx;
+
+      // Build query with user_id and optionally projectID
+      const query: Record<string, string> = { user_id: userId || "", category: connector };
+      if (projectId) {
+        query.projectID = projectId;
+      }
+
+      const endpoint = `/retrieve/connectors/${orgId}/on/query`;
+      const result = await makeDataServiceRequest(endpoint, {
+        method: "POST",
+        body: {
+          query,
+          projection: { _id: 1, category: 1, name: 1, logo: 1, status: 1, data_to_verify: 1 },
+        },
+        config: dsConfig,
+      });
 
       if (!result.success) {
         if (result.status === 404 || result.error?.toLowerCase().includes("not found")) {
@@ -272,12 +287,15 @@ export function createConnectorLookupTool(dsConfig: DataServiceConfig) {
         return jsonResult({ success: false, connector, error: result.error });
       }
 
-      const data = result.data as {
+      // The /on/query endpoint returns an array
+      const dataArray = result.data as Array<{
         _id?: string;
         connectorID?: string;
         name?: string;
         status?: string;
-      };
+      }>;
+
+      const data = Array.isArray(dataArray) && dataArray.length > 0 ? dataArray[0] : null;
       const connectorId = data?._id ?? data?.connectorID;
       if (!connectorId) {
         return jsonResult({
@@ -294,8 +312,8 @@ export function createConnectorLookupTool(dsConfig: DataServiceConfig) {
         connector,
         configured: true,
         connector_id: connectorId,
-        name: data.name,
-        status: data.status,
+        name: data?.name,
+        status: data?.status,
       });
     },
   };
@@ -322,30 +340,44 @@ Returns all connectors the user has configured and ready to use.
 
 **NEVER fabricate data.** If no connector can provide a required value, ask the user.`,
     parameters: UserConnectorsSchema,
-    execute: async (_toolCallId: string, args: unknown) => {
-      const params = args as Record<string, unknown>;
+    execute: async (_toolCallId: string, _args: unknown) => {
+      // Check if user context is set
+      if (!hasUserContext()) {
+        return jsonResult({ success: false, error: MISSING_CONTEXT_ERROR });
+      }
 
-      // Get effective user context (request context takes priority)
-      const userCtx = getEffectiveUserContext(dsConfig);
-      const orgId = readStringParam(params, "org_id", { required: false }) ?? userCtx.orgId;
-      const userId = readStringParam(params, "user_id", { required: false }) ?? userCtx.userId;
+      const userCtx = getEffectiveUserContext();
+      const { orgId, userId, projectId } = userCtx;
 
-      if (!orgId || !userId) {
-        return jsonResult({
-          success: false,
-          error:
-            "Missing org_id or user_id. Please configure DATA_SERVICE_ORG_ID and DATA_SERVICE_USER_ID, or pass them via the data-service.agent gateway method.",
-        });
+      // Debug logging to verify context is being received
+      console.log("[data-service] user_connectors called with context:", {
+        orgId,
+        userId,
+        projectId,
+        hasContext: !!(orgId && userId),
+      });
+
+      // Build query with user_id and optionally projectID
+      const query: Record<string, string> = { user_id: userId || "" };
+      if (projectId) {
+        query.projectID = projectId;
       }
 
       const endpoint = `/retrieve/connectors/${orgId}/on/query`;
       const result = await makeDataServiceRequest(endpoint, {
         method: "POST",
         body: {
-          query: { user_id: userId },
+          query,
           projection: { _id: 1, category: 1, name: 1, logo: 1, status: 1 },
         },
         config: dsConfig,
+      });
+
+      // Debug logging to see API response
+      console.log("[data-service] user_connectors API response:", {
+        success: result.success,
+        dataLength: Array.isArray(result.data) ? result.data.length : 0,
+        error: result.error,
       });
 
       if (result.success && result.data) {

@@ -2,10 +2,14 @@
  * connector_execute tool -- executes actions on Data-Service connectors.
  *
  * This is STEP 2 of the workflow: search → confirm → execute.
+ *
+ * For Wexa Coworker Web integration:
+ * - User context (orgId/userId) MUST be set via data-service.setContext
  */
 
 import { jsonResult, readStringParam } from "openclaw/plugin-sdk";
 import type { DataServiceConfig } from "./config.js";
+import { hasUserContext, MISSING_CONTEXT_ERROR } from "./config.js";
 import { lookupUserConnector, makeDataServiceRequest } from "./http.js";
 import { ConnectorExecuteSchema } from "./schemas.js";
 
@@ -18,25 +22,26 @@ export function createConnectorExecuteTool(dsConfig: DataServiceConfig) {
 **PREREQUISITES — do these BEFORE calling this tool:**
 1. Called connector_search(query, action) to get the exact schema and field names
 2. Verified you have ALL required field values from REAL sources (user message, tool responses, other connectors)
-3. For push actions (send, create, update, delete, upload, reply, post): showed draft to user and received approval
+3. Identified if this is a PULL or PUSH action (see below)
 
 **NEVER HALLUCINATE VALUES:**
 - Every value in the input JSON MUST come from: the user's message, a connector tool response, or another real source.
 - If you don't have a required value (e.g., email, ID, name), use other connectors to look it up or ask the user.
 - NEVER fabricate emails, phone numbers, IDs, names, URLs, or any other data.
-- Using "@example.com" or any placeholder domain is hallucination.
 
 **FIELD NAMES — USE EXACT SCHEMA NAMES:**
-- Use ONLY the field_id names from connector_search schema. Do NOT use aliases (e.g., use "recipient_emails" not "to", use "identifier" not "url").
-- If the schema says a field expects an identifier/slug, extract it from any URL you have (e.g., from "linkedin.com/in/john-doe-123" use "john-doe-123").
+- Use ONLY the field_id names from connector_search schema.
+- If the schema says a field expects an identifier/slug, extract it from any URL you have.
 
-**PULL vs PUSH:**
-- Pull actions (search, read, list, get, fetch, lookup, retrieve, validate): execute immediately — no confirmation needed.
-- Push actions (send, create, update, delete, upload, reply, post): MUST show preview and get user confirmation first.
+**PULL vs PUSH — IMPORTANT:**
+- **PULL actions** (search, read, list, get, fetch, lookup, retrieve, validate, find, query): Execute IMMEDIATELY without asking user. These are read-only and safe.
+- **PUSH actions** (send, create, update, delete, upload, reply, post, write, modify, remove): MUST show a preview/draft to user and get explicit confirmation BEFORE executing. These have side effects.
 
-**IF THIS CALL FAILS:**
-- Read the error response carefully — it tells you the exact required field names and what was wrong.
-- Immediately retry with corrected field names/values. Do NOT give up or ask the user to provide data you already have.
+**CRITICAL — WHEN TO STOP:**
+- If response contains \`"DO_NOT_RETRY": true\` → STOP. Tell user the \`user_message\`.
+- If error is "timeout", "rate limit", "unauthorized" → STOP. Do not retry.
+- You may retry ONCE only for "missing field" or "invalid field name" errors.
+- After 1 failed retry → STOP and tell the user what happened.
 
 **Usage:**
 - connector: The connector category (from connector_search)
@@ -44,6 +49,11 @@ export function createConnectorExecuteTool(dsConfig: DataServiceConfig) {
 - input: JSON string with EXACT field names from the schema`,
     parameters: ConnectorExecuteSchema,
     execute: async (_toolCallId: string, args: unknown) => {
+      // Check if user context is set
+      if (!hasUserContext()) {
+        return jsonResult({ success: false, error: MISSING_CONTEXT_ERROR });
+      }
+
       const params = args as Record<string, unknown>;
       const connector = readStringParam(params, "connector", { required: true });
       const action = readStringParam(params, "action", { required: true });
@@ -185,26 +195,58 @@ export function createConnectorExecuteTool(dsConfig: DataServiceConfig) {
       });
 
       if (!result.success) {
+        const errorLower = (result.error ?? "").toLowerCase();
+
+        // Check for non-retryable errors
+        const isTimeout = errorLower.includes("timeout") || errorLower.includes("timed out");
+        const isRateLimit = errorLower.includes("rate limit") || errorLower.includes("too many");
+        const isAuthError =
+          errorLower.includes("unauthorized") || errorLower.includes("authentication");
+        const isServerError =
+          errorLower.includes("service unavailable") || /5\d\d/.test(result.error ?? "");
+        const isNonRetryable = isTimeout || isRateLimit || isAuthError || isServerError;
+
         const inputValues = Object.values(input);
         const hasUrlLikeValue = inputValues.some(
           (v) => typeof v === "string" && (v.includes("http") || v.includes(".com/")),
         );
+
         let suggestion: string | undefined;
-        if (hasUrlLikeValue) {
+        if (hasUrlLikeValue && !isNonRetryable) {
           suggestion =
             "You provided a URL but this action may expect an internal ID. Call connector_search with different actions to find one that accepts URLs.";
         }
-        return jsonResult({
+
+        // Build response with explicit stop instructions for non-retryable errors
+        const response: Record<string, unknown> = {
           success: false,
           connector,
           action,
           connector_id: connectorId,
           error: result.error,
-          hint: "The action failed. Check the schema and try a different action if needed.",
-          suggestion,
-          schema: { required_fields: requiredFields, optional_fields: optionalFields },
           your_input: input,
-        });
+        };
+
+        if (isNonRetryable) {
+          response.DO_NOT_RETRY = true;
+          response.STOP_NOW =
+            "This error cannot be fixed by retrying. Tell the user what happened and stop.";
+          if (isTimeout) {
+            response.user_message = `The ${connector} service is taking too long to respond. Please try again in a few minutes.`;
+          } else if (isRateLimit) {
+            response.user_message = `The ${connector} service is rate-limited. Please wait a moment and try again.`;
+          } else if (isAuthError) {
+            response.user_message = `The ${connector} connector needs to be reconnected. Please reconnect it in the settings.`;
+          } else {
+            response.user_message = `The ${connector} service is temporarily unavailable. Please try again later.`;
+          }
+        } else {
+          response.hint = "Check the schema and fix the field names/values. Max 2 retries allowed.";
+          response.suggestion = suggestion;
+          response.schema = { required_fields: requiredFields, optional_fields: optionalFields };
+        }
+
+        return jsonResult(response);
       }
 
       return jsonResult({

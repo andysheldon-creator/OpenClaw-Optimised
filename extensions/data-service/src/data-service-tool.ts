@@ -3,6 +3,7 @@
  */
 
 import type { DataServiceConfig } from "./config.js";
+import { createCoworkerListTool } from "./tool-coworker-list.js";
 import {
   createConnectorActionsTool,
   createConnectorListTool,
@@ -13,7 +14,7 @@ import {
 import { createConnectorExecuteTool } from "./tool-execute.js";
 import { createConnectorSearchTool } from "./tool-search.js";
 
-/** Create all 7 Data-Service connector tools for the given config. */
+/** Create all 8 Data-Service connector tools for the given config. */
 export function createDataServiceTools(dsConfig: DataServiceConfig) {
   return [
     createConnectorSearchTool(dsConfig),
@@ -23,5 +24,6 @@ export function createDataServiceTools(dsConfig: DataServiceConfig) {
     createConnectorSchemaTool(dsConfig),
     createConnectorLookupTool(dsConfig),
     createUserConnectorsTool(dsConfig),
+    createCoworkerListTool(dsConfig),
   ];
 }
