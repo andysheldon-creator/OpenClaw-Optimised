@@ -171,6 +171,25 @@ export function handleToolExecutionEnd(
       meta,
       error: errorMessage,
     };
+    ctx.state.consecutiveToolErrors++;
+    const threshold = ctx.params.consecutiveToolErrorThreshold ?? 3;
+    if (
+      ctx.state.consecutiveToolErrors >= threshold &&
+      ctx.params.onConsecutiveToolErrors
+    ) {
+      const shouldAbort = ctx.params.onConsecutiveToolErrors(
+        ctx.state.consecutiveToolErrors,
+        errorMessage,
+      );
+      if (shouldAbort) {
+        ctx.log.warn(
+          `Circuit breaker: ${ctx.state.consecutiveToolErrors} consecutive tool errors. ` +
+            `Last: ${toolName}${meta ? ` (${meta})` : ""}: ${errorMessage ?? "unknown"}`,
+        );
+      }
+    }
+  } else {
+    ctx.state.consecutiveToolErrors = 0;
   }
 
   // Commit messaging tool text on success, discard on error.

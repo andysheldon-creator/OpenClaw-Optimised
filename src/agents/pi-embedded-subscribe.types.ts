@@ -29,6 +29,10 @@ export type SubscribeEmbeddedPiSessionParams = {
   onPartialReply?: (payload: { text?: string; mediaUrls?: string[] }) => void | Promise<void>;
   onAssistantMessageStart?: () => void | Promise<void>;
   onAgentEvent?: (evt: { stream: string; data: Record<string, unknown> }) => void | Promise<void>;
+  /** Called when consecutive tool errors reach the threshold. Return true to abort the run. */
+  onConsecutiveToolErrors?: (count: number, lastError: string | undefined) => boolean;
+  /** Number of consecutive tool errors before triggering onConsecutiveToolErrors. Default: 3. */
+  consecutiveToolErrorThreshold?: number;
   enforceFinalTag?: boolean;
 };
 
