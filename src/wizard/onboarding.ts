@@ -397,8 +397,12 @@ export async function runOnboardingWizard(
       prompter,
       allowKeep: true,
       ignoreAllowlist: true,
+      includeVllm: true,
       preferredProvider: resolvePreferredProviderForAuthChoice(authChoice),
     });
+    if (modelSelection.config) {
+      nextConfig = modelSelection.config;
+    }
     if (modelSelection.model) {
       nextConfig = applyPrimaryModel(nextConfig, modelSelection.model);
     }
