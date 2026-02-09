@@ -53,6 +53,8 @@ final class NodeAppModel {
     private let camera: any CameraServicing
     private let screenRecorder: any ScreenRecordingServicing
     var gatewayStatusText: String = "Offline"
+    var nodeStatusText: String = "Offline"
+    var operatorStatusText: String = "Offline"
     var gatewayServerName: String?
     var gatewayRemoteAddress: String?
     var connectedGatewayID: String?

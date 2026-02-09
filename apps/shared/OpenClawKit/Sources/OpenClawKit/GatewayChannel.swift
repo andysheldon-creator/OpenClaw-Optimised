@@ -399,8 +399,12 @@ public actor GatewayChannelActor {
         role: String
     ) async throws {
         if res.ok == false {
-            let msg = (res.error?["message"]?.value as? String) ?? "gateway connect failed"
-            throw NSError(domain: "Gateway", code: 1008, userInfo: [NSLocalizedDescriptionKey: msg])
+            let code = res.error?["code"]?.value as? String
+            let msg = res.error?["message"]?.value as? String
+            let details: [String: AnyCodable] = (res.error ?? [:]).reduce(into: [:]) { acc, pair in
+                acc[pair.key] = AnyCodable(pair.value.value)
+            }
+            throw GatewayResponseError(method: "connect", code: code, message: msg, details: details)
         }
         guard let payload = res.payload else {
             throw NSError(

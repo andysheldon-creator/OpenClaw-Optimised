@@ -75,7 +75,16 @@ final class GatewayDiscoveryModel {
                         switch result.endpoint {
                         case let .service(name, _, _, _):
                             let decodedName = BonjourEscapes.decode(name)
-                            let txt = result.endpoint.txtRecord?.dictionary ?? [:]
+                            // Some iOS versions return TXT records via metadata, not endpoint.txtRecord.
+                            var txt = result.endpoint.txtRecord?.dictionary ?? [:]
+                            if txt.isEmpty {
+                                switch result.metadata {
+                                case let .bonjour(meta):
+                                    txt = meta.dictionary
+                                default:
+                                    break
+                                }
+                            }
                             let advertisedName = txt["displayName"]
                             let prettyAdvertised = advertisedName
                                 .map(Self.prettifyInstanceName)
