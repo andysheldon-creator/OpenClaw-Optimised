@@ -2,7 +2,8 @@
  * Tests for NIP-17 gift wrap implementation
  */
 
-import { getPublicKey } from "nostr-tools";
+import { finalizeEvent, getPublicKey, nip59 } from "nostr-tools";
+import { getConversationKey, encrypt as nip44Encrypt } from "nostr-tools/nip44";
 import { describe, it, expect } from "vitest";
 import {
   hexToBytes,
@@ -283,5 +284,55 @@ describe("roundtrip", () => {
     // Recipient unwraps
     const unwrapped = unwrapGiftWrap(event, recipientSkBytes);
     expect(unwrapped?.content).toBe(originalMessage);
+  });
+});
+
+describe("sender impersonation resistance", () => {
+  const ATTACKER_SK = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+  const aliceSkBytes = hexToBytes(TEST_SENDER_SK);
+  const alicePk = getPublicKey(aliceSkBytes);
+  const botSkBytes = hexToBytes(TEST_RECIPIENT_SK);
+  const botPk = getPublicKey(botSkBytes);
+  const attackerSkBytes = hexToBytes(ATTACKER_SK);
+  const attackerPk = getPublicKey(attackerSkBytes);
+
+  it("rejects forged sender pubkey in rumor", () => {
+    const forgedRumor = {
+      kind: 14 as const,
+      content: "I am Alice (forged)",
+      tags: [["p", botPk]],
+      created_at: Math.round(Date.now() / 1000),
+      pubkey: alicePk, // LIE: claims to be Alice
+    };
+
+    const rumorConversationKey = getConversationKey(attackerSkBytes, botPk);
+    const encryptedRumor = nip44Encrypt(JSON.stringify(forgedRumor), rumorConversationKey);
+
+    const seal = finalizeEvent(
+      {
+        kind: 13,
+        content: encryptedRumor,
+        created_at: Math.round(Date.now() / 1000),
+        tags: [],
+      },
+      attackerSkBytes,
+    );
+
+    const wrap = nip59.createWrap(seal, botPk);
+
+    const unwrapped = unwrapGiftWrap(wrap, botSkBytes);
+
+    // NIP-17: "Clients MUST verify if pubkey of the kind:13 is the
+    // same pubkey on the kind:14." Mismatch → reject entirely.
+    expect(unwrapped).toBeNull();
+  });
+
+  it("legitimate message reports correct sender", () => {
+    const { event } = createGiftWrap(botPk, "I am really Alice", aliceSkBytes);
+    const unwrapped = unwrapGiftWrap(event, botSkBytes);
+
+    expect(unwrapped).not.toBeNull();
+    expect(unwrapped?.senderPubkey).toBe(alicePk);
   });
 });

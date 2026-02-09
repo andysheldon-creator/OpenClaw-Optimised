@@ -13,7 +13,8 @@
  * @see https://github.com/nostr-protocol/nips/blob/master/17.md
  */
 
-import { getPublicKey, nip19, nip59, type Event } from "nostr-tools";
+import { getPublicKey, nip19, nip59, verifyEvent, type Event } from "nostr-tools";
+import { getConversationKey, decrypt as nip44Decrypt } from "nostr-tools/nip44";
 
 // ============================================================================
 // Types
@@ -90,11 +91,15 @@ export function createGiftWrap(
 }
 
 /**
- * Unwrap a NIP-17 gift-wrapped message
+ * Unwrap a NIP-17 gift-wrapped message with seal verification.
+ *
+ * Decrypts in two explicit steps instead of using nip59.unwrapEvent,
+ * so we can verify the seal's signature and use seal.pubkey as the
+ * authenticated sender identity (not the unsigned rumor.pubkey).
  *
  * @param wrapEvent - Kind 1059 gift wrap event
  * @param privateKeyBytes - Recipient's private key as Uint8Array
- * @returns Unwrapped message or null if decryption fails
+ * @returns Unwrapped message or null if decryption/verification fails
  */
 export function unwrapGiftWrap(
   wrapEvent: Event,
@@ -105,8 +110,18 @@ export function unwrapGiftWrap(
   }
 
   try {
-    // nip59.unwrapEvent handles both layers (gift wrap → seal → rumor)
-    const rumor = nip59.unwrapEvent(wrapEvent, privateKeyBytes);
+    // Step 1: Decrypt gift wrap → seal
+    const sealConversationKey = getConversationKey(privateKeyBytes, wrapEvent.pubkey);
+    const seal = JSON.parse(nip44Decrypt(wrapEvent.content, sealConversationKey)) as Event;
+
+    // Step 2: Verify the seal's signature — this authenticates the sender
+    if (seal.kind !== 13 || !verifyEvent(seal)) {
+      return null;
+    }
+
+    // Step 3: Decrypt seal → rumor
+    const rumorConversationKey = getConversationKey(privateKeyBytes, seal.pubkey);
+    const rumor = JSON.parse(nip44Decrypt(seal.content, rumorConversationKey));
 
     if (!rumor) {
       return null;
@@ -117,7 +132,13 @@ export function unwrapGiftWrap(
       return null;
     }
 
-    const senderPubkey = rumor.pubkey;
+    // NIP-17: "Clients MUST verify if pubkey of the kind:13 is the
+    // same pubkey on the kind:14." Reject if they differ.
+    if (rumor.pubkey !== seal.pubkey) {
+      return null;
+    }
+
+    const senderPubkey = seal.pubkey;
     const senderNpub = nip19.npubEncode(senderPubkey);
 
     return {
@@ -128,7 +149,7 @@ export function unwrapGiftWrap(
       eventId: wrapEvent.id,
     };
   } catch {
-    // Decryption failed - not for us or corrupted
+    // Decryption or verification failed
     return null;
   }
 }
