@@ -56,7 +56,6 @@ title: AIsa
 | `deepseek-v3.1` | DeepSeek V3.1 | DeepSeek（深度求索）    |
 | `deepseek-r1`   | DeepSeek R1   | DeepSeek（深度求索）    |
 | `kimi-k2.5`     | Kimi K2.5     | Moonshot AI（月之暗面） |
-| `glm-4-plus`    | GLM-4 Plus    | 智谱 AI                 |
 
 完整模型目录和价格请访问 [marketplace.aisa.one/pricing](https://marketplace.aisa.one/pricing)。
 

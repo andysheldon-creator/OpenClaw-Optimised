@@ -56,7 +56,6 @@ Beyond the defaults, AIsa provides access to the complete Qwen family and all Ba
 | `deepseek-v3.1` | DeepSeek V3.1 | DeepSeek    |
 | `deepseek-r1`   | DeepSeek R1   | DeepSeek    |
 | `kimi-k2.5`     | Kimi K2.5     | Moonshot AI |
-| `glm-4-plus`    | GLM-4 Plus    | Zhipu AI    |
 
 Browse the full catalogue and pricing at [marketplace.aisa.one/pricing](https://marketplace.aisa.one/pricing).
 
