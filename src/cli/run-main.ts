@@ -25,6 +25,15 @@ export function rewriteUpdateFlagArgv(argv: string[]): string[] {
 }
 
 export async function runCli(argv: string[] = process.argv) {
+  // Global error handlers FIRST to prevent silent crashes from unhandled rejections/exceptions.
+  // These must be installed before any async work to catch early boot failures.
+  installUnhandledRejectionHandler();
+
+  process.on("uncaughtException", (error) => {
+    console.error("[openclaw] Uncaught exception:", formatUncaughtError(error));
+    process.exit(1);
+  });
+
   const normalizedArgv = stripWindowsNodeExec(argv);
   loadDotEnv({ quiet: true });
   normalizeEnv();
@@ -42,15 +51,6 @@ export async function runCli(argv: string[] = process.argv) {
 
   const { buildProgram } = await import("./program.js");
   const program = buildProgram();
-
-  // Global error handlers to prevent silent crashes from unhandled rejections/exceptions.
-  // These log the error and exit gracefully instead of crashing without trace.
-  installUnhandledRejectionHandler();
-
-  process.on("uncaughtException", (error) => {
-    console.error("[openclaw] Uncaught exception:", formatUncaughtError(error));
-    process.exit(1);
-  });
 
   const parseArgv = rewriteUpdateFlagArgv(normalizedArgv);
   // Register the primary subcommand if one exists (for lazy-loading)
