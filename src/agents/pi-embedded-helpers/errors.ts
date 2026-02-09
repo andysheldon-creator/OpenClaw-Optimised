@@ -11,11 +11,22 @@ export function isContextOverflowError(errorMessage?: string): boolean {
     return false;
   }
   const lower = errorMessage.toLowerCase();
+
+  // Senge's Fix: Explicitly ignore normal conversational sentences mentioning context overflow
+  if (
+    lower.includes("let's investigate") ||
+    lower.includes("we're debugging") ||
+    lower.includes("the mystery")
+  ) {
+    return false;
+  }
+
   const hasRequestSizeExceeds = lower.includes("request size exceeds");
   const hasContextWindow =
     lower.includes("context window") ||
     lower.includes("context length") ||
     lower.includes("maximum context length");
+
   return (
     lower.includes("request_too_large") ||
     lower.includes("request exceeds the maximum size") ||
@@ -30,20 +41,25 @@ export function isContextOverflowError(errorMessage?: string): boolean {
 }
 
 const CONTEXT_WINDOW_TOO_SMALL_RE = /context window.*(too small|minimum is)/i;
-const CONTEXT_OVERFLOW_HINT_RE =
-  /context.*overflow|context window.*(too (?:large|long)|exceed|over|limit|max(?:imum)?|requested|sent|tokens)|(?:prompt|request|input).*(too (?:large|long)|exceed|over|limit|max(?:imum)?)/i;
 
 export function isLikelyContextOverflowError(errorMessage?: string): boolean {
   if (!errorMessage) {
     return false;
   }
-  if (CONTEXT_WINDOW_TOO_SMALL_RE.test(errorMessage)) {
+  const lowerMsg = errorMessage.toLowerCase();
+
+  // Exclude "too small" errors
+  if (lowerMsg.includes("too small") || CONTEXT_WINDOW_TOO_SMALL_RE.test(errorMessage)) {
     return false;
   }
-  if (isContextOverflowError(errorMessage)) {
-    return true;
-  }
-  return CONTEXT_OVERFLOW_HINT_RE.test(errorMessage);
+
+  // Match overflow/exceeded/too large patterns
+  return (
+    (lowerMsg.includes("context window") &&
+      (lowerMsg.includes("exceeded") || lowerMsg.includes("requested"))) ||
+    lowerMsg.includes("prompt too large") ||
+    isContextOverflowError(errorMessage)
+  );
 }
 
 export function isCompactionFailureError(errorMessage?: string): boolean {
@@ -51,17 +67,23 @@ export function isCompactionFailureError(errorMessage?: string): boolean {
     return false;
   }
   const lower = errorMessage.toLowerCase();
+
   const hasCompactionTerm =
     lower.includes("summarization failed") ||
     lower.includes("auto-compaction") ||
     lower.includes("compaction failed") ||
     lower.includes("compaction");
+
   if (!hasCompactionTerm) {
     return false;
   }
-  // For compaction failures, also accept "context overflow" without colon
-  // since the error message itself describes a compaction/summarization failure
-  return isContextOverflowError(errorMessage) || lower.includes("context overflow");
+
+  // Combine official logic with recommended patterns and Senge's optimization
+  return (
+    isContextOverflowError(errorMessage) ||
+    lower.includes("context overflow") ||
+    (lower.includes("compaction") && lower.includes("prompt is too long"))
+  );
 }
 
 const ERROR_PAYLOAD_PREFIX_RE =

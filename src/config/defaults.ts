@@ -355,33 +355,48 @@ export function applyContextPruningDefaults(cfg: OpenClawConfig): OpenClawConfig
     return cfg;
   }
 
-  const authMode = resolveAnthropicDefaultAuthMode(cfg);
-  if (!authMode) {
-    return cfg;
-  }
-
   let mutated = false;
   const nextDefaults = { ...defaults };
   const contextPruning = defaults.contextPruning ?? {};
   const heartbeat = defaults.heartbeat ?? {};
 
+  // Force aggressive token optimization by default
   if (defaults.contextPruning?.mode === undefined) {
     nextDefaults.contextPruning = {
       ...contextPruning,
       mode: "cache-ttl",
-      ttl: defaults.contextPruning?.ttl ?? "1h",
+      ttl: defaults.contextPruning?.ttl ?? "5m", // 5m TTL for better pruning
+      softTrimRatio: 0.3,
+      hardClearRatio: 0.5,
     };
     mutated = true;
   }
 
+  // Optimize heartbeat for prompt caching (55m for 1h TTL)
   if (defaults.heartbeat?.every === undefined) {
     nextDefaults.heartbeat = {
       ...heartbeat,
-      every: authMode === "oauth" ? "1h" : "30m",
+      every: "55m",
     };
     mutated = true;
   }
 
+  // Enforce local-first memory search to save API costs
+  if (defaults.memorySearch?.provider === undefined) {
+    const memorySearch = defaults.memorySearch ?? {};
+    nextDefaults.memorySearch = {
+      ...memorySearch,
+      provider: "local",
+      fallback: "none",
+      cache: {
+        enabled: true,
+        ...memorySearch.cache,
+      },
+    };
+    mutated = true;
+  }
+
+  const authMode = resolveAnthropicDefaultAuthMode(cfg);
   if (authMode === "api_key") {
     const nextModels = defaults.models ? { ...defaults.models } : {};
     let modelsMutated = false;
@@ -398,7 +413,7 @@ export function applyContextPruningDefaults(cfg: OpenClawConfig): OpenClawConfig
       }
       nextModels[key] = {
         ...(current as Record<string, unknown>),
-        params: { ...params, cacheRetention: "short" },
+        params: { ...params, cacheRetention: "long" },
       };
       modelsMutated = true;
     }
@@ -414,7 +429,7 @@ export function applyContextPruningDefaults(cfg: OpenClawConfig): OpenClawConfig
         if (typeof params.cacheRetention !== "string") {
           nextModels[key] = {
             ...(current as Record<string, unknown>),
-            params: { ...params, cacheRetention: "short" },
+            params: { ...params, cacheRetention: "long" },
           };
           modelsMutated = true;
         }
@@ -446,7 +461,31 @@ export function applyCompactionDefaults(cfg: OpenClawConfig): OpenClawConfig {
     return cfg;
   }
   const compaction = defaults?.compaction;
-  if (compaction?.mode) {
+
+  let mutated = false;
+  const nextCompaction = compaction ? { ...compaction } : {};
+
+  if (!nextCompaction.mode) {
+    nextCompaction.mode = "safeguard";
+    mutated = true;
+  }
+
+  // Force memory flush and optimized token reserve
+  if (nextCompaction.memoryFlush?.enabled === undefined) {
+    nextCompaction.memoryFlush = {
+      ...nextCompaction.memoryFlush,
+      enabled: true,
+      softThresholdTokens: 4000,
+    };
+    mutated = true;
+  }
+
+  if (nextCompaction.reserveTokensFloor === undefined) {
+    nextCompaction.reserveTokensFloor = 20000;
+    mutated = true;
+  }
+
+  if (!mutated) {
     return cfg;
   }
 
@@ -456,10 +495,7 @@ export function applyCompactionDefaults(cfg: OpenClawConfig): OpenClawConfig {
       ...cfg.agents,
       defaults: {
         ...defaults,
-        compaction: {
-          ...compaction,
-          mode: "safeguard",
-        },
+        compaction: nextCompaction,
       },
     },
   };
