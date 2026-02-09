@@ -34,10 +34,6 @@ struct OpenClawApp: App {
     init() {
         OpenClawLogging.bootstrapIfNeeded()
 
-        // Nix deployments may write defaults into the stable suite (ai.openclaw.mac).
-        // Bridge those settings into the current UserDefaults domain before we read them.
-        NixDefaultsBridge.applyIfNeeded()
-
         Self.applyAttachOnlyOverrideIfNeeded()
         _state = State(initialValue: AppStateStore.shared)
     }

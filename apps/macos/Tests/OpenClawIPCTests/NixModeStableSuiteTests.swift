@@ -3,9 +3,9 @@ import Testing
 @testable import OpenClaw
 
 @Suite(.serialized)
-struct NixDefaultsBridgeTests {
-    @Test func nixModeResolvesFromStableSuiteForAppBundles() {
-        let suite = UserDefaults(suiteName: nixDefaultsSuiteName)!
+struct NixModeStableSuiteTests {
+    @Test func resolvesFromStableSuiteForAppBundles() {
+        let suite = UserDefaults(suiteName: launchdLabel)!
         let key = "openclaw.nixMode"
         let prev = suite.object(forKey: key)
         defer {
@@ -14,19 +14,19 @@ struct NixDefaultsBridgeTests {
 
         suite.set(true, forKey: key)
 
-        let standard = UserDefaults(suiteName: "NixDefaultsBridgeTests.\(UUID().uuidString)")!
+        let standard = UserDefaults(suiteName: "NixModeStableSuiteTests.\(UUID().uuidString)")!
         #expect(!standard.bool(forKey: key))
 
         let resolved = ProcessInfo.resolveNixMode(
             environment: [:],
             standard: standard,
-            nixSuite: suite,
+            stableSuite: suite,
             isAppBundle: true)
         #expect(resolved)
     }
 
-    @Test func nixModeIgnoresStableSuiteOutsideAppBundles() {
-        let suite = UserDefaults(suiteName: nixDefaultsSuiteName)!
+    @Test func ignoresStableSuiteOutsideAppBundles() {
+        let suite = UserDefaults(suiteName: launchdLabel)!
         let key = "openclaw.nixMode"
         let prev = suite.object(forKey: key)
         defer {
@@ -34,12 +34,12 @@ struct NixDefaultsBridgeTests {
         }
 
         suite.set(true, forKey: key)
-        let standard = UserDefaults(suiteName: "NixDefaultsBridgeTests.\(UUID().uuidString)")!
+        let standard = UserDefaults(suiteName: "NixModeStableSuiteTests.\(UUID().uuidString)")!
 
         let resolved = ProcessInfo.resolveNixMode(
             environment: [:],
             standard: standard,
-            nixSuite: suite,
+            stableSuite: suite,
             isAppBundle: false)
         #expect(!resolved)
     }
