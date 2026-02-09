@@ -221,7 +221,10 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
           const channels = guildCfg?.channels ?? {};
           const channelKeys = Object.keys(channels).filter((key) => key !== "*");
           if (channelKeys.length === 0) {
-            entries.push({ input: guildKey, guildKey });
+            // Prefix bare numeric guild IDs with "guild:" so parseDiscordChannelInput
+            // does not misinterpret them as channel IDs (which triggers /channels/<guildId> -> 404).
+            const guildInput = /^\d+$/.test(guildKey) ? `guild:${guildKey}` : guildKey;
+            entries.push({ input: guildInput, guildKey });
             continue;
           }
           for (const channelKey of channelKeys) {
