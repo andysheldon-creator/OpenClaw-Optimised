@@ -383,6 +383,8 @@ export type PluginHookMessageSentEvent = {
   content: string;
   success: boolean;
   error?: string;
+  /** Platform message ID returned by the channel (e.g. Feishu message_id). */
+  messageId?: string;
 };
 
 // Tool context

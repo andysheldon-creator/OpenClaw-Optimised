@@ -389,3 +389,9 @@ export type { ProcessedLineMessage } from "../line/markdown-to-line.js";
 
 // Media utilities
 export { loadWebMedia, type WebMediaResult } from "../web/media.js";
+
+export {
+  emitMessageSent,
+  type PluginHookMessageSentEvent,
+  type PluginHookMessageContext,
+} from "./emit-hooks.js";

@@ -9,8 +9,6 @@ const createCardEntityFeishu = vi.fn();
 const sendCardByCardIdFeishu = vi.fn();
 const updateCardElementContentFeishu = vi.fn();
 const updateCardSummaryFeishu = vi.fn();
-const closeStreamingModeFeishu = vi.fn();
-const deleteMessageFeishu = vi.fn();
 
 vi.mock("openclaw/plugin-sdk", async () => {
   const actual = await vi.importActual<typeof import("openclaw/plugin-sdk")>("openclaw/plugin-sdk");
@@ -39,8 +37,6 @@ vi.mock("./send.js", () => ({
   sendCardByCardIdFeishu: (...args: unknown[]) => sendCardByCardIdFeishu(...args),
   updateCardElementContentFeishu: (...args: unknown[]) => updateCardElementContentFeishu(...args),
   updateCardSummaryFeishu: (...args: unknown[]) => updateCardSummaryFeishu(...args),
-  closeStreamingModeFeishu: (...args: unknown[]) => closeStreamingModeFeishu(...args),
-  deleteMessageFeishu: (...args: unknown[]) => deleteMessageFeishu(...args),
 }));
 
 const { createFeishuReplyDispatcher } = await import("./reply-dispatcher.js");
@@ -66,7 +62,6 @@ function createRuntime(chunkTextWithModeImpl?: (text: string) => string[]) {
             payload: { text?: string },
             info: { kind: "tool" | "block" | "final" },
           ) => Promise<void>;
-          onCleanup?: () => void;
         }) => {
           const enqueue = (payload: { text?: string }, kind: "tool" | "block" | "final") => {
             const job = options.deliver(payload, { kind });
@@ -91,9 +86,6 @@ function createRuntime(chunkTextWithModeImpl?: (text: string) => string[]) {
                 await Promise.all(pending);
               },
               getQueuedCounts: () => ({ tool: 0, block: 0, final: 0 }),
-              cleanup: () => {
-                options.onCleanup?.();
-              },
             },
             replyOptions: {},
             markDispatchIdle: () => {},
@@ -113,8 +105,6 @@ beforeEach(() => {
   sendCardByCardIdFeishu.mockReset();
   updateCardElementContentFeishu.mockReset();
   updateCardSummaryFeishu.mockReset();
-  closeStreamingModeFeishu.mockReset();
-  deleteMessageFeishu.mockReset();
 });
 
 describe("createFeishuReplyDispatcher message_sent hooks", () => {
@@ -203,40 +193,5 @@ describe("createFeishuReplyDispatcher message_sent hooks", () => {
       },
     );
     expect(updateCardElementContentFeishu).toHaveBeenCalledTimes(1);
-  });
-
-  it("closes streaming mode only once when final delivery and cleanup race", async () => {
-    setFeishuRuntime(createRuntime() as never);
-    createCardEntityFeishu.mockResolvedValue({ cardId: "card_1" });
-    sendCardByCardIdFeishu.mockResolvedValue({ messageId: "om_card", chatId: "oc_chat" });
-    updateCardElementContentFeishu.mockResolvedValue(undefined);
-    updateCardSummaryFeishu.mockResolvedValue(undefined);
-    closeStreamingModeFeishu.mockResolvedValue(undefined);
-
-    const { dispatcher, replyOptions } = createFeishuReplyDispatcher({
-      cfg: {
-        channels: {
-          feishu: {
-            appId: "app",
-            appSecret: "secret",
-            renderMode: "card",
-            streaming: true,
-            blockStreaming: false,
-          },
-        },
-      } as never,
-      agentId: "agent-main",
-      runtime: { log: () => {}, error: () => {} } as never,
-      chatId: "oc_chat",
-      replyToMessageId: "om_parent",
-    });
-
-    await replyOptions.onModelSelected?.({} as never);
-
-    dispatcher.sendFinalReply({ text: "final answer" });
-    (dispatcher as unknown as { cleanup: () => void }).cleanup();
-    await dispatcher.waitForIdle();
-
-    expect(closeStreamingModeFeishu).toHaveBeenCalledTimes(1);
   });
 });
