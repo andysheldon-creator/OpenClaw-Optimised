@@ -398,6 +398,11 @@ export async function runReplyAgent(params: {
       usage,
       modelUsed,
       providerUsed,
+      fallbackProvider:
+        fallbackProvider !== followupRun.run.provider ? fallbackProvider : undefined,
+      fallbackModel: fallbackModel !== followupRun.run.model ? fallbackModel : undefined,
+      originalProvider: followupRun.run.provider,
+      originalModel: followupRun.run.model,
       contextTokensUsed,
       systemPromptReport: runResult.meta.systemPromptReport,
       cliSessionId,

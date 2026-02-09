@@ -209,6 +209,10 @@ export function createFollowupRunner(params: {
           usage,
           modelUsed,
           providerUsed: fallbackProvider,
+          fallbackProvider: fallbackProvider !== queued.run.provider ? fallbackProvider : undefined,
+          fallbackModel: fallbackModel !== queued.run.model ? fallbackModel : undefined,
+          originalProvider: queued.run.provider,
+          originalModel: queued.run.model,
           contextTokensUsed,
           logLabel: "followup",
         });
