@@ -38,6 +38,7 @@
     "check": "pnpm tsgo && pnpm lint && pnpm format",
     "check:docs": "pnpm format:docs && pnpm lint:docs && pnpm docs:build",
     "check:loc": "node --import tsx scripts/check-ts-max-loc.ts --max 500",
+    "deploy:larry": "pnpm build && pnpm check && pnpm test && fly deploy --app openclaw-jhs",
     "dev": "node scripts/run-node.mjs",
     "docs:bin": "node scripts/build-docs-list.mjs",
     "docs:build": "cd docs && pnpm dlx --reporter append-only mint broken-links",
