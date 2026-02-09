@@ -162,20 +162,17 @@ export async function runMemoryFlushIfNeeded(params: {
         });
       },
     });
-    let memoryFlushCompactionCount =
+    const memoryFlushCompactionCount =
       activeSessionEntry?.compactionCount ??
       (params.sessionKey ? activeSessionStore?.[params.sessionKey]?.compactionCount : 0) ??
       0;
     if (memoryCompactionCompleted) {
-      const nextCount = await incrementCompactionCount({
+      await incrementCompactionCount({
         sessionEntry: activeSessionEntry,
         sessionStore: activeSessionStore,
         sessionKey: params.sessionKey,
         storePath: params.storePath,
       });
-      if (typeof nextCount === "number") {
-        memoryFlushCompactionCount = nextCount;
-      }
     }
     if (params.storePath && params.sessionKey) {
       try {
