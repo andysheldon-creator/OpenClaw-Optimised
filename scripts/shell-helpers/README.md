@@ -1,6 +1,34 @@
-# OpenClaw Shell Helpers
+# OpenClaw Shell Helpers <!-- omit in toc -->
 
 User-friendly shell commands for managing OpenClaw Docker containers. These helpers make it easy to start, stop, configure, and interact with OpenClaw without memorizing complex docker-compose commands.
+
+- [Features](#features)
+- [Quick Start](#quick-start)
+  - [Installation](#installation)
+  - [First Time Setup](#first-time-setup)
+- [Available Commands](#available-commands)
+  - [Basic Operations](#basic-operations)
+  - [Container Access](#container-access)
+  - [Web UI \& Devices](#web-ui--devices)
+  - [Setup \& Configuration](#setup--configuration)
+  - [Maintenance](#maintenance)
+  - [Utilities](#utilities)
+- [Common Workflows](#common-workflows)
+  - [Check Status and Logs](#check-status-and-logs)
+  - [Restart After Configuration Changes](#restart-after-configuration-changes)
+  - [Access the Dashboard](#access-the-dashboard)
+  - [Set Up WhatsApp Bot](#set-up-whatsapp-bot)
+  - [Troubleshooting Device Pairing](#troubleshooting-device-pairing)
+  - [Fix Token Mismatch Issues](#fix-token-mismatch-issues)
+- [Troubleshooting](#troubleshooting)
+  - [Commands Not Found](#commands-not-found)
+  - [Token Mismatch Errors](#token-mismatch-errors)
+  - [Permission Denied](#permission-denied)
+  - [Container Not Starting](#container-not-starting)
+- [Requirements](#requirements)
+- [Contributing](#contributing)
+- [License](#license)
+- [Support](#support)
 
 ## Features
 
@@ -14,38 +42,58 @@ User-friendly shell commands for managing OpenClaw Docker containers. These help
 
 ### Installation
 
-Add to your shell configuration file (`~/.zshrc` or `~/.bashrc`):
+**Add to your shell config (`~/.zshrc` or `~/.bashrc`):**
 
 ```bash
-# Add this line to your ~/.zshrc or ~/.bashrc
 source /path/to/openclaw/scripts/shell-helpers/openclaw-helpers.sh
 ```
 
-Then reload your shell:
+**Reload your shell:**
 
 ```bash
-source ~/.zshrc  # or source ~/.bashrc
+source ~/.zshrc
 ```
 
 ### First Time Setup
 
+**Start the gateway:**
+
 ```bash
-# 1. Start the gateway
 openclaw-start
+```
 
-# 2. Configure authentication token
+**Configure authentication token:**
+
+```bash
 openclaw-fix-token
+```
 
-# 3. Open the web dashboard
+**Open the web dashboard:**
+
+```bash
 openclaw-dashboard
+```
 
-# 4. If you see "pairing required", approve devices
+**If you see "pairing required", approve devices:**
+
+```bash
 openclaw-devices
-openclaw-approve <request-id>
+```
 
-# 5. Set up WhatsApp (optional)
+```bash
+openclaw-approve <request-id>
+```
+
+**Set up WhatsApp (optional):**
+
+```bash
 openclaw-shell
-  > openclaw channels login --channel whatsapp
+```
+
+Then inside the container:
+
+```bash
+openclaw channels login --channel whatsapp
 ```
 
 ## Available Commands
@@ -92,15 +140,29 @@ openclaw-shell
 
 ### Check Status and Logs
 
+**Check container status:**
+
 ```bash
 openclaw-status
+```
+
+**View live logs:**
+
+```bash
 openclaw-logs
 ```
 
 ### Restart After Configuration Changes
 
+**Restart the gateway:**
+
 ```bash
 openclaw-restart
+```
+
+**Watch the logs:**
+
+```bash
 openclaw-logs
 ```
 
@@ -114,30 +176,41 @@ The dashboard will open automatically with the correct authentication token.
 
 ### Set Up WhatsApp Bot
 
+**Shell into the container:**
+
 ```bash
-# 1. Shell into the container
 openclaw-shell
+```
 
-# 2. Inside the container, login to WhatsApp
+**Inside the container, login to WhatsApp:**
+
+```bash
 openclaw channels login --channel whatsapp --verbose
+```
 
-# 3. Scan the QR code with WhatsApp on your phone
-# 4. Verify connection
+Scan the QR code with WhatsApp on your phone.
+
+**Verify connection:**
+
+```bash
 openclaw status
 ```
 
 ### Troubleshooting Device Pairing
 
+**Check for pending pairing requests:**
+
 ```bash
-# 1. Check for pending pairing requests
 openclaw-devices
-
-# 2. Copy the Request ID from the "Pending" table
-# 3. Approve the request
-openclaw-approve 6f9db1bd-a1cc-4d3f-b643-2c195262464e
-
-# 4. Refresh your browser
 ```
+
+**Copy the Request ID from the "Pending" table, then approve:**
+
+```bash
+openclaw-approve 6f9db1bd-a1cc-4d3f-b643-2c195262464e
+```
+
+Then refresh your browser.
 
 ### Fix Token Mismatch Issues
 
@@ -148,6 +221,7 @@ openclaw-fix-token
 ```
 
 This will:
+
 1. Read the token from your `.env` file
 2. Configure it in the OpenClaw config
 3. Restart the gateway
@@ -157,13 +231,13 @@ This will:
 
 ### Commands Not Found
 
-Make sure you've sourced the helpers file:
+**Source the helpers file:**
 
 ```bash
 source /path/to/openclaw/scripts/shell-helpers/openclaw-helpers.sh
 ```
 
-Add it to your `~/.zshrc` or `~/.bashrc` for persistence.
+Add this line to your `~/.zshrc` or `~/.bashrc` for persistence.
 
 ### Token Mismatch Errors
 
@@ -171,7 +245,7 @@ Run `openclaw-fix-token` to automatically configure the authentication token.
 
 ### Permission Denied
 
-Ensure Docker is running and you have permission to use it:
+**Ensure Docker is running and you have permission:**
 
 ```bash
 docker ps
@@ -179,13 +253,14 @@ docker ps
 
 ### Container Not Starting
 
-Check the logs:
+**Check the logs:**
 
 ```bash
 openclaw-logs
 ```
 
 Common issues:
+
 - Port 18789 or 18790 already in use
 - Missing environment variables in `.env`
 - Docker daemon not running
