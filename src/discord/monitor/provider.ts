@@ -648,7 +648,7 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
     // Carbon emits an error when maxAttempts is 0; keep a one-shot listener to avoid
     // an unhandled error after we tear down listeners during abort.
     gatewayEmitter?.once("error", () => {});
-    gateway.options.reconnect = { ...(gateway.options.reconnect ?? {}), maxAttempts: 0 };
+    gateway.options.reconnect = { ...gateway.options.reconnect, maxAttempts: 0 };
     gateway.disconnect();
   };
   if (abortSignal?.aborted) {
@@ -670,7 +670,6 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
       ? reconnectConfig.livenessTimeoutMs
       : 5 * 60_000; // default: 5 minutes
   let livenessTimer: ReturnType<typeof setTimeout> | undefined;
-  let lastConnectedAt = 0;
   const resetLivenessTimer = () => {
     if (livenessTimer) {
       clearTimeout(livenessTimer);
@@ -703,7 +702,6 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
 
     // Track when gateway reaches a healthy state so liveness timer can be reset.
     if (message.includes("READY") || message.includes("RESUMED")) {
-      lastConnectedAt = Date.now();
       resetLivenessTimer();
     }
 
