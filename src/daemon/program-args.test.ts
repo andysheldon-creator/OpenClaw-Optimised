@@ -5,13 +5,15 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const fsMocks = vi.hoisted(() => ({
   access: vi.fn(),
   realpath: vi.fn(),
-  constants: { X_OK: 1 },
 }));
 
 vi.mock("node:fs/promises", () => ({
-  default: { access: fsMocks.access, realpath: fsMocks.realpath, constants: { X_OK: 1 } },
+  default: { access: fsMocks.access, realpath: fsMocks.realpath },
   access: fsMocks.access,
   realpath: fsMocks.realpath,
+}));
+
+vi.mock("node:fs", () => ({
   constants: { X_OK: 1 },
 }));
 

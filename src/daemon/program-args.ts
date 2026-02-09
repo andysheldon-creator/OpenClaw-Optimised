@@ -1,3 +1,4 @@
+import { constants as fsConstants } from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -54,7 +55,7 @@ async function resolvePnpmGlobalWrapperPath(cliName: string): Promise<string | n
 
   for (const candidate of candidates) {
     try {
-      await fs.access(candidate, fs.constants.X_OK);
+      await fs.access(candidate, fsConstants.X_OK);
       return candidate;
     } catch {
       // Try next candidate
@@ -77,7 +78,8 @@ async function resolveCliEntrypointPathForService(): Promise<string> {
   // while the store path contains version-specific directories that break after updates.
   if (isPnpmGlobalStorePath(resolvedPath)) {
     // Extract CLI name from the path (e.g., "openclaw" from ".../openclaw/openclaw.mjs")
-    const pathParts = resolvedPath.split(path.sep);
+    // Split on both / and \ to handle mixed separators (common in pnpm paths on Windows)
+    const pathParts = resolvedPath.split(/[/\\]/);
     const nodeModulesIdx = pathParts.lastIndexOf("node_modules");
     const cliName =
       nodeModulesIdx >= 0 && nodeModulesIdx < pathParts.length - 1
