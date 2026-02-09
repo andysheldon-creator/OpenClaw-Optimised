@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import type { ToolCallIdMode } from "../tool-call-id.js";
 import { sanitizeToolCallId, isValidCloudCodeAssistToolId } from "../tool-call-id.js";
 import { resolveTranscriptPolicy } from "../transcript-policy.js";
 
@@ -142,11 +141,6 @@ describe("Client Tool Call ID Generation", () => {
 
     it("generates valid client tool ID for OpenAI provider", () => {
       const rawId = `call_${Date.now()}`;
-      const policy = resolveTranscriptPolicy({
-        modelApi: "openai-responses",
-        provider: "openai",
-        modelId: "gpt-4",
-      });
       // OpenAI doesn't require special sanitization, but we sanitize to "strict" for safety
       const sanitized = sanitizeToolCallId(rawId, "strict");
 

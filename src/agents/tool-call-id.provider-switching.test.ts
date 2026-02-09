@@ -50,7 +50,7 @@ describe("Tool Call ID Provider Switching", () => {
       ];
 
       // Verify IDs match
-      const toolCall = messages[0].content[0] as any;
+      const toolCall = messages[0].content[0] as unknown as { type?: string; id?: string };
       const toolResult = messages[1];
       expect(toolCall.id).toBe(sanitized);
       expect(toolResult.toolCallId).toBe(sanitized);
@@ -87,7 +87,7 @@ describe("Tool Call ID Provider Switching", () => {
         },
       ];
 
-      const toolCall = messages[0].content[0] as any;
+      const toolCall = messages[0].content[0] as unknown as { type?: string; id?: string };
       const toolResult = messages[1];
       expect(toolCall.id).toBe(sanitized);
       expect(toolResult.toolCallId).toBe(sanitized);
@@ -135,7 +135,7 @@ describe("Tool Call ID Provider Switching", () => {
       const googleSanitized = sanitizeToolCallIdsForCloudCodeAssist(initialMessages, googleMode);
 
       // Verify IDs still match after sanitization
-      const toolCall = googleSanitized[0].content[0] as any;
+      const toolCall = googleSanitized[0].content[0] as unknown as { type?: string; id?: string };
       const toolResult = googleSanitized[1];
       expect(toolCall.id).toBe(toolResult.toolCallId);
       expect(isValidCloudCodeAssistToolId(toolCall.id, googleMode)).toBe(true);
@@ -185,7 +185,7 @@ describe("Tool Call ID Provider Switching", () => {
       const mistralSanitized = sanitizeToolCallIdsForCloudCodeAssist(initialMessages, mistralMode);
 
       // Verify IDs match and are valid
-      const toolCall = mistralSanitized[0].content[0] as any;
+      const toolCall = mistralSanitized[0].content[0] as unknown as { type?: string; id?: string };
       const toolResult = mistralSanitized[1];
       expect(toolCall.id).toBe(toolResult.toolCallId);
       expect(isValidCloudCodeAssistToolId(toolCall.id, mistralMode)).toBe(true);
@@ -251,10 +251,10 @@ describe("Tool Call ID Provider Switching", () => {
 
         // Apply sanitization
         messages = sanitizeToolCallIdsForCloudCodeAssist(newMessages, mode);
-        currentId = (messages[0].content[0] as any).id;
+        currentId = (messages[0].content[0] as unknown as { type?: string; id?: string }).id;
 
         // Verify consistency
-        const toolCall = messages[0].content[0] as any;
+        const toolCall = messages[0].content[0] as unknown as { type?: string; id?: string };
         const toolResult = messages[1];
         expect(toolCall.id).toBe(toolResult.toolCallId);
         expect(isValidCloudCodeAssistToolId(toolCall.id, mode)).toBe(true);
@@ -286,8 +286,8 @@ describe("Tool Call ID Provider Switching", () => {
       ];
 
       const sanitized = sanitizeToolCallIdsForCloudCodeAssist(messages, "strict");
-      const toolCall1 = sanitized[0].content[0] as any;
-      const toolCall2 = sanitized[0].content[1] as any;
+      const toolCall1 = sanitized[0].content[0] as unknown as { type?: string; id?: string };
+      const toolCall2 = sanitized[0].content[1] as unknown as { type?: string; id?: string };
 
       // IDs should be different (no collision) even though they look similar after stripping
       expect(toolCall1.id).not.toBe(toolCall2.id);
@@ -315,8 +315,8 @@ describe("Tool Call ID Provider Switching", () => {
       const sanitized1 = sanitizeToolCallIdsForCloudCodeAssist(messages, "strict");
       const sanitized2 = sanitizeToolCallIdsForCloudCodeAssist(sanitized1, "strict");
 
-      const toolCall1 = sanitized1[0].content[0] as any;
-      const toolCall2 = sanitized2[0].content[0] as any;
+      const toolCall1 = sanitized1[0].content[0] as unknown as { type?: string; id?: string };
+      const toolCall2 = sanitized2[0].content[0] as unknown as { type?: string; id?: string };
 
       // ID should remain stable (no double-sanitization artifacts)
       expect(toolCall1.id).toBe(toolCall2.id);
@@ -351,7 +351,7 @@ describe("Tool Call ID Provider Switching", () => {
 
       // Switch to Mistral (strict9)
       const sanitized = sanitizeToolCallIdsForCloudCodeAssist(messages, "strict9");
-      const toolCall = sanitized[0].content[0] as any;
+      const toolCall = sanitized[0].content[0] as unknown as { type?: string; id?: string };
       const toolResult = sanitized[1];
 
       expect(toolCall.id).toBe(toolResult.toolCallId);
@@ -378,7 +378,7 @@ describe("Tool Call ID Provider Switching", () => {
 
       // No change expected (already valid)
       const sanitized = sanitizeToolCallIdsForCloudCodeAssist(messages, "strict");
-      const toolCall = sanitized[0].content[0] as any;
+      const toolCall = sanitized[0].content[0] as unknown as { type?: string; id?: string };
 
       expect(toolCall.id).toBe(alphanumericId);
     });

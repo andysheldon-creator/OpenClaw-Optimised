@@ -44,7 +44,7 @@ import {
   pickFallbackThinkingLevel,
   type FailoverReason,
 } from "../pi-embedded-helpers.js";
-import { sanitizeToolCallId, type ToolCallIdMode } from "../tool-call-id.js";
+import { sanitizeToolCallId } from "../tool-call-id.js";
 import { resolveTranscriptPolicy } from "../transcript-policy.js";
 import { normalizeUsage, type UsageLike } from "../usage.js";
 import { redactRunIdentifier, resolveRunWorkspaceDir } from "../workspace-run.js";
