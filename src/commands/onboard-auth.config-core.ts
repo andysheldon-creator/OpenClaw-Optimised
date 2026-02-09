@@ -641,7 +641,7 @@ export function applySambanovaProviderConfig(cfg: OpenClawConfig): OpenClawConfi
   models["sambanova/Meta-Llama-3.3-70B-Instruct"] = {
     ...models["sambanova/Meta-Llama-3.3-70B-Instruct"],
     alias: models["sambanova/Meta-Llama-3.3-70B-Instruct"]?.alias ?? "Llama 3.3 70B",
-    };
+  };
 
   return {
     ...cfg,
