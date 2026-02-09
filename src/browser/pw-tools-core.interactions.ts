@@ -1,6 +1,7 @@
 import type { BrowserFormField } from "./client-actions-core.js";
 import {
   ensurePageState,
+  forceDisconnectPlaywrightForTarget,
   getPageForTargetId,
   refLocator,
   restoreRoleRefsForTarget,
@@ -221,6 +222,8 @@ export async function evaluateViaPlaywright(opts: {
   targetId?: string;
   fn: string;
   ref?: string;
+  timeoutMs?: number;
+  signal?: AbortSignal;
 }): Promise<unknown> {
   const fnText = String(opts.fn ?? "").trim();
   if (!fnText) {
@@ -229,42 +232,105 @@ export async function evaluateViaPlaywright(opts: {
   const page = await getPageForTargetId(opts);
   ensurePageState(page);
   restoreRoleRefsForTarget({ cdpUrl: opts.cdpUrl, targetId: opts.targetId, page });
+  // Clamp evaluate timeout to prevent permanently blocking Playwright's command queue.
+  // Without this, a long-running async evaluate blocks all subsequent page operations
+  // because Playwright serializes CDP commands per page.
+  //
+  // NOTE: Playwright's { timeout } on evaluate only applies to installing the function,
+  // NOT to its execution time. We must inject a Promise.race timeout into the browser
+  // context itself so async functions are bounded.
+  const outerTimeout = normalizeTimeoutMs(opts.timeoutMs, 20_000);
+  // Leave headroom for routing/serialization overhead so the outer request timeout
+  // doesn't fire first and strand a long-running evaluate.
+  let evaluateTimeout = Math.max(1000, Math.min(120_000, outerTimeout - 500));
+  evaluateTimeout = Math.min(evaluateTimeout, outerTimeout);
+
+  const signal = opts.signal;
+  let abortListener: (() => void) | undefined;
+  if (signal) {
+    const disconnect = () => {
+      void forceDisconnectPlaywrightForTarget({
+        cdpUrl: opts.cdpUrl,
+        targetId: opts.targetId,
+        reason: "evaluate aborted",
+      }).catch(() => {});
+    };
+    if (signal.aborted) {
+      disconnect();
+      throw signal.reason ?? new Error("aborted");
+    } else {
+      abortListener = () => disconnect();
+      signal.addEventListener("abort", abortListener, { once: true });
+    }
+  }
+
   if (opts.ref) {
     const locator = refLocator(page, opts.ref);
-    // Use Function constructor at runtime to avoid esbuild adding __name helper
-    // which doesn't exist in the browser context
     // eslint-disable-next-line @typescript-eslint/no-implied-eval -- required for browser-context eval
     const elementEvaluator = new Function(
       "el",
-      "fnBody",
+      "args",
       `
       "use strict";
+      var fnBody = args.fnBody, timeoutMs = args.timeoutMs;
       try {
         var candidate = eval("(" + fnBody + ")");
-        return typeof candidate === "function" ? candidate(el) : candidate;
+        var result = typeof candidate === "function" ? candidate(el) : candidate;
+        if (result && typeof result.then === "function") {
+          return Promise.race([
+            result,
+            new Promise(function(_, reject) {
+              setTimeout(function() { reject(new Error("evaluate timed out after " + timeoutMs + "ms")); }, timeoutMs);
+            })
+          ]);
+        }
+        return result;
       } catch (err) {
         throw new Error("Invalid evaluate function: " + (err && err.message ? err.message : String(err)));
       }
       `,
-    ) as (el: Element, fnBody: string) => unknown;
-    return await locator.evaluate(elementEvaluator, fnText);
+    ) as (el: Element, args: { fnBody: string; timeoutMs: number }) => unknown;
+    try {
+      return await locator.evaluate(elementEvaluator, {
+        fnBody: fnText,
+        timeoutMs: evaluateTimeout,
+      });
+    } finally {
+      if (signal && abortListener) {
+        signal.removeEventListener("abort", abortListener);
+      }
+    }
   }
-  // Use Function constructor at runtime to avoid esbuild adding __name helper
-  // which doesn't exist in the browser context
   // eslint-disable-next-line @typescript-eslint/no-implied-eval -- required for browser-context eval
   const browserEvaluator = new Function(
-    "fnBody",
+    "args",
     `
     "use strict";
+    var fnBody = args.fnBody, timeoutMs = args.timeoutMs;
     try {
       var candidate = eval("(" + fnBody + ")");
-      return typeof candidate === "function" ? candidate() : candidate;
+      var result = typeof candidate === "function" ? candidate() : candidate;
+      if (result && typeof result.then === "function") {
+        return Promise.race([
+          result,
+          new Promise(function(_, reject) {
+            setTimeout(function() { reject(new Error("evaluate timed out after " + timeoutMs + "ms")); }, timeoutMs);
+          })
+        ]);
+      }
+      return result;
     } catch (err) {
       throw new Error("Invalid evaluate function: " + (err && err.message ? err.message : String(err)));
     }
     `,
-  ) as (fnBody: string) => unknown;
-  return await page.evaluate(browserEvaluator, fnText);
+  ) as (args: { fnBody: string; timeoutMs: number }) => unknown;
+  try {
+    return await page.evaluate(browserEvaluator, { fnBody: fnText, timeoutMs: evaluateTimeout });
+  } finally {
+    if (signal && abortListener) {
+      signal.removeEventListener("abort", abortListener);
+    }
+  }
 }
 
 export async function scrollIntoViewViaPlaywright(opts: {

@@ -510,6 +510,26 @@ export async function closePlaywrightBrowserConnection(): Promise<void> {
 }
 
 /**
+ * Best-effort cancellation for stuck page operations.
+ *
+ * Playwright serializes CDP commands per page; a long-running or stuck operation (notably evaluate)
+ * can block all subsequent commands. We cannot safely "cancel" an individual command, and we do
+ * not want to close the actual Chromium tab. Instead, we disconnect Playwright's CDP connection
+ * so in-flight commands fail fast and the next request reconnects transparently.
+ */
+export async function forceDisconnectPlaywrightForTarget(opts: {
+  cdpUrl: string;
+  targetId?: string;
+  reason?: string;
+}): Promise<void> {
+  const normalized = normalizeCdpUrl(opts.cdpUrl);
+  if (cached?.cdpUrl !== normalized) {
+    return;
+  }
+  await closePlaywrightBrowserConnection();
+}
+
+/**
  * List all pages/tabs from the persistent Playwright connection.
  * Used for remote profiles where HTTP-based /json/list is ephemeral.
  */

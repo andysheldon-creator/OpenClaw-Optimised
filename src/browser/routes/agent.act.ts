@@ -306,11 +306,14 @@ export function registerBrowserAgentActRoutes(
             return jsonError(res, 400, "fn is required");
           }
           const ref = toStringOrEmpty(body.ref) || undefined;
+          const evalTimeoutMs = toNumber(body.timeoutMs);
           const result = await pw.evaluateViaPlaywright({
             cdpUrl,
             targetId: tab.targetId,
             fn,
             ref,
+            timeoutMs: evalTimeoutMs ?? undefined,
+            signal: req.signal,
           });
           return res.json({
             ok: true,
