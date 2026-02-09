@@ -421,7 +421,11 @@ export class TwilioProvider implements VoiceCallProvider {
       return null;
     }
     const token = this.getStreamAuthToken(callSid);
-    return { url: baseUrl, token };
+    // Include token in URL as well for backwards compatibility
+    // (media-stream.ts falls back to reading from URL query params)
+    const url = new URL(baseUrl);
+    url.searchParams.set("token", token);
+    return { url: url.toString(), token };
   }
 
   /**
