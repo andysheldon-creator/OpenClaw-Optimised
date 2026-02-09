@@ -3,8 +3,10 @@ import type { AnyAgentTool } from "./common.js";
 import { loadConfig } from "../../config/config.js";
 import { callGateway } from "../../gateway/call.js";
 import { capArrayByJsonBytes } from "../../gateway/session-utils.fs.js";
+import { formatZonedTimestamp } from "../../infra/format-time/format-datetime.js";
 import { isSubagentSessionKey, resolveAgentIdFromSessionKey } from "../../routing/session-key.js";
 import { truncateUtf16Safe } from "../../utils.js";
+import { resolveUserTimezone } from "../date-time.js";
 import { jsonResult, readStringParam } from "./common.js";
 import {
   createAgentToAgentPolicy,
@@ -76,7 +78,10 @@ function sanitizeHistoryContentBlock(block: unknown): { block: unknown; truncate
   return { block: entry, truncated };
 }
 
-function sanitizeHistoryMessage(message: unknown): { message: unknown; truncated: boolean } {
+function sanitizeHistoryMessage(
+  message: unknown,
+  userTimezone?: string,
+): { message: unknown; truncated: boolean } {
   if (!message || typeof message !== "object") {
     return { message, truncated: false };
   }
@@ -94,6 +99,17 @@ function sanitizeHistoryMessage(message: unknown): { message: unknown; truncated
   if ("cost" in entry) {
     delete entry.cost;
     truncated = true;
+  }
+
+  // Format timestamp using userTimezone if available
+  if (userTimezone && typeof entry.timestamp === "number" && Number.isFinite(entry.timestamp)) {
+    const date = new Date(entry.timestamp);
+    if (!Number.isNaN(date.getTime())) {
+      const formatted = formatZonedTimestamp(date, { timeZone: userTimezone });
+      if (formatted) {
+        entry.timestampFormatted = formatted;
+      }
+    }
   }
 
   if (typeof entry.content === "string") {
@@ -259,7 +275,12 @@ export function createSessionsHistoryTool(opts?: {
       });
       const rawMessages = Array.isArray(result?.messages) ? result.messages : [];
       const selectedMessages = includeTools ? rawMessages : stripToolMessages(rawMessages);
-      const sanitizedMessages = selectedMessages.map((message) => sanitizeHistoryMessage(message));
+      const userTimezoneConfig = cfg.agents?.defaults?.userTimezone;
+      // Only add timestampFormatted if userTimezone was explicitly configured
+      const userTimezone = userTimezoneConfig ? resolveUserTimezone(userTimezoneConfig) : undefined;
+      const sanitizedMessages = selectedMessages.map((message) =>
+        sanitizeHistoryMessage(message, userTimezone),
+      );
       const contentTruncated = sanitizedMessages.some((entry) => entry.truncated);
       const cappedMessages = capArrayByJsonBytes(
         sanitizedMessages.map((entry) => entry.message),
