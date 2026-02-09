@@ -73,6 +73,9 @@ describe("acquireSessionWriteLock", () => {
   });
 
   it("removes held locks on termination signals", async () => {
+    if (process.platform === "win32") {
+      return;
+    }
     const signals = ["SIGINT", "SIGTERM", "SIGQUIT", "SIGABRT"] as const;
     for (const signal of signals) {
       const root = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-lock-cleanup-"));
@@ -98,10 +101,16 @@ describe("acquireSessionWriteLock", () => {
   });
 
   it("registers cleanup for SIGQUIT and SIGABRT", () => {
+    if (process.platform === "win32") {
+      return;
+    }
     expect(__testing.cleanupSignals).toContain("SIGQUIT");
     expect(__testing.cleanupSignals).toContain("SIGABRT");
   });
   it("cleans up locks on SIGINT without removing other handlers", async () => {
+    if (process.platform === "win32") {
+      return;
+    }
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-lock-"));
     const originalKill = process.kill.bind(process);
     const killCalls: Array<NodeJS.Signals | undefined> = [];
@@ -136,6 +145,9 @@ describe("acquireSessionWriteLock", () => {
   });
 
   it("cleans up locks on exit", async () => {
+    if (process.platform === "win32") {
+      return;
+    }
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-lock-"));
     try {
       const sessionFile = path.join(root, "sessions.json");
@@ -150,6 +162,9 @@ describe("acquireSessionWriteLock", () => {
     }
   });
   it("keeps other signal listeners registered", () => {
+    if (process.platform === "win32") {
+      return;
+    }
     const keepAlive = () => {};
     process.on("SIGINT", keepAlive);
 

@@ -31,6 +31,13 @@ export function parseLsofOutput(output: string): PortProcess[] {
 }
 
 export function listPortListeners(port: number): PortProcess[] {
+  if (process.platform === "win32") {
+    return listPortListenersWindows(port);
+  }
+  return listPortListenersUnix(port);
+}
+
+function listPortListenersUnix(port: number): PortProcess[] {
   try {
     const lsof = resolveLsofCommandSync();
     const out = execFileSync(lsof, ["-nP", `-iTCP:${port}`, "-sTCP:LISTEN", "-FpFc"], {
@@ -50,11 +57,70 @@ export function listPortListeners(port: number): PortProcess[] {
   }
 }
 
+function listPortListenersWindows(port: number): PortProcess[] {
+  try {
+    const out = execFileSync("netstat", ["-ano", "-p", "tcp"], {
+      encoding: "utf-8",
+    });
+    return parseNetstatOutput(out, port);
+  } catch (err: unknown) {
+    const code = (err as { code?: string }).code;
+    if (code === "ENOENT") {
+      throw new Error("netstat not found; required for --force on Windows", { cause: err });
+    }
+    throw err instanceof Error ? err : new Error(String(err));
+  }
+}
+
+function parseNetstatOutput(output: string, port: number): PortProcess[] {
+  const results: PortProcess[] = [];
+  const portToken = `:${port}`;
+
+  for (const rawLine of output.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line) {
+      continue;
+    }
+    // Look for LISTENING state
+    if (!line.toLowerCase().includes("listening")) {
+      continue;
+    }
+
+    // netstat output format: Proto  Local Address  Foreign Address  State  PID
+    const parts = line.split(/\s+/);
+    if (parts.length < 5) {
+      continue;
+    }
+
+    // Check if the Local Address (index 1) contains our port
+    const localAddr = parts[1];
+    if (!localAddr || !localAddr.includes(portToken)) {
+      continue;
+    }
+
+    const pidRaw = parts.at(-1);
+    const pid = pidRaw ? Number.parseInt(pidRaw, 10) : NaN;
+
+    if (Number.isFinite(pid)) {
+      results.push({ pid });
+    }
+  }
+
+  return results;
+}
+
 export function forceFreePort(port: number): PortProcess[] {
   const listeners = listPortListeners(port);
   for (const proc of listeners) {
     try {
-      process.kill(proc.pid, "SIGTERM");
+      if (process.platform === "win32") {
+        // On Windows, use taskkill for more reliable termination
+        execFileSync("taskkill", ["/PID", String(proc.pid), "/F"], {
+          encoding: "utf-8",
+        });
+      } else {
+        process.kill(proc.pid, "SIGTERM");
+      }
     } catch (err) {
       throw new Error(
         `failed to kill pid ${proc.pid}${proc.command ? ` (${proc.command})` : ""}: ${String(err)}`,
@@ -68,7 +134,14 @@ export function forceFreePort(port: number): PortProcess[] {
 function killPids(listeners: PortProcess[], signal: NodeJS.Signals) {
   for (const proc of listeners) {
     try {
-      process.kill(proc.pid, signal);
+      if (process.platform === "win32") {
+        // Windows doesn't support SIGKILL, use taskkill /F
+        execFileSync("taskkill", ["/PID", String(proc.pid), "/F"], {
+          encoding: "utf-8",
+        });
+      } else {
+        process.kill(proc.pid, signal);
+      }
     } catch (err) {
       throw new Error(
         `failed to kill pid ${proc.pid}${proc.command ? ` (${proc.command})` : ""}: ${String(err)}`,
