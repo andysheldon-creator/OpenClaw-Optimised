@@ -27,7 +27,6 @@ import {
   validateSessionsPreviewParams,
   validateSessionsResetParams,
   validateSessionsResolveParams,
-  validateSessionsListDeletedParams,
   validateSessionsRestoreParams,
 } from "../protocol/index.js";
 import {
@@ -613,106 +612,6 @@ export const sessionsHandlers: GatewayRequestHandlers = {
       },
       undefined,
     );
-  },
-  "sessions.list.deleted": async ({ params, respond }) => {
-    if (!validateSessionsListDeletedParams(params)) {
-      respond(
-        false,
-        undefined,
-        errorShape(
-          ErrorCodes.INVALID_REQUEST,
-          `invalid sessions.list.deleted params: ${formatValidationErrors(validateSessionsListDeletedParams.errors)}`,
-        ),
-      );
-      return;
-    }
-
-    const p = params;
-    const cfg = loadConfig();
-
-    const agentId = normalizeAgentId(p.agentId ?? resolveDefaultAgentId(cfg));
-    const agentDir = resolveAgentDir(cfg, agentId);
-    const sessionsDir = path.join(agentDir, "sessions");
-
-    try {
-      if (!fs.existsSync(sessionsDir)) {
-        respond(true, { ok: true, deleted: [] }, undefined);
-        return;
-      }
-
-      const files = fs.readdirSync(sessionsDir);
-      const deletedFiles = files.filter((f) => f.includes(".jsonl.deleted."));
-
-      const deleted = deletedFiles
-        .map((file) => {
-          const fullPath = path.join(sessionsDir, file);
-          const stat = fs.statSync(fullPath);
-          // Extract sessionId from filename: <sessionId>.jsonl.deleted.<timestamp>
-          const match = file.match(/^([0-9a-f-]{36})\.jsonl\.deleted\./i);
-          const sessionId = match ? match[1] : null;
-
-          // Extract timestamp from filename
-          const timestampMatch = file.match(/\.deleted\.(.+)$/);
-          const timestamp = timestampMatch ? timestampMatch[1] : null;
-
-          // Try to read metadata from the file
-          let metadata: unknown = null;
-          try {
-            const content = fs.readFileSync(fullPath, "utf-8");
-            const lines = content.split("\n").filter((line) => line.trim());
-            if (lines.length > 0) {
-              const lastLine = lines[lines.length - 1];
-              try {
-                const parsed = JSON.parse(lastLine);
-                if (parsed.__session_metadata__) {
-                  metadata = parsed.__session_metadata__;
-                }
-              } catch {
-                // Last line isn't valid JSON or doesn't have metadata
-              }
-            }
-          } catch {
-            // File read error, skip this file
-          }
-
-          const isValidMetadata =
-            metadata && typeof metadata === "object" && !Array.isArray(metadata);
-          const metadataObj = isValidMetadata ? (metadata as Record<string, unknown>) : null;
-
-          return {
-            sessionId,
-            file,
-            path: fullPath,
-            size: stat.size,
-            deletedAt: timestamp,
-            mtime: stat.mtimeMs,
-            metadata: metadataObj,
-            label:
-              metadataObj && typeof metadataObj.label === "string" ? metadataObj.label : undefined,
-            description:
-              metadataObj && typeof metadataObj.description === "string"
-                ? metadataObj.description
-                : undefined,
-            persistent:
-              metadataObj && typeof metadataObj.persistent === "boolean"
-                ? metadataObj.persistent
-                : undefined,
-          };
-        })
-        .filter((item) => item.sessionId != null && item.metadata != null)
-        .toSorted((a, b) => b.mtime - a.mtime);
-
-      const limit = p.limit ?? 50;
-      const result = deleted.slice(0, limit);
-
-      respond(true, { ok: true, deleted: result }, undefined);
-    } catch (err) {
-      respond(
-        false,
-        undefined,
-        errorShape(ErrorCodes.INTERNAL_ERROR, `Failed to list deleted sessions: ${String(err)}`),
-      );
-    }
   },
   "sessions.restore": async ({ params, respond }) => {
     if (!validateSessionsRestoreParams(params)) {

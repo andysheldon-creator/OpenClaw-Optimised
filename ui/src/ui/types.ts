@@ -404,6 +404,8 @@ export type GatewaySessionRow = {
   userCreated?: boolean;
   description?: string;
   createdAt?: number;
+  deleted?: boolean;
+  deletedAt?: string;
 };
 
 export type SessionsListResult = {

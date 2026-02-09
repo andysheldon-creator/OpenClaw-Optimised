@@ -44,7 +44,6 @@ import { loadNodes } from "./controllers/nodes.ts";
 import { loadPresence } from "./controllers/presence.ts";
 import {
   deleteSession,
-  loadDeletedSessions,
   loadSessions,
   patchSession,
   restoreSession,
@@ -308,24 +307,16 @@ export function renderApp(state: AppViewState) {
                 includeGlobal: state.sessionsIncludeGlobal,
                 includeUnknown: state.sessionsIncludeUnknown,
                 showDeleted: state.sessionsShowDeleted,
-                deletedSessions: state.sessionsDeletedList,
                 basePath: state.basePath,
                 onFiltersChange: (next) => {
                   state.sessionsFilterActive = next.activeMinutes;
                   state.sessionsFilterLimit = next.limit;
                   state.sessionsIncludeGlobal = next.includeGlobal;
                   state.sessionsIncludeUnknown = next.includeUnknown;
-                  const wasShowingDeleted = state.sessionsShowDeleted;
                   state.sessionsShowDeleted = next.showDeleted;
-                  if (next.showDeleted && !wasShowingDeleted) {
-                    void loadDeletedSessions(state);
-                  }
                 },
                 onRefresh: () => {
                   void loadSessions(state);
-                  if (state.sessionsShowDeleted) {
-                    void loadDeletedSessions(state);
-                  }
                 },
                 onPatch: (key, patch) => patchSession(state, key, patch),
                 onDelete: (key) => deleteSession(state, key),

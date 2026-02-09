@@ -1,5 +1,5 @@
 import { html, nothing } from "lit";
-import type { DeletedSessionEntry, GatewaySessionRow, SessionsListResult } from "../types.ts";
+import type { GatewaySessionRow, SessionsListResult } from "../types.ts";
 import { formatRelativeTimestamp } from "../format.ts";
 import { pathForTab } from "../navigation.ts";
 import { formatSessionTokens } from "../presenter.ts";
@@ -13,7 +13,6 @@ export type SessionsProps = {
   includeGlobal: boolean;
   includeUnknown: boolean;
   showDeleted: boolean;
-  deletedSessions: DeletedSessionEntry[] | null;
   basePath: string;
   onFiltersChange: (next: {
     activeMinutes: string;
@@ -112,7 +111,8 @@ function resolveThinkLevelPatchValue(value: string, isBinary: boolean): string |
 }
 
 export function renderSessions(props: SessionsProps) {
-  const rows = props.result?.sessions ?? [];
+  const allRows = props.result?.sessions ?? [];
+  const rows = props.showDeleted ? allRows : allRows.filter((row) => !row.deleted);
   return html`
     <section class="card">
       <div class="row" style="justify-content: space-between;">
@@ -229,90 +229,17 @@ export function renderSessions(props: SessionsProps) {
                 <div class="muted">No sessions found.</div>
               `
             : rows.map((row) =>
-                renderRow(row, props.basePath, props.onPatch, props.onDelete, props.loading),
+                renderRow(
+                  row,
+                  props.basePath,
+                  props.onPatch,
+                  props.onDelete,
+                  props.onRestore,
+                  props.loading,
+                ),
               )
         }
       </div>
-
-      ${
-        props.showDeleted
-          ? html`
-              <div style="margin-top: 32px;">
-                <h3>🗑️ Deleted Sessions</h3>
-                ${
-                  props.deletedSessions && props.deletedSessions.length > 0
-                    ? html`
-                        <div class="table" style="margin-top: 16px;">
-                          <div class="table-head">
-                            <div>Label</div>
-                            <div>Session ID</div>
-                            <div>Size</div>
-                            <div>Deleted At</div>
-                            <div>Actions</div>
-                          </div>
-                          ${props.deletedSessions.map(
-                            (deleted) => html`
-                              <div class="table-row">
-                                <div>
-                                  ${
-                                    deleted.label
-                                      ? html`
-                                          <strong>${deleted.label}</strong>
-                                          ${
-                                            deleted.persistent === true
-                                              ? html`
-                                                  <span class="session-badge" title="Persistent session">📌</span>
-                                                `
-                                              : nothing
-                                          }
-                                          ${
-                                            deleted.description
-                                              ? html`<div
-                                                  style="font-size: 0.85em; color: var(--muted); margin-top: 2px;"
-                                                >
-                                                  ${deleted.description}
-                                                </div>`
-                                              : nothing
-                                          }
-                                        `
-                                      : html`
-                                          <span style="color: var(--muted); font-style: italic">(unnamed)</span>
-                                        `
-                                  }
-                                </div>
-                                <div style="font-family: monospace; font-size: 0.85em; color: var(--muted);">
-                                  ${deleted.sessionId.substring(0, 8)}...
-                                </div>
-                                <div>${(deleted.size / 1024).toFixed(1)} KB</div>
-                                <div>
-                                  ${
-                                    deleted.deletedAt
-                                      ? deleted.deletedAt.replace(/T/, " ").replace(/Z$/, "")
-                                      : "Unknown"
-                                  }
-                                </div>
-                                <div>
-                                  <button
-                                    class="btn"
-                                    ?disabled=${props.loading}
-                                    @click=${() => props.onRestore(deleted.sessionId)}
-                                  >
-                                    Restore
-                                  </button>
-                                </div>
-                              </div>
-                            `,
-                          )}
-                        </div>
-                      `
-                    : html`
-                        <div class="muted" style="margin-top: 12px">No deleted sessions found.</div>
-                      `
-                }
-              </div>
-            `
-          : nothing
-      }
     </section>
   `;
 }
@@ -322,9 +249,16 @@ function renderRow(
   basePath: string,
   onPatch: SessionsProps["onPatch"],
   onDelete: SessionsProps["onDelete"],
+  onRestore: SessionsProps["onRestore"],
   disabled: boolean,
 ) {
-  const updated = row.updatedAt ? formatRelativeTimestamp(row.updatedAt) : "n/a";
+  const isDeleted = row.deleted === true;
+  const updated =
+    isDeleted && row.deletedAt
+      ? `🗑️ ${row.deletedAt.replace(/T/, " ").replace(/Z$/, "")}`
+      : row.updatedAt
+        ? formatRelativeTimestamp(row.updatedAt)
+        : "n/a";
   const rawThinking = row.thinkingLevel ?? "";
   const isBinaryThinking = isBinaryThinkingProvider(row.modelProvider);
   const thinking = resolveThinkLevelDisplay(rawThinking, isBinaryThinking);
@@ -339,13 +273,13 @@ function renderRow(
       : null;
   const label = typeof row.label === "string" ? row.label.trim() : "";
   const showDisplayName = Boolean(displayName && displayName !== row.key && displayName !== label);
-  const canLink = row.kind !== "global";
+  const canLink = !isDeleted && row.kind !== "global";
   const chatUrl = canLink
     ? `${pathForTab("chat", basePath)}?session=${encodeURIComponent(row.key)}`
     : null;
 
   return html`
-    <div class="table-row">
+    <div class="table-row" style="${isDeleted ? "opacity: 0.6;" : ""}">
       <div class="mono session-key-cell">
         ${canLink ? html`<a href=${chatUrl} class="session-link">${row.key}</a>` : row.key}
         ${showDisplayName ? html`<span class="muted session-key-display-name">${displayName}</span>` : nothing}
@@ -353,7 +287,7 @@ function renderRow(
       <div class="session-label-cell">
         <input
           .value=${row.label ?? ""}
-          ?disabled=${disabled}
+          ?disabled=${disabled || isDeleted}
           placeholder="(optional)"
           @change=${(e: Event) => {
             const value = (e.target as HTMLInputElement).value.trim();
@@ -368,12 +302,12 @@ function renderRow(
             : nothing
         }
       </div>
-      <div>${row.kind}</div>
+      <div>${isDeleted ? "🗑️ deleted" : row.kind}</div>
       <div>${updated}</div>
       <div>${formatSessionTokens(row)}</div>
       <div>
         <select
-          ?disabled=${disabled}
+          ?disabled=${disabled || isDeleted}
           @change=${(e: Event) => {
             const value = (e.target as HTMLSelectElement).value;
             onPatch(row.key, {
@@ -391,7 +325,7 @@ function renderRow(
       </div>
       <div>
         <select
-          ?disabled=${disabled}
+          ?disabled=${disabled || isDeleted}
           @change=${(e: Event) => {
             const value = (e.target as HTMLSelectElement).value;
             onPatch(row.key, { verboseLevel: value || null });
@@ -407,7 +341,7 @@ function renderRow(
       </div>
       <div>
         <select
-          ?disabled=${disabled}
+          ?disabled=${disabled || isDeleted}
           @change=${(e: Event) => {
             const value = (e.target as HTMLSelectElement).value;
             onPatch(row.key, { reasoningLevel: value || null });
@@ -423,11 +357,15 @@ function renderRow(
       </div>
       <div>
         ${
-          row.key === "agent:main:main"
-            ? nothing
-            : html`<button class="btn danger" ?disabled=${disabled} @click=${() => onDelete(row.key)}>
-              Delete
-            </button>`
+          isDeleted
+            ? html`<button class="btn" ?disabled=${disabled} @click=${() => row.sessionId && onRestore(row.sessionId)}>
+                Restore
+              </button>`
+            : row.key === "agent:main:main"
+              ? nothing
+              : html`<button class="btn danger" ?disabled=${disabled} @click=${() => onDelete(row.key)}>
+                  Delete
+                </button>`
         }
       </div>
     </div>

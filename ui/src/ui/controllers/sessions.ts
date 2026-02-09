@@ -1,12 +1,11 @@
 import type { GatewayBrowserClient } from "../gateway.ts";
-import type { DeletedSessionEntry, SessionsListResult } from "../types.ts";
+import type { SessionsListResult } from "../types.ts";
 import { toNumber } from "../format.ts";
 
 export type SessionsState = {
   client: GatewayBrowserClient | null;
   connected: boolean;
   sessionsLoading: boolean;
-  sessionsDeletedLoading: boolean;
   sessionsResult: SessionsListResult | null;
   sessionsError: string | null;
   sessionsFilterActive: string;
@@ -14,7 +13,6 @@ export type SessionsState = {
   sessionsIncludeGlobal: boolean;
   sessionsIncludeUnknown: boolean;
   sessionsShowDeleted: boolean;
-  sessionsDeletedList: DeletedSessionEntry[] | null;
   sessionKey: string;
   requestUpdate?: () => void;
 };
@@ -99,31 +97,6 @@ export async function patchSession(
   }
 }
 
-export async function loadDeletedSessions(state: SessionsState) {
-  if (!state.client || !state.connected) {
-    return;
-  }
-  if (state.sessionsDeletedLoading) {
-    return;
-  }
-  state.sessionsDeletedLoading = true;
-  state.sessionsError = null;
-  try {
-    const res = await state.client.request<{
-      ok: boolean;
-      deleted: DeletedSessionEntry[];
-    }>("sessions.list.deleted", { limit: 100 });
-    if (res && res.ok) {
-      state.sessionsDeletedList = res.deleted;
-    }
-  } catch (err) {
-    state.sessionsError = String(err);
-  } finally {
-    state.sessionsDeletedLoading = false;
-    state.requestUpdate?.();
-  }
-}
-
 export async function restoreSession(state: SessionsState, sessionId: string) {
   if (!state.client || !state.connected) {
     return;
@@ -144,11 +117,8 @@ export async function restoreSession(state: SessionsState, sessionId: string) {
   try {
     await state.client.request("sessions.restore", { sessionId });
 
-    // Refresh both lists after restore
-    await Promise.all([
-      loadSessions(state),
-      state.sessionsShowDeleted ? loadDeletedSessions(state) : Promise.resolve(),
-    ]);
+    // Refresh the session list after restore
+    await loadSessions(state);
   } catch (err) {
     state.sessionsError = String(err);
   } finally {
@@ -196,11 +166,8 @@ export async function deleteSession(state: SessionsState, key: string) {
       return;
     }
 
-    // Refresh both lists after deletion
-    await Promise.all([
-      loadSessions(state),
-      state.sessionsShowDeleted ? loadDeletedSessions(state) : Promise.resolve(),
-    ]);
+    // Refresh the session list after deletion
+    await loadSessions(state);
   } catch (err) {
     state.sessionsError = String(err);
   } finally {
