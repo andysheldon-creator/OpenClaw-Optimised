@@ -55,7 +55,8 @@ export function registerApprovalBroker(router: Router): void {
       // This would normally be handled by OpenClaw's message routing
       // For now, we emit an event that the main process can handle
       if (typeof process?.send === "function") {
-        (process.send as any)({
+        const send = process.send as unknown as (msg: unknown) => void;
+        send({
           type: "post-message",
           channel,
           message,
@@ -96,7 +97,8 @@ export function registerApprovalBroker(router: Router): void {
 
       // Notify the session that a decision was made
       if (typeof process?.send === "function") {
-        (process.send as any)({
+        const send = process.send as unknown as (msg: unknown) => void;
+        send({
           type: "approval-response",
           sessionKey,
           decision,
@@ -158,7 +160,8 @@ export async function postApprovalViaMessageSystem(params: {
         }
 
         if (typeof process?.send === "function") {
-          (process.send as any)({
+          const send = process.send as unknown as (msg: unknown) => void;
+          send({
             type: "post-approval",
             channel: params.channel,
             message: params.message,
@@ -170,7 +173,11 @@ export async function postApprovalViaMessageSystem(params: {
         // Timeout after 5s
         setTimeout(() => {
           if (typeof process?.removeListener === "function") {
-            (process.removeListener as any)("message", handler);
+            const removeListener = process.removeListener as unknown as (
+              event: string,
+              listener: NodeJS.MessageListener,
+            ) => void;
+            removeListener("message", handler);
           }
           resolve({});
         }, 5000);

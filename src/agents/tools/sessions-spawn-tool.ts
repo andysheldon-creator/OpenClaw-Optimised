@@ -231,14 +231,15 @@ export function createSessionsSpawnTool(opts?: {
           return undefined;
         });
 
-        // If routing detects divergence (e.g., escalation to Opus), it handles approval internally.
-        // If approval is rejected, routeModel() throws an error that we should surface.
-        // For now, we trust the approval system to have validated the escalation.
+        // If routing decision overrides the model, apply it (e.g., escalation to Sonnet/Opus approved)
+        const modelToApply = routingDecision
+          ? `${routingDecision.provider}/${routingDecision.model}`
+          : resolvedModel;
 
         try {
           await callGateway({
             method: "sessions.patch",
-            params: { key: childSessionKey, model: resolvedModel },
+            params: { key: childSessionKey, model: modelToApply },
             timeoutMs: 10_000,
           });
           modelApplied = true;
