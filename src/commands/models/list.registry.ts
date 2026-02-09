@@ -79,7 +79,7 @@ export function toModelRow(params: {
     };
   }
 
-  const input = model.input.join("+") || "text";
+  const input = Array.isArray(model.input) ? model.input.join("+") || "text" : "text";
   const local = isLocalBaseUrl(model.baseUrl);
   const available =
     cfg && authStore
