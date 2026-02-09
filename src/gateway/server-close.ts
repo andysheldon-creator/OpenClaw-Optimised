@@ -39,21 +39,16 @@ export function createGatewayCloseHandler(params: {
         ? Math.max(0, Math.floor(opts.restartExpectedMs))
         : null;
     try {
-      const shutdownEvent = createInternalHookEvent("gateway", "shutdown", "gateway:shutdown", {
+      const shutdownEvent = createInternalHookEvent("gateway", "shutdown", "gateway", {
         reason,
         restartExpectedMs,
       });
       await triggerInternalHook(shutdownEvent);
       if (restartExpectedMs !== null) {
-        const preRestartEvent = createInternalHookEvent(
-          "gateway",
-          "pre-restart",
-          "gateway:pre-restart",
-          {
-            reason,
-            restartExpectedMs,
-          },
-        );
+        const preRestartEvent = createInternalHookEvent("gateway", "pre-restart", "gateway", {
+          reason,
+          restartExpectedMs,
+        });
         await triggerInternalHook(preRestartEvent);
       }
     } catch {
