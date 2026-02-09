@@ -33,6 +33,7 @@ export type AuthChoice =
   | "minimax-portal"
   | "opencode-zen"
   | "github-copilot"
+  | "github-copilot-enterprise"
   | "copilot-proxy"
   | "qwen-portal"
   | "xai-api-key"

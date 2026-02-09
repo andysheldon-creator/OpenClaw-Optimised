@@ -1,9 +1,9 @@
 import type { OpenClawConfig } from "../config/config.js";
 import type { ModelDefinitionConfig } from "../config/types.models.js";
 import {
-  DEFAULT_COPILOT_API_BASE_URL,
   resolveCopilotApiToken,
 } from "../providers/github-copilot-token.js";
+import { resolveGitHubCopilotEndpoints } from "../providers/github-copilot-endpoints.js";
 import { ensureAuthProfileStore, listProfilesForProvider } from "./auth-profiles.js";
 import { discoverBedrockModels } from "./bedrock-discovery.js";
 import {
@@ -561,6 +561,7 @@ export async function resolveImplicitCopilotProvider(params: {
   }
 
   let selectedGithubToken = githubToken;
+  let enterpriseHost: string | undefined;
   if (!selectedGithubToken && hasProfile) {
     // Use the first available profile as a default for discovery (it will be
     // re-resolved per-run by the embedded runner).
@@ -568,19 +569,22 @@ export async function resolveImplicitCopilotProvider(params: {
     const profile = profileId ? authStore.profiles[profileId] : undefined;
     if (profile && profile.type === "token") {
       selectedGithubToken = profile.token;
+      enterpriseHost = profile.enterpriseUrl;
     }
   }
 
-  let baseUrl = DEFAULT_COPILOT_API_BASE_URL;
+  const endpoints = resolveGitHubCopilotEndpoints(enterpriseHost);
+  let baseUrl = endpoints.defaultCopilotApiBaseUrl;
   if (selectedGithubToken) {
     try {
       const token = await resolveCopilotApiToken({
         githubToken: selectedGithubToken,
         env,
+        githubHost: enterpriseHost,
       });
       baseUrl = token.baseUrl;
     } catch {
-      baseUrl = DEFAULT_COPILOT_API_BASE_URL;
+      baseUrl = endpoints.defaultCopilotApiBaseUrl;
     }
   }
 

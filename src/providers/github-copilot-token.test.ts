@@ -78,4 +78,93 @@ describe("github-copilot token", () => {
     expect(res.baseUrl).toBe("https://api.contoso.test");
     expect(saveJsonFile).toHaveBeenCalledTimes(1);
   });
+
+  it("derives baseUrl from response endpoints.proxy for GHE Cloud", async () => {
+    loadJsonFile.mockReturnValue(undefined);
+
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        token: "opaque-enterprise-token",
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        endpoints: {
+          proxy: "https://copilot-proxy.myorg.ghe.com",
+        },
+      }),
+    });
+
+    const { resolveCopilotApiToken } = await import("./github-copilot-token.js");
+
+    const res = await resolveCopilotApiToken({
+      githubToken: "gh",
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      githubHost: "myorg.ghe.com",
+    });
+
+    expect(res.token).toBe("opaque-enterprise-token");
+    // copilot-proxy.* → copilot-api.* transformation
+    expect(res.baseUrl).toBe("https://copilot-api.myorg.ghe.com");
+  });
+
+  it("uses host-derived default when no proxy-ep or endpoints.proxy", async () => {
+    loadJsonFile.mockReturnValue(undefined);
+
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        token: "opaque-token",
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+      }),
+    });
+
+    const { resolveCopilotApiToken } = await import("./github-copilot-token.js");
+
+    const res = await resolveCopilotApiToken({
+      githubToken: "gh",
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      githubHost: "myorg.ghe.com",
+    });
+
+    expect(res.token).toBe("opaque-token");
+    expect(res.baseUrl).toBe("https://copilot-api.myorg.ghe.com");
+  });
+
+  it("uses host-scoped cache path for Enterprise", async () => {
+    const now = Date.now();
+    loadJsonFile.mockReturnValue({
+      token: "cached-enterprise",
+      expiresAt: now + 60 * 60 * 1000,
+      updatedAt: now,
+    });
+
+    const { resolveCopilotApiToken } = await import("./github-copilot-token.js");
+
+    const fetchImpl = vi.fn();
+    await resolveCopilotApiToken({
+      githubToken: "gh",
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      githubHost: "myorg.ghe.com",
+    });
+
+    // Cache path should include the host
+    const cachePath = loadJsonFile.mock.calls[0][0] as string;
+    expect(cachePath).toContain("myorg.ghe.com");
+  });
+
+  it("deriveCopilotApiBaseUrlFromProxyEndpoint transforms copilot-proxy to copilot-api", async () => {
+    const { deriveCopilotApiBaseUrlFromProxyEndpoint } = await import(
+      "./github-copilot-token.js"
+    );
+
+    expect(deriveCopilotApiBaseUrlFromProxyEndpoint("https://copilot-proxy.myorg.ghe.com")).toBe(
+      "https://copilot-api.myorg.ghe.com",
+    );
+    expect(
+      deriveCopilotApiBaseUrlFromProxyEndpoint("https://copilot-proxy.githubusercontent.com"),
+    ).toBe("https://copilot-api.githubusercontent.com");
+    expect(deriveCopilotApiBaseUrlFromProxyEndpoint(null)).toBeNull();
+    expect(deriveCopilotApiBaseUrlFromProxyEndpoint("")).toBeNull();
+  });
 });
