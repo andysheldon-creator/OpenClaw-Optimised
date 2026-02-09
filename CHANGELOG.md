@@ -7,6 +7,7 @@ Docs: https://docs.openclaw.ai
 ### Added
 
 - Gateway: add `agents.create`, `agents.update`, `agents.delete` RPC methods for web UI agent management. (#11045) Thanks @advaitpaliwal.
+- Guardian: add audit enforcement, validation script, and docs for Guardian path rules. (#10357) Thanks @DD-Ching.
 
 ### Fixes
 

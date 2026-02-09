@@ -4,8 +4,8 @@ import { Type } from "@sinclair/typebox";
 import crypto from "node:crypto";
 import path from "node:path";
 import type { GuardianConfig } from "../config/types.guardian.js";
-import { createGuardian, GuardianDeniedError, recordAuditEvent } from "../guardian.js";
 import type { BashSandboxConfig } from "./bash-tools.shared.js";
+import { createGuardian, GuardianDeniedError, recordAuditEvent } from "../guardian.js";
 import {
   type ExecAsk,
   type ExecHost,

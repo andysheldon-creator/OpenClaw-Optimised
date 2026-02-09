@@ -463,8 +463,7 @@ const FIELD_HELP: Record<string, string> = {
   "diagnostics.cacheTrace.includeSystem": "Include system prompt in trace output (default: true).",
   "guardian.enabled":
     "Enable Guardian path enforcement for read/write/delete/exec actions (default: false).",
-  "guardian.keyFileName":
-    "Key file required for needs_key rules (default: .openclaw.key).",
+  "guardian.keyFileName": "Key file required for needs_key rules (default: .openclaw.key).",
   "guardian.rules": "Ordered path rules; first match wins.",
   "guardian.rules.*.mode": 'Rule mode ("public", "needs_key", or "deny").',
   "guardian.rules.*.path": "Absolute path or prefix to match for the rule.",

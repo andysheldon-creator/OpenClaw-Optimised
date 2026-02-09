@@ -319,7 +319,14 @@ export function createOpenClawCodingTools(options?: {
         });
   const guardian = createGuardian(options?.config?.guardian);
   const guardianRoot = sandboxRoot ?? workspaceRoot;
-  const guardableToolNames = new Set(["read", "write", "edit", "web_fetch", "web_search", "browser"]);
+  const guardableToolNames = new Set([
+    "read",
+    "write",
+    "edit",
+    "web_fetch",
+    "web_search",
+    "browser",
+  ]);
   const resolveToolPath = (rawPath: string): string => {
     const trimmed = rawPath.trim();
     if (!trimmed) {
@@ -393,11 +400,12 @@ export function createOpenClawCodingTools(options?: {
           target = url || `action:${action}`;
         }
 
-        const needsGuard = shouldGuard && guardian.enabled && targetPath;
+        const guardTargetPath = targetPath ?? "";
+        const needsGuard = shouldGuard && guardian.enabled && guardTargetPath.length > 0;
         const check = needsGuard
           ? await guardian.checkAction({
               actionType,
-              targetPath,
+              targetPath: guardTargetPath,
               caller: `tool:${toolName}`,
               targetIsDir,
             })
@@ -412,8 +420,9 @@ export function createOpenClawCodingTools(options?: {
         });
 
         if (needsGuard && !check.allowed) {
-          emitGuardianDenied(actionType, targetPath ?? target);
-          throw new GuardianDeniedError(actionType, targetPath ?? target);
+          const deniedTarget = guardTargetPath || target;
+          emitGuardianDenied(actionType, deniedTarget);
+          throw new GuardianDeniedError(actionType, deniedTarget);
         }
 
         return tool.execute(toolCallId, normalized ?? params, signal, onUpdate);

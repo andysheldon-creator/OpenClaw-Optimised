@@ -33,8 +33,7 @@ export class GuardianDeniedError extends Error {
   target: string;
 
   constructor(actionType: string, target: string, message?: string) {
-    const baseMessage =
-      message ?? `Guardian denied action_type=${actionType} target=${target}`;
+    const baseMessage = message ?? `Guardian denied action_type=${actionType} target=${target}`;
     super(baseMessage);
     this.name = "GuardianDeniedError";
     this.actionType = actionType;

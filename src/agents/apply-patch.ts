@@ -4,9 +4,9 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import type { GuardianConfig } from "../config/types.guardian.js";
+import { createGuardian, GuardianDeniedError, recordAuditEvent } from "../guardian.js";
 import { applyUpdateHunk } from "./apply-patch-update.js";
 import { assertSandboxPath } from "./sandbox-paths.js";
-import { createGuardian, GuardianDeniedError, recordAuditEvent } from "../guardian.js";
 
 const BEGIN_PATCH_MARKER = "*** Begin Patch";
 const END_PATCH_MARKER = "*** End Patch";

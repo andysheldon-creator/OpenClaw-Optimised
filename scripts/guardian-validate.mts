@@ -1,15 +1,15 @@
 #!/usr/bin/env node
-/* eslint-disable no-console */
-import { performance } from "node:perf_hooks";
-import fs from "node:fs/promises";
 import fsSync from "node:fs";
+import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+/* eslint-disable no-console */
+import { performance } from "node:perf_hooks";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import { applyPatch } from "../src/agents/apply-patch.ts";
 import { createConfigIO } from "../src/config/io.ts";
 import { callGateway } from "../src/gateway/call.ts";
-import { applyPatch } from "../src/agents/apply-patch.ts";
 
 type Target = {
   name: "stable" | "guardian";
@@ -43,8 +43,7 @@ const MAX_OVERHEAD_MS = Math.max(
   Math.floor(parseNumber(process.env.GUARDIAN_MAX_OVERHEAD_MS, 200)),
 );
 const MAX_OVERHEAD_PCT = Math.max(0, parseNumber(process.env.GUARDIAN_MAX_OVERHEAD_PCT, 0.3));
-const AUDIT_BASE_DIR =
-  process.env.GUARDIAN_VALIDATE_AUDIT_DIR?.trim() || os.tmpdir();
+const AUDIT_BASE_DIR = process.env.GUARDIAN_VALIDATE_AUDIT_DIR?.trim() || os.tmpdir();
 
 const targets: Target[] = [
   {
@@ -135,7 +134,7 @@ const loadTargetConfig = (target: Target) => {
   });
   const config = io.loadConfig();
   const gateway = {
-    ...(config.gateway ?? {}),
+    ...config.gateway,
     mode: "local",
     port: target.port,
   };
@@ -173,11 +172,9 @@ const AUDIT_RETRY_DELAY_MS = 150;
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 const findAuditEntry = async (auditLogPath: string, targetPath: string) => {
-  const lines = (await fs.readFile(auditLogPath, "utf8"))
-    .split(/\r?\n/)
-    .filter(Boolean);
+  const lines = (await fs.readFile(auditLogPath, "utf8")).split(/\r?\n/).filter(Boolean);
   return lines
-    .reverse()
+    .toReversed()
     .map((line) => {
       try {
         return JSON.parse(line) as { action_type?: string; target?: string };
@@ -352,7 +349,9 @@ const run = async () => {
   const byTargetAction = (targetName: string, action: string) =>
     results.find((r) => r.target === targetName && r.action === action);
 
-  const header = ["Action", "Stable(ms)", "Guardian(ms)", "Delta(ms)", "Delta(%)", "OK"].join(" | ");
+  const header = ["Action", "Stable(ms)", "Guardian(ms)", "Delta(ms)", "Delta(%)", "OK"].join(
+    " | ",
+  );
   const divider = ["---", "---", "---", "---", "---", "---"].join(" | ");
   console.log(header);
   console.log(divider);
