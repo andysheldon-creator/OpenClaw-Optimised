@@ -641,6 +641,10 @@ export class AsteriskAriProvider implements VoiceCallProvider {
 
     const enqueue = (pcm: Buffer) => {
       if (pendingSegments >= maxPendingSegments) {
+        console.warn("[ari] STT backpressure: dropping segment", {
+          pendingSegments,
+          maxPendingSegments,
+        });
         return;
       }
       pendingSegments += 1;
@@ -695,6 +699,10 @@ export class AsteriskAriProvider implements VoiceCallProvider {
           return;
         }
         if (bufferBytes >= maxBufferBytes) {
+          console.warn("[ari] STT buffer limit reached, flushing", {
+            bufferBytes,
+            maxBufferBytes,
+          });
           flush();
           return;
         }

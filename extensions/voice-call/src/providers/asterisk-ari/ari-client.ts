@@ -137,13 +137,13 @@ export class AriClient {
     try {
       await this.hangupChannel(channelId);
       return;
-    } catch {
-      // fall through
+    } catch (err) {
+      console.warn("[ari] hangup failed, falling back to delete", { channelId, err });
     }
     try {
       await this.deleteChannel(channelId);
-    } catch {
-      // ignore
+    } catch (err) {
+      console.warn("[ari] delete channel failed", { channelId, err });
     }
   }
 

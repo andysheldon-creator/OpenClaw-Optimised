@@ -45,11 +45,20 @@ export class AriMedia {
 
       const bridge = await this.client.createBridge("mixing");
       bridgeId = bridge.id;
-      console.log("[ari] media graph", { rtpPort, sttRtpPort, bridgeId });
+      const externalHost = `${this.cfg.rtpHost}:${rtpPort}`;
+      const sttExternalHost = `${this.cfg.rtpHost}:${sttRtpPort}`;
+      console.log("[ari] media graph", {
+        rtpHost: this.cfg.rtpHost,
+        externalHost,
+        sttExternalHost,
+        rtpPort,
+        sttRtpPort,
+        bridgeId,
+      });
 
       const ext = await this.client.createExternalMedia({
         app: this.cfg.app,
-        externalHost: `${this.cfg.rtpHost}:${rtpPort}`,
+        externalHost,
         format: this.cfg.codec,
         direction: "both",
         encapsulation: "rtp",
@@ -59,7 +68,7 @@ export class AriMedia {
 
       const sttExt = await this.client.createExternalMedia({
         app: this.cfg.app,
-        externalHost: `${this.cfg.rtpHost}:${sttRtpPort}`,
+        externalHost: sttExternalHost,
         format: this.cfg.codec,
         direction: "out",
         encapsulation: "rtp",
