@@ -643,7 +643,11 @@ describe("gateway server auth/connect", () => {
       const ws = new WebSocket(`ws://127.0.0.1:${port}`, {
         headers: { origin: "https://evil.com" },
       });
-      await new Promise<void>((resolve) => ws.once("open", resolve));
+      await new Promise<void>((resolve, reject) => {
+        ws.once("open", resolve);
+        ws.once("error", (err) => reject(new Error(`WebSocket error: ${err.message}`)));
+        ws.once("close", () => reject(new Error("WebSocket closed before open")));
+      });
       const res = await connectReq(ws, {
         client: {
           id: GATEWAY_CLIENT_NAMES.CLI,
@@ -664,7 +668,11 @@ describe("gateway server auth/connect", () => {
       const ws = new WebSocket(`ws://127.0.0.1:${port}`, {
         headers: { origin: "http://localhost:5173" },
       });
-      await new Promise<void>((resolve) => ws.once("open", resolve));
+      await new Promise<void>((resolve, reject) => {
+        ws.once("open", resolve);
+        ws.once("error", (err) => reject(new Error(`WebSocket error: ${err.message}`)));
+        ws.once("close", () => reject(new Error("WebSocket closed before open")));
+      });
       const res = await connectReq(ws);
       expect(res.ok).toBe(true);
       ws.close();
