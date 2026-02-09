@@ -1,6 +1,8 @@
 export type CompactionSafeguardRuntimeValue = {
   maxHistoryShare?: number;
   contextWindowTokens?: number;
+  /** Override model for compaction summarization ("provider/modelId"). */
+  model?: string;
 };
 
 // Session-scoped runtime registry keyed by object identity.

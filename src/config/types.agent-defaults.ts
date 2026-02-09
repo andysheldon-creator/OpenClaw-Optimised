@@ -248,6 +248,8 @@ export type AgentCompactionMode = "default" | "safeguard";
 export type AgentCompactionConfig = {
   /** Compaction summarization mode. */
   mode?: AgentCompactionMode;
+  /** Override model for safeguard compaction summarization (e.g. "anthropic/claude-sonnet-4"). */
+  model?: string;
   /** Minimum reserve tokens enforced for Pi compaction (0 disables the floor). */
   reserveTokensFloor?: number;
   /** Max share of context window for history during safeguard pruning (0.1–0.9, default 0.5). */

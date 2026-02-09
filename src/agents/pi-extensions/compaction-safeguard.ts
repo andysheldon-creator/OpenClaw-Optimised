@@ -170,7 +170,22 @@ export default function compactionSafeguardExtension(api: ExtensionAPI): void {
     const toolFailureSection = formatToolFailuresSection(toolFailures);
     const fallbackSummary = `${FALLBACK_SUMMARY}${toolFailureSection}${fileOpsSummary}`;
 
-    const model = ctx.model;
+    // Resolve model: prefer compaction-specific override, fall back to session model.
+    const runtime = getCompactionSafeguardRuntime(ctx.sessionManager);
+    let model = ctx.model;
+    if (runtime?.model) {
+      const parts = runtime.model.split("/");
+      if (parts.length === 2 && parts[0] && parts[1]) {
+        const override = ctx.modelRegistry.find(parts[0], parts[1]);
+        if (override) {
+          model = override;
+        } else {
+          console.warn(
+            `Compaction safeguard: configured model "${runtime.model}" not found in registry; falling back to session model.`,
+          );
+        }
+      }
+    }
     if (!model) {
       return {
         compaction: {
@@ -195,7 +210,6 @@ export default function compactionSafeguardExtension(api: ExtensionAPI): void {
     }
 
     try {
-      const runtime = getCompactionSafeguardRuntime(ctx.sessionManager);
       const modelContextWindow = resolveContextWindowTokens(model);
       const contextWindowTokens = runtime?.contextWindowTokens ?? modelContextWindow;
       const turnPrefixMessages = preparation.turnPrefixMessages ?? [];
