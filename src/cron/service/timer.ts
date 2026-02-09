@@ -8,7 +8,7 @@ import {
   recomputeNextRuns,
   resolveJobPayloadTextForMain,
 } from "./jobs.js";
-import { locked } from "./locked.js";
+import { LOCK_WARN_MS, lockAcquiredAtMs, locked } from "./locked.js";
 import { ensureLoaded, persist } from "./store.js";
 
 const MAX_TIMER_DELAY_MS = 60_000;
@@ -161,6 +161,16 @@ export async function onTimer(state: CronServiceState) {
     // timer death (no re-arm at all). The running onTimer's finally block
     // will re-arm with the correct delay when it finishes.
     if (state.deps.cronEnabled) {
+      // Detect potentially stuck locked operations.
+      if (typeof lockAcquiredAtMs === "number") {
+        const heldMs = state.deps.nowMs() - lockAcquiredAtMs;
+        if (heldMs > LOCK_WARN_MS) {
+          state.deps.log.warn(
+            { heldMs, lockAcquiredAtMs },
+            "cron: locked operation held longer than expected",
+          );
+        }
+      }
       state.deps.log.debug({}, "cron: onTimer skipped - already running, re-arming with safe delay");
       if (state.timer) {
         clearTimeout(state.timer);
