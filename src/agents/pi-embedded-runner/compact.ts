@@ -483,8 +483,6 @@ export async function compactEmbeddedPiSessionDirect(
               {
                 messageCount: messageCountBefore,
                 tokenCount: tokenCountBefore,
-                messageCountOriginal,
-                tokenCountOriginal,
               },
               {
                 agentId: sessionAgentId,
