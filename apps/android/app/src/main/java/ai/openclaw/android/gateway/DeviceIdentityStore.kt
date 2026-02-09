@@ -35,7 +35,7 @@ class DeviceIdentityStore(context: Context) {
       // DIGEST_NONE — making SHA256withECDSA signing impossible.
       if (existing.privateKeyPkcs8Base64 == "__ANDROID_KEYSTORE__" && existing.keyAlgorithm != "ec_p256") {
         Log.i(TAG, "Migrating old KeyStore key (algo=${existing.keyAlgorithm}), regenerating as EC P-256")
-        deleteKeystoreEntries()
+        deleteOldKeystoreEntry()
         val fresh = generate()
         save(fresh)
         return fresh
@@ -141,20 +141,48 @@ class DeviceIdentityStore(context: Context) {
   private val keystoreAlias = "openclaw_device_p256"
   private val oldKeystoreAlias = "openclaw_device_ed25519"
 
-  private fun deleteKeystoreEntries() {
+  /** Delete only the legacy Ed25519 alias. Called during migration. */
+  private fun deleteOldKeystoreEntry() {
     try {
       val ks = java.security.KeyStore.getInstance("AndroidKeyStore")
       ks.load(null)
-      for (alias in listOf(oldKeystoreAlias, keystoreAlias)) {
-        if (ks.containsAlias(alias)) {
-          ks.deleteEntry(alias)
-        }
+      if (ks.containsAlias(oldKeystoreAlias)) {
+        ks.deleteEntry(oldKeystoreAlias)
       }
     } catch (_: Throwable) {}
   }
 
+  /**
+   * Return a DeviceIdentity backed by the Android KeyStore.
+   * If a valid P-256 key already exists under [keystoreAlias], reuse it
+   * (e.g., identity file was deleted/corrupted but the hardware key survived).
+   * Only generates a new key when no usable entry is found.
+   */
   private fun generateUsingKeyStore(): DeviceIdentity {
-    deleteKeystoreEntries()
+    // Try to reuse an existing P-256 KeyStore entry
+    try {
+      val ks = java.security.KeyStore.getInstance("AndroidKeyStore")
+      ks.load(null)
+      if (ks.containsAlias(keystoreAlias)) {
+        val entry = ks.getEntry(keystoreAlias, null) as? java.security.KeyStore.PrivateKeyEntry
+        if (entry != null) {
+          val spki = entry.certificate.publicKey.encoded
+          val deviceId = sha256Hex(spki)
+          Log.i(TAG, "Reusing existing KeyStore entry, deviceId=${deviceId.take(8)}…")
+          return DeviceIdentity(
+            deviceId = deviceId,
+            publicKeyRawBase64 = Base64.encodeToString(spki, Base64.NO_WRAP),
+            privateKeyPkcs8Base64 = "__ANDROID_KEYSTORE__",
+            createdAtMs = System.currentTimeMillis(),
+            keyAlgorithm = "ec_p256",
+          )
+        }
+      }
+    } catch (_: Throwable) {
+      // Fall through to generate a new key
+    }
+
+    // No usable entry — generate a fresh P-256 key
     val spec = android.security.keystore.KeyGenParameterSpec.Builder(
       keystoreAlias,
       android.security.keystore.KeyProperties.PURPOSE_SIGN or android.security.keystore.KeyProperties.PURPOSE_VERIFY
