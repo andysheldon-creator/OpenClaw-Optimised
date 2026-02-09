@@ -10,10 +10,12 @@ export type PluginHttpRouteHandler = (
 ) => Promise<void> | void;
 
 function safeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) {
     return false;
   }
-  return timingSafeEqual(Buffer.from(a), Buffer.from(b));
+  return timingSafeEqual(bufA, bufB);
 }
 
 function createAuthGuardedHandler(handler: PluginHttpRouteHandler): PluginHttpRouteHandler {
