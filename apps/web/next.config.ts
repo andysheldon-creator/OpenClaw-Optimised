@@ -4,15 +4,7 @@ const nextConfig: NextConfig = {
   // Allow long-running API routes for agent streaming
   serverExternalPackages: [],
 
-  // Turbopack experimental configuration
-  experimental: {
-    turbo: {
-      resolveAlias: {},
-      resolveExtensions: [".ts", ".tsx", ".js", ".jsx", ".json"],
-    },
-  },
-
-  // Ensure Node.js built-ins work correctly (for webpack fallback)
+  // Ensure Node.js built-ins work correctly
   webpack: (config, { isServer }) => {
     if (isServer) {
       // Don't attempt to bundle Node.js built-ins

@@ -4,17 +4,12 @@ import { useEffect, useState } from "react";
 
 // --- Types ---
 
-type SessionRow = {
-  key: string;
-  sessionId: string;
+type WebSession = {
+  id: string;
+  title: string;
+  createdAt: number;
   updatedAt: number;
-  label?: string;
-  displayName?: string;
-  channel?: string;
-  model?: string;
-  modelProvider?: string;
-  thinkingLevel?: string;
-  totalTokens?: number;
+  messageCount: number;
 };
 
 type SkillEntry = {
@@ -29,7 +24,14 @@ type MemoryFile = {
   sizeBytes: number;
 };
 
-type SidebarSection = "sessions" | "skills" | "memories";
+type SidebarSection = "chats" | "skills" | "memories";
+
+type SidebarProps = {
+  onSessionSelect?: (sessionId: string) => void;
+  onNewSession?: () => void;
+  activeSessionId?: string;
+  refreshKey?: number;
+};
 
 // --- Helpers ---
 
@@ -45,54 +47,71 @@ function timeAgo(ts: number): string {
   return `${days}d ago`;
 }
 
-function formatTokens(n?: number): string {
-  if (n == null) return "";
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
-  return String(n);
-}
-
 // --- Section Components ---
 
-function SessionsSection({ sessions }: { sessions: SessionRow[] }) {
-  if (sessions.length === 0) {
-    return <p className="text-sm text-[var(--color-text-muted)] px-3">No sessions found.</p>;
-  }
+function ChatsSection({
+  sessions,
+  onSessionSelect,
+  activeSessionId,
+}: {
+  sessions: WebSession[];
+  onSessionSelect?: (sessionId: string) => void;
+  activeSessionId?: string;
+}) {
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredSessions = sessions.filter((s) =>
+    s.title.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
 
   return (
-    <div className="space-y-1">
-      {sessions.map((s) => (
-        <div
-          key={s.key}
-          className="px-3 py-2 rounded-lg hover:bg-[var(--color-surface-hover)] cursor-default transition-colors"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium truncate flex-1 mr-2">
-              {s.label ?? s.displayName ?? s.key}
-            </span>
-            {s.updatedAt && (
-              <span className="text-xs text-[var(--color-text-muted)] flex-shrink-0">
-                {timeAgo(s.updatedAt)}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-2 mt-0.5">
-            {s.channel && (
-              <span className="text-xs text-[var(--color-text-muted)]">{s.channel}</span>
-            )}
-            {s.model && (
-              <span className="text-xs text-[var(--color-text-muted)] truncate">
-                {s.model}
-              </span>
-            )}
-            {s.totalTokens != null && s.totalTokens > 0 && (
-              <span className="text-xs text-[var(--color-text-muted)]">
-                {formatTokens(s.totalTokens)} tok
-              </span>
-            )}
-          </div>
+    <div className="space-y-2">
+      {sessions.length > 3 && (
+        <div className="px-3">
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search chats..."
+            className="w-full px-3 py-1.5 text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-transparent"
+          />
         </div>
-      ))}
+      )}
+
+      {filteredSessions.length === 0 ? (
+        <p className="text-sm text-[var(--color-text-muted)] px-3">
+          {searchTerm ? "No matching chats." : "No chats yet. Send a message to start."}
+        </p>
+      ) : (
+        <div className="space-y-0.5">
+          {filteredSessions.map((s) => {
+            const isActive = s.id === activeSessionId;
+            return (
+              <div
+                key={s.id}
+                onClick={() => onSessionSelect?.(s.id)}
+                className={`mx-2 px-3 py-2 rounded-lg hover:bg-[var(--color-surface-hover)] cursor-pointer transition-colors ${
+                  isActive
+                    ? "bg-[var(--color-surface-hover)] border-l-2 border-[var(--color-accent)]"
+                    : ""
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm truncate flex-1">{s.title}</span>
+                  <span className="text-xs text-[var(--color-text-muted)] flex-shrink-0">
+                    {timeAgo(s.updatedAt)}
+                  </span>
+                </div>
+                {s.messageCount > 0 && (
+                  <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+                    {s.messageCount} message{s.messageCount !== 1 ? "s" : ""}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -221,11 +240,14 @@ function SectionHeader({
 
 // --- Main Sidebar ---
 
-export function Sidebar() {
-  const [openSections, setOpenSections] = useState<Set<SidebarSection>>(
-    new Set(["sessions"]),
-  );
-  const [sessions, setSessions] = useState<SessionRow[]>([]);
+export function Sidebar({
+  onSessionSelect,
+  onNewSession,
+  activeSessionId,
+  refreshKey,
+}: SidebarProps) {
+  const [openSections, setOpenSections] = useState<Set<SidebarSection>>(new Set(["chats"]));
+  const [webSessions, setWebSessions] = useState<WebSession[]>([]);
   const [skills, setSkills] = useState<SkillEntry[]>([]);
   const [mainMemory, setMainMemory] = useState<string | null>(null);
   const [dailyLogs, setDailyLogs] = useState<MemoryFile[]>([]);
@@ -240,16 +262,17 @@ export function Sidebar() {
     });
   };
 
+  // Fetch sidebar data (re-runs when refreshKey changes)
   useEffect(() => {
     async function load() {
       setLoading(true);
       try {
-        const [sessionsRes, skillsRes, memoriesRes] = await Promise.all([
-          fetch("/api/sessions").then((r) => r.json()),
+        const [webSessionsRes, skillsRes, memoriesRes] = await Promise.all([
+          fetch("/api/web-sessions").then((r) => r.json()),
           fetch("/api/skills").then((r) => r.json()),
           fetch("/api/memories").then((r) => r.json()),
         ]);
-        setSessions(sessionsRes.sessions ?? []);
+        setWebSessions(webSessionsRes.sessions ?? []);
         setSkills(skillsRes.skills ?? []);
         setMainMemory(memoriesRes.mainMemory ?? null);
         setDailyLogs(memoriesRes.dailyLogs ?? []);
@@ -260,16 +283,35 @@ export function Sidebar() {
       }
     }
     load();
-  }, []);
+  }, [refreshKey]);
 
   return (
     <aside className="w-72 h-screen flex flex-col bg-[var(--color-surface)] border-r border-[var(--color-border)] overflow-hidden">
-      {/* Header */}
-      <div className="px-4 py-4 border-b border-[var(--color-border)]">
+      {/* Header with New Chat button */}
+      <div className="px-4 py-4 border-b border-[var(--color-border)] flex items-center justify-between">
         <h1 className="text-base font-bold flex items-center gap-2">
           <span className="text-xl">🦞</span>
           <span>OpenClaw</span>
         </h1>
+        <button
+          onClick={onNewSession}
+          title="New Chat"
+          className="p-1.5 rounded-md hover:bg-[var(--color-surface-hover)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+        >
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 4v16m8-8H4"
+            />
+          </svg>
+        </button>
       </div>
 
       {/* Content */}
@@ -280,15 +322,21 @@ export function Sidebar() {
           </div>
         ) : (
           <>
-            {/* Sessions */}
+            {/* Chats (web sessions) */}
             <div>
               <SectionHeader
-                title="Sessions"
-                count={sessions.length}
-                isOpen={openSections.has("sessions")}
-                onToggle={() => toggleSection("sessions")}
+                title="Chats"
+                count={webSessions.length}
+                isOpen={openSections.has("chats")}
+                onToggle={() => toggleSection("chats")}
               />
-              {openSections.has("sessions") && <SessionsSection sessions={sessions} />}
+              {openSections.has("chats") && (
+                <ChatsSection
+                  sessions={webSessions}
+                  onSessionSelect={onSessionSelect}
+                  activeSessionId={activeSessionId}
+                />
+              )}
             </div>
 
             {/* Skills */}
