@@ -5,6 +5,7 @@ import { createInboundDebouncer } from "../../auto-reply/inbound-debounce.js";
 import { formatLocationText } from "../../channels/location.js";
 import { logVerbose, shouldLogVerbose } from "../../globals.js";
 import { recordChannelActivity } from "../../infra/channel-activity.js";
+import { enqueueSystemEvent } from "../../infra/system-events.js";
 import { getChildLogger } from "../../logging/logger.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 import { saveMediaBuffer } from "../../media/store.js";
@@ -341,6 +342,59 @@ export async function monitorWebInbox(options: {
   };
   sock.ev.on("messages.upsert", handleMessagesUpsert);
 
+  // Handle reaction events (when someone reacts to a message)
+  const handleMessagesReaction = async (
+    reactions: Array<{ key: proto.IMessageKey; reaction: proto.IReaction }>,
+  ) => {
+    for (const { key, reaction } of reactions) {
+      try {
+        recordChannelActivity({
+          channel: "whatsapp",
+          accountId: options.accountId,
+          direction: "inbound",
+        });
+
+        const emoji = reaction.text ?? "";
+        const removed = !emoji; // If emoji is empty, reaction was removed
+        const action = removed ? "removed" : "added";
+
+        const messageId = key.id ?? "unknown";
+        const chatJid = key.remoteJid ?? "unknown";
+        // The person who reacted - from reaction.key.participant or key.participant
+        const reactorJid =
+          (reaction as { key?: { participant?: string } }).key?.participant ??
+          key.participant ??
+          "unknown";
+
+        // Resolve reactor to E164 format
+        const reactorE164 = await resolveInboundJid(reactorJid);
+        const reactorLabel = reactorE164 ?? reactorJid;
+
+        // Format the notification text
+        const emojiDisplay = removed ? "(removed)" : emoji;
+        const text = `WhatsApp reaction ${action}: ${emojiDisplay} by ${reactorLabel} on msg ${messageId}`;
+
+        // Emit system event so the agent can see the reaction
+        enqueueSystemEvent(text, {
+          sessionKey: `agent:main:main`, // TODO: resolve via routing
+          contextKey: `whatsapp:reaction:${action}:${messageId}:${reactorJid}:${emoji}`,
+        });
+
+        inboundLogger.info(
+          { chatJid, messageId, emoji: emojiDisplay, action, reactor: reactorLabel },
+          "whatsapp reaction event",
+        );
+
+        if (shouldLogVerbose()) {
+          logVerbose(`WhatsApp reaction ${action}: ${emojiDisplay} by ${reactorLabel}`);
+        }
+      } catch (err) {
+        inboundLogger.error({ error: String(err) }, "failed handling reaction event");
+      }
+    }
+  };
+  sock.ev.on("messages.reaction", handleMessagesReaction);
+
   const handleConnectionUpdate = (
     update: Partial<import("@whiskeysockets/baileys").ConnectionState>,
   ) => {
@@ -378,14 +432,19 @@ export async function monitorWebInbox(options: {
         const messagesUpsertHandler = handleMessagesUpsert as unknown as (
           ...args: unknown[]
         ) => void;
+        const messagesReactionHandler = handleMessagesReaction as unknown as (
+          ...args: unknown[]
+        ) => void;
         const connectionUpdateHandler = handleConnectionUpdate as unknown as (
           ...args: unknown[]
         ) => void;
         if (typeof ev.off === "function") {
           ev.off("messages.upsert", messagesUpsertHandler);
+          ev.off("messages.reaction", messagesReactionHandler);
           ev.off("connection.update", connectionUpdateHandler);
         } else if (typeof ev.removeListener === "function") {
           ev.removeListener("messages.upsert", messagesUpsertHandler);
+          ev.removeListener("messages.reaction", messagesReactionHandler);
           ev.removeListener("connection.update", connectionUpdateHandler);
         }
         sock.ws?.close();
