@@ -15,6 +15,7 @@ import { buildHistoryContextFromEntries, type HistoryEntry } from "../auto-reply
 import { createDefaultDeps } from "../cli/deps.js";
 import { agentCommand } from "../commands/agent.js";
 import { emitAgentEvent, onAgentEvent } from "../infra/agent-events.js";
+import { logWarn } from "../logger.js";
 import {
   DEFAULT_INPUT_FILE_MAX_BYTES,
   DEFAULT_INPUT_FILE_MAX_CHARS,
@@ -450,7 +451,8 @@ export async function handleOpenResponsesHttpRequest(
         }
       }
     }
-  } catch {
+  } catch (err) {
+    logWarn(`openresponses: request parsing failed: ${String(err)}`);
     sendJson(res, 400, {
       error: { message: "invalid request", type: "invalid_request_error" },
     });
@@ -467,7 +469,8 @@ export async function handleOpenResponsesHttpRequest(
     });
     resolvedClientTools = toolChoiceResult.tools;
     toolChoicePrompt = toolChoiceResult.extraSystemPrompt;
-  } catch {
+  } catch (err) {
+    logWarn(`openresponses: tool configuration failed: ${String(err)}`);
     sendJson(res, 400, {
       error: { message: "invalid tool configuration", type: "invalid_request_error" },
     });
@@ -582,7 +585,8 @@ export async function handleOpenResponsesHttpRequest(
       });
 
       sendJson(res, 200, response);
-    } catch {
+    } catch (err) {
+      logWarn(`openresponses: non-stream response failed: ${String(err)}`);
       const response = createResponseResource({
         id: responseId,
         model,
@@ -877,7 +881,8 @@ export async function handleOpenResponsesHttpRequest(
           delta: content,
         });
       }
-    } catch {
+    } catch (err) {
+      logWarn(`openresponses: streaming response failed: ${String(err)}`);
       if (closed) {
         return;
       }
