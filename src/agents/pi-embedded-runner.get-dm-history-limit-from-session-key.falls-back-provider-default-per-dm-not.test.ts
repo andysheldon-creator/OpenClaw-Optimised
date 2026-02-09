@@ -132,7 +132,7 @@ describe("getDmHistoryLimitFromSessionKey", () => {
     } as OpenClawConfig;
     expect(getDmHistoryLimitFromSessionKey("msteams:dm:user@example.com", config)).toBe(7);
   });
-  it("returns undefined when per-DM historyLimit is not set", () => {
+  it("returns global default (20) when per-DM historyLimit is not set", () => {
     const config = {
       channels: {
         telegram: {
@@ -140,7 +140,7 @@ describe("getDmHistoryLimitFromSessionKey", () => {
         },
       },
     } as OpenClawConfig;
-    expect(getDmHistoryLimitFromSessionKey("telegram:dm:123", config)).toBeUndefined();
+    expect(getDmHistoryLimitFromSessionKey("telegram:dm:123", config)).toBe(20);
   });
   it("returns 0 when per-DM historyLimit is explicitly 0 (unlimited)", () => {
     const config = {

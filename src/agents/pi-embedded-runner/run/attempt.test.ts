@@ -94,6 +94,8 @@ describe("compaction wait abort (regression for stuck session)", () => {
         didSendViaMessagingTool: () => false,
         getLastToolError: () => undefined,
         isCompacting: () => true,
+        getUsageTotals: () => ({ inputTokens: 0, outputTokens: 0, totalTokens: 0 }),
+        getCompactionCount: () => 0,
       }),
     }));
 
