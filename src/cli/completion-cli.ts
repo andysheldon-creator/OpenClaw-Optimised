@@ -281,8 +281,8 @@ export function registerCompletionCli(program: Command) {
       // to stderr when routeLogsToStderr() is active. This keeps the script on stdout
       // for shell sourcing (e.g. `source <(openclaw completion --shell zsh)`).
       // Handle EPIPE/EIO gracefully via the write callback when piped to a consumer
-      // that exits early (e.g. `head`). Re-throw other errors so real I/O failures
-      // (e.g. ENOSPC) are not swallowed.
+      // that exits early (e.g. `head`). Report other write errors (e.g. ENOSPC) to
+      // stderr and exit with failure.
       process.stdout.write(`${script}\n`, (err) => {
         if (!err) {
           return;
@@ -291,7 +291,8 @@ export function registerCompletionCli(program: Command) {
         if (code === "EPIPE" || code === "EIO") {
           process.exit(0);
         }
-        throw err;
+        process.stderr.write(`completion: stdout write failed: ${err.message}\n`);
+        process.exit(1);
       });
     });
 }
