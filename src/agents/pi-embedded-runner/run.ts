@@ -695,20 +695,6 @@ export async function runEmbeddedPiAgent(
               agentDir: params.agentDir,
             });
           }
-          // Generate client tool call ID with provider-aware sanitization
-          let clientToolCallId: string | undefined;
-          if (attempt.clientToolCall) {
-            const rawId = `call_${Date.now()}`;
-            // Determine sanitization mode based on provider requirements
-            const transcriptPolicy = resolveTranscriptPolicy({
-              modelApi: model.api,
-              provider: model.provider,
-              modelId: model.id,
-            });
-            const sanitizationMode: ToolCallIdMode = transcriptPolicy.toolCallIdMode ?? "strict";
-            clientToolCallId = sanitizeToolCallId(rawId, sanitizationMode);
-          }
-
           return {
             payloads: payloads.length ? payloads : undefined,
             meta: {
@@ -721,7 +707,14 @@ export async function runEmbeddedPiAgent(
               pendingToolCalls: attempt.clientToolCall
                 ? [
                     {
-                      id: clientToolCallId!,
+                      id: sanitizeToolCallId(
+                        `call_${Date.now()}`,
+                        resolveTranscriptPolicy({
+                          modelApi: model.api,
+                          provider: model.provider,
+                          modelId: model.id,
+                        }).toolCallIdMode ?? "strict",
+                      ),
                       name: attempt.clientToolCall.name,
                       arguments: JSON.stringify(attempt.clientToolCall.params),
                     },
