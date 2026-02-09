@@ -7,6 +7,14 @@ pnpm-lock.yaml
 bun.lock
 bun.lockb
 coverage
+coverage/
+.nyc_output/
+*.lcov
+
+# Test artifacts
+test-results/
+.vitest/
+
 __pycache__/
 *.pyc
 .tsbuildinfo
