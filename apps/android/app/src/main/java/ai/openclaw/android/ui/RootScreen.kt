@@ -77,6 +77,7 @@ fun RootScreen(viewModel: MainViewModel) {
   val context = LocalContext.current
   val serverName by viewModel.serverName.collectAsState()
   val statusText by viewModel.statusText.collectAsState()
+  val awaitingPairing by viewModel.awaitingPairing.collectAsState()
   val cameraHud by viewModel.cameraHud.collectAsState()
   val cameraFlashToken by viewModel.cameraFlashToken.collectAsState()
   val screenRecordActive by viewModel.screenRecordActive.collectAsState()
@@ -93,7 +94,7 @@ fun RootScreen(viewModel: MainViewModel) {
       if (granted) viewModel.setTalkEnabled(true)
     }
   val activity =
-    remember(cameraHud, screenRecordActive, isForeground, statusText, voiceWakeStatusText) {
+    remember(cameraHud, screenRecordActive, isForeground, statusText, voiceWakeStatusText, awaitingPairing) {
       // Status pill owns transient activity state so it doesn't overlap the connection indicator.
       if (!isForeground) {
         return@remember StatusActivity(
@@ -111,7 +112,7 @@ fun RootScreen(viewModel: MainViewModel) {
           contentDescription = "Repairing",
         )
       }
-      if (lowerStatus.contains("pairing") || lowerStatus.contains("approval")) {
+      if (awaitingPairing) {
         return@remember StatusActivity(
           title = "Approval pending",
           icon = Icons.Default.RecordVoiceOver,
@@ -180,10 +181,10 @@ fun RootScreen(viewModel: MainViewModel) {
     }
 
   val gatewayState =
-    remember(serverName, statusText) {
+    remember(serverName, statusText, awaitingPairing) {
       when {
         serverName != null -> GatewayState.Connected
-        statusText.contains("pairing", ignoreCase = true) -> GatewayState.PairingRequired
+        awaitingPairing -> GatewayState.PairingRequired
         statusText.contains("connecting", ignoreCase = true) ||
           statusText.contains("reconnecting", ignoreCase = true) -> GatewayState.Connecting
         statusText.contains("error", ignoreCase = true) -> GatewayState.Error

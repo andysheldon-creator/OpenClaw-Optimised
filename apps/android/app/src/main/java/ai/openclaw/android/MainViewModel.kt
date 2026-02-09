@@ -22,6 +22,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
   val discoveryStatusText: StateFlow<String> = runtime.discoveryStatusText
 
   val isConnected: StateFlow<Boolean> = runtime.isConnected
+  val awaitingPairing: StateFlow<Boolean> = runtime.awaitingPairing
   val statusText: StateFlow<String> = runtime.statusText
   val serverName: StateFlow<String?> = runtime.serverName
   val remoteAddress: StateFlow<String?> = runtime.remoteAddress

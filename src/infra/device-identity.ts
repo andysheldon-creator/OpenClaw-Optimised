@@ -152,58 +152,6 @@ export function publicKeyRawBase64UrlFromPem(publicKeyPem: string): string {
   return base64UrlEncode(derivePublicKeyRaw(publicKeyPem));
 }
 
-/**
- * Extract raw 64-byte Ed25519 signature from DER-encoded format.
- * Android KeyStore wraps Ed25519 sigs in DER SEQUENCE { INTEGER R, INTEGER S }
- * instead of the standard raw R||S format.
- */
-function derToRawEd25519(sig: Buffer): Buffer | null {
-  try {
-    if (sig[0] !== 0x30) {
-      return null;
-    }
-    let offset = 2; // skip SEQUENCE tag + length
-
-    // Read R
-    if (sig[offset] !== 0x02) {
-      return null;
-    }
-    offset++;
-    const rLen = sig[offset];
-    offset++;
-    const rBytes = sig.subarray(offset, offset + rLen);
-    offset += rLen;
-
-    // Read S
-    if (sig[offset] !== 0x02) {
-      return null;
-    }
-    offset++;
-    const sLen = sig[offset];
-    offset++;
-    const sBytes = sig.subarray(offset, offset + sLen);
-
-    // Trim/pad to 32 bytes each (DER INTEGER may have leading 0x00 for sign)
-    const r = padOrTrimTo32(rBytes);
-    const s = padOrTrimTo32(sBytes);
-    return Buffer.concat([r, s]);
-  } catch {
-    return null;
-  }
-}
-
-function padOrTrimTo32(bytes: Uint8Array): Buffer {
-  if (bytes.length === 32) {
-    return Buffer.from(bytes);
-  }
-  if (bytes.length > 32) {
-    return Buffer.from(bytes.subarray(bytes.length - 32));
-  }
-  const padded = Buffer.alloc(32);
-  Buffer.from(bytes).copy(padded, 32 - bytes.length);
-  return padded;
-}
-
 // ECDSA P-256 SPKI prefix (for uncompressed 65-byte public keys)
 const P256_SPKI_PREFIX = Buffer.from("3059301306072a8648ce3d020106082a8648ce3d030107034200", "hex");
 
@@ -264,18 +212,8 @@ export function verifyDeviceSignature(
       return false;
     }
 
-    // Ed25519: try raw signature first (64 bytes)
-    if (crypto.verify(null, payloadBuf, key, sig)) {
-      return true;
-    }
-
-    // Try DER-decoded signature (Android KeyStore Ed25519 workaround)
-    const rawSig = derToRawEd25519(sig);
-    if (rawSig && rawSig.length === 64) {
-      return crypto.verify(null, payloadBuf, key, rawSig);
-    }
-
-    return false;
+    // Ed25519: signatures are always 64-byte raw R||S
+    return crypto.verify(null, payloadBuf, key, sig);
   } catch {
     return false;
   }

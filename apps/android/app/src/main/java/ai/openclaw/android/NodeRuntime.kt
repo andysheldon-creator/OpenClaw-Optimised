@@ -159,6 +159,10 @@ class NodeRuntime(context: Context) {
       onConnected = { name, remote, mainSessionKey ->
         operatorConnected = true
         operatorStatusText = "Connected"
+        pendingManualToken?.let { tok ->
+          prefs.saveGatewayToken(tok)
+          pendingManualToken = null
+        }
         _serverName.value = name
         _remoteAddress.value = remote
         _seamColorArgb.value = DEFAULT_SEAM_COLOR_ARGB
@@ -285,9 +289,11 @@ class NodeRuntime(context: Context) {
   val manualPort: StateFlow<Int> = prefs.manualPort
   val manualTls: StateFlow<Boolean> = prefs.manualTls
   val manualToken: StateFlow<String> = prefs.manualToken
+  val awaitingPairing: StateFlow<Boolean> = operatorSession.awaitingPairing
   val lastDiscoveredStableId: StateFlow<String> = prefs.lastDiscoveredStableId
   val canvasDebugStatusEnabled: StateFlow<Boolean> = prefs.canvasDebugStatusEnabled
 
+  private var pendingManualToken: String? = null
   private var didAutoConnect = false
   private var suppressWakeWordsSync = false
   private var wakeWordsSyncJob: Job? = null
@@ -562,12 +568,12 @@ class NodeRuntime(context: Context) {
     nodeSession.reconnect()
   }
 
-  fun connect(endpoint: GatewayEndpoint) {
+  fun connect(endpoint: GatewayEndpoint, tokenOverride: String? = null) {
     connectedEndpoint = endpoint
     operatorStatusText = "Connecting…"
     nodeStatusText = "Connecting…"
     updateStatus()
-    val token = prefs.loadGatewayToken()
+    val token = tokenOverride ?: prefs.loadGatewayToken()
     val password = prefs.loadGatewayPassword()
     val tls = resolveTlsParams(endpoint)
     operatorSession.connect(endpoint, token, password, buildOperatorConnectOptions(), tls)
@@ -609,12 +615,9 @@ class NodeRuntime(context: Context) {
       _statusText.value = "Failed: invalid manual host/port"
       return
     }
-    // Save manual token so it's used by connect() → loadGatewayToken()
     val manualTok = manualToken.value.trim()
-    if (manualTok.isNotEmpty()) {
-      prefs.saveGatewayToken(manualTok)
-    }
-    connect(GatewayEndpoint.manual(host = host, port = port))
+    pendingManualToken = manualTok.ifEmpty { null }
+    connect(GatewayEndpoint.manual(host = host, port = port), tokenOverride = manualTok.ifEmpty { null })
   }
 
   fun disconnect() {

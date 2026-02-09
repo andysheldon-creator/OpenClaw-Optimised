@@ -12,6 +12,9 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -84,6 +87,9 @@ class GatewaySession(
   private val writeLock = Mutex()
   private val pending = ConcurrentHashMap<String, CompletableDeferred<RpcResponse>>()
 
+  private val _awaitingPairing = MutableStateFlow(false)
+  val awaitingPairing: StateFlow<Boolean> = _awaitingPairing.asStateFlow()
+
   @Volatile private var canvasHostUrl: String? = null
   @Volatile private var mainSessionKey: String? = null
 
@@ -120,6 +126,7 @@ class GatewaySession(
       job = null
       canvasHostUrl = null
       mainSessionKey = null
+      _awaitingPairing.value = false
       onDisconnected("Offline")
     }
   }
@@ -571,35 +578,34 @@ class GatewaySession(
 
   private suspend fun runLoop() {
     var attempt = 0
-    var awaitingPairing = false
     while (scope.isActive) {
       val target = desired
       if (target == null) {
         currentConnection?.closeQuietly()
         currentConnection = null
-        awaitingPairing = false
+        _awaitingPairing.value = false
         delay(250)
         continue
       }
 
       try {
-        if (!awaitingPairing) {
+        if (!_awaitingPairing.value) {
           onDisconnected(if (attempt == 0) "Connecting…" else "Reconnecting…")
         }
         connectOnce(target)
         attempt = 0
-        awaitingPairing = false
+        _awaitingPairing.value = false
       } catch (err: Throwable) {
         attempt += 1
         if (err is PairingRequiredException) {
-          if (!awaitingPairing) {
+          if (!_awaitingPairing.value) {
             onDisconnected(err.message ?: "Pairing required")
           }
-          awaitingPairing = true
+          _awaitingPairing.value = true
           delay(5_000)
           continue
         }
-        awaitingPairing = false
+        _awaitingPairing.value = false
         val cause = err.cause
         val detail = buildString {
           append(err::class.java.simpleName)

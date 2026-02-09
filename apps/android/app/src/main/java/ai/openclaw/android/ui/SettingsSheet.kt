@@ -85,6 +85,7 @@ fun SettingsSheet(viewModel: MainViewModel) {
   val manualToken by viewModel.manualToken.collectAsState()
   val canvasDebugStatusEnabled by viewModel.canvasDebugStatusEnabled.collectAsState()
   val statusText by viewModel.statusText.collectAsState()
+  val awaitingPairing by viewModel.awaitingPairing.collectAsState()
   val serverName by viewModel.serverName.collectAsState()
   val remoteAddress by viewModel.remoteAddress.collectAsState()
   val gateways by viewModel.gateways.collectAsState()
@@ -286,7 +287,7 @@ fun SettingsSheet(viewModel: MainViewModel) {
     // Gateway
     item { Text("Gateway", style = MaterialTheme.typography.titleSmall) }
     item { ListItem(headlineContent = { Text("Status") }, supportingContent = { Text(statusText) }) }
-    if (statusText.contains("pairing", ignoreCase = true)) {
+    if (awaitingPairing) {
       item {
         ListItem(
           headlineContent = { Text("Device Pairing Pending") },
