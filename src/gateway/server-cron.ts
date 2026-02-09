@@ -1,6 +1,6 @@
 import type { CliDeps } from "../cli/deps.js";
 import type { CronJob } from "../cron/types.js";
-import { resolveDefaultAgentId } from "../agents/agent-scope.js";
+import { listAgentIds, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { loadConfig } from "../config/config.js";
 import {
   resolveAgentMainSessionKey,
@@ -145,31 +145,33 @@ async function sweepStaleCronRunSessions(params: {
   log: { info: (obj: unknown, msg?: string) => void; warn: (obj: unknown, msg?: string) => void };
 }): Promise<number> {
   const { cfg, log } = params;
-  const agentId = resolveDefaultAgentId(cfg);
-  const sessStorePath = resolveStorePath(cfg.session?.store, { agentId });
+  const agentIds = listAgentIds(cfg);
   const now = Date.now();
   let removed = 0;
 
-  try {
-    await updateSessionStore(sessStorePath, (store) => {
-      for (const key of Object.keys(store)) {
-        if (!isCronRunSessionKey(key)) {
-          continue;
+  for (const agentId of agentIds) {
+    const sessStorePath = resolveStorePath(cfg.session?.store, { agentId });
+    try {
+      await updateSessionStore(sessStorePath, (store) => {
+        for (const key of Object.keys(store)) {
+          if (!isCronRunSessionKey(key)) {
+            continue;
+          }
+          const entry = store[key];
+          const updatedAt = entry?.updatedAt ?? 0;
+          if (now - updatedAt > STALE_THRESHOLD_MS) {
+            delete store[key];
+            removed++;
+          }
         }
-        const entry = store[key];
-        const updatedAt = entry?.updatedAt ?? 0;
-        if (now - updatedAt > STALE_THRESHOLD_MS) {
-          delete store[key];
-          removed++;
-        }
-      }
-    });
-  } catch (err) {
-    log.warn({ err: String(err) }, "cron: sweeper failed to update session store");
+      });
+    } catch (err) {
+      log.warn({ err: String(err), agentId }, "cron: sweeper failed to update session store");
+    }
   }
 
   if (removed > 0) {
-    log.info({ removed }, "cron: swept stale :run: session entries");
+    log.info({ removed, agentIds }, "cron: swept stale :run: session entries");
   }
   return removed;
 }

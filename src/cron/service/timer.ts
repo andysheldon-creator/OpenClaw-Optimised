@@ -10,13 +10,9 @@ import {
 } from "./jobs.js";
 import { locked } from "./locked.js";
 import { ensureLoaded, persist } from "./store.js";
+import { isCronRunSessionKey } from "./sweeper.js";
 
 const MAX_TIMER_DELAY_MS = 60_000;
-
-/** True if the session key is a per-run cron key (contains `:run:`). */
-function isCronRunKey(key: string): boolean {
-  return /:run:/.test(key);
-}
 
 /**
  * Maximum wall-clock time for a single job execution. Acts as a safety net
@@ -276,7 +272,7 @@ export async function onTimer(state: CronServiceState) {
           // Clean up the :run: session entry from the session store.
           if (
             result.sessionKey &&
-            isCronRunKey(result.sessionKey) &&
+            isCronRunSessionKey(result.sessionKey) &&
             (job.cleanup ?? "delete") === "delete" &&
             state.deps.cleanupCronRunSession
           ) {
@@ -519,7 +515,7 @@ export async function executeJob(
   // Clean up the :run: session entry from the session store.
   if (
     coreResult.sessionKey &&
-    isCronRunKey(coreResult.sessionKey) &&
+    isCronRunSessionKey(coreResult.sessionKey) &&
     (job.cleanup ?? "delete") === "delete" &&
     state.deps.cleanupCronRunSession
   ) {
