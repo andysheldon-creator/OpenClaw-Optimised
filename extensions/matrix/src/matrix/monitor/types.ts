@@ -1,4 +1,4 @@
-import type { EncryptedFile, MessageEventContent } from "@vector-im/matrix-bot-sdk";
+import type { EncryptedFile, MatrixRawEvent, MessageEventContent } from "../sdk.js";
 
 export const EventType = {
   RoomMessage: "m.room.message",
@@ -11,18 +11,6 @@ export const RelationType = {
   Replace: "m.replace",
   Thread: "m.thread",
 } as const;
-
-export type MatrixRawEvent = {
-  event_id: string;
-  sender: string;
-  type: string;
-  origin_server_ts: number;
-  content: Record<string, unknown>;
-  unsigned?: {
-    age?: number;
-    redacted_because?: unknown;
-  };
-};
 
 export type RoomMessageEventContent = MessageEventContent & {
   url?: string;

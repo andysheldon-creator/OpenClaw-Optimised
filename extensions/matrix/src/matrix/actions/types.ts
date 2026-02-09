@@ -1,4 +1,4 @@
-import type { MatrixClient } from "@vector-im/matrix-bot-sdk";
+import type { MatrixClient, MatrixRawEvent, MessageEventContent } from "../sdk.js";
 
 export const MsgType = {
   Text: "m.text",
@@ -16,7 +16,7 @@ export const EventType = {
   Reaction: "m.reaction",
 } as const;
 
-export type RoomMessageEventContent = {
+export type RoomMessageEventContent = MessageEventContent & {
   msgtype: string;
   body: string;
   "m.new_content"?: RoomMessageEventContent;
@@ -41,17 +41,6 @@ export type RoomPinnedEventsEventContent = {
 
 export type RoomTopicEventContent = {
   topic?: string;
-};
-
-export type MatrixRawEvent = {
-  event_id: string;
-  sender: string;
-  type: string;
-  origin_server_ts: number;
-  content: Record<string, unknown>;
-  unsigned?: {
-    redacted_because?: unknown;
-  };
 };
 
 export type MatrixActionClientOpts = {

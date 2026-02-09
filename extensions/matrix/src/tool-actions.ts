@@ -8,16 +8,28 @@ import {
 } from "openclaw/plugin-sdk";
 import type { CoreConfig } from "./types.js";
 import {
+  acceptMatrixVerification,
+  cancelMatrixVerification,
+  confirmMatrixVerificationReciprocateQr,
+  confirmMatrixVerificationSas,
   deleteMatrixMessage,
   editMatrixMessage,
+  generateMatrixVerificationQr,
+  getMatrixEncryptionStatus,
   getMatrixMemberInfo,
   getMatrixRoomInfo,
+  getMatrixVerificationSas,
   listMatrixPins,
   listMatrixReactions,
+  listMatrixVerifications,
+  mismatchMatrixVerificationSas,
   pinMatrixMessage,
   readMatrixMessages,
+  requestMatrixVerification,
   removeMatrixReactions,
+  scanMatrixVerificationQr,
   sendMatrixMessage,
+  startMatrixVerification,
   unpinMatrixMessage,
 } from "./matrix/actions.js";
 import { reactMatrixMessage } from "./matrix/send.js";
@@ -25,6 +37,20 @@ import { reactMatrixMessage } from "./matrix/send.js";
 const messageActions = new Set(["sendMessage", "editMessage", "deleteMessage", "readMessages"]);
 const reactionActions = new Set(["react", "reactions"]);
 const pinActions = new Set(["pinMessage", "unpinMessage", "listPins"]);
+const verificationActions = new Set([
+  "encryptionStatus",
+  "verificationList",
+  "verificationRequest",
+  "verificationAccept",
+  "verificationCancel",
+  "verificationStart",
+  "verificationGenerateQr",
+  "verificationScanQr",
+  "verificationSas",
+  "verificationConfirm",
+  "verificationMismatch",
+  "verificationConfirmQr",
+]);
 
 function readRoomId(params: Record<string, unknown>, required = true): string {
   const direct = readStringParam(params, "roomId") ?? readStringParam(params, "channelId");
@@ -158,6 +184,110 @@ export async function handleMatrixAction(
     const roomId = readRoomId(params);
     const result = await getMatrixRoomInfo(roomId);
     return jsonResult({ ok: true, room: result });
+  }
+
+  if (verificationActions.has(action)) {
+    if (!isActionEnabled("verification")) {
+      throw new Error("Matrix verification actions are disabled.");
+    }
+
+    const requestId =
+      readStringParam(params, "requestId") ??
+      readStringParam(params, "verificationId") ??
+      readStringParam(params, "id");
+
+    if (action === "encryptionStatus") {
+      const includeRecoveryKey = params.includeRecoveryKey === true;
+      const status = await getMatrixEncryptionStatus({ includeRecoveryKey });
+      return jsonResult({ ok: true, status });
+    }
+    if (action === "verificationList") {
+      const verifications = await listMatrixVerifications();
+      return jsonResult({ ok: true, verifications });
+    }
+    if (action === "verificationRequest") {
+      const userId = readStringParam(params, "userId");
+      const deviceId = readStringParam(params, "deviceId");
+      const roomId = readStringParam(params, "roomId") ?? readStringParam(params, "channelId");
+      const ownUser = typeof params.ownUser === "boolean" ? params.ownUser : undefined;
+      const verification = await requestMatrixVerification({
+        ownUser,
+        userId: userId ?? undefined,
+        deviceId: deviceId ?? undefined,
+        roomId: roomId ?? undefined,
+      });
+      return jsonResult({ ok: true, verification });
+    }
+    if (action === "verificationAccept") {
+      const verification = await acceptMatrixVerification(
+        readStringParam({ requestId }, "requestId", { required: true }),
+      );
+      return jsonResult({ ok: true, verification });
+    }
+    if (action === "verificationCancel") {
+      const reason = readStringParam(params, "reason");
+      const code = readStringParam(params, "code");
+      const verification = await cancelMatrixVerification(
+        readStringParam({ requestId }, "requestId", { required: true }),
+        { reason: reason ?? undefined, code: code ?? undefined },
+      );
+      return jsonResult({ ok: true, verification });
+    }
+    if (action === "verificationStart") {
+      const methodRaw = readStringParam(params, "method");
+      const method = methodRaw?.trim().toLowerCase();
+      if (method && method !== "sas") {
+        throw new Error(
+          "Matrix verificationStart only supports method=sas; use verificationGenerateQr/verificationScanQr for QR flows.",
+        );
+      }
+      const verification = await startMatrixVerification(
+        readStringParam({ requestId }, "requestId", { required: true }),
+        { method: "sas" },
+      );
+      return jsonResult({ ok: true, verification });
+    }
+    if (action === "verificationGenerateQr") {
+      const qr = await generateMatrixVerificationQr(
+        readStringParam({ requestId }, "requestId", { required: true }),
+      );
+      return jsonResult({ ok: true, ...qr });
+    }
+    if (action === "verificationScanQr") {
+      const qrDataBase64 =
+        readStringParam(params, "qrDataBase64") ??
+        readStringParam(params, "qrData") ??
+        readStringParam(params, "qr");
+      const verification = await scanMatrixVerificationQr(
+        readStringParam({ requestId }, "requestId", { required: true }),
+        readStringParam({ qrDataBase64 }, "qrDataBase64", { required: true }),
+      );
+      return jsonResult({ ok: true, verification });
+    }
+    if (action === "verificationSas") {
+      const sas = await getMatrixVerificationSas(
+        readStringParam({ requestId }, "requestId", { required: true }),
+      );
+      return jsonResult({ ok: true, sas });
+    }
+    if (action === "verificationConfirm") {
+      const verification = await confirmMatrixVerificationSas(
+        readStringParam({ requestId }, "requestId", { required: true }),
+      );
+      return jsonResult({ ok: true, verification });
+    }
+    if (action === "verificationMismatch") {
+      const verification = await mismatchMatrixVerificationSas(
+        readStringParam({ requestId }, "requestId", { required: true }),
+      );
+      return jsonResult({ ok: true, verification });
+    }
+    if (action === "verificationConfirmQr") {
+      const verification = await confirmMatrixVerificationReciprocateQr(
+        readStringParam({ requestId }, "requestId", { required: true }),
+      );
+      return jsonResult({ ok: true, verification });
+    }
   }
 
   throw new Error(`Unsupported Matrix action: ${action}`);

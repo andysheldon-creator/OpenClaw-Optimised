@@ -36,6 +36,7 @@ export type MatrixActionConfig = {
   pins?: boolean;
   memberInfo?: boolean;
   channelInfo?: boolean;
+  verification?: boolean;
 };
 
 export type MatrixConfig = {
@@ -51,9 +52,13 @@ export type MatrixConfig = {
   accessToken?: string;
   /** Matrix password (used only to fetch access token). */
   password?: string;
+  /** Auto-register account when password login fails (open registration homeservers). */
+  register?: boolean;
+  /** Optional Matrix device id (recommended when using access tokens + E2EE). */
+  deviceId?: string;
   /** Optional device name when logging in via password. */
   deviceName?: string;
-  /** Initial sync limit for startup (default: @vector-im/matrix-bot-sdk default). */
+  /** Initial sync limit for startup (defaults to matrix-js-sdk behavior). */
   initialSyncLimit?: number;
   /** Enable end-to-end encryption (E2EE). Default: false. */
   encryption?: boolean;

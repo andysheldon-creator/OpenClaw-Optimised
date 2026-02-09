@@ -35,6 +35,7 @@ Docs: https://docs.openclaw.ai
 - State dir: honor `OPENCLAW_STATE_DIR` for default device identity and canvas storage paths. (#4824) Thanks @kossoy.
 - Doctor/State dir: suppress repeated legacy migration warnings only for valid symlink mirrors, while keeping warnings for empty or invalid legacy trees. (#11709) Thanks @gumadeiras.
 - Tests: harden flaky hotspots by removing timer sleeps, consolidating onboarding provider-auth coverage, and improving memory test realism. (#11598) Thanks @gumadeiras.
+- Matrix plugin: harden E2EE bootstrap and verification flows (cross-signing + secret storage + own-device trust), add bounded decrypt retry with crypto-key signals, enforce safe absolute-endpoint request handling, and split SDK internals into focused modules with coverage. (#11705) Thanks @gumadeiras.
 
 ## 2026.2.6
 
