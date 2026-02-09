@@ -110,7 +110,7 @@ function extractToolCalls(content: unknown): OllamaToolCall[] {
 }
 
 export function convertToOllamaMessages(
-  messages: Array<{ role: string; content: unknown; [key: string]: unknown }>,
+  messages: Array<{ role: string; content: unknown }>,
   system?: string,
 ): OllamaChatMessage[] {
   const result: OllamaChatMessage[] = [];
@@ -272,23 +272,26 @@ export function createOllamaStreamFn(baseUrl: string): StreamFn {
 
     const run = async () => {
       try {
-        const ctx = context as unknown as {
-          messages?: Array<{ role: string; content: unknown; [key: string]: unknown }>;
-          systemPrompt?: string;
-          tools?: Tool[];
-        };
-        const ollamaMessages = convertToOllamaMessages(ctx.messages ?? [], ctx.systemPrompt);
+        const ollamaMessages = convertToOllamaMessages(
+          context.messages ?? [],
+          context.systemPrompt,
+        );
 
-        const ollamaTools = extractOllamaTools(ctx.tools);
+        const ollamaTools = extractOllamaTools(context.tools);
+
+        // Ollama defaults to num_ctx=4096 which is too small for large
+        // system prompts + many tool definitions. Use model's contextWindow.
+        const ollamaOptions: Record<string, unknown> = { num_ctx: model.contextWindow ?? 65536 };
+        if (typeof options?.temperature === "number") {
+          ollamaOptions.temperature = options.temperature;
+        }
 
         const body: OllamaChatRequest = {
           model: model.id,
           messages: ollamaMessages,
           stream: true,
           ...(ollamaTools.length > 0 ? { tools: ollamaTools } : {}),
-          ...(typeof options?.temperature === "number"
-            ? { options: { temperature: options.temperature } }
-            : {}),
+          options: ollamaOptions,
         };
 
         const headers: Record<string, string> = {
