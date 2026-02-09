@@ -5,14 +5,25 @@
  * Wraps a model call with scoped tools, audit logging, and error capture.
  */
 
-import type { AgentId, AgentConfig, Task, AuditEntry } from "../types.js";
+import type { AgentId, AgentConfig, Task, AuditEntry, ModelRef, ModelsRegistry } from "../types.js";
 import { AuditLog } from "../persistence/audit.js";
 import { ErrorJournal } from "../errors/journal.js";
+import { callModelSimple, callModelStream, type StreamCallbacks } from "../shared/pi-bridge.js";
+import {
+  buildModelAliasIndex,
+  resolveModelForEngine,
+  type ModelAliasIndex,
+} from "../router/model-selection.js";
+import { runWithModelFallback } from "../router/model-fallback.js";
+import { filterSkillsForAgent, formatSkillsForPrompt, type Skill } from "../shared/skill-loader.js";
 
 export interface AgentDeps {
   auditLog: AuditLog;
   errorJournal: ErrorJournal;
   projectRoot: string;
+  modelsRegistry: ModelsRegistry;
+  allSkills: Map<string, Skill>;
+  bootstrapContext: string;
 }
 
 export interface AgentResult {
@@ -26,11 +37,13 @@ export abstract class BaseAgent {
   readonly id: AgentId;
   readonly config: AgentConfig;
   protected deps: AgentDeps;
+  private aliasIndex: ModelAliasIndex;
 
   constructor(id: AgentId, config: AgentConfig, deps: AgentDeps) {
     this.id = id;
     this.config = config;
     this.deps = deps;
+    this.aliasIndex = buildModelAliasIndex(deps.modelsRegistry);
   }
 
   /**
@@ -80,6 +93,96 @@ export abstract class BaseAgent {
       agent: this.id,
       ...params,
     });
+  }
+
+  /**
+   * Resolve the model to use for a task.
+   * Uses the route's engine preference (local/cloud), with fallback chain.
+   */
+  protected resolveModel(task: Task): ModelRef {
+    const engine = task.route.model; // "local" or "cloud"
+    return resolveModelForEngine(engine, this.deps.modelsRegistry, this.aliasIndex);
+  }
+
+  /**
+   * Get the fallback model (opposite engine).
+   */
+  protected resolveFallbackModel(task: Task): ModelRef {
+    const fallbackEngine = task.route.model === "local" ? "cloud" : "local";
+    return resolveModelForEngine(fallbackEngine, this.deps.modelsRegistry, this.aliasIndex);
+  }
+
+  /**
+   * Call a model with automatic fallback.
+   * Builds system prompt from bootstrap context + agent skills.
+   */
+  protected async callModel(
+    task: Task,
+    prompt: string,
+    opts?: { systemPrompt?: string; maxTokens?: number; temperature?: number },
+  ): Promise<string> {
+    const primary = this.resolveModel(task);
+    const fallback = this.resolveFallbackModel(task);
+
+    const systemPrompt = opts?.systemPrompt ?? this.buildSystemPrompt();
+
+    const { result } = await runWithModelFallback({
+      primary,
+      fallbacks: [fallback],
+      run: (provider, model) =>
+        callModelSimple({ provider, model }, prompt, {
+          systemPrompt,
+          maxTokens: opts?.maxTokens ?? 4096,
+          temperature: opts?.temperature,
+        }),
+    });
+
+    return result;
+  }
+
+  /**
+   * Stream a model response with callbacks.
+   */
+  protected async streamModel(
+    task: Task,
+    messages: Array<{ role: "user" | "assistant"; content: string }>,
+    opts?: {
+      systemPrompt?: string;
+      maxTokens?: number;
+      temperature?: number;
+      callbacks?: StreamCallbacks;
+    },
+  ): Promise<string> {
+    const model = this.resolveModel(task);
+    const systemPrompt = opts?.systemPrompt ?? this.buildSystemPrompt();
+
+    return callModelStream(model, messages, {
+      systemPrompt,
+      maxTokens: opts?.maxTokens ?? 4096,
+      temperature: opts?.temperature,
+      callbacks: opts?.callbacks,
+    });
+  }
+
+  /**
+   * Build the system prompt for this agent, including bootstrap context and skills.
+   */
+  protected buildSystemPrompt(): string {
+    const skills = filterSkillsForAgent(
+      this.deps.allSkills,
+      this.config.tools,
+      this.config.skills,
+    );
+    const skillsSection = formatSkillsForPrompt(skills);
+
+    return [
+      this.deps.bootstrapContext,
+      "",
+      `You are the ${this.id} agent. Your tools: ${this.config.tools.join(", ") || "none"}.`,
+      `Actions requiring approval: ${this.config.approvalRequired.join(", ") || "none"}.`,
+      "",
+      skillsSection,
+    ].join("\n");
   }
 
   /**

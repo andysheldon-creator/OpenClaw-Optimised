@@ -130,11 +130,14 @@ async function main(): Promise<void> {
   const auditLog = new AuditLog(path.join(PROJECT_ROOT, "logs", "audit"));
   const errorJournal = new ErrorJournal(path.join(PROJECT_ROOT, "errors"));
 
-  // Create agent deps
+  // Create agent deps (shared by all agents)
   const agentDeps: AgentDeps = {
     auditLog,
     errorJournal,
     projectRoot: PROJECT_ROOT,
+    modelsRegistry,
+    allSkills,
+    bootstrapContext,
   };
 
   // Load agent configs
@@ -185,6 +188,43 @@ async function main(): Promise<void> {
   console.log(
     `[init] Tasks: ${counts.done} done, ${counts.failed} failed, ${counts.pending} pending`,
   );
+
+  // Start monitor background services
+  const monitor = agents.monitor as MonitorAgent;
+  monitor.startDailyAnalysis(errorJournal);
+
+  // Start email monitoring if IMAP is configured
+  if (process.env.IMAP_HOST) {
+    await monitor.startEmailMonitoring(
+      {
+        host: process.env.IMAP_HOST,
+        port: parseInt(process.env.IMAP_PORT ?? "993", 10),
+        auth: {
+          user: process.env.IMAP_USER ?? "",
+          pass: process.env.IMAP_PASS ?? "",
+        },
+        tls: process.env.IMAP_TLS !== "false",
+      },
+      async (email) => {
+        // Route incoming emails through the router
+        const summary = `New email from ${email.from}: "${email.subject}"`;
+        try {
+          await router.handleMessage(summary, "email");
+        } catch (err) {
+          console.error("[monitor] Failed to route email:", err);
+        }
+      },
+    );
+  }
+
+  // Start health checks if configured
+  const healthEndpoints = process.env.HEALTH_CHECK_URLS
+    ? process.env.HEALTH_CHECK_URLS.split(",").map((url, i) => ({
+        name: `endpoint-${i + 1}`,
+        url: url.trim(),
+      }))
+    : [];
+  monitor.startHealthChecks(healthEndpoints);
 
   // Run terminal channel
   await runTerminal(router);

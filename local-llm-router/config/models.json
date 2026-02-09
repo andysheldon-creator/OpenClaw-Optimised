@@ -3,20 +3,17 @@
     "qwen-3b": {
       "ref": { "provider": "ollama", "model": "qwen2.5:3b" },
       "alias": "router",
-      "contextWindow": 32768,
-      "costTier": "free"
+      "contextWindow": 32768
     },
     "llama-8b": {
       "ref": { "provider": "ollama", "model": "llama3.1:8b" },
       "alias": "local",
-      "contextWindow": 131072,
-      "costTier": "free"
+      "contextWindow": 131072
     },
     "qwen-coder-7b": {
       "ref": { "provider": "ollama", "model": "qwen2.5-coder:7b" },
       "alias": "local-code",
-      "contextWindow": 32768,
-      "costTier": "free"
+      "contextWindow": 32768
     }
   },
   "cloud": {
