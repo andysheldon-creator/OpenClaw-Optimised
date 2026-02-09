@@ -294,7 +294,7 @@ export function stripAbortedAssistantMessages(messages: AgentMessage[]): AgentMe
       const content = Array.isArray((msg as { content?: unknown }).content)
         ? (msg as { content?: unknown[] }).content!
         : [];
-      const description = describeAbortedToolCalls(content as unknown[], stopReason);
+      const description = describeAbortedToolCalls(content, stopReason);
       out.push({
         ...msg,
         content: [{ type: "text", text: description }],
