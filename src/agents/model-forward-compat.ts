@@ -149,18 +149,7 @@ function resolveAntigravityOpus46ThinkingForwardCompatModel(
     } as Model<Api>);
   }
 
-  return normalizeModelCompat({
-    id: trimmedModelId,
-    name: trimmedModelId,
-    api: "google-gemini-cli",
-    provider: normalizedProvider,
-    baseUrl: "https://daily-cloudcode-pa.sandbox.googleapis.com",
-    reasoning: true,
-    input: ["text", "image"],
-    cost: { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 },
-    contextWindow: 200000,
-    maxTokens: 64000,
-  } as Model<Api>);
+  return undefined;
 }
 
 export function resolveForwardCompatModel(

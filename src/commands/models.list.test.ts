@@ -569,7 +569,9 @@ describe("models list/status", () => {
     await modelsListCommand({ json: true }, runtime);
 
     expect(runtime.error).toHaveBeenCalledTimes(1);
-    expect(runtime.error.mock.calls[0]?.[0]).toContain("falling back to auth heuristics");
+    expect(runtime.error.mock.calls[0]?.[0]).toContain(
+      "Model discovery failed; configured models may appear missing:",
+    );
     expect(runtime.error.mock.calls[0]?.[0]).toContain("model discovery unavailable");
     expect(runtime.log).toHaveBeenCalledTimes(1);
     const payload = JSON.parse(String(runtime.log.mock.calls[0]?.[0]));
@@ -600,6 +602,7 @@ describe("models list/status", () => {
     const loaded = await loadModelRegistry({});
 
     expect(loaded.availableKeys).toBeUndefined();
-    expect(loaded.availabilityErrorMessage).toContain("model discovery unavailable");
+    expect(loaded.discoveryErrorMessage).toContain("model discovery unavailable");
+    expect(loaded.availabilityErrorMessage).toBeUndefined();
   });
 });

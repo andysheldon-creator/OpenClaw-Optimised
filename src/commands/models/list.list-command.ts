@@ -34,18 +34,25 @@ export async function modelsListCommand(
 
   let models: Model<Api>[] = [];
   let availableKeys: Set<string> | undefined;
+  let discoveryErrorMessage: string | undefined;
   let availabilityErrorMessage: string | undefined;
   try {
     const loaded = await loadModelRegistry(cfg);
     models = loaded.models;
     availableKeys = loaded.availableKeys;
+    discoveryErrorMessage = loaded.discoveryErrorMessage;
     availabilityErrorMessage = loaded.availabilityErrorMessage;
   } catch (err) {
     runtime.error(`Model registry unavailable:\n${formatErrorWithStack(err)}`);
   }
+  if (discoveryErrorMessage !== undefined) {
+    runtime.error(
+      `Model discovery failed; configured models may appear missing: ${discoveryErrorMessage}`,
+    );
+  }
   if (availabilityErrorMessage !== undefined) {
     runtime.error(
-      `Model availability lookup failed; falling back to auth heuristics: ${availabilityErrorMessage}`,
+      `Model availability lookup failed; falling back to auth heuristics for discovered models: ${availabilityErrorMessage}`,
     );
   }
 

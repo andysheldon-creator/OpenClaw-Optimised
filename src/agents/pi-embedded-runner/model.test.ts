@@ -244,23 +244,15 @@ describe("resolveModel", () => {
     });
   });
 
-  it("falls back to built-in antigravity defaults when no thinking template exists", () => {
+  it("keeps unknown-model errors when no antigravity thinking template exists", () => {
     vi.mocked(discoverModels).mockReturnValue({
       find: vi.fn(() => null),
     } as unknown as ReturnType<typeof discoverModels>);
 
     const result = resolveModel("google-antigravity", "claude-opus-4-6-thinking", "/tmp/agent");
 
-    expect(result.error).toBeUndefined();
-    expect(result.model).toMatchObject({
-      provider: "google-antigravity",
-      id: "claude-opus-4-6-thinking",
-      api: "google-gemini-cli",
-      baseUrl: "https://daily-cloudcode-pa.sandbox.googleapis.com",
-      reasoning: true,
-      contextWindow: 200000,
-      maxTokens: 64000,
-    });
+    expect(result.model).toBeUndefined();
+    expect(result.error).toBe("Unknown model: google-antigravity/claude-opus-4-6-thinking");
   });
 
   it("keeps unknown-model errors for non-gpt-5 openai-codex ids", () => {

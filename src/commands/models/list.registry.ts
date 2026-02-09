@@ -57,6 +57,7 @@ export async function loadModelRegistry(cfg: OpenClawConfig) {
   let synthesizedForwardCompatKey: string | undefined;
   let modelDiscoveryUnavailable = false;
   let availableKeys: Set<string> | undefined;
+  let discoveryErrorMessage: string | undefined;
   let availabilityErrorMessage: string | undefined;
 
   try {
@@ -73,7 +74,7 @@ export async function loadModelRegistry(cfg: OpenClawConfig) {
     models = [];
     synthesizedForwardCompatKey = undefined;
     modelDiscoveryUnavailable = true;
-    availabilityErrorMessage = formatErrorWithStack(err);
+    discoveryErrorMessage = formatErrorWithStack(err);
   }
 
   if (!modelDiscoveryUnavailable) {
@@ -99,7 +100,7 @@ export async function loadModelRegistry(cfg: OpenClawConfig) {
       }
     }
   }
-  return { registry, models, availableKeys, availabilityErrorMessage };
+  return { registry, models, availableKeys, discoveryErrorMessage, availabilityErrorMessage };
 }
 
 function appendAntigravityForwardCompatModel(
