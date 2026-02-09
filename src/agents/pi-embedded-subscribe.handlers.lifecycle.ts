@@ -1,15 +1,17 @@
 import type { AgentEvent } from "@mariozechner/pi-agent-core";
 import type { EmbeddedPiSubscribeContext } from "./pi-embedded-subscribe.handlers.types.js";
-import { emitAgentEvent } from "../infra/agent-events.js";
+import { emitAgentEvent, getAgentRunContext } from "../infra/agent-events.js";
 import { emitDiagnosticEvent } from "../infra/diagnostic-events.js";
 import { createInlineCodeState } from "../markdown/code-spans.js";
 
 export function handleAgentStart(ctx: EmbeddedPiSubscribeContext) {
   ctx.log.debug(`embedded run agent start: runId=${ctx.params.runId}`);
+  const runContext = getAgentRunContext(ctx.params.runId);
   emitDiagnosticEvent({
     type: "run.started",
     runId: ctx.params.runId,
     sessionId: (ctx.params.session as { id?: string }).id,
+    sessionKey: runContext?.sessionKey,
   });
   emitAgentEvent({
     runId: ctx.params.runId,
