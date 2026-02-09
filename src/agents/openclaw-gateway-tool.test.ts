@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import "./test-helpers/fast-core-tools.js";
-import { createEasyHubTools } from "./EasyHub-tools.js";
+import { createEasyHubTools } from "./easyhub-tools.js";
 
 vi.mock("./tools/gateway.js", () => ({
   callGatewayTool: vi.fn(async (method: string) => {

@@ -11,7 +11,7 @@ vi.mock("../media/image-ops.js", () => ({
 }));
 
 import "./test-helpers/fast-core-tools.js";
-import { createEasyHubTools } from "./EasyHub-tools.js";
+import { createEasyHubTools } from "./easyhub-tools.js";
 
 describe("nodes camera_snap", () => {
   beforeEach(() => {

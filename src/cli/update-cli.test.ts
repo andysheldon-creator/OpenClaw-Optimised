@@ -21,7 +21,7 @@ vi.mock("../infra/update-runner.js", () => ({
   runGatewayUpdate: vi.fn(),
 }));
 
-vi.mock("../infra/EasyHub-root.js", () => ({
+vi.mock("../infra/easyhub-root.js", () => ({
   resolveEasyHubPackageRoot: vi.fn(),
 }));
 
@@ -102,7 +102,7 @@ describe("update-cli", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    const { resolveEasyHubPackageRoot } = await import("../infra/EasyHub-root.js");
+    const { resolveEasyHubPackageRoot } = await import("../infra/easyhub-root.js");
     const { readConfigFileSnapshot } = await import("../config/config.js");
     const { checkUpdateStatus, fetchNpmTagVersion, resolveNpmChannelTag } =
       await import("../infra/update-check.js");
@@ -240,7 +240,7 @@ describe("update-cli", () => {
         "utf-8",
       );
 
-      const { resolveEasyHubPackageRoot } = await import("../infra/EasyHub-root.js");
+      const { resolveEasyHubPackageRoot } = await import("../infra/easyhub-root.js");
       const { runGatewayUpdate } = await import("../infra/update-runner.js");
       const { checkUpdateStatus } = await import("../infra/update-check.js");
       const { updateCommand } = await import("./update-cli.js");
@@ -305,7 +305,7 @@ describe("update-cli", () => {
         "utf-8",
       );
 
-      const { resolveEasyHubPackageRoot } = await import("../infra/EasyHub-root.js");
+      const { resolveEasyHubPackageRoot } = await import("../infra/easyhub-root.js");
       const { readConfigFileSnapshot } = await import("../config/config.js");
       const { resolveNpmChannelTag } = await import("../infra/update-check.js");
       const { runGatewayUpdate } = await import("../infra/update-runner.js");
@@ -358,7 +358,7 @@ describe("update-cli", () => {
         "utf-8",
       );
 
-      const { resolveEasyHubPackageRoot } = await import("../infra/EasyHub-root.js");
+      const { resolveEasyHubPackageRoot } = await import("../infra/easyhub-root.js");
       const { runGatewayUpdate } = await import("../infra/update-runner.js");
       const { updateCommand } = await import("./update-cli.js");
 
@@ -537,7 +537,7 @@ describe("update-cli", () => {
         "utf-8",
       );
 
-      const { resolveEasyHubPackageRoot } = await import("../infra/EasyHub-root.js");
+      const { resolveEasyHubPackageRoot } = await import("../infra/easyhub-root.js");
       const { resolveNpmChannelTag } = await import("../infra/update-check.js");
       const { runGatewayUpdate } = await import("../infra/update-runner.js");
       const { defaultRuntime } = await import("../runtime.js");
@@ -590,7 +590,7 @@ describe("update-cli", () => {
         "utf-8",
       );
 
-      const { resolveEasyHubPackageRoot } = await import("../infra/EasyHub-root.js");
+      const { resolveEasyHubPackageRoot } = await import("../infra/easyhub-root.js");
       const { resolveNpmChannelTag } = await import("../infra/update-check.js");
       const { runGatewayUpdate } = await import("../infra/update-runner.js");
       const { defaultRuntime } = await import("../runtime.js");

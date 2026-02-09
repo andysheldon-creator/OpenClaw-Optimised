@@ -1,4 +1,4 @@
-import type { ConfigFileSnapshot } from "./types.EasyHub.js";
+import type { ConfigFileSnapshot } from "./types.easyhub.js";
 
 /**
  * Sentinel value used to replace sensitive config fields in gateway responses.

@@ -426,7 +426,7 @@ describe("runGatewayUpdate", () => {
     cwdSpy.mockRestore();
 
     expect(result.status).toBe("error");
-    expect(result.reason).toBe("not-EasyHub-root");
+    expect(result.reason).toBe("not-easyhub-root");
     expect(calls.some((call) => call.includes("status --porcelain"))).toBe(false);
   });
 

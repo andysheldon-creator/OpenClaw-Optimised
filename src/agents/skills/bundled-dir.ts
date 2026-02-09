@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { resolveEasyHubPackageRootSync } from "../../infra/EasyHub-root.js";
+import { resolveEasyHubPackageRootSync } from "../../infra/easyhub-root.js";
 
 function looksLikeSkillsDir(dir: string): boolean {
   try {

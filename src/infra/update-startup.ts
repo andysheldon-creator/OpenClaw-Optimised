@@ -4,7 +4,7 @@ import type { loadConfig } from "../config/config.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import { resolveStateDir } from "../config/paths.js";
 import { VERSION } from "../version.js";
-import { resolveEasyHubPackageRoot } from "./EasyHub-root.js";
+import { resolveEasyHubPackageRoot } from "./easyhub-root.js";
 import { normalizeUpdateChannel, DEFAULT_PACKAGE_CHANNEL } from "./update-channels.js";
 import { compareSemverStrings, resolveNpmChannelTag, checkUpdateStatus } from "./update-check.js";
 

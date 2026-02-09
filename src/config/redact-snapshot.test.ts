@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ConfigFileSnapshot } from "./types.EasyHub.js";
+import type { ConfigFileSnapshot } from "./types.easyhub.js";
 import {
   REDACTED_SENTINEL,
   redactConfigSnapshot,

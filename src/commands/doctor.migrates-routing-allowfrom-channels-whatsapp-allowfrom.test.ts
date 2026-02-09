@@ -215,7 +215,7 @@ vi.mock("../process/exec.js", () => ({
   runCommandWithTimeout,
 }));
 
-vi.mock("../infra/EasyHub-root.js", () => ({
+vi.mock("../infra/easyhub-root.js", () => ({
   resolveEasyHubPackageRoot,
 }));
 

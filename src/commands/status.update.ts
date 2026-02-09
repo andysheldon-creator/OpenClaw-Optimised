@@ -1,5 +1,5 @@
 import { formatCliCommand } from "../cli/command-format.js";
-import { resolveEasyHubPackageRoot } from "../infra/EasyHub-root.js";
+import { resolveEasyHubPackageRoot } from "../infra/easyhub-root.js";
 import {
   checkUpdateStatus,
   compareSemverStrings,

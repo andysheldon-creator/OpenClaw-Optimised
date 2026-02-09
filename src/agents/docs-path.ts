@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { resolveEasyHubPackageRoot } from "../infra/EasyHub-root.js";
+import { resolveEasyHubPackageRoot } from "../infra/easyhub-root.js";
 
 export async function resolveEasyHubDocsPath(params: {
   workspaceDir?: string;

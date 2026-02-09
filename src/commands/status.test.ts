@@ -209,7 +209,7 @@ vi.mock("../gateway/call.js", async (importOriginal) => {
 vi.mock("../gateway/session-utils.js", () => ({
   listAgentsForGateway: mocks.listAgentsForGateway,
 }));
-vi.mock("../infra/EasyHub-root.js", () => ({
+vi.mock("../infra/easyhub-root.js", () => ({
   resolveEasyHubPackageRoot: vi.fn().mockResolvedValue("/tmp/EasyHub"),
 }));
 vi.mock("../infra/os-summary.js", () => ({

@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { createEasyHubTools } from "../agents/EasyHub-tools.js";
+import { createEasyHubTools } from "../agents/easyhub-tools.js";
 import {
   filterToolsByPolicy,
   resolveEffectiveToolPolicy,

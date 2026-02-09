@@ -24,10 +24,10 @@ vi.mock("../config/config.js", async (importOriginal) => {
 
 import { emitAgentEvent } from "../infra/agent-events.js";
 import "./test-helpers/fast-core-tools.js";
-import { createEasyHubTools } from "./EasyHub-tools.js";
+import { createEasyHubTools } from "./easyhub-tools.js";
 import { resetSubagentRegistryForTests } from "./subagent-registry.js";
 
-describe("EasyHub-tools: subagents", () => {
+describe("easyhub-tools: subagents", () => {
   beforeEach(() => {
     configOverride = {
       session: {

@@ -11,7 +11,7 @@ import {
   resolveShellFromEnv,
   usesSlowDynamicCompletion,
 } from "../cli/completion-cli.js";
-import { resolveEasyHubPackageRoot } from "../infra/EasyHub-root.js";
+import { resolveEasyHubPackageRoot } from "../infra/easyhub-root.js";
 import { note } from "../terminal/note.js";
 
 type CompletionShell = "zsh" | "bash" | "fish" | "powershell";

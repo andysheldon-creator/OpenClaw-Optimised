@@ -1,6 +1,6 @@
 import type { GatewayRequestHandlers } from "./types.js";
 import { loadConfig } from "../../config/config.js";
-import { resolveEasyHubPackageRoot } from "../../infra/EasyHub-root.js";
+import { resolveEasyHubPackageRoot } from "../../infra/easyhub-root.js";
 import {
   formatDoctorNonInteractiveHint,
   type RestartSentinelPayload,
