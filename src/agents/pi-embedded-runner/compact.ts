@@ -436,7 +436,7 @@ export async function compactEmbeddedPiSessionDirect(
         // limiting/compaction, not the raw on-disk session snapshot.
         const originalMessages = validated.slice();
         const missingSessionKey = !params.sessionKey || !params.sessionKey.trim();
-        const hookSessionKey = params.sessionKey?.trim() || `compact:${params.sessionId}`;
+        const hookSessionKey = params.sessionKey?.trim() || params.sessionId;
         const hookRunner = getGlobalHookRunner();
         const messageCountOriginal = originalMessages.length;
         let tokenCountOriginal: number | undefined;
