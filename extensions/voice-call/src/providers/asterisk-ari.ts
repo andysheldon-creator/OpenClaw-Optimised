@@ -245,12 +245,12 @@ export class AsteriskAriProvider implements VoiceCallProvider {
     if (!rtpPeer) {
       // Wait until we receive at least one RTP packet from Asterisk (then we know its port).
       state.pendingMulaw = mulaw;
-      state.pendingSpeakText = input.text;
+      state.pendingSpeakText = input.text ?? "";
       console.warn("[ari] No RTP peer learned yet; queued TTS until RTP starts flowing");
       return;
     }
 
-    this.sendMulawRtp(state, mulaw, rtpPeer, input.text);
+    this.sendMulawRtp(state, mulaw, rtpPeer, input.text ?? "");
   }
 
   async startListening(_input: StartListeningInput): Promise<void> {
@@ -409,7 +409,7 @@ export class AsteriskAriProvider implements VoiceCallProvider {
 
       const pending = state.pendingMulaw;
       if (pending && !state.ttsTimer) {
-        const pendingText = state.pendingSpeakText;
+        const pendingText = state.pendingSpeakText ?? "";
         state.pendingMulaw = undefined;
         state.pendingSpeakText = undefined;
         const peer = this.getRtpPeer(state) || rinfo;
@@ -466,13 +466,13 @@ export class AsteriskAriProvider implements VoiceCallProvider {
 
       const pkt = this.makeRtpPacket(state, next.value);
       if (i === 0) {
-        if (text && this.calls.has(state.providerCallId)) {
+        if (this.calls.has(state.providerCallId)) {
           this.manager.processEvent(
             makeEvent({
               type: "call.speaking",
               callId: state.callId,
               providerCallId: state.providerCallId,
-              text,
+              text: text ?? "",
             }),
           );
         }
