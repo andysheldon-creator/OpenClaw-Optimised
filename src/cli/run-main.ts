@@ -13,6 +13,8 @@ import { enableConsoleCapture } from "../logging.js";
 import { getPrimaryCommand, hasHelpOrVersion } from "./argv.js";
 import { tryRouteCli } from "./route.js";
 
+let globalHandlersInstalled = false;
+
 export function rewriteUpdateFlagArgv(argv: string[]): string[] {
   const index = argv.indexOf("--update");
   if (index === -1) {
@@ -27,12 +29,16 @@ export function rewriteUpdateFlagArgv(argv: string[]): string[] {
 export async function runCli(argv: string[] = process.argv) {
   // Global error handlers FIRST to prevent silent crashes from unhandled rejections/exceptions.
   // These must be installed before any async work to catch early boot failures.
-  installUnhandledRejectionHandler();
+  // Guarded to prevent duplicate listeners if runCli() is called multiple times.
+  if (!globalHandlersInstalled) {
+    globalHandlersInstalled = true;
+    installUnhandledRejectionHandler();
 
-  process.on("uncaughtException", (error) => {
-    console.error("[openclaw] Uncaught exception:", formatUncaughtError(error));
-    process.exit(1);
-  });
+    process.on("uncaughtException", (error) => {
+      console.error("[openclaw] Uncaught exception:", formatUncaughtError(error));
+      process.exit(1);
+    });
+  }
 
   const normalizedArgv = stripWindowsNodeExec(argv);
   loadDotEnv({ quiet: true });
