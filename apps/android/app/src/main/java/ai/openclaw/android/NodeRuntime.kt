@@ -1126,7 +1126,13 @@ class NodeRuntime(context: Context) {
       // ignore
     }
 
-    canvas.navigate(a2uiUrl)
+    // Only navigate if the WebView isn't already on the a2ui URL.
+    // If it is, the page may still be loading — just poll for readiness
+    // instead of forcing a full reload (which causes a disconnect flash).
+    val current = canvas.currentUrl()?.trim().orEmpty()
+    if (current != a2uiUrl) {
+      canvas.navigate(a2uiUrl)
+    }
     repeat(50) {
       try {
         val ready = canvas.eval(a2uiReadyCheckJS)
