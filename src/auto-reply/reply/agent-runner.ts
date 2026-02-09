@@ -174,6 +174,7 @@ export async function runReplyAgent(params: {
           });
         }
       }
+      typing.markRunComplete();
       typing.cleanup();
       return undefined;
     }
@@ -204,6 +205,7 @@ export async function runReplyAgent(params: {
         });
       }
     }
+    typing.markRunComplete();
     typing.cleanup();
     return undefined;
   }
