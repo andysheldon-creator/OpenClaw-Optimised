@@ -151,7 +151,9 @@ function renderSkill(skill: SkillStatusEntry, props: SkillsProps) {
     defaultValue: skill.source,
   });
   const formatMissingItems = (type: string, items: string[]) => {
-    if (items.length === 0) return null;
+    if (items.length === 0) {
+      return null;
+    }
     const typeLabel = t(`skills.missingType.${type}`);
     const translatedItems = items.map((item) => translateTechnicalName(item));
     return `${typeLabel}: ${translatedItems.join(", ")}`;

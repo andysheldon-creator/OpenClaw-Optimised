@@ -2,7 +2,7 @@ import { render } from "lit";
 import { describe, expect, it, vi } from "vitest";
 import { analyzeConfigSchema, renderConfigForm } from "./views/config-form.ts";
 
-(window as any).__FORCE_LAZY_MOUNT__ = true;
+(window as unknown as Record<string, unknown>).__FORCE_LAZY_MOUNT__ = true;
 
 const rootSchema = {
   type: "object",

@@ -150,7 +150,7 @@ export const configHandlers: GatewayRequestHandlers = {
 
     const scope = (params as { scope?: string }).scope?.trim();
     if (scope) {
-      let current: any = schema.schema;
+      let current: unknown = schema.schema;
       const parts = scope.split(".");
       for (const part of parts) {
         if (
