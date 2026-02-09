@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import type { VoiceCallConfig } from "../config.js";
+import type { CallMode, VoiceCallConfig } from "../config.js";
 import type { CoreConfig } from "../core-bridge.js";
 import type { CallManager } from "../manager.js";
 import type { TelephonyTtsProvider } from "../telephony-tts.js";
@@ -15,6 +15,7 @@ import type {
   WebhookContext,
   WebhookVerificationResult,
   NormalizedEvent,
+  TerminalStates,
 } from "../types.js";
 import type { VoiceCallProvider } from "./base.js";
 import { loadCoreAgentDeps } from "../core-bridge.js";
@@ -78,6 +79,7 @@ export class AsteriskAriProvider implements VoiceCallProvider {
   // providerCallId -> state
   private readonly calls = new Map<string, CallState>();
   private readonly pendingInboundChannels = new Set<string>();
+  private readonly autoResponseQueue = new Map<string, Promise<void>>();
 
   constructor(params: {
     config: VoiceCallConfig;
@@ -625,10 +627,60 @@ export class AsteriskAriProvider implements VoiceCallProvider {
             isFinal: true,
           }),
         );
+        this.enqueueAutoResponse(state, text);
       }
     } catch (err) {
       console.warn("[ari] core STT failed", err);
     }
+  }
+
+  private enqueueAutoResponse(state: CallState, userMessage: string): void {
+    const call = this.manager.getCall(state.callId);
+    if (!call) return;
+
+    const mode = (call.metadata?.mode as CallMode | undefined) ?? "conversation";
+    const shouldRespond = call.direction === "inbound" || mode === "conversation";
+    if (!shouldRespond) return;
+
+    if (!this.coreConfig) {
+      console.warn("[ari] Core config missing; skipping auto-response");
+      return;
+    }
+
+    const prev = this.autoResponseQueue.get(state.providerCallId) ?? Promise.resolve();
+    const next = prev
+      .catch(() => undefined)
+      .then(async () => {
+        const current = this.manager.getCall(state.callId);
+        if (!current || TerminalStates.has(current.state)) {
+          return;
+        }
+
+        try {
+          const { generateVoiceResponse } = await import("../response-generator.js");
+          const result = await generateVoiceResponse({
+            voiceConfig: this.voiceConfig,
+            coreConfig: this.coreConfig,
+            callId: state.callId,
+            from: current.from,
+            transcript: current.transcript,
+            userMessage,
+          });
+
+          if (result.error) {
+            console.warn(`[voice-call] Auto-response error: ${result.error}`);
+            return;
+          }
+
+          if (result.text) {
+            await this.manager.speak(state.callId, result.text);
+          }
+        } catch (err) {
+          console.warn("[voice-call] Auto-response failed", err);
+        }
+      });
+
+    this.autoResponseQueue.set(state.providerCallId, next);
   }
 
   private async createCoreSttSession(state: CallState): Promise<CoreSttSession | null> {
@@ -850,6 +902,7 @@ export class AsteriskAriProvider implements VoiceCallProvider {
     if (!state) return;
 
     this.calls.delete(providerCallId);
+    this.autoResponseQueue.delete(providerCallId);
 
     if (state.sipChannelId) {
       await this.client.safeHangupChannel(state.sipChannelId).catch(() => {});
