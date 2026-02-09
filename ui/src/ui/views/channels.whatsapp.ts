@@ -1,7 +1,7 @@
 import { html, nothing } from "lit";
 import type { WhatsAppStatus } from "../types.ts";
 import type { ChannelsProps } from "./channels.types.ts";
-import { formatAgo } from "../format.ts";
+import { formatRelativeTimestamp } from "../format.ts";
 import { t } from "../i18n/i18n-manager.ts";
 import { renderChannelConfigSection } from "./channels.config.ts";
 import { formatDuration } from "./channels.shared.ts";
@@ -39,13 +39,13 @@ export function renderWhatsAppCard(params: {
         <div>
           <span class="label">${t("whatsapp.lastConnect")}</span>
           <span>
-            ${whatsapp?.lastConnectedAt ? formatAgo(whatsapp.lastConnectedAt) : t("common.na")}
+            ${whatsapp?.lastConnectedAt ? formatRelativeTimestamp(whatsapp.lastConnectedAt) : t("common.na")}
           </span>
         </div>
         <div>
           <span class="label">${t("whatsapp.lastMessage")}</span>
           <span>
-            ${whatsapp?.lastMessageAt ? formatAgo(whatsapp.lastMessageAt) : t("common.na")}
+            ${whatsapp?.lastMessageAt ? formatRelativeTimestamp(whatsapp.lastMessageAt) : t("common.na")}
           </span>
         </div>
         <div>

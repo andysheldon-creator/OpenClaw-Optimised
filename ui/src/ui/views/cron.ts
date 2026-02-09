@@ -1,7 +1,7 @@
 import { html, nothing } from "lit";
 import type { ChannelUiMetaEntry, CronJob, CronRunLogEntry, CronStatus } from "../types.ts";
 import type { CronFormState } from "../ui-types.ts";
-import { formatAgo, formatMs } from "../format.ts";
+import { formatRelativeTimestamp, formatMs } from "../format.ts";
 import { t } from "../i18n/i18n-manager.ts";
 import { pathForTab } from "../navigation.ts";
 import { formatCronSchedule, formatNextRun } from "../presenter.ts";
@@ -498,7 +498,7 @@ function formatStateRelative(ms?: number) {
   if (typeof ms !== "number" || !Number.isFinite(ms)) {
     return t("common.na");
   }
-  return formatAgo(ms);
+  return formatRelativeTimestamp(ms);
 }
 
 function renderJobState(job: CronJob) {

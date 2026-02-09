@@ -1,5 +1,5 @@
 import type { CronJob, GatewaySessionRow, PresenceEntry } from "./types.ts";
-import { formatAgo, formatDurationMs, formatMs } from "./format.ts";
+import { formatRelativeTimestamp, formatDurationHuman, formatMs } from "./format.ts";
 import { t } from "./i18n/i18n-manager.ts";
 
 export function formatPresenceSummary(entry: PresenceEntry): string {
@@ -12,14 +12,14 @@ export function formatPresenceSummary(entry: PresenceEntry): string {
 
 export function formatPresenceAge(entry: PresenceEntry): string {
   const ts = entry.ts ?? null;
-  return ts ? formatAgo(ts) : t("common.na");
+  return ts ? formatRelativeTimestamp(ts) : t("common.na");
 }
 
 export function formatNextRun(ms?: number | null) {
   if (!ms) {
     return t("common.na");
   }
-  return `${formatMs(ms)} (${formatAgo(ms)})`;
+  return `${formatMs(ms)} (${formatRelativeTimestamp(ms)})`;
 }
 
 export function formatSessionTokens(row: GatewaySessionRow) {
@@ -59,7 +59,7 @@ export function formatCronSchedule(job: CronJob) {
     return Number.isFinite(atMs) ? `${t("cron.at")} ${formatMs(atMs)}` : `${t("cron.at")} ${s.at}`;
   }
   if (s.kind === "every") {
-    return `${t("cron.every")} ${formatDurationMs(s.everyMs)}`;
+    return `${t("cron.every")} ${formatDurationHuman(s.everyMs)}`;
   }
   return `${t("cron.cron")} ${s.expr}${s.tz ? ` (${s.tz})` : ""}`;
 }

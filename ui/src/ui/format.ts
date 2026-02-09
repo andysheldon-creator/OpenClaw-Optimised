@@ -8,7 +8,11 @@ export function formatMs(ms?: number | null): string {
   return new Date(ms).toLocaleString();
 }
 
-export function formatAgo(ms?: number | null): string {
+/**
+ * Localized version of formatRelativeTimestamp.
+ * Replaces upstream implementation to support i18n.
+ */
+export function formatRelativeTimestamp(ms?: number | null): string {
   if (!ms && ms !== 0) {
     return t("common.na");
   }
@@ -38,9 +42,12 @@ export function formatAgo(ms?: number | null): string {
     : t("common.time.daysAgo", { count: day });
 }
 
-export function formatDurationMs(ms?: number | null): string {
+/**
+ * Localized version of formatDurationHuman.
+ */
+export function formatDurationHuman(ms?: number | null, fallback?: string): string {
   if (!ms && ms !== 0) {
-    return t("common.na");
+    return fallback ?? t("common.na");
   }
   if (ms < 1000) {
     return `${ms}ms`;

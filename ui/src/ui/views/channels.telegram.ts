@@ -1,7 +1,7 @@
 import { html, nothing } from "lit";
 import type { ChannelAccountSnapshot, TelegramStatus } from "../types.ts";
 import type { ChannelsProps } from "./channels.types.ts";
-import { formatAgo } from "../format.ts";
+import { formatRelativeTimestamp } from "../format.ts";
 import { t } from "../i18n/i18n-manager.ts";
 import { renderChannelConfigSection } from "./channels.config.ts";
 
@@ -37,7 +37,7 @@ export function renderTelegramCard(params: {
           </div>
           <div>
             <span class="label">${t("channels.lastInbound")}</span>
-            <span>${account.lastInboundAt ? formatAgo(account.lastInboundAt) : t("common.na")}</span>
+            <span>${account.lastInboundAt ? formatRelativeTimestamp(account.lastInboundAt) : t("common.na")}</span>
           </div>
           ${
             account.lastError
@@ -88,11 +88,11 @@ export function renderTelegramCard(params: {
               </div>
               <div>
                 <span class="label">${t("channels.lastStart")}</span>
-                <span>${telegram?.lastStartAt ? formatAgo(telegram.lastStartAt) : t("common.na")}</span>
+                <span>${telegram?.lastStartAt ? formatRelativeTimestamp(telegram.lastStartAt) : t("common.na")}</span>
               </div>
               <div>
                 <span class="label">${t("channels.lastProbe")}</span>
-                <span>${telegram?.lastProbeAt ? formatAgo(telegram.lastProbeAt) : t("common.na")}</span>
+                <span>${telegram?.lastProbeAt ? formatRelativeTimestamp(telegram.lastProbeAt) : t("common.na")}</span>
               </div>
             </div>
           `

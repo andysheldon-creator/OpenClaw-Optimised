@@ -16,7 +16,7 @@ import {
   normalizeToolName,
   resolveToolProfilePolicy,
 } from "../../../../src/agents/tool-policy.js";
-import { formatAgo } from "../format.ts";
+import { formatRelativeTimestamp } from "../format.ts";
 // i18n
 import { t, translateTechnicalName } from "../i18n/i18n-manager.ts";
 import {
@@ -1216,7 +1216,9 @@ function renderAgentChannels(params: {
     params.agentIdentity,
   );
   const entries = resolveChannelEntries(params.snapshot);
-  const lastSuccessLabel = params.lastSuccess ? formatAgo(params.lastSuccess) : t("common.never");
+  const lastSuccessLabel = params.lastSuccess
+    ? formatRelativeTimestamp(params.lastSuccess)
+    : t("common.never");
   return html`
     <section class="grid grid-cols-2">
       ${renderAgentContextCard(context, t("agents.contextSubtitle"))}
@@ -1516,7 +1518,7 @@ function renderAgentFiles(params: {
 function renderAgentFileRow(file: AgentFileEntry, active: string | null, onSelect: () => void) {
   const status = file.missing
     ? t("agents.missing")
-    : `${formatBytes(file.size)} · ${formatAgo(file.updatedAtMs ?? null)}`;
+    : `${formatBytes(file.size)} · ${formatRelativeTimestamp(file.updatedAtMs ?? null)}`;
   return html`
     <button
       type="button"
@@ -2010,7 +2012,9 @@ function renderAgentSkillRow(
 ) {
   const enabled = params.usingAllowlist ? params.allowSet.has(skill.name) : true;
   const formatMissingItems = (type: string, items: string[]) => {
-    if (items.length === 0) return null;
+    if (items.length === 0) {
+      return null;
+    }
     const typeLabel = t(`skills.missingType.${type}`);
     const translatedItems = items.map((item) => translateTechnicalName(item));
     return `${typeLabel}: ${translatedItems.join(", ")}`;

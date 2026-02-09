@@ -14,7 +14,7 @@ import type {
   WhatsAppStatus,
 } from "../types.ts";
 import type { ChannelKey, ChannelsChannelData, ChannelsProps } from "./channels.types.ts";
-import { formatAgo } from "../format.ts";
+import { formatRelativeTimestamp } from "../format.ts";
 // i18n
 import { t } from "../i18n/i18n-manager.ts";
 import { renderChannelConfigSection } from "./channels.config.ts";
@@ -75,7 +75,7 @@ export function renderChannels(props: ChannelsProps) {
           <div class="card-title">${t("channels.health")}</div>
           <div class="card-sub">${t("channels.healthSubtitle")}</div>
         </div>
-        <div class="muted">${props.lastSuccessAt ? formatAgo(props.lastSuccessAt) : t("common.na")}</div>
+        <div class="muted">${props.lastSuccessAt ? formatRelativeTimestamp(props.lastSuccessAt) : t("common.na")}</div>
       </div>
       ${
         props.lastError
@@ -318,7 +318,7 @@ function renderGenericAccount(account: ChannelAccountSnapshot) {
         </div>
         <div>
           <span class="label">${t("channels.lastInbound")}</span>
-          <span>${account.lastInboundAt ? formatAgo(account.lastInboundAt) : t("common.na")}</span>
+          <span>${account.lastInboundAt ? formatRelativeTimestamp(account.lastInboundAt) : t("common.na")}</span>
         </div>
         ${
           account.lastError

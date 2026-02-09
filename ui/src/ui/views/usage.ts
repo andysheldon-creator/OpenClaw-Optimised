@@ -2512,7 +2512,7 @@ function formatFullDate(dateStr: string): string {
   });
 }
 
-function formatDurationMs(ms?: number): string {
+function formatDurationHuman(ms?: number): string {
   if (!ms || ms <= 0) {
     return "—";
   }
@@ -3689,7 +3689,7 @@ function renderSessionsCard(
       parts.push(`${t("usage.errorsShort")}:${s.usage.messageCounts.errors}`);
     }
     if (showColumn("duration") && s.usage?.durationMs) {
-      parts.push(`${t("usage.durShort")}:${formatDurationMs(s.usage.durationMs)}`);
+      parts.push(`${t("usage.durShort")}:${formatDurationHuman(s.usage.durationMs)}`);
     }
     return parts;
   };
@@ -3994,7 +3994,7 @@ function renderSessionSummary(session: UsageSessionEntry) {
       </div>
       <div class="session-summary-card">
         <div class="session-summary-title">${t("usage.duration")}</div>
-        <div class="session-summary-value">${formatDurationMs(usage.durationMs)}</div>
+        <div class="session-summary-value">${formatDurationHuman(usage.durationMs)}</div>
         <div class="session-summary-meta">${formatTs(usage.firstActivity)} → ${formatTs(usage.lastActivity)}</div>
       </div>
     </div>

@@ -11,7 +11,7 @@ import type {
   ExecApprovalsFile,
   ExecApprovalsSnapshot,
 } from "../controllers/exec-approvals.ts";
-import { clampText, formatAgo, formatList } from "../format.ts";
+import { clampText, formatRelativeTimestamp, formatList } from "../format.ts";
 import { t } from "../i18n/i18n-manager.ts";
 
 export type NodesProps = {
@@ -132,7 +132,7 @@ function renderDevices(props: NodesProps) {
 
 function renderPendingDevice(req: PendingDevice, props: NodesProps) {
   const name = req.displayName?.trim() || req.deviceId;
-  const age = typeof req.ts === "number" ? formatAgo(req.ts) : t("common.na");
+  const age = typeof req.ts === "number" ? formatRelativeTimestamp(req.ts) : t("common.na");
   const role = req.role?.trim()
     ? `${t("nodes.role")}: ${formatScope(req.role)}`
     : `${t("nodes.role")}: -`;
@@ -193,7 +193,9 @@ function renderPairedDevice(device: PairedDevice, props: NodesProps) {
 function renderTokenRow(deviceId: string, token: DeviceTokenSummary, props: NodesProps) {
   const status = token.revokedAtMs ? t("nodes.revoked") : t("nodes.active");
   const scopes = `${t("nodes.scope")}: ${formatList((token.scopes || []).map(formatScope))}`;
-  const when = formatAgo(token.rotatedAtMs ?? token.createdAtMs ?? token.lastUsedAtMs ?? null);
+  const when = formatRelativeTimestamp(
+    token.rotatedAtMs ?? token.createdAtMs ?? token.lastUsedAtMs ?? null,
+  );
   return html`
     <div class="row" style="justify-content: space-between; gap: 8px;">
       <div class="list-sub">${formatScope(token.role)} · ${status} · ${scopes} · ${when}</div>
@@ -936,7 +938,7 @@ function renderAllowlistEntry(
   entry: ExecApprovalsAllowlistEntry,
   index: number,
 ) {
-  const lastUsed = entry.lastUsedAt ? formatAgo(entry.lastUsedAt) : "never";
+  const lastUsed = entry.lastUsedAt ? formatRelativeTimestamp(entry.lastUsedAt) : "never";
   const lastCommand = entry.lastUsedCommand ? clampText(entry.lastUsedCommand, 120) : null;
   const lastPath = entry.lastResolvedPath ? clampText(entry.lastResolvedPath, 120) : null;
   return html`
