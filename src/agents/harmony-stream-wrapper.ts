@@ -101,21 +101,15 @@ function generateToolPrompt(tools: Tool[]): string {
     "",
     "# Available Tools",
     "",
-    "To call a tool, output the call in this EXACT format:",
+    "Format for calling a tool:",
     "",
     `${TOOL_CALL_START}`,
-    `{"name": "TOOL_NAME", "arguments": {"param1": "value1"}}`,
+    `{"name": "TOOL_NAME", "arguments": {"param": "value"}}`,
     `${TOOL_CALL_END}`,
     "",
-    "CRITICAL RULES:",
-    "- The `arguments` value must be a flat JSON object with the tool's parameters as direct keys.",
-    '- Do NOT nest `{"name": ..., "arguments": ...}` inside `arguments`. That is WRONG.',
-    "- All parameter values must match their declared type. Strings must be strings, not arrays.",
-    "- Always include ALL required parameters.",
-    "- Use ONLY the tool names listed below (exact spelling).",
-    "- Output ONE tool call at a time, then STOP and wait for the result.",
-    "- The result will appear in the next message. Use it to decide your next step.",
-    "- Do NOT invent tool names that are not listed.",
+    "- Include all required parameters in `arguments`.",
+    "- One tool call at a time, then wait for the result.",
+    "- Only use tools listed below. If a tool does not exist, say so.",
     "",
     "## Tool Definitions",
     "",
@@ -197,6 +191,40 @@ function mergeConsecutiveUserMessages(messages: Message[]): Message[] {
 // Response parsing: extract tool calls from text
 // ---------------------------------------------------------------------------
 
+/**
+ * Strip leaked control tokens that gpt-oss sometimes emits (e.g. <|end|>,
+ * <|start|>, <|channel|>).  These are internal model delimiters that should
+ * never appear in the output.
+ *
+ * According to Harmony format docs (https://github.com/openai/harmony),
+ * these tokens are part of the structured format but Ollama doesn't handle
+ * them correctly, so we strip them to prevent parsing errors.
+ */
+function stripControlTokens(text: string): string {
+  // Strip all Harmony control tokens: <|start|>, <|end|>, <|message|>, <|channel|>, etc.
+  return text.replace(/<\|[^|]+\|>/g, "");
+}
+
+/**
+ * Extract text content from Harmony format blocks.
+ * Harmony uses: <|start|>role<|channel|>channel_name<|message|>content<|end|>
+ *
+ * This function tries to extract the actual message content, stripping
+ * the Harmony structure tokens.
+ */
+function extractHarmonyContent(text: string): string {
+  // Pattern: <|start|>...<|message|>CONTENT<|end|>
+  // We want to extract CONTENT, which is between <|message|> and <|end|>
+  const messagePattern = /<\|message\|>([\s\S]*?)<\|end\|>/g;
+  const matches = Array.from(text.matchAll(messagePattern));
+  if (matches.length > 0) {
+    // Concatenate all message blocks
+    return matches.map((m) => m[1]).join("\n");
+  }
+  // Fallback: if no Harmony structure found, return as-is (might be plain text)
+  return text;
+}
+
 function parseToolCallsFromText(
   text: string,
 ): Array<{ name: string; arguments: Record<string, unknown> }> {
@@ -213,7 +241,14 @@ function parseToolCallsFromText(
       break;
     }
 
-    const raw = text.slice(start + TOOL_CALL_START.length, end).trim();
+    const rawOrig = text.slice(start + TOOL_CALL_START.length, end).trim();
+    // Strip any leaked control tokens before parsing JSON
+    const raw = stripControlTokens(rawOrig);
+    if (raw !== rawOrig) {
+      logWarn(
+        `harmony-wrapper: Stripped control tokens from tool call JSON. Before: ${rawOrig.slice(0, 200)}`,
+      );
+    }
     try {
       const parsed = JSON.parse(raw) as { name?: string; arguments?: Record<string, unknown> };
       if (parsed.name && typeof parsed.name === "string") {
@@ -247,6 +282,28 @@ function parseToolCallsFromText(
 
     pos = end + TOOL_CALL_END.length;
   }
+
+  // Fallback: detect alternative tool call formats that gpt-oss sometimes
+  // generates (e.g. `read>{"path":"USER.md"}` or `toolname>{"key":"val"}`).
+  // Only try if no standard tool calls were found.
+  if (calls.length === 0) {
+    const altPattern = /^(\w+)>\s*(\{[^}]+\})\s*$/gm;
+    let altMatch: RegExpExecArray | null;
+    while ((altMatch = altPattern.exec(text)) !== null) {
+      const toolName = altMatch[1];
+      const jsonStr = stripControlTokens(altMatch[2]);
+      try {
+        const args = JSON.parse(jsonStr) as Record<string, unknown>;
+        logWarn(`harmony-wrapper: Parsed alternative tool call format: "${toolName}">${jsonStr}`);
+        calls.push({ name: toolName, arguments: args });
+      } catch {
+        logWarn(
+          `harmony-wrapper: Could not parse alternative tool call JSON: ${toolName}>${jsonStr.slice(0, 100)}`,
+        );
+      }
+    }
+  }
+
   return calls;
 }
 
@@ -274,8 +331,34 @@ async function pipeAndParseToolCalls(
         continue;
       }
 
+      // --- Diagnostic: log the full accumulated text from the model ---
+      if (fullText.length > 0) {
+        logDebug(
+          `harmony-wrapper: Full model output (${fullText.length} chars):\n${fullText.slice(0, 1000)}`,
+        );
+      }
+
+      // --- Detect leaked control tokens (common with gpt-oss) ---
+      const controlTokenPattern = /<\|[^|]+\|>/g;
+      const controlTokens = fullText.match(controlTokenPattern);
+      if (controlTokens && controlTokens.length > 0) {
+        logWarn(
+          `harmony-wrapper: ⚠ Model output contains ${controlTokens.length} leaked control token(s): ${controlTokens.join(", ")}`,
+        );
+      }
+
       // "done" — check accumulated text for tool calls.
-      const toolCalls = parseToolCallsFromText(fullText);
+      // First, try to extract content from Harmony format if present
+      let textToParse = fullText;
+      const harmonyContent = extractHarmonyContent(fullText);
+      if (harmonyContent !== fullText) {
+        logDebug(
+          `harmony-wrapper: Extracted Harmony content (${harmonyContent.length} chars) from Harmony format structure`,
+        );
+        textToParse = harmonyContent;
+      }
+
+      const toolCalls = parseToolCallsFromText(textToParse);
 
       if (toolCalls.length === 0) {
         // No tool calls found → pass through as-is.

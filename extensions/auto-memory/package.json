@@ -1,0 +1,14 @@
+{
+  "name": "@openclaw/auto-memory",
+  "version": "2026.2.6-1",
+  "description": "OpenClaw automatic memory writing plugin",
+  "type": "module",
+  "devDependencies": {
+    "openclaw": "workspace:*"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

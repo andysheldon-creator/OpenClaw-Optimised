@@ -273,7 +273,7 @@ export function createOpenClawCodingTools(options?: {
     return [tool];
   });
   const { cleanupMs: cleanupMsOverride, ...execDefaults } = options?.exec ?? {};
-  const execTool = createExecTool({
+  const execToolBase = createExecTool({
     ...execDefaults,
     host: options?.exec?.host ?? execConfig.host,
     security: options?.exec?.security ?? execConfig.security,
@@ -301,6 +301,8 @@ export function createOpenClawCodingTools(options?: {
         }
       : undefined,
   });
+  // Apply schema compatibility patch to add cmd alias for command
+  const execTool = patchToolSchemaForClaudeCompatibility(execToolBase);
   const processTool = createProcessTool({
     cleanupMs: cleanupMsOverride ?? execConfig.cleanupMs,
     scopeKey,
@@ -434,9 +436,14 @@ export function createOpenClawCodingTools(options?: {
   const subagentFiltered = subagentPolicyExpanded
     ? filterToolsByPolicy(sandboxed, subagentPolicyExpanded)
     : sandboxed;
+  // Apply schema compatibility patches to ALL tools to ensure aliases are available
+  // for schema-based normalization. This adds aliases like file_path→path, cmd→command
+  // to the tool schemas so that normalizeToolParamsFromSchema can extract them.
+  const withSchemaPatches = subagentFiltered.map(patchToolSchemaForClaudeCompatibility);
+
   // Always normalize tool JSON Schemas before handing them to pi-agent/pi-ai.
   // Without this, some providers (notably OpenAI) will reject root-level union schemas.
-  const normalized = subagentFiltered.map(normalizeToolParameters);
+  const normalized = withSchemaPatches.map(normalizeToolParameters);
   const withHooks = normalized.map((tool) =>
     wrapToolWithBeforeToolCallHook(tool, {
       agentId,

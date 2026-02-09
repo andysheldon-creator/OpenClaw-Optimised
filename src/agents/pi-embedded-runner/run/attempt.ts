@@ -59,6 +59,7 @@ import {
 } from "../../skills.js";
 import { buildSystemPromptParams } from "../../system-prompt-params.js";
 import { buildSystemPromptReport } from "../../system-prompt-report.js";
+import { createToolArgsNormalizerWrapper } from "../../tool-args-normalizer-wrapper.js";
 import { resolveTranscriptPolicy } from "../../transcript-policy.js";
 import { DEFAULT_BOOTSTRAP_FILENAME } from "../../workspace.js";
 import { isAbortError } from "../abort.js";
@@ -552,6 +553,12 @@ export async function runEmbeddedAttempt(
       if (harmonyWrapper) {
         activeSession.agent.streamFn = harmonyWrapper(activeSession.agent.streamFn);
       }
+
+      // Tool argument normalizer: intercept stream events and normalize tool
+      // call arguments (unwrap double-wrapping, cmd→command, etc.) BEFORE they
+      // reach the agent loop's validation.  This prevents validation errors for
+      // common model mistakes without any retry/loop risk.
+      activeSession.agent.streamFn = createToolArgsNormalizerWrapper(activeSession.agent.streamFn);
 
       try {
         const prior = await sanitizeSessionHistory({

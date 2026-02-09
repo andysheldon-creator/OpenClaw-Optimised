@@ -5,8 +5,9 @@ import type {
 } from "@mariozechner/pi-agent-core";
 import type { ToolDefinition } from "@mariozechner/pi-coding-agent";
 import type { ClientToolDefinition } from "./pi-embedded-runner/run/params.js";
-import { logDebug, logError } from "../logger.js";
+import { logDebug, logError, logWarn } from "../logger.js";
 import { runBeforeToolCallHook } from "./pi-tools.before-tool-call.js";
+import { normalizeToolParams, normalizeToolParamsFromSchema } from "./pi-tools.read.js";
 import { normalizeToolName } from "./tool-policy.js";
 import { jsonResult } from "./tools/common.js";
 
@@ -99,9 +100,39 @@ export function toToolDefinitions(
       parameters: tool.parameters,
       execute: async (...args: ToolExecuteArgs): Promise<AgentToolResult<unknown>> => {
         const { toolCallId, params, onUpdate, signal } = splitToolExecuteArgs(args);
+
+        // --- Diagnostic logging: log raw params for every tool call ---
+        const rawParamsJson = JSON.stringify(params);
+        const rawKeys =
+          params && typeof params === "object" && !Array.isArray(params)
+            ? Object.keys(params as Record<string, unknown>)
+            : [];
+        if (rawKeys.length === 0) {
+          logWarn(`[tool-exec] ⚠ "${normalizedName}" received EMPTY params: ${rawParamsJson}`);
+        } else {
+          logDebug(
+            `[tool-exec] "${normalizedName}" raw params (keys: ${rawKeys.join(", ")}): ${rawParamsJson.slice(0, 300)}`,
+          );
+        }
+
+        // Normalize parameters before execution using schema-based normalization
+        // This extracts aliases from the tool schema automatically
+        const normalizedParams =
+          normalizeToolParamsFromSchema(params, tool.parameters, tool) ??
+          normalizeToolParams(params) ??
+          params;
+
+        // Log if normalization changed anything
+        const normalizedJson = JSON.stringify(normalizedParams);
+        if (normalizedJson !== rawParamsJson) {
+          logDebug(
+            `[tool-exec] "${normalizedName}" params after normalization: ${normalizedJson.slice(0, 300)}`,
+          );
+        }
+
         try {
           // Always execute using the original OpenClaw tool name
-          return await tool.execute(toolCallId, params, signal, onUpdate);
+          return await tool.execute(toolCallId, normalizedParams, signal, onUpdate);
         } catch (err) {
           if (signal?.aborted) {
             throw err;
@@ -114,6 +145,18 @@ export function toToolDefinitions(
             throw err;
           }
           const described = describeToolExecutionError(err);
+          // Check if this is a validation error that we might be able to fix
+          const isValidationError =
+            described.message.includes("Validation failed") ||
+            described.message.includes("must have required property") ||
+            described.message.includes("must NOT have additional properties");
+          // If normalization didn't help and it's a validation error, log a warning
+          // The error will be returned to the model for retry
+          if (isValidationError && normalizedParams !== params) {
+            logWarn(
+              `[tools] ${normalizedName} validation failed even after normalization. Original params: ${JSON.stringify(params)}, Normalized: ${JSON.stringify(normalizedParams)}`,
+            );
+          }
           if (described.stack && described.stack !== described.message) {
             logDebug(`tools: ${normalizedName} failed stack:\n${described.stack}`);
           }

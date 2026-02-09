@@ -77,13 +77,16 @@ export function normalizeToolParameters(tool: AnyAgentTool): AnyAgentTool {
   //   (TypeBox root unions compile to `{ anyOf: [...] }` without `type`).
   //
   // Normalize once here so callers can always pass `tools` through unchanged.
+  //
+  // Note: We only apply cleanSchemaForGemini when necessary (for Gemini).
+  // For other providers, we preserve the full schema to avoid validation issues.
 
   // If schema already has type + properties (no top-level anyOf to merge),
-  // still clean it for Gemini compatibility
+  // return as-is (cleanSchemaForGemini will be applied later if needed for Gemini)
   if ("type" in schema && "properties" in schema && !Array.isArray(schema.anyOf)) {
     return {
       ...tool,
-      parameters: cleanSchemaForGemini(schema),
+      parameters: schema,
     };
   }
 
@@ -97,7 +100,7 @@ export function normalizeToolParameters(tool: AnyAgentTool): AnyAgentTool {
   ) {
     return {
       ...tool,
-      parameters: cleanSchemaForGemini({ ...schema, type: "object" }),
+      parameters: { ...schema, type: "object" },
     };
   }
 
@@ -154,13 +157,14 @@ export function normalizeToolParameters(tool: AnyAgentTool): AnyAgentTool {
         : undefined;
 
   const nextSchema: Record<string, unknown> = { ...schema };
+  // Flatten union schemas into a single object schema:
+  // - Gemini doesn't allow top-level `type` together with `anyOf`.
+  // - OpenAI rejects schemas without top-level `type: "object"`.
+  // Merging properties preserves useful enums like `action` while keeping schemas portable.
+  // Note: cleanSchemaForGemini will be applied later if needed for Gemini.
   return {
     ...tool,
-    // Flatten union schemas into a single object schema:
-    // - Gemini doesn't allow top-level `type` together with `anyOf`.
-    // - OpenAI rejects schemas without top-level `type: "object"`.
-    // Merging properties preserves useful enums like `action` while keeping schemas portable.
-    parameters: cleanSchemaForGemini({
+    parameters: {
       type: "object",
       ...(typeof nextSchema.title === "string" ? { title: nextSchema.title } : {}),
       ...(typeof nextSchema.description === "string"
@@ -170,7 +174,7 @@ export function normalizeToolParameters(tool: AnyAgentTool): AnyAgentTool {
         Object.keys(mergedProperties).length > 0 ? mergedProperties : (schema.properties ?? {}),
       ...(mergedRequired && mergedRequired.length > 0 ? { required: mergedRequired } : {}),
       additionalProperties: "additionalProperties" in schema ? schema.additionalProperties : true,
-    }),
+    },
   };
 }
 

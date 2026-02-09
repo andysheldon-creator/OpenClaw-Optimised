@@ -1,0 +1,40 @@
+{
+  "id": "auto-memory",
+  "name": "Auto Memory",
+  "description": "Automatically writes important facts and decisions to memory files",
+  "kind": "memory",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "enabled": {
+        "type": "boolean",
+        "description": "Enable or disable the auto-memory plugin",
+        "default": true
+      },
+      "messageThreshold": {
+        "type": "number",
+        "description": "Number of messages after which to analyze and write to memory",
+        "default": 5,
+        "minimum": 1
+      },
+      "minImportance": {
+        "type": "number",
+        "description": "Minimum importance threshold (0-1) for facts to be saved",
+        "default": 0.7,
+        "minimum": 0,
+        "maximum": 1
+      },
+      "notificationEnabled": {
+        "type": "boolean",
+        "description": "Whether to send a notification when memory is updated",
+        "default": true
+      },
+      "notificationMessage": {
+        "type": "string",
+        "description": "Message to send as notification when memory is updated",
+        "default": "💾 Memoria aggiornata"
+      }
+    }
+  }
+}
