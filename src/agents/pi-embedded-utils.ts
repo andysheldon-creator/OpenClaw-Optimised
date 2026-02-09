@@ -198,6 +198,60 @@ export function stripThinkingTagsFromText(text: string): string {
   return stripReasoningTagsFromText(text, { mode: "strict", trim: "both" });
 }
 
+/**
+ * Unwrap Python-serialized content blocks that leak into text.
+ * Some LLM proxies (e.g. LiteLLM) may call Python's `str()` on a content
+ * blocks array instead of extracting the text, producing strings like:
+ *   `[{'type': 'text', 'text': '2+2 = 4.'}]`
+ * This detects that pattern and extracts the actual text payload.
+ */
+export function unwrapPythonContentBlocks(text: string): string {
+  const trimmed = text.trim();
+  if (!trimmed.startsWith("[{") || !trimmed.endsWith("}]")) {
+    return text;
+  }
+  // Quick check: must contain Python-style 'type': 'text' pattern.
+  if (!/'\s*type\s*'\s*:\s*'\s*text\s*'/.test(trimmed)) {
+    return text;
+  }
+  // Try converting Python single-quote dict repr to JSON and parsing.
+  try {
+    const jsonified = trimmed.replace(/'/g, '"');
+    const parsed: unknown = JSON.parse(jsonified);
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      return text;
+    }
+    const texts: string[] = [];
+    for (const block of parsed) {
+      if (
+        block &&
+        typeof block === "object" &&
+        (block as Record<string, unknown>).type === "text" &&
+        typeof (block as Record<string, unknown>).text === "string"
+      ) {
+        const t = ((block as Record<string, unknown>).text as string).trim();
+        if (t) {
+          texts.push(t);
+        }
+      }
+    }
+    if (texts.length > 0) {
+      return texts.join("\n");
+    }
+  } catch {
+    // JSON parse failed — try regex fallback for content with embedded quotes.
+  }
+  // Regex fallback: extract 'text': '...' values (handles simple escaping).
+  const blockRe = /'text'\s*:\s*'((?:[^'\\]|\\.)*)'/g;
+  const parts: string[] = [];
+  for (const match of trimmed.matchAll(blockRe)) {
+    if (match[1]) {
+      parts.push(match[1].replace(/\\'/g, "'").trim());
+    }
+  }
+  return parts.length > 0 ? parts.filter(Boolean).join("\n") : text;
+}
+
 export function extractAssistantText(msg: AssistantMessage): string {
   const isTextBlock = (block: unknown): block is { type: "text"; text: string } => {
     if (!block || typeof block !== "object") {
@@ -211,8 +265,8 @@ export function extractAssistantText(msg: AssistantMessage): string {
     ? msg.content
         .filter(isTextBlock)
         .map((c) =>
-          stripThinkingTagsFromText(
-            stripDowngradedToolCallText(stripMinimaxToolCallXml(c.text)),
+          unwrapPythonContentBlocks(
+            stripThinkingTagsFromText(stripDowngradedToolCallText(stripMinimaxToolCallXml(c.text))),
           ).trim(),
         )
         .filter(Boolean)

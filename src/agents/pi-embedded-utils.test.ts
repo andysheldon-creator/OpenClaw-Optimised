@@ -1,6 +1,10 @@
 import type { AssistantMessage } from "@mariozechner/pi-ai";
 import { describe, expect, it } from "vitest";
-import { extractAssistantText, formatReasoningMessage } from "./pi-embedded-utils.js";
+import {
+  extractAssistantText,
+  formatReasoningMessage,
+  unwrapPythonContentBlocks,
+} from "./pi-embedded-utils.js";
 
 describe("extractAssistantText", () => {
   it("strips Minimax tool invocation XML from text", () => {
@@ -506,6 +510,49 @@ File contents here`,
 
     const result = extractAssistantText(msg);
     expect(result).toBe("StartMiddleEnd");
+  });
+});
+
+describe("unwrapPythonContentBlocks", () => {
+  it("unwraps single Python-serialized content block", () => {
+    expect(unwrapPythonContentBlocks("[{'type': 'text', 'text': '2+2 = 4.'}]")).toBe("2+2 = 4.");
+  });
+
+  it("unwraps content block with emoji", () => {
+    expect(unwrapPythonContentBlocks("[{'type': 'text', 'text': '2+2 = 4. 🔧'}]")).toBe(
+      "2+2 = 4. 🔧",
+    );
+  });
+
+  it("does not unwrap normal text", () => {
+    expect(unwrapPythonContentBlocks("Hello, world!")).toBe("Hello, world!");
+  });
+
+  it("does not unwrap JSON that is not content blocks", () => {
+    expect(unwrapPythonContentBlocks('[{"name": "test"}]')).toBe('[{"name": "test"}]');
+  });
+
+  it("does not modify text that starts with [{ but is not content blocks", () => {
+    expect(unwrapPythonContentBlocks("[{some random text}]")).toBe("[{some random text}]");
+  });
+
+  it("handles extractAssistantText integration", () => {
+    const msg: AssistantMessage = {
+      role: "assistant",
+      content: [
+        {
+          type: "text",
+          text: "[{'type': 'text', 'text': '2+2 = 4. 🔧'}]",
+        },
+      ],
+      timestamp: Date.now(),
+    };
+    expect(extractAssistantText(msg)).toBe("2+2 = 4. 🔧");
+  });
+
+  it("preserves text that merely mentions content blocks", () => {
+    const text = "The API returns [{'type': 'text'}] format blocks in a response.";
+    expect(unwrapPythonContentBlocks(text)).toBe(text);
   });
 });
 
