@@ -2,6 +2,7 @@ import type { GatewayRequestHandlers, GatewayRequestOptions } from "./server-met
 import { ErrorCodes, errorShape } from "./protocol/index.js";
 import { agentHandlers } from "./server-methods/agent.js";
 import { agentsHandlers } from "./server-methods/agents.js";
+import { agentsHealthHandlers } from "./server-methods/agents-health.js";
 import { browserHandlers } from "./server-methods/browser.js";
 import { channelsHandlers } from "./server-methods/channels.js";
 import { chatHandlers } from "./server-methods/chat.js";
@@ -59,6 +60,7 @@ const READ_METHODS = new Set([
   "tts.providers",
   "models.list",
   "agents.list",
+  "agents.health",
   "agent.identity.get",
   "skills.status",
   "voicewake.get",
@@ -187,6 +189,7 @@ export const coreGatewayHandlers: GatewayRequestHandlers = {
   ...usageHandlers,
   ...agentHandlers,
   ...agentsHandlers,
+  ...agentsHealthHandlers,
   ...browserHandlers,
 };
 
