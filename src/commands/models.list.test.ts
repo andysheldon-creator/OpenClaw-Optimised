@@ -7,528 +7,528 @@ const ensureAuthProfileStore = vi.fn().mockReturnValue({ version: 1, profiles: {
 const listProfilesForProvider = vi.fn().mockReturnValue([]);
 const resolveAuthProfileDisplayLabel = vi.fn(({ profileId }: { profileId: string }) => profileId);
 const resolveAuthStorePathForDisplay = vi
-	.fn()
-	.mockReturnValue("/tmp/openclaw-agent/auth-profiles.json");
+  .fn()
+  .mockReturnValue("/tmp/openclaw-agent/auth-profiles.json");
 const resolveProfileUnusableUntilForDisplay = vi.fn().mockReturnValue(null);
 const resolveEnvApiKey = vi.fn().mockReturnValue(undefined);
 const resolveAwsSdkEnvVarName = vi.fn().mockReturnValue(undefined);
 const getCustomProviderApiKey = vi.fn().mockReturnValue(undefined);
 const modelRegistryState = {
-	models: [] as Array<Record<string, unknown>>,
-	available: [] as Array<Record<string, unknown>>,
-	getAvailableError: undefined as unknown,
+  models: [] as Array<Record<string, unknown>>,
+  available: [] as Array<Record<string, unknown>>,
+  getAvailableError: undefined as unknown,
 };
 
 vi.mock("../config/config.js", () => ({
-	CONFIG_PATH: "/tmp/openclaw.json",
-	STATE_DIR: "/tmp/openclaw-state",
-	loadConfig,
+  CONFIG_PATH: "/tmp/openclaw.json",
+  STATE_DIR: "/tmp/openclaw-state",
+  loadConfig,
 }));
 
 vi.mock("../agents/models-config.js", () => ({
-	ensureOpenClawModelsJson,
+  ensureOpenClawModelsJson,
 }));
 
 vi.mock("../agents/agent-paths.js", () => ({
-	resolveOpenClawAgentDir,
+  resolveOpenClawAgentDir,
 }));
 
 vi.mock("../agents/auth-profiles.js", () => ({
-	ensureAuthProfileStore,
-	listProfilesForProvider,
-	resolveAuthProfileDisplayLabel,
-	resolveAuthStorePathForDisplay,
-	resolveProfileUnusableUntilForDisplay,
+  ensureAuthProfileStore,
+  listProfilesForProvider,
+  resolveAuthProfileDisplayLabel,
+  resolveAuthStorePathForDisplay,
+  resolveProfileUnusableUntilForDisplay,
 }));
 
 vi.mock("../agents/model-auth.js", () => ({
-	resolveEnvApiKey,
-	resolveAwsSdkEnvVarName,
-	getCustomProviderApiKey,
+  resolveEnvApiKey,
+  resolveAwsSdkEnvVarName,
+  getCustomProviderApiKey,
 }));
 
 vi.mock("@mariozechner/pi-coding-agent", async () => {
-	const actual = await vi.importActual<typeof import("@mariozechner/pi-coding-agent")>(
-		"@mariozechner/pi-coding-agent",
-	);
+  const actual = await vi.importActual<typeof import("@mariozechner/pi-coding-agent")>(
+    "@mariozechner/pi-coding-agent",
+  );
 
-	class MockModelRegistry extends actual.ModelRegistry {
-		override find(
-			provider: string,
-			id: string,
-		): ReturnType<typeof actual.ModelRegistry.prototype.find> {
-			const found =
-				modelRegistryState.models.find((model) => model.provider === provider && model.id === id) ??
-				null;
-			return found as ReturnType<typeof actual.ModelRegistry.prototype.find>;
-		}
+  class MockModelRegistry extends actual.ModelRegistry {
+    override find(
+      provider: string,
+      id: string,
+    ): ReturnType<typeof actual.ModelRegistry.prototype.find> {
+      const found =
+        modelRegistryState.models.find((model) => model.provider === provider && model.id === id) ??
+        null;
+      return found as ReturnType<typeof actual.ModelRegistry.prototype.find>;
+    }
 
-		override getAll(): ReturnType<typeof actual.ModelRegistry.prototype.getAll> {
-			return modelRegistryState.models as ReturnType<typeof actual.ModelRegistry.prototype.getAll>;
-		}
+    override getAll(): ReturnType<typeof actual.ModelRegistry.prototype.getAll> {
+      return modelRegistryState.models as ReturnType<typeof actual.ModelRegistry.prototype.getAll>;
+    }
 
-		override getAvailable(): ReturnType<typeof actual.ModelRegistry.prototype.getAvailable> {
-			if (modelRegistryState.getAvailableError !== undefined) {
-				throw modelRegistryState.getAvailableError;
-			}
-			return modelRegistryState.available as ReturnType<
-				typeof actual.ModelRegistry.prototype.getAvailable
-			>;
-		}
-	}
+    override getAvailable(): ReturnType<typeof actual.ModelRegistry.prototype.getAvailable> {
+      if (modelRegistryState.getAvailableError !== undefined) {
+        throw modelRegistryState.getAvailableError;
+      }
+      return modelRegistryState.available as ReturnType<
+        typeof actual.ModelRegistry.prototype.getAvailable
+      >;
+    }
+  }
 
-	return {
-		...actual,
-		ModelRegistry: MockModelRegistry,
-	};
+  return {
+    ...actual,
+    ModelRegistry: MockModelRegistry,
+  };
 });
 
 function makeRuntime() {
-	return {
-		log: vi.fn(),
-		error: vi.fn(),
-	};
+  return {
+    log: vi.fn(),
+    error: vi.fn(),
+  };
 }
 
 beforeEach(() => {
-	modelRegistryState.getAvailableError = undefined;
-	listProfilesForProvider.mockReturnValue([]);
+  modelRegistryState.getAvailableError = undefined;
+  listProfilesForProvider.mockReturnValue([]);
 });
 
 describe("models list/status", () => {
-	it("models status resolves z.ai alias to canonical zai", async () => {
-		loadConfig.mockReturnValue({
-			agents: { defaults: { model: "z.ai/glm-4.7" } },
-		});
-		const runtime = makeRuntime();
+  it("models status resolves z.ai alias to canonical zai", async () => {
+    loadConfig.mockReturnValue({
+      agents: { defaults: { model: "z.ai/glm-4.7" } },
+    });
+    const runtime = makeRuntime();
 
-		const { modelsStatusCommand } = await import("./models/list.js");
-		await modelsStatusCommand({ json: true }, runtime);
+    const { modelsStatusCommand } = await import("./models/list.js");
+    await modelsStatusCommand({ json: true }, runtime);
 
-		expect(runtime.log).toHaveBeenCalledTimes(1);
-		const payload = JSON.parse(String(runtime.log.mock.calls[0]?.[0]));
-		expect(payload.resolvedDefault).toBe("zai/glm-4.7");
-	});
+    expect(runtime.log).toHaveBeenCalledTimes(1);
+    const payload = JSON.parse(String(runtime.log.mock.calls[0]?.[0]));
+    expect(payload.resolvedDefault).toBe("zai/glm-4.7");
+  });
 
-	it("models status plain outputs canonical zai model", async () => {
-		loadConfig.mockReturnValue({
-			agents: { defaults: { model: "z.ai/glm-4.7" } },
-		});
-		const runtime = makeRuntime();
+  it("models status plain outputs canonical zai model", async () => {
+    loadConfig.mockReturnValue({
+      agents: { defaults: { model: "z.ai/glm-4.7" } },
+    });
+    const runtime = makeRuntime();
 
-		const { modelsStatusCommand } = await import("./models/list.js");
-		await modelsStatusCommand({ plain: true }, runtime);
+    const { modelsStatusCommand } = await import("./models/list.js");
+    await modelsStatusCommand({ plain: true }, runtime);
 
-		expect(runtime.log).toHaveBeenCalledTimes(1);
-		expect(runtime.log.mock.calls[0]?.[0]).toBe("zai/glm-4.7");
-	});
+    expect(runtime.log).toHaveBeenCalledTimes(1);
+    expect(runtime.log.mock.calls[0]?.[0]).toBe("zai/glm-4.7");
+  });
 
-	it("models list outputs canonical zai key for configured z.ai model", async () => {
-		loadConfig.mockReturnValue({
-			agents: { defaults: { model: "z.ai/glm-4.7" } },
-		});
-		const runtime = makeRuntime();
+  it("models list outputs canonical zai key for configured z.ai model", async () => {
+    loadConfig.mockReturnValue({
+      agents: { defaults: { model: "z.ai/glm-4.7" } },
+    });
+    const runtime = makeRuntime();
 
-		const model = {
-			provider: "zai",
-			id: "glm-4.7",
-			name: "GLM-4.7",
-			input: ["text"],
-			baseUrl: "https://api.z.ai/v1",
-			contextWindow: 128000,
-		};
+    const model = {
+      provider: "zai",
+      id: "glm-4.7",
+      name: "GLM-4.7",
+      input: ["text"],
+      baseUrl: "https://api.z.ai/v1",
+      contextWindow: 128000,
+    };
 
-		modelRegistryState.models = [model];
-		modelRegistryState.available = [model];
+    modelRegistryState.models = [model];
+    modelRegistryState.available = [model];
 
-		const { modelsListCommand } = await import("./models/list.js");
-		await modelsListCommand({ json: true }, runtime);
+    const { modelsListCommand } = await import("./models/list.js");
+    await modelsListCommand({ json: true }, runtime);
 
-		expect(runtime.log).toHaveBeenCalledTimes(1);
-		const payload = JSON.parse(String(runtime.log.mock.calls[0]?.[0]));
-		expect(payload.models[0]?.key).toBe("zai/glm-4.7");
-	});
+    expect(runtime.log).toHaveBeenCalledTimes(1);
+    const payload = JSON.parse(String(runtime.log.mock.calls[0]?.[0]));
+    expect(payload.models[0]?.key).toBe("zai/glm-4.7");
+  });
 
-	it("models list plain outputs canonical zai key", async () => {
-		loadConfig.mockReturnValue({
-			agents: { defaults: { model: "z.ai/glm-4.7" } },
-		});
-		const runtime = makeRuntime();
+  it("models list plain outputs canonical zai key", async () => {
+    loadConfig.mockReturnValue({
+      agents: { defaults: { model: "z.ai/glm-4.7" } },
+    });
+    const runtime = makeRuntime();
 
-		const model = {
-			provider: "zai",
-			id: "glm-4.7",
-			name: "GLM-4.7",
-			input: ["text"],
-			baseUrl: "https://api.z.ai/v1",
-			contextWindow: 128000,
-		};
+    const model = {
+      provider: "zai",
+      id: "glm-4.7",
+      name: "GLM-4.7",
+      input: ["text"],
+      baseUrl: "https://api.z.ai/v1",
+      contextWindow: 128000,
+    };
 
-		modelRegistryState.models = [model];
-		modelRegistryState.available = [model];
+    modelRegistryState.models = [model];
+    modelRegistryState.available = [model];
 
-		const { modelsListCommand } = await import("./models/list.js");
-		await modelsListCommand({ plain: true }, runtime);
+    const { modelsListCommand } = await import("./models/list.js");
+    await modelsListCommand({ plain: true }, runtime);
 
-		expect(runtime.log).toHaveBeenCalledTimes(1);
-		expect(runtime.log.mock.calls[0]?.[0]).toBe("zai/glm-4.7");
-	});
+    expect(runtime.log).toHaveBeenCalledTimes(1);
+    expect(runtime.log.mock.calls[0]?.[0]).toBe("zai/glm-4.7");
+  });
 
-	it("models list provider filter normalizes z.ai alias", async () => {
-		loadConfig.mockReturnValue({
-			agents: { defaults: { model: "z.ai/glm-4.7" } },
-		});
-		const runtime = makeRuntime();
+  it("models list provider filter normalizes z.ai alias", async () => {
+    loadConfig.mockReturnValue({
+      agents: { defaults: { model: "z.ai/glm-4.7" } },
+    });
+    const runtime = makeRuntime();
 
-		const models = [
-			{
-				provider: "zai",
-				id: "glm-4.7",
-				name: "GLM-4.7",
-				input: ["text"],
-				baseUrl: "https://api.z.ai/v1",
-				contextWindow: 128000,
-			},
-			{
-				provider: "openai",
-				id: "gpt-4.1-mini",
-				name: "GPT-4.1 mini",
-				input: ["text"],
-				baseUrl: "https://api.openai.com/v1",
-				contextWindow: 128000,
-			},
-		];
+    const models = [
+      {
+        provider: "zai",
+        id: "glm-4.7",
+        name: "GLM-4.7",
+        input: ["text"],
+        baseUrl: "https://api.z.ai/v1",
+        contextWindow: 128000,
+      },
+      {
+        provider: "openai",
+        id: "gpt-4.1-mini",
+        name: "GPT-4.1 mini",
+        input: ["text"],
+        baseUrl: "https://api.openai.com/v1",
+        contextWindow: 128000,
+      },
+    ];
 
-		modelRegistryState.models = models;
-		modelRegistryState.available = models;
+    modelRegistryState.models = models;
+    modelRegistryState.available = models;
 
-		const { modelsListCommand } = await import("./models/list.js");
-		await modelsListCommand({ all: true, provider: "z.ai", json: true }, runtime);
+    const { modelsListCommand } = await import("./models/list.js");
+    await modelsListCommand({ all: true, provider: "z.ai", json: true }, runtime);
 
-		expect(runtime.log).toHaveBeenCalledTimes(1);
-		const payload = JSON.parse(String(runtime.log.mock.calls[0]?.[0]));
-		expect(payload.count).toBe(1);
-		expect(payload.models[0]?.key).toBe("zai/glm-4.7");
-	});
+    expect(runtime.log).toHaveBeenCalledTimes(1);
+    const payload = JSON.parse(String(runtime.log.mock.calls[0]?.[0]));
+    expect(payload.count).toBe(1);
+    expect(payload.models[0]?.key).toBe("zai/glm-4.7");
+  });
 
-	it("models list provider filter normalizes Z.AI alias casing", async () => {
-		loadConfig.mockReturnValue({
-			agents: { defaults: { model: "z.ai/glm-4.7" } },
-		});
-		const runtime = makeRuntime();
+  it("models list provider filter normalizes Z.AI alias casing", async () => {
+    loadConfig.mockReturnValue({
+      agents: { defaults: { model: "z.ai/glm-4.7" } },
+    });
+    const runtime = makeRuntime();
 
-		const models = [
-			{
-				provider: "zai",
-				id: "glm-4.7",
-				name: "GLM-4.7",
-				input: ["text"],
-				baseUrl: "https://api.z.ai/v1",
-				contextWindow: 128000,
-			},
-			{
-				provider: "openai",
-				id: "gpt-4.1-mini",
-				name: "GPT-4.1 mini",
-				input: ["text"],
-				baseUrl: "https://api.openai.com/v1",
-				contextWindow: 128000,
-			},
-		];
+    const models = [
+      {
+        provider: "zai",
+        id: "glm-4.7",
+        name: "GLM-4.7",
+        input: ["text"],
+        baseUrl: "https://api.z.ai/v1",
+        contextWindow: 128000,
+      },
+      {
+        provider: "openai",
+        id: "gpt-4.1-mini",
+        name: "GPT-4.1 mini",
+        input: ["text"],
+        baseUrl: "https://api.openai.com/v1",
+        contextWindow: 128000,
+      },
+    ];
 
-		modelRegistryState.models = models;
-		modelRegistryState.available = models;
+    modelRegistryState.models = models;
+    modelRegistryState.available = models;
 
-		const { modelsListCommand } = await import("./models/list.js");
-		await modelsListCommand({ all: true, provider: "Z.AI", json: true }, runtime);
+    const { modelsListCommand } = await import("./models/list.js");
+    await modelsListCommand({ all: true, provider: "Z.AI", json: true }, runtime);
 
-		expect(runtime.log).toHaveBeenCalledTimes(1);
-		const payload = JSON.parse(String(runtime.log.mock.calls[0]?.[0]));
-		expect(payload.count).toBe(1);
-		expect(payload.models[0]?.key).toBe("zai/glm-4.7");
-	});
+    expect(runtime.log).toHaveBeenCalledTimes(1);
+    const payload = JSON.parse(String(runtime.log.mock.calls[0]?.[0]));
+    expect(payload.count).toBe(1);
+    expect(payload.models[0]?.key).toBe("zai/glm-4.7");
+  });
 
-	it("models list provider filter normalizes z-ai alias", async () => {
-		loadConfig.mockReturnValue({
-			agents: { defaults: { model: "z.ai/glm-4.7" } },
-		});
-		const runtime = makeRuntime();
+  it("models list provider filter normalizes z-ai alias", async () => {
+    loadConfig.mockReturnValue({
+      agents: { defaults: { model: "z.ai/glm-4.7" } },
+    });
+    const runtime = makeRuntime();
 
-		const models = [
-			{
-				provider: "zai",
-				id: "glm-4.7",
-				name: "GLM-4.7",
-				input: ["text"],
-				baseUrl: "https://api.z.ai/v1",
-				contextWindow: 128000,
-			},
-			{
-				provider: "openai",
-				id: "gpt-4.1-mini",
-				name: "GPT-4.1 mini",
-				input: ["text"],
-				baseUrl: "https://api.openai.com/v1",
-				contextWindow: 128000,
-			},
-		];
+    const models = [
+      {
+        provider: "zai",
+        id: "glm-4.7",
+        name: "GLM-4.7",
+        input: ["text"],
+        baseUrl: "https://api.z.ai/v1",
+        contextWindow: 128000,
+      },
+      {
+        provider: "openai",
+        id: "gpt-4.1-mini",
+        name: "GPT-4.1 mini",
+        input: ["text"],
+        baseUrl: "https://api.openai.com/v1",
+        contextWindow: 128000,
+      },
+    ];
 
-		modelRegistryState.models = models;
-		modelRegistryState.available = models;
+    modelRegistryState.models = models;
+    modelRegistryState.available = models;
 
-		const { modelsListCommand } = await import("./models/list.js");
-		await modelsListCommand({ all: true, provider: "z-ai", json: true }, runtime);
+    const { modelsListCommand } = await import("./models/list.js");
+    await modelsListCommand({ all: true, provider: "z-ai", json: true }, runtime);
 
-		expect(runtime.log).toHaveBeenCalledTimes(1);
-		const payload = JSON.parse(String(runtime.log.mock.calls[0]?.[0]));
-		expect(payload.count).toBe(1);
-		expect(payload.models[0]?.key).toBe("zai/glm-4.7");
-	});
+    expect(runtime.log).toHaveBeenCalledTimes(1);
+    const payload = JSON.parse(String(runtime.log.mock.calls[0]?.[0]));
+    expect(payload.count).toBe(1);
+    expect(payload.models[0]?.key).toBe("zai/glm-4.7");
+  });
 
-	it("models list marks auth as unavailable when ZAI key is missing", async () => {
-		loadConfig.mockReturnValue({
-			agents: { defaults: { model: "z.ai/glm-4.7" } },
-		});
-		const runtime = makeRuntime();
+  it("models list marks auth as unavailable when ZAI key is missing", async () => {
+    loadConfig.mockReturnValue({
+      agents: { defaults: { model: "z.ai/glm-4.7" } },
+    });
+    const runtime = makeRuntime();
 
-		const model = {
-			provider: "zai",
-			id: "glm-4.7",
-			name: "GLM-4.7",
-			input: ["text"],
-			baseUrl: "https://api.z.ai/v1",
-			contextWindow: 128000,
-		};
+    const model = {
+      provider: "zai",
+      id: "glm-4.7",
+      name: "GLM-4.7",
+      input: ["text"],
+      baseUrl: "https://api.z.ai/v1",
+      contextWindow: 128000,
+    };
 
-		modelRegistryState.models = [model];
-		modelRegistryState.available = [];
+    modelRegistryState.models = [model];
+    modelRegistryState.available = [];
 
-		const { modelsListCommand } = await import("./models/list.js");
-		await modelsListCommand({ all: true, json: true }, runtime);
+    const { modelsListCommand } = await import("./models/list.js");
+    await modelsListCommand({ all: true, json: true }, runtime);
 
-		expect(runtime.log).toHaveBeenCalledTimes(1);
-		const payload = JSON.parse(String(runtime.log.mock.calls[0]?.[0]));
-		expect(payload.models[0]?.available).toBe(false);
-	});
+    expect(runtime.log).toHaveBeenCalledTimes(1);
+    const payload = JSON.parse(String(runtime.log.mock.calls[0]?.[0]));
+    expect(payload.models[0]?.available).toBe(false);
+  });
 
-	it("models list resolves antigravity opus 4.6 thinking from 4.5 template", async () => {
-		loadConfig.mockReturnValue({
-			agents: {
-				defaults: {
-					model: "google-antigravity/claude-opus-4-6-thinking",
-					models: {
-						"google-antigravity/claude-opus-4-6-thinking": {},
-					},
-				},
-			},
-		});
-		const runtime = makeRuntime();
+  it("models list resolves antigravity opus 4.6 thinking from 4.5 template", async () => {
+    loadConfig.mockReturnValue({
+      agents: {
+        defaults: {
+          model: "google-antigravity/claude-opus-4-6-thinking",
+          models: {
+            "google-antigravity/claude-opus-4-6-thinking": {},
+          },
+        },
+      },
+    });
+    const runtime = makeRuntime();
 
-		modelRegistryState.models = [
-			{
-				provider: "google-antigravity",
-				id: "claude-opus-4-5-thinking",
-				name: "Claude Opus 4.5 Thinking",
-				api: "google-gemini-cli",
-				input: ["text", "image"],
-				baseUrl: "https://daily-cloudcode-pa.sandbox.googleapis.com",
-				contextWindow: 200000,
-				maxTokens: 64000,
-				reasoning: true,
-				cost: { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 },
-			},
-		];
-		modelRegistryState.available = [];
+    modelRegistryState.models = [
+      {
+        provider: "google-antigravity",
+        id: "claude-opus-4-5-thinking",
+        name: "Claude Opus 4.5 Thinking",
+        api: "google-gemini-cli",
+        input: ["text", "image"],
+        baseUrl: "https://daily-cloudcode-pa.sandbox.googleapis.com",
+        contextWindow: 200000,
+        maxTokens: 64000,
+        reasoning: true,
+        cost: { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 },
+      },
+    ];
+    modelRegistryState.available = [];
 
-		const { modelsListCommand } = await import("./models/list.js");
-		await modelsListCommand({ json: true }, runtime);
+    const { modelsListCommand } = await import("./models/list.js");
+    await modelsListCommand({ json: true }, runtime);
 
-		expect(runtime.log).toHaveBeenCalledTimes(1);
-		const payload = JSON.parse(String(runtime.log.mock.calls[0]?.[0]));
-		expect(payload.models[0]?.key).toBe("google-antigravity/claude-opus-4-6-thinking");
-		expect(payload.models[0]?.missing).toBe(false);
-		expect(payload.models[0]?.tags).toContain("default");
-		expect(payload.models[0]?.tags).toContain("configured");
-	});
+    expect(runtime.log).toHaveBeenCalledTimes(1);
+    const payload = JSON.parse(String(runtime.log.mock.calls[0]?.[0]));
+    expect(payload.models[0]?.key).toBe("google-antigravity/claude-opus-4-6-thinking");
+    expect(payload.models[0]?.missing).toBe(false);
+    expect(payload.models[0]?.tags).toContain("default");
+    expect(payload.models[0]?.tags).toContain("configured");
+  });
 
-	it("models list marks synthesized antigravity opus 4.6 thinking as available when template is available", async () => {
-		loadConfig.mockReturnValue({
-			agents: {
-				defaults: {
-					model: "google-antigravity/claude-opus-4-6-thinking",
-					models: {
-						"google-antigravity/claude-opus-4-6-thinking": {},
-					},
-				},
-			},
-		});
-		const runtime = makeRuntime();
+  it("models list marks synthesized antigravity opus 4.6 thinking as available when template is available", async () => {
+    loadConfig.mockReturnValue({
+      agents: {
+        defaults: {
+          model: "google-antigravity/claude-opus-4-6-thinking",
+          models: {
+            "google-antigravity/claude-opus-4-6-thinking": {},
+          },
+        },
+      },
+    });
+    const runtime = makeRuntime();
 
-		const template = {
-			provider: "google-antigravity",
-			id: "claude-opus-4-5-thinking",
-			name: "Claude Opus 4.5 Thinking",
-			api: "google-gemini-cli",
-			input: ["text", "image"],
-			baseUrl: "https://daily-cloudcode-pa.sandbox.googleapis.com",
-			contextWindow: 200000,
-			maxTokens: 64000,
-			reasoning: true,
-			cost: { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 },
-		};
-		modelRegistryState.models = [template];
-		modelRegistryState.available = [template];
+    const template = {
+      provider: "google-antigravity",
+      id: "claude-opus-4-5-thinking",
+      name: "Claude Opus 4.5 Thinking",
+      api: "google-gemini-cli",
+      input: ["text", "image"],
+      baseUrl: "https://daily-cloudcode-pa.sandbox.googleapis.com",
+      contextWindow: 200000,
+      maxTokens: 64000,
+      reasoning: true,
+      cost: { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 },
+    };
+    modelRegistryState.models = [template];
+    modelRegistryState.available = [template];
 
-		const { modelsListCommand } = await import("./models/list.js");
-		await modelsListCommand({ json: true }, runtime);
+    const { modelsListCommand } = await import("./models/list.js");
+    await modelsListCommand({ json: true }, runtime);
 
-		expect(runtime.log).toHaveBeenCalledTimes(1);
-		const payload = JSON.parse(String(runtime.log.mock.calls[0]?.[0]));
-		expect(payload.models[0]?.key).toBe("google-antigravity/claude-opus-4-6-thinking");
-		expect(payload.models[0]?.missing).toBe(false);
-		expect(payload.models[0]?.available).toBe(true);
-	});
+    expect(runtime.log).toHaveBeenCalledTimes(1);
+    const payload = JSON.parse(String(runtime.log.mock.calls[0]?.[0]));
+    expect(payload.models[0]?.key).toBe("google-antigravity/claude-opus-4-6-thinking");
+    expect(payload.models[0]?.missing).toBe(false);
+    expect(payload.models[0]?.available).toBe(true);
+  });
 
-	it("models list prefers registry availability over provider auth heuristics", async () => {
-		loadConfig.mockReturnValue({
-			agents: {
-				defaults: {
-					model: "google-antigravity/claude-opus-4-6-thinking",
-					models: {
-						"google-antigravity/claude-opus-4-6-thinking": {},
-					},
-				},
-			},
-		});
-		listProfilesForProvider.mockImplementation((_: unknown, provider: string) =>
-			provider === "google-antigravity"
-				? ([{ id: "profile-1" }] as Array<Record<string, unknown>>)
-				: [],
-		);
-		const runtime = makeRuntime();
+  it("models list prefers registry availability over provider auth heuristics", async () => {
+    loadConfig.mockReturnValue({
+      agents: {
+        defaults: {
+          model: "google-antigravity/claude-opus-4-6-thinking",
+          models: {
+            "google-antigravity/claude-opus-4-6-thinking": {},
+          },
+        },
+      },
+    });
+    listProfilesForProvider.mockImplementation((_: unknown, provider: string) =>
+      provider === "google-antigravity"
+        ? ([{ id: "profile-1" }] as Array<Record<string, unknown>>)
+        : [],
+    );
+    const runtime = makeRuntime();
 
-		const template = {
-			provider: "google-antigravity",
-			id: "claude-opus-4-5-thinking",
-			name: "Claude Opus 4.5 Thinking",
-			api: "google-gemini-cli",
-			input: ["text", "image"],
-			baseUrl: "https://daily-cloudcode-pa.sandbox.googleapis.com",
-			contextWindow: 200000,
-			maxTokens: 64000,
-			reasoning: true,
-			cost: { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 },
-		};
-		modelRegistryState.models = [template];
-		modelRegistryState.available = [];
+    const template = {
+      provider: "google-antigravity",
+      id: "claude-opus-4-5-thinking",
+      name: "Claude Opus 4.5 Thinking",
+      api: "google-gemini-cli",
+      input: ["text", "image"],
+      baseUrl: "https://daily-cloudcode-pa.sandbox.googleapis.com",
+      contextWindow: 200000,
+      maxTokens: 64000,
+      reasoning: true,
+      cost: { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 },
+    };
+    modelRegistryState.models = [template];
+    modelRegistryState.available = [];
 
-		const { modelsListCommand } = await import("./models/list.js");
-		await modelsListCommand({ json: true }, runtime);
+    const { modelsListCommand } = await import("./models/list.js");
+    await modelsListCommand({ json: true }, runtime);
 
-		expect(runtime.log).toHaveBeenCalledTimes(1);
-		const payload = JSON.parse(String(runtime.log.mock.calls[0]?.[0]));
-		expect(payload.models[0]?.key).toBe("google-antigravity/claude-opus-4-6-thinking");
-		expect(payload.models[0]?.missing).toBe(false);
-		expect(payload.models[0]?.available).toBe(false);
-		listProfilesForProvider.mockReturnValue([]);
-	});
+    expect(runtime.log).toHaveBeenCalledTimes(1);
+    const payload = JSON.parse(String(runtime.log.mock.calls[0]?.[0]));
+    expect(payload.models[0]?.key).toBe("google-antigravity/claude-opus-4-6-thinking");
+    expect(payload.models[0]?.missing).toBe(false);
+    expect(payload.models[0]?.available).toBe(false);
+    listProfilesForProvider.mockReturnValue([]);
+  });
 
-	it("models list falls back to auth heuristics when registry availability is unavailable", async () => {
-		loadConfig.mockReturnValue({
-			agents: {
-				defaults: {
-					model: "google-antigravity/claude-opus-4-6-thinking",
-					models: {
-						"google-antigravity/claude-opus-4-6-thinking": {},
-					},
-				},
-			},
-		});
-		listProfilesForProvider.mockImplementation((_: unknown, provider: string) =>
-			provider === "google-antigravity"
-				? ([{ id: "profile-1" }] as Array<Record<string, unknown>>)
-				: [],
-		);
-		modelRegistryState.getAvailableError = Object.assign(
-			new Error("availability unsupported: getAvailable failed"),
-			{ code: "MODEL_AVAILABILITY_UNAVAILABLE" },
-		);
-		const runtime = makeRuntime();
+  it("models list falls back to auth heuristics when registry availability is unavailable", async () => {
+    loadConfig.mockReturnValue({
+      agents: {
+        defaults: {
+          model: "google-antigravity/claude-opus-4-6-thinking",
+          models: {
+            "google-antigravity/claude-opus-4-6-thinking": {},
+          },
+        },
+      },
+    });
+    listProfilesForProvider.mockImplementation((_: unknown, provider: string) =>
+      provider === "google-antigravity"
+        ? ([{ id: "profile-1" }] as Array<Record<string, unknown>>)
+        : [],
+    );
+    modelRegistryState.getAvailableError = Object.assign(
+      new Error("availability unsupported: getAvailable failed"),
+      { code: "MODEL_AVAILABILITY_UNAVAILABLE" },
+    );
+    const runtime = makeRuntime();
 
-		modelRegistryState.models = [
-			{
-				provider: "google-antigravity",
-				id: "claude-opus-4-5-thinking",
-				name: "Claude Opus 4.5 Thinking",
-				api: "google-gemini-cli",
-				input: ["text", "image"],
-				baseUrl: "https://daily-cloudcode-pa.sandbox.googleapis.com",
-				contextWindow: 200000,
-				maxTokens: 64000,
-				reasoning: true,
-				cost: { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 },
-			},
-		];
-		modelRegistryState.available = [];
+    modelRegistryState.models = [
+      {
+        provider: "google-antigravity",
+        id: "claude-opus-4-5-thinking",
+        name: "Claude Opus 4.5 Thinking",
+        api: "google-gemini-cli",
+        input: ["text", "image"],
+        baseUrl: "https://daily-cloudcode-pa.sandbox.googleapis.com",
+        contextWindow: 200000,
+        maxTokens: 64000,
+        reasoning: true,
+        cost: { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 },
+      },
+    ];
+    modelRegistryState.available = [];
 
-		const { modelsListCommand } = await import("./models/list.js");
-		await modelsListCommand({ json: true }, runtime);
+    const { modelsListCommand } = await import("./models/list.js");
+    await modelsListCommand({ json: true }, runtime);
 
-		expect(runtime.error).toHaveBeenCalledTimes(1);
-		expect(runtime.error.mock.calls[0]?.[0]).toContain("falling back to auth heuristics");
-		expect(runtime.error.mock.calls[0]?.[0]).toContain("getAvailable failed");
-		expect(runtime.log).toHaveBeenCalledTimes(1);
-		const payload = JSON.parse(String(runtime.log.mock.calls[0]?.[0]));
-		expect(payload.models[0]?.key).toBe("google-antigravity/claude-opus-4-6-thinking");
-		expect(payload.models[0]?.missing).toBe(false);
-		expect(payload.models[0]?.available).toBe(true);
-	});
+    expect(runtime.error).toHaveBeenCalledTimes(1);
+    expect(runtime.error.mock.calls[0]?.[0]).toContain("falling back to auth heuristics");
+    expect(runtime.error.mock.calls[0]?.[0]).toContain("getAvailable failed");
+    expect(runtime.log).toHaveBeenCalledTimes(1);
+    const payload = JSON.parse(String(runtime.log.mock.calls[0]?.[0]));
+    expect(payload.models[0]?.key).toBe("google-antigravity/claude-opus-4-6-thinking");
+    expect(payload.models[0]?.missing).toBe(false);
+    expect(payload.models[0]?.available).toBe(true);
+  });
 
-	it("models list does not mask unexpected availability errors", async () => {
-		loadConfig.mockReturnValue({
-			agents: {
-				defaults: {
-					model: "google-antigravity/claude-opus-4-6-thinking",
-					models: {
-						"google-antigravity/claude-opus-4-6-thinking": {},
-					},
-				},
-			},
-		});
-		listProfilesForProvider.mockImplementation((_: unknown, provider: string) =>
-			provider === "google-antigravity"
-				? ([{ id: "profile-1" }] as Array<Record<string, unknown>>)
-				: [],
-		);
-		modelRegistryState.getAvailableError = new Error("unexpected getAvailable failure");
-		const runtime = makeRuntime();
+  it("models list does not mask unexpected availability errors", async () => {
+    loadConfig.mockReturnValue({
+      agents: {
+        defaults: {
+          model: "google-antigravity/claude-opus-4-6-thinking",
+          models: {
+            "google-antigravity/claude-opus-4-6-thinking": {},
+          },
+        },
+      },
+    });
+    listProfilesForProvider.mockImplementation((_: unknown, provider: string) =>
+      provider === "google-antigravity"
+        ? ([{ id: "profile-1" }] as Array<Record<string, unknown>>)
+        : [],
+    );
+    modelRegistryState.getAvailableError = new Error("unexpected getAvailable failure");
+    const runtime = makeRuntime();
 
-		modelRegistryState.models = [
-			{
-				provider: "google-antigravity",
-				id: "claude-opus-4-5-thinking",
-				name: "Claude Opus 4.5 Thinking",
-				api: "google-gemini-cli",
-				input: ["text", "image"],
-				baseUrl: "https://daily-cloudcode-pa.sandbox.googleapis.com",
-				contextWindow: 200000,
-				maxTokens: 64000,
-				reasoning: true,
-				cost: { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 },
-			},
-		];
-		modelRegistryState.available = [];
+    modelRegistryState.models = [
+      {
+        provider: "google-antigravity",
+        id: "claude-opus-4-5-thinking",
+        name: "Claude Opus 4.5 Thinking",
+        api: "google-gemini-cli",
+        input: ["text", "image"],
+        baseUrl: "https://daily-cloudcode-pa.sandbox.googleapis.com",
+        contextWindow: 200000,
+        maxTokens: 64000,
+        reasoning: true,
+        cost: { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 },
+      },
+    ];
+    modelRegistryState.available = [];
 
-		const { modelsListCommand } = await import("./models/list.js");
-		await modelsListCommand({ json: true }, runtime);
+    const { modelsListCommand } = await import("./models/list.js");
+    await modelsListCommand({ json: true }, runtime);
 
-		expect(runtime.error).toHaveBeenCalledTimes(1);
-		expect(runtime.error.mock.calls[0]?.[0]).toContain("Model registry unavailable:");
-		expect(runtime.error.mock.calls[0]?.[0]).toContain("unexpected getAvailable failure");
-		expect(runtime.error.mock.calls[0]?.[0]).not.toContain("falling back to auth heuristics");
-		expect(runtime.log).toHaveBeenCalledTimes(1);
-		const payload = JSON.parse(String(runtime.log.mock.calls[0]?.[0]));
-		expect(payload.models[0]?.key).toBe("google-antigravity/claude-opus-4-6-thinking");
-		expect(payload.models[0]?.missing).toBe(true);
-	});
+    expect(runtime.error).toHaveBeenCalledTimes(1);
+    expect(runtime.error.mock.calls[0]?.[0]).toContain("Model registry unavailable:");
+    expect(runtime.error.mock.calls[0]?.[0]).toContain("unexpected getAvailable failure");
+    expect(runtime.error.mock.calls[0]?.[0]).not.toContain("falling back to auth heuristics");
+    expect(runtime.log).toHaveBeenCalledTimes(1);
+    const payload = JSON.parse(String(runtime.log.mock.calls[0]?.[0]));
+    expect(payload.models[0]?.key).toBe("google-antigravity/claude-opus-4-6-thinking");
+    expect(payload.models[0]?.missing).toBe(true);
+  });
 });
