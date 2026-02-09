@@ -1,4 +1,4 @@
-import type { ClawdbotConfig, RuntimeEnv } from "openclaw/plugin-sdk";
+import type { OpenClawConfig, RuntimeEnv } from "openclaw/plugin-sdk";
 import {
   buildPendingHistoryContextFromMap,
   recordPendingHistoryEntryIfEnabled,
@@ -335,7 +335,7 @@ function inferPlaceholder(messageType: string): string {
  * Similar to Discord's resolveMediaList().
  */
 async function resolveFeishuMediaList(params: {
-  cfg: ClawdbotConfig;
+  cfg: OpenClawConfig;
   messageId: string;
   messageType: string;
   content: string;
@@ -520,7 +520,7 @@ export function parseFeishuMessageEvent(
 }
 
 export async function handleFeishuMessage(params: {
-  cfg: ClawdbotConfig;
+  cfg: OpenClawConfig;
   event: FeishuMessageEvent;
   botOpenId?: string;
   runtime?: RuntimeEnv;
@@ -532,6 +532,8 @@ export async function handleFeishuMessage(params: {
   // Resolve account with merged config
   const account = resolveFeishuAccount({ cfg, accountId });
   const feishuCfg = account.config;
+  const disableBlockStreamingFromConfig =
+    typeof feishuCfg?.blockStreaming === "boolean" ? !feishuCfg.blockStreaming : undefined;
 
   const log = runtime?.log ?? console.log;
   const error = runtime?.error ?? console.error;
@@ -831,6 +833,8 @@ export async function handleFeishuMessage(params: {
         chatId: ctx.chatId,
         replyToMessageId: ctx.messageId,
         accountId: account.accountId,
+        disableBlockStreaming: disableBlockStreamingFromConfig,
+        enableThinkingCard: false,
       });
 
       log(`feishu[${account.accountId}]: dispatching permission error notification to agent`);
@@ -909,26 +913,37 @@ export async function handleFeishuMessage(params: {
       ...mediaPayload,
     });
 
-    const { dispatcher, replyOptions, markDispatchIdle } = createFeishuReplyDispatcher({
-      cfg,
-      agentId: route.agentId,
-      runtime: runtime as RuntimeEnv,
-      chatId: ctx.chatId,
-      replyToMessageId: ctx.messageId,
-      mentionTargets: ctx.mentionTargets,
-      accountId: account.accountId,
-    });
+    const { dispatcher, replyOptions, markDispatchIdle, finalizeThinkingCard } =
+      createFeishuReplyDispatcher({
+        cfg,
+        agentId: route.agentId,
+        runtime: runtime as RuntimeEnv,
+        chatId: ctx.chatId,
+        replyToMessageId: ctx.messageId,
+        mentionTargets: ctx.mentionTargets,
+        accountId: account.accountId,
+        disableBlockStreaming: disableBlockStreamingFromConfig,
+      });
 
     log(`feishu[${account.accountId}]: dispatching to agent (session=${route.sessionKey})`);
 
-    const { queuedFinal, counts } = await core.channel.reply.dispatchReplyFromConfig({
-      ctx: ctxPayload,
-      cfg,
-      dispatcher,
-      replyOptions,
-    });
-
-    markDispatchIdle();
+    const { queuedFinal, counts } = await (async () => {
+      try {
+        return await core.channel.reply.dispatchReplyFromConfig({
+          ctx: ctxPayload,
+          cfg,
+          dispatcher,
+          replyOptions: {
+            ...replyOptions,
+            disableBlockStreaming:
+              replyOptions.disableBlockStreaming ?? disableBlockStreamingFromConfig,
+          },
+        });
+      } finally {
+        markDispatchIdle();
+        await finalizeThinkingCard();
+      }
+    })();
 
     if (isGroup && historyKey && chatHistories) {
       clearHistoryEntriesIfEnabled({
