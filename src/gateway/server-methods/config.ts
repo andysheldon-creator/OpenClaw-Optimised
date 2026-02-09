@@ -36,6 +36,34 @@ import {
   validateConfigSetParams,
 } from "../protocol/index.js";
 
+type DeliveryContextParam = { channel?: string; to?: string; accountId?: string };
+
+/**
+ * Extract delivery context and threadId from RPC params.
+ * These are passed by the agent-side gateway tool so the restart sentinel
+ * can route the post-restart wake message back to the correct channel.
+ */
+function resolveDeliveryContextFromParams(params: unknown): {
+  deliveryContext?: DeliveryContextParam;
+  threadId?: string;
+} {
+  const raw = (params as { deliveryContext?: unknown }).deliveryContext;
+  let deliveryContext: DeliveryContextParam | undefined;
+  if (raw && typeof raw === "object") {
+    const dc = raw as Record<string, unknown>;
+    const channel = typeof dc.channel === "string" ? dc.channel.trim() || undefined : undefined;
+    const to = typeof dc.to === "string" ? dc.to.trim() || undefined : undefined;
+    const accountId =
+      typeof dc.accountId === "string" ? dc.accountId.trim() || undefined : undefined;
+    if (channel || to || accountId) {
+      deliveryContext = { channel, to, accountId };
+    }
+  }
+  const threadIdRaw = (params as { threadId?: unknown }).threadId;
+  const threadId = typeof threadIdRaw === "string" ? threadIdRaw.trim() || undefined : undefined;
+  return { deliveryContext, threadId };
+}
+
 function resolveBaseHash(params: unknown): string | null {
   const raw = (params as { baseHash?: unknown })?.baseHash;
   if (typeof raw !== "string") {
@@ -309,11 +337,14 @@ export const configHandlers: GatewayRequestHandlers = {
         ? Math.max(0, Math.floor(restartDelayMsRaw))
         : undefined;
 
+    const { deliveryContext, threadId } = resolveDeliveryContextFromParams(params);
     const payload: RestartSentinelPayload = {
       kind: "config-apply",
       status: "ok",
       ts: Date.now(),
       sessionKey,
+      deliveryContext,
+      threadId,
       message: note ?? null,
       doctorHint: formatDoctorNonInteractiveHint(),
       stats: {
@@ -420,11 +451,14 @@ export const configHandlers: GatewayRequestHandlers = {
         ? Math.max(0, Math.floor(restartDelayMsRaw))
         : undefined;
 
+    const { deliveryContext, threadId } = resolveDeliveryContextFromParams(params);
     const payload: RestartSentinelPayload = {
       kind: "config-apply",
       status: "ok",
       ts: Date.now(),
       sessionKey,
+      deliveryContext,
+      threadId,
       message: note ?? null,
       doctorHint: formatDoctorNonInteractiveHint(),
       stats: {

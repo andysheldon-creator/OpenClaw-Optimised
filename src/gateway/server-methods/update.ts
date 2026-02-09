@@ -74,11 +74,29 @@ export const updateHandlers: GatewayRequestHandlers = {
       };
     }
 
+    // Extract delivery context passed from agent-side gateway tool
+    const rawDc = (params as { deliveryContext?: unknown }).deliveryContext;
+    let deliveryContext: { channel?: string; to?: string; accountId?: string } | undefined;
+    if (rawDc && typeof rawDc === "object") {
+      const dc = rawDc as Record<string, unknown>;
+      const channel = typeof dc.channel === "string" ? dc.channel.trim() || undefined : undefined;
+      const to = typeof dc.to === "string" ? dc.to.trim() || undefined : undefined;
+      const accountId =
+        typeof dc.accountId === "string" ? dc.accountId.trim() || undefined : undefined;
+      if (channel || to || accountId) {
+        deliveryContext = { channel, to, accountId };
+      }
+    }
+    const threadIdRaw = (params as { threadId?: unknown }).threadId;
+    const threadId = typeof threadIdRaw === "string" ? threadIdRaw.trim() || undefined : undefined;
+
     const payload: RestartSentinelPayload = {
       kind: "update",
       status: result.status,
       ts: Date.now(),
       sessionKey,
+      deliveryContext,
+      threadId,
       message: note ?? null,
       doctorHint: formatDoctorNonInteractiveHint(),
       stats: {

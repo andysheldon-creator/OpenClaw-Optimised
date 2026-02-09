@@ -61,6 +61,46 @@ const GatewayToolSchema = Type.Object({
 // - Claude/Vertex has other JSON Schema quirks.
 // Conditional requirements (like `raw` for config.apply) are enforced at runtime.
 
+/**
+ * Resolve delivery context from the session store for a given session key.
+ * Used to persist channel routing info in the restart sentinel so that
+ * the gateway can route the post-restart wake message back to the correct channel.
+ */
+function resolveDeliveryContextForSession(sessionKey: string | undefined): {
+  deliveryContext?: { channel?: string; to?: string; accountId?: string };
+  threadId?: string;
+} {
+  if (!sessionKey) {
+    return {};
+  }
+  const threadMarker = ":thread:";
+  const threadIndex = sessionKey.lastIndexOf(threadMarker);
+  const baseSessionKey = threadIndex === -1 ? sessionKey : sessionKey.slice(0, threadIndex);
+  const threadIdRaw =
+    threadIndex === -1 ? undefined : sessionKey.slice(threadIndex + threadMarker.length);
+  const threadId = threadIdRaw?.trim() || undefined;
+  let deliveryContext: { channel?: string; to?: string; accountId?: string } | undefined;
+  try {
+    const cfg = loadConfig();
+    const storePath = resolveStorePath(cfg.session?.store);
+    const store = loadSessionStore(storePath);
+    let entry = store[sessionKey];
+    if (!entry?.deliveryContext && threadIndex !== -1 && baseSessionKey) {
+      entry = store[baseSessionKey];
+    }
+    if (entry?.deliveryContext) {
+      deliveryContext = {
+        channel: entry.deliveryContext.channel,
+        to: entry.deliveryContext.to,
+        accountId: entry.deliveryContext.accountId,
+      };
+    }
+  } catch {
+    // ignore: best-effort
+  }
+  return { deliveryContext, threadId };
+}
+
 export function createGatewayTool(opts?: {
   agentSessionKey?: string;
   config?: OpenClawConfig;
@@ -93,34 +133,7 @@ export function createGatewayTool(opts?: {
         const note =
           typeof params.note === "string" && params.note.trim() ? params.note.trim() : undefined;
         // Extract channel + threadId for routing after restart
-        let deliveryContext: { channel?: string; to?: string; accountId?: string } | undefined;
-        let threadId: string | undefined;
-        if (sessionKey) {
-          const threadMarker = ":thread:";
-          const threadIndex = sessionKey.lastIndexOf(threadMarker);
-          const baseSessionKey = threadIndex === -1 ? sessionKey : sessionKey.slice(0, threadIndex);
-          const threadIdRaw =
-            threadIndex === -1 ? undefined : sessionKey.slice(threadIndex + threadMarker.length);
-          threadId = threadIdRaw?.trim() || undefined;
-          try {
-            const cfg = loadConfig();
-            const storePath = resolveStorePath(cfg.session?.store);
-            const store = loadSessionStore(storePath);
-            let entry = store[sessionKey];
-            if (!entry?.deliveryContext && threadIndex !== -1 && baseSessionKey) {
-              entry = store[baseSessionKey];
-            }
-            if (entry?.deliveryContext) {
-              deliveryContext = {
-                channel: entry.deliveryContext.channel,
-                to: entry.deliveryContext.to,
-                accountId: entry.deliveryContext.accountId,
-              };
-            }
-          } catch {
-            // ignore: best-effort
-          }
-        }
+        const { deliveryContext, threadId } = resolveDeliveryContextForSession(sessionKey);
         const payload: RestartSentinelPayload = {
           kind: "restart",
           status: "ok",
@@ -189,12 +202,15 @@ export function createGatewayTool(opts?: {
           typeof params.restartDelayMs === "number" && Number.isFinite(params.restartDelayMs)
             ? Math.floor(params.restartDelayMs)
             : undefined;
+        const { deliveryContext, threadId } = resolveDeliveryContextForSession(sessionKey);
         const result = await callGatewayTool("config.apply", gatewayOpts, {
           raw,
           baseHash,
           sessionKey,
           note,
           restartDelayMs,
+          deliveryContext,
+          threadId,
         });
         return jsonResult({ ok: true, result });
       }
@@ -215,12 +231,15 @@ export function createGatewayTool(opts?: {
           typeof params.restartDelayMs === "number" && Number.isFinite(params.restartDelayMs)
             ? Math.floor(params.restartDelayMs)
             : undefined;
+        const { deliveryContext, threadId } = resolveDeliveryContextForSession(sessionKey);
         const result = await callGatewayTool("config.patch", gatewayOpts, {
           raw,
           baseHash,
           sessionKey,
           note,
           restartDelayMs,
+          deliveryContext,
+          threadId,
         });
         return jsonResult({ ok: true, result });
       }
@@ -235,6 +254,7 @@ export function createGatewayTool(opts?: {
           typeof params.restartDelayMs === "number" && Number.isFinite(params.restartDelayMs)
             ? Math.floor(params.restartDelayMs)
             : undefined;
+        const { deliveryContext, threadId } = resolveDeliveryContextForSession(sessionKey);
         const updateGatewayOpts = {
           ...gatewayOpts,
           timeoutMs: timeoutMs ?? DEFAULT_UPDATE_TIMEOUT_MS,
@@ -243,6 +263,8 @@ export function createGatewayTool(opts?: {
           sessionKey,
           note,
           restartDelayMs,
+          deliveryContext,
+          threadId,
           timeoutMs: timeoutMs ?? DEFAULT_UPDATE_TIMEOUT_MS,
         });
         return jsonResult({ ok: true, result });
