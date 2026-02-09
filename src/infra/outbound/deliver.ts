@@ -365,7 +365,7 @@ export async function deliverOutboundPayloads(params: {
     };
   };
 
-  const sendSignalTextChunks = async (text: string) => {
+  const sendSignalTextChunks = async (text: string, onAttempt?: (content: string) => void) => {
     throwIfAborted(abortSignal);
     let signalChunks =
       textLimit === undefined
@@ -397,6 +397,7 @@ export async function deliverOutboundPayloads(params: {
         rewrittenChunks.push({ text: hookResult.content, styles: [] });
       }
       for (const rewrittenChunk of rewrittenChunks) {
+        onAttempt?.(rewrittenChunk.text);
         results.push(await sendSignalText(rewrittenChunk.text, rewrittenChunk.styles));
         await runMessageSentHook(rewrittenChunk.text, true);
       }
@@ -449,7 +450,9 @@ export async function deliverOutboundPayloads(params: {
       }
       if (payloadSummary.mediaUrls.length === 0) {
         if (isSignalChannel) {
-          await sendSignalTextChunks(payloadSummary.text);
+          await sendSignalTextChunks(payloadSummary.text, (content) => {
+            attemptedSendContent = content;
+          });
         } else {
           await sendTextChunks(payloadSummary.text);
         }
