@@ -1,3 +1,4 @@
+import fs from "node:fs/promises";
 import type { DaemonLifecycleOptions } from "./types.js";
 import { resolveIsNixMode } from "../../config/paths.js";
 import { resolveGatewayService } from "../../daemon/service.js";
@@ -141,6 +142,21 @@ export async function runDaemonStart(opts: DaemonLifecycleOptions = {}) {
     }
     return;
   }
+
+  // Validate that the configured entrypoint exists before attempting to start.
+  // This provides a clear error instead of letting the service crash repeatedly.
+  const currentConfig = await service.readCommand(process.env);
+  if (currentConfig?.programArguments && currentConfig.programArguments.length >= 2) {
+    const entrypoint = currentConfig.programArguments[1];
+    try {
+      await fs.access(entrypoint);
+    } catch {
+      const hints = [`Run: openclaw gateway install --force`];
+      fail(`Service entrypoint ${entrypoint} not found. Reinstall the service.`, hints);
+      return;
+    }
+  }
+
   try {
     await service.restart({ env: process.env, stdout });
   } catch (err) {
