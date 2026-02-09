@@ -125,6 +125,27 @@ export function createFollowupRunner(params: {
       let fallbackProvider = queued.run.provider;
       let fallbackModel = queued.run.model;
       try {
+        // Preemptive context waterline gates (tools-layer):
+        // When the session is near the context window limit, reduce how much exec output
+        // is injected back into the model context.
+        const totalTokensHint = sessionEntry?.totalTokens ?? 0;
+        const contextTokensHint = sessionEntry?.contextTokens ?? DEFAULT_CONTEXT_TOKENS;
+        const ratio = contextTokensHint > 0 ? totalTokensHint / contextTokensHint : 0;
+        let cappedResultMaxChars: number | undefined;
+        if (ratio >= 0.95) {
+          cappedResultMaxChars = 4_000;
+        } else if (ratio >= 0.85) {
+          cappedResultMaxChars = 10_000;
+        }
+        const execOverrides = (() => {
+          if (!cappedResultMaxChars) {
+            return queued.run.execOverrides;
+          }
+          const existing = queued.run.execOverrides?.resultMaxChars;
+          const next = existing ? Math.min(existing, cappedResultMaxChars) : cappedResultMaxChars;
+          return { ...queued.run.execOverrides, resultMaxChars: next };
+        })();
+
         const fallbackResult = await runWithModelFallback({
           cfg: queued.run.config,
           provider: queued.run.provider,
@@ -167,7 +188,7 @@ export function createFollowupRunner(params: {
               thinkLevel: queued.run.thinkLevel,
               verboseLevel: queued.run.verboseLevel,
               reasoningLevel: queued.run.reasoningLevel,
-              execOverrides: queued.run.execOverrides,
+              execOverrides,
               bashElevated: queued.run.bashElevated,
               timeoutMs: queued.run.timeoutMs,
               runId,

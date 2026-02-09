@@ -60,6 +60,46 @@ const baseQueuedRun = (messageProvider = "whatsapp"): FollowupRun =>
     },
   }) as FollowupRun;
 
+describe("createFollowupRunner preemptive exec result cap", () => {
+  it("reduces exec resultMaxChars when session is near the context window", async () => {
+    const storePath = path.join(
+      await fs.mkdtemp(path.join(tmpdir(), "openclaw-waterline-")),
+      "sessions.json",
+    );
+    const sessionEntry: SessionEntry = {
+      sessionId: "session",
+      updatedAt: Date.now(),
+      // Near 95%: trigger the 4k cap.
+      totalTokens: 95_000,
+      contextTokens: 100_000,
+    };
+    const sessionStore: Record<string, SessionEntry> = { main: sessionEntry };
+    await saveSessionStore(storePath, sessionStore);
+
+    runEmbeddedPiAgentMock.mockReset();
+    runEmbeddedPiAgentMock.mockResolvedValueOnce({ payloads: [{ text: "ok" }], meta: {} });
+
+    const runner = createFollowupRunner({
+      opts: { onBlockReply: vi.fn(async () => {}) },
+      typing: createMockTypingController(),
+      typingMode: "instant",
+      sessionEntry,
+      sessionStore,
+      sessionKey: "main",
+      storePath,
+      defaultModel: "anthropic/claude-opus-4-5",
+    });
+
+    const queued = baseQueuedRun();
+    queued.run.sessionKey = "main";
+
+    await runner(queued);
+
+    const call = runEmbeddedPiAgentMock.mock.calls[0]?.[0] as any;
+    expect(call.execOverrides?.resultMaxChars).toBe(4000);
+  });
+});
+
 describe("createFollowupRunner compaction", () => {
   it("adds verbose auto-compaction notice and tracks count", async () => {
     const storePath = path.join(
