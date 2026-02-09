@@ -1,0 +1,57 @@
+{
+  "id": "command-safety-guard",
+  "name": "Command Safety Guard",
+  "description": "Blocks execution of potentially destructive shell commands",
+  "version": "0.0.1",
+  "uiHints": {
+    "extraPatterns": { "label": "Extra Block Patterns", "advanced": true },
+    "allowPatterns": { "label": "Allow Patterns", "advanced": true },
+    "disabledRules": { "label": "Disabled Rules", "advanced": true },
+    "failOpen": { "label": "Fail Open", "help": "Allow commands through if evaluation fails" },
+    "stages.beforeToolCall.enabled": {
+      "label": "Enabled",
+      "help": "Enable guardrail check before tool calls"
+    },
+    "stages.beforeToolCall.mode": { "label": "Mode", "help": "Block violations or monitor only" }
+  },
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "failOpen": {
+        "type": "boolean",
+        "description": "Allow commands through if evaluation fails (default: true)"
+      },
+      "guardrailPriority": {
+        "type": "integer",
+        "description": "Higher runs earlier when multiple guardrails are enabled"
+      },
+      "extraPatterns": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Additional regex patterns to block"
+      },
+      "allowPatterns": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Regex patterns to allow even if they match block rules"
+      },
+      "disabledRules": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Built-in rule IDs to disable (e.g., 'rm-recursive-force', 'dd-device')"
+      },
+      "stages": {
+        "type": "object",
+        "properties": {
+          "beforeToolCall": {
+            "type": "object",
+            "properties": {
+              "enabled": { "type": "boolean" },
+              "mode": { "type": "string", "enum": ["block", "monitor"] }
+            }
+          }
+        }
+      }
+    }
+  }
+}

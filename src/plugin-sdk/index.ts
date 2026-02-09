@@ -73,6 +73,16 @@ export { normalizePluginHttpPath } from "../plugins/http-path.js";
 export { registerPluginHttpRoute } from "../plugins/http-registry.js";
 export { emptyPluginConfigSchema } from "../plugins/config-schema.js";
 export type { OpenClawConfig } from "../config/config.js";
+export type {
+  BaseStageConfig,
+  EmbeddedAgentResult,
+  GuardrailBaseConfig,
+  GuardrailDefinition,
+  GuardrailEvaluation,
+  GuardrailEvaluationContext,
+  GuardrailStage,
+  RunEmbeddedPiAgentFn,
+} from "../plugins/guardrails-utils.js";
 export type { ChannelDock } from "../channels/dock.js";
 export { getChatChannelMeta } from "../channels/registry.js";
 export type {
@@ -118,6 +128,25 @@ export { ToolPolicySchema } from "../config/zod-schema.agent-runtime.js";
 export type { RuntimeEnv } from "../runtime.js";
 export type { WizardPrompter } from "../wizard/prompts.js";
 export { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "../routing/session-key.js";
+export {
+  appendWarningToToolResult,
+  buildToolCallSummary,
+  cleanupTempDir,
+  collectText,
+  createGuardrailRunId,
+  createGuardrailPlugin,
+  createGuardrailTempDir,
+  extractMessagesContent,
+  extractTextFromContent,
+  extractToolResultText,
+  generateSessionId,
+  isStageEnabled,
+  isGuardrailRunId,
+  loadRunEmbeddedPiAgent,
+  resolveBlockMode,
+  resolveStageConfig,
+  safeJsonStringify,
+} from "../plugins/guardrails-utils.js";
 export type { ChatType } from "../channels/chat-type.js";
 /** @deprecated Use ChatType instead */
 export type { RoutePeerKind } from "../routing/resolve-route.js";

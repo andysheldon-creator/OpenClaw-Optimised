@@ -8,12 +8,17 @@
 import type { PluginRegistry } from "./registry.js";
 import type {
   PluginHookAfterCompactionEvent,
+  PluginHookAfterResponseEvent,
+  PluginHookAfterResponseResult,
   PluginHookAfterToolCallEvent,
+  PluginHookAfterToolCallResult,
   PluginHookAgentContext,
   PluginHookAgentEndEvent,
   PluginHookBeforeAgentStartEvent,
   PluginHookBeforeAgentStartResult,
   PluginHookBeforeCompactionEvent,
+  PluginHookBeforeRequestEvent,
+  PluginHookBeforeRequestResult,
   PluginHookBeforeToolCallEvent,
   PluginHookBeforeToolCallResult,
   PluginHookGatewayContext,
@@ -43,6 +48,10 @@ export type {
   PluginHookAgentEndEvent,
   PluginHookBeforeCompactionEvent,
   PluginHookAfterCompactionEvent,
+  PluginHookBeforeRequestEvent,
+  PluginHookBeforeRequestResult,
+  PluginHookAfterResponseEvent,
+  PluginHookAfterResponseResult,
   PluginHookMessageContext,
   PluginHookMessageReceivedEvent,
   PluginHookMessageSendingEvent,
@@ -52,6 +61,7 @@ export type {
   PluginHookBeforeToolCallEvent,
   PluginHookBeforeToolCallResult,
   PluginHookAfterToolCallEvent,
+  PluginHookAfterToolCallResult,
   PluginHookToolResultPersistContext,
   PluginHookToolResultPersistEvent,
   PluginHookToolResultPersistResult,
@@ -231,6 +241,122 @@ export function createHookRunner(registry: PluginRegistry, options: HookRunnerOp
   }
 
   // =========================================================================
+  // Request/Response Hooks (Guardrail stages)
+  // =========================================================================
+
+  /**
+   * Run before_request hook.
+   * Allows plugins to inspect, modify, or block the request before the model call.
+   * Runs sequentially.
+   */
+  async function runBeforeRequest(
+    event: PluginHookBeforeRequestEvent,
+    ctx: PluginHookAgentContext,
+  ): Promise<PluginHookBeforeRequestResult | undefined> {
+    const hooks = getHooksForName(registry, "before_request");
+    if (hooks.length === 0) {
+      return undefined;
+    }
+
+    logger?.debug?.(`[hooks] running before_request (${hooks.length} handlers, sequential)`);
+
+    let result: PluginHookBeforeRequestResult | undefined;
+    let currentEvent = { ...event };
+
+    for (const hook of hooks) {
+      try {
+        const handlerResult = await (
+          hook.handler as (event: unknown, ctx: unknown) => Promise<PluginHookBeforeRequestResult>
+        )(currentEvent, ctx);
+
+        if (handlerResult !== undefined && handlerResult !== null) {
+          const nextBlock = handlerResult.block ?? result?.block;
+          result = {
+            prompt: handlerResult.prompt ?? result?.prompt,
+            messages: handlerResult.messages ?? result?.messages,
+            block: nextBlock,
+            blockResponse: handlerResult.blockResponse ?? result?.blockResponse,
+            pluginId: nextBlock ? (handlerResult.pluginId ?? hook.pluginId) : result?.pluginId,
+          };
+
+          if (handlerResult.prompt !== undefined) {
+            currentEvent = { ...currentEvent, prompt: handlerResult.prompt };
+          }
+          if (handlerResult.messages !== undefined) {
+            currentEvent = { ...currentEvent, messages: handlerResult.messages };
+          }
+          if (handlerResult.block) {
+            break;
+          }
+        }
+      } catch (err) {
+        const msg = `[hooks] before_request handler from ${hook.pluginId} failed: ${String(err)}`;
+        if (catchErrors) {
+          logger?.error(msg);
+        } else {
+          throw new Error(msg, { cause: err });
+        }
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Run after_response hook.
+   * Allows plugins to inspect, modify, or block the assistant response.
+   * Runs sequentially.
+   */
+  async function runAfterResponse(
+    event: PluginHookAfterResponseEvent,
+    ctx: PluginHookAgentContext,
+  ): Promise<PluginHookAfterResponseResult | undefined> {
+    const hooks = getHooksForName(registry, "after_response");
+    if (hooks.length === 0) {
+      return undefined;
+    }
+
+    logger?.debug?.(`[hooks] running after_response (${hooks.length} handlers, sequential)`);
+
+    let result: PluginHookAfterResponseResult | undefined;
+    let currentEvent = { ...event };
+
+    for (const hook of hooks) {
+      try {
+        const handlerResult = await (
+          hook.handler as (event: unknown, ctx: unknown) => Promise<PluginHookAfterResponseResult>
+        )(currentEvent, ctx);
+
+        if (handlerResult !== undefined && handlerResult !== null) {
+          const nextBlock = handlerResult.block ?? result?.block;
+          result = {
+            assistantTexts: handlerResult.assistantTexts ?? result?.assistantTexts,
+            block: nextBlock,
+            blockResponse: handlerResult.blockResponse ?? result?.blockResponse,
+            pluginId: nextBlock ? (handlerResult.pluginId ?? hook.pluginId) : result?.pluginId,
+          };
+
+          if (handlerResult.assistantTexts !== undefined) {
+            currentEvent = { ...currentEvent, assistantTexts: handlerResult.assistantTexts };
+          }
+          if (handlerResult.block) {
+            break;
+          }
+        }
+      } catch (err) {
+        const msg = `[hooks] after_response handler from ${hook.pluginId} failed: ${String(err)}`;
+        if (catchErrors) {
+          logger?.error(msg);
+        } else {
+          throw new Error(msg, { cause: err });
+        }
+      }
+    }
+
+    return result;
+  }
+
+  // =========================================================================
   // Message Hooks
   // =========================================================================
 
@@ -282,34 +408,107 @@ export function createHookRunner(registry: PluginRegistry, options: HookRunnerOp
 
   /**
    * Run before_tool_call hook.
-   * Allows plugins to modify or block tool calls.
-   * Runs sequentially.
+   * Allows plugins to modify, block, or skip tool calls.
+   * Runs sequentially. If block is set, can return a toolResult to skip execution.
    */
   async function runBeforeToolCall(
     event: PluginHookBeforeToolCallEvent,
     ctx: PluginHookToolContext,
   ): Promise<PluginHookBeforeToolCallResult | undefined> {
-    return runModifyingHook<"before_tool_call", PluginHookBeforeToolCallResult>(
-      "before_tool_call",
-      event,
-      ctx,
-      (acc, next) => ({
-        params: next.params ?? acc?.params,
-        block: next.block ?? acc?.block,
-        blockReason: next.blockReason ?? acc?.blockReason,
-      }),
-    );
+    const hooks = getHooksForName(registry, "before_tool_call");
+    if (hooks.length === 0) {
+      return undefined;
+    }
+
+    logger?.debug?.(`[hooks] running before_tool_call (${hooks.length} handlers, sequential)`);
+
+    let result: PluginHookBeforeToolCallResult | undefined;
+    let currentEvent = { ...event };
+
+    for (const hook of hooks) {
+      try {
+        const handlerResult = await (
+          hook.handler as (event: unknown, ctx: unknown) => Promise<PluginHookBeforeToolCallResult>
+        )(currentEvent, ctx);
+
+        if (handlerResult !== undefined && handlerResult !== null) {
+          result = {
+            params: handlerResult.params ?? result?.params,
+            block: handlerResult.block ?? result?.block,
+            blockReason: handlerResult.blockReason ?? result?.blockReason,
+            toolResult: handlerResult.toolResult ?? result?.toolResult,
+          };
+
+          if (handlerResult.params !== undefined) {
+            currentEvent = { ...currentEvent, params: handlerResult.params };
+          }
+          if (handlerResult.block) {
+            break;
+          }
+        }
+      } catch (err) {
+        const msg = `[hooks] before_tool_call handler from ${hook.pluginId} failed: ${String(err)}`;
+        if (catchErrors) {
+          logger?.error(msg);
+        } else {
+          throw new Error(msg, { cause: err });
+        }
+      }
+    }
+
+    return result;
   }
 
   /**
    * Run after_tool_call hook.
-   * Runs in parallel (fire-and-forget).
+   * Allows plugins to modify or block tool results before they go back to the model.
+   * Runs sequentially.
    */
   async function runAfterToolCall(
     event: PluginHookAfterToolCallEvent,
     ctx: PluginHookToolContext,
-  ): Promise<void> {
-    return runVoidHook("after_tool_call", event, ctx);
+  ): Promise<PluginHookAfterToolCallResult | undefined> {
+    const hooks = getHooksForName(registry, "after_tool_call");
+    if (hooks.length === 0) {
+      return undefined;
+    }
+
+    logger?.debug?.(`[hooks] running after_tool_call (${hooks.length} handlers, sequential)`);
+
+    let result: PluginHookAfterToolCallResult | undefined;
+    let currentEvent = { ...event };
+
+    for (const hook of hooks) {
+      try {
+        const handlerResult = await (
+          hook.handler as (event: unknown, ctx: unknown) => Promise<PluginHookAfterToolCallResult>
+        )(currentEvent, ctx);
+
+        if (handlerResult !== undefined && handlerResult !== null) {
+          result = {
+            result: handlerResult.result ?? result?.result,
+            block: handlerResult.block ?? result?.block,
+            blockReason: handlerResult.blockReason ?? result?.blockReason,
+          };
+
+          if (handlerResult.result !== undefined) {
+            currentEvent = { ...currentEvent, result: handlerResult.result };
+          }
+          if (handlerResult.block) {
+            break;
+          }
+        }
+      } catch (err) {
+        const msg = `[hooks] after_tool_call handler from ${hook.pluginId} failed: ${String(err)}`;
+        if (catchErrors) {
+          logger?.error(msg);
+        } else {
+          throw new Error(msg, { cause: err });
+        }
+      }
+    }
+
+    return result;
   }
 
   /**
@@ -447,6 +646,9 @@ export function createHookRunner(registry: PluginRegistry, options: HookRunnerOp
     runAgentEnd,
     runBeforeCompaction,
     runAfterCompaction,
+    // Request/Response hooks (guardrail stages)
+    runBeforeRequest,
+    runAfterResponse,
     // Message hooks
     runMessageReceived,
     runMessageSending,

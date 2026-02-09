@@ -111,4 +111,10 @@ export type EmbeddedRunAttemptResult = {
   compactionCount?: number;
   /** Client tool call detected (OpenResponses hosted tools). */
   clientToolCall?: { name: string; params: Record<string, unknown> };
+  guardrailBlock?: {
+    stage: "before_request" | "after_response" | "before_tool_call" | "after_tool_call";
+    hookId: string;
+    reason?: string;
+    response?: string;
+  };
 };

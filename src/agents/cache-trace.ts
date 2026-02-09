@@ -37,6 +37,7 @@ export type CacheTraceEvent = {
   messageFingerprints?: string[];
   messagesDigest?: string;
   systemDigest?: string;
+  guardrailBlocked?: string;
   note?: string;
   error?: string;
 };

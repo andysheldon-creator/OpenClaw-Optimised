@@ -1,4 +1,5 @@
-import type { AgentMessage } from "@mariozechner/pi-agent-core";
+import type { AgentMessage, AgentToolResult } from "@mariozechner/pi-agent-core";
+import type { AssistantMessage } from "@mariozechner/pi-ai";
 import type { Command } from "commander";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { AuthProfileCredential, OAuthCredential } from "../agents/auth-profiles/types.js";
@@ -299,6 +300,8 @@ export type PluginHookName =
   | "agent_end"
   | "before_compaction"
   | "after_compaction"
+  | "before_request"
+  | "after_response"
   | "message_received"
   | "message_sending"
   | "message_sent"
@@ -335,6 +338,37 @@ export type PluginHookAgentEndEvent = {
   success: boolean;
   error?: string;
   durationMs?: number;
+};
+
+// before_request hook (guardrail stage: inspect/modify/block before model call)
+export type PluginHookBeforeRequestEvent = {
+  prompt: string;
+  messages: AgentMessage[];
+  systemPrompt?: string;
+};
+
+export type PluginHookBeforeRequestResult = {
+  prompt?: string;
+  messages?: AgentMessage[];
+  block?: boolean;
+  blockResponse?: string;
+  /** Plugin id that triggered a block (populated by hook runner when block is true). */
+  pluginId?: string;
+};
+
+// after_response hook (guardrail stage: inspect/modify/block after model response)
+export type PluginHookAfterResponseEvent = {
+  assistantTexts: string[];
+  messages: AgentMessage[];
+  lastAssistant?: AssistantMessage;
+};
+
+export type PluginHookAfterResponseResult = {
+  assistantTexts?: string[];
+  block?: boolean;
+  blockResponse?: string;
+  /** Plugin id that triggered a block (populated by hook runner when block is true). */
+  pluginId?: string;
 };
 
 // Compaction hooks
@@ -384,32 +418,53 @@ export type PluginHookMessageSentEvent = {
   error?: string;
 };
 
-// Tool context
+// Tool context (extended for guardrail use cases)
 export type PluginHookToolContext = {
   agentId?: string;
   sessionKey?: string;
+  sessionId?: string;
+  runId?: string;
+  provider?: string;
+  modelId?: string;
+  workspaceDir?: string;
+  messageProvider?: string;
+  messageChannel?: string;
+  config?: OpenClawConfig;
   toolName: string;
 };
 
-// before_tool_call hook
+// before_tool_call hook (extended for guardrail use cases)
 export type PluginHookBeforeToolCallEvent = {
   toolName: string;
+  toolCallId: string;
   params: Record<string, unknown>;
+  messages: AgentMessage[];
+  systemPrompt?: string;
 };
 
 export type PluginHookBeforeToolCallResult = {
   params?: Record<string, unknown>;
   block?: boolean;
   blockReason?: string;
+  /** Return a synthetic result to skip tool execution entirely */
+  toolResult?: AgentToolResult<unknown>;
 };
 
-// after_tool_call hook
+// after_tool_call hook (extended for guardrail use cases - now modifying instead of void)
 export type PluginHookAfterToolCallEvent = {
   toolName: string;
+  toolCallId: string;
   params: Record<string, unknown>;
-  result?: unknown;
-  error?: string;
-  durationMs?: number;
+  result: AgentToolResult<unknown>;
+  messages: AgentMessage[];
+  systemPrompt?: string;
+};
+
+export type PluginHookAfterToolCallResult = {
+  /** Return a modified result to replace the original */
+  result?: AgentToolResult<unknown>;
+  block?: boolean;
+  blockReason?: string;
 };
 
 // tool_result_persist hook
@@ -485,6 +540,14 @@ export type PluginHookHandlerMap = {
     event: PluginHookAfterCompactionEvent,
     ctx: PluginHookAgentContext,
   ) => Promise<void> | void;
+  before_request: (
+    event: PluginHookBeforeRequestEvent,
+    ctx: PluginHookAgentContext,
+  ) => Promise<PluginHookBeforeRequestResult | void> | PluginHookBeforeRequestResult | void;
+  after_response: (
+    event: PluginHookAfterResponseEvent,
+    ctx: PluginHookAgentContext,
+  ) => Promise<PluginHookAfterResponseResult | void> | PluginHookAfterResponseResult | void;
   message_received: (
     event: PluginHookMessageReceivedEvent,
     ctx: PluginHookMessageContext,
@@ -504,7 +567,7 @@ export type PluginHookHandlerMap = {
   after_tool_call: (
     event: PluginHookAfterToolCallEvent,
     ctx: PluginHookToolContext,
-  ) => Promise<void> | void;
+  ) => Promise<PluginHookAfterToolCallResult | void> | PluginHookAfterToolCallResult | void;
   tool_result_persist: (
     event: PluginHookToolResultPersistEvent,
     ctx: PluginHookToolResultPersistContext,

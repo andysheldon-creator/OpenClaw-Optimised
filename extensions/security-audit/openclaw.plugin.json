@@ -1,0 +1,57 @@
+{
+  "id": "security-audit",
+  "name": "Security Audit",
+  "description": "Restricts access to sensitive credential and configuration files",
+  "version": "0.0.1",
+  "uiHints": {
+    "extraPaths": { "label": "Extra Sensitive Paths", "advanced": true },
+    "allowPaths": { "label": "Allow Paths", "advanced": true },
+    "disabledRules": { "label": "Disabled Rules", "advanced": true },
+    "failOpen": { "label": "Fail Open", "help": "Allow access through if evaluation fails" },
+    "stages.beforeToolCall.enabled": {
+      "label": "Enabled",
+      "help": "Enable guardrail check before tool calls"
+    },
+    "stages.beforeToolCall.mode": { "label": "Mode", "help": "Block violations or monitor only" }
+  },
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "failOpen": {
+        "type": "boolean",
+        "description": "Allow access through if evaluation fails (default: true)"
+      },
+      "guardrailPriority": {
+        "type": "integer",
+        "description": "Higher runs earlier when multiple guardrails are enabled"
+      },
+      "extraPaths": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Additional sensitive path patterns (glob-like, e.g., '~/.secrets/*')"
+      },
+      "allowPaths": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Paths to allow even if they match block rules"
+      },
+      "disabledRules": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Built-in rule IDs to disable (e.g., 'ssh-keys', 'aws-credentials')"
+      },
+      "stages": {
+        "type": "object",
+        "properties": {
+          "beforeToolCall": {
+            "type": "object",
+            "properties": {
+              "enabled": { "type": "boolean" },
+              "mode": { "type": "string", "enum": ["block", "monitor"] }
+            }
+          }
+        }
+      }
+    }
+  }
+}

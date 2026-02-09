@@ -1,0 +1,134 @@
+{
+  "id": "gpt-oss-safeguard",
+  "uiHints": {
+    "provider": {
+      "label": "Model Provider",
+      "help": "e.g., ollama, vllm, openrouter"
+    },
+    "model": {
+      "label": "Model ID",
+      "help": "e.g., openai/gpt-oss-safeguard-120b"
+    },
+    "policy": {
+      "label": "Safety Policy",
+      "help": "Custom policy text (400-600 tokens optimal)"
+    },
+    "systemPromptMode": {
+      "label": "System Prompt Mode",
+      "help": "append (default) or inline"
+    },
+    "reasoningEffort": {
+      "label": "Reasoning Effort",
+      "help": "low, medium, or high"
+    },
+    "outputFormat": {
+      "label": "Output Format",
+      "help": "binary, json, or rich"
+    },
+    "authProfileId": {
+      "label": "Auth Profile",
+      "advanced": true
+    },
+    "timeoutMs": {
+      "label": "Timeout (ms)",
+      "advanced": true
+    },
+    "failOpen": {
+      "label": "Fail Open",
+      "help": "Allow requests on model errors"
+    },
+    "guardrailPriority": {
+      "label": "Guardrail Priority",
+      "advanced": true,
+      "help": "Higher runs earlier when multiple guardrails are enabled"
+    },
+    "maxTokens": {
+      "label": "Max Tokens",
+      "advanced": true
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "provider": {
+        "type": "string"
+      },
+      "model": {
+        "type": "string"
+      },
+      "authProfileId": {
+        "type": "string"
+      },
+      "policy": {
+        "type": "string"
+      },
+      "systemPromptMode": {
+        "type": "string",
+        "enum": ["inline", "append"]
+      },
+      "reasoningEffort": {
+        "type": "string",
+        "enum": ["low", "medium", "high"]
+      },
+      "outputFormat": {
+        "type": "string",
+        "enum": ["binary", "json", "rich"]
+      },
+      "timeoutMs": {
+        "type": "integer",
+        "minimum": 1000
+      },
+      "failOpen": {
+        "type": "boolean"
+      },
+      "guardrailPriority": {
+        "type": "integer"
+      },
+      "maxTokens": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "stages": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "beforeRequest": {
+            "$ref": "#/$defs/stageConfig"
+          },
+          "beforeToolCall": {
+            "$ref": "#/$defs/stageConfig"
+          },
+          "afterToolCall": {
+            "$ref": "#/$defs/stageConfig"
+          },
+          "afterResponse": {
+            "$ref": "#/$defs/stageConfig"
+          }
+        }
+      }
+    },
+    "$defs": {
+      "stageConfig": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "mode": {
+            "type": "string",
+            "enum": ["block", "monitor"]
+          },
+          "blockMode": {
+            "type": "string",
+            "enum": ["replace", "append"]
+          },
+          "includeHistory": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}

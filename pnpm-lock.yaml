@@ -251,6 +251,12 @@ importers:
         specifier: workspace:*
         version: link:../..
 
+  extensions/command-safety-guard:
+    devDependencies:
+      openclaw:
+        specifier: workspace:*
+        version: link:../..
+
   extensions/copilot-proxy:
     devDependencies:
       openclaw:
@@ -336,6 +342,18 @@ importers:
       google-auth-library:
         specifier: ^10.5.0
         version: 10.5.0
+    devDependencies:
+      openclaw:
+        specifier: workspace:*
+        version: link:../..
+
+  extensions/gpt-oss-safeguard:
+    devDependencies:
+      openclaw:
+        specifier: workspace:*
+        version: link:../..
+
+  extensions/grayswan-cygnal-guardrail:
     devDependencies:
       openclaw:
         specifier: workspace:*
@@ -463,6 +481,12 @@ importers:
         version: link:../..
 
   extensions/open-prose:
+    devDependencies:
+      openclaw:
+        specifier: workspace:*
+        version: link:../..
+
+  extensions/security-audit:
     devDependencies:
       openclaw:
         specifier: workspace:*

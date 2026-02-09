@@ -31,10 +31,13 @@ export async function runBeforeToolCallHook(args: {
   const params = args.params;
   try {
     const normalizedParams = isPlainObject(params) ? params : {};
+    const toolCallId = args.toolCallId ?? `unknown-${Date.now()}`;
     const hookResult = await hookRunner.runBeforeToolCall(
       {
         toolName,
+        toolCallId: String(toolCallId),
         params: normalizedParams,
+        messages: [],
       },
       {
         toolName,

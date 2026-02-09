@@ -24,6 +24,11 @@ export type EmbeddedPiRunMeta = {
     kind: "context_overflow" | "compaction_failure" | "role_ordering" | "image_size";
     message: string;
   };
+  guardrailBlock?: {
+    stage: "before_request" | "after_response" | "before_tool_call" | "after_tool_call";
+    hookId: string;
+    reason?: string;
+  };
   /** Stop reason for the agent run (e.g., "completed", "tool_calls"). */
   stopReason?: string;
   /** Pending tool calls when stopReason is "tool_calls". */
