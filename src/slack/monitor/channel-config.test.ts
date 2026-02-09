@@ -64,4 +64,17 @@ describe("resolveSlackChannelConfig", () => {
       implicitMentionInThreads: true,
     });
   });
+
+  it("inherits implicitMentionInThreads from wildcard entries", () => {
+    const res = resolveSlackChannelConfig({
+      channelId: "C1",
+      channels: { "*": { allow: true, implicitMentionInThreads: true } },
+      defaultRequireMention: true,
+    });
+    expect(res).toMatchObject({
+      implicitMentionInThreads: true,
+      matchKey: "*",
+      matchSource: "wildcard",
+    });
+  });
 });
