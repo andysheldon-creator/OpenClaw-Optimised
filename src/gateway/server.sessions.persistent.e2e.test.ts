@@ -538,6 +538,86 @@ describe("gateway server sessions - persistent sessions", () => {
     ws.close();
   });
 
+  test("sessions.restore preserves metadata (label, persistent, description)", async () => {
+    const ws = await openClient();
+
+    // Create a session with metadata
+    const createResult = await rpcReq<{
+      ok: boolean;
+      key?: string;
+      sessionId?: string;
+    }>(ws, "sessions.create", {
+      label: "Important Session",
+      description: "This session has important metadata",
+      persistent: true,
+    });
+
+    expect(createResult.ok).toBe(true);
+    const sessionKey = createResult.payload?.key;
+    const sessionId = createResult.payload?.sessionId;
+    expect(sessionKey).toBeTruthy();
+    expect(sessionId).toBeTruthy();
+
+    // Send a message to create a transcript file
+    await rpcReq(ws, "chat.send", {
+      sessionKey,
+      text: "Test message",
+    });
+
+    // Wait for transcript to be written
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // Delete the session
+    await rpcReq(ws, "sessions.delete", {
+      key: sessionKey,
+      deleteTranscript: true,
+    });
+
+    // Verify metadata is in deleted list
+    const listResult = await rpcReq<{
+      ok: boolean;
+      deleted?: Array<{
+        sessionId: string;
+        label?: string;
+        description?: string;
+        persistent?: boolean;
+      }>;
+    }>(ws, "sessions.list.deleted", {
+      limit: 100,
+    });
+
+    const deletedEntry = listResult.payload?.deleted?.find((d) => d.sessionId === sessionId);
+    expect(deletedEntry).toBeTruthy();
+    expect(deletedEntry?.label).toBe("Important Session");
+    expect(deletedEntry?.description).toBe("This session has important metadata");
+    expect(deletedEntry?.persistent).toBe(true);
+
+    // Restore the session
+    await rpcReq(ws, "sessions.restore", {
+      sessionId,
+    });
+
+    // Verify metadata is restored
+    const sessionsResult = await rpcReq<{
+      sessions: Array<{
+        key: string;
+        label?: string;
+        description?: string;
+        persistent?: boolean;
+      }>;
+    }>(ws, "sessions.list", {});
+
+    const restoredSession = sessionsResult.payload?.sessions?.find((s) =>
+      s.key.includes(sessionId!),
+    );
+    expect(restoredSession).toBeTruthy();
+    expect(restoredSession?.label).toBe("Important Session");
+    expect(restoredSession?.description).toBe("This session has important metadata");
+    expect(restoredSession?.persistent).toBe(true);
+
+    ws.close();
+  });
+
   test("sessions.restore fails for non-existent session", async () => {
     const ws = await openClient();
 
