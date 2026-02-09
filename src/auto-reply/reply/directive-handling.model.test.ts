@@ -211,6 +211,40 @@ describe("/model chat UX", () => {
     });
     expect(resolved.errorText).toBeUndefined();
   });
+
+  it("uses runtime-served session model for /model fallback detection", async () => {
+    const directives = parseInlineDirectives("/model");
+    const sessionEntry: SessionEntry = {
+      sessionId: "s1",
+      updatedAt: Date.now(),
+      modelProvider: "openai",
+      model: "gpt-5.2",
+    };
+
+    const result = await handleDirectiveOnly({
+      cfg: baseConfig(),
+      directives,
+      sessionEntry,
+      sessionStore: { "agent:main:dm:1": sessionEntry },
+      sessionKey: "agent:main:dm:1",
+      elevatedEnabled: false,
+      elevatedAllowed: false,
+      defaultProvider: "anthropic",
+      defaultModel: "claude-opus-4-5",
+      aliasIndex: baseAliasIndex(),
+      allowedModelKeys: new Set(),
+      allowedModelCatalog: [],
+      resetModelOverride: false,
+      provider: "anthropic",
+      model: "claude-opus-4-5",
+      initialModelLabel: "anthropic/claude-opus-4-5",
+      formatModelSwitchEvent: (label) => `Switched to ${label}`,
+    });
+
+    expect(result?.text).toContain("Current: openai/gpt-5.2");
+    expect(result?.text).toContain("Fallback active");
+    expect(result?.text).toContain("Default: anthropic/claude-opus-4-5");
+  });
 });
 
 describe("handleDirectiveOnly model persist behavior (fixes #1435)", () => {

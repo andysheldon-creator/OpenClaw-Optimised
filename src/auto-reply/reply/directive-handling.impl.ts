@@ -121,13 +121,18 @@ export async function handleDirectiveOnly(params: {
   }).sandboxed;
   const shouldHintDirectRuntime = directives.hasElevatedDirective && !runtimeIsSandboxed;
 
+  const runtimeProvider = sessionEntry.modelProvider?.trim();
+  const runtimeModel = sessionEntry.model?.trim();
+  const effectiveProvider = runtimeProvider || provider;
+  const effectiveModel = runtimeModel || model;
+
   const modelInfo = await maybeHandleModelDirectiveInfo({
     directives,
     cfg: params.cfg,
     agentDir,
     activeAgentId,
-    provider,
-    model,
+    provider: effectiveProvider,
+    model: effectiveModel,
     defaultProvider,
     defaultModel,
     aliasIndex,
