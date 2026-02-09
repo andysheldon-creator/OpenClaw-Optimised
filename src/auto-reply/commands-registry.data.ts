@@ -1,5 +1,7 @@
 import type {
   ChatCommandDefinition,
+  CommandArgChoice,
+  CommandArgChoiceContext,
   CommandCategory,
   CommandScope,
 } from "./commands-registry.types.js";
@@ -56,6 +58,62 @@ function defineDockCommand(dock: ChannelDock): ChatCommandDefinition {
     textAliases: [`/dock-${dock.id}`, `/dock_${dock.id}`],
     category: "docks",
   });
+}
+
+/**
+ * Build dynamic model choices from config for the /model command.
+ * Returns aliases first (most user-friendly), then full provider/model keys.
+ */
+function buildModelChoices(ctx: CommandArgChoiceContext): CommandArgChoice[] {
+  const cfg = ctx.cfg;
+  if (!cfg) {
+    return [];
+  }
+  const choices: CommandArgChoice[] = [];
+  const seen = new Set<string>();
+
+  const addChoice = (value: string, label: string) => {
+    const key = value.toLowerCase();
+    if (seen.has(key)) {
+      return;
+    }
+    seen.add(key);
+    choices.push({ value, label });
+  };
+
+  // Add aliased models first (most user-friendly)
+  const modelEntries = cfg.agents?.defaults?.models ?? {};
+  for (const [modelKey, entry] of Object.entries(modelEntries)) {
+    const alias = typeof entry === "object" ? entry?.alias?.trim() : undefined;
+    if (alias) {
+      addChoice(alias, `${alias} → ${modelKey}`);
+    }
+  }
+
+  // Add full model keys
+  for (const modelKey of Object.keys(modelEntries)) {
+    addChoice(modelKey, modelKey);
+  }
+
+  // Add primary + fallbacks
+  const modelConfig = cfg.agents?.defaults?.model;
+  if (typeof modelConfig === "string") {
+    addChoice(modelConfig, modelConfig);
+  } else if (modelConfig && typeof modelConfig === "object") {
+    if (modelConfig.primary) {
+      addChoice(modelConfig.primary, `${modelConfig.primary} (default)`);
+    }
+    for (const fallback of modelConfig.fallbacks ?? []) {
+      if (typeof fallback === "string") {
+        addChoice(fallback, fallback);
+      }
+    }
+  }
+
+  // Add "default" as a reset option
+  addChoice("default", "default (reset to configured default)");
+
+  return choices;
 }
 
 function registerAlias(commands: ChatCommandDefinition[], key: string, ...aliases: string[]): void {
@@ -507,11 +565,13 @@ function buildChatCommands(): ChatCommandDefinition[] {
       description: "Show or set the model.",
       textAlias: "/model",
       category: "options",
+      argsMenu: "auto",
       args: [
         {
           name: "model",
-          description: "Model id (provider/model or id)",
+          description: "Model id (provider/model or alias)",
           type: "string",
+          choices: buildModelChoices,
         },
       ],
     }),
