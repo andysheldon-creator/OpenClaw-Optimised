@@ -2,14 +2,11 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-import { loadDotEnv } from "../infra/dotenv.js";
-import { normalizeEnv } from "../infra/env.js";
 import { formatUncaughtError } from "../infra/errors.js";
 import { isMainModule } from "../infra/is-main.js";
 import { ensureOpenClawCliOnPath } from "../infra/path-env.js";
 import { assertSupportedRuntime } from "../infra/runtime-guard.js";
 import { installUnhandledRejectionHandler } from "../infra/unhandled-rejections.js";
-import { enableConsoleCapture } from "../logging.js";
 import { getPrimaryCommand, hasHelpOrVersion } from "./argv.js";
 
 export function rewriteUpdateFlagArgv(argv: string[]): string[] {
@@ -25,8 +22,14 @@ export function rewriteUpdateFlagArgv(argv: string[]): string[] {
 
 export async function runCli(argv: string[] = process.argv) {
   const normalizedArgv = stripWindowsNodeExec(argv);
-  loadDotEnv({ quiet: true });
-  normalizeEnv();
+  if (!hasHelpOrVersion(normalizedArgv)) {
+    const { loadDotEnv } = await import("../infra/dotenv.js");
+    loadDotEnv({ quiet: true });
+    // Normalize ZAI env alias (inlined to avoid importing env.ts which pulls in tslog)
+    if (!process.env.ZAI_API_KEY?.trim() && process.env.Z_AI_API_KEY?.trim()) {
+      process.env.ZAI_API_KEY = process.env.Z_AI_API_KEY;
+    }
+  }
   ensureOpenClawCliOnPath();
 
   // Enforce the minimum supported runtime before doing any work.
@@ -38,9 +41,6 @@ export async function runCli(argv: string[] = process.argv) {
       return;
     }
   }
-
-  // Capture all console output into structured logs while keeping stdout/stderr behavior.
-  enableConsoleCapture();
 
   const { buildProgramShell } = await import("./program/build-program-shell.js");
   const { program, ctx, provideChannelOptions } = buildProgramShell();
@@ -61,12 +61,12 @@ export async function runCli(argv: string[] = process.argv) {
 
   let commandRegistered = false;
   if (primary) {
-    const { registerSubCliByName } = await import("./program/register.subclis.js");
-    commandRegistered = await registerSubCliByName(program, primary);
+    const { registerCoreCommandByName } = await import("./program/register.core-lazy.js");
+    commandRegistered = await registerCoreCommandByName(program, ctx, primary, parseArgv);
 
     if (!commandRegistered) {
-      const { registerCoreCommandByName } = await import("./program/register.core-lazy.js");
-      commandRegistered = await registerCoreCommandByName(program, ctx, primary, parseArgv);
+      const { registerSubCliByName } = await import("./program/register.subclis.js");
+      commandRegistered = await registerSubCliByName(program, primary);
     }
   }
 
@@ -84,6 +84,11 @@ export async function runCli(argv: string[] = process.argv) {
     const { registerPluginCliCommands } = await import("../plugins/cli.js");
     const { loadConfig } = await import("../config/config.js");
     registerPluginCliCommands(program, loadConfig());
+  }
+
+  if (!hasHelpOrVersion(parseArgv)) {
+    const { enableConsoleCapture } = await import("../logging.js");
+    enableConsoleCapture();
   }
 
   await program.parseAsync(parseArgv);
