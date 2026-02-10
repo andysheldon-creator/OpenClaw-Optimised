@@ -130,6 +130,31 @@ export function recomputeNextRuns(state: CronServiceState): boolean {
         changed = true;
       }
     }
+
+    // Catch-up detection for cron-expression jobs: if a scheduled occurrence
+    // between lastRunAtMs and now was missed (e.g. gateway was down or
+    // restarted after the scheduled time), fire immediately instead of
+    // waiting for the next future occurrence.
+    if (
+      job.schedule.kind === "cron" &&
+      job.state.nextRunAtMs !== undefined &&
+      typeof job.state.lastRunAtMs === "number"
+    ) {
+      const missedRun = computeNextRunAtMs(job.schedule, job.state.lastRunAtMs);
+      if (missedRun !== undefined && missedRun <= now) {
+        state.deps.log.info(
+          {
+            jobId: job.id,
+            name: job.name,
+            missedAt: missedRun,
+            lastRunAt: job.state.lastRunAtMs,
+          },
+          "cron: catch-up — missed run detected, firing now",
+        );
+        job.state.nextRunAtMs = now;
+        changed = true;
+      }
+    }
   }
   return changed;
 }
