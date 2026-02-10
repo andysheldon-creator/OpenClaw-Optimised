@@ -65,7 +65,7 @@ describe("logger helpers", () => {
     cleanup(logPath);
   });
 
-  it("uses daily rolling default log file and prunes old ones", () => {
+  it("uses daily rolling default log file and prunes old ones", async () => {
     resetLogger();
     setLoggerOverride({}); // force defaults regardless of user config
     const today = localDateString(new Date());
@@ -82,6 +82,9 @@ describe("logger helpers", () => {
 
     expect(fs.existsSync(todayPath)).toBe(true);
     expect(fs.readFileSync(todayPath, "utf-8")).toContain("roll-me");
+
+    // Pruning is deferred to setImmediate; wait for it to run.
+    await new Promise((resolve) => setImmediate(resolve));
     expect(fs.existsSync(oldPath)).toBe(false);
 
     cleanup(todayPath);
