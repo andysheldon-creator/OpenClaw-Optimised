@@ -2,6 +2,7 @@ import type { Command } from "commander";
 import { dashboardCommand } from "../../commands/dashboard.js";
 import { doctorCommand } from "../../commands/doctor.js";
 import { resetCommand } from "../../commands/reset.js";
+import { runDockerCommand } from "../../commands/run-docker.js";
 import { uninstallCommand } from "../../commands/uninstall.js";
 import { defaultRuntime } from "../../runtime.js";
 import { formatDocsLink } from "../../terminal/links.js";
@@ -9,6 +10,29 @@ import { theme } from "../../terminal/theme.js";
 import { runCommandWithRuntime } from "../cli-utils.js";
 
 export function registerMaintenanceCommands(program: Command) {
+  program
+    .command("run")
+    .description(
+      "Build, start gateway in Docker, run doctor, and open the dashboard (single command)",
+    )
+    .addHelpText(
+      "after",
+      () =>
+        `\n${theme.muted("Docs:")} ${formatDocsLink("/install/docker", "docs.openclaw.ai/install/docker")}\n`,
+    )
+    .option("--no-open", "Do not open the dashboard in the browser", false)
+    .option("--no-doctor", "Skip running doctor after starting the gateway", false)
+    .option("--no-build", "Skip building the Docker image (use existing)", false)
+    .action(async (opts) => {
+      await runCommandWithRuntime(defaultRuntime, async () => {
+        await runDockerCommand(defaultRuntime, {
+          noOpen: Boolean(opts.noOpen),
+          noDoctor: Boolean(opts.noDoctor),
+          noBuild: Boolean(opts.noBuild),
+        });
+      });
+    });
+
   program
     .command("doctor")
     .description("Health checks + quick fixes for the gateway and channels")
