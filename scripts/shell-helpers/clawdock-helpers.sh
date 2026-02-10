@@ -104,7 +104,7 @@ _clawdock_ensure_dir() {
   if [[ ! -d "${HOME}/.clawdock" ]]; then
     /bin/mkdir -p "${HOME}/.clawdock"
   fi
-  print "CLAWDOCK_DIR=\"$CLAWDOCK_DIR\"" > "$CLAWDOCK_CONFIG"
+  echo "CLAWDOCK_DIR=\"$CLAWDOCK_DIR\"" > "$CLAWDOCK_CONFIG"
   echo "✅ Saved to $CLAWDOCK_CONFIG"
   echo ""
   return 0
@@ -201,8 +201,8 @@ clawdock-fix-token() {
 
   echo "📝 Setting token: ${token:0:20}..."
 
-  _clawdock_compose exec openclaw-gateway \
-    bash -c "./openclaw.mjs config set gateway.remote.token '$token' && ./openclaw.mjs config set gateway.auth.token '$token'" 2>&1 | grep -v "^WARN\|^time="
+  _clawdock_compose exec -e "TOKEN=$token" openclaw-gateway \
+    bash -c './openclaw.mjs config set gateway.remote.token "$TOKEN" && ./openclaw.mjs config set gateway.auth.token "$TOKEN"' 2>&1 | grep -v "^WARN\|^time="
 
   echo "🔍 Verifying token was saved..."
   local saved_token=$(_clawdock_compose exec openclaw-gateway \
@@ -255,7 +255,7 @@ clawdock-devices() {
   _clawdock_compose exec openclaw-gateway \
     node dist/index.js devices list 2>&1 | grep -v "^WARN\|^time="
 
-  local exit_code=$?
+  local exit_code=${PIPESTATUS[0]}
   if [ $exit_code -ne 0 ]; then
     echo ""
     echo -e "${_CLR_CYAN}💡 If you see token errors above:${_CLR_RESET}"
