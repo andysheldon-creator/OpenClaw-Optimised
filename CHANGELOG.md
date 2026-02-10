@@ -91,6 +91,7 @@ Docs: https://docs.openclaw.ai
 
 ### Fixes
 
+- ACP: optimize `--reset-session` flag to minimize latency and prevent connection failures in latency-sensitive clients like Zed editor. Session reset now happens asynchronously after session creation, allowing the handshake to proceed without blocking. Thanks @TimLai666.
 - Cron: scheduler reliability (timer drift, restart catch-up, lock contention, stale running markers). (#10776) Thanks @tyler6204.
 - Cron: store migration hardening (legacy field migration, parse error handling, explicit delivery mode persistence). (#10776) Thanks @tyler6204.
 - Memory: set Voyage embeddings `input_type` for improved retrieval. (#10818) Thanks @mcinteerj.
