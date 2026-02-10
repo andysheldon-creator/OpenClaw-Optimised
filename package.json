@@ -123,6 +123,7 @@
     "@sinclair/typebox": "0.34.48",
     "@slack/bolt": "^4.6.0",
     "@slack/web-api": "^7.13.0",
+    "@twurple/api": "^8.0.3",
     "@twurple/auth": "^8.0.3",
     "@twurple/chat": "^8.0.3",
     "@vector-im/matrix-bot-sdk": "0.8.0-element.3",
