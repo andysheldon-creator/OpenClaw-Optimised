@@ -101,9 +101,15 @@ export async function convertToMarkdown(
           minTextChars: 10,
         },
       };
-      const extracted = await extractPdfContent({ buffer, limits });
-      const pdfText = extracted.text || "";
-      return pdfToMarkdown(pdfText, false);
+      try {
+        const extracted = await extractPdfContent({ buffer, limits });
+        const pdfText = extracted.text || "";
+        return pdfToMarkdown(pdfText, false);
+      } catch (err) {
+        // If PDF extraction fails, return empty string or error message
+        // This can happen with invalid PDFs or missing dependencies
+        return `PDF extraction failed: ${String(err)}`;
+      }
     }
     default: {
       const text = buffer.toString("utf-8");

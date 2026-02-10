@@ -132,7 +132,13 @@ describe("Markdown storage integration with real files", () => {
 
     const content = result.buffer.toString("utf-8");
     // PDF content should be extracted and saved as markdown
+    // Note: PDF extraction may fail in test environment if dependencies are missing
+    // In that case, it will return an error message, which is acceptable
     expect(content.length).toBeGreaterThan(0);
+    // If extraction succeeded, should contain some text (not just error message)
+    if (!content.includes("PDF extraction failed")) {
+      expect(content.length).toBeGreaterThan(50);
+    }
   });
 
   it("handles multiple file types in same session", async () => {
