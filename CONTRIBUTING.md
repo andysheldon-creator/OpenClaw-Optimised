@@ -1,12 +1,22 @@
-# Contributing to OpenClaw
+# Contributing to REALLYopenClaw - THE GOOD TWIN
 
-Welcome to the lobster tank! 🦞
+Welcome to the swarm!
+
+**REALLYopenClaw** is a community fork of OpenClaw that enables multi-instance support by default. The original OpenClaw enforces a global gateway lock that prevents running multiple bot instances on the same server. We believe in freedom and the power of bot swarms!
 
 ## Quick Links
 
-- **GitHub:** https://github.com/openclaw/openclaw
+- **REALLYopenClaw GitHub:** https://github.com/latamapac/REALLYopenClaw
+- **Upstream OpenClaw:** https://github.com/openclaw/openclaw
 - **Discord:** https://discord.gg/qkhbAGHRBT
-- **X/Twitter:** [@steipete](https://x.com/steipete) / [@openclaw](https://x.com/openclaw)
+
+## REALLYopenClaw-Specific Guidelines
+
+When contributing to this fork, please keep in mind:
+
+1. **Preserve the jailbreak** - The core change is in `src/infra/gateway-lock.ts`. Don't revert the multi-instance behavior.
+2. **Minimal divergence** - We aim to stay as close to upstream as possible. Only add changes that support multi-instance use cases.
+3. **Document swarm features** - If you add features for bot coordination or swarm management, document them in WALKTHROUGH.md.
 
 ## Maintainers
 
