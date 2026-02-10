@@ -117,10 +117,6 @@ function applyJobResult(
 }
 
 export function armTimer(state: CronServiceState) {
-  if (state.timer) {
-    clearTimeout(state.timer);
-  }
-  state.timer = null;
   if (!state.deps.cronEnabled) {
     state.deps.log.debug({}, "cron: armTimer skipped - scheduler disabled");
     return;
@@ -157,7 +153,9 @@ export function armTimer(state: CronServiceState) {
 }
 
 export async function onTimer(state: CronServiceState) {
+  state.deps.log.debug("cron: timer callback invoked");
   if (state.running) {
+    state.deps.log.debug("cron: already running, skipping");
     return;
   }
   state.running = true;
