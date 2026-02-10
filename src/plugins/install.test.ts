@@ -206,6 +206,50 @@ describe("installPluginFromArchive", () => {
     expect(fs.existsSync(path.join(result.targetDir, "dist", "index.js"))).toBe(true);
   });
 
+  it("cleans temporary extraction directories after archive install", async () => {
+    const stateDir = makeTempDir();
+    const workDir = makeTempDir();
+    const tmpRoot = makeTempDir();
+    const archivePath = path.join(workDir, "plugin.zip");
+
+    const zip = new JSZip();
+    zip.file(
+      "package/package.json",
+      JSON.stringify({
+        name: "@openclaw/temp-cleanup",
+        version: "0.0.1",
+        openclaw: { extensions: ["./dist/index.js"] },
+      }),
+    );
+    zip.file("package/dist/index.js", "export {};");
+    const buffer = await zip.generateAsync({ type: "nodebuffer" });
+    fs.writeFileSync(archivePath, buffer);
+
+    vi.resetModules();
+    vi.doMock("node:os", async () => {
+      const actual = await vi.importActual<typeof import("node:os")>("node:os");
+      return { ...actual, tmpdir: () => tmpRoot };
+    });
+
+    try {
+      const extensionsDir = path.join(stateDir, "extensions");
+      const { installPluginFromArchive } = await import("./install.js");
+      const result = await installPluginFromArchive({
+        archivePath,
+        extensionsDir,
+      });
+      expect(result.ok).toBe(true);
+
+      const leaked = fs
+        .readdirSync(tmpRoot)
+        .filter((entry) => entry.startsWith("openclaw-plugin-"));
+      expect(leaked).toHaveLength(0);
+    } finally {
+      vi.doUnmock("node:os");
+      vi.resetModules();
+    }
+  });
+
   it("allows updates when mode is update", async () => {
     const stateDir = makeTempDir();
     const workDir = makeTempDir();
