@@ -7,7 +7,7 @@ import type { SlackMessageEvent } from "../types.js";
 import { formatAllowlistMatchMeta } from "../../channels/allowlist-match.js";
 import { resolveSessionKey, type SessionScope } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
-import { createDedupeCache } from "../../infra/dedupe.js";
+import { createDedupeCache, createLruCache } from "../../infra/dedupe.js";
 import { getChildLogger } from "../../logging.js";
 import { normalizeAllowList, normalizeAllowListLower, normalizeSlackSlug } from "./allow-list.js";
 import { resolveSlackChannelConfig } from "./channel-config.js";
@@ -159,16 +159,14 @@ export function createSlackMonitorContext(params: {
   const channelHistories = new Map<string, HistoryEntry[]>();
   const logger = getChildLogger({ module: "slack-auto-reply" });
 
-  const channelCache = new Map<
-    string,
-    {
-      name?: string;
-      type?: SlackMessageEvent["channel_type"];
-      topic?: string;
-      purpose?: string;
-    }
-  >();
-  const userCache = new Map<string, { name?: string }>();
+  // LRU caches with 5-minute TTL to avoid unbounded growth and stale data
+  const channelCache = createLruCache<{
+    name?: string;
+    type?: SlackMessageEvent["channel_type"];
+    topic?: string;
+    purpose?: string;
+  }>({ maxSize: 500, ttlMs: 300_000 });
+  const userCache = createLruCache<{ name?: string }>({ maxSize: 1000, ttlMs: 300_000 });
   const seenMessages = createDedupeCache({ ttlMs: 60_000, maxSize: 500 });
 
   const allowFrom = normalizeAllowList(params.allowFrom);
@@ -208,7 +206,7 @@ export function createSlackMonitorContext(params: {
 
   const resolveChannelName = async (channelId: string) => {
     const cached = channelCache.get(channelId);
-    if (cached) {
+    if (cached !== undefined) {
       return cached;
     }
     try {
@@ -234,13 +232,16 @@ export function createSlackMonitorContext(params: {
       channelCache.set(channelId, entry);
       return entry;
     } catch {
-      return {};
+      // Cache empty result briefly to avoid hammering API on repeated failures
+      const empty = {};
+      channelCache.set(channelId, empty);
+      return empty;
     }
   };
 
   const resolveUserName = async (userId: string) => {
     const cached = userCache.get(userId);
-    if (cached) {
+    if (cached !== undefined) {
       return cached;
     }
     try {
@@ -254,7 +255,10 @@ export function createSlackMonitorContext(params: {
       userCache.set(userId, entry);
       return entry;
     } catch {
-      return {};
+      // Cache empty result to avoid repeated API calls for unknown users
+      const empty = {};
+      userCache.set(userId, empty);
+      return empty;
     }
   };
 
