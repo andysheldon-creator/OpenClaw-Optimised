@@ -213,7 +213,10 @@ export async function runPreparedReply(
     ? baseBodyFinal
     : [inboundUserContext, baseBodyFinal].filter(Boolean).join("\n\n");
   const baseBodyTrimmed = baseBodyForPrompt.trim();
-  if (!baseBodyTrimmed) {
+  const hasMediaAttachment = Boolean(
+    ctx.MediaPath || (ctx.MediaPaths && ctx.MediaPaths.length > 0),
+  );
+  if (!baseBodyTrimmed && !hasMediaAttachment) {
     await typing.onReplyStart();
     logVerbose("Inbound body empty after normalization; skipping agent run");
     typing.cleanup();
