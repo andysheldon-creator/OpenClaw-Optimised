@@ -2,6 +2,7 @@ import type { OpenClawConfig } from "openclaw/plugin-sdk";
 import { createReplyPrefixOptions } from "openclaw/plugin-sdk";
 import { describe, expect, it } from "vitest";
 import { zulipPlugin } from "./channel.js";
+import { resolveZulipAccount } from "./zulip/accounts.js";
 
 describe("zulipPlugin", () => {
   describe("messaging", () => {
@@ -67,6 +68,40 @@ describe("zulipPlugin", () => {
       });
 
       expect(prefixContext.responsePrefix).toBe("[Account]");
+    });
+
+    it("prefers account-level site/realm aliases over base-level url", () => {
+      const cfg: OpenClawConfig = {
+        channels: {
+          zulip: {
+            url: "https://base.example.com",
+            accounts: {
+              work: {
+                site: "https://work.example.com",
+              },
+            },
+          },
+        },
+      };
+
+      const account = resolveZulipAccount({ cfg, accountId: "work" });
+      expect(account.baseUrl).toBe("https://work.example.com");
+    });
+
+    it("falls back to base-level aliases when account has no url aliases", () => {
+      const cfg: OpenClawConfig = {
+        channels: {
+          zulip: {
+            realm: "https://realm-base.example.com",
+            accounts: {
+              work: {},
+            },
+          },
+        },
+      };
+
+      const account = resolveZulipAccount({ cfg, accountId: "work" });
+      expect(account.baseUrl).toBe("https://realm-base.example.com");
     });
   });
 });

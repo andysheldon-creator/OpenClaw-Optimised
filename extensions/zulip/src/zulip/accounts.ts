@@ -97,6 +97,8 @@ export function resolveZulipAccount(params: {
   const zulipSection = resolveZulipSection(params.cfg);
   const baseEnabled = zulipSection?.enabled !== false;
   const merged = mergeZulipAccountConfig(params.cfg, accountId);
+  const accountConfig = resolveAccountConfig(params.cfg, accountId) ?? {};
+  const baseConfig = (zulipSection ?? {}) as ZulipConfig;
   const accountEnabled = merged.enabled !== false;
   const enabled = baseEnabled && accountEnabled;
 
@@ -108,7 +110,16 @@ export function resolveZulipAccount(params: {
   const envRealm = allowEnv ? process.env.ZULIP_REALM?.trim() : undefined;
   const configApiKey = merged.apiKey?.trim();
   const configEmail = merged.email?.trim();
-  const configUrl = (merged.url ?? merged.site ?? merged.realm)?.trim();
+  // Resolve URL aliases with explicit account-first precedence.
+  // This ensures an account-level site/realm can override a base-level url.
+  const configUrl = (
+    accountConfig.url ??
+    accountConfig.site ??
+    accountConfig.realm ??
+    baseConfig.url ??
+    baseConfig.site ??
+    baseConfig.realm
+  )?.trim();
   const apiKey = configApiKey || envApiKey;
   const email = configEmail || envEmail;
   const baseUrl = normalizeZulipBaseUrl(configUrl || envUrl || envSite || envRealm);

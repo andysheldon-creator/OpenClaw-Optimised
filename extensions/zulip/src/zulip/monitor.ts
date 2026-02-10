@@ -307,17 +307,6 @@ export async function monitorZulipProvider(opts: MonitorZulipOpts = {}): Promise
 
     const rawText = stripHtmlToText(message.content ?? "");
 
-    // Temporary: log inbound messages for debugging (helps confirm whether /events polling is receiving anything).
-    try {
-      if (kind === "dm") {
-        runtime.log?.(`zulip inbound dm id=${messageId} from=${senderName} <${senderId}>`);
-      } else {
-        const roomLabel = streamName ? `#${streamName}` : `stream:${streamId}`;
-        runtime.log?.(
-          `zulip inbound stream id=${messageId} room=${roomLabel} topic=${topic} from=${senderName} <${senderId}>`,
-        );
-      }
-    } catch {}
     const oncharResult = stripOncharPrefix(rawText, oncharPrefixes);
 
     const uploadUrls = extractZulipUploadUrls(message.content ?? "", baseUrl);
