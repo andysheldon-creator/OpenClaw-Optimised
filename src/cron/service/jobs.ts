@@ -180,6 +180,7 @@ export function createJob(state: CronServiceState, input: CronJobCreate): CronJo
     wakeMode: input.wakeMode,
     payload: input.payload,
     delivery: input.delivery,
+    catchUp: input.catchUp,
     state: {
       ...input.state,
     },
@@ -211,6 +212,9 @@ export function applyJobPatch(job: CronJob, patch: CronJobPatch) {
   }
   if (patch.wakeMode) {
     job.wakeMode = patch.wakeMode;
+  }
+  if (patch.catchUp !== undefined) {
+    job.catchUp = patch.catchUp;
   }
   if (patch.payload) {
     job.payload = mergeCronPayload(job.payload, patch.payload);
