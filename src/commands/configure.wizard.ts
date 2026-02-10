@@ -5,6 +5,7 @@ import type {
   ConfigureWizardParams,
   WizardSection,
 } from "./configure.shared.js";
+import { normalizeWorkspacePath } from "../agents/workspace.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import { readConfigFileSnapshot, resolveGatewayPort, writeConfigFile } from "../config/config.js";
 import { logConfigUpdated } from "../config/logging.js";
@@ -266,10 +267,11 @@ export async function runConfigureWizard(
       };
       didSetGatewayMode = true;
     }
-    let workspaceDir =
+    let workspaceDir = normalizeWorkspacePath(
       nextConfig.agents?.defaults?.workspace ??
-      baseConfig.agents?.defaults?.workspace ??
-      DEFAULT_WORKSPACE;
+        baseConfig.agents?.defaults?.workspace ??
+        DEFAULT_WORKSPACE,
+    );
     let gatewayPort = resolveGatewayPort(baseConfig);
     let gatewayToken: string | undefined =
       nextConfig.gateway?.auth?.token ??
