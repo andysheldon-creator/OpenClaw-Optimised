@@ -5,8 +5,9 @@
  * Application Default Credentials (ADC). Secrets are cached for the lifetime
  * of the provider instance.
  *
- * NOTE: The `@google-cloud/secret-manager` package is NOT yet installed.
- * This module will fail at runtime until the dependency is added.
+ * The `@google-cloud/secret-manager` package is an optional peer dependency
+ * loaded via dynamic `import()`. Users must install it separately:
+ *   pnpm add @google-cloud/secret-manager
  */
 
 import type { SecretsProvider } from "./provider.js";
