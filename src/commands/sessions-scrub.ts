@@ -20,6 +20,7 @@ type ScrubResult = {
   filesScanned: number;
   filesModified: number;
   redactionCount: number;
+  errors: number;
 };
 
 async function scrubSessionFile(
@@ -90,6 +91,7 @@ export async function sessionsScrubCommand(
     filesScanned: 0,
     filesModified: 0,
     redactionCount: 0,
+    errors: 0,
   };
 
   const rawConcurrency = opts.concurrency ?? DEFAULT_CONCURRENCY;
@@ -119,8 +121,9 @@ export async function sessionsScrubCommand(
           }
         }
       } catch (error) {
+        result.errors++;
+        const message = error instanceof Error ? error.message : String(error);
         if (opts.verbose) {
-          const message = error instanceof Error ? error.message : String(error);
           runtime.error(`Failed to process ${file}: ${message}`);
         }
       }
@@ -150,6 +153,10 @@ export async function sessionsScrubCommand(
       lines.push("");
       lines.push(theme.muted("Backups created with .bak extension."));
     }
+  }
+
+  if (result.errors > 0) {
+    lines.push(`Errors: ${theme.warn(String(result.errors))} file(s) failed to process`);
   }
 
   runtime.log("");
