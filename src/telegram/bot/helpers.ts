@@ -64,7 +64,10 @@ export function buildTelegramThreadParams(thread?: TelegramThreadSpec | null) {
     return undefined;
   }
   const normalized = Math.trunc(thread.id);
-  if (normalized === TELEGRAM_GENERAL_TOPIC_ID && thread.scope === "forum") {
+  if (
+    normalized === TELEGRAM_GENERAL_TOPIC_ID &&
+    (thread.scope === "forum" || thread.scope === "dm")
+  ) {
     return undefined;
   }
   return { message_thread_id: normalized };
