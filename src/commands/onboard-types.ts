@@ -19,6 +19,7 @@ export type AuthChoice =
   | "kimi-code-api-key"
   | "synthetic-api-key"
   | "venice-api-key"
+  | "together-api-key"
   | "codex-cli"
   | "apiKey"
   | "gemini-api-key"
@@ -35,6 +36,8 @@ export type AuthChoice =
   | "github-copilot"
   | "copilot-proxy"
   | "qwen-portal"
+  | "xai-api-key"
+  | "qianfan-api-key"
   | "skip";
 export type GatewayAuthChoice = "token" | "password";
 export type ResetScope = "config" | "config+creds+sessions" | "full";
@@ -78,7 +81,10 @@ export type OnboardOptions = {
   minimaxApiKey?: string;
   syntheticApiKey?: string;
   veniceApiKey?: string;
+  togetherApiKey?: string;
   opencodeZenApiKey?: string;
+  xaiApiKey?: string;
+  qianfanApiKey?: string;
   gatewayPort?: number;
   gatewayBind?: GatewayBind;
   gatewayAuth?: GatewayAuthChoice;

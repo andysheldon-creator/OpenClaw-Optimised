@@ -71,4 +71,9 @@ USER node
 RUN cd /app && node node_modules/playwright-core/cli.js install chromium
 
 # Start gateway server with default config.
-CMD ["node", "dist/index.js", "gateway", "--allow-unconfigured"]
+# Binds to loopback (127.0.0.1) by default for security.
+#
+# For container platforms requiring external health checks:
+#   1. Set OPENCLAW_GATEWAY_TOKEN or OPENCLAW_GATEWAY_PASSWORD env var
+#   2. Override CMD: ["node","openclaw.mjs","gateway","--allow-unconfigured","--bind","lan"]
+CMD ["node", "openclaw.mjs", "gateway", "--allow-unconfigured"]
