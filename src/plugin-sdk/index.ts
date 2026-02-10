@@ -61,6 +61,12 @@ export type { ChannelConfigSchema, ChannelPlugin } from "../channels/plugins/typ
 export type {
   AnyAgentTool,
   OpenClawPluginApi,
+  PluginHookExecutionMode,
+  PluginLifecycleHookContext,
+  PluginLifecycleHookOptions,
+  PluginLifecycleHookResult,
+  PluginLifecyclePayloadMap,
+  PluginLifecyclePhase,
   OpenClawPluginService,
   OpenClawPluginServiceContext,
   ProviderAuthContext,

@@ -2,6 +2,11 @@ import type { AgentEvent } from "@mariozechner/pi-agent-core";
 import type { EmbeddedPiSubscribeContext } from "./pi-embedded-subscribe.handlers.types.js";
 import { emitAgentEvent } from "../infra/agent-events.js";
 import { createInlineCodeState } from "../markdown/code-spans.js";
+import { getGlobalHookRunner } from "../plugins/hook-runner-global.js";
+
+function getSessionMessageCount(ctx: EmbeddedPiSubscribeContext): number {
+  return Array.isArray(ctx.params.session?.messages) ? ctx.params.session.messages.length : 0;
+}
 
 export function handleAgentStart(ctx: EmbeddedPiSubscribeContext) {
   ctx.log.debug(`embedded run agent start: runId=${ctx.params.runId}`);
@@ -21,8 +26,23 @@ export function handleAgentStart(ctx: EmbeddedPiSubscribeContext) {
 
 export function handleAutoCompactionStart(ctx: EmbeddedPiSubscribeContext) {
   ctx.state.compactionInFlight = true;
+  const messageCount = getSessionMessageCount(ctx);
+  ctx.state.compactionStartMessageCount = messageCount;
   ctx.incrementCompactionCount();
   ctx.ensureCompactionPromise();
+  const hookRunner = getGlobalHookRunner();
+  if (hookRunner?.hasHooks("before_compaction")) {
+    void hookRunner
+      .runBeforeCompaction(
+        {
+          messageCount,
+        },
+        {},
+      )
+      .catch((err) => {
+        ctx.log.warn(`before_compaction hook failed: ${String(err)}`);
+      });
+  }
   ctx.log.debug(`embedded run compaction start: runId=${ctx.params.runId}`);
   emitAgentEvent({
     runId: ctx.params.runId,
@@ -40,6 +60,11 @@ export function handleAutoCompactionEnd(
   evt: AgentEvent & { willRetry?: unknown },
 ) {
   ctx.state.compactionInFlight = false;
+  const currentMessageCount = getSessionMessageCount(ctx);
+  const beforeCount = ctx.state.compactionStartMessageCount ?? currentMessageCount;
+  const afterCount = currentMessageCount;
+  ctx.state.compactionStartMessageCount = undefined;
+  const compactedCount = Math.max(0, beforeCount - afterCount);
   const willRetry = Boolean(evt.willRetry);
   if (willRetry) {
     ctx.noteCompactionRetry();
@@ -47,6 +72,20 @@ export function handleAutoCompactionEnd(
     ctx.log.debug(`embedded run compaction retry: runId=${ctx.params.runId}`);
   } else {
     ctx.maybeResolveCompactionWait();
+  }
+  const hookRunner = getGlobalHookRunner();
+  if (hookRunner?.hasHooks("after_compaction")) {
+    void hookRunner
+      .runAfterCompaction(
+        {
+          messageCount: afterCount,
+          compactedCount,
+        },
+        {},
+      )
+      .catch((err) => {
+        ctx.log.warn(`after_compaction hook failed: ${String(err)}`);
+      });
   }
   emitAgentEvent({
     runId: ctx.params.runId,

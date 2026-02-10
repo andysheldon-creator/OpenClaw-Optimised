@@ -52,6 +52,7 @@ export type EmbeddedPiSubscribeState = {
   lastReasoningSent?: string;
 
   compactionInFlight: boolean;
+  compactionStartMessageCount?: number;
   pendingCompactionRetry: number;
   compactionRetryResolve?: () => void;
   compactionRetryPromise: Promise<void> | null;
