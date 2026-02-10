@@ -54,6 +54,15 @@ export const twitchOutbound: ChannelOutboundAdapter = {
     // If target is provided, normalize and validate it
     if (trimmed) {
       const normalizedTo = normalizeTwitchChannel(trimmed);
+      if (!normalizedTo) {
+        return {
+          ok: false,
+          error: missingTargetError(
+            "Twitch",
+            "<channel-name> or channels.twitch.accounts.<account>.allowFrom[0]",
+          ),
+        };
+      }
 
       // For implicit/heartbeat modes with allowList, check against allowlist
       if (mode === "implicit" || mode === "heartbeat") {

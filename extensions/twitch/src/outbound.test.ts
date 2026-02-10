@@ -163,6 +163,17 @@ describe("outbound", () => {
       expect(result.error).toContain("Missing target");
     });
 
+    it("should error when target normalizes to empty string", () => {
+      const result = twitchOutbound.resolveTarget({
+        to: "#",
+        mode: "explicit",
+        allowFrom: [],
+      });
+
+      expect(result.ok).toBe(false);
+      expect(result.error).toContain("Twitch");
+    });
+
     it("should filter wildcard from allowlist when checking membership", () => {
       const result = twitchOutbound.resolveTarget({
         to: "#mychannel",
