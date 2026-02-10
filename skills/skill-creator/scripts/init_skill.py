@@ -151,8 +151,12 @@ def process_data(input_file: str, output_file: str) -> bool:
             logger.error("Input file not found: %s", input_file)
             return False
         
-        # TODO: Replace with actual processing logic
-        # Example: load JSON, process data, save results
+        # Replace this placeholder with your actual processing logic.
+        # Common patterns:
+        # - JSON data transformation: data = json.load(input_path); result = process(data); json.dump(result, output_path)
+        # - CSV processing: use csv module to read, transform, and write
+        # - API integration: fetch from API, transform response, save results
+        # - Format conversion: detect input format, convert to target format
         logger.info("Processing %s...", input_file)
         
         # Placeholder: just copy input to output
