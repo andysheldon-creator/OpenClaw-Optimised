@@ -321,28 +321,29 @@ describe("diagnostics-otel service", () => {
     expect(spanCall[0]).toBe("openclaw.agent.turn");
 
     const attrs = spanCall[1]?.attributes;
-    // gen_ai.* attributes
-    expect(attrs["gen_ai.operation.name"]).toBe("chat");
-    expect(attrs["gen_ai.provider.name"]).toBe("openai");
-    expect(attrs["gen_ai.request.model"]).toBe("gpt-5.2");
-    expect(attrs["gen_ai.response.id"]).toBe("chatcmpl-abc123");
-    expect(attrs["gen_ai.response.model"]).toBe("gpt-5.2-2025-06-01");
-    expect(attrs["gen_ai.response.finish_reasons"]).toEqual(["stop"]);
+    // gen_ai.* inference attributes should NOT be on the turn span —
+    // they belong on child chat spans only.
+    expect(attrs["gen_ai.operation.name"]).toBeUndefined();
+    expect(attrs["gen_ai.provider.name"]).toBeUndefined();
+    expect(attrs["gen_ai.request.model"]).toBeUndefined();
+    expect(attrs["gen_ai.response.id"]).toBeUndefined();
+    expect(attrs["gen_ai.response.model"]).toBeUndefined();
+    expect(attrs["gen_ai.response.finish_reasons"]).toBeUndefined();
+    // conversation.id is kept as it's a session-level attribute
     expect(attrs["gen_ai.conversation.id"]).toBe("sess-001");
 
-    // openclaw.* attributes preserved
+    // openclaw.* envelope attributes preserved
     expect(attrs["openclaw.channel"]).toBe("webchat");
     expect(attrs["openclaw.provider"]).toBe("openai");
     expect(attrs["openclaw.model"]).toBe("gpt-5.2");
     expect(attrs["openclaw.tokens.input"]).toBe(100);
     expect(attrs["openclaw.tokens.output"]).toBe(50);
     expect(attrs["openclaw.tokens.cache_read"]).toBe(80);
-    expect(attrs["gen_ai.usage.cache_read.input_tokens"]).toBe(80);
-    expect(attrs["gen_ai.usage.cache_creation.input_tokens"]).toBe(0);
-    // gen_ai.usage.input_tokens should be promptTokens (input + cacheRead + cacheWrite)
-    // per OTEL semconv, not raw input which excludes cached tokens
-    expect(attrs["gen_ai.usage.input_tokens"]).toBe(180);
-    expect(attrs["gen_ai.usage.output_tokens"]).toBe(50);
+    // gen_ai.usage.* token attributes should NOT be on the turn span
+    expect(attrs["gen_ai.usage.cache_read.input_tokens"]).toBeUndefined();
+    expect(attrs["gen_ai.usage.cache_creation.input_tokens"]).toBeUndefined();
+    expect(attrs["gen_ai.usage.input_tokens"]).toBeUndefined();
+    expect(attrs["gen_ai.usage.output_tokens"]).toBeUndefined();
 
     await service.stop?.();
   });
@@ -883,7 +884,7 @@ describe("diagnostics-otel service", () => {
     await service.stop?.();
   });
 
-  test("system instructions appear as gen_ai.system_instructions when captureContent is enabled", async () => {
+  test("system instructions do NOT appear on agent.turn span (belong on child chat spans)", async () => {
     const service = createService();
     await service.start(createTestCtx({ captureContent: true }));
 
@@ -897,14 +898,12 @@ describe("diagnostics-otel service", () => {
     });
 
     const attrs = telemetryState.tracer.startSpan.mock.calls[0]?.[1]?.attributes;
-    expect(attrs["gen_ai.system_instructions"]).toBe(
-      JSON.stringify([{ type: "text", content: "You are a helpful assistant." }]),
-    );
+    expect(attrs["gen_ai.system_instructions"]).toBeUndefined();
 
     await service.stop?.();
   });
 
-  test("temperature and maxOutputTokens appear as gen_ai.request.* span attributes", async () => {
+  test("temperature and maxOutputTokens do NOT appear on agent.turn span (belong on child chat spans)", async () => {
     const service = createService();
     await service.start(createTestCtx());
 
@@ -919,8 +918,8 @@ describe("diagnostics-otel service", () => {
     });
 
     const attrs = telemetryState.tracer.startSpan.mock.calls[0]?.[1]?.attributes;
-    expect(attrs["gen_ai.request.temperature"]).toBe(0.7);
-    expect(attrs["gen_ai.request.max_tokens"]).toBe(4096);
+    expect(attrs["gen_ai.request.temperature"]).toBeUndefined();
+    expect(attrs["gen_ai.request.max_tokens"]).toBeUndefined();
 
     await service.stop?.();
   });

@@ -579,7 +579,6 @@ export function createDiagnosticsOtelService(): OpenClawPluginService {
         sessionKey?: string;
         sessionId?: string;
         channel?: string;
-        operationName?: string;
         startTimeMs?: number;
         attributes?: Record<string, string | number | string[]>;
       }): Span | null => {
@@ -598,7 +597,7 @@ export function createDiagnosticsOtelService(): OpenClawPluginService {
         }
         const spanAttrs: Record<string, string | number | string[]> = {
           "openclaw.runId": runId,
-          "gen_ai.operation.name": params.operationName ?? "chat",
+          "openclaw.type": "openclaw.agent.turn",
           ...params.attributes,
         };
         if (params.sessionKey) {
@@ -606,9 +605,6 @@ export function createDiagnosticsOtelService(): OpenClawPluginService {
         }
         if (params.sessionId) {
           spanAttrs["openclaw.sessionId"] = params.sessionId;
-          // gen_ai.conversation.id is the OTEL GenAI semantic convention for thread/session ID.
-          // Use sessionId (the stable conversation identifier) rather than sessionKey
-          // (which is a composite key including channel and agent info).
           spanAttrs["gen_ai.conversation.id"] = params.sessionId;
         }
         if (params.channel) {
@@ -738,77 +734,39 @@ export function createDiagnosticsOtelService(): OpenClawPluginService {
           return;
         }
 
-        const opName = evt.operationName ?? "chat";
-        const spanAttrs: Record<string, string | number | string[]> = {
+        // Only put lightweight envelope attributes on the agent.turn span.
+        // gen_ai.* inference attributes (model, messages, tokens, etc.) belong
+        // exclusively on the child chat spans created by recordModelInferenceCompleted.
+        const turnAttrs: Record<string, string | number | string[]> = {
           ...attrs,
           "openclaw.runId": evt.runId,
           "openclaw.sessionKey": evt.sessionKey ?? "",
           "openclaw.sessionId": evt.sessionId ?? "",
-          "gen_ai.operation.name": opName,
-          "gen_ai.provider.name": mapProviderName(evt.provider),
-          "gen_ai.request.model": evt.model ?? "unknown",
         };
         if (typeof usage.input === "number") {
-          spanAttrs["openclaw.tokens.input"] = usage.input;
+          turnAttrs["openclaw.tokens.input"] = usage.input;
         }
         if (typeof usage.output === "number") {
-          spanAttrs["openclaw.tokens.output"] = usage.output;
-          spanAttrs["gen_ai.usage.output_tokens"] = usage.output;
+          turnAttrs["openclaw.tokens.output"] = usage.output;
         }
         if (typeof usage.cacheRead === "number") {
-          spanAttrs["openclaw.tokens.cache_read"] = usage.cacheRead;
-          spanAttrs["gen_ai.usage.cache_read.input_tokens"] = usage.cacheRead;
+          turnAttrs["openclaw.tokens.cache_read"] = usage.cacheRead;
         }
         if (typeof usage.cacheWrite === "number") {
-          spanAttrs["openclaw.tokens.cache_write"] = usage.cacheWrite;
-          spanAttrs["gen_ai.usage.cache_creation.input_tokens"] = usage.cacheWrite;
+          turnAttrs["openclaw.tokens.cache_write"] = usage.cacheWrite;
         }
         if (typeof usage.total === "number") {
-          spanAttrs["openclaw.tokens.total"] = usage.total;
-        }
-        // OTEL GenAI semconv: gen_ai.usage.input_tokens SHOULD include all input
-        // tokens including cached tokens. Use promptTokens (input + cacheRead +
-        // cacheWrite) when available, fall back to raw input.
-        const inputTokensForOtel = usage.promptTokens ?? usage.input;
-        if (typeof inputTokensForOtel === "number") {
-          spanAttrs["gen_ai.usage.input_tokens"] = inputTokensForOtel;
-        }
-        if (evt.responseModel) {
-          spanAttrs["gen_ai.response.model"] = evt.responseModel;
-        }
-        if (evt.responseId) {
-          spanAttrs["gen_ai.response.id"] = evt.responseId;
-        }
-        if (evt.finishReasons?.length) {
-          spanAttrs["gen_ai.response.finish_reasons"] = evt.finishReasons;
+          turnAttrs["openclaw.tokens.total"] = usage.total;
         }
         if (evt.sessionId) {
-          spanAttrs["gen_ai.conversation.id"] = evt.sessionId;
-        }
-        if (typeof evt.temperature === "number") {
-          spanAttrs["gen_ai.request.temperature"] = evt.temperature;
-        }
-        if (typeof evt.maxOutputTokens === "number") {
-          spanAttrs["gen_ai.request.max_tokens"] = evt.maxOutputTokens;
-        }
-        if (captureContent) {
-          if (evt.inputMessages) {
-            spanAttrs["gen_ai.input.messages"] = JSON.stringify(evt.inputMessages);
-          }
-          if (evt.outputMessages) {
-            spanAttrs["gen_ai.output.messages"] = JSON.stringify(evt.outputMessages);
-          }
-          if (evt.systemInstructions) {
-            spanAttrs["gen_ai.system_instructions"] = JSON.stringify(evt.systemInstructions);
-          }
+          turnAttrs["gen_ai.conversation.id"] = evt.sessionId;
         }
         const runSpan = ensureRunSpan({
           runId: evt.runId,
           sessionKey: evt.sessionKey,
           sessionId: evt.sessionId,
           channel: evt.channel,
-          operationName: opName,
-          attributes: spanAttrs,
+          attributes: turnAttrs,
           startTimeMs:
             typeof evt.durationMs === "number"
               ? Date.now() - Math.max(0, evt.durationMs)
@@ -816,7 +774,7 @@ export function createDiagnosticsOtelService(): OpenClawPluginService {
         });
         const finalRunSpan =
           runSpan ??
-          spanWithDuration("openclaw.agent.turn", spanAttrs, evt.durationMs, SpanKind.INTERNAL);
+          spanWithDuration("openclaw.agent.turn", turnAttrs, evt.durationMs, SpanKind.INTERNAL);
 
         if (evt.error) {
           finalRunSpan.setStatus({ code: SpanStatusCode.ERROR, message: evt.error });
@@ -839,7 +797,6 @@ export function createDiagnosticsOtelService(): OpenClawPluginService {
           sessionKey: evt.sessionKey,
           sessionId: evt.sessionId,
           channel: evt.channel,
-          operationName: "chat",
           startTimeMs: evt.ts,
         });
       };
@@ -857,7 +814,6 @@ export function createDiagnosticsOtelService(): OpenClawPluginService {
           sessionKey: evt.sessionKey,
           sessionId: evt.sessionId,
           channel: evt.channel,
-          operationName: opName,
           startTimeMs: evt.ts,
         });
         const parentCtx = runSpan ? trace.setSpan(context.active(), runSpan) : context.active();
