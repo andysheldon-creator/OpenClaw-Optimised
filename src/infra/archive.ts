@@ -2,7 +2,6 @@ import JSZip from "jszip";
 import fs from "node:fs/promises";
 import path from "node:path";
 import * as tar from "tar";
-
 import { isPathWithinBase } from "./paths.js";
 
 export { isPathWithinBase };
