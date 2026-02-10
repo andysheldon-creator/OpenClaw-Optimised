@@ -46,6 +46,7 @@
     "docs:list": "node scripts/docs-list.js",
     "format": "oxfmt --check",
     "format:all": "pnpm format && pnpm format:swift",
+    "format:diff": "oxfmt --write && git --no-pager diff",
     "format:docs": "git ls-files 'docs/**/*.md' 'docs/**/*.mdx' 'README.md' | xargs oxfmt --check",
     "format:docs:fix": "git ls-files 'docs/**/*.md' 'docs/**/*.mdx' 'README.md' | xargs oxfmt --write",
     "format:fix": "oxfmt --write",
