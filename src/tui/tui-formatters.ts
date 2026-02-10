@@ -22,13 +22,13 @@ export function resolveFinalAssistantText(params: {
   finalText?: string | null;
   streamedText?: string | null;
 }) {
-  const finalText = params.finalText ?? "";
+  const finalText = sanitizeForDisplay(params.finalText ?? "");
   if (finalText.trim()) {
-    return sanitizeForDisplay(finalText);
+    return finalText;
   }
-  const streamedText = params.streamedText ?? "";
+  const streamedText = sanitizeForDisplay(params.streamedText ?? "");
   if (streamedText.trim()) {
-    return sanitizeForDisplay(streamedText);
+    return streamedText;
   }
   return "(no output)";
 }

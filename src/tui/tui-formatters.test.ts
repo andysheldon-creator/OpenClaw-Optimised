@@ -4,6 +4,7 @@ import {
   extractTextFromMessage,
   extractThinkingFromMessage,
   isCommandMessage,
+  resolveFinalAssistantText,
   sanitizeForDisplay,
 } from "./tui-formatters.js";
 
@@ -58,6 +59,31 @@ describe("extractTextFromMessage", () => {
     );
 
     expect(text).toBe("[thinking]\nponder\n\nhello");
+  });
+});
+
+describe("resolveFinalAssistantText", () => {
+  it("falls through to '(no output)' when finalText is purely binary", () => {
+    const text = resolveFinalAssistantText({
+      finalText: "\x00\x01\x02\x80\x9F",
+      streamedText: null,
+    });
+    expect(text).toBe("(no output)");
+  });
+
+  it("falls through to streamedText when finalText is purely binary", () => {
+    const text = resolveFinalAssistantText({
+      finalText: "\x00\x01\x02",
+      streamedText: "fallback content",
+    });
+    expect(text).toBe("fallback content");
+  });
+
+  it("sanitizes finalText before returning", () => {
+    const text = resolveFinalAssistantText({
+      finalText: "hello\x00world",
+    });
+    expect(text).toBe("helloworld");
   });
 });
 
