@@ -190,10 +190,6 @@ const FIELD_LABELS: Record<string, string> = {
   "tools.message.broadcast.enabled": "Enable Message Broadcast",
   "tools.web.search.enabled": "Enable Web Search Tool",
   "tools.web.search.provider": "Web Search Provider",
-  "tools.web.search.tavily.apiKey": "Tavily API Key",
-  "tools.web.search.tavily.searchDepth": "Tavily Search Depth",
-  "tools.web.search.grok.apiKey": "Grok xAI API Key",
-  "tools.web.search.grok.model": "Grok Search Model",
   "tools.web.search.apiKey": "Brave Search API Key",
   "tools.web.search.maxResults": "Web Search Max Results",
   "tools.web.search.timeoutSeconds": "Web Search Timeout (sec)",
@@ -480,22 +476,17 @@ const FIELD_HELP: Record<string, string> = {
     'Text suffix for cross-context markers (supports "{channel}").',
   "tools.message.broadcast.enabled": "Enable broadcast action (default: true).",
   "tools.web.search.enabled": "Enable the web_search tool (requires a provider API key).",
-  "tools.web.search.provider": 'Search provider ("brave", "perplexity", "grok", or "tavily").',
+  "tools.web.search.provider": 'Search provider ("brave" or "perplexity").',
   "tools.web.search.apiKey": "Brave Search API key (fallback: BRAVE_API_KEY env var).",
   "tools.web.search.maxResults": "Default number of results to return (1-10).",
   "tools.web.search.timeoutSeconds": "Timeout in seconds for web_search requests.",
   "tools.web.search.cacheTtlMinutes": "Cache TTL in minutes for web_search results.",
-  "tools.web.search.tavily.apiKey": "Tavily API key (fallback: TAVILY_API_KEY env var).",
-  "tools.web.search.tavily.searchDepth":
-    'Tavily search depth ("basic", "advanced", "fast", or "ultra-fast"; default: "advanced").',
   "tools.web.search.perplexity.apiKey":
     "Perplexity or OpenRouter API key (fallback: PERPLEXITY_API_KEY or OPENROUTER_API_KEY env var).",
   "tools.web.search.perplexity.baseUrl":
     "Perplexity base URL override (default: https://openrouter.ai/api/v1 or https://api.perplexity.ai).",
   "tools.web.search.perplexity.model":
     'Perplexity model override (default: "perplexity/sonar-pro").',
-  "tools.web.search.grok.apiKey": "Grok xAI API Key (fallback: XAI_API_KEY env var).",
-  "tools.web.search.grok.model": 'Grok model override (default: "grok-4-1-fast-reasoning").',
   "tools.web.fetch.enabled": "Enable the web_fetch tool (lightweight HTTP fetch).",
   "tools.web.fetch.maxChars": "Max characters returned by web_fetch (truncated).",
   "tools.web.fetch.maxCharsCap":
