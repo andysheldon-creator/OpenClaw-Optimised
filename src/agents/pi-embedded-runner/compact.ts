@@ -434,6 +434,8 @@ export async function compactEmbeddedPiSessionDirect(
           validated,
           getDmHistoryLimitFromSessionKey(params.sessionKey, params.config),
         );
+        // Capture full message history BEFORE limiting — plugins need the complete conversation
+        const preCompactionMessages = [...session.messages];
         if (limited.length > 0) {
           session.agent.replaceMessages(limited);
         }
@@ -450,8 +452,8 @@ export async function compactEmbeddedPiSessionDirect(
           try {
             await hookRunner.runBeforeCompaction(
               {
-                messageCount: limited.length,
-                messages: [...session.messages],
+                messageCount: preCompactionMessages.length,
+                messages: preCompactionMessages,
               },
               hookCtx,
             );

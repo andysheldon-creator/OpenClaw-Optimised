@@ -1,4 +1,3 @@
-import { globSync } from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -310,7 +309,9 @@ export async function loadExtraBootstrapFiles(
   dir: string,
   extraPatterns: string[],
 ): Promise<WorkspaceBootstrapFile[]> {
-  if (!extraPatterns.length) return [];
+  if (!extraPatterns.length) {
+    return [];
+  }
   const resolvedDir = resolveUserPath(dir);
 
   // Resolve glob patterns into concrete file paths
@@ -318,10 +319,12 @@ export async function loadExtraBootstrapFiles(
   for (const pattern of extraPatterns) {
     if (pattern.includes("*") || pattern.includes("?") || pattern.includes("{")) {
       try {
-        const matches = globSync(pattern, { cwd: resolvedDir });
-        for (const m of matches) resolvedPaths.add(m);
+        const matches = await fs.glob(pattern, { cwd: resolvedDir });
+        for await (const m of matches) {
+          resolvedPaths.add(m);
+        }
       } catch {
-        // globSync not available or pattern error — fall back to literal
+        // glob not available or pattern error — fall back to literal
         resolvedPaths.add(pattern);
       }
     } else {
