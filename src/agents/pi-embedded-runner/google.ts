@@ -13,6 +13,7 @@ import {
 } from "../pi-embedded-helpers.js";
 import { cleanToolSchemaForGemini } from "../pi-tools.schema.js";
 import {
+  backfillToolResultNames,
   sanitizeToolCallInputs,
   sanitizeToolUseResultPairing,
 } from "../session-transcript-repair.js";
@@ -354,6 +355,10 @@ export async function sanitizeSessionHistory(params: {
     ? sanitizeToolUseResultPairing(sanitizedToolCalls)
     : sanitizedToolCalls;
 
+  // Backfill empty toolName on toolResult messages so Gemini's strict
+  // function_response.name validation doesn't reject the request (#12832).
+  const backfilledNames = backfillToolResultNames(repairedTools);
+
   const isOpenAIResponsesApi =
     params.modelApi === "openai-responses" || params.modelApi === "openai-codex-responses";
   const hasSnapshot = Boolean(params.provider || params.modelApi || params.modelId);
@@ -368,8 +373,8 @@ export async function sanitizeSessionHistory(params: {
     : false;
   const sanitizedOpenAI =
     isOpenAIResponsesApi && modelChanged
-      ? downgradeOpenAIReasoningBlocks(repairedTools)
-      : repairedTools;
+      ? downgradeOpenAIReasoningBlocks(backfilledNames)
+      : backfilledNames;
 
   if (hasSnapshot && (!priorSnapshot || modelChanged)) {
     appendModelSnapshot(params.sessionManager, {

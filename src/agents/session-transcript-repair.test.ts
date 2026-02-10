@@ -1,6 +1,7 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import { describe, expect, it } from "vitest";
 import {
+  backfillToolResultNames,
   sanitizeToolCallInputs,
   sanitizeToolUseResultPairing,
   repairToolUseResultPairing,
@@ -241,5 +242,86 @@ describe("sanitizeToolCallInputs", () => {
       ? assistant.content.map((block) => (block as { type?: unknown }).type)
       : [];
     expect(types).toEqual(["text", "toolUse"]);
+  });
+});
+
+describe("backfillToolResultNames", () => {
+  it("backfills empty toolName from matching assistant tool call", () => {
+    const messages: AgentMessage[] = [
+      {
+        role: "assistant",
+        content: [{ type: "toolUse", id: "call_1", name: "read_file", input: { path: "a.txt" } }],
+      },
+      {
+        role: "toolResult",
+        toolCallId: "call_1",
+        toolName: "",
+        content: [{ type: "text", text: "file contents" }],
+        isError: false,
+        timestamp: Date.now(),
+      } as AgentMessage,
+    ];
+
+    const out = backfillToolResultNames(messages);
+    const result = out[1] as { toolName?: string };
+    expect(result.toolName).toBe("read_file");
+  });
+
+  it("backfills undefined toolName from matching tool call", () => {
+    const messages: AgentMessage[] = [
+      {
+        role: "assistant",
+        content: [{ type: "toolCall", id: "call_2", name: "web_search", input: { q: "test" } }],
+      },
+      {
+        role: "toolResult",
+        toolCallId: "call_2",
+        content: [{ type: "text", text: "results" }],
+        isError: false,
+        timestamp: Date.now(),
+      } as AgentMessage,
+    ];
+
+    const out = backfillToolResultNames(messages);
+    const result = out[1] as { toolName?: string };
+    expect(result.toolName).toBe("web_search");
+  });
+
+  it("falls back to 'unknown' when no matching tool call exists", () => {
+    const messages: AgentMessage[] = [
+      {
+        role: "toolResult",
+        toolCallId: "orphan_call",
+        toolName: "",
+        content: [{ type: "text", text: "data" }],
+        isError: false,
+        timestamp: Date.now(),
+      } as AgentMessage,
+    ];
+
+    const out = backfillToolResultNames(messages);
+    const result = out[0] as { toolName?: string };
+    expect(result.toolName).toBe("unknown");
+  });
+
+  it("does not modify toolResults that already have a name", () => {
+    const messages: AgentMessage[] = [
+      {
+        role: "assistant",
+        content: [{ type: "toolUse", id: "call_3", name: "exec", input: {} }],
+      },
+      {
+        role: "toolResult",
+        toolCallId: "call_3",
+        toolName: "exec",
+        content: [{ type: "text", text: "ok" }],
+        isError: false,
+        timestamp: Date.now(),
+      } as AgentMessage,
+    ];
+
+    const out = backfillToolResultNames(messages);
+    // Should return same reference when no changes needed
+    expect(out).toBe(messages);
   });
 });

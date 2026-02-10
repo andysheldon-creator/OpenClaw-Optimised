@@ -151,6 +151,71 @@ export function sanitizeToolCallInputs(messages: AgentMessage[]): AgentMessage[]
   return repairToolCallInputs(messages).messages;
 }
 
+/**
+ * Backfill empty/missing `toolName` on toolResult messages by looking up the
+ * corresponding toolCall in the preceding assistant message.  Gemini strictly
+ * validates `function_response.name` and rejects the request when it is empty.
+ * Other providers tolerate it, but a populated name is always preferable.
+ */
+export function backfillToolResultNames(messages: AgentMessage[]): AgentMessage[] {
+  // Build a map from toolCallId → name by scanning assistant messages.
+  const nameById = new Map<string, string>();
+  for (const msg of messages) {
+    if (!msg || typeof msg !== "object" || msg.role !== "assistant") {
+      continue;
+    }
+    if (!Array.isArray(msg.content)) {
+      continue;
+    }
+    for (const block of msg.content) {
+      if (!block || typeof block !== "object") {
+        continue;
+      }
+      const rec = block as { type?: unknown; id?: unknown; name?: unknown };
+      if (
+        typeof rec.id === "string" &&
+        rec.id &&
+        typeof rec.name === "string" &&
+        rec.name &&
+        typeof rec.type === "string" &&
+        TOOL_CALL_TYPES.has(rec.type)
+      ) {
+        nameById.set(rec.id, rec.name);
+      }
+    }
+  }
+
+  let changed = false;
+  const out: AgentMessage[] = [];
+
+  for (const msg of messages) {
+    if (!msg || typeof msg !== "object" || (msg as { role?: unknown }).role !== "toolResult") {
+      out.push(msg);
+      continue;
+    }
+
+    const toolResult = msg as Extract<AgentMessage, { role: "toolResult" }>;
+    const existingName = (toolResult as { toolName?: unknown }).toolName;
+    if (typeof existingName === "string" && existingName.trim()) {
+      out.push(msg);
+      continue;
+    }
+
+    const id = extractToolResultId(toolResult);
+    const resolvedName = id ? nameById.get(id) : undefined;
+    if (resolvedName) {
+      changed = true;
+      out.push({ ...toolResult, toolName: resolvedName } as AgentMessage);
+    } else {
+      // No matching tool call found — fall back to "unknown" so Gemini doesn't get an empty string.
+      changed = true;
+      out.push({ ...toolResult, toolName: "unknown" } as AgentMessage);
+    }
+  }
+
+  return changed ? out : messages;
+}
+
 export function sanitizeToolUseResultPairing(messages: AgentMessage[]): AgentMessage[] {
   return repairToolUseResultPairing(messages).messages;
 }
