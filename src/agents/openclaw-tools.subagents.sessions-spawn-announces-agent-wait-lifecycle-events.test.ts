@@ -22,6 +22,7 @@ vi.mock("../config/config.js", async (importOriginal) => {
 });
 
 import "./test-helpers/fast-core-tools.js";
+import { sleep } from "../utils.js";
 import { createOpenClawTools } from "./openclaw-tools.js";
 import { resetSubagentRegistryForTests } from "./subagent-registry.js";
 
@@ -81,6 +82,16 @@ describe("openclaw-tools: subagents", () => {
           endedAt: 4000,
         };
       }
+      if (request.method === "chat.history") {
+        return {
+          messages: [
+            {
+              role: "assistant",
+              content: [{ type: "text", text: "done" }],
+            },
+          ],
+        };
+      }
       if (request.method === "sessions.delete") {
         const params = request.params as { key?: string } | undefined;
         deletedKey = params?.key;
@@ -93,7 +104,9 @@ describe("openclaw-tools: subagents", () => {
       agentSessionKey: "discord:group:req",
       agentChannel: "discord",
     }).find((candidate) => candidate.name === "sessions_spawn");
-    if (!tool) throw new Error("missing sessions_spawn tool");
+    if (!tool) {
+      throw new Error("missing sessions_spawn tool");
+    }
 
     const result = await tool.execute("call1b", {
       task: "do thing",
@@ -105,9 +118,9 @@ describe("openclaw-tools: subagents", () => {
       runId: "run-1",
     });
 
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await sleep(0);
+    await sleep(0);
+    await sleep(0);
 
     const childWait = waitCalls.find((call) => call.runId === childRunId);
     expect(childWait?.timeoutMs).toBe(1000);

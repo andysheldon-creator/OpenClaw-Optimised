@@ -2,7 +2,6 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
-
 import {
   resolveDefaultConfigCandidates,
   resolveConfigPath,
@@ -45,14 +44,53 @@ describe("state + config path candidates", () => {
     expect(resolveStateDir(env, () => "/home/test")).toBe(path.resolve("/new/state"));
   });
 
+  it("uses OPENCLAW_HOME for default state/config locations", () => {
+    const env = {
+      OPENCLAW_HOME: "/srv/openclaw-home",
+    } as NodeJS.ProcessEnv;
+
+    const resolvedHome = path.resolve("/srv/openclaw-home");
+    expect(resolveStateDir(env)).toBe(path.join(resolvedHome, ".openclaw"));
+
+    const candidates = resolveDefaultConfigCandidates(env);
+    expect(candidates[0]).toBe(path.join(resolvedHome, ".openclaw", "openclaw.json"));
+  });
+
+  it("prefers OPENCLAW_HOME over HOME for default state/config locations", () => {
+    const env = {
+      OPENCLAW_HOME: "/srv/openclaw-home",
+      HOME: "/home/other",
+    } as NodeJS.ProcessEnv;
+
+    const resolvedHome = path.resolve("/srv/openclaw-home");
+    expect(resolveStateDir(env)).toBe(path.join(resolvedHome, ".openclaw"));
+
+    const candidates = resolveDefaultConfigCandidates(env);
+    expect(candidates[0]).toBe(path.join(resolvedHome, ".openclaw", "openclaw.json"));
+  });
+
   it("orders default config candidates in a stable order", () => {
     const home = "/home/test";
+    const resolvedHome = path.resolve(home);
     const candidates = resolveDefaultConfigCandidates({} as NodeJS.ProcessEnv, () => home);
-    const expectedDirs = [".openclaw", ".clawdbot", ".moltbot", ".moldbot"];
-    const expectedFiles = ["openclaw.json", "clawdbot.json", "moltbot.json", "moldbot.json"];
-    const expected = expectedDirs.flatMap((dir) =>
-      expectedFiles.map((file) => path.join(home, dir, file)),
-    );
+    const expected = [
+      path.join(resolvedHome, ".openclaw", "openclaw.json"),
+      path.join(resolvedHome, ".openclaw", "clawdbot.json"),
+      path.join(resolvedHome, ".openclaw", "moltbot.json"),
+      path.join(resolvedHome, ".openclaw", "moldbot.json"),
+      path.join(resolvedHome, ".clawdbot", "openclaw.json"),
+      path.join(resolvedHome, ".clawdbot", "clawdbot.json"),
+      path.join(resolvedHome, ".clawdbot", "moltbot.json"),
+      path.join(resolvedHome, ".clawdbot", "moldbot.json"),
+      path.join(resolvedHome, ".moltbot", "openclaw.json"),
+      path.join(resolvedHome, ".moltbot", "clawdbot.json"),
+      path.join(resolvedHome, ".moltbot", "moltbot.json"),
+      path.join(resolvedHome, ".moltbot", "moldbot.json"),
+      path.join(resolvedHome, ".moldbot", "openclaw.json"),
+      path.join(resolvedHome, ".moldbot", "clawdbot.json"),
+      path.join(resolvedHome, ".moldbot", "moltbot.json"),
+      path.join(resolvedHome, ".moldbot", "moldbot.json"),
+    ];
     expect(candidates).toEqual(expected);
   });
 
@@ -101,20 +139,41 @@ describe("state + config path candidates", () => {
       } else {
         process.env.HOME = previousHome;
       }
-      if (previousUserProfile === undefined) delete process.env.USERPROFILE;
-      else process.env.USERPROFILE = previousUserProfile;
-      if (previousHomeDrive === undefined) delete process.env.HOMEDRIVE;
-      else process.env.HOMEDRIVE = previousHomeDrive;
-      if (previousHomePath === undefined) delete process.env.HOMEPATH;
-      else process.env.HOMEPATH = previousHomePath;
-      if (previousOpenClawConfig === undefined) delete process.env.OPENCLAW_CONFIG_PATH;
-      else process.env.OPENCLAW_CONFIG_PATH = previousOpenClawConfig;
-      if (previousOpenClawConfig === undefined) delete process.env.OPENCLAW_CONFIG_PATH;
-      else process.env.OPENCLAW_CONFIG_PATH = previousOpenClawConfig;
-      if (previousOpenClawState === undefined) delete process.env.OPENCLAW_STATE_DIR;
-      else process.env.OPENCLAW_STATE_DIR = previousOpenClawState;
-      if (previousOpenClawState === undefined) delete process.env.OPENCLAW_STATE_DIR;
-      else process.env.OPENCLAW_STATE_DIR = previousOpenClawState;
+      if (previousUserProfile === undefined) {
+        delete process.env.USERPROFILE;
+      } else {
+        process.env.USERPROFILE = previousUserProfile;
+      }
+      if (previousHomeDrive === undefined) {
+        delete process.env.HOMEDRIVE;
+      } else {
+        process.env.HOMEDRIVE = previousHomeDrive;
+      }
+      if (previousHomePath === undefined) {
+        delete process.env.HOMEPATH;
+      } else {
+        process.env.HOMEPATH = previousHomePath;
+      }
+      if (previousOpenClawConfig === undefined) {
+        delete process.env.OPENCLAW_CONFIG_PATH;
+      } else {
+        process.env.OPENCLAW_CONFIG_PATH = previousOpenClawConfig;
+      }
+      if (previousOpenClawConfig === undefined) {
+        delete process.env.OPENCLAW_CONFIG_PATH;
+      } else {
+        process.env.OPENCLAW_CONFIG_PATH = previousOpenClawConfig;
+      }
+      if (previousOpenClawState === undefined) {
+        delete process.env.OPENCLAW_STATE_DIR;
+      } else {
+        process.env.OPENCLAW_STATE_DIR = previousOpenClawState;
+      }
+      if (previousOpenClawState === undefined) {
+        delete process.env.OPENCLAW_STATE_DIR;
+      } else {
+        process.env.OPENCLAW_STATE_DIR = previousOpenClawState;
+      }
       await fs.rm(root, { recursive: true, force: true });
       vi.resetModules();
     }

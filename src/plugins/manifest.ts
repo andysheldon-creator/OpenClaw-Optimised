@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
-
-import { MANIFEST_KEY } from "../compat/legacy-names.js";
 import type { PluginConfigUiHint, PluginKind } from "./types.js";
+import { MANIFEST_KEY } from "../compat/legacy-names.js";
+import { isRecord } from "../utils.js";
 
 export const PLUGIN_MANIFEST_FILENAME = "openclaw.plugin.json";
 export const PLUGIN_MANIFEST_FILENAMES = [PLUGIN_MANIFEST_FILENAME] as const;
@@ -25,18 +25,18 @@ export type PluginManifestLoadResult =
   | { ok: false; error: string; manifestPath: string };
 
 function normalizeStringList(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
+  if (!Array.isArray(value)) {
+    return [];
+  }
   return value.map((entry) => (typeof entry === "string" ? entry.trim() : "")).filter(Boolean);
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
 export function resolvePluginManifestPath(rootDir: string): string {
   for (const filename of PLUGIN_MANIFEST_FILENAMES) {
     const candidate = path.join(rootDir, filename);
-    if (fs.existsSync(candidate)) return candidate;
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
   }
   return path.join(rootDir, PLUGIN_MANIFEST_FILENAME);
 }
@@ -144,6 +144,8 @@ export type PackageManifest = {
 export function getPackageManifestMetadata(
   manifest: PackageManifest | undefined,
 ): OpenClawPackageManifest | undefined {
-  if (!manifest) return undefined;
+  if (!manifest) {
+    return undefined;
+  }
   return manifest[MANIFEST_KEY];
 }

@@ -1,5 +1,8 @@
-import { emptyPluginConfigSchema } from "openclaw/plugin-sdk";
-
+import {
+  emptyPluginConfigSchema,
+  type OpenClawPluginApi,
+  type ProviderAuthContext,
+} from "openclaw/plugin-sdk";
 import { loginGeminiCliOAuth } from "./oauth.js";
 
 const PROVIDER_ID = "google-gemini-cli";
@@ -17,7 +20,7 @@ const geminiCliPlugin = {
   name: "Google Gemini CLI Auth",
   description: "OAuth flow for Gemini CLI (Google Code Assist)",
   configSchema: emptyPluginConfigSchema(),
-  register(api) {
+  register(api: OpenClawPluginApi) {
     api.registerProvider({
       id: PROVIDER_ID,
       label: PROVIDER_LABEL,
@@ -30,7 +33,7 @@ const geminiCliPlugin = {
           label: "Google OAuth",
           hint: "PKCE + localhost callback",
           kind: "oauth",
-          run: async (ctx) => {
+          run: async (ctx: ProviderAuthContext) => {
             const spin = ctx.prompter.progress("Starting Gemini CLI OAuth…");
             try {
               const result = await loginGeminiCliOAuth({
@@ -69,9 +72,7 @@ const geminiCliPlugin = {
                   },
                 },
                 defaultModel: DEFAULT_MODEL,
-                notes: [
-                  "If requests fail, set GOOGLE_CLOUD_PROJECT or GOOGLE_CLOUD_PROJECT_ID.",
-                ],
+                notes: ["If requests fail, set GOOGLE_CLOUD_PROJECT or GOOGLE_CLOUD_PROJECT_ID."],
               };
             } catch (err) {
               spin.stop("Gemini CLI OAuth failed");

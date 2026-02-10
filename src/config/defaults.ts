@@ -1,9 +1,9 @@
+import type { OpenClawConfig } from "./types.js";
+import type { ModelDefinitionConfig } from "./types.models.js";
 import { DEFAULT_CONTEXT_TOKENS } from "../agents/defaults.js";
 import { parseModelRef } from "../agents/model-selection.js";
-import { resolveTalkApiKey } from "./talk.js";
-import type { OpenClawConfig } from "./types.js";
 import { DEFAULT_AGENT_MAX_CONCURRENT, DEFAULT_SUBAGENT_MAX_CONCURRENT } from "./agent-limits.js";
-import type { ModelDefinitionConfig } from "./types.models.js";
+import { resolveTalkApiKey } from "./talk.js";
 
 type WarnState = { warned: boolean };
 
@@ -13,7 +13,7 @@ type AnthropicAuthDefaultsMode = "api_key" | "oauth";
 
 const DEFAULT_MODEL_ALIASES: Readonly<Record<string, string>> = {
   // Anthropic (pi-ai catalog uses "latest" ids without date suffix)
-  opus: "anthropic/claude-opus-4-5",
+  opus: "anthropic/claude-opus-4-6",
   sonnet: "anthropic/claude-sonnet-4-5",
 
   // OpenAI
@@ -62,27 +62,45 @@ function resolveAnthropicDefaultAuthMode(cfg: OpenClawConfig): AnthropicAuthDefa
   const order = cfg.auth?.order?.anthropic ?? [];
   for (const profileId of order) {
     const entry = profiles[profileId];
-    if (!entry || entry.provider !== "anthropic") continue;
-    if (entry.mode === "api_key") return "api_key";
-    if (entry.mode === "oauth" || entry.mode === "token") return "oauth";
+    if (!entry || entry.provider !== "anthropic") {
+      continue;
+    }
+    if (entry.mode === "api_key") {
+      return "api_key";
+    }
+    if (entry.mode === "oauth" || entry.mode === "token") {
+      return "oauth";
+    }
   }
 
   const hasApiKey = anthropicProfiles.some(([, profile]) => profile?.mode === "api_key");
   const hasOauth = anthropicProfiles.some(
     ([, profile]) => profile?.mode === "oauth" || profile?.mode === "token",
   );
-  if (hasApiKey && !hasOauth) return "api_key";
-  if (hasOauth && !hasApiKey) return "oauth";
+  if (hasApiKey && !hasOauth) {
+    return "api_key";
+  }
+  if (hasOauth && !hasApiKey) {
+    return "oauth";
+  }
 
-  if (process.env.ANTHROPIC_OAUTH_TOKEN?.trim()) return "oauth";
-  if (process.env.ANTHROPIC_API_KEY?.trim()) return "api_key";
+  if (process.env.ANTHROPIC_OAUTH_TOKEN?.trim()) {
+    return "oauth";
+  }
+  if (process.env.ANTHROPIC_API_KEY?.trim()) {
+    return "api_key";
+  }
   return null;
 }
 
 function resolvePrimaryModelRef(raw?: string): string | null {
-  if (!raw || typeof raw !== "string") return null;
+  if (!raw || typeof raw !== "string") {
+    return null;
+  }
   const trimmed = raw.trim();
-  if (!trimmed) return null;
+  if (!trimmed) {
+    return null;
+  }
   const aliasKey = trimmed.toLowerCase();
   return DEFAULT_MODEL_ALIASES[aliasKey] ?? trimmed;
 }
@@ -95,7 +113,9 @@ export type SessionDefaultsOptions = {
 export function applyMessageDefaults(cfg: OpenClawConfig): OpenClawConfig {
   const messages = cfg.messages;
   const hasAckScope = messages?.ackReactionScope !== undefined;
-  if (hasAckScope) return cfg;
+  if (hasAckScope) {
+    return cfg;
+  }
 
   const nextMessages = messages ? { ...messages } : {};
   nextMessages.ackReactionScope = "group-mentions";
@@ -110,7 +130,9 @@ export function applySessionDefaults(
   options: SessionDefaultsOptions = {},
 ): OpenClawConfig {
   const session = cfg.session;
-  if (!session || session.mainKey === undefined) return cfg;
+  if (!session || session.mainKey === undefined) {
+    return cfg;
+  }
 
   const trimmed = session.mainKey.trim();
   const warn = options.warn ?? console.warn;
@@ -131,9 +153,13 @@ export function applySessionDefaults(
 
 export function applyTalkApiKey(config: OpenClawConfig): OpenClawConfig {
   const resolved = resolveTalkApiKey();
-  if (!resolved) return config;
+  if (!resolved) {
+    return config;
+  }
   const existing = config.talk?.apiKey?.trim();
-  if (existing) return config;
+  if (existing) {
+    return config;
+  }
   return {
     ...config,
     talk: {
@@ -152,17 +178,23 @@ export function applyModelDefaults(cfg: OpenClawConfig): OpenClawConfig {
     const nextProviders = { ...providerConfig };
     for (const [providerId, provider] of Object.entries(providerConfig)) {
       const models = provider.models;
-      if (!Array.isArray(models) || models.length === 0) continue;
+      if (!Array.isArray(models) || models.length === 0) {
+        continue;
+      }
       let providerMutated = false;
       const nextModels = models.map((model) => {
         const raw = model as ModelDefinitionLike;
         let modelMutated = false;
 
         const reasoning = typeof raw.reasoning === "boolean" ? raw.reasoning : false;
-        if (raw.reasoning !== reasoning) modelMutated = true;
+        if (raw.reasoning !== reasoning) {
+          modelMutated = true;
+        }
 
         const input = raw.input ?? [...DEFAULT_MODEL_INPUT];
-        if (raw.input === undefined) modelMutated = true;
+        if (raw.input === undefined) {
+          modelMutated = true;
+        }
 
         const cost = resolveModelCost(raw.cost);
         const costMutated =
@@ -171,18 +203,27 @@ export function applyModelDefaults(cfg: OpenClawConfig): OpenClawConfig {
           raw.cost.output !== cost.output ||
           raw.cost.cacheRead !== cost.cacheRead ||
           raw.cost.cacheWrite !== cost.cacheWrite;
-        if (costMutated) modelMutated = true;
+        if (costMutated) {
+          modelMutated = true;
+        }
 
         const contextWindow = isPositiveNumber(raw.contextWindow)
           ? raw.contextWindow
           : DEFAULT_CONTEXT_TOKENS;
-        if (raw.contextWindow !== contextWindow) modelMutated = true;
+        if (raw.contextWindow !== contextWindow) {
+          modelMutated = true;
+        }
 
         const defaultMaxTokens = Math.min(DEFAULT_MODEL_MAX_TOKENS, contextWindow);
-        const maxTokens = isPositiveNumber(raw.maxTokens) ? raw.maxTokens : defaultMaxTokens;
-        if (raw.maxTokens !== maxTokens) modelMutated = true;
+        const rawMaxTokens = isPositiveNumber(raw.maxTokens) ? raw.maxTokens : defaultMaxTokens;
+        const maxTokens = Math.min(rawMaxTokens, contextWindow);
+        if (raw.maxTokens !== maxTokens) {
+          modelMutated = true;
+        }
 
-        if (!modelMutated) return model;
+        if (!modelMutated) {
+          return model;
+        }
         providerMutated = true;
         return {
           ...raw,
@@ -194,7 +235,9 @@ export function applyModelDefaults(cfg: OpenClawConfig): OpenClawConfig {
         } as ModelDefinitionConfig;
       });
 
-      if (!providerMutated) continue;
+      if (!providerMutated) {
+        continue;
+      }
       nextProviders[providerId] = { ...provider, models: nextModels };
       mutated = true;
     }
@@ -211,9 +254,13 @@ export function applyModelDefaults(cfg: OpenClawConfig): OpenClawConfig {
   }
 
   const existingAgent = nextCfg.agents?.defaults;
-  if (!existingAgent) return mutated ? nextCfg : cfg;
+  if (!existingAgent) {
+    return mutated ? nextCfg : cfg;
+  }
   const existingModels = existingAgent.models ?? {};
-  if (Object.keys(existingModels).length === 0) return mutated ? nextCfg : cfg;
+  if (Object.keys(existingModels).length === 0) {
+    return mutated ? nextCfg : cfg;
+  }
 
   const nextModels: Record<string, { alias?: string }> = {
     ...existingModels,
@@ -221,13 +268,19 @@ export function applyModelDefaults(cfg: OpenClawConfig): OpenClawConfig {
 
   for (const [alias, target] of Object.entries(DEFAULT_MODEL_ALIASES)) {
     const entry = nextModels[target];
-    if (!entry) continue;
-    if (entry.alias !== undefined) continue;
+    if (!entry) {
+      continue;
+    }
+    if (entry.alias !== undefined) {
+      continue;
+    }
     nextModels[target] = { ...entry, alias };
     mutated = true;
   }
 
-  if (!mutated) return cfg;
+  if (!mutated) {
+    return cfg;
+  }
 
   return {
     ...nextCfg,
@@ -246,7 +299,9 @@ export function applyAgentDefaults(cfg: OpenClawConfig): OpenClawConfig {
   const hasSubMax =
     typeof defaults?.subagents?.maxConcurrent === "number" &&
     Number.isFinite(defaults.subagents.maxConcurrent);
-  if (hasMax && hasSubMax) return cfg;
+  if (hasMax && hasSubMax) {
+    return cfg;
+  }
 
   let mutated = false;
   const nextDefaults = defaults ? { ...defaults } : {};
@@ -261,7 +316,9 @@ export function applyAgentDefaults(cfg: OpenClawConfig): OpenClawConfig {
     mutated = true;
   }
 
-  if (!mutated) return cfg;
+  if (!mutated) {
+    return cfg;
+  }
 
   return {
     ...cfg,
@@ -277,8 +334,12 @@ export function applyAgentDefaults(cfg: OpenClawConfig): OpenClawConfig {
 
 export function applyLoggingDefaults(cfg: OpenClawConfig): OpenClawConfig {
   const logging = cfg.logging;
-  if (!logging) return cfg;
-  if (logging.redactSensitive) return cfg;
+  if (!logging) {
+    return cfg;
+  }
+  if (logging.redactSensitive) {
+    return cfg;
+  }
   return {
     ...cfg,
     logging: {
@@ -290,10 +351,14 @@ export function applyLoggingDefaults(cfg: OpenClawConfig): OpenClawConfig {
 
 export function applyContextPruningDefaults(cfg: OpenClawConfig): OpenClawConfig {
   const defaults = cfg.agents?.defaults;
-  if (!defaults) return cfg;
+  if (!defaults) {
+    return cfg;
+  }
 
   const authMode = resolveAnthropicDefaultAuthMode(cfg);
-  if (!authMode) return cfg;
+  if (!authMode) {
+    return cfg;
+  }
 
   let mutated = false;
   const nextDefaults = { ...defaults };
@@ -323,18 +388,24 @@ export function applyContextPruningDefaults(cfg: OpenClawConfig): OpenClawConfig
 
     for (const [key, entry] of Object.entries(nextModels)) {
       const parsed = parseModelRef(key, "anthropic");
-      if (!parsed) continue;
+      if (!parsed) {
+        continue;
+      }
       // Apply cache control to Anthropic models and LiteLLM Claude models
       const isAnthropicProvider = parsed.provider === "anthropic";
       const isLitellmClaude =
         parsed.provider === "litellm" && parsed.model.toLowerCase().startsWith("claude-");
-      if (!isAnthropicProvider && !isLitellmClaude) continue;
+      if (!isAnthropicProvider && !isLitellmClaude) {
+        continue;
+      }
       const current = entry ?? {};
       const params = (current as { params?: Record<string, unknown> }).params ?? {};
-      if (typeof params.cacheControlTtl === "string") continue;
+      if (typeof params.cacheRetention === "string") {
+        continue;
+      }
       nextModels[key] = {
         ...(current as Record<string, unknown>),
-        params: { ...params, cacheControlTtl: "1h" },
+        params: { ...params, cacheRetention: "short" },
       };
       modelsMutated = true;
     }
@@ -343,20 +414,19 @@ export function applyContextPruningDefaults(cfg: OpenClawConfig): OpenClawConfig
     if (primary) {
       const parsedPrimary = parseModelRef(primary, "anthropic");
       if (parsedPrimary) {
-        // Apply cache control to Anthropic models and LiteLLM Claude models
-        const isAnthropicProvider = parsedPrimary.provider === "anthropic";
-        const isLitellmClaude =
+        const isPrimaryAnthropicProvider = parsedPrimary.provider === "anthropic";
+        const isPrimaryLitellmClaude =
           parsedPrimary.provider === "litellm" &&
           parsedPrimary.model.toLowerCase().startsWith("claude-");
-        if (isAnthropicProvider || isLitellmClaude) {
+        if (isPrimaryAnthropicProvider || isPrimaryLitellmClaude) {
           const key = `${parsedPrimary.provider}/${parsedPrimary.model}`;
           const entry = nextModels[key];
           const current = entry ?? {};
           const params = (current as { params?: Record<string, unknown> }).params ?? {};
-          if (typeof params.cacheControlTtl !== "string") {
+          if (typeof params.cacheRetention !== "string") {
             nextModels[key] = {
               ...(current as Record<string, unknown>),
-              params: { ...params, cacheControlTtl: "1h" },
+              params: { ...params, cacheRetention: "short" },
             };
             modelsMutated = true;
           }
@@ -370,7 +440,9 @@ export function applyContextPruningDefaults(cfg: OpenClawConfig): OpenClawConfig
     }
   }
 
-  if (!mutated) return cfg;
+  if (!mutated) {
+    return cfg;
+  }
 
   return {
     ...cfg,
@@ -383,9 +455,13 @@ export function applyContextPruningDefaults(cfg: OpenClawConfig): OpenClawConfig
 
 export function applyCompactionDefaults(cfg: OpenClawConfig): OpenClawConfig {
   const defaults = cfg.agents?.defaults;
-  if (!defaults) return cfg;
+  if (!defaults) {
+    return cfg;
+  }
   const compaction = defaults?.compaction;
-  if (compaction?.mode) return cfg;
+  if (compaction?.mode) {
+    return cfg;
+  }
 
   return {
     ...cfg,

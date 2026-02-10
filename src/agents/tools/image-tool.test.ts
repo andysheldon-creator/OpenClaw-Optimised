@@ -1,9 +1,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
 import type { OpenClawConfig } from "../../config/config.js";
 import { __testing, createImageTool, resolveImageModelConfigForTool } from "./image-tool.js";
 
@@ -24,6 +22,8 @@ describe("image tool implicit imageModel config", () => {
     vi.stubEnv("ANTHROPIC_API_KEY", "");
     vi.stubEnv("ANTHROPIC_OAUTH_TOKEN", "");
     vi.stubEnv("MINIMAX_API_KEY", "");
+    vi.stubEnv("ZAI_API_KEY", "");
+    vi.stubEnv("Z_AI_API_KEY", "");
     // Avoid implicit Copilot provider discovery hitting the network in tests.
     vi.stubEnv("COPILOT_GITHUB_TOKEN", "");
     vi.stubEnv("GH_TOKEN", "");
@@ -55,6 +55,21 @@ describe("image tool implicit imageModel config", () => {
     };
     expect(resolveImageModelConfigForTool({ cfg, agentDir })).toEqual({
       primary: "minimax/MiniMax-VL-01",
+      fallbacks: ["openai/gpt-5-mini", "anthropic/claude-opus-4-5"],
+    });
+    expect(createImageTool({ config: cfg, agentDir })).not.toBeNull();
+  });
+
+  it("pairs zai primary with glm-4.6v (and fallbacks) when auth exists", async () => {
+    const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-image-"));
+    vi.stubEnv("ZAI_API_KEY", "zai-test");
+    vi.stubEnv("OPENAI_API_KEY", "openai-test");
+    vi.stubEnv("ANTHROPIC_API_KEY", "anthropic-test");
+    const cfg: OpenClawConfig = {
+      agents: { defaults: { model: { primary: "zai/glm-4.7" } } },
+    };
+    expect(resolveImageModelConfigForTool({ cfg, agentDir })).toEqual({
+      primary: "zai/glm-4.6v",
       fallbacks: ["openai/gpt-5-mini", "anthropic/claude-opus-4-5"],
     });
     expect(createImageTool({ config: cfg, agentDir })).not.toBeNull();
@@ -148,7 +163,9 @@ describe("image tool implicit imageModel config", () => {
     };
     const tool = createImageTool({ config: cfg, agentDir, sandboxRoot });
     expect(tool).not.toBeNull();
-    if (!tool) throw new Error("expected image tool");
+    if (!tool) {
+      throw new Error("expected image tool");
+    }
 
     await expect(tool.execute("t1", { image: "https://example.com/a.png" })).rejects.toThrow(
       /Sandboxed image tool does not allow remote URLs/i,
@@ -198,7 +215,9 @@ describe("image tool implicit imageModel config", () => {
     };
     const tool = createImageTool({ config: cfg, agentDir, sandboxRoot });
     expect(tool).not.toBeNull();
-    if (!tool) throw new Error("expected image tool");
+    if (!tool) {
+      throw new Error("expected image tool");
+    }
 
     const res = await tool.execute("t1", {
       prompt: "Describe the image.",
@@ -266,7 +285,9 @@ describe("image tool MiniMax VLM routing", () => {
     };
     const tool = createImageTool({ config: cfg, agentDir });
     expect(tool).not.toBeNull();
-    if (!tool) throw new Error("expected image tool");
+    if (!tool) {
+      throw new Error("expected image tool");
+    }
 
     const res = await tool.execute("t1", {
       prompt: "Describe the image.",
@@ -308,7 +329,9 @@ describe("image tool MiniMax VLM routing", () => {
     };
     const tool = createImageTool({ config: cfg, agentDir });
     expect(tool).not.toBeNull();
-    if (!tool) throw new Error("expected image tool");
+    if (!tool) {
+      throw new Error("expected image tool");
+    }
 
     await expect(
       tool.execute("t1", {

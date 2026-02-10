@@ -1,27 +1,23 @@
-import { parseConfigPath, setConfigValueAtPath, unsetConfigValueAtPath } from "./config-paths.js";
 import type { OpenClawConfig } from "./types.js";
+import { isPlainObject } from "../utils.js";
+import { parseConfigPath, setConfigValueAtPath, unsetConfigValueAtPath } from "./config-paths.js";
 
 type OverrideTree = Record<string, unknown>;
 
 let overrides: OverrideTree = {};
 
 function mergeOverrides(base: unknown, override: unknown): unknown {
-  if (!isPlainObject(base) || !isPlainObject(override)) return override;
+  if (!isPlainObject(base) || !isPlainObject(override)) {
+    return override;
+  }
   const next: OverrideTree = { ...base };
   for (const [key, value] of Object.entries(override)) {
-    if (value === undefined) continue;
+    if (value === undefined) {
+      continue;
+    }
     next[key] = mergeOverrides((base as OverrideTree)[key], value);
   }
   return next;
-}
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    !Array.isArray(value) &&
-    Object.prototype.toString.call(value) === "[object Object]"
-  );
 }
 
 export function getConfigOverrides(): OverrideTree {
@@ -65,6 +61,8 @@ export function unsetConfigOverride(pathRaw: string): {
 }
 
 export function applyConfigOverrides(cfg: OpenClawConfig): OpenClawConfig {
-  if (!overrides || Object.keys(overrides).length === 0) return cfg;
+  if (!overrides || Object.keys(overrides).length === 0) {
+    return cfg;
+  }
   return mergeOverrides(cfg, overrides) as OpenClawConfig;
 }
