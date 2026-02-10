@@ -84,9 +84,9 @@ const MINIMAX_MODEL_CATALOG = {
 type MinimaxCatalogId = keyof typeof MINIMAX_MODEL_CATALOG;
 
 const ZAI_MODEL_CATALOG = {
-  "glm-5": { name: "GLM-5", reasoning: true },
-  "glm-4.7": { name: "GLM-4.7", reasoning: true },
-  "glm-4.7-flash": { name: "GLM-4.7 Flash", reasoning: true },
+  "glm-5": { name: "GLM-5", reasoning: false },
+  "glm-4.7": { name: "GLM-4.7", reasoning: false },
+  "glm-4.7-flash": { name: "GLM-4.7 Flash", reasoning: false },
 } as const;
 
 type ZaiCatalogId = keyof typeof ZAI_MODEL_CATALOG;
@@ -144,7 +144,7 @@ export function buildZaiModelDefinition(params: {
   return {
     id: params.id,
     name: params.name ?? catalog?.name ?? `GLM ${params.id}`,
-    reasoning: params.reasoning ?? catalog?.reasoning ?? true,
+    reasoning: params.reasoning ?? catalog?.reasoning ?? false,
     input: ["text"],
     cost: params.cost ?? ZAI_DEFAULT_COST,
     contextWindow: params.contextWindow ?? 204800,
