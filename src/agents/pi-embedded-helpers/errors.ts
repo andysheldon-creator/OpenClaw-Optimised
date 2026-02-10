@@ -160,16 +160,9 @@ function shouldRewriteBillingText(raw: string): boolean {
     return true;
   }
   // The broad "billing + payment/upgrade/credits/plan" heuristic can match assistant prose
-  // discussing billing topics. Only rewrite when the text looks like a raw error message,
-  // not structured assistant content (multiple sentences, markdown, paragraphs).
-  if (isRawApiErrorPayload(raw) || isLikelyHttpErrorText(raw) || ERROR_PREFIX_RE.test(raw)) {
-    return true;
-  }
-  // Single-sentence short texts without markdown are likely error messages.
-  const hasMultipleSentences = /[.!?]\s+[A-Z]/.test(raw);
-  const hasMarkdown = /[*_#[\]|]/.test(raw);
-  const hasParagraphs = raw.includes("\n\n");
-  return !hasMultipleSentences && !hasMarkdown && !hasParagraphs;
+  // discussing billing topics. Only rewrite when the text looks like a raw error payload,
+  // HTTP error, or prefixed error — never rewrite based on content heuristics alone.
+  return isRawApiErrorPayload(raw) || isLikelyHttpErrorText(raw) || ERROR_PREFIX_RE.test(raw);
 }
 
 type ErrorPayload = Record<string, unknown>;

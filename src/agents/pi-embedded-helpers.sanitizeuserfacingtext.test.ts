@@ -74,7 +74,9 @@ describe("sanitizeUserFacingText", () => {
     const billingMsg =
       "⚠️ API provider returned a billing error — your API key has run out of credits or has an insufficient balance. Check your provider's billing dashboard and top up or switch to a different API key.";
     expect(sanitizeUserFacingText("insufficient credits")).toBe(billingMsg);
-    expect(sanitizeUserFacingText("billing: please upgrade your plan")).toBe(billingMsg);
+    expect(sanitizeUserFacingText("Error: billing account requires payment upgrade")).toBe(
+      billingMsg,
+    );
     expect(sanitizeUserFacingText("Your credit balance is too low")).toBe(billingMsg);
   });
 
