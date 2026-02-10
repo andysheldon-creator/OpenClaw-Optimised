@@ -351,9 +351,10 @@ Use jobId as the canonical identifier; id is accepted for compatibility. Use con
           if (!params.job || typeof params.job !== "object") {
             throw new Error("job required");
           }
-          const job = normalizeCronJobCreate(params.job) ?? params.job;
+          const cfg = loadConfig();
+          const defaultTimezone = cfg.agents?.defaults?.userTimezone?.trim() || undefined;
+          const job = normalizeCronJobCreate(params.job, { defaultTimezone }) ?? params.job;
           if (job && typeof job === "object" && !("agentId" in job)) {
-            const cfg = loadConfig();
             const agentId = opts?.agentSessionKey
               ? resolveSessionAgentId({ sessionKey: opts.agentSessionKey, config: cfg })
               : undefined;
@@ -422,7 +423,11 @@ Use jobId as the canonical identifier; id is accepted for compatibility. Use con
           if (!params.patch || typeof params.patch !== "object") {
             throw new Error("patch required");
           }
-          const patch = normalizeCronJobPatch(params.patch) ?? params.patch;
+          const patchCfg = loadConfig();
+          const patchDefaultTz = patchCfg.agents?.defaults?.userTimezone?.trim() || undefined;
+          const patch =
+            normalizeCronJobPatch(params.patch, { defaultTimezone: patchDefaultTz }) ??
+            params.patch;
           return jsonResult(
             await callGatewayTool("cron.update", gatewayOpts, {
               id,
