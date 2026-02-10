@@ -32,7 +32,7 @@ function listConfiguredAccountIds(cfg: CoreConfig): string[] {
 /**
  * Collect account IDs referenced in `cfg.bindings` for the matrix channel.
  */
-function listBoundAccountIds(cfg: CoreConfig): string[] {
+function listMatrixBoundAccountIds(cfg: CoreConfig): string[] {
   const bindings = cfg.bindings;
   if (!Array.isArray(bindings)) {
     return [];
@@ -57,7 +57,7 @@ function listBoundAccountIds(cfg: CoreConfig): string[] {
  * Falls back to `[DEFAULT_ACCOUNT_ID]` when none are found.
  */
 export function listMatrixAccountIds(cfg: CoreConfig): string[] {
-  const ids = new Set([...listConfiguredAccountIds(cfg), ...listBoundAccountIds(cfg)]);
+  const ids = new Set([...listConfiguredAccountIds(cfg), ...listMatrixBoundAccountIds(cfg)]);
   if (ids.size === 0) {
     return [DEFAULT_ACCOUNT_ID];
   }
@@ -84,10 +84,7 @@ export function resolveDefaultMatrixAccountId(cfg: CoreConfig): string {
  * Merge the base Matrix config (top-level fields minus `accounts`) with
  * per-account overrides from `channels.matrix.accounts[accountId]`.
  */
-export function mergeMatrixAccountConfig(
-  cfg: CoreConfig,
-  accountId: string,
-): MatrixAccountConfig {
+export function mergeMatrixAccountConfig(cfg: CoreConfig, accountId: string): MatrixAccountConfig {
   const { accounts: _ignored, ...base } = (cfg.channels?.matrix ?? {}) as MatrixConfig & {
     accounts?: unknown;
   };

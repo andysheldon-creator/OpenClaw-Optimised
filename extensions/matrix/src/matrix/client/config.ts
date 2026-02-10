@@ -21,9 +21,7 @@ export function resolveMatrixConfig(
 ): MatrixResolvedConfig {
   // Support both a flat MatrixAccountConfig and the legacy CoreConfig shape.
   const matrix: MatrixAccountConfig =
-    "channels" in configOrCfg
-      ? ((configOrCfg as CoreConfig).channels?.matrix ?? {})
-      : configOrCfg;
+    "channels" in configOrCfg ? ((configOrCfg as CoreConfig).channels?.matrix ?? {}) : configOrCfg;
 
   const homeserver = clean(matrix.homeserver) || clean(env.MATRIX_HOMESERVER);
   const userId = clean(matrix.userId) || clean(env.MATRIX_USER_ID);
@@ -96,11 +94,15 @@ export async function resolveMatrixAuth(params?: {
       const whoami = await tempClient.getUserId();
       userId = whoami;
       // Save the credentials with the fetched userId
-      saveMatrixCredentials({
-        homeserver: resolved.homeserver,
-        userId,
-        accessToken: resolved.accessToken,
-      }, env, accountId);
+      saveMatrixCredentials(
+        {
+          homeserver: resolved.homeserver,
+          userId,
+          accessToken: resolved.accessToken,
+        },
+        env,
+        accountId,
+      );
     } else if (cachedCredentials && cachedCredentials.accessToken === resolved.accessToken) {
       touchMatrixCredentials(env, accountId);
     }
@@ -173,12 +175,16 @@ export async function resolveMatrixAuth(params?: {
     encryption: resolved.encryption,
   };
 
-  saveMatrixCredentials({
-    homeserver: auth.homeserver,
-    userId: auth.userId,
-    accessToken: auth.accessToken,
-    deviceId: login.device_id,
-  }, env, accountId);
+  saveMatrixCredentials(
+    {
+      homeserver: auth.homeserver,
+      userId: auth.userId,
+      accessToken: auth.accessToken,
+      deviceId: login.device_id,
+    },
+    env,
+    accountId,
+  );
 
   return auth;
 }
