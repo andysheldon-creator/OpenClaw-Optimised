@@ -237,7 +237,8 @@ export const sessionsHandlers: GatewayRequestHandlers = {
     const storePath = target.storePath;
 
     // Pre-reset hook: trigger an agent turn before resetting (best-effort, non-blocking)
-    const { entry: hookEntry } = loadSessionEntry(key);
+    const store = loadSessionStore(storePath);
+    const hookEntry = store[target.canonicalKey];
     await runPreResetHook({
       cfg,
       sessionKey: key,
