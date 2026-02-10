@@ -48,7 +48,7 @@ function resolveCacheRetention(
   const isEligible =
     provider === "anthropic" ||
     (provider === "openrouter" && modelId.startsWith("anthropic/")) ||
-    (provider === "litellm" && modelId.startsWith("claude-"));
+    (provider === "litellm" && modelId.toLowerCase().startsWith("claude-"));
   if (!isEligible) {
     return undefined;
   }

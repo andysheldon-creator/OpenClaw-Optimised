@@ -149,6 +149,9 @@ export function registerOnboardCommand(program: Command) {
             togetherApiKey: opts.togetherApiKey as string | undefined,
             opencodeZenApiKey: opts.opencodeZenApiKey as string | undefined,
             xaiApiKey: opts.xaiApiKey as string | undefined,
+            litellmApiKey: opts.litellmApiKey as string | undefined,
+            litellmBaseUrl: opts.litellmBaseUrl as string | undefined,
+            litellmModel: opts.litellmModel as string | undefined,
             gatewayPort:
               typeof gatewayPort === "number" && Number.isFinite(gatewayPort)
                 ? gatewayPort
