@@ -23,6 +23,8 @@ Docs: https://docs.openclaw.ai
 - Discord: add exec approval cleanup option to delete DMs after approval/denial/timeout. (#13205) Thanks @thewilloftheshadow.
 - Sessions: prune stale entries, cap session store size, rotate large stores, accept duration/size thresholds, default to warn-only maintenance, and prune cron run sessions after retention windows. (#13083) Thanks @skyfallsin, @Glucksberg, @gumadeiras.
 - CI: Implement pipeline and workflow order. Thanks @quotentiroler.
+- GitHub Copilot: add missing client headers (`Editor-Version`, `Copilot-Integration-Id`, `Copilot-Vision-Request`) to API calls and token exchange, fixing `HTTP 400: missing Editor-Version header for IDE auth`. (#8367, #8666)
+- GitHub Copilot: unify token exchange into a shared helper; add missing Copilot JWT exchange to image tool and media understanding code paths. (#10277)
 - WhatsApp: preserve original filenames for inbound documents. (#12691) Thanks @akramcodez.
 - Telegram: harden quote parsing; preserve quote context; avoid QUOTE_TEXT_INVALID; avoid nested reply quote misclassification. (#12156) Thanks @rybnikov.
 - Telegram: recover proactive sends when stale topic thread IDs are used by retrying without `message_thread_id`. (#11620)
