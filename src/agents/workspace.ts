@@ -66,8 +66,7 @@ export type WorkspaceBootstrapFileName =
   | typeof DEFAULT_HEARTBEAT_FILENAME
   | typeof DEFAULT_BOOTSTRAP_FILENAME
   | typeof DEFAULT_MEMORY_FILENAME
-  | typeof DEFAULT_MEMORY_ALT_FILENAME
-  | string;
+  | typeof DEFAULT_MEMORY_ALT_FILENAME;
 
 export type WorkspaceBootstrapFile = {
   name: WorkspaceBootstrapFileName;
@@ -319,7 +318,7 @@ export async function loadExtraBootstrapFiles(
   for (const pattern of extraPatterns) {
     if (pattern.includes("*") || pattern.includes("?") || pattern.includes("{")) {
       try {
-        const matches = await fs.glob(pattern, { cwd: resolvedDir });
+        const matches = fs.glob(pattern, { cwd: resolvedDir });
         for await (const m of matches) {
           resolvedPaths.add(m);
         }
@@ -337,7 +336,12 @@ export async function loadExtraBootstrapFiles(
     const filePath = path.join(resolvedDir, relPath);
     try {
       const content = await fs.readFile(filePath, "utf-8");
-      result.push({ name: relPath, path: filePath, content, missing: false });
+      result.push({
+        name: relPath as WorkspaceBootstrapFileName,
+        path: filePath,
+        content,
+        missing: false,
+      });
     } catch {
       // Silently skip missing extra files
     }
