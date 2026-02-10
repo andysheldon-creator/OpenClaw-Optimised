@@ -114,6 +114,23 @@ describe("resolveConfigSecrets", () => {
     await expect(resolveConfigSecrets(config)).rejects.toThrow(/Unknown secrets provider/);
   });
 
+  it("warns on invalid secret names during resolution", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const config = {
+        token: "$secret{bad name}",
+        secrets: { provider: "env" },
+      };
+      // No real refs, so resolution succeeds — but warns about invalid name
+      const result = (await resolveConfigSecrets(config, {} as NodeJS.ProcessEnv)) as typeof config;
+      // Invalid pattern passes through unchanged
+      expect(result.token).toBe("$secret{bad name}");
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("Invalid secret name"));
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
   it("leaves strings without $secret{ untouched", async () => {
     const config = {
       plain: "no secrets here",
@@ -342,9 +359,15 @@ describe("detectUnresolvedSecretRefs", () => {
     expect(detectUnresolvedSecretRefs({ val: "$$secret{ESCAPED}" })).toEqual([]);
   });
 
-  it("ignores invalid secret names", () => {
+  it("ignores empty secret names", () => {
     expect(detectUnresolvedSecretRefs({ val: "$secret{}" })).toEqual([]);
-    expect(detectUnresolvedSecretRefs({ val: "$secret{foo bar}" })).toEqual([]);
+  });
+
+  it("detects invalid secret names", () => {
+    const refs = detectUnresolvedSecretRefs({ val: "$secret{foo bar}" });
+    expect(refs).toHaveLength(1);
+    expect(refs[0]).toContain("invalid secret name");
+    expect(refs[0]).toContain("val");
   });
 
   it("skips the secrets config block at root level", () => {

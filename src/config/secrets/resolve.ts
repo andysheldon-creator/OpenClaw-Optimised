@@ -57,7 +57,8 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 type SecretToken =
   | { type: "literal"; text: string }
   | { type: "ref"; name: string }
-  | { type: "escape"; name: string };
+  | { type: "escape"; name: string }
+  | { type: "invalid"; raw: string; name: string };
 
 function tokenizeSecretString(value: string): SecretToken[] {
   const tokens: SecretToken[] = [];
@@ -87,6 +88,14 @@ function tokenizeSecretString(value: string): SecretToken[] {
           i = end + 1;
           continue;
         }
+        // Non-empty invalid name — emit invalid token so callers can warn
+        if (name.length > 0) {
+          const raw = value.slice(i, end + 1);
+          tokens.push({ type: "invalid", raw, name });
+          i = end + 1;
+          continue;
+        }
+        // Empty name ($$secret{}) — treat as literal
       }
     }
 
@@ -101,6 +110,14 @@ function tokenizeSecretString(value: string): SecretToken[] {
           i = end + 1;
           continue;
         }
+        // Non-empty invalid name — emit invalid token so callers can warn
+        if (name.length > 0) {
+          const raw = value.slice(i, end + 1);
+          tokens.push({ type: "invalid", raw, name });
+          i = end + 1;
+          continue;
+        }
+        // Empty name ($secret{}) — treat as literal
       }
     }
 
@@ -133,6 +150,11 @@ function collectSecretRefs(
         } else {
           refs.set(token.name, [path]);
         }
+      } else if (token.type === "invalid") {
+        console.warn(
+          `[openclaw] Invalid secret name in ${token.raw}${path ? ` at ${path}` : ""}. ` +
+            `Secret names must match [a-zA-Z0-9_.-]+`,
+        );
       }
     }
     return;
@@ -186,6 +208,10 @@ function substituteSecretString(
         chunks.push(secretValue);
         break;
       }
+      case "invalid":
+        // Pass through invalid patterns unchanged
+        chunks.push(token.raw);
+        break;
     }
   }
   return chunks.join("");
@@ -281,6 +307,9 @@ export function detectUnresolvedSecretRefs(
         if (token.type === "ref") {
           const location = path ? ` at ${path}` : "";
           refs.push(`$secret{${token.name}}${location}`);
+        } else if (token.type === "invalid") {
+          const location = path ? ` at ${path}` : "";
+          refs.push(`${token.raw}${location} (invalid secret name)`);
         }
       }
       return;
