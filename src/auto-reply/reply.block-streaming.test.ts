@@ -76,7 +76,7 @@ describe("block streaming", () => {
           From: "+1004",
           To: "+2000",
           MessageSid: "msg-123",
-          Provider: "discord",
+          Provider: "webchat",
         },
         {
           onReplyStart,
@@ -90,7 +90,7 @@ describe("block streaming", () => {
               workspace: path.join(home, "openclaw"),
             },
           },
-          channels: { whatsapp: { allowFrom: ["*"] } },
+          channels: { webchat: { allowFrom: ["*"] } },
           session: { store: path.join(home, "sessions.json") },
         },
       );
@@ -135,7 +135,7 @@ describe("block streaming", () => {
           From: "+1004",
           To: "+2000",
           MessageSid: "msg-125",
-          Provider: "telegram",
+          Provider: "webchat",
         },
         {
           onReplyStart,
@@ -149,7 +149,7 @@ describe("block streaming", () => {
               workspace: path.join(home, "openclaw"),
             },
           },
-          channels: { telegram: { allowFrom: ["*"] } },
+          channels: { webchat: { allowFrom: ["*"] } },
           session: { store: path.join(home, "sessions.json") },
         },
       );
@@ -185,7 +185,7 @@ describe("block streaming", () => {
           From: "+1004",
           To: "+2000",
           MessageSid: "msg-124",
-          Provider: "discord",
+          Provider: "webchat",
         },
         {
           onBlockReply,

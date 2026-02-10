@@ -52,7 +52,8 @@ describe("runReplyAgent block streaming", () => {
 
     const typing = createMockTypingController();
     const sessionCtx = {
-      Provider: "discord",
+      Provider: "webchat",
+      OriginatingChannel: "webchat",
       OriginatingTo: "channel:C1",
       AccountId: "primary",
       MessageSid: "msg",
