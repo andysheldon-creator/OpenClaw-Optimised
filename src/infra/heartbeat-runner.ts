@@ -10,7 +10,6 @@ import {
   resolveAgentWorkspaceDir,
   resolveDefaultAgentId,
 } from "../agents/agent-scope.js";
-import { resolveUserTimezone } from "../agents/date-time.js";
 import { resolveEffectiveMessagesConfig } from "../agents/identity.js";
 import { DEFAULT_HEARTBEAT_FILENAME } from "../agents/workspace.js";
 import {
