@@ -36,25 +36,11 @@ export type LoggerResolvedSettings = ResolvedSettings;
 export type LogTransportRecord = Record<string, unknown>;
 export type LogTransport = (logObj: LogTransportRecord) => void;
 
-type LoggerGlobalState = {
-  externalTransports: Set<LogTransport>;
-};
-
-function getLoggerGlobalState(): LoggerGlobalState {
-  const globalStore = globalThis as typeof globalThis & {
-    __openclawLoggerGlobalState?: LoggerGlobalState;
-  };
-  if (!globalStore.__openclawLoggerGlobalState) {
-    globalStore.__openclawLoggerGlobalState = {
-      externalTransports: new Set<LogTransport>(),
-    };
-  }
-  return globalStore.__openclawLoggerGlobalState;
-}
+const externalTransports = new Set<LogTransport>();
 
 function attachExternalTransport(logger: TsLogger<LogObj>, transport: LogTransport): void {
   logger.attachTransport((logObj: LogObj) => {
-    if (!getLoggerGlobalState().externalTransports.has(transport)) {
+    if (!externalTransports.has(transport)) {
       return;
     }
     try {
@@ -122,7 +108,7 @@ function buildLogger(settings: ResolvedSettings): TsLogger<LogObj> {
       // never block on logging failures
     }
   });
-  for (const transport of getLoggerGlobalState().externalTransports) {
+  for (const transport of externalTransports) {
     attachExternalTransport(logger, transport);
   }
 
@@ -207,14 +193,13 @@ export function resetLogger() {
 }
 
 export function registerLogTransport(transport: LogTransport): () => void {
-  const state = getLoggerGlobalState();
-  state.externalTransports.add(transport);
+  externalTransports.add(transport);
   const logger = loggingState.cachedLogger as TsLogger<LogObj> | null;
   if (logger) {
     attachExternalTransport(logger, transport);
   }
   return () => {
-    state.externalTransports.delete(transport);
+    externalTransports.delete(transport);
   };
 }
 

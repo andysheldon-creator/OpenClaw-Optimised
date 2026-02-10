@@ -146,37 +146,20 @@ export type DiagnosticEventInput = DiagnosticEventPayload extends infer Event
     ? Omit<Event, "seq" | "ts">
     : never
   : never;
-
-type DiagnosticEventsGlobalState = {
-  seq: number;
-  listeners: Set<(evt: DiagnosticEventPayload) => void>;
-};
-
-function getDiagnosticEventsState(): DiagnosticEventsGlobalState {
-  const globalStore = globalThis as typeof globalThis & {
-    __openclawDiagnosticEventsState?: DiagnosticEventsGlobalState;
-  };
-  if (!globalStore.__openclawDiagnosticEventsState) {
-    globalStore.__openclawDiagnosticEventsState = {
-      seq: 0,
-      listeners: new Set<(evt: DiagnosticEventPayload) => void>(),
-    };
-  }
-  return globalStore.__openclawDiagnosticEventsState;
-}
+let seq = 0;
+const listeners = new Set<(evt: DiagnosticEventPayload) => void>();
 
 export function isDiagnosticsEnabled(config?: OpenClawConfig): boolean {
   return config?.diagnostics?.enabled === true;
 }
 
 export function emitDiagnosticEvent(event: DiagnosticEventInput) {
-  const state = getDiagnosticEventsState();
   const enriched = {
     ...event,
-    seq: (state.seq += 1),
+    seq: (seq += 1),
     ts: Date.now(),
   } satisfies DiagnosticEventPayload;
-  for (const listener of state.listeners) {
+  for (const listener of listeners) {
     try {
       listener(enriched);
     } catch {
@@ -186,13 +169,11 @@ export function emitDiagnosticEvent(event: DiagnosticEventInput) {
 }
 
 export function onDiagnosticEvent(listener: (evt: DiagnosticEventPayload) => void): () => void {
-  const state = getDiagnosticEventsState();
-  state.listeners.add(listener);
-  return () => state.listeners.delete(listener);
+  listeners.add(listener);
+  return () => listeners.delete(listener);
 }
 
 export function resetDiagnosticEventsForTest(): void {
-  const state = getDiagnosticEventsState();
-  state.seq = 0;
-  state.listeners.clear();
+  seq = 0;
+  listeners.clear();
 }
