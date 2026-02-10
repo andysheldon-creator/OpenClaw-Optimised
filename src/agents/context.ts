@@ -30,8 +30,10 @@ const loadPromise = (async () => {
     const providers = cfg.models?.providers;
     if (providers && typeof providers === "object") {
       for (const [providerKey, providerCfg] of Object.entries(providers)) {
-        const providerModels = (providerCfg as any)?.models;
-        if (!Array.isArray(providerModels)) continue;
+        const providerModels = (providerCfg as Record<string, unknown>)?.models;
+        if (!Array.isArray(providerModels)) {
+          continue;
+        }
         for (const modelCfg of providerModels) {
           const modelId = modelCfg?.id;
           const contextWindow = modelCfg?.contextWindow;
