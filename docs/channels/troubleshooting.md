@@ -44,11 +44,14 @@ Full troubleshooting: [/channels/whatsapp#troubleshooting-quick](/channels/whats
 
 ### Telegram failure signatures
 
-| Symptom                           | Fastest check                                   | Fix                                                       |
-| --------------------------------- | ----------------------------------------------- | --------------------------------------------------------- |
-| `/start` but no usable reply flow | `openclaw pairing list telegram`                | Approve pairing or change DM policy.                      |
-| Bot online but group stays silent | Verify mention requirement and bot privacy mode | Disable privacy mode for group visibility or mention bot. |
-| Send failures with network errors | Inspect logs for Telegram API call failures     | Fix DNS/IPv6/proxy routing to `api.telegram.org`.         |
+| Symptom                                        | Fastest check                                             | Fix                                                                                         |
+| ---------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `/start` but no usable reply flow              | `openclaw pairing list telegram`                          | Approve pairing or change DM policy.                                                        |
+| Bot online but group stays silent              | Verify mention requirement and bot privacy mode           | Disable privacy mode for group visibility or mention bot.                                   |
+| Send failures with network errors              | Inspect logs for Telegram API call failures               | Fix DNS/IPv6/proxy routing to `api.telegram.org`.                                           |
+| DMs silently ignored (no inbound logs)         | Check `dmPolicy` and `allowFrom` config                   | Verify user ID is in `allowFrom`; use numeric IDs for reliability.                          |
+| Plugin starts but never polls ("fetch failed") | Check logs for undici/fetch errors at startup             | On Node 22+, set `channels.telegram.network.autoSelectFamily: false` or check IPv6 routing. |
+| Bot consumes messages but doesn't process them | Check update offset file in `~/.openclaw/state/telegram/` | Delete stale offset file after token rotation, then restart.                                |
 
 Full troubleshooting: [/channels/telegram#troubleshooting](/channels/telegram#troubleshooting)
 
