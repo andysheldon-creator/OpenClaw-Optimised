@@ -98,6 +98,11 @@ import type {
 import type {
   NodeDescribeParamsSchema,
   NodeEventParamsSchema,
+  NodeHealthFrameSchema,
+  NodeHealthGetParamsSchema,
+  NodeHealthNodeSchema,
+  NodeHealthTelemetryEntrySchema,
+  NodeHealthTelemetryFrameSchema,
   NodeInvokeParamsSchema,
   NodeInvokeResultParamsSchema,
   NodeListParamsSchema,
@@ -157,6 +162,11 @@ export type NodeDescribeParams = Static<typeof NodeDescribeParamsSchema>;
 export type NodeInvokeParams = Static<typeof NodeInvokeParamsSchema>;
 export type NodeInvokeResultParams = Static<typeof NodeInvokeResultParamsSchema>;
 export type NodeEventParams = Static<typeof NodeEventParamsSchema>;
+export type NodeHealthNode = Static<typeof NodeHealthNodeSchema>;
+export type NodeHealthFrame = Static<typeof NodeHealthFrameSchema>;
+export type NodeHealthTelemetryFrame = Static<typeof NodeHealthTelemetryFrameSchema>;
+export type NodeHealthTelemetryEntry = Static<typeof NodeHealthTelemetryEntrySchema>;
+export type NodeHealthGetParams = Static<typeof NodeHealthGetParamsSchema>;
 export type SessionsListParams = Static<typeof SessionsListParamsSchema>;
 export type SessionsPreviewParams = Static<typeof SessionsPreviewParamsSchema>;
 export type SessionsResolveParams = Static<typeof SessionsResolveParamsSchema>;

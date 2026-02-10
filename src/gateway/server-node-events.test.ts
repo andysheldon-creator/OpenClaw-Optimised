@@ -12,6 +12,7 @@ import type { HealthSummary } from "../commands/health.js";
 import type { NodeEventContext } from "./server-node-events-types.js";
 import { requestHeartbeatNow } from "../infra/heartbeat-wake.js";
 import { enqueueSystemEvent } from "../infra/system-events.js";
+import { clearNodeHealthFramesForNode, getLatestNodeHealthFrames } from "./node-health.js";
 import { handleNodeEvent } from "./server-node-events.js";
 
 const enqueueSystemEventMock = vi.mocked(enqueueSystemEvent);
@@ -100,5 +101,43 @@ describe("node exec events", () => {
       { sessionKey: "agent:demo:main", contextKey: "exec:run-3" },
     );
     expect(requestHeartbeatNowMock).toHaveBeenCalledWith({ reason: "exec-event" });
+  });
+});
+
+describe("node health frame events", () => {
+  beforeEach(() => {
+    clearNodeHealthFramesForNode("node-1");
+  });
+
+  it("ignores invalid node.health.frame payload shapes", async () => {
+    const broadcast = vi.fn();
+    const ctx = { ...buildCtx(), broadcast };
+
+    await handleNodeEvent(ctx, "node-1", {
+      event: "node.health.frame",
+      // array is invalid; schema expects object
+      payloadJSON: JSON.stringify([1, 2, 3]),
+    });
+
+    expect(getLatestNodeHealthFrames()).toEqual([]);
+    expect(broadcast).not.toHaveBeenCalled();
+  });
+
+  it("stores + broadcasts valid node.health.frame payloads", async () => {
+    const broadcast = vi.fn();
+    const ctx = { ...buildCtx(), broadcast };
+
+    await handleNodeEvent(ctx, "node-1", {
+      event: "node.health.frame",
+      payloadJSON: JSON.stringify({ ts: 123, kind: "test", data: { ok: true } }),
+    });
+
+    const stored = getLatestNodeHealthFrames();
+    expect(stored).toHaveLength(1);
+    expect(stored[0]?.nodeId).toBe("node-1");
+    expect(stored[0]?.frame.kind).toBe("test");
+
+    expect(broadcast).toHaveBeenCalled();
+    expect(broadcast.mock.calls[0]?.[0]).toBe("node.health.frame");
   });
 });

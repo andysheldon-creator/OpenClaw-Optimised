@@ -9,6 +9,7 @@ import { enqueueSystemEvent } from "../infra/system-events.js";
 import { normalizeMainKey } from "../routing/session-key.js";
 import { defaultRuntime } from "../runtime.js";
 import { upsertNodeHealthFrame, type NodeHealthFrame } from "./node-health.js";
+import { validateNodeHealthTelemetryFrame } from "./protocol/index.js";
 import { loadSessionEntry } from "./session-utils.js";
 import { formatForLog } from "./ws-log.js";
 
@@ -253,8 +254,11 @@ export const handleNodeEvent = async (ctx: NodeEventContext, nodeId: string, evt
       } catch {
         return;
       }
-      const obj =
-        typeof payload === "object" && payload !== null ? (payload as Record<string, unknown>) : {};
+      if (!validateNodeHealthTelemetryFrame(payload)) {
+        return;
+      }
+
+      const obj = payload as Record<string, unknown>;
 
       const frame: NodeHealthFrame = {
         ts: typeof obj.ts === "number" && Number.isFinite(obj.ts) ? obj.ts : Date.now(),

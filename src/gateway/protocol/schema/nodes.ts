@@ -127,3 +127,32 @@ export const NodeHealthFrameSchema = Type.Object(
   },
   { additionalProperties: false },
 );
+
+// Node health telemetry frames (node -> gateway -> clients)
+export const NodeHealthTelemetryFrameSchema = Type.Object(
+  {
+    ts: Type.Optional(Type.Integer({ minimum: 0 })),
+    v: Type.Optional(Type.Integer({ minimum: 0 })),
+    kind: Type.Optional(NonEmptyString),
+    data: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
+  },
+  // Allow forward-compatible expansion without breaking old gateways.
+  { additionalProperties: true },
+);
+
+export const NodeHealthTelemetryEntrySchema = Type.Object(
+  {
+    nodeId: NonEmptyString,
+    receivedAtMs: Type.Integer({ minimum: 0 }),
+    frame: NodeHealthTelemetryFrameSchema,
+  },
+  { additionalProperties: false },
+);
+
+export const NodeHealthGetParamsSchema = Type.Object(
+  {
+    nodeId: Type.Optional(NonEmptyString),
+    limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 200 })),
+  },
+  { additionalProperties: false },
+);

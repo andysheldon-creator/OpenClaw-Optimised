@@ -67,6 +67,7 @@ const BASE_METHODS = [
   "node.rename",
   "node.list",
   "node.describe",
+  "node.health.get",
   "node.invoke",
   "node.invoke.result",
   "node.event",

@@ -13,6 +13,7 @@ import { execApprovalsHandlers } from "./server-methods/exec-approvals.js";
 import { healthHandlers } from "./server-methods/health.js";
 import { logsHandlers } from "./server-methods/logs.js";
 import { modelsHandlers } from "./server-methods/models.js";
+import { nodeHealthHandlers } from "./server-methods/node-health.js";
 import { nodeHandlers } from "./server-methods/nodes.js";
 import { sendHandlers } from "./server-methods/send.js";
 import { sessionsHandlers } from "./server-methods/sessions.js";
@@ -71,6 +72,7 @@ const READ_METHODS = new Set([
   "last-heartbeat",
   "node.list",
   "node.describe",
+  "node.health.get",
   "chat.history",
 ]);
 const WRITE_METHODS = new Set([
@@ -183,6 +185,7 @@ export const coreGatewayHandlers: GatewayRequestHandlers = {
   ...systemHandlers,
   ...updateHandlers,
   ...nodeHandlers,
+  ...nodeHealthHandlers,
   ...sendHandlers,
   ...usageHandlers,
   ...agentHandlers,
