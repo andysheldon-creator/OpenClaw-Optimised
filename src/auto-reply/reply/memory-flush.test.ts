@@ -278,6 +278,24 @@ describe("memory flush transcript fallback", () => {
     expect(total).toBe(100);
   });
 
+  it("prefers prompt-derived totals over inflated usage.total values", async () => {
+    const tmp = await fsPromises.mkdtemp(path.join(os.tmpdir(), "openclaw-flush-"));
+    const logPath = path.join(tmp, "session.jsonl");
+    const lines = [
+      JSON.stringify({ usage: { total: 999_999, input: 80, cacheRead: 20, output: 10 } }),
+    ];
+    await fsPromises.writeFile(logPath, lines.join("\n"), "utf-8");
+
+    const sessionEntry = {
+      sessionId: "session",
+      updatedAt: Date.now(),
+      sessionFile: logPath,
+    };
+    const total = await readPromptTokensFromSessionLog("session", sessionEntry);
+
+    expect(total).toBe(110);
+  });
+
   it("ignores trailing zero-usage transcript lines", async () => {
     const tmp = await fsPromises.mkdtemp(path.join(os.tmpdir(), "openclaw-flush-"));
     const logPath = path.join(tmp, "session.jsonl");

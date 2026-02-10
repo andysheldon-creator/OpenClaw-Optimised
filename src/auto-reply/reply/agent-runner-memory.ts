@@ -99,12 +99,16 @@ export async function readPromptTokensFromSessionLog(
     }
     const promptTokens = derivePromptTokens(lastUsage) ?? lastUsage.input ?? 0;
     const outputTokens = lastUsage.output ?? 0;
-    const usageTotal = lastUsage.total;
-    if (typeof usageTotal === "number" && Number.isFinite(usageTotal) && usageTotal > 0) {
-      return usageTotal;
-    }
     const derivedTotalTokens = promptTokens + outputTokens;
-    return derivedTotalTokens > 0 ? derivedTotalTokens : undefined;
+    // Provider-reported totals can include retry/cache accounting and exceed true prompt usage.
+    // Prefer prompt-derived totals for memory-flush threshold checks.
+    if (derivedTotalTokens > 0) {
+      return derivedTotalTokens;
+    }
+    const usageTotal = lastUsage.total;
+    return typeof usageTotal === "number" && Number.isFinite(usageTotal) && usageTotal > 0
+      ? usageTotal
+      : undefined;
   } catch {
     return undefined;
   }
