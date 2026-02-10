@@ -13,6 +13,7 @@
 
 <p align="center">
   <a href="https://github.com/openclaw/openclaw/actions/workflows/ci.yml?branch=main"><img src="https://img.shields.io/github/actions/workflow/status/openclaw/openclaw/ci.yml?branch=main&style=for-the-badge" alt="CI status"></a>
+  <a href="https://codecov.io/gh/openclaw/openclaw"><img src="https://img.shields.io/codecov/c/github/openclaw/openclaw?style=for-the-badge" alt="Code coverage"></a>
   <a href="https://github.com/openclaw/openclaw/releases"><img src="https://img.shields.io/github/v/release/openclaw/openclaw?include_prereleases&style=for-the-badge" alt="GitHub release"></a>
   <a href="https://discord.gg/clawd"><img src="https://img.shields.io/discord/1456350064065904867?label=Discord&logo=discord&logoColor=white&color=5865F2&style=for-the-badge" alt="Discord"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License"></a>
@@ -103,6 +104,61 @@ pnpm gateway:watch
 ```
 
 Note: `pnpm openclaw ...` runs TypeScript directly (via `tsx`). `pnpm build` produces `dist/` for running via Node / the packaged `openclaw` binary.
+
+## Testing
+
+OpenClaw has comprehensive test coverage with multiple test suites for different purposes. The project maintains **70% coverage** for lines, functions, and statements, and **55% for branches**.
+
+### Running Tests
+
+```bash
+# Run all tests (parallel execution)
+pnpm test
+
+# Run tests in watch mode
+pnpm test:watch
+
+# Generate coverage report
+pnpm test:coverage
+
+# View coverage report
+open coverage/index.html
+```
+
+### Test Suites
+
+```bash
+# Unit tests only
+pnpm test:unit
+
+# E2E integration tests
+pnpm test:e2e
+
+# Extension tests
+pnpm test:extensions
+
+# Gateway server tests
+pnpm test:gateway
+
+# Live API tests (requires credentials)
+pnpm test:live
+
+# Full test suite (lint, build, all tests)
+pnpm test:all
+```
+
+### Coverage Requirements
+
+All contributions must maintain or improve test coverage:
+- **Lines**: 70%
+- **Functions**: 70%
+- **Branches**: 55%
+- **Statements**: 70%
+
+Coverage reports are automatically generated in CI and uploaded to [Codecov](https://codecov.io/gh/openclaw/openclaw).
+
+For detailed testing documentation, see [docs/testing.md](docs/testing.md).
+
 
 ## Security defaults (DM access)
 
