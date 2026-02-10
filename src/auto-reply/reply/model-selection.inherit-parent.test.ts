@@ -25,6 +25,7 @@ async function resolveState(params: {
   sessionStore: Record<string, ReturnType<typeof makeEntry>>;
   sessionKey: string;
   parentSessionKey?: string;
+  isHeartbeat?: boolean;
 }) {
   return createModelSelectionState({
     cfg: params.cfg,
@@ -38,6 +39,7 @@ async function resolveState(params: {
     provider: defaultProvider,
     model: defaultModel,
     hasModelDirective: false,
+    isHeartbeat: params.isHeartbeat,
   });
 }
 
@@ -152,5 +154,39 @@ describe("createModelSelectionState parent inheritance", () => {
 
     expect(state.provider).toBe(defaultProvider);
     expect(state.model).toBe(defaultModel);
+  });
+
+  it("ignores session override for heartbeats (issue #13009)", async () => {
+    const cfg = {} as OpenClawConfig;
+    const sessionKey = "agent:main:dm:123";
+    const sessionEntry = makeEntry({
+      providerOverride: "anthropic",
+      modelOverride: "claude-opus-4-5",
+    });
+    const sessionStore = {
+      [sessionKey]: sessionEntry,
+    };
+
+    // Normal (non-heartbeat) should use session override
+    const normalState = await resolveState({
+      cfg,
+      sessionEntry,
+      sessionStore,
+      sessionKey,
+      isHeartbeat: false,
+    });
+    expect(normalState.provider).toBe("anthropic");
+    expect(normalState.model).toBe("claude-opus-4-5");
+
+    // Heartbeat should ignore session override and use defaults
+    const heartbeatState = await resolveState({
+      cfg,
+      sessionEntry,
+      sessionStore,
+      sessionKey,
+      isHeartbeat: true,
+    });
+    expect(heartbeatState.provider).toBe(defaultProvider);
+    expect(heartbeatState.model).toBe(defaultModel);
   });
 });
