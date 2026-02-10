@@ -26,7 +26,7 @@ describe("sanitizeUserFacingText", () => {
   it("sanitizes direct context-overflow errors", () => {
     expect(
       sanitizeUserFacingText(
-        "Context overflow: prompt too large for the model. Try again with less input or a larger-context model.",
+        "Context overflow: prompt too large for the model. Try /clear to reset session history, or use a larger-context model.",
       ),
     ).toContain("Context overflow: prompt too large for the model.");
     expect(sanitizeUserFacingText("Request size exceeds model context window")).toContain(

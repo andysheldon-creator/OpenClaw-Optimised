@@ -354,7 +354,7 @@ export function formatAssistantErrorText(
   if (isContextOverflowError(raw)) {
     return (
       "Context overflow: prompt too large for the model. " +
-      "Try again with less input or a larger-context model."
+      "Try /clear to reset session history, or use a larger-context model."
     );
   }
 
@@ -422,7 +422,7 @@ export function sanitizeUserFacingText(text: string): string {
   if (shouldRewriteContextOverflowText(trimmed)) {
     return (
       "Context overflow: prompt too large for the model. " +
-      "Try again with less input or a larger-context model."
+      "Try /clear to reset session history, or use a larger-context model."
     );
   }
 
