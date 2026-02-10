@@ -58,15 +58,9 @@ export function normalizeMessage(message: unknown): NormalizedMessage {
  */
 export function normalizeRoleForGrouping(role: string): string {
   const lower = role.toLowerCase();
-  // Preserve original casing when it's already a core role.
-  if (role === "user" || role === "User") {
+
+  if (lower === "user" || lower === "assistant" || lower === "system") {
     return role;
-  }
-  if (role === "assistant") {
-    return "assistant";
-  }
-  if (role === "system") {
-    return "system";
   }
   // Keep tool-related roles distinct so the UI can style/toggle them.
   if (

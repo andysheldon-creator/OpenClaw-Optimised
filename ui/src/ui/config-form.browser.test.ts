@@ -2,6 +2,8 @@ import { render } from "lit";
 import { describe, expect, it, vi } from "vitest";
 import { analyzeConfigSchema, renderConfigForm } from "./views/config-form.ts";
 
+(window as unknown as Record<string, unknown>).__FORCE_LAZY_MOUNT__ = true;
+
 const rootSchema = {
   type: "object",
   properties: {
@@ -62,7 +64,7 @@ describe("config form renderer", () => {
 
     const tokenButton = Array.from(
       container.querySelectorAll<HTMLButtonElement>(".cfg-segmented__btn"),
-    ).find((btn) => btn.textContent?.trim() === "token");
+    ).find((btn) => btn.textContent?.trim() === "Token");
     expect(tokenButton).not.toBeUndefined();
     tokenButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(onPatch).toHaveBeenCalledWith(["mode"], "token");
@@ -120,7 +122,7 @@ describe("config form renderer", () => {
 
     const tailnetButton = Array.from(
       container.querySelectorAll<HTMLButtonElement>(".cfg-segmented__btn"),
-    ).find((btn) => btn.textContent?.trim() === "tailnet");
+    ).find((btn) => btn.textContent?.trim() === "Tailnet");
     expect(tailnetButton).not.toBeUndefined();
     tailnetButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(onPatch).toHaveBeenCalledWith(["bind"], "tailnet");

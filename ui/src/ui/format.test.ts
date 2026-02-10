@@ -1,21 +1,21 @@
 import { describe, expect, it } from "vitest";
 import { formatRelativeTimestamp, stripThinkingTags } from "./format.ts";
 
-describe("formatAgo", () => {
-  it("returns 'in <1m' for timestamps less than 60s in the future", () => {
-    expect(formatRelativeTimestamp(Date.now() + 30_000)).toBe("in <1m");
+describe("formatRelativeTimestamp", () => {
+  it("returns 'In <1m' for timestamps less than 60s in the future", () => {
+    expect(formatRelativeTimestamp(Date.now() + 30_000)).toBe("In <1m");
   });
 
-  it("returns 'Xm from now' for future timestamps", () => {
-    expect(formatRelativeTimestamp(Date.now() + 5 * 60_000)).toBe("5m from now");
+  it("returns 'In Xm' for future timestamps", () => {
+    expect(formatRelativeTimestamp(Date.now() + 5 * 60_000)).toBe("In 5m");
   });
 
-  it("returns 'Xh from now' for future timestamps", () => {
-    expect(formatRelativeTimestamp(Date.now() + 3 * 60 * 60_000)).toBe("3h from now");
+  it("returns 'In Xh' for future timestamps", () => {
+    expect(formatRelativeTimestamp(Date.now() + 3 * 60 * 60_000)).toBe("In 3h");
   });
 
-  it("returns 'Xd from now' for future timestamps beyond 48h", () => {
-    expect(formatRelativeTimestamp(Date.now() + 3 * 24 * 60 * 60_000)).toBe("3d from now");
+  it("returns 'In Xd' for future timestamps beyond 48h", () => {
+    expect(formatRelativeTimestamp(Date.now() + 3 * 24 * 60 * 60_000)).toBe("In 3d");
   });
 
   it("returns 'Xs ago' for recent past timestamps", () => {
@@ -26,9 +26,9 @@ describe("formatAgo", () => {
     expect(formatRelativeTimestamp(Date.now() - 5 * 60_000)).toBe("5m ago");
   });
 
-  it("returns 'n/a' for null/undefined", () => {
-    expect(formatRelativeTimestamp(null)).toBe("n/a");
-    expect(formatRelativeTimestamp(undefined)).toBe("n/a");
+  it("returns 'N/A' for null/undefined", () => {
+    expect(formatRelativeTimestamp(null)).toBe("N/A");
+    expect(formatRelativeTimestamp(undefined)).toBe("N/A");
   });
 });
 

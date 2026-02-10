@@ -659,7 +659,7 @@ export type CronPayload =
     };
 
 export type CronDelivery = {
-  mode: "none" | "announce";
+  mode: "none" | "announce" | "dm" | "channel";
   channel?: string;
   to?: string;
   bestEffort?: boolean;

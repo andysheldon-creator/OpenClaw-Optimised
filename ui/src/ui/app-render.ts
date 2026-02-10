@@ -51,8 +51,9 @@ import {
   updateSkillEnabled,
 } from "./controllers/skills.ts";
 import { loadUsage, loadSessionTimeSeries, loadSessionLogs } from "./controllers/usage.ts";
+import { i18n, t } from "./i18n/i18n-manager.ts";
 import { icons } from "./icons.ts";
-import { normalizeBasePath, TAB_GROUPS, subtitleForTab, titleForTab } from "./navigation.ts";
+import { normalizeBasePath, TAB_GROUPS } from "./navigation.ts";
 
 // Module-scope debounce for usage date changes (avoids type-unsafe hacks on state object)
 let usageDateDebounceTimeout: number | null = null;
@@ -101,7 +102,7 @@ export function renderApp(state: AppViewState) {
   const presenceCount = state.presenceEntries.length;
   const sessionsCount = state.sessionsResult?.count ?? null;
   const cronNext = state.cronStatus?.nextWakeAtMs ?? null;
-  const chatDisabledReason = state.connected ? null : "Disconnected from gateway.";
+  const chatDisabledReason = state.connected ? null : t("topbar.disconnected");
   const isChat = state.tab === "chat";
   const chatFocus = isChat && (state.settings.chatFocusMode || state.onboarding);
   const showThinking = state.onboarding ? false : state.settings.chatShowThinking;
@@ -127,8 +128,8 @@ export function renderApp(state: AppViewState) {
                 ...state.settings,
                 navCollapsed: !state.settings.navCollapsed,
               })}
-            title="${state.settings.navCollapsed ? "Expand sidebar" : "Collapse sidebar"}"
-            aria-label="${state.settings.navCollapsed ? "Expand sidebar" : "Collapse sidebar"}"
+            title="${state.settings.navCollapsed ? t("topbar.expandSidebar") : t("topbar.collapseSidebar")}"
+            aria-label="${state.settings.navCollapsed ? t("topbar.expandSidebar") : t("topbar.collapseSidebar")}"
           >
             <span class="nav-collapse-toggle__icon">${icons.menu}</span>
           </button>
@@ -137,17 +138,32 @@ export function renderApp(state: AppViewState) {
               <img src=${basePath ? `${basePath}/favicon.svg` : "/favicon.svg"} alt="OpenClaw" />
             </div>
             <div class="brand-text">
-              <div class="brand-title">OPENCLAW</div>
-              <div class="brand-sub">Gateway Dashboard</div>
+              <div class="brand-title">${t("topbar.brandTitle")}</div>
+              <div class="brand-sub">${t("topbar.brandSubtitle")}</div>
             </div>
           </div>
         </div>
         <div class="topbar-status">
           <div class="pill">
             <span class="statusDot ${state.connected ? "ok" : ""}"></span>
-            <span>Health</span>
-            <span class="mono">${state.connected ? "OK" : "Offline"}</span>
+            <span>${t("topbar.health")}</span>
+            <span class="mono">${state.connected ? t("topbar.ok") : t("topbar.offline")}</span>
           </div>
+          <!-- 添加语言选择器 -->
+          <select
+            class="language-selector"
+            @change=${(e: Event) => {
+              const target = e.target as HTMLSelectElement;
+              if (target.value) {
+                i18n.setLocale(target.value as "en" | "zh" | "pt");
+              }
+            }}
+            .value=${i18n.getLocale()}
+          >
+            <option value="en">English</option>
+            <option value="zh">中文</option>
+            <option value="pt">Português</option>
+          </select>
           ${renderThemeToggle(state)}
         </div>
       </header>
@@ -169,7 +185,7 @@ export function renderApp(state: AppViewState) {
                 }}
                 aria-expanded=${!isGroupCollapsed}
               >
-                <span class="nav-label__text">${group.label}</span>
+                <span class="nav-label__text">${t(`navigation.${group.label.toLowerCase()}Group`) === `navigation.${group.label.toLowerCase()}Group` ? group.label : t(`navigation.${group.label.toLowerCase()}Group`)}</span>
                 <span class="nav-label__chevron">${isGroupCollapsed ? "+" : "−"}</span>
               </button>
               <div class="nav-group__items">
@@ -180,7 +196,7 @@ export function renderApp(state: AppViewState) {
         })}
         <div class="nav-group nav-group--links">
           <div class="nav-label nav-label--static">
-            <span class="nav-label__text">Resources</span>
+            <span class="nav-label__text">${t("navigation.resources")}</span>
           </div>
           <div class="nav-group__items">
             <a
@@ -188,10 +204,10 @@ export function renderApp(state: AppViewState) {
               href="https://docs.openclaw.ai"
               target="_blank"
               rel="noreferrer"
-              title="Docs (opens in new tab)"
+              title="${t("navigation.docsTitle")}"
             >
               <span class="nav-item__icon" aria-hidden="true">${icons.book}</span>
-              <span class="nav-item__text">Docs</span>
+              <span class="nav-item__text">${t("navigation.docs")}</span>
             </a>
           </div>
         </div>
@@ -199,8 +215,8 @@ export function renderApp(state: AppViewState) {
       <main class="content ${isChat ? "content--chat" : ""}">
         <section class="content-header">
           <div>
-            ${state.tab === "usage" ? nothing : html`<div class="page-title">${titleForTab(state.tab)}</div>`}
-            ${state.tab === "usage" ? nothing : html`<div class="page-sub">${subtitleForTab(state.tab)}</div>`}
+            ${state.tab === "usage" ? nothing : html`<div class="page-title">${t(`pageTitles.${state.tab}`)}</div>`}
+            ${state.tab === "usage" ? nothing : html`<div class="page-sub">${t(`pageSubtitles.${state.tab}`)}</div>`}
           </div>
           <div class="page-meta">
             ${state.lastError ? html`<div class="pill danger">${state.lastError}</div>` : nothing}

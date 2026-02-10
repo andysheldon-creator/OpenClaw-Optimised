@@ -2,6 +2,7 @@ import { html, nothing } from "lit";
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
 import type { AssistantIdentity } from "../assistant-identity.ts";
 import type { MessageGroup } from "../types/chat-types.ts";
+import { t } from "../i18n/i18n-manager.ts";
 import { toSanitizedMarkdownHtml } from "../markdown.ts";
 import { renderCopyAsMarkdownButton } from "./copy-as-markdown.ts";
 import {
@@ -79,7 +80,10 @@ export function renderStreamingGroup(
     hour: "numeric",
     minute: "2-digit",
   });
-  const name = assistant?.name ?? "Assistant";
+  const name =
+    !assistant?.name || assistant.name === "Assistant"
+      ? t("common.roles.assistant")
+      : assistant.name;
 
   return html`
     <div class="chat-group assistant">
@@ -113,13 +117,18 @@ export function renderMessageGroup(
   },
 ) {
   const normalizedRole = normalizeRoleForGrouping(group.role);
-  const assistantName = opts.assistantName ?? "Assistant";
+  const assistantName =
+    !opts.assistantName || opts.assistantName === "Assistant"
+      ? t("common.roles.assistant")
+      : opts.assistantName;
   const who =
     normalizedRole === "user"
-      ? "You"
+      ? t("common.roles.user")
       : normalizedRole === "assistant"
         ? assistantName
-        : normalizedRole;
+        : normalizedRole === "tool"
+          ? t("common.roles.tool")
+          : normalizedRole;
   const roleClass =
     normalizedRole === "user" ? "user" : normalizedRole === "assistant" ? "assistant" : "other";
   const timestamp = new Date(group.timestamp).toLocaleTimeString([], {
@@ -155,7 +164,10 @@ export function renderMessageGroup(
 
 function renderAvatar(role: string, assistant?: Pick<AssistantIdentity, "name" | "avatar">) {
   const normalized = normalizeRoleForGrouping(role);
-  const assistantName = assistant?.name?.trim() || "Assistant";
+  const assistantName =
+    !assistant?.name?.trim() || assistant.name.trim() === "Assistant"
+      ? t("common.roles.assistant")
+      : assistant.name.trim();
   const assistantAvatar = assistant?.avatar?.trim() || "";
   const initial =
     normalized === "user"
@@ -221,7 +233,8 @@ function renderGroupedMessage(
   onOpenSidebar?: (content: string) => void,
 ) {
   const m = message as Record<string, unknown>;
-  const role = typeof m.role === "string" ? m.role : "unknown";
+  const roleRaw = typeof m.role === "string" ? m.role : "unknown";
+  const role = normalizeRoleForGrouping(roleRaw);
   const isToolResult =
     isToolResultMessage(message) ||
     role.toLowerCase() === "toolresult" ||

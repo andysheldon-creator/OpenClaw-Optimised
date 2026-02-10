@@ -1,4 +1,5 @@
 import type { IconName } from "./icons.ts";
+import { t } from "./i18n/i18n-manager.ts";
 import rawConfig from "./tool-display.json" with { type: "json" };
 
 type ToolDisplayActionSpec = {
@@ -34,7 +35,7 @@ const FALLBACK = TOOL_DISPLAY_CONFIG.fallback ?? { icon: "puzzle" };
 const TOOL_MAP = TOOL_DISPLAY_CONFIG.tools ?? {};
 
 function normalizeToolName(name?: string): string {
-  return (name ?? "tool").trim();
+  return (name ?? t("common.roles.tool")).trim();
 }
 
 function defaultTitle(name: string): string {
@@ -165,8 +166,10 @@ export function resolveToolDisplay(params: {
   const key = name.toLowerCase();
   const spec = TOOL_MAP[key];
   const icon = (spec?.icon ?? FALLBACK.icon ?? "puzzle") as IconName;
-  const title = spec?.title ?? defaultTitle(name);
-  const label = spec?.label ?? name;
+  const localizedTitle = t(`tools.titles.${key}`);
+  const title =
+    localizedTitle !== `tools.titles.${key}` ? localizedTitle : (spec?.title ?? defaultTitle(name));
+  const label = spec?.label ?? title;
   const actionRaw =
     params.args && typeof params.args === "object"
       ? ((params.args as Record<string, unknown>).action as string | undefined)

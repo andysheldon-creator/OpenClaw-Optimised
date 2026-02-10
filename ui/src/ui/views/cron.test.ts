@@ -90,7 +90,7 @@ describe("cron view", () => {
     expect(selected).not.toBeNull();
 
     const historyButton = Array.from(container.querySelectorAll("button")).find(
-      (btn) => btn.textContent?.trim() === "History",
+      (btn) => btn.textContent?.trim() === "Runs",
     );
     expect(historyButton).not.toBeUndefined();
     historyButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));

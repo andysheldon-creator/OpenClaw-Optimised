@@ -48,6 +48,8 @@ const GatewayToolSchema = Type.Object({
   gatewayUrl: Type.Optional(Type.String()),
   gatewayToken: Type.Optional(Type.String()),
   timeoutMs: Type.Optional(Type.Number()),
+  // config.schema
+  scope: Type.Optional(Type.String()),
   // config.apply, config.patch
   raw: Type.Optional(Type.String()),
   baseHash: Type.Optional(Type.String()),
@@ -69,7 +71,7 @@ export function createGatewayTool(opts?: {
     label: "Gateway",
     name: "gateway",
     description:
-      "Restart, apply config, or update the gateway in-place (SIGUSR1). Use config.patch for safe partial config updates (merges with existing). Use config.apply only when replacing entire config. Both trigger restart after writing.",
+      "Restart, apply config, read config schema/values, or update gateway. Use config.patch for safe partial updates. CAUTION: config.schema returns a large object; use 'scope' parameter (e.g. 'logging') to filter.",
     parameters: GatewayToolSchema,
     execute: async (_toolCallId, args) => {
       const params = args as Record<string, unknown>;
@@ -169,7 +171,8 @@ export function createGatewayTool(opts?: {
         return jsonResult({ ok: true, result });
       }
       if (action === "config.schema") {
-        const result = await callGatewayTool("config.schema", gatewayOpts, {});
+        const scope = typeof params.scope === "string" ? params.scope.trim() : undefined;
+        const result = await callGatewayTool("config.schema", gatewayOpts, { scope });
         return jsonResult({ ok: true, result });
       }
       if (action === "config.apply") {

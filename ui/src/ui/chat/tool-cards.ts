@@ -1,5 +1,6 @@
 import { html, nothing } from "lit";
 import type { ToolCard } from "../types/chat-types.ts";
+import { t } from "../i18n/i18n-manager.ts";
 import { icons } from "../icons.ts";
 import { formatToolDetail, resolveToolDisplay } from "../tool-display.ts";
 import { TOOL_INLINE_THRESHOLD } from "./constants.ts";
@@ -20,7 +21,7 @@ export function extractToolCards(message: unknown): ToolCard[] {
     if (isToolCall) {
       cards.push({
         kind: "call",
-        name: (item.name as string) ?? "tool",
+        name: (item.name as string) ?? t("common.roles.tool"),
         args: coerceArgs(item.arguments ?? item.args),
       });
     }
@@ -32,7 +33,7 @@ export function extractToolCards(message: unknown): ToolCard[] {
       continue;
     }
     const text = extractToolText(item);
-    const name = typeof item.name === "string" ? item.name : "tool";
+    const name = typeof item.name === "string" ? item.name : t("common.roles.tool");
     cards.push({ kind: "result", name, text });
   }
 
@@ -40,7 +41,7 @@ export function extractToolCards(message: unknown): ToolCard[] {
     const name =
       (typeof m.toolName === "string" && m.toolName) ||
       (typeof m.tool_name === "string" && m.tool_name) ||
-      "tool";
+      t("common.roles.tool");
     const text = extractTextCached(message) ?? undefined;
     cards.push({ kind: "result", name, text });
   }
@@ -62,7 +63,7 @@ export function renderToolCardSidebar(card: ToolCard, onOpenSidebar?: (content: 
         }
         const info = `## ${display.label}\n\n${
           detail ? `**Command:** \`${detail}\`\n\n` : ""
-        }*No output — tool completed successfully.*`;
+        }*${t("chat.toolCard.noOutput")}*`;
         onOpenSidebar!(info);
       }
     : undefined;
@@ -97,7 +98,7 @@ export function renderToolCardSidebar(card: ToolCard, onOpenSidebar?: (content: 
         </div>
         ${
           canClick
-            ? html`<span class="chat-tool-card__action">${hasText ? "View" : ""} ${icons.check}</span>`
+            ? html`<span class="chat-tool-card__action">${hasText ? t("chat.toolCard.view") : ""} ${icons.check}</span>`
             : nothing
         }
         ${isEmpty && !canClick ? html`<span class="chat-tool-card__status">${icons.check}</span>` : nothing}
@@ -106,7 +107,7 @@ export function renderToolCardSidebar(card: ToolCard, onOpenSidebar?: (content: 
       ${
         isEmpty
           ? html`
-              <div class="chat-tool-card__status-text muted">Completed</div>
+              <div class="chat-tool-card__status-text muted">${t("chat.toolCard.completed")}</div>
             `
           : nothing
       }

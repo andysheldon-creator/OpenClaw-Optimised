@@ -1,3 +1,5 @@
+import { t } from "./i18n/i18n-manager.ts";
+
 export type UsageQueryTerm = {
   key?: string;
   value: string;
@@ -260,16 +262,16 @@ export const filterSessionsByQuery = <TSession extends UsageSessionQueryTarget>(
     }
     const normalizedKey = normalizeQueryText(term.key);
     if (!QUERY_KEYS.has(normalizedKey)) {
-      warnings.push(`Unknown filter: ${term.key}`);
+      warnings.push(t("usage.unknownFilter", { key: term.key }));
       continue;
     }
     if (term.value === "") {
-      warnings.push(`Missing value for ${term.key}`);
+      warnings.push(t("usage.missingValue", { key: term.key }));
     }
     if (normalizedKey === "has") {
       const allowed = new Set(["tools", "errors", "context", "usage", "model", "provider"]);
       if (term.value && !allowed.has(normalizeQueryText(term.value))) {
-        warnings.push(`Unknown has:${term.value}`);
+        warnings.push(t("usage.unknownHas", { value: term.value }));
       }
     }
     if (
@@ -278,7 +280,7 @@ export const filterSessionsByQuery = <TSession extends UsageSessionQueryTarget>(
       )
     ) {
       if (term.value && parseQueryNumber(term.value) === null) {
-        warnings.push(`Invalid number for ${term.key}`);
+        warnings.push(t("usage.invalidNumber", { key: term.key }));
       }
     }
   }
@@ -309,9 +311,14 @@ export function parseToolSummary(content: string) {
   const totalCalls = sortedTools.reduce((sum, [, count]) => sum + count, 0);
   const summary =
     sortedTools.length > 0
-      ? `Tools: ${sortedTools
-          .map(([name, count]) => `${name}×${count}`)
-          .join(", ")} (${totalCalls} calls)`
+      ? t("usage.toolsSummary", {
+          tools: sortedTools
+            .map(
+              ([name, count]) => `${t(`usage.toolNames.${name}`, { defaultValue: name })}×${count}`,
+            )
+            .join(", "),
+          count: totalCalls,
+        })
       : "";
   return {
     tools: sortedTools,

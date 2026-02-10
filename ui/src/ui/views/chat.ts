@@ -10,6 +10,7 @@ import {
   renderStreamingGroup,
 } from "../chat/grouped-render.ts";
 import { normalizeMessage, normalizeRoleForGrouping } from "../chat/message-normalizer.ts";
+import { t } from "../i18n/i18n-manager.ts";
 import { icons } from "../icons.ts";
 import { renderMarkdownSidebar } from "./markdown-sidebar.ts";
 import "../components/resizable-divider.ts";
@@ -86,7 +87,7 @@ function renderCompactionIndicator(status: CompactionIndicatorStatus | null | un
   if (status.active) {
     return html`
       <div class="compaction-indicator compaction-indicator--active" role="status" aria-live="polite">
-        ${icons.loader} Compacting context...
+        ${icons.loader} ${t("chat.compaction.compacting")}
       </div>
     `;
   }
@@ -97,7 +98,7 @@ function renderCompactionIndicator(status: CompactionIndicatorStatus | null | un
     if (elapsed < COMPACTION_TOAST_DURATION_MS) {
       return html`
         <div class="compaction-indicator compaction-indicator--complete" role="status" aria-live="polite">
-          ${icons.check} Context compacted
+          ${icons.check} ${t("chat.compaction.compacted")}
         </div>
       `;
     }
@@ -164,13 +165,13 @@ function renderAttachmentPreview(props: ChatProps) {
           <div class="chat-attachment">
             <img
               src=${att.dataUrl}
-              alt="Attachment preview"
+              alt="${t("chat.attachmentPreview")}"
               class="chat-attachment__img"
             />
             <button
               class="chat-attachment__remove"
               type="button"
-              aria-label="Remove attachment"
+              aria-label="${t("chat.removeAttachment")}"
               @click=${() => {
                 const next = (props.attachments ?? []).filter((a) => a.id !== att.id);
                 props.onAttachmentsChange?.(next);
@@ -200,9 +201,9 @@ export function renderChat(props: ChatProps) {
   const hasAttachments = (props.attachments?.length ?? 0) > 0;
   const composePlaceholder = props.connected
     ? hasAttachments
-      ? "Add a message or paste more images..."
-      : "Message (↩ to send, Shift+↩ for line breaks, paste images)"
-    : "Connect to the gateway to start chatting…";
+      ? t("chat.placeholderWithAttachments")
+      : t("chat.placeholder")
+    : t("chat.connectToChat");
 
   const splitRatio = props.splitRatio ?? 0.6;
   const sidebarOpen = Boolean(props.sidebarOpen && props.onCloseSidebar);
@@ -216,7 +217,7 @@ export function renderChat(props: ChatProps) {
       ${
         props.loading
           ? html`
-              <div class="muted">Loading chat…</div>
+              <div class="muted">${t("chat.loadingChat")}</div>
             `
           : nothing
       }
@@ -275,8 +276,8 @@ export function renderChat(props: ChatProps) {
               class="chat-focus-exit"
               type="button"
               @click=${props.onToggleFocusMode}
-              aria-label="Exit focus mode"
-              title="Exit focus mode"
+              aria-label="${t("chat.exitFocusMode")}"
+              title="${t("chat.exitFocusMode")}"
             >
               ${icons.x}
             </button>
@@ -323,7 +324,7 @@ export function renderChat(props: ChatProps) {
         props.queue.length
           ? html`
             <div class="chat-queue" role="status" aria-live="polite">
-              <div class="chat-queue__title">Queued (${props.queue.length})</div>
+              <div class="chat-queue__title">${t("chat.queueTitle", { count: props.queue.length })}</div>
               <div class="chat-queue__list">
                 ${props.queue.map(
                   (item) => html`
@@ -331,13 +332,15 @@ export function renderChat(props: ChatProps) {
                       <div class="chat-queue__text">
                         ${
                           item.text ||
-                          (item.attachments?.length ? `Image (${item.attachments.length})` : "")
+                          (item.attachments?.length
+                            ? t("chat.imageAttachment", { count: item.attachments.length })
+                            : "")
                         }
                       </div>
                       <button
                         class="btn chat-queue__remove"
                         type="button"
-                        aria-label="Remove queued message"
+                        aria-label="${t("chat.removeQueuedMessage")}"
                         @click=${() => props.onQueueRemove(item.id)}
                       >
                         ${icons.x}
@@ -361,7 +364,7 @@ export function renderChat(props: ChatProps) {
               type="button"
               @click=${props.onScrollToBottom}
             >
-              New messages ${icons.arrowDown}
+              ${t("chat.newMessages")} ${icons.arrowDown}
             </button>
           `
           : nothing
@@ -371,7 +374,7 @@ export function renderChat(props: ChatProps) {
         ${renderAttachmentPreview(props)}
         <div class="chat-compose__row">
           <label class="field chat-compose__field">
-            <span>Message</span>
+            <span>${t("chat.messageLabel")}</span>
             <textarea
               ${ref((el) => el && adjustTextareaHeight(el as HTMLTextAreaElement))}
               .value=${props.draft}
@@ -409,14 +412,14 @@ export function renderChat(props: ChatProps) {
               ?disabled=${!props.connected || (!canAbort && props.sending)}
               @click=${canAbort ? props.onAbort : props.onNewSession}
             >
-              ${canAbort ? "Stop" : "New session"}
+              ${canAbort ? t("chat.stop") : t("chat.newSession")}
             </button>
             <button
               class="btn primary"
               ?disabled=${!props.connected}
               @click=${props.onSend}
             >
-              ${isBusy ? "Queue" : "Send"}<kbd class="btn-kbd">↵</kbd>
+              ${isBusy ? t("chat.queue") : t("chat.send")}<kbd class="btn-kbd">↵</kbd>
             </button>
           </div>
         </div>
@@ -479,7 +482,10 @@ function buildChatItems(props: ChatProps): Array<ChatItem | MessageGroup> {
       key: "chat:history:notice",
       message: {
         role: "system",
-        content: `Showing last ${CHAT_HISTORY_RENDER_LIMIT} messages (${historyStart} hidden).`,
+        content: t("chat.historyNotice", {
+          count: CHAT_HISTORY_RENDER_LIMIT,
+          hidden: historyStart,
+        }),
         timestamp: Date.now(),
       },
     });
@@ -496,7 +502,7 @@ function buildChatItems(props: ChatProps): Array<ChatItem | MessageGroup> {
           typeof marker.id === "string"
             ? `divider:compaction:${marker.id}`
             : `divider:compaction:${normalized.timestamp}:${i}`,
-        label: "Compaction",
+        label: t("chat.compaction.label"),
         timestamp: normalized.timestamp ?? Date.now(),
       });
       continue;

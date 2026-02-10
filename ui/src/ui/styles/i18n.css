@@ -1,0 +1,16 @@
+/* Internationalization-specific styles */
+
+.language-selector {
+  margin-right: 1rem;
+  padding: 0.25rem;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-input);
+  color: var(--fg-default);
+  font-size: 0.875rem;
+}
+
+.language-selector:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--focus-ring-color);
+}

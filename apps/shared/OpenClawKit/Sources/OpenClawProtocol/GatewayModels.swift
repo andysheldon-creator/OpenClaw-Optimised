@@ -1227,6 +1227,16 @@ public struct ConfigPatchParams: Codable, Sendable {
 }
 
 public struct ConfigSchemaParams: Codable, Sendable {
+    public let scope: String?
+
+    public init(
+        scope: String?
+    ) {
+        self.scope = scope
+    }
+    private enum CodingKeys: String, CodingKey {
+        case scope
+    }
 }
 
 public struct ConfigSchemaResponse: Codable, Sendable {

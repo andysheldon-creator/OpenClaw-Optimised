@@ -1,8 +1,10 @@
 import { html, nothing } from "lit";
 import type { ConfigUiHints } from "../types.ts";
+import { t } from "../i18n/i18n-manager.ts";
 import { icons } from "../icons.ts";
 import { renderNode } from "./config-form.node.ts";
 import { hintForPath, humanize, schemaType, type JsonSchema } from "./config-form.shared.ts";
+import "../components/lazy-mount.ts";
 
 export type ConfigFormProps = {
   schema: JsonSchema | null;
@@ -239,39 +241,134 @@ const sectionIcons = {
 // Section metadata
 export const SECTION_META: Record<string, { label: string; description: string }> = {
   env: {
-    label: "Environment Variables",
-    description: "Environment variables passed to the gateway process",
+    label: t("config.sections.env"),
+    description: t("config.sectionDescriptions.env"),
   },
-  update: { label: "Updates", description: "Auto-update settings and release channel" },
-  agents: { label: "Agents", description: "Agent configurations, models, and identities" },
-  auth: { label: "Authentication", description: "API keys and authentication profiles" },
+  update: {
+    label: t("config.sections.update"),
+    description: t("config.sectionDescriptions.update"),
+  },
+  agents: {
+    label: t("config.sections.agents"),
+    description: t("config.sectionDescriptions.agents"),
+  },
+  auth: {
+    label: t("config.sections.auth"),
+    description: t("config.sectionDescriptions.auth"),
+  },
   channels: {
-    label: "Channels",
-    description: "Messaging channels (Telegram, Discord, Slack, etc.)",
+    label: t("config.sections.channels"),
+    description: t("config.sectionDescriptions.channels"),
   },
-  messages: { label: "Messages", description: "Message handling and routing settings" },
-  commands: { label: "Commands", description: "Custom slash commands" },
-  hooks: { label: "Hooks", description: "Webhooks and event hooks" },
-  skills: { label: "Skills", description: "Skill packs and capabilities" },
-  tools: { label: "Tools", description: "Tool configurations (browser, search, etc.)" },
-  gateway: { label: "Gateway", description: "Gateway server settings (port, auth, binding)" },
-  wizard: { label: "Setup Wizard", description: "Setup wizard state and history" },
+  messages: {
+    label: t("config.sections.messages"),
+    description: t("config.sectionDescriptions.messages"),
+  },
+  commands: {
+    label: t("config.sections.commands"),
+    description: t("config.sectionDescriptions.commands"),
+  },
+  hooks: {
+    label: t("config.sections.hooks"),
+    description: t("config.sectionDescriptions.hooks"),
+  },
+  skills: {
+    label: t("config.sections.skills"),
+    description: t("config.sectionDescriptions.skills"),
+  },
+  tools: {
+    label: t("config.sections.tools"),
+    description: t("config.sectionDescriptions.tools"),
+  },
+  gateway: {
+    label: t("config.sections.gateway"),
+    description: t("config.sectionDescriptions.gateway"),
+  },
+  wizard: {
+    label: t("config.sections.wizard"),
+    description: t("config.sectionDescriptions.wizard"),
+  },
   // Additional sections
-  meta: { label: "Metadata", description: "Gateway metadata and version information" },
-  logging: { label: "Logging", description: "Log levels and output configuration" },
-  browser: { label: "Browser", description: "Browser automation settings" },
-  ui: { label: "UI", description: "User interface preferences" },
-  models: { label: "Models", description: "AI model configurations and providers" },
-  bindings: { label: "Bindings", description: "Key bindings and shortcuts" },
-  broadcast: { label: "Broadcast", description: "Broadcast and notification settings" },
-  audio: { label: "Audio", description: "Audio input/output settings" },
-  session: { label: "Session", description: "Session management and persistence" },
-  cron: { label: "Cron", description: "Scheduled tasks and automation" },
-  web: { label: "Web", description: "Web server and API settings" },
-  discovery: { label: "Discovery", description: "Service discovery and networking" },
-  canvasHost: { label: "Canvas Host", description: "Canvas rendering and display" },
-  talk: { label: "Talk", description: "Voice and speech settings" },
-  plugins: { label: "Plugins", description: "Plugin management and extensions" },
+  meta: {
+    label: t("config.sections.meta"),
+    description: t("config.sectionDescriptions.meta"),
+  },
+  logging: {
+    label: t("config.sections.logging"),
+    description: t("config.sectionDescriptions.logging"),
+  },
+  browser: {
+    label: t("config.sections.browser"),
+    description: t("config.sectionDescriptions.browser"),
+  },
+  ui: {
+    label: t("config.sections.ui"),
+    description: t("config.sectionDescriptions.ui"),
+  },
+  models: {
+    label: t("config.sections.models"),
+    description: t("config.sectionDescriptions.models"),
+  },
+  bindings: {
+    label: t("config.sections.bindings"),
+    description: t("config.sectionDescriptions.bindings"),
+  },
+  broadcast: {
+    label: t("config.sections.broadcast"),
+    description: t("config.sectionDescriptions.broadcast"),
+  },
+  audio: {
+    label: t("config.sections.audio"),
+    description: t("config.sectionDescriptions.audio"),
+  },
+  session: {
+    label: t("config.sections.session"),
+    description: t("config.sectionDescriptions.session"),
+  },
+  cron: {
+    label: t("config.sections.cron"),
+    description: t("config.sectionDescriptions.cron"),
+  },
+  web: {
+    label: t("config.sections.web"),
+    description: t("config.sectionDescriptions.web"),
+  },
+  discovery: {
+    label: t("config.sections.discovery"),
+    description: t("config.sectionDescriptions.discovery"),
+  },
+  canvasHost: {
+    label: t("config.sections.canvasHost"),
+    description: t("config.sectionDescriptions.canvasHost"),
+  },
+  talk: {
+    label: t("config.sections.talk"),
+    description: t("config.sectionDescriptions.talk"),
+  },
+  plugins: {
+    label: t("config.sections.plugins"),
+    description: t("config.sectionDescriptions.plugins"),
+  },
+  nodeHost: {
+    label: t("config.sections.nodeHost"),
+    description: t("config.sectionDescriptions.nodeHost"),
+  },
+  diagnostics: {
+    label: t("config.sections.diagnostics"),
+    description: t("config.sectionDescriptions.diagnostics"),
+  },
+  media: {
+    label: t("config.sections.media"),
+    description: t("config.sectionDescriptions.media"),
+  },
+  memory: {
+    label: t("config.sections.memory"),
+    description: t("config.sectionDescriptions.memory"),
+  },
+  approvals: {
+    label: t("config.sections.approvals"),
+    description: t("config.sectionDescriptions.approvals"),
+  },
 };
 
 function getSectionIcon(key: string) {
@@ -355,14 +452,14 @@ function schemaMatches(schema: JsonSchema, query: string): boolean {
 export function renderConfigForm(props: ConfigFormProps) {
   if (!props.schema) {
     return html`
-      <div class="muted">Schema unavailable.</div>
+      <div class="muted">${t("config.schemaUnavailable")}</div>
     `;
   }
   const schema = props.schema;
   const value = props.value ?? {};
   if (schemaType(schema) !== "object" || !schema.properties) {
     return html`
-      <div class="callout danger">Unsupported schema. Use Raw.</div>
+      <div class="callout danger">${t("config.unsupportedSchema")}</div>
     `;
   }
   const unsupported = new Set(props.unsupportedPaths ?? []);
@@ -413,7 +510,7 @@ export function renderConfigForm(props: ConfigFormProps) {
       <div class="config-empty">
         <div class="config-empty__icon">${icons.search}</div>
         <div class="config-empty__text">
-          ${searchQuery ? `No settings match "${searchQuery}"` : "No settings in this section"}
+          ${searchQuery ? t("config.noSettingsMatch", { query: searchQuery }) : t("config.noSettingsInSection")}
         </div>
       </div>
     `;
@@ -426,8 +523,16 @@ export function renderConfigForm(props: ConfigFormProps) {
           ? (() => {
               const { sectionKey, subsectionKey, schema: node } = subsectionContext;
               const hint = hintForPath([sectionKey, subsectionKey], props.uiHints);
-              const label = hint?.label ?? node.title ?? humanize(subsectionKey);
-              const description = hint?.help ?? node.description ?? "";
+              const label =
+                t(`config.path.${sectionKey}.${subsectionKey}.title`) ||
+                hint?.label ||
+                node.title ||
+                humanize(subsectionKey);
+              const description =
+                t(`config.path.${sectionKey}.${subsectionKey}.description`) ||
+                hint?.help ||
+                node.description ||
+                "";
               const sectionValue = value[sectionKey];
               const scopedValue =
                 sectionValue && typeof sectionValue === "object"
@@ -448,52 +553,95 @@ export function renderConfigForm(props: ConfigFormProps) {
                   </div>
                 </div>
                 <div class="config-section-card__content">
-                  ${renderNode({
-                    schema: node,
-                    value: scopedValue,
-                    path: [sectionKey, subsectionKey],
-                    hints: props.uiHints,
-                    unsupported,
-                    disabled: props.disabled ?? false,
-                    showLabel: false,
-                    onPatch: props.onPatch,
-                  })}
+                  ${
+                    (window as unknown as Record<string, unknown>).__FORCE_LAZY_MOUNT__
+                      ? renderNode({
+                          schema: node,
+                          value: scopedValue,
+                          path: [sectionKey, subsectionKey],
+                          hints: props.uiHints,
+                          unsupported,
+                          disabled: props.disabled ?? false,
+                          showLabel: false,
+                          onPatch: props.onPatch,
+                        })
+                      : html`
+                  <lazy-mount .renderContent=${() =>
+                    renderNode({
+                      schema: node,
+                      value: scopedValue,
+                      path: [sectionKey, subsectionKey],
+                      hints: props.uiHints,
+                      unsupported,
+                      disabled: props.disabled ?? false,
+                      showLabel: false,
+                      onPatch: props.onPatch,
+                    })}
+                  label="${sectionKey}.${subsectionKey}"
+                  ></lazy-mount>
+                `
+                  }
                 </div>
               </section>
             `;
             })()
           : filteredEntries.map(([key, node]) => {
-              const meta = SECTION_META[key] ?? {
-                label: key.charAt(0).toUpperCase() + key.slice(1),
-                description: node.description ?? "",
+              const meta = {
+                label: t(`config.sections.${key}`) || SECTION_META[key]?.label || humanize(key),
+                description:
+                  t(`config.sectionDescriptions.${key}`) ||
+                  SECTION_META[key]?.description ||
+                  node.description ||
+                  "",
               };
 
               return html`
-              <section class="config-section-card" id="config-section-${key}">
-                <div class="config-section-card__header">
-                  <span class="config-section-card__icon">${getSectionIcon(key)}</span>
-                  <div class="config-section-card__titles">
-                    <h3 class="config-section-card__title">${meta.label}</h3>
-                    ${
-                      meta.description
-                        ? html`<p class="config-section-card__desc">${meta.description}</p>`
-                        : nothing
-                    }
+              <details class="config-section-card cfg-object" id="config-section-${key}" open>
+                <summary class="config-section-card__header cfg-object__header" style="cursor: pointer; padding: 24px; list-style: none;">
+                  <div style="display: flex; align-items: center; gap: 18px; flex: 1;">
+                    <span class="config-section-card__icon">${getSectionIcon(key)}</span>
+                    <div class="config-section-card__titles">
+                      <h3 class="config-section-card__title">${meta.label}</h3>
+                      ${
+                        meta.description
+                          ? html`<p class="config-section-card__desc">${meta.description}</p>`
+                          : nothing
+                      }
+                    </div>
                   </div>
-                </div>
+                  <span class="cfg-object__chevron">${icons.chevronDown}</span>
+                </summary>
                 <div class="config-section-card__content">
-                  ${renderNode({
-                    schema: node,
-                    value: value[key],
-                    path: [key],
-                    hints: props.uiHints,
-                    unsupported,
-                    disabled: props.disabled ?? false,
-                    showLabel: false,
-                    onPatch: props.onPatch,
-                  })}
+                  ${
+                    (window as unknown as Record<string, unknown>).__FORCE_LAZY_MOUNT__
+                      ? renderNode({
+                          schema: node,
+                          value: value[key],
+                          path: [key],
+                          hints: props.uiHints,
+                          unsupported,
+                          disabled: props.disabled ?? false,
+                          showLabel: false,
+                          onPatch: props.onPatch,
+                        })
+                      : html`
+                  <lazy-mount .renderContent=${() =>
+                    renderNode({
+                      schema: node,
+                      value: value[key],
+                      path: [key],
+                      hints: props.uiHints,
+                      unsupported,
+                      disabled: props.disabled ?? false,
+                      showLabel: false,
+                      onPatch: props.onPatch,
+                    })}
+                  label="${key}"
+                  ></lazy-mount>
+                `
+                  }
                 </div>
-              </section>
+              </details>
             `;
             })
       }

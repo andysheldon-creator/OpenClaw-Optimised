@@ -1,4 +1,5 @@
 import { stripThinkingTags } from "../format.ts";
+import { t } from "../i18n/i18n-manager.ts";
 
 const ENVELOPE_PREFIX = /^\[([^\]]+)\]\s*/;
 const ENVELOPE_CHANNELS = [
@@ -165,5 +166,5 @@ export function formatReasoningMarkdown(text: string): string {
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line) => `_${line}_`);
-  return lines.length ? ["_Reasoning:_", ...lines].join("\n") : "";
+  return lines.length ? [`_${t("chat.reasoningLabel")}_`, ...lines].join("\n") : "";
 }

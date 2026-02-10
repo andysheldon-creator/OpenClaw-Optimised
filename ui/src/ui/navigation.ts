@@ -1,4 +1,5 @@
 import type { IconName } from "./icons.js";
+import { i18n } from "./i18n/i18n-manager.js";
 
 export const TAB_GROUPS = [
   { label: "Chat", tabs: ["chat"] },
@@ -156,67 +157,11 @@ export function iconForTab(tab: Tab): IconName {
 }
 
 export function titleForTab(tab: Tab) {
-  switch (tab) {
-    case "agents":
-      return "Agents";
-    case "overview":
-      return "Overview";
-    case "channels":
-      return "Channels";
-    case "instances":
-      return "Instances";
-    case "sessions":
-      return "Sessions";
-    case "usage":
-      return "Usage";
-    case "cron":
-      return "Cron Jobs";
-    case "skills":
-      return "Skills";
-    case "nodes":
-      return "Nodes";
-    case "chat":
-      return "Chat";
-    case "config":
-      return "Config";
-    case "debug":
-      return "Debug";
-    case "logs":
-      return "Logs";
-    default:
-      return "Control";
-  }
+  // Internationalized version using i18n
+  return i18n.t(`pageTitles.${tab}`);
 }
 
 export function subtitleForTab(tab: Tab) {
-  switch (tab) {
-    case "agents":
-      return "Manage agent workspaces, tools, and identities.";
-    case "overview":
-      return "Gateway status, entry points, and a fast health read.";
-    case "channels":
-      return "Manage channels and settings.";
-    case "instances":
-      return "Presence beacons from connected clients and nodes.";
-    case "sessions":
-      return "Inspect active sessions and adjust per-session defaults.";
-    case "usage":
-      return "";
-    case "cron":
-      return "Schedule wakeups and recurring agent runs.";
-    case "skills":
-      return "Manage skill availability and API key injection.";
-    case "nodes":
-      return "Paired devices, capabilities, and command exposure.";
-    case "chat":
-      return "Direct gateway chat session for quick interventions.";
-    case "config":
-      return "Edit ~/.openclaw/openclaw.json safely.";
-    case "debug":
-      return "Gateway snapshots, events, and manual RPC calls.";
-    case "logs":
-      return "Live tail of the gateway file logs.";
-    default:
-      return "";
-  }
+  // Internationalized version using i18n
+  return i18n.t(`pageSubtitles.${tab}`);
 }

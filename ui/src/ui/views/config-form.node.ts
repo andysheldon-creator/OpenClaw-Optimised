@@ -1,5 +1,6 @@
 import { html, nothing, type TemplateResult } from "lit";
 import type { ConfigUiHints } from "../types.ts";
+import { t } from "../i18n/i18n-manager.ts";
 import {
   defaultValue,
   hintForPath,
@@ -17,6 +18,86 @@ function isAnySchema(schema: JsonSchema): boolean {
   return keys.length === 0;
 }
 
+function resolveSchemaMeta(path: Array<string | number>, schema: JsonSchema, hints: ConfigUiHints) {
+  const hint = hintForPath(path, hints);
+  const key = pathKey(path);
+  const segments = key.split(".");
+  const defaultLabel = schema.title ?? humanize(String(path.at(-1)));
+
+  // Try direct translation first
+  let label = t(`config.path.${key}.title`, { defaultValue: "__MISSING__" });
+
+  // If missing, try wildcard translations (e.g., channels.telegram.*.allowFrom)
+  if (label === "__MISSING__") {
+    // We try replacing one segment at a time with * from right to left
+    for (let i = segments.length - 2; i >= 0; i--) {
+      const wildcardSegments = [...segments];
+      wildcardSegments[i] = "*";
+      const wildcardKey = wildcardSegments.join(".");
+      const wildcardLabel = t(`config.path.${wildcardKey}.title`, { defaultValue: "__MISSING__" });
+      if (wildcardLabel !== "__MISSING__") {
+        label = wildcardLabel;
+        break;
+      }
+    }
+  }
+
+  // Try common translation (e.g., enabled, actions.deleteMessage, etc.)
+  if (label === "__MISSING__") {
+    // Try last segment
+    label = t(`config.path.common.${segments.at(-1)}.title`, { defaultValue: "__MISSING__" });
+
+    // Try last two segments (e.g. actions.deleteMessage)
+    if (label === "__MISSING__" && segments.length >= 2) {
+      const parent = segments.at(-2);
+      const child = segments.at(-1);
+      label = t(`config.path.common.${parent}.${child}.title`, { defaultValue: "__MISSING__" });
+    }
+  }
+
+  // Fallback to hints (FIELD_LABELS) then default label
+  if (label === "__MISSING__") {
+    label = hint?.label ?? defaultLabel;
+  }
+
+  // Handle help/description similarly
+  let help = t(`config.path.${key}.description`, { defaultValue: "__MISSING__" });
+  if (help === "__MISSING__") {
+    for (let i = segments.length - 2; i >= 0; i--) {
+      const wildcardSegments = [...segments];
+      wildcardSegments[i] = "*";
+      const wildcardKey = wildcardSegments.join(".");
+      const wildcardHelp = t(`config.path.${wildcardKey}.description`, {
+        defaultValue: "__MISSING__",
+      });
+      if (wildcardHelp !== "__MISSING__") {
+        help = wildcardHelp;
+        break;
+      }
+    }
+  }
+
+  if (help === "__MISSING__") {
+    // Try last segment
+    help = t(`config.path.common.${segments.at(-1)}.description`, { defaultValue: "__MISSING__" });
+
+    // Try last two segments (e.g. actions.deleteMessage)
+    if (help === "__MISSING__" && segments.length >= 2) {
+      const parent = segments.at(-2);
+      const child = segments.at(-1);
+      help = t(`config.path.common.${parent}.${child}.description`, {
+        defaultValue: "__MISSING__",
+      });
+    }
+  }
+
+  if (help === "__MISSING__") {
+    help = hint?.help ?? schema.description ?? "";
+  }
+
+  return { label, help, hint, key };
+}
+
 function jsonValue(value: unknown): string {
   if (value === undefined) {
     return "";
@@ -26,6 +107,17 @@ function jsonValue(value: unknown): string {
   } catch {
     return "";
   }
+}
+
+export function translateEnumValue(value: unknown): string {
+  const strValue = String(value);
+  // Try to get translation for the enum value
+  const translated = t(`config.enumValues.${strValue}`, { defaultValue: "__MISSING__" });
+  if (translated !== "__MISSING__") {
+    return translated;
+  }
+  // Fall back to humanized version of the value
+  return humanize(strValue);
 }
 
 // SVG Icons as template literals
@@ -108,15 +200,12 @@ export function renderNode(params: {
   const { schema, value, path, hints, unsupported, disabled, onPatch } = params;
   const showLabel = params.showLabel ?? true;
   const type = schemaType(schema);
-  const hint = hintForPath(path, hints);
-  const label = hint?.label ?? schema.title ?? humanize(String(path.at(-1)));
-  const help = hint?.help ?? schema.description;
-  const key = pathKey(path);
+  const { label, help, key } = resolveSchemaMeta(path, schema, hints);
 
   if (unsupported.has(key)) {
     return html`<div class="cfg-field cfg-field--error">
       <div class="cfg-field__label">${label}</div>
-      <div class="cfg-field__error">Unsupported schema node. Use Raw mode.</div>
+      <div class="cfg-field__error">${t("configForm.unsupportedNode")}</div>
     </div>`;
   }
 
@@ -163,10 +252,7 @@ export function renderNode(params: {
                 ?disabled=${disabled}
                 @click=${() => onPatch(path, lit)}
               >
-                ${
-                  // oxlint-disable typescript/no-base-to-string
-                  String(lit)
-                }
+                ${translateEnumValue(lit)}
               </button>
             `,
             )}
@@ -225,7 +311,7 @@ export function renderNode(params: {
                 ?disabled=${disabled}
                 @click=${() => onPatch(path, opt)}
               >
-                ${String(opt)}
+                ${translateEnumValue(opt)}
               </button>
             `,
             )}
@@ -287,7 +373,7 @@ export function renderNode(params: {
   return html`
     <div class="cfg-field cfg-field--error">
       <div class="cfg-field__label">${label}</div>
-      <div class="cfg-field__error">Unsupported type: ${type}. Use Raw mode.</div>
+      <div class="cfg-field__error">${t("configForm.unsupportedType", { type: type ?? "unknown" })}</div>
     </div>
   `;
 }
@@ -304,9 +390,7 @@ function renderTextInput(params: {
 }): TemplateResult {
   const { schema, value, path, hints, disabled, onPatch, inputType } = params;
   const showLabel = params.showLabel ?? true;
-  const hint = hintForPath(path, hints);
-  const label = hint?.label ?? schema.title ?? humanize(String(path.at(-1)));
-  const help = hint?.help ?? schema.description;
+  const { label, help, hint } = resolveSchemaMeta(path, schema, hints);
   const isSensitive = hint?.sensitive ?? isSensitivePath(path);
   const placeholder =
     hint?.placeholder ??
@@ -314,7 +398,7 @@ function renderTextInput(params: {
     (isSensitive
       ? "••••"
       : schema.default !== undefined
-        ? `Default: ${String(schema.default)}`
+        ? t("configForm.default", { value: String(schema.default) })
         : "");
   const displayValue = value ?? "";
 
@@ -356,7 +440,7 @@ function renderTextInput(params: {
           <button
             type="button"
             class="cfg-input__reset"
-            title="Reset to default"
+            title="${t("configForm.resetToDefault")}"
             ?disabled=${disabled}
             @click=${() => onPatch(path, schema.default)}
           >↺</button>
@@ -379,9 +463,7 @@ function renderNumberInput(params: {
 }): TemplateResult {
   const { schema, value, path, hints, disabled, onPatch } = params;
   const showLabel = params.showLabel ?? true;
-  const hint = hintForPath(path, hints);
-  const label = hint?.label ?? schema.title ?? humanize(String(path.at(-1)));
-  const help = hint?.help ?? schema.description;
+  const { label, help } = resolveSchemaMeta(path, schema, hints);
   const displayValue = value ?? schema.default ?? "";
   const numValue = typeof displayValue === "number" ? displayValue : 0;
 
@@ -452,10 +534,10 @@ function renderSelect(params: {
           onPatch(path, val === unset ? undefined : options[Number(val)]);
         }}
       >
-        <option value=${unset}>Select...</option>
+        <option value=${unset}>${t("configForm.select")}</option>
         ${options.map(
           (opt, idx) => html`
-          <option value=${String(idx)}>${String(opt)}</option>
+          <option value=${String(idx)}>${translateEnumValue(opt)}</option>
         `,
         )}
       </select>
@@ -474,9 +556,7 @@ function renderObject(params: {
   onPatch: (path: Array<string | number>, value: unknown) => void;
 }): TemplateResult {
   const { schema, value, path, hints, unsupported, disabled, onPatch } = params;
-  const hint = hintForPath(path, hints);
-  const label = hint?.label ?? schema.title ?? humanize(String(path.at(-1)));
-  const help = hint?.help ?? schema.description;
+  const { label, help } = resolveSchemaMeta(path, schema, hints);
 
   const fallback = value ?? schema.default;
   const obj =
@@ -584,16 +664,14 @@ function renderArray(params: {
 }): TemplateResult {
   const { schema, value, path, hints, unsupported, disabled, onPatch } = params;
   const showLabel = params.showLabel ?? true;
-  const hint = hintForPath(path, hints);
-  const label = hint?.label ?? schema.title ?? humanize(String(path.at(-1)));
-  const help = hint?.help ?? schema.description;
+  const { label, help } = resolveSchemaMeta(path, schema, hints);
 
   const itemsSchema = Array.isArray(schema.items) ? schema.items[0] : schema.items;
   if (!itemsSchema) {
     return html`
       <div class="cfg-field cfg-field--error">
         <div class="cfg-field__label">${label}</div>
-        <div class="cfg-field__error">Unsupported array schema. Use Raw mode.</div>
+        <div class="cfg-field__error">${t("configForm.unsupportedArray")}</div>
       </div>
     `;
   }
@@ -604,7 +682,7 @@ function renderArray(params: {
     <div class="cfg-array">
       <div class="cfg-array__header">
         ${showLabel ? html`<span class="cfg-array__label">${label}</span>` : nothing}
-        <span class="cfg-array__count">${arr.length} item${arr.length !== 1 ? "s" : ""}</span>
+        <span class="cfg-array__count">${t("configForm.items", { count: arr.length, plural: arr.length !== 1 ? "s" : "" })}</span>
         <button
           type="button"
           class="cfg-array__add"
@@ -615,7 +693,7 @@ function renderArray(params: {
           }}
         >
           <span class="cfg-array__add-icon">${icons.plus}</span>
-          Add
+          ${t("configForm.add")}
         </button>
       </div>
       ${help ? html`<div class="cfg-array__help">${help}</div>` : nothing}
@@ -623,7 +701,7 @@ function renderArray(params: {
       ${
         arr.length === 0
           ? html`
-              <div class="cfg-array__empty">No items yet. Click "Add" to create one.</div>
+              <div class="cfg-array__empty">${t("configForm.noItems")}</div>
             `
           : html`
         <div class="cfg-array__items">
@@ -631,11 +709,11 @@ function renderArray(params: {
             (item, idx) => html`
             <div class="cfg-array__item">
               <div class="cfg-array__item-header">
-                <span class="cfg-array__item-index">#${idx + 1}</span>
+                <span class="cfg-array__item-index">${t("configForm.item", { index: idx + 1 })}</span>
                 <button
                   type="button"
                   class="cfg-array__item-remove"
-                  title="Remove item"
+                  title="${t("configForm.removeItem")}"
                   ?disabled=${disabled}
                   @click=${() => {
                     const next = [...arr];
@@ -685,7 +763,7 @@ function renderMapField(params: {
   return html`
     <div class="cfg-map">
       <div class="cfg-map__header">
-        <span class="cfg-map__label">Custom entries</span>
+        <span class="cfg-map__label">${t("configForm.customEntries")}</span>
         <button
           type="button"
           class="cfg-map__add"
@@ -703,14 +781,14 @@ function renderMapField(params: {
           }}
         >
           <span class="cfg-map__add-icon">${icons.plus}</span>
-          Add Entry
+          ${t("configForm.addEntry")}
         </button>
       </div>
 
       ${
         entries.length === 0
           ? html`
-              <div class="cfg-map__empty">No custom entries.</div>
+              <div class="cfg-map__empty">${t("configForm.noCustomEntries")}</div>
             `
           : html`
         <div class="cfg-map__items">
@@ -723,7 +801,7 @@ function renderMapField(params: {
                   <input
                     type="text"
                     class="cfg-input cfg-input--sm"
-                    placeholder="Key"
+                    placeholder="${t("configForm.key")}"
                     .value=${key}
                     ?disabled=${disabled}
                     @change=${(e: Event) => {
@@ -747,7 +825,7 @@ function renderMapField(params: {
                       ? html`
                         <textarea
                           class="cfg-textarea cfg-textarea--sm"
-                          placeholder="JSON value"
+                          placeholder="${t("configForm.jsonValue")}"
                           rows="2"
                           .value=${fallback}
                           ?disabled=${disabled}
@@ -781,7 +859,7 @@ function renderMapField(params: {
                 <button
                   type="button"
                   class="cfg-map__item-remove"
-                  title="Remove entry"
+                  title="${t("configForm.removeEntry")}"
                   ?disabled=${disabled}
                   @click=${() => {
                     const next = { ...value };

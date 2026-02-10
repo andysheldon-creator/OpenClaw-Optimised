@@ -1,5 +1,6 @@
 import { html, nothing } from "lit";
 import type { AppViewState } from "../app-view-state.ts";
+import { t } from "../i18n/i18n-manager.ts";
 
 function formatRemaining(ms: number): string {
   const remaining = Math.max(0, ms);
@@ -29,31 +30,34 @@ export function renderExecApprovalPrompt(state: AppViewState) {
   }
   const request = active.request;
   const remainingMs = active.expiresAtMs - Date.now();
-  const remaining = remainingMs > 0 ? `expires in ${formatRemaining(remainingMs)}` : "expired";
+  const remaining =
+    remainingMs > 0
+      ? t("execApproval.expiresIn", { time: formatRemaining(remainingMs) })
+      : t("execApproval.expired");
   const queueCount = state.execApprovalQueue.length;
   return html`
     <div class="exec-approval-overlay" role="dialog" aria-live="polite">
       <div class="exec-approval-card">
         <div class="exec-approval-header">
           <div>
-            <div class="exec-approval-title">Exec approval needed</div>
+            <div class="exec-approval-title">${t("execApproval.title")}</div>
             <div class="exec-approval-sub">${remaining}</div>
           </div>
           ${
             queueCount > 1
-              ? html`<div class="exec-approval-queue">${queueCount} pending</div>`
+              ? html`<div class="exec-approval-queue">${t("execApproval.pending", { count: queueCount })}</div>`
               : nothing
           }
         </div>
         <div class="exec-approval-command mono">${request.command}</div>
         <div class="exec-approval-meta">
-          ${renderMetaRow("Host", request.host)}
-          ${renderMetaRow("Agent", request.agentId)}
-          ${renderMetaRow("Session", request.sessionKey)}
-          ${renderMetaRow("CWD", request.cwd)}
-          ${renderMetaRow("Resolved", request.resolvedPath)}
-          ${renderMetaRow("Security", request.security)}
-          ${renderMetaRow("Ask", request.ask)}
+          ${renderMetaRow(t("execApproval.hostLabel"), request.host)}
+          ${renderMetaRow(t("execApproval.agentLabel"), request.agentId)}
+          ${renderMetaRow(t("execApproval.sessionLabel"), request.sessionKey)}
+          ${renderMetaRow(t("execApproval.cwdLabel"), request.cwd)}
+          ${renderMetaRow(t("execApproval.resolvedLabel"), request.resolvedPath)}
+          ${renderMetaRow(t("execApproval.securityLabel"), request.security)}
+          ${renderMetaRow(t("execApproval.askLabel"), request.ask)}
         </div>
         ${
           state.execApprovalError
@@ -66,21 +70,21 @@ export function renderExecApprovalPrompt(state: AppViewState) {
             ?disabled=${state.execApprovalBusy}
             @click=${() => state.handleExecApprovalDecision("allow-once")}
           >
-            Allow once
+            ${t("execApproval.allowOnce")}
           </button>
           <button
             class="btn"
             ?disabled=${state.execApprovalBusy}
             @click=${() => state.handleExecApprovalDecision("allow-always")}
           >
-            Always allow
+            ${t("execApproval.alwaysAllow")}
           </button>
           <button
             class="btn danger"
             ?disabled=${state.execApprovalBusy}
             @click=${() => state.handleExecApprovalDecision("deny")}
           >
-            Deny
+            ${t("execApproval.deny")}
           </button>
         </div>
       </div>
