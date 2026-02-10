@@ -54,7 +54,6 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
     lastStreamedReasoning: undefined,
     lastBlockReplyText: undefined,
     assistantMessageIndex: 0,
-    lastAssistantTextMessageIndex: -1,
     lastAssistantTextNormalized: undefined,
     lastAssistantTextTrimmed: undefined,
     assistantTextBaseline: 0,
@@ -106,28 +105,27 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
     state.lastStreamedAssistant = undefined;
     state.lastStreamedAssistantCleaned = undefined;
     state.emittedAssistantUpdate = false;
-    state.lastBlockReplyText = undefined;
+    // Preserve lastBlockReplyText across messages for cross-message dedup.
     state.lastStreamedReasoning = undefined;
     state.lastReasoningSent = undefined;
     state.suppressBlockChunks = false;
     state.assistantMessageIndex += 1;
-    state.lastAssistantTextMessageIndex = -1;
-    state.lastAssistantTextNormalized = undefined;
-    state.lastAssistantTextTrimmed = undefined;
+    // Preserve lastAssistantTextNormalized and lastAssistantTextTrimmed so
+    // shouldSkipAssistantText can detect duplicates across message boundaries
+    // (e.g. model repeats text after a tool_use + tool_result round-trip).
     state.assistantTextBaseline = nextAssistantTextBaseline;
   };
 
   const rememberAssistantText = (text: string) => {
-    state.lastAssistantTextMessageIndex = state.assistantMessageIndex;
     state.lastAssistantTextTrimmed = text.trimEnd();
     const normalized = normalizeTextForComparison(text);
     state.lastAssistantTextNormalized = normalized.length > 0 ? normalized : undefined;
   };
 
   const shouldSkipAssistantText = (text: string) => {
-    if (state.lastAssistantTextMessageIndex !== state.assistantMessageIndex) {
-      return false;
-    }
+    // Check across all messages in this agent run, not just the current one.
+    // Models often repeat the same text after a tool_use + tool_result round-trip,
+    // and the previous message-scoped guard caused duplicates to be delivered.
     const trimmed = text.trimEnd();
     if (trimmed && trimmed === state.lastAssistantTextTrimmed) {
       return true;
