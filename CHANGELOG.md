@@ -6,7 +6,7 @@ Docs: https://docs.openclaw.ai
 
 ### Added
 
-- Memory: add MMR (Maximal Marginal Relevance) re-ranking for hybrid search diversity. Configurable via `memorySearch.query.hybrid.mmr`. Thanks @rodrigouroz. https://docs.clawd.bot/concepts/memory
+- Memory: add MMR (Maximal Marginal Relevance) re-ranking for hybrid search diversity. Configurable via `memorySearch.query.hybrid.mmr`. Thanks @rodrigouroz. https://docs.openclaw.ai/concepts/memory
 - Memory: add opt-in temporal decay for hybrid search scoring, with configurable half-life via `memorySearch.query.hybrid.temporalDecay`. Thanks @rodrigouroz.
 
 ## 2026.2.9
