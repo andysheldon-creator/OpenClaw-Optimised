@@ -1022,7 +1022,8 @@ export async function applyAuthChoiceApiProviders(
 
     // First fetch model list from /v1/models
     try {
-      const modelsUrl = new URL("/v1/models", normalizedBaseUrl).toString();
+      const base = normalizedBaseUrl.endsWith("/") ? normalizedBaseUrl : `${normalizedBaseUrl}/`;
+      const modelsUrl = new URL("v1/models", base).toString();
       const response = await fetch(modelsUrl, {
         headers: authHeaders,
         signal: AbortSignal.timeout(10000),
@@ -1051,7 +1052,10 @@ export async function applyAuthChoiceApiProviders(
     };
     const modelInfoMap = new Map<string, { maxInputTokens?: number; maxOutputTokens?: number }>();
     try {
-      const modelInfoUrl = new URL("/model/info", normalizedBaseUrl).toString();
+      const infoBase = normalizedBaseUrl.endsWith("/")
+        ? normalizedBaseUrl
+        : `${normalizedBaseUrl}/`;
+      const modelInfoUrl = new URL("model/info", infoBase).toString();
       const response = await fetch(modelInfoUrl, {
         headers: authHeaders,
         signal: AbortSignal.timeout(10000),

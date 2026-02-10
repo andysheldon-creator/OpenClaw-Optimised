@@ -3,6 +3,10 @@ import type { OpenClawConfig } from "../../config/config.js";
 import type { ModelDefinitionConfig } from "../../config/types.js";
 import { resolveOpenClawAgentDir } from "../agent-paths.js";
 import { DEFAULT_CONTEXT_TOKENS } from "../defaults.js";
+
+// Sensible default for max output tokens when no model/provider config is available.
+// Distinct from DEFAULT_CONTEXT_TOKENS (200k) which is for input context window.
+const DEFAULT_MAX_OUTPUT_TOKENS = 8192;
 import { normalizeModelCompat } from "../model-compat.js";
 import { normalizeProviderId } from "../model-selection.js";
 import {
@@ -65,7 +69,7 @@ function resolveOpenAICodexGpt53FallbackModel(
     input: ["text", "image"],
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
     contextWindow: DEFAULT_CONTEXT_TOKENS,
-    maxTokens: DEFAULT_CONTEXT_TOKENS,
+    maxTokens: DEFAULT_MAX_OUTPUT_TOKENS,
   } as Model<Api>);
 }
 
@@ -217,7 +221,7 @@ export function resolveModel(
           providerCfg?.models?.[0]?.contextWindow ??
           DEFAULT_CONTEXT_TOKENS,
         maxTokens:
-          modelDef?.maxTokens ?? providerCfg?.models?.[0]?.maxTokens ?? DEFAULT_CONTEXT_TOKENS,
+          modelDef?.maxTokens ?? providerCfg?.models?.[0]?.maxTokens ?? DEFAULT_MAX_OUTPUT_TOKENS,
         // Preserve compat settings for provider-specific quirks (e.g., supportsStore for LiteLLM)
         compat: modelDef?.compat,
       } as Model<Api>);
