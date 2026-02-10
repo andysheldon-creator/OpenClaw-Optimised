@@ -159,6 +159,8 @@ export type PluginCommandContext = {
   accountId?: string;
   /** Thread/topic id if available */
   messageThreadId?: number;
+  /** Agent id for the session this command was received in */
+  agentId?: string;
 };
 
 /**
@@ -323,6 +325,8 @@ export type PluginHookAgentContext = {
 export type PluginHookBeforeAgentStartEvent = {
   prompt: string;
   messages?: unknown[];
+  /** Current system prompt text (read-only). Plugins can return a modified version via result.systemPrompt. */
+  systemPrompt?: string;
 };
 
 export type PluginHookBeforeAgentStartResult = {
