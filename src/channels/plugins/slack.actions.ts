@@ -210,8 +210,9 @@ export function createSlackActions(providerId: string): ChannelMessageActionAdap
       }
 
       if (action === "emoji-list") {
+        const limit = readNumberParam(params, "limit", { integer: true });
         return await handleSlackAction(
-          { action: "emojiList", limit: params.limit, accountId: accountId ?? undefined },
+          { action: "emojiList", limit, accountId: accountId ?? undefined },
           cfg,
         );
       }
