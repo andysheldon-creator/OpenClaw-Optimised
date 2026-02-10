@@ -312,18 +312,17 @@ export async function handleSlackAction(
       throw new Error("Slack emoji list is disabled.");
     }
     const result = readOpts ? await listSlackEmojis(readOpts) : await listSlackEmojis();
-    const ok = result.ok ?? false;
     const limit = readNumberParam(params, "limit", { integer: true });
     if (limit != null && limit > 0 && result.emoji != null) {
       const entries = Object.entries(result.emoji).toSorted(([a], [b]) => a.localeCompare(b));
       if (entries.length > limit) {
         return jsonResult({
-          ok,
+          ok: true,
           emojis: { ...result, emoji: Object.fromEntries(entries.slice(0, limit)) },
         });
       }
     }
-    return jsonResult({ ok, emojis: result });
+    return jsonResult({ ok: true, emojis: result });
   }
 
   throw new Error(`Unknown action: ${action}`);
