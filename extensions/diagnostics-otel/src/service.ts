@@ -160,12 +160,24 @@ class LoggingTraceExporter implements SpanExporter {
   }
 }
 
+interface ActiveTrace {
+  span: Span;
+  startedAt: number;
+  sessionKey?: string;
+  channel?: string;
+}
+
 export function createDiagnosticsOtelService(): OpenClawPluginService {
   let sdk: NodeSDK | null = null;
   let logProvider: LoggerProvider | null = null;
   let stopLogTransport: (() => void) | null = null;
   let unsubscribe: (() => void) | null = null;
   let bufferCleanupTimer: ReturnType<typeof setInterval> | null = null;
+
+  // Active root traces keyed by sessionKey. Covers the full message lifecycle;
+  // child spans (agent.turn, LLM calls, tool executions) are nested under it.
+  const activeTraces = new Map<string, ActiveTrace>();
+  const ACTIVE_TRACE_TTL_MS = 10 * 60 * 1000;
 
   return {
     id: "diagnostics-otel",
@@ -591,14 +603,24 @@ export function createDiagnosticsOtelService(): OpenClawPluginService {
         };
         if (params.sessionKey) {
           spanAttrs["openclaw.sessionKey"] = params.sessionKey;
-          spanAttrs["gen_ai.conversation.id"] = params.sessionKey;
         }
         if (params.sessionId) {
           spanAttrs["openclaw.sessionId"] = params.sessionId;
+          // gen_ai.conversation.id is the OTEL GenAI semantic convention for thread/session ID.
+          // Use sessionId (the stable conversation identifier) rather than sessionKey
+          // (which is a composite key including channel and agent info).
+          spanAttrs["gen_ai.conversation.id"] = params.sessionId;
         }
         if (params.channel) {
           spanAttrs["openclaw.channel"] = params.channel;
         }
+
+        // Parent under root trace span if available (created by message.queued)
+        const rootTrace = params.sessionKey ? activeTraces.get(params.sessionKey) : undefined;
+        const parentCtx = rootTrace
+          ? trace.setSpan(context.active(), rootTrace.span)
+          : context.active();
+
         const span = tracer.startSpan(
           "openclaw.agent.turn",
           {
@@ -606,7 +628,7 @@ export function createDiagnosticsOtelService(): OpenClawPluginService {
             ...(typeof params.startTimeMs === "number" ? { startTime: params.startTimeMs } : {}),
             kind: SpanKind.INTERNAL,
           },
-          context.active(),
+          parentCtx,
         );
         runSpans.set(runId, { span, createdAt: Date.now() });
         if (debugExports) {
@@ -648,6 +670,17 @@ export function createDiagnosticsOtelService(): OpenClawPluginService {
         for (const [runId, span] of activeInferenceSpanByRunId) {
           if (Array.from(inferenceSpans.values()).every((e) => e.span !== span)) {
             activeInferenceSpanByRunId.delete(runId);
+          }
+        }
+        for (const [key, entry] of activeTraces) {
+          if (now - entry.startedAt > ACTIVE_TRACE_TTL_MS) {
+            try {
+              entry.span.setStatus({ code: SpanStatusCode.ERROR, message: "TTL expired" });
+              entry.span.end();
+            } catch {
+              // ignore
+            }
+            activeTraces.delete(key);
           }
         }
       }, 60_000);
@@ -749,8 +782,8 @@ export function createDiagnosticsOtelService(): OpenClawPluginService {
         if (evt.finishReasons?.length) {
           spanAttrs["gen_ai.response.finish_reasons"] = evt.finishReasons;
         }
-        if (evt.sessionKey) {
-          spanAttrs["gen_ai.conversation.id"] = evt.sessionKey;
+        if (evt.sessionId) {
+          spanAttrs["gen_ai.conversation.id"] = evt.sessionId;
         }
         if (typeof evt.temperature === "number") {
           spanAttrs["gen_ai.request.temperature"] = evt.temperature;
@@ -836,10 +869,10 @@ export function createDiagnosticsOtelService(): OpenClawPluginService {
         };
         if (evt.sessionKey) {
           spanAttrs["openclaw.sessionKey"] = evt.sessionKey;
-          spanAttrs["gen_ai.conversation.id"] = evt.sessionKey;
         }
         if (evt.sessionId) {
           spanAttrs["openclaw.sessionId"] = evt.sessionId;
+          spanAttrs["gen_ai.conversation.id"] = evt.sessionId;
         }
         if (typeof evt.callIndex === "number") {
           spanAttrs["openclaw.callIndex"] = evt.callIndex;
@@ -965,8 +998,8 @@ export function createDiagnosticsOtelService(): OpenClawPluginService {
         if (evt.finishReasons?.length) {
           spanAttrs["gen_ai.response.finish_reasons"] = evt.finishReasons;
         }
-        if (evt.sessionKey) {
-          spanAttrs["gen_ai.conversation.id"] = evt.sessionKey;
+        if (evt.sessionId) {
+          spanAttrs["gen_ai.conversation.id"] = evt.sessionId;
         }
         if (typeof evt.temperature === "number") {
           spanAttrs["gen_ai.request.temperature"] = evt.temperature;
@@ -1099,6 +1132,35 @@ export function createDiagnosticsOtelService(): OpenClawPluginService {
         if (typeof evt.queueDepth === "number") {
           queueDepthHistogram.record(evt.queueDepth, attrs);
         }
+
+        // Create root span for nested trace hierarchy.
+        // The message lifecycle is: message.queued → run.started → model.inference → tools → run.completed → message.processed.
+        // This root span covers the entire lifecycle; agent.turn, LLM calls, and tool executions are nested as children.
+        // message.processed ends this span (it does not create a new child).
+        if (tracesEnabled && evt.sessionKey) {
+          const rootSpan = tracer.startSpan("openclaw.message", {
+            kind: SpanKind.SERVER,
+            attributes: {
+              "openclaw.sessionKey": evt.sessionKey,
+              "openclaw.channel": evt.channel ?? "unknown",
+              "openclaw.source": evt.source ?? "unknown",
+              ...(typeof evt.queueDepth === "number"
+                ? { "openclaw.queueDepth": evt.queueDepth }
+                : {}),
+            },
+          });
+
+          activeTraces.set(evt.sessionKey, {
+            span: rootSpan,
+            startedAt: Date.now(),
+            sessionKey: evt.sessionKey,
+            channel: evt.channel,
+          });
+
+          if (debugExports) {
+            ctx.logger.info(`diagnostics-otel: created root span for session=${evt.sessionKey}`);
+          }
+        }
       };
 
       const recordMessageProcessed = (
@@ -1112,33 +1174,37 @@ export function createDiagnosticsOtelService(): OpenClawPluginService {
         if (typeof evt.durationMs === "number") {
           messageDurationHistogram.record(evt.durationMs, attrs);
         }
-        if (!tracesEnabled) {
-          return;
+
+        // End root trace span created by message.queued.
+        // No standalone span here — the root span covers the full message lifecycle.
+        const sessionKey = evt.sessionKey;
+        const activeTrace = sessionKey ? activeTraces.get(sessionKey) : null;
+        if (activeTrace) {
+          activeTrace.span.setAttribute("openclaw.outcome", evt.outcome ?? "unknown");
+          if (typeof evt.durationMs === "number") {
+            activeTrace.span.setAttribute("openclaw.durationMs", evt.durationMs);
+          }
+          if (evt.messageId != null) {
+            activeTrace.span.setAttribute("openclaw.messageId", String(evt.messageId));
+          }
+          if (evt.outcome === "error" && evt.error) {
+            activeTrace.span.setStatus({
+              code: SpanStatusCode.ERROR,
+              message: evt.error,
+            });
+          } else {
+            activeTrace.span.setStatus({ code: SpanStatusCode.OK });
+          }
+          activeTrace.span.end();
+          activeTraces.delete(sessionKey);
+          if (debugExports) {
+            ctx.logger.info(`diagnostics-otel: ended root span for session=${sessionKey}`);
+          }
+        } else if (debugExports) {
+          ctx.logger.info(
+            `diagnostics-otel: no active root trace for message.processed sessionKey=${sessionKey ?? "undefined"}`,
+          );
         }
-        const spanAttrs: Record<string, string | number> = { ...attrs };
-        if (evt.sessionKey) {
-          spanAttrs["openclaw.sessionKey"] = evt.sessionKey;
-        }
-        if (evt.sessionId) {
-          spanAttrs["openclaw.sessionId"] = evt.sessionId;
-        }
-        if (evt.chatId !== undefined) {
-          spanAttrs["openclaw.chatId"] = String(evt.chatId);
-        }
-        if (evt.messageId !== undefined) {
-          spanAttrs["openclaw.messageId"] = String(evt.messageId);
-        }
-        if (evt.reason) {
-          spanAttrs["openclaw.reason"] = evt.reason;
-        }
-        const span = spanWithDuration("openclaw.message.processed", spanAttrs, evt.durationMs);
-        if (evt.outcome === "error") {
-          span.setStatus({ code: SpanStatusCode.ERROR, message: evt.error });
-        }
-        if (debugExports) {
-          ctx.logger.info(`diagnostics-otel: span created openclaw.message.processed`);
-        }
-        span.end();
       };
 
       const recordLaneEnqueue = (
@@ -1283,6 +1349,17 @@ export function createDiagnosticsOtelService(): OpenClawPluginService {
       }
     },
     async stop() {
+      // End any remaining root traces
+      for (const [, activeTrace] of activeTraces) {
+        try {
+          activeTrace.span.setStatus({ code: SpanStatusCode.ERROR, message: "Service stopped" });
+          activeTrace.span.end();
+        } catch {
+          // Ignore errors during cleanup
+        }
+      }
+      activeTraces.clear();
+
       unsubscribe?.();
       unsubscribe = null;
       stopLogTransport?.();
