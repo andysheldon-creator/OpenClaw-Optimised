@@ -176,10 +176,28 @@ export function emitDiagnosticEvent(event: DiagnosticEventInput) {
     seq: (state.seq += 1),
     ts: Date.now(),
   } satisfies DiagnosticEventPayload;
+  console.log(
+    `[diagnostic-events] emit type=${enriched.type} seq=${enriched.seq} listeners=${state.listeners.size}`,
+  );
   for (const listener of state.listeners) {
     try {
+      console.log(
+        `[diagnostic-events] dispatch type=${enriched.type} seq=${enriched.seq} listener=${String(listener)}`,
+      );
       listener(enriched);
-    } catch {
+      console.log(
+        `[diagnostic-events] dispatched type=${enriched.type} seq=${enriched.seq} listener=${String(listener)}`,
+      );
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error
+          ? (err.stack ?? err.message)
+          : typeof err === "string"
+            ? err
+            : String(err);
+      console.error(
+        `[diagnostic-events] listener error type=${enriched.type} seq=${enriched.seq}: ${errorMessage}`,
+      );
       // Ignore listener failures.
     }
   }
@@ -188,11 +206,23 @@ export function emitDiagnosticEvent(event: DiagnosticEventInput) {
 export function onDiagnosticEvent(listener: (evt: DiagnosticEventPayload) => void): () => void {
   const state = getDiagnosticEventsState();
   state.listeners.add(listener);
-  return () => state.listeners.delete(listener);
+  console.log(
+    `[diagnostic-events] subscribe listeners=${state.listeners.size} listener=${String(listener)}`,
+  );
+  return () => {
+    state.listeners.delete(listener);
+    console.log(
+      `[diagnostic-events] unsubscribe listeners=${state.listeners.size} listener=${String(listener)}`,
+    );
+  };
 }
 
 export function resetDiagnosticEventsForTest(): void {
   const state = getDiagnosticEventsState();
+  console.log(
+    `[diagnostic-events] reset before seq=${state.seq} listeners=${state.listeners.size}`,
+  );
   state.seq = 0;
   state.listeners.clear();
+  console.log("[diagnostic-events] reset complete");
 }
