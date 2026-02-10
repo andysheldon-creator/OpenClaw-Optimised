@@ -56,23 +56,42 @@ final class GatewayConnectionController {
         }
     }
 
-    func connect(_ gateway: GatewayDiscoveryModel.DiscoveredGateway) async {
+    /// Returns `nil` when a connect attempt was started, otherwise returns a user-facing error.
+    func connectWithDiagnostics(_ gateway: GatewayDiscoveryModel.DiscoveredGateway) async -> String? {
         let instanceId = UserDefaults.standard.string(forKey: "node.instanceId")?
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if instanceId.isEmpty {
+            return "Missing instanceId (node.instanceId). Try restarting the app."
+        }
         let token = GatewaySettingsStore.loadGatewayToken(instanceId: instanceId)
         let password = GatewaySettingsStore.loadGatewayPassword(instanceId: instanceId)
-        guard let host = self.resolveGatewayHost(gateway) else { return }
-        let port = gateway.gatewayPort ?? 18789
+
         let tlsParams = self.resolveDiscoveredTLSParams(gateway: gateway)
-        guard let url = self.buildGatewayURL(
-            host: host,
-            port: port,
-            useTLS: tlsParams?.required == true)
-        else { return }
+        let resolvedHost: String?
+        let resolvedPort: Int?
+        if let host = self.resolveGatewayHost(gateway) {
+            resolvedHost = host
+            resolvedPort = gateway.gatewayPort ?? 18789
+        } else if let fallback = await self.resolveHostPortFromBonjourEndpoint(gateway.endpoint) {
+            resolvedHost = fallback.host
+            resolvedPort = fallback.port > 0 ? fallback.port : (gateway.gatewayPort ?? 18789)
+        } else {
+            return "Discovery found a gateway service, but no connectable host was advertised (missing lanHost/tailnetDns TXT) and the Bonjour service did not resolve to an address. Try Manual connect."
+        }
+
+        guard let host = resolvedHost, let port = resolvedPort else {
+            return "Failed to resolve a connectable host/port from discovery."
+        }
+
+        let useTLS = tlsParams?.required == true || gateway.tlsEnabled
+        guard let url = self.buildGatewayURL(host: host, port: port, useTLS: useTLS) else {
+            return "Failed to build gateway URL (host=\(host) port=\(port) tls=\(useTLS))."
+        }
+
         GatewaySettingsStore.saveLastGatewayConnection(
             host: host,
             port: port,
-            useTLS: tlsParams?.required == true,
+            useTLS: useTLS,
             stableID: gateway.stableID)
         self.didAutoConnect = true
         self.startAutoConnect(
@@ -81,6 +100,11 @@ final class GatewayConnectionController {
             tls: tlsParams,
             token: token,
             password: password)
+        return nil
+    }
+
+    func connect(_ gateway: GatewayDiscoveryModel.DiscoveredGateway) async {
+        _ = await self.connectWithDiagnostics(gateway)
     }
 
     func connectManual(host: String, port: Int, useTLS: Bool) async {
@@ -379,6 +403,125 @@ final class GatewayConnectionController {
             return lanHost
         }
         return nil
+    }
+
+    private func resolveHostPortFromBonjourEndpoint(_ endpoint: NWEndpoint) async -> (host: String, port: Int)? {
+        switch endpoint {
+        case let .hostPort(host, port):
+            return (host: host.debugDescription, port: Int(port.rawValue))
+        case let .service(name, type, domain, _):
+            return await Self.resolveBonjourServiceToHostPort(name: name, type: type, domain: domain)
+        default:
+            return nil
+        }
+    }
+
+    private static func resolveBonjourServiceToHostPort(
+        name: String,
+        type: String,
+        domain: String,
+        timeoutSeconds: TimeInterval = 3.0
+    ) async -> (host: String, port: Int)? {
+        // NetService callbacks are delivered via a run loop. If we resolve from a thread without one,
+        // we can end up never receiving callbacks, which in turn leaks the continuation and leaves
+        // the UI stuck "connecting". Keep the whole lifecycle on the main run loop and always
+        // resume the continuation exactly once (timeout/cancel safe).
+        @MainActor
+        final class Resolver: NSObject, @preconcurrency NetServiceDelegate {
+            private var cont: CheckedContinuation<(host: String, port: Int)?, Never>?
+            private let service: NetService
+            private var timeoutTask: Task<Void, Never>?
+            private var finished = false
+
+            init(cont: CheckedContinuation<(host: String, port: Int)?, Never>, service: NetService) {
+                self.cont = cont
+                self.service = service
+                super.init()
+            }
+
+            func start(timeoutSeconds: TimeInterval) {
+                self.service.delegate = self
+                self.service.schedule(in: .main, forMode: .default)
+
+                // NetService has its own timeout, but we keep a manual one as a backstop in case
+                // callbacks never arrive (e.g. local network permission issues).
+                self.timeoutTask = Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    let ns = UInt64(max(0.1, timeoutSeconds) * 1_000_000_000)
+                    try? await Task.sleep(nanoseconds: ns)
+                    self.finish(nil)
+                }
+
+                self.service.resolve(withTimeout: timeoutSeconds)
+            }
+
+            func netServiceDidResolveAddress(_ sender: NetService) {
+                self.finish(Self.extractHostPort(sender))
+            }
+
+            func netService(_ sender: NetService, didNotResolve errorDict: [String: NSNumber]) {
+                _ = errorDict // currently best-effort; callers surface a generic failure
+                self.finish(nil)
+            }
+
+            private func finish(_ result: (host: String, port: Int)?) {
+                guard !self.finished else { return }
+                self.finished = true
+
+                self.timeoutTask?.cancel()
+                self.timeoutTask = nil
+
+                self.service.stop()
+                self.service.remove(from: .main, forMode: .default)
+
+                let c = self.cont
+                self.cont = nil
+                c?.resume(returning: result)
+            }
+
+            private static func extractHostPort(_ svc: NetService) -> (host: String, port: Int)? {
+                let port = svc.port
+
+                if let host = svc.hostName?.trimmingCharacters(in: .whitespacesAndNewlines), !host.isEmpty {
+                    return (host: host, port: port)
+                }
+
+                guard let addrs = svc.addresses else { return nil }
+                    for addrData in addrs {
+                        let host = addrData.withUnsafeBytes { ptr -> String? in
+                        guard let base = ptr.baseAddress, !ptr.isEmpty else { return nil }
+                        var buffer = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+
+                        let rc = getnameinfo(
+                            base.assumingMemoryBound(to: sockaddr.self),
+                            socklen_t(ptr.count),
+                            &buffer,
+                            socklen_t(buffer.count),
+                            nil,
+                            0,
+                            NI_NUMERICHOST)
+                        guard rc == 0 else { return nil }
+                        return String(cString: buffer)
+                    }
+
+                    if let host, !host.isEmpty {
+                        return (host: host, port: port)
+                    }
+                }
+
+                return nil
+            }
+        }
+
+        return await withCheckedContinuation { cont in
+            Task { @MainActor in
+                let service = NetService(domain: domain, type: type, name: name)
+                let resolver = Resolver(cont: cont, service: service)
+                // Keep the resolver alive for the lifetime of the NetService resolve.
+                objc_setAssociatedObject(service, "resolver", resolver, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+                resolver.start(timeoutSeconds: timeoutSeconds)
+            }
+        }
     }
 
     private func buildGatewayURL(host: String, port: Int, useTLS: Bool) -> URL? {
