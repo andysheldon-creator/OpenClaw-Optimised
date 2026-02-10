@@ -272,11 +272,11 @@ export function assessCostStatus(params: {
 
   // Estimate monthly spend
   const projectedMonthly = params.dailySpend * 30;
-  if (projectedMonthly > params.monthlyBudget * 1.1) {
-    return "warning";
-  }
   if (projectedMonthly > params.monthlyBudget) {
     return "critical";
+  }
+  if (projectedMonthly > params.monthlyBudget * 1.1) {
+    return "warning";
   }
 
   return "healthy";
