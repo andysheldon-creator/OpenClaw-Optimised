@@ -59,6 +59,19 @@ export function resolveSessionFilePath(
   return candidate ? candidate : resolveSessionTranscriptPath(sessionId, opts?.agentId);
 }
 
+export function resolveChannelHistoriesPath(
+  channel: string,
+  accountId?: string,
+  agentId?: string,
+): string {
+  const safeChannel = channel.replace(/[^a-z0-9-]/gi, "-").toLowerCase();
+  const safeAccount = (accountId || "default").replace(/[^a-z0-9-]/gi, "-").toLowerCase();
+  return path.join(
+    resolveAgentSessionsDir(agentId),
+    `channel-histories-${safeChannel}-${safeAccount}.json`,
+  );
+}
+
 export function resolveStorePath(store?: string, opts?: { agentId?: string }) {
   const agentId = normalizeAgentId(opts?.agentId ?? DEFAULT_AGENT_ID);
   if (!store) {
