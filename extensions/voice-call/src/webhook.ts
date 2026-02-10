@@ -346,6 +346,10 @@ export class VoiceCallWebhookServer {
    * Supports tool calling for richer voice interactions.
    */
   private async handleInboundResponse(callId: string, userMessage: string): Promise<void> {
+    if (this.config.autoResponse === false) {
+      return;
+    }
+
     console.log(`[voice-call] Auto-responding to inbound call ${callId}: "${userMessage}"`);
 
     // Get call context for conversation history

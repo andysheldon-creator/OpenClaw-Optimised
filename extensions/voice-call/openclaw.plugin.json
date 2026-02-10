@@ -157,6 +157,10 @@
     "responseTimeoutMs": {
       "label": "Response Timeout (ms)",
       "advanced": true
+    },
+    "autoResponse": {
+      "label": "Auto Response",
+      "advanced": true
     }
   },
   "configSchema": {
@@ -168,7 +172,13 @@
       },
       "provider": {
         "type": "string",
-        "enum": ["telnyx", "twilio", "plivo", "mock", "asterisk-ari"]
+        "enum": [
+          "telnyx",
+          "twilio",
+          "plivo",
+          "mock",
+          "asterisk-ari"
+        ]
       },
       "telnyx": {
         "type": "object",
@@ -213,14 +223,36 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "baseUrl": { "type": "string" },
-          "username": { "type": "string" },
-          "password": { "type": "string" },
-          "app": { "type": "string" },
-          "trunk": { "type": "string" },
-          "rtpHost": { "type": "string" },
-          "rtpPort": { "type": "integer", "minimum": 1024, "maximum": 65535 },
-          "codec": { "type": "string", "enum": ["ulaw", "alaw"] }
+          "baseUrl": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "app": {
+            "type": "string"
+          },
+          "trunk": {
+            "type": "string"
+          },
+          "rtpHost": {
+            "type": "string"
+          },
+          "rtpPort": {
+            "type": "integer",
+            "minimum": 1024,
+            "maximum": 65535
+          },
+          "codec": {
+            "type": "string",
+            "enum": [
+              "ulaw",
+              "alaw"
+            ]
+          }
         }
       },
       "fromNumber": {
@@ -233,7 +265,12 @@
       },
       "inboundPolicy": {
         "type": "string",
-        "enum": ["disabled", "allowlist", "pairing", "open"]
+        "enum": [
+          "disabled",
+          "allowlist",
+          "pairing",
+          "open"
+        ]
       },
       "allowFrom": {
         "type": "array",
@@ -251,7 +288,10 @@
         "properties": {
           "defaultMode": {
             "type": "string",
-            "enum": ["notify", "conversation"]
+            "enum": [
+              "notify",
+              "conversation"
+            ]
           },
           "notifyHangupDelaySec": {
             "type": "integer",
@@ -301,7 +341,11 @@
         "properties": {
           "mode": {
             "type": "string",
-            "enum": ["off", "serve", "funnel"]
+            "enum": [
+              "off",
+              "serve",
+              "funnel"
+            ]
           },
           "path": {
             "type": "string"
@@ -314,7 +358,12 @@
         "properties": {
           "provider": {
             "type": "string",
-            "enum": ["none", "ngrok", "tailscale-serve", "tailscale-funnel"]
+            "enum": [
+              "none",
+              "ngrok",
+              "tailscale-serve",
+              "tailscale-funnel"
+            ]
           },
           "ngrokAuthToken": {
             "type": "string"
@@ -336,7 +385,9 @@
           },
           "sttProvider": {
             "type": "string",
-            "enum": ["openai-realtime"]
+            "enum": [
+              "openai-realtime"
+            ]
           },
           "openaiApiKey": {
             "type": "string"
@@ -370,7 +421,9 @@
         "properties": {
           "provider": {
             "type": "string",
-            "enum": ["openai"]
+            "enum": [
+              "openai"
+            ]
           },
           "model": {
             "type": "string"
@@ -383,18 +436,30 @@
         "properties": {
           "auto": {
             "type": "string",
-            "enum": ["off", "always", "inbound", "tagged"]
+            "enum": [
+              "off",
+              "always",
+              "inbound",
+              "tagged"
+            ]
           },
           "enabled": {
             "type": "boolean"
           },
           "mode": {
             "type": "string",
-            "enum": ["final", "all"]
+            "enum": [
+              "final",
+              "all"
+            ]
           },
           "provider": {
             "type": "string",
-            "enum": ["openai", "elevenlabs", "edge"]
+            "enum": [
+              "openai",
+              "elevenlabs",
+              "edge"
+            ]
           },
           "summaryModel": {
             "type": "string"
@@ -452,7 +517,11 @@
               },
               "applyTextNormalization": {
                 "type": "string",
-                "enum": ["auto", "on", "off"]
+                "enum": [
+                  "auto",
+                  "on",
+                  "off"
+                ]
               },
               "languageCode": {
                 "type": "string"
@@ -567,6 +636,9 @@
       "responseTimeoutMs": {
         "type": "integer",
         "minimum": 1
+      },
+      "autoResponse": {
+        "type": "boolean"
       }
     }
   }
