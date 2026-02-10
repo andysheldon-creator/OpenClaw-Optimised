@@ -85,7 +85,7 @@ function extractTextContent(content: unknown): string {
     .join("");
 }
 
-function extractImages(content: unknown): string[] {
+function extractOllamaImages(content: unknown): string[] {
   if (!Array.isArray(content)) {
     return [];
   }
@@ -125,7 +125,7 @@ export function convertToOllamaMessages(
 
     if (role === "user") {
       const text = extractTextContent(msg.content);
-      const images = extractImages(msg.content);
+      const images = extractOllamaImages(msg.content);
       result.push({
         role: "user",
         content: text,
