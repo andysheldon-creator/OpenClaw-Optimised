@@ -151,7 +151,8 @@ export const NodeHealthTelemetryEntrySchema = Type.Object(
 
 export const NodeHealthGetParamsSchema = Type.Object(
   {
-    nodeId: Type.Optional(NonEmptyString),
+    // Require at least one non-whitespace character. (NonEmptyString alone allows "   ")
+    nodeId: Type.Optional(Type.String({ minLength: 1, pattern: "\\S" })),
     limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 200 })),
   },
   { additionalProperties: false },

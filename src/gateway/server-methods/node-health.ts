@@ -15,7 +15,14 @@ export const nodeHealthHandlers: GatewayRequestHandlers = {
     }
 
     const p = params as { nodeId?: string; limit?: number };
-    const nodeId = typeof p.nodeId === "string" ? p.nodeId.trim() : "";
+    const rawNodeId = typeof p.nodeId === "string" ? p.nodeId : undefined;
+    const nodeId = typeof rawNodeId === "string" ? rawNodeId.trim() : "";
+
+    // Defensive check: older validators (or other callers) might allow whitespace-only values.
+    if (rawNodeId !== undefined && nodeId.length === 0) {
+      respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, "nodeId must not be blank"));
+      return;
+    }
 
     if (!nodeId) {
       if (p.limit !== undefined) {

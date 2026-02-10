@@ -64,4 +64,9 @@ describe("node.health.get", () => {
     const res = await callNodeHealthGet({ limit: 2 });
     expect(res.ok).toBe(false);
   });
+
+  it("rejects whitespace-only nodeId", async () => {
+    const res = await callNodeHealthGet({ nodeId: "   " });
+    expect(res.ok).toBe(false);
+  });
 });
