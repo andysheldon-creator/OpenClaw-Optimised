@@ -176,6 +176,7 @@ struct PermissionRow: View {
         case .speechRecognition: "Speech Recognition"
         case .camera: "Camera"
         case .location: "Location"
+        case .calendar: "Calendar"
         }
     }
 
@@ -190,6 +191,7 @@ struct PermissionRow: View {
         case .speechRecognition: "Transcribe Voice Wake trigger phrases on-device"
         case .camera: "Capture photos and video from the camera"
         case .location: "Share location when requested by the agent"
+        case .calendar: "Read calendar events for meeting detection"
         }
     }
 
@@ -203,6 +205,7 @@ struct PermissionRow: View {
         case .speechRecognition: "waveform"
         case .camera: "camera"
         case .location: "location"
+        case .calendar: "calendar"
         }
     }
 }
