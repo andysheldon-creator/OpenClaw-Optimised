@@ -3,25 +3,9 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import * as tar from "tar";
 
-/**
- * Validates that a resolved path stays within a base directory.
- * Prevents path traversal attacks (e.g., ../../etc/passwd).
- *
- * @param baseDir - The allowed base directory (must be absolute)
- * @param targetPath - The path to validate (can be relative or absolute)
- * @returns true if targetPath is within baseDir
- *
- * @example
- * isPathWithinBase("/tmp/foo", "/tmp/foo/bar.txt") // true
- * isPathWithinBase("/tmp/foo", "/tmp/foobar/evil.txt") // false (startsWith bypass)
- * isPathWithinBase("/tmp/foo", "../../etc/passwd") // false
- */
-export function isPathWithinBase(baseDir: string, targetPath: string): boolean {
-  const resolvedBase = path.resolve(baseDir);
-  const resolvedTarget = path.resolve(resolvedBase, targetPath);
-  const rel = path.relative(resolvedBase, resolvedTarget);
-  return rel.length > 0 && !rel.startsWith("..") && !path.isAbsolute(rel);
-}
+import { isPathWithinBase } from "./paths.js";
+
+export { isPathWithinBase };
 
 export type ArchiveKind = "tar" | "zip";
 
