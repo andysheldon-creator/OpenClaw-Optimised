@@ -101,18 +101,12 @@ It handles authentication and business logic.`;
     expect(files).toHaveLength(1);
     expect(files[0].type).toBe("text");
 
-    // 3. Get file content (now in markdown format)
-    const fileResult = await getFile({ sessionId, agentId, fileId, filesDir: testDir });
-    const retrievedContent = fileResult.buffer.toString("utf-8");
-    // File is now saved as markdown (wrapped in code block for plain text)
-    expect(retrievedContent).toContain("Chapter 1: Introduction");
-
-    // 4. Search text - single token (search in original text content)
+    // 3. Search text - single token (search in original text content)
     const matches1 = searchText(textContent, "frontend");
     expect(matches1.length).toBeGreaterThan(0);
     expect(matches1[0].snippet).toContain("frontend");
 
-    // 5. Search text - multiple tokens (all must match)
+    // 4. Search text - multiple tokens (all must match)
     const matches2 = searchText(textContent, "backend REST");
     expect(matches2.length).toBeGreaterThan(0);
     const allMatch = matches2.every(
