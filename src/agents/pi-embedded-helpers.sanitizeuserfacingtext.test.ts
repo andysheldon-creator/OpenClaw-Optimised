@@ -69,4 +69,25 @@ describe("sanitizeUserFacingText", () => {
     const text = "Hello there!\n\nDifferent line.";
     expect(sanitizeUserFacingText(text)).toBe(text);
   });
+
+  it("does not rewrite normal assistant text about billing/payment topics (#13527)", () => {
+    const text =
+      "easier billing, can export invoices. Apple subscription handles payments and removes all billing friction";
+    expect(sanitizeUserFacingText(text)).toBe(text);
+  });
+
+  it("does not rewrite SaaS pricing discussion mentioning billing and credits (#13527)", () => {
+    const text =
+      "SaaS billing best practices: accept multiple payment methods, offer monthly and annual plans, and provide credits for referrals.";
+    expect(sanitizeUserFacingText(text)).toBe(text);
+  });
+
+  it("still rewrites actual billing errors in error context (#13527)", () => {
+    expect(sanitizeUserFacingText("402 Payment Required", { errorContext: true })).toContain(
+      "billing error",
+    );
+    expect(
+      sanitizeUserFacingText("insufficient credits", { errorContext: true }),
+    ).toContain("billing error");
+  });
 });
