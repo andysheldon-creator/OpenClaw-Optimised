@@ -5,7 +5,7 @@ import { resolveSessionDisplayName } from "./app-render.helpers.ts";
 type SessionRow = SessionsListResult["sessions"][number];
 
 function row(overrides: Partial<SessionRow> & { key: string }): SessionRow {
-  return { kind: "direct", updatedAt: Date.now(), ...overrides };
+  return { kind: "direct", updatedAt: 0, ...overrides };
 }
 
 describe("resolveSessionDisplayName", () => {
