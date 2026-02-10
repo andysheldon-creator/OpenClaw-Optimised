@@ -1,9 +1,6 @@
 import type { ApplyAuthChoiceParams, ApplyAuthChoiceResult } from "./auth-choice.apply.js";
 import { ensureAuthProfileStore, resolveAuthProfileOrder } from "../agents/auth-profiles.js";
-import {
-  discoverHuggingfaceModels,
-  isHuggingfacePolicyLocked,
-} from "../agents/huggingface-models.js";
+import { discoverHuggingfaceModels } from "../agents/huggingface-models.js";
 import { resolveEnvApiKey } from "../agents/model-auth.js";
 import {
   formatApiKeyPreview,

@@ -1,33 +1,13 @@
 import type { AuthProfileStore } from "../agents/auth-profiles.js";
-import type { AuthChoice } from "./onboard-types.js";
+import type { AuthChoice, AuthChoiceGroupId } from "./onboard-types.js";
+
+export type { AuthChoiceGroupId };
 
 export type AuthChoiceOption = {
   value: AuthChoice;
   label: string;
   hint?: string;
 };
-
-export type AuthChoiceGroupId =
-  | "openai"
-  | "anthropic"
-  | "google"
-  | "copilot"
-  | "openrouter"
-  | "ai-gateway"
-  | "cloudflare-ai-gateway"
-  | "moonshot"
-  | "zai"
-  | "xiaomi"
-  | "opencode-zen"
-  | "minimax"
-  | "synthetic"
-  | "venice"
-  | "qwen"
-  | "together"
-  | "huggingface"
-  | "qianfan"
-  | "xai"
-  | "custom";
 
 export type AuthChoiceGroup = {
   value: AuthChoiceGroupId;
