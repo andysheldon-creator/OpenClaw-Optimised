@@ -451,6 +451,7 @@ export async function agentCommand(
             extraSystemPrompt: opts.extraSystemPrompt,
             streamParams: opts.streamParams,
             agentDir,
+            parentId: opts.parentId,
             onAgentEvent: (evt) => {
               // Track lifecycle end for fallback emission below.
               if (
