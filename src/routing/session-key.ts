@@ -3,6 +3,8 @@ import { parseAgentSessionKey, type ParsedAgentSessionKey } from "../sessions/se
 
 export {
   isAcpSessionKey,
+  isCronSessionKey,
+  isRestrictedBootstrapSession,
   isSubagentSessionKey,
   parseAgentSessionKey,
   type ParsedAgentSessionKey,
