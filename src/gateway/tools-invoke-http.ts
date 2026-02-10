@@ -318,7 +318,7 @@ export async function handleToolsInvokeHttpRequest(
     sendJson(res, 200, { ok: true, result });
   } catch (err) {
     logWarn(`tools-invoke: tool execution failed: ${String(err)}`);
-    sendJson(res, 400, {
+    sendJson(res, 500, {
       ok: false,
       error: { type: "tool_error", message: "tool execution failed" },
     });
