@@ -413,7 +413,12 @@ export async function resolveMedia(
     fetchImpl,
     filePathHint: file.file_path,
   });
-  const originalName = fetched.fileName ?? file.file_path;
+  // Prefer the original filename from the Telegram message object (e.g. "report.pdf").
+  // fetched.fileName comes from Content-Disposition (Telegram API doesn't set it).
+  // file.file_path is Telegram's internal path like "documents/file_12345.pdf".
+  const telegramOriginalName =
+    msg.document?.file_name ?? msg.audio?.file_name ?? msg.video?.file_name;
+  const originalName = telegramOriginalName ?? fetched.fileName ?? file.file_path;
   const saved = await saveMediaBuffer(
     fetched.buffer,
     fetched.contentType,
