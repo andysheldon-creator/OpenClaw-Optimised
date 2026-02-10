@@ -255,7 +255,8 @@ export async function startSecretsProxy(opts: SecretsProxyOptions): Promise<http
     try {
       // Authenticate client via shared secret (prevents untrusted local processes from using the proxy)
       if (authToken) {
-        const clientToken = req.headers["x-proxy-token"];
+        const rawToken = req.headers["x-proxy-token"];
+        const clientToken = Array.isArray(rawToken) ? rawToken[0] : rawToken;
         if (clientToken !== authToken) {
           logger.warn(`Rejected unauthenticated proxy request from ${req.socket.remoteAddress}`);
           res.statusCode = 403;
