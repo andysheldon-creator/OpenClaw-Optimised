@@ -34,6 +34,58 @@ import { getWhatsAppRuntime } from "./runtime.js";
 
 const meta = getChatChannelMeta("whatsapp");
 
+/**
+ * Convert standard Markdown formatting to WhatsApp-compatible formatting.
+ *
+ * WhatsApp uses different markup than standard Markdown:
+ * - Bold: *text* (not **text**)
+ * - Italic: _text_ (not *text*)
+ * - Strikethrough: ~text~ (not ~~text~~)
+ * - Monospace: ```text``` (same as Markdown)
+ *
+ * Conversion order matters to avoid conflicts between bold (**) and italic (*).
+ */
+function markdownToWhatsApp(text: string): string {
+  if (!text) {
+    return text;
+  }
+
+  // Protect code blocks from formatting conversion
+  const codeBlocks: string[] = [];
+  let result = text.replace(/```[\s\S]*?```/g, (match) => {
+    codeBlocks.push(match);
+    return `\x00CODE${codeBlocks.length - 1}\x00`;
+  });
+
+  // Protect inline code from formatting conversion
+  const inlineCode: string[] = [];
+  result = result.replace(/`[^`]+`/g, (match) => {
+    inlineCode.push(match);
+    return `\x00INLINE${inlineCode.length - 1}\x00`;
+  });
+
+  // Convert strikethrough: ~~text~~ → ~text~
+  result = result.replace(/~~(.+?)~~/g, "~$1~");
+
+  // Convert bold: **text** → *text*
+  result = result.replace(/\*\*(.+?)\*\*/g, "*$1*");
+
+  // Convert italic: remaining single *text* → _text_
+  // Only match *text* that isn't part of **text** (already converted above)
+  result = result.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, "_$1_");
+
+  // Convert headers to bold (WhatsApp has no header support)
+  result = result.replace(/^#{1,6}\s+(.+)$/gm, "*$1*");
+
+  // Restore inline code
+  result = result.replace(/\x00INLINE(\d+)\x00/g, (_, idx) => inlineCode[Number(idx)]);
+
+  // Restore code blocks
+  result = result.replace(/\x00CODE(\d+)\x00/g, (_, idx) => codeBlocks[Number(idx)]);
+
+  return result;
+}
+
 export const whatsappPlugin: ChannelPlugin<ResolvedWhatsAppAccount> = {
   id: "whatsapp",
   meta: {
@@ -340,7 +392,8 @@ export const whatsappPlugin: ChannelPlugin<ResolvedWhatsAppAccount> = {
     },
     sendText: async ({ to, text, accountId, deps, gifPlayback }) => {
       const send = deps?.sendWhatsApp ?? getWhatsAppRuntime().channel.whatsapp.sendMessageWhatsApp;
-      const result = await send(to, text, {
+      const formatted = markdownToWhatsApp(text);
+      const result = await send(to, formatted, {
         verbose: false,
         accountId: accountId ?? undefined,
         gifPlayback,
@@ -349,7 +402,8 @@ export const whatsappPlugin: ChannelPlugin<ResolvedWhatsAppAccount> = {
     },
     sendMedia: async ({ to, text, mediaUrl, accountId, deps, gifPlayback }) => {
       const send = deps?.sendWhatsApp ?? getWhatsAppRuntime().channel.whatsapp.sendMessageWhatsApp;
-      const result = await send(to, text, {
+      const formatted = text ? markdownToWhatsApp(text) : text;
+      const result = await send(to, formatted, {
         verbose: false,
         mediaUrl,
         accountId: accountId ?? undefined,
