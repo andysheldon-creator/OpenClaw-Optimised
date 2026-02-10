@@ -729,12 +729,14 @@ export async function runEmbeddedAttempt(
 
         // Run before_agent_start hooks to allow plugins to inject context
         let effectivePrompt = params.prompt;
+        let effectiveSystemPrompt = systemPromptText;
         if (hookRunner?.hasHooks("before_agent_start")) {
           try {
             const hookResult = await hookRunner.runBeforeAgentStart(
               {
                 prompt: params.prompt,
                 messages: activeSession.messages,
+                systemPrompt: systemPromptText,
               },
               {
                 agentId: hookAgentId,
@@ -743,6 +745,11 @@ export async function runEmbeddedAttempt(
                 messageProvider: params.messageProvider ?? undefined,
               },
             );
+            if (hookResult?.systemPrompt) {
+              activeSession.agent.setSystemPrompt(hookResult.systemPrompt);
+              effectiveSystemPrompt = hookResult.systemPrompt;
+              log.debug(`hooks: replaced system prompt (${hookResult.systemPrompt.length} chars)`);
+            }
             if (hookResult?.prependContext) {
               effectivePrompt = `${hookResult.prependContext}\n\n${params.prompt}`;
               log.debug(
@@ -757,6 +764,7 @@ export async function runEmbeddedAttempt(
         log.debug(`embedded run prompt start: runId=${params.runId} sessionId=${params.sessionId}`);
         cacheTrace?.recordStage("prompt:before", {
           prompt: effectivePrompt,
+          system: effectiveSystemPrompt,
           messages: activeSession.messages,
         });
 
