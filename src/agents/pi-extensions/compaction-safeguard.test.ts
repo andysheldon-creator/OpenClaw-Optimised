@@ -1,5 +1,6 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import { describe, expect, it } from "vitest";
+import { repairToolUseResultPairing } from "../session-transcript-repair.js";
 import {
   getCompactionSafeguardRuntime,
   setCompactionSafeguardRuntime,
@@ -247,5 +248,129 @@ describe("compaction-safeguard runtime registry", () => {
     setCompactionSafeguardRuntime(sm2, { maxHistoryShare: 0.8 });
     expect(getCompactionSafeguardRuntime(sm1)).toEqual({ maxHistoryShare: 0.3 });
     expect(getCompactionSafeguardRuntime(sm2)).toEqual({ maxHistoryShare: 0.8 });
+  });
+});
+
+describe("compaction-safeguard transcript repair (orphaned tool_results)", () => {
+  it("drops orphaned tool_results that have no matching assistant tool_use", () => {
+    // Simulates what happens when compaction safeguard hits an early-return path
+    // (no model, no API key, or summarization error) and the preparation messages
+    // contain orphaned tool_results from a prior truncation.
+    const messages: AgentMessage[] = [
+      {
+        role: "toolResult",
+        toolCallId: "orphan-1",
+        toolName: "exec",
+        isError: false,
+        content: [{ type: "text", text: "result without matching tool_use" }],
+        timestamp: Date.now(),
+      },
+      {
+        role: "user",
+        content: "continue working",
+        timestamp: Date.now(),
+      },
+      {
+        role: "assistant",
+        content: [{ type: "text", text: "ok" }],
+        timestamp: Date.now(),
+      },
+    ];
+
+    const report = repairToolUseResultPairing(messages);
+    expect(report.droppedOrphanCount).toBe(1);
+    // The orphaned tool_result should be dropped
+    expect(report.messages).toHaveLength(2);
+    expect(report.messages.every((m) => (m as { role: string }).role !== "toolResult")).toBe(true);
+  });
+
+  it("preserves valid tool_use/tool_result pairs during repair", () => {
+    const messages: AgentMessage[] = [
+      {
+        role: "assistant",
+        content: [
+          { type: "text", text: "let me check" },
+          { type: "toolCall", id: "call-1", name: "read", input: { path: "file.ts" } },
+        ],
+        timestamp: Date.now(),
+      },
+      {
+        role: "toolResult",
+        toolCallId: "call-1",
+        toolName: "read",
+        isError: false,
+        content: [{ type: "text", text: "file contents" }],
+        timestamp: Date.now(),
+      },
+      {
+        role: "user",
+        content: "thanks",
+        timestamp: Date.now(),
+      },
+    ];
+
+    const report = repairToolUseResultPairing(messages);
+    expect(report.droppedOrphanCount).toBe(0);
+    expect(report.messages).toHaveLength(3);
+  });
+
+  it("handles mixed orphaned and valid tool_results", () => {
+    // Orphaned tool_result followed by a valid tool_use/tool_result pair
+    const messages: AgentMessage[] = [
+      {
+        role: "toolResult",
+        toolCallId: "orphan-1",
+        toolName: "exec",
+        isError: true,
+        content: [{ type: "text", text: "orphaned" }],
+        timestamp: Date.now(),
+      },
+      {
+        role: "user",
+        content: "try again",
+        timestamp: Date.now(),
+      },
+      {
+        role: "assistant",
+        content: [{ type: "toolCall", id: "call-2", name: "read", input: { path: "ok.ts" } }],
+        timestamp: Date.now(),
+      },
+      {
+        role: "toolResult",
+        toolCallId: "call-2",
+        toolName: "read",
+        isError: false,
+        content: [{ type: "text", text: "success" }],
+        timestamp: Date.now(),
+      },
+    ];
+
+    const report = repairToolUseResultPairing(messages);
+    expect(report.droppedOrphanCount).toBe(1);
+    // Orphan dropped, valid pair + user message preserved
+    expect(report.messages).toHaveLength(3);
+    const roles = report.messages.map((m) => (m as { role: string }).role);
+    expect(roles).toEqual(["user", "assistant", "toolResult"]);
+  });
+
+  it("is a no-op when messages have no orphans", () => {
+    const messages: AgentMessage[] = [
+      {
+        role: "user",
+        content: "hello",
+        timestamp: Date.now(),
+      },
+      {
+        role: "assistant",
+        content: [{ type: "text", text: "hi" }],
+        timestamp: Date.now(),
+      },
+    ];
+
+    const report = repairToolUseResultPairing(messages);
+    expect(report.droppedOrphanCount).toBe(0);
+    expect(report.droppedDuplicateCount).toBe(0);
+    // Should return the same array reference when no changes needed
+    expect(report.messages).toBe(messages);
   });
 });

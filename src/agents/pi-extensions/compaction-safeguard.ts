@@ -11,6 +11,7 @@ import {
   resolveContextWindowTokens,
   summarizeInStages,
 } from "../compaction.js";
+import { repairToolUseResultPairing } from "../session-transcript-repair.js";
 import { getCompactionSafeguardRuntime } from "./compaction-safeguard-runtime.js";
 const FALLBACK_SUMMARY =
   "Summary unavailable due to context limits. Older messages were truncated.";
@@ -170,8 +171,33 @@ export default function compactionSafeguardExtension(api: ExtensionAPI): void {
     const toolFailureSection = formatToolFailuresSection(toolFailures);
     const fallbackSummary = `${FALLBACK_SUMMARY}${toolFailureSection}${fileOpsSummary}`;
 
+    // Run transcript repair on preparation messages to drop orphaned tool_results
+    // that would cause "unexpected tool_use_id" errors on the next API call.
+    // This is critical for the early-return fallback paths below where no
+    // summarization is performed.
+    const repairMessages = () => {
+      const allMessages = [
+        ...preparation.messagesToSummarize,
+        ...(preparation.turnPrefixMessages ?? []),
+      ];
+      const repairReport = repairToolUseResultPairing(allMessages);
+      if (repairReport.droppedOrphanCount > 0 || repairReport.droppedDuplicateCount > 0) {
+        // Apply repaired messages back to preparation so the framework
+        // uses the cleaned transcript in the fallback return path.
+        preparation.messagesToSummarize = repairReport.messages;
+        preparation.turnPrefixMessages = [];
+        console.warn(
+          `Compaction safeguard: repaired transcript in fallback path — ` +
+            `dropped ${repairReport.droppedOrphanCount} orphan(s), ` +
+            `${repairReport.droppedDuplicateCount} duplicate(s).`,
+        );
+      }
+      return repairReport;
+    };
+
     const model = ctx.model;
     if (!model) {
+      repairMessages();
       return {
         compaction: {
           summary: fallbackSummary,
@@ -184,6 +210,7 @@ export default function compactionSafeguardExtension(api: ExtensionAPI): void {
 
     const apiKey = await ctx.modelRegistry.getApiKey(model);
     if (!apiKey) {
+      repairMessages();
       return {
         compaction: {
           summary: fallbackSummary,
@@ -323,6 +350,7 @@ export default function compactionSafeguardExtension(api: ExtensionAPI): void {
           error instanceof Error ? error.message : String(error)
         }`,
       );
+      repairMessages();
       return {
         compaction: {
           summary: fallbackSummary,
