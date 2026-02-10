@@ -376,7 +376,9 @@ export const sessionsHandlers: GatewayRequestHandlers = {
       const sessionsDir = path.join(agentScope, "sessions");
       try {
         const files = fs.readdirSync(sessionsDir);
-        const oldDeleted = files.filter((f) => f.startsWith(`${sessionId}.jsonl.deleted.`));
+        const oldDeleted = files.filter(
+          (f) => f.startsWith(`${sessionId}.jsonl.deleted.`) || f === `${sessionId}.metadata.json`,
+        );
         for (const oldFile of oldDeleted) {
           try {
             fs.unlinkSync(path.join(sessionsDir, oldFile));
@@ -398,32 +400,24 @@ export const sessionsHandlers: GatewayRequestHandlers = {
       // Deduplicate candidates to avoid archiving the same file multiple times
       const uniqueCandidates = Array.from(new Set(candidates));
 
-      // If no transcript files exist but we have metadata, create one with just the metadata
-      const existingFiles = uniqueCandidates.filter((c) => fs.existsSync(c));
-      if (existingFiles.length === 0 && entry && candidates.length > 0) {
-        const metadataFile = candidates[0];
+      // Write session metadata to a sidecar file so transcript files stay clean.
+      // Other processes that scan *.jsonl won't be confused by non-message lines.
+      if (entry) {
+        const sidecarPath = path.join(sessionsDir, `${sessionId}.metadata.json`);
         try {
-          const metadataLine = JSON.stringify({ __session_metadata__: entry }) + "\n";
-          fs.writeFileSync(metadataFile, metadataLine, "utf-8");
-          archived.push(archiveFileOnDisk(metadataFile, "deleted"));
+          fs.writeFileSync(sidecarPath, JSON.stringify(entry, null, 2), "utf-8");
         } catch {
           // Best-effort.
         }
-      } else {
-        // Archive existing transcript files
-        for (const candidate of existingFiles) {
-          try {
-            // Archive the file first (without mutating the original)
-            const archivedPath = archiveFileOnDisk(candidate, "deleted");
-            archived.push(archivedPath);
-            // Append metadata to the archived copy only
-            if (entry) {
-              const metadataLine = JSON.stringify({ __session_metadata__: entry }) + "\n";
-              fs.appendFileSync(archivedPath, metadataLine, "utf-8");
-            }
-          } catch {
-            // Best-effort.
-          }
+      }
+
+      // Archive existing transcript files
+      const existingFiles = uniqueCandidates.filter((c) => fs.existsSync(c));
+      for (const candidate of existingFiles) {
+        try {
+          archived.push(archiveFileOnDisk(candidate, "deleted"));
+        } catch {
+          // Best-effort.
         }
       }
     }
