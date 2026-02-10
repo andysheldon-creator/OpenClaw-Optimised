@@ -348,6 +348,14 @@ function filterActionsForContext(params: {
   return params.actions.filter((action) => !BLUEBUBBLES_GROUP_ACTIONS.has(action));
 }
 
+/** Per-action usage hints appended when specific actions are available. */
+const ACTION_HINTS: Partial<Record<ChannelMessageActionName, string>> = {
+  "sticker-search":
+    'To find a sticker: action="sticker-search", query="<description or emoji>". Returns fileId, emoji, description.',
+  sticker:
+    'To send a sticker: action="sticker", to="<chatId>", fileId="<sticker fileId from cache or sticker-search>".',
+};
+
 function buildMessageToolDescription(options?: {
   config?: OpenClawConfig;
   currentChannel?: string;
@@ -369,7 +377,12 @@ function buildMessageToolDescription(options?: {
       // Always include "send" as a base action
       const allActions = new Set(["send", ...channelActions]);
       const actionList = Array.from(allActions).toSorted().join(", ");
-      return `${baseDescription} Current channel (${options.currentChannel}) supports: ${actionList}.`;
+      const hints = channelActions
+        .map((a) => ACTION_HINTS[a])
+        .filter(Boolean)
+        .join(" ");
+      const hintSuffix = hints ? ` ${hints}` : "";
+      return `${baseDescription} Current channel (${options.currentChannel}) supports: ${actionList}.${hintSuffix}`;
     }
   }
 
