@@ -211,7 +211,7 @@ export function createSlackActions(providerId: string): ChannelMessageActionAdap
 
       if (action === "emoji-list") {
         return await handleSlackAction(
-          { action: "emojiList", accountId: accountId ?? undefined },
+          { action: "emojiList", limit: params.limit, accountId: accountId ?? undefined },
           cfg,
         );
       }
