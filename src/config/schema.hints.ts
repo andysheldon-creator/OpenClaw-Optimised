@@ -455,10 +455,6 @@ const FIELD_HELP: Record<string, string> = {
     "Perplexity base URL override (default: https://openrouter.ai/api/v1 or https://api.perplexity.ai).",
   "tools.web.search.perplexity.model":
     'Perplexity model override (default: "perplexity/sonar-pro").',
-  "tools.web.search.grok.apiKey": "xAI API key for Grok (fallback: XAI_API_KEY env var).",
-  "tools.web.search.grok.model": 'Grok model override (default: "grok-4-1-fast").',
-  "tools.web.search.grok.inlineCitations":
-    "Include inline citations in Grok response text as markdown links (default: false).",
   "tools.web.search.nimble.apiKey": "Nimble API key (fallback: NIMBLE_API_KEY env var).",
   "tools.web.fetch.enabled": "Enable the web_fetch tool (lightweight HTTP fetch).",
   "tools.web.fetch.maxChars": "Max characters returned by web_fetch (truncated).",
