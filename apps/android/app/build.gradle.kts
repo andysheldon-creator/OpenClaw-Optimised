@@ -22,12 +22,21 @@ android {
     minSdk = 31
     targetSdk = 36
     versionCode = 202602030
+    ndk {
+      abiFilters += "arm64-v8a"
+    }
     versionName = "2026.2.9"
   }
 
   buildTypes {
     release {
       isMinifyEnabled = false
+    }
+    debug {
+      isMinifyEnabled = true
+      isShrinkResources = true
+      // Use proguard-android.txt (NOT -optimize) to preserve Log calls for debugging
+      proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
     }
   }
 
@@ -44,6 +53,9 @@ android {
   packaging {
     resources {
       excludes += "/META-INF/{AL2.0,LGPL2.1}"
+    }
+    jniLibs {
+      useLegacyPackaging = true   // pack .so compressed → skip page-alignment bloat
     }
   }
 
@@ -104,6 +116,9 @@ dependencies {
   implementation("androidx.security:security-crypto:1.1.0")
   implementation("androidx.exifinterface:exifinterface:1.4.2")
   implementation("com.squareup.okhttp3:okhttp:5.3.2")
+
+  // Bouncy Castle for Ed25519 device auth (explicit dep — JCA provider broken by R8)
+  implementation("org.bouncycastle:bcprov-jdk18on:1.80")
 
   // CameraX (for node.invoke camera.* parity)
   implementation("androidx.camera:camera-core:1.5.2")
