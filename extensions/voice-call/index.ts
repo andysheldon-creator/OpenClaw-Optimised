@@ -134,11 +134,6 @@ const VoiceCallToolSchema = Type.Union([
     callId: Type.String({ description: "Call ID" }),
   }),
   Type.Object({
-    action: Type.Literal("listen"),
-    callId: Type.String({ description: "Call ID" }),
-    durationMs: Type.Optional(Type.Number({ description: "Listen window in ms (default 5000)" })),
-  }),
-  Type.Object({
     mode: Type.Optional(Type.Union([Type.Literal("call"), Type.Literal("status")])),
     to: Type.Optional(Type.String({ description: "Call target" })),
     sid: Type.Optional(Type.String({ description: "Call SID" })),
@@ -419,31 +414,6 @@ const voiceCallPlugin = {
                 const call =
                   rt.manager.getCall(callId) || rt.manager.getCallByProviderCallId(callId);
                 return json(call ? { found: true, call } : { found: false });
-              }
-              case "listen": {
-                const callId = String(params.callId || "").trim();
-                if (!callId) {
-                  throw new Error("callId required");
-                }
-                const durationMs = Math.max(
-                  200,
-                  Math.min(60000, Number(params.durationMs || 5000)),
-                );
-                const before = Date.now();
-                await new Promise((r) => setTimeout(r, durationMs));
-                const call =
-                  rt.manager.getCall(callId) || rt.manager.getCallByProviderCallId(callId);
-                return json(
-                  call
-                    ? {
-                        found: true,
-                        state: call.state,
-                        durationMs,
-                        transcript: call.transcript,
-                        sinceMs: Date.now() - before,
-                      }
-                    : { found: false, durationMs },
-                );
               }
             }
           }
