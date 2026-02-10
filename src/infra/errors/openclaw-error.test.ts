@@ -70,6 +70,15 @@ describe("OpenClawError", () => {
     expect(err.toErrorShape().retryable).toBe(false);
   });
 
+  it("toErrorShape falls back to code when message is empty", () => {
+    const err = new OpenClawError("", {
+      code: OpenClawErrorCodes.GATEWAY_REQUEST_FAILED,
+    });
+    const shape = err.toErrorShape();
+    expect(shape.message).toBe(OpenClawErrorCodes.GATEWAY_REQUEST_FAILED);
+    expect(shape.message.length).toBeGreaterThan(0);
+  });
+
   it("sets name to OpenClawError", () => {
     const err = new OpenClawError("named", {
       code: OpenClawErrorCodes.UNKNOWN_ERROR,

@@ -33,7 +33,7 @@ export class OpenClawError extends Error {
   toErrorShape(): ErrorShape {
     const shape: ErrorShape = {
       code: this.code,
-      message: this.message,
+      message: this.message || this.code,
       retryable: this.retryable,
     };
 
