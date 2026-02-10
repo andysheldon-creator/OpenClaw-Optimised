@@ -24,6 +24,7 @@ export type AuthChoiceGroupId =
   | "venice"
   | "qwen"
   | "together"
+  | "huggingface"
   | "qianfan"
   | "xai"
   | "custom";
@@ -138,6 +139,12 @@ const AUTH_CHOICE_GROUP_DEFS: {
     choices: ["together-api-key"],
   },
   {
+    value: "huggingface",
+    label: "Hugging Face",
+    hint: "Inference API (HF token)",
+    choices: ["huggingface-api-key"],
+  },
+  {
     value: "venice",
     label: "Venice AI",
     hint: "Privacy-focused (uncensored models)",
@@ -213,6 +220,11 @@ export function buildAuthChoiceOptions(params: {
     value: "together-api-key",
     label: "Together AI API key",
     hint: "Access to Llama, DeepSeek, Qwen, and more open models",
+  });
+  options.push({
+    value: "huggingface-api-key",
+    label: "Hugging Face API key (HF token)",
+    hint: "Inference Providers — OpenAI-compatible chat",
   });
   options.push({
     value: "github-copilot",

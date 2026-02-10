@@ -50,6 +50,7 @@ See [Venice AI](/providers/venice).
 - [GLM models](/providers/glm)
 - [MiniMax](/providers/minimax)
 - [Venice (Venice AI, privacy-focused)](/providers/venice)
+- [Hugging Face (Inference)](/providers/huggingface)
 - [Ollama (local models)](/providers/ollama)
 - [Qianfan](/providers/qianfan)
 

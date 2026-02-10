@@ -119,6 +119,7 @@ export const ZAI_DEFAULT_MODEL_REF = "zai/glm-4.7";
 export const XIAOMI_DEFAULT_MODEL_REF = "xiaomi/mimo-v2-flash";
 export const OPENROUTER_DEFAULT_MODEL_REF = "openrouter/auto";
 export const TOGETHER_DEFAULT_MODEL_REF = "together/zai-org/GLM-4.7";
+export const HUGGINGFACE_DEFAULT_MODEL_REF = "huggingface/deepseek-ai/DeepSeek-R1";
 export const VERCEL_AI_GATEWAY_DEFAULT_MODEL_REF = "vercel-ai-gateway/anthropic/claude-opus-4.6";
 
 export async function setZaiApiKey(key: string, agentDir?: string) {
@@ -212,6 +213,18 @@ export async function setTogetherApiKey(key: string, agentDir?: string) {
     credential: {
       type: "api_key",
       provider: "together",
+      key,
+    },
+    agentDir: resolveAuthAgentDir(agentDir),
+  });
+}
+
+export async function setHuggingfaceApiKey(key: string, agentDir?: string) {
+  upsertAuthProfile({
+    profileId: "huggingface:default",
+    credential: {
+      type: "api_key",
+      provider: "huggingface",
       key,
     },
     agentDir: resolveAuthAgentDir(agentDir),
