@@ -73,6 +73,17 @@ function createEnv(
   };
 }
 
+function resolveBashForCompatCheck(): string | null {
+  for (const candidate of ["/bin/bash", "bash"]) {
+    const probe = spawnSync(candidate, ["-c", "exit 0"], { encoding: "utf8" });
+    if (!probe.error && probe.status === 0) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
 describe("docker-setup.sh", () => {
   it("handles unset optional env vars under strict mode", async () => {
     const sandbox = await createDockerSetupSandbox();
@@ -121,13 +132,15 @@ describe("docker-setup.sh", () => {
     const script = await readFile(join(repoRoot, "docker-setup.sh"), "utf8");
     expect(script).not.toMatch(/^\s*declare -A\b/m);
 
-    const systemBash = "/bin/bash";
+    const systemBash = resolveBashForCompatCheck();
+    if (!systemBash) {
+      return;
+    }
+
     const assocCheck = spawnSync(systemBash, ["-c", "declare -A _t=()"], {
       encoding: "utf8",
     });
-    if (assocCheck.status === 0 || assocCheck.status === null) {
-      // Skip runtime check when system bash supports associative arrays
-      // (not Bash 3.2) or when /bin/bash is unavailable (e.g. Windows).
+    if (assocCheck.status === null || assocCheck.status === 0) {
       return;
     }
 
