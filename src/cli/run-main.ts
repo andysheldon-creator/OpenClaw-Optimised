@@ -8,10 +8,8 @@ import { formatUncaughtError } from "../infra/errors.js";
 import { isMainModule } from "../infra/is-main.js";
 import { ensureOpenClawCliOnPath } from "../infra/path-env.js";
 import { assertSupportedRuntime } from "../infra/runtime-guard.js";
-import { installUnhandledRejectionHandler } from "../infra/unhandled-rejections.js";
 import { enableConsoleCapture } from "../logging.js";
 import { getPrimaryCommand, hasHelpOrVersion } from "./argv.js";
-import { tryRouteCli } from "./route.js";
 
 export function rewriteUpdateFlagArgv(argv: string[]): string[] {
   const index = argv.indexOf("--update");
@@ -33,8 +31,14 @@ export async function runCli(argv: string[] = process.argv) {
   // Enforce the minimum supported runtime before doing any work.
   assertSupportedRuntime();
 
-  if (await tryRouteCli(normalizedArgv)) {
-    return;
+  // route.ts pulls in command-registry.ts which transitively loads the entire command
+  // tree (2.2MB loader, channels, AI inference). Skip loading it entirely for --help
+  // and --version since tryRouteCli returns false for those immediately anyway.
+  if (!hasHelpOrVersion(normalizedArgv)) {
+    const { tryRouteCli } = await import("./route.js");
+    if (await tryRouteCli(normalizedArgv)) {
+      return;
+    }
   }
 
   // Capture all console output into structured logs while keeping stdout/stderr behavior.
@@ -45,6 +49,7 @@ export async function runCli(argv: string[] = process.argv) {
 
   // Global error handlers to prevent silent crashes from unhandled rejections/exceptions.
   // These log the error and exit gracefully instead of crashing without trace.
+  const { installUnhandledRejectionHandler } = await import("../infra/unhandled-rejections.js");
   installUnhandledRejectionHandler();
 
   process.on("uncaughtException", (error) => {
