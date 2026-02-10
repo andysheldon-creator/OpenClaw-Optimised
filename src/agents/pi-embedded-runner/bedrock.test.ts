@@ -14,6 +14,10 @@ describe("sanitizeBedrockToolName", () => {
     expect(sanitizeBedrockToolName("tool@name!")).toBe("tool_name_");
   });
 
+  it("returns underscore for empty names", () => {
+    expect(sanitizeBedrockToolName("")).toBe("_");
+  });
+
   it("truncates names exceeding 64 characters", () => {
     const longName = "a".repeat(100);
     expect(sanitizeBedrockToolName(longName)).toHaveLength(64);
@@ -61,6 +65,16 @@ describe("sanitizeToolNamesForBedrock", () => {
       modelApi: "bedrock-converse-stream",
     });
     expect(result[0].name).toBe("tool_name");
+  });
+
+  it("deduplicates colliding names after sanitization", () => {
+    const tools = [makeTool("tool.name"), makeTool("tool_name")];
+    const result = sanitizeToolNamesForBedrock({
+      tools,
+      provider: "amazon-bedrock",
+    });
+    expect(result[0].name).toBe("tool_name");
+    expect(result[1].name).toBe("tool_name_1");
   });
 
   it("does not create new objects for already-valid names", () => {
