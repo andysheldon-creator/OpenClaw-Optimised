@@ -1015,6 +1015,11 @@ export async function applyAuthChoiceApiProviders(
       normalizedBaseUrl = await promptForBaseUrl();
     }
 
+    // Re-store credential with base URL metadata for implicit provider discovery
+    if (apiKey) {
+      await setLitellmApiKey(apiKey, params.agentDir, normalizedBaseUrl);
+    }
+
     // Try to fetch available models from LiteLLM
     type LitellmModelInfo = { id: string; maxInputTokens?: number; maxOutputTokens?: number };
     let availableModels: LitellmModelInfo[] = [];

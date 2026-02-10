@@ -5,6 +5,7 @@ read_when:
   - You need to connect to a self-hosted LiteLLM proxy
   - You want to use any model through an OpenAI-compatible API
 ---
+
 # LiteLLM
 
 LiteLLM is an OpenAI-compatible proxy that supports 100+ LLM APIs. OpenClaw
@@ -12,18 +13,19 @@ registers it as the `litellm` provider and uses the OpenAI Completions API.
 
 ## Quick setup
 
-1) Set up your LiteLLM proxy (see [LiteLLM docs](https://docs.litellm.ai/))
-2) Set environment variables (optional):
+1. Set up your LiteLLM proxy (see [LiteLLM docs](https://docs.litellm.ai/))
+2. Set environment variables (optional):
    - `LITELLM_API_KEY` - your LiteLLM API key
    - `LITELLM_BASE_URL` - your LiteLLM endpoint (default: `http://localhost:4000`)
    - `LITELLM_MODEL` - default model name (default: `gpt-4`)
-3) Run onboarding:
+3. Run onboarding:
 
 ```bash
 openclaw onboard --auth-choice litellm-api-key
 ```
 
 The wizard will prompt for:
+
 - Base URL (your LiteLLM proxy endpoint)
 - API key
 - Model name (as configured in your LiteLLM proxy)
@@ -36,8 +38,8 @@ The wizard will prompt for:
   agents: {
     defaults: {
       model: { primary: "litellm/gpt-4" },
-      models: { "litellm/gpt-4": { alias: "GPT-4" } }
-    }
+      models: { "litellm/gpt-4": { alias: "GPT-4" } },
+    },
   },
   models: {
     mode: "merge",
@@ -53,12 +55,12 @@ The wizard will prompt for:
             reasoning: false,
             input: ["text"],
             contextWindow: 128000,
-            maxTokens: 8192
-          }
-        ]
-      }
-    }
-  }
+            maxTokens: 8192,
+          },
+        ],
+      },
+    },
+  },
 }
 ```
 
@@ -77,11 +79,11 @@ Add additional models to your config as needed:
         models: [
           { id: "gpt-4", name: "GPT-4", contextWindow: 128000, maxTokens: 8192 },
           { id: "claude-3-opus", name: "Claude Opus", contextWindow: 200000, maxTokens: 4096 },
-          { id: "gemini-pro", name: "Gemini Pro", contextWindow: 32000, maxTokens: 8192 }
-        ]
-      }
-    }
-  }
+          { id: "gemini-pro", name: "Gemini Pro", contextWindow: 32000, maxTokens: 8192 },
+        ],
+      },
+    },
+  },
 }
 ```
 
@@ -102,12 +104,12 @@ When using Anthropic models through LiteLLM (e.g., `claude-opus-4-5`, `claude-so
       models: {
         "litellm/claude-opus-4-5": {
           params: {
-            cacheControlTtl: "1h"  // Auto-configured for Claude models
-          }
-        }
-      }
-    }
-  }
+            cacheControlTtl: "1h", // Auto-configured for Claude models
+          },
+        },
+      },
+    },
+  },
 }
 ```
 
@@ -117,6 +119,7 @@ When using Anthropic models through LiteLLM (e.g., `claude-opus-4-5`, `claude-so
 - **With caching** (enabled by default): Repeated context costs 10x less
 
 Example from actual usage:
+
 - Without caching: 93k tokens × $0.000005 = **$0.47** per message
 - With caching: 123k tokens (mostly cached) = **$0.05** per message (90% savings!)
 

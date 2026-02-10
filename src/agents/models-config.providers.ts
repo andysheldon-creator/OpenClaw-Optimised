@@ -10,6 +10,11 @@ import {
   buildCloudflareAiGatewayModelDefinition,
   resolveCloudflareAiGatewayBaseUrl,
 } from "./cloudflare-ai-gateway.js";
+import {
+  buildLitellmModelDefinition,
+  LITELLM_DEFAULT_BASE_URL,
+  LITELLM_DEFAULT_MODEL_ID,
+} from "./litellm-models.js";
 import { resolveAwsSdkEnvVarName, resolveEnvApiKey } from "./model-auth.js";
 import {
   buildSyntheticModelDefinition,
@@ -564,6 +569,52 @@ export async function resolveImplicitProviders(params: {
     resolveApiKeyFromProfiles({ provider: "qianfan", store: authStore });
   if (qianfanKey) {
     providers.qianfan = { ...buildQianfanProvider(), apiKey: qianfanKey };
+  }
+
+  // LiteLLM provider - uses metadata to store the user-configured base URL
+  // (follows the same pattern as Cloudflare AI Gateway)
+  const litellmProfiles = listProfilesForProvider(authStore, "litellm");
+  for (const profileId of litellmProfiles) {
+    const cred = authStore.profiles[profileId];
+    if (cred?.type !== "api_key") {
+      continue;
+    }
+    const baseUrl = cred.metadata?.baseUrl?.trim() || process.env.LITELLM_BASE_URL?.trim();
+    if (!baseUrl) {
+      continue;
+    }
+    const apiKey = resolveEnvApiKeyVarName("litellm") ?? cred.key?.trim() ?? "";
+    if (!apiKey) {
+      continue;
+    }
+    providers.litellm = {
+      baseUrl,
+      api: "openai-completions",
+      apiKey,
+      models: [
+        buildLitellmModelDefinition({
+          id: LITELLM_DEFAULT_MODEL_ID,
+          name: LITELLM_DEFAULT_MODEL_ID,
+        }),
+      ],
+    };
+    break;
+  }
+
+  // LiteLLM fallback - env var only (no auth profile), use default base URL
+  if (!providers.litellm && resolveEnvApiKeyVarName("litellm")) {
+    const baseUrl = process.env.LITELLM_BASE_URL?.trim() || LITELLM_DEFAULT_BASE_URL;
+    providers.litellm = {
+      baseUrl,
+      api: "openai-completions",
+      apiKey: resolveEnvApiKeyVarName("litellm")!,
+      models: [
+        buildLitellmModelDefinition({
+          id: LITELLM_DEFAULT_MODEL_ID,
+          name: LITELLM_DEFAULT_MODEL_ID,
+        }),
+      ],
+    };
   }
 
   return providers;
