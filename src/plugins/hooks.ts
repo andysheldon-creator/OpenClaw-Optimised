@@ -305,13 +305,23 @@ export function createHookRunner(registry: PluginRegistry, options: HookRunnerOp
 
   /**
    * Run after_tool_call hook.
-   * Runs in parallel (fire-and-forget).
+   * Runs sequentially in priority order (modifying hook).
+   * Plugins can modify or block tool results before the LLM sees them.
    */
   async function runAfterToolCall(
     event: PluginHookAfterToolCallEvent,
     ctx: PluginHookToolContext,
-  ): Promise<void> {
-    return runVoidHook("after_tool_call", event, ctx);
+  ): Promise<PluginHookAfterToolCallResult | undefined> {
+    return runModifyingHook<"after_tool_call", PluginHookAfterToolCallResult>(
+      "after_tool_call",
+      event,
+      ctx,
+      (acc, next) => ({
+        result: next.result ?? acc?.result,
+        block: next.block ?? acc?.block,
+        blockReason: next.blockReason ?? acc?.blockReason,
+      }),
+    );
   }
 
   /**
