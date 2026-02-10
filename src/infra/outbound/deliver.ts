@@ -21,6 +21,7 @@ import {
   appendAssistantMessageToSessionTranscript,
   resolveMirroredTranscriptText,
 } from "../../config/sessions.js";
+import { getGlobalHookRunner } from "../../plugins/hook-runner-global.js";
 import { markdownToSignalTextChunks, type SignalTextStyleRange } from "../../signal/format.js";
 import { sendMessageSignal } from "../../signal/send.js";
 import { throwIfAborted } from "./abort.js";
@@ -366,5 +367,36 @@ export async function deliverOutboundPayloads(params: {
       });
     }
   }
+
+  // Fire message_sent hook only for successfully delivered payloads.
+  // When bestEffort is enabled, some payloads may fail — only report
+  // text from payloads that produced delivery results.
+  const hookRunner = getGlobalHookRunner();
+  if (hookRunner && results.length > 0) {
+    const deliveredText = normalizedPayloads
+      .map((p) => p.text ?? "")
+      .filter(Boolean)
+      .join("\n");
+    if (deliveredText) {
+      const ctx = {
+        channelId: channel,
+        accountId: accountId ?? undefined,
+        conversationId: to,
+      };
+      void hookRunner
+        .runMessageSent(
+          {
+            to,
+            content: deliveredText,
+            success: true,
+          },
+          ctx,
+        )
+        .catch(() => {
+          // Fire-and-forget — don't break delivery on hook errors
+        });
+    }
+  }
+
   return results;
 }
