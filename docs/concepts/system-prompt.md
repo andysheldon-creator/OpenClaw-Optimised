@@ -60,6 +60,12 @@ Bootstrap files are trimmed and appended under **Project Context** so the model 
 - `HEARTBEAT.md`
 - `BOOTSTRAP.md` (only on brand-new workspaces)
 
+Do not put secrets in injected workspace files (`AGENTS.md`, `SOUL.md`,
+`TOOLS.md`, `IDENTITY.md`, `USER.md`, `HEARTBEAT.md`, `BOOTSTRAP.md`).
+Anything in these files can enter model context during runs. Keep credentials in
+`~/.openclaw/credentials/`, environment variables, or a secret manager, and
+store only non-sensitive placeholders in workspace files.
+
 Large files are truncated with a marker. The max per-file size is controlled by
 `agents.defaults.bootstrapMaxChars` (default: 20000). Missing files inject a
 short missing-file marker.
