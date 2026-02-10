@@ -105,7 +105,7 @@ const EMBEDDING_BATCH_TIMEOUT_LOCAL_MS = 10 * 60_000;
 const log = createSubsystemLogger("memory");
 
 const INDEX_CACHE = new Map<string, MemoryIndexManager>();
-const INDEX_INIT_LOCKS = new Map<string, Promise<MemoryIndexManager | null>>();
+const INDEX_INIT_LOCKS = new Map<string, Promise<MemoryIndexManager>>();
 
 const vectorToBlob = (embedding: number[]): Buffer =>
   Buffer.from(new Float32Array(embedding).buffer);
