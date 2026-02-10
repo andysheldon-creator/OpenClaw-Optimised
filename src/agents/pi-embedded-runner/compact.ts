@@ -457,8 +457,8 @@ export async function compactEmbeddedPiSessionDirect(
               },
               hookCtx,
             );
-          } catch (hookErr) {
-            log.warn(`before_compaction hook failed: ${hookErr}`);
+          } catch (hookErr: unknown) {
+            log.warn(`before_compaction hook failed: ${String(hookErr)}`);
           }
         }
 

@@ -114,12 +114,14 @@ export async function handleCommands(params: HandleCommandsParams): Promise<Comm
       if (hookRunner?.hasHooks("before_reset")) {
         const sessionFile = prevEntry.sessionFile;
         // Fire-and-forget: read old session messages and run hook
-        (async () => {
+        void (async () => {
           try {
             const content = await fs.promises.readFile(sessionFile, "utf-8");
             const messages: unknown[] = [];
             for (const line of content.split("\n")) {
-              if (!line.trim()) continue;
+              if (!line.trim()) {
+                continue;
+              }
               try {
                 const entry = JSON.parse(line);
                 if (entry.type === "message" && entry.message) {
@@ -140,8 +142,8 @@ export async function handleCommands(params: HandleCommandsParams): Promise<Comm
                 },
               );
             }
-          } catch (err) {
-            logVerbose(`before_reset hook failed: ${err}`);
+          } catch (err: unknown) {
+            logVerbose(`before_reset hook failed: ${String(err)}`);
           }
         })();
       }
