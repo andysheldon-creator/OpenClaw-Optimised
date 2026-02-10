@@ -279,7 +279,11 @@ export async function registerZulipQueue(
   body.set("event_types", JSON.stringify(eventTypes));
   body.set("event_queue_longpoll_timeout_seconds", "90");
   if (params.streams && params.streams.length > 0 && !params.streams.includes("*")) {
-    const narrow = params.streams.map((stream) => ({ operator: "stream", operand: stream }));
+    // Zulip /register expects the "narrow" parameter in the legacy format:
+    //   [["stream", "general"], ["topic", "foo"], ...]
+    // Some deployments reject the newer object format ({operator, operand}) with:
+    //   "narrow[0] is not a list".
+    const narrow = params.streams.map((stream) => ["stream", stream]);
     body.set("narrow", JSON.stringify(narrow));
   }
   if (params.streams?.includes("*")) {

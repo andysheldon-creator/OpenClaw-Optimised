@@ -225,7 +225,7 @@ export async function monitorZulipProvider(opts: MonitorZulipOpts = {}): Promise
   const baseUrl = normalizeZulipBaseUrl(opts.baseUrl ?? account.baseUrl);
   if (!baseUrl) {
     throw new Error(
-      `Zulip url missing for account "${account.accountId}" (set channels.zulip.accounts.${account.accountId}.url or ZULIP_URL for default).`,
+      `Zulip url missing for account "${account.accountId}" (set channels.zulip.accounts.${account.accountId}.url (aliases: site/realm) or env ZULIP_URL (aliases: ZULIP_SITE/ZULIP_REALM) for default).`,
     );
   }
 
@@ -284,7 +284,6 @@ export async function monitorZulipProvider(opts: MonitorZulipOpts = {}): Promise
     if (senderId === botEmail || String(message.sender_id) === botUserId) {
       return;
     }
-
     const senderName = message.sender_full_name?.trim() || senderId;
     const isDM = message.type === "private";
     const kind = isDM ? "dm" : "channel";
@@ -773,27 +772,17 @@ export async function monitorZulipProvider(opts: MonitorZulipOpts = {}): Promise
     pollBackoffMs = 0;
   };
 
-  // Limit concurrent message handlers. This prevents unbounded growth of in-flight
-  // reply generations (which can cause log spam, excessive timers, and memory churn).
-  // Default to 1 for stability; this can be made configurable later if needed.
-  const maxInFlightMessageHandlers = 1;
-  const inFlightMessageHandlers = new Set<Promise<void>>();
-
-  const scheduleMessageHandler = async (message: ZulipMessage): Promise<void> => {
-    while (inFlightMessageHandlers.size >= maxInFlightMessageHandlers) {
-      await Promise.race(inFlightMessageHandlers);
+  // Concurrency bound for inbound handling.
+  // We intentionally process messages sequentially (effective concurrency=1) because
+  // overlapping reply generations are a classic source of instability/log spam.
+  // If we ever need higher throughput, we can extend this to a small bounded queue,
+  // but the default should remain conservative.
+  const processMessage = async (message: ZulipMessage): Promise<void> => {
+    try {
+      await handleMessage(message);
+    } catch (err) {
+      runtime.error?.(`zulip message handler failed: ${String(err)}`);
     }
-
-    let task: Promise<void>;
-    task = handleMessage(message)
-      .catch((err) => {
-        runtime.error?.(`zulip message handler failed: ${String(err)}`);
-      })
-      .finally(() => {
-        inFlightMessageHandlers.delete(task);
-      });
-
-    inFlightMessageHandlers.add(task);
   };
 
   // Long-polling loop
@@ -826,7 +815,6 @@ export async function monitorZulipProvider(opts: MonitorZulipOpts = {}): Promise
 
       const events = response.events ?? [];
       if (events.length > 0) {
-        lastEventId = Number(events[events.length - 1].id);
         opts.statusSink?.({
           connected: true,
           lastConnectedAt: Date.now(),
@@ -841,7 +829,11 @@ export async function monitorZulipProvider(opts: MonitorZulipOpts = {}): Promise
 
       for (const event of events) {
         if (event.type === "message" && event.message) {
-          await scheduleMessageHandler(event.message);
+          await processMessage(event.message);
+        }
+        const nextEventId = Number((event as { id?: unknown })?.id);
+        if (!Number.isNaN(nextEventId) && nextEventId > 0) {
+          lastEventId = nextEventId;
         }
       }
     } catch (err) {

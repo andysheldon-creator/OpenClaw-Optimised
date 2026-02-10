@@ -68,15 +68,13 @@ export async function downloadZulipUpload(
   url: string,
   authHeader: string,
   maxBytes: number,
-  baseUrl?: string,
+  baseUrl: string,
 ): Promise<{ buffer: Buffer; contentType: string; filename: string }> {
   // Never send Zulip Basic auth to a non-Zulip origin.
-  if (baseUrl) {
-    const baseOrigin = new URL(baseUrl).origin;
-    const target = new URL(url);
-    if (target.origin !== baseOrigin || !target.pathname.includes("/user_uploads/")) {
-      throw new Error("Refusing to download Zulip upload from non-Zulip origin");
-    }
+  const baseOrigin = new URL(baseUrl).origin;
+  const target = new URL(url);
+  if (target.origin !== baseOrigin || !target.pathname.includes("/user_uploads/")) {
+    throw new Error("Refusing to download Zulip upload from non-Zulip origin");
   }
 
   const res = await fetch(url, {
