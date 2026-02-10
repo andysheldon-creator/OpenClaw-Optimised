@@ -66,11 +66,22 @@ export function configureProgramHelp(program: Command, ctx: ProgramContext) {
     outputError: (str, write) => write(theme.error(str)),
   });
 
-  if (
-    process.argv.includes("-V") ||
-    process.argv.includes("--version") ||
-    process.argv.includes("-v")
-  ) {
+  // Scan top-level flags for version request, stopping at the first subcommand.
+  let isVersionRequest = false;
+  for (let i = 2; i < process.argv.length; i++) {
+    const arg = process.argv[i];
+    if (arg === "--version" || arg === "-v" || arg === "-V") {
+      isVersionRequest = true;
+      break;
+    }
+    if (!arg.startsWith("-")) {
+      break;
+    }
+    if (arg === "--profile") {
+      i++;
+    } // skip --profile's value
+  }
+  if (isVersionRequest) {
     console.log(ctx.programVersion);
     process.exit(0);
   }
