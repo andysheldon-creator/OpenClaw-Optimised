@@ -11,7 +11,6 @@ import { assertSupportedRuntime } from "../infra/runtime-guard.js";
 import { installUnhandledRejectionHandler } from "../infra/unhandled-rejections.js";
 import { enableConsoleCapture } from "../logging.js";
 import { getPrimaryCommand, hasHelpOrVersion } from "./argv.js";
-import { tryRouteCli } from "./route.js";
 
 export function rewriteUpdateFlagArgv(argv: string[]): string[] {
   const index = argv.indexOf("--update");
@@ -33,15 +32,18 @@ export async function runCli(argv: string[] = process.argv) {
   // Enforce the minimum supported runtime before doing any work.
   assertSupportedRuntime();
 
-  if (await tryRouteCli(normalizedArgv)) {
-    return;
+  if (!hasHelpOrVersion(normalizedArgv)) {
+    const { tryRouteCli } = await import("./route.js");
+    if (await tryRouteCli(normalizedArgv)) {
+      return;
+    }
   }
 
   // Capture all console output into structured logs while keeping stdout/stderr behavior.
   enableConsoleCapture();
 
   const { buildProgramShell } = await import("./program/build-program-shell.js");
-  const { program, ctx } = buildProgramShell();
+  const { program, ctx, provideChannelOptions } = buildProgramShell();
 
   // Global error handlers to prevent silent crashes from unhandled rejections/exceptions.
   // These log the error and exit gracefully instead of crashing without trace.
@@ -69,6 +71,8 @@ export async function runCli(argv: string[] = process.argv) {
   }
 
   if (!commandRegistered) {
+    const { resolveCliChannelOptions } = await import("./channel-options.js");
+    provideChannelOptions(resolveCliChannelOptions);
     const { registerProgramCommands } = await import("./program/command-registry.js");
     registerProgramCommands(program, ctx, parseArgv);
   }
