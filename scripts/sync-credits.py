@@ -8,7 +8,9 @@ Sync maintainers and contributors in docs/reference/credits.md from git/GitHub.
 Usage: python scripts/sync-credits.py
 """
 
+import re
 import subprocess
+from datetime import datetime, timezone
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent
@@ -45,6 +47,17 @@ EXCLUDED_CONTRIBUTORS = {
 
 # Minimum merged PRs to be considered a maintainer
 MIN_MERGES = 2
+
+
+# Regex to extract GitHub username from noreply email
+# Matches: ID+username@users.noreply.github.com or username@users.noreply.github.com
+GITHUB_NOREPLY_RE = re.compile(r"^(?:\d+\+)?([^@]+)@users\.noreply\.github\.com$", re.I)
+
+
+def extract_github_username(email: str) -> str | None:
+    """Extract GitHub username from noreply email, or return None."""
+    match = GITHUB_NOREPLY_RE.match(email)
+    return match.group(1).lower() if match else None
 
 
 def run_git(*args: str) -> str:
@@ -110,15 +123,27 @@ def get_maintainers() -> list[tuple[str, int, int]]:
     )
 
     # 2. Count direct pushes (non-merge commits by committer)
+    # Use GitHub username from noreply emails, or committer name as fallback
     print("  Counting direct pushes from git history...")
     push_counts: dict[str, int] = {}
-    output = run_git("log", "main", "--no-merges", "--format=%cN")
-    for name in output.splitlines():
+    output = run_git("log", "main", "--no-merges", "--format=%cN|%cE")
+    for line in output.splitlines():
+        line = line.strip()
+        if not line or "|" not in line:
+            continue
+        name, email = line.rsplit("|", 1)
         name = name.strip()
-        if name and name not in EXCLUDED_CONTRIBUTORS:
-            # Normalize to lowercase for matching
+        email = email.strip().lower()
+        if not name or name in EXCLUDED_CONTRIBUTORS:
+            continue
+
+        # Use GitHub username from noreply email if available, else committer name
+        gh_user = extract_github_username(email)
+        if gh_user:
+            key = gh_user
+        else:
             key = name.lower()
-            push_counts[key] = push_counts.get(key, 0) + 1
+        push_counts[key] = push_counts.get(key, 0) + 1
 
     # 3. Build maintainer list: anyone with merges >= MIN_MERGES
     maintainers: list[tuple[str, int, int]] = []
@@ -135,23 +160,68 @@ def get_maintainers() -> list[tuple[str, int, int]]:
 
 
 def get_contributors() -> list[tuple[str, int]]:
-    """Get all unique commit authors on main with commit counts."""
-    output = run_git("log", "main", "--format=%aN")
+    """Get all unique commit authors on main with commit counts.
+
+    Merges authors by:
+    1. GitHub username (extracted from noreply emails)
+    2. Author name matching a known GitHub username
+    3. Display name (case-insensitive) as final fallback
+    """
+    output = run_git("log", "main", "--format=%aN|%aE")
     if not output:
         return []
 
-    # Count commits per author, case-insensitive dedup
-    counts: dict[str, int] = {}
-    canonical: dict[str, str] = {}
-    for name in output.splitlines():
-        name = name.strip()
-        if not name or name in EXCLUDED_CONTRIBUTORS:
+    # First pass: collect all known GitHub usernames from noreply emails
+    known_github_users: set[str] = set()
+
+    for line in output.splitlines():
+        line = line.strip()
+        if not line or "|" not in line:
             continue
-        key = name.lower()
+        _, email = line.rsplit("|", 1)
+        email = email.strip().lower()
+        if not email:
+            continue
+        gh_user = extract_github_username(email)
+        if gh_user:
+            known_github_users.add(gh_user)
+
+    # Second pass: count commits and pick canonical names
+    # Key priority: gh:username > name:lowercasename
+    counts: dict[str, int] = {}
+    canonical: dict[str, str] = {}  # key -> preferred display name
+
+    for line in output.splitlines():
+        line = line.strip()
+        if not line or "|" not in line:
+            continue
+        name, email = line.rsplit("|", 1)
+        name = name.strip()
+        email = email.strip().lower()
+        if not name or not email or name in EXCLUDED_CONTRIBUTORS:
+            continue
+
+        # Determine the merge key:
+        # 1. If email is a noreply email, use the extracted GitHub username
+        # 2. If the author name matches a known GitHub username, use that
+        # 3. Otherwise use the display name (case-insensitive)
+        gh_user = extract_github_username(email)
+        if gh_user:
+            key = f"gh:{gh_user}"
+        elif name.lower() in known_github_users:
+            key = f"gh:{name.lower()}"
+        else:
+            key = f"name:{name.lower()}"
+
         counts[key] = counts.get(key, 0) + 1
-        # Prefer capitalized version
+
+        # Prefer capitalized version, or longer name (more specific)
         if key not in canonical or (
-            name[0].isupper() and not canonical[key][0].isupper()
+            (name[0].isupper() and not canonical[key][0].isupper())
+            or (
+                name[0].isupper() == canonical[key][0].isupper()
+                and len(name) > len(canonical[key])
+            )
         ):
             canonical[key] = name
 
@@ -189,7 +259,8 @@ def update_credits(
         if contributor_lines
         else "_No contributors detected._"
     )
-    contributor_section = f"{len(contributors)} contributors: {contributor_section}"
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    contributor_section = f"{len(contributors)} contributors: {contributor_section}\n\n_Last updated: {timestamp}_"
 
     # Replace sections by finding markers and rebuilding
     lines = content.split("\n")
