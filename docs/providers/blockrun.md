@@ -45,14 +45,14 @@ openclaw gateway restart
 
 ## Model Identifiers
 
-| Model | Identifier | Cost/M |
-|-------|------------|--------|
-| Smart routing | `blockrun/auto` | varies |
-| GPT-4o | `blockrun/openai/gpt-4o` | $2.50 |
-| Claude Sonnet 4 | `blockrun/anthropic/claude-sonnet-4` | $3.00 |
-| Gemini 2.5 Flash | `blockrun/google/gemini-2.5-flash` | $0.15 |
-| DeepSeek Chat | `blockrun/deepseek/deepseek-chat` | $0.14 |
-| Grok 3 | `blockrun/xai/grok-3` | $3.00 |
+| Model            | Identifier                           | Cost/M |
+| ---------------- | ------------------------------------ | ------ |
+| Smart routing    | `blockrun/auto`                      | varies |
+| GPT-4o           | `blockrun/openai/gpt-4o`             | $2.50  |
+| Claude Sonnet 4  | `blockrun/anthropic/claude-sonnet-4` | $3.00  |
+| Gemini 2.5 Flash | `blockrun/google/gemini-2.5-flash`   | $0.15  |
+| DeepSeek Chat    | `blockrun/deepseek/deepseek-chat`    | $0.14  |
+| Grok 3           | `blockrun/xai/grok-3`                | $3.00  |
 
 Full model list: [blockrun.ai/models](https://blockrun.ai/models)
 
@@ -67,6 +67,7 @@ Request → Weighted Scorer (15 dimensions, <1ms, local)
 ```
 
 Example savings:
+
 - "What is 2+2?" → Gemini Flash ($0.15/M) instead of Opus ($75/M) = **99% saved**
 - "Build a React app" → Claude Sonnet ($3/M) = best balance
 - "Prove this theorem" → DeepSeek-R ($0.42/M) = reasoning tier
