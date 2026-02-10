@@ -171,92 +171,99 @@ extension OnboardingView {
                     .buttonStyle(.link)
 
                     if self.showAdvancedConnection {
-                        let labelWidth: CGFloat = 110
-                        let fieldWidth: CGFloat = 320
-
-                        VStack(alignment: .leading, spacing: 10) {
-                            Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
-                                GridRow {
-                                    Text("Transport")
-                                        .font(.callout.weight(.semibold))
-                                        .frame(width: labelWidth, alignment: .leading)
-                                    Picker("Transport", selection: self.$state.remoteTransport) {
-                                        Text("SSH tunnel").tag(AppState.RemoteTransport.ssh)
-                                        Text("Direct (ws/wss)").tag(AppState.RemoteTransport.direct)
-                                    }
-                                    .pickerStyle(.segmented)
-                                    .frame(width: fieldWidth)
-                                }
-                                if self.state.remoteTransport == .direct {
-                                    GridRow {
-                                        Text("Gateway URL")
-                                            .font(.callout.weight(.semibold))
-                                            .frame(width: labelWidth, alignment: .leading)
-                                        TextField("wss://gateway.example.ts.net", text: self.$state.remoteUrl)
-                                            .textFieldStyle(.roundedBorder)
-                                            .frame(width: fieldWidth)
-                                    }
-                                }
-                                if self.state.remoteTransport == .ssh {
-                                    GridRow {
-                                        Text("SSH target")
-                                            .font(.callout.weight(.semibold))
-                                            .frame(width: labelWidth, alignment: .leading)
-                                        TextField("user@host[:port]", text: self.$state.remoteTarget)
-                                            .textFieldStyle(.roundedBorder)
-                                            .frame(width: fieldWidth)
-                                    }
-                                    if let message = CommandResolver.sshTargetValidationMessage(self.state.remoteTarget) {
-                                        GridRow {
-                                            Text("")
-                                                .frame(width: labelWidth, alignment: .leading)
-                                            Text(message)
-                                                .font(.caption)
-                                                .foregroundStyle(.red)
-                                                .frame(width: fieldWidth, alignment: .leading)
-                                        }
-                                    }
-                                    GridRow {
-                                        Text("Identity file")
-                                            .font(.callout.weight(.semibold))
-                                            .frame(width: labelWidth, alignment: .leading)
-                                        TextField("/Users/you/.ssh/id_ed25519", text: self.$state.remoteIdentity)
-                                            .textFieldStyle(.roundedBorder)
-                                            .frame(width: fieldWidth)
-                                    }
-                                    GridRow {
-                                        Text("Project root")
-                                            .font(.callout.weight(.semibold))
-                                            .frame(width: labelWidth, alignment: .leading)
-                                        TextField("/home/you/Projects/openclaw", text: self.$state.remoteProjectRoot)
-                                            .textFieldStyle(.roundedBorder)
-                                            .frame(width: fieldWidth)
-                                    }
-                                    GridRow {
-                                        Text("CLI path")
-                                            .font(.callout.weight(.semibold))
-                                            .frame(width: labelWidth, alignment: .leading)
-                                        TextField(
-                                            "/Applications/OpenClaw.app/.../openclaw",
-                                            text: self.$state.remoteCliPath)
-                                            .textFieldStyle(.roundedBorder)
-                                            .frame(width: fieldWidth)
-                                    }
-                                }
-                            }
-
-                            Text(self.state.remoteTransport == .direct
-                                ? "Tip: use Tailscale Serve so the gateway has a valid HTTPS cert."
-                                : "Tip: keep Tailscale enabled so your gateway stays reachable.")
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                        }
-                        .transition(.opacity.combined(with: .move(edge: .top)))
+                        self.advancedConnectionSettings()
                     }
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private func advancedConnectionSettings() -> some View {
+        let labelWidth: CGFloat = 110
+        let fieldWidth: CGFloat = 320
+
+        VStack(alignment: .leading, spacing: 10) {
+            Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
+                GridRow {
+                    Text("Transport")
+                        .font(.callout.weight(.semibold))
+                        .frame(width: labelWidth, alignment: .leading)
+                    Picker("Transport", selection: self.$state.remoteTransport) {
+                        Text("SSH tunnel").tag(AppState.RemoteTransport.ssh)
+                        Text("Direct (ws/wss)").tag(AppState.RemoteTransport.direct)
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: fieldWidth)
+                }
+                if self.state.remoteTransport == .direct {
+                    GridRow {
+                        Text("Gateway URL")
+                            .font(.callout.weight(.semibold))
+                            .frame(width: labelWidth, alignment: .leading)
+                        TextField("wss://gateway.example.ts.net", text: self.$state.remoteUrl)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: fieldWidth)
+                    }
+                }
+                if self.state.remoteTransport == .ssh {
+                    GridRow {
+                        Text("SSH target")
+                            .font(.callout.weight(.semibold))
+                            .frame(width: labelWidth, alignment: .leading)
+                        TextField("user@host[:port]", text: self.$state.remoteTarget)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: fieldWidth)
+                    }
+                    let validationMsg = CommandResolver
+                        .sshTargetValidationMessage(self.state.remoteTarget)
+                    if let message = validationMsg {
+                        GridRow {
+                            Text("")
+                                .frame(width: labelWidth, alignment: .leading)
+                            Text(message)
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                                .frame(width: fieldWidth, alignment: .leading)
+                        }
+                    }
+                    GridRow {
+                        Text("Identity file")
+                            .font(.callout.weight(.semibold))
+                            .frame(width: labelWidth, alignment: .leading)
+                        TextField("/Users/you/.ssh/id_ed25519", text: self.$state.remoteIdentity)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: fieldWidth)
+                    }
+                    GridRow {
+                        Text("Project root")
+                            .font(.callout.weight(.semibold))
+                            .frame(width: labelWidth, alignment: .leading)
+                        TextField("/home/you/Projects/openclaw", text: self.$state.remoteProjectRoot)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: fieldWidth)
+                    }
+                    GridRow {
+                        Text("CLI path")
+                            .font(.callout.weight(.semibold))
+                            .frame(width: labelWidth, alignment: .leading)
+                        TextField(
+                            "/Applications/OpenClaw.app/.../openclaw",
+                            text: self.$state.remoteCliPath)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: fieldWidth)
+                    }
+                }
+            }
+
+            Text(self.state.remoteTransport == .direct
+                ? "Tip: use Tailscale Serve so the gateway has a valid HTTPS cert."
+                : "Tip: keep Tailscale enabled so your gateway stays reachable.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .transition(.opacity.combined(with: .move(edge: .top)))
     }
 
     func gatewaySubtitle(for gateway: GatewayDiscoveryModel.DiscoveredGateway) -> String? {
