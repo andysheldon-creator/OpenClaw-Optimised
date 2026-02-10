@@ -68,6 +68,7 @@ export type ChatProps = {
   onCloseSidebar?: () => void;
   onSplitRatioChange?: (ratio: number) => void;
   onChatScroll?: (event: Event) => void;
+  onQuote?: (quoted: string) => void;
 };
 
 const COMPACTION_TOAST_DURATION_MS = 5000;
@@ -240,6 +241,7 @@ export function renderChat(props: ChatProps) {
           if (item.kind === "group") {
             return renderMessageGroup(item, {
               onOpenSidebar: props.onOpenSidebar,
+              onQuote: props.onQuote,
               showReasoning,
               assistantName: props.assistantName,
               assistantAvatar: assistantIdentity.avatar,
