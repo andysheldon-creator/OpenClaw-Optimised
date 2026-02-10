@@ -292,4 +292,33 @@ describe("normalizeCronJobCreate", () => {
     expect(delivery.mode).toBeUndefined();
     expect(delivery.to).toBe("123");
   });
+
+  it("defaults enabled to true when not provided", () => {
+    const normalized = normalizeCronJobCreate({
+      name: "no-enabled",
+      schedule: { kind: "cron", expr: "*/5 * * * *" },
+      sessionTarget: "isolated",
+      payload: {
+        kind: "agentTurn",
+        message: "test",
+      },
+    }) as unknown as Record<string, unknown>;
+
+    expect(normalized.enabled).toBe(true);
+  });
+
+  it("respects explicit enabled: false", () => {
+    const normalized = normalizeCronJobCreate({
+      name: "explicit-disabled",
+      enabled: false,
+      schedule: { kind: "cron", expr: "*/5 * * * *" },
+      sessionTarget: "isolated",
+      payload: {
+        kind: "agentTurn",
+        message: "test",
+      },
+    }) as unknown as Record<string, unknown>;
+
+    expect(normalized.enabled).toBe(false);
+  });
 });
