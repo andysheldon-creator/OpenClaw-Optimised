@@ -1,8 +1,5 @@
 import type { OpenClawConfig } from "../config/config.js";
 import type { FailoverReason } from "./pi-embedded-helpers.js";
-import { resolveRateLimitsConfig } from "../rate-limits/config.js";
-import { getRateLimitedRunner } from "../rate-limits/provider-wrapper.js";
-import { type CallResult } from "../rate-limits/types.js";
 import {
   ensureAuthProfileStore,
   isProfileInCooldown,
@@ -264,15 +261,7 @@ export async function runWithModelFallback<T>(params: {
       }
     }
     try {
-      const limitsConfig = resolveRateLimitsConfig(params.cfg?.limits);
-      const rateLimitedRunner = getRateLimitedRunner({ config: limitsConfig });
-      const result = await rateLimitedRunner.withRateLimit(
-        { provider: candidate.provider, model: candidate.model },
-        async () => {
-          const r = await params.run(candidate.provider, candidate.model);
-          return r as CallResult<T>;
-        },
-      );
+      const result = await params.run(candidate.provider, candidate.model);
       return {
         result,
         provider: candidate.provider,
