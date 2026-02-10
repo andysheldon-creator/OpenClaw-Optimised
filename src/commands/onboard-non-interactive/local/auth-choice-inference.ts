@@ -22,6 +22,7 @@ type AuthChoiceFlagOptions = Pick<
   | "xiaomiApiKey"
   | "minimaxApiKey"
   | "opencodeZenApiKey"
+  | "novitaApiKey"
   | "xaiApiKey"
 >;
 
@@ -45,6 +46,7 @@ const AUTH_CHOICE_FLAG_MAP = [
   { flag: "xaiApiKey", authChoice: "xai-api-key", label: "--xai-api-key" },
   { flag: "minimaxApiKey", authChoice: "minimax-api", label: "--minimax-api-key" },
   { flag: "opencodeZenApiKey", authChoice: "opencode-zen", label: "--opencode-zen-api-key" },
+  { flag: "novitaApiKey", authChoice: "novita-api-key", label: "--novita-api-key" },
 ] satisfies ReadonlyArray<AuthChoiceFlag>;
 
 export type AuthChoiceInference = {

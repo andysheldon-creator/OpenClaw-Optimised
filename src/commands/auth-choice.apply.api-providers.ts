@@ -27,6 +27,8 @@ import {
   applyOpencodeZenProviderConfig,
   applyOpenrouterConfig,
   applyOpenrouterProviderConfig,
+  applyNovitaConfig,
+  applyNovitaProviderConfig,
   applySyntheticConfig,
   applySyntheticProviderConfig,
   applyTogetherConfig,
@@ -42,6 +44,7 @@ import {
   QIANFAN_DEFAULT_MODEL_REF,
   KIMI_CODING_MODEL_REF,
   MOONSHOT_DEFAULT_MODEL_REF,
+  NOVITA_DEFAULT_MODEL_REF,
   OPENROUTER_DEFAULT_MODEL_REF,
   SYNTHETIC_DEFAULT_MODEL_REF,
   TOGETHER_DEFAULT_MODEL_REF,
@@ -53,6 +56,7 @@ import {
   setGeminiApiKey,
   setKimiCodingApiKey,
   setMoonshotApiKey,
+  setNovitaApiKey,
   setOpencodeZenApiKey,
   setOpenrouterApiKey,
   setSyntheticApiKey,
@@ -112,6 +116,8 @@ export async function applyAuthChoiceApiProviders(
       authChoice = "venice-api-key";
     } else if (params.opts.tokenProvider === "together") {
       authChoice = "together-api-key";
+    } else if (params.opts.tokenProvider === "novita") {
+      authChoice = "novita-api-key";
     } else if (params.opts.tokenProvider === "opencode") {
       authChoice = "opencode-zen";
     } else if (params.opts.tokenProvider === "qianfan") {
@@ -858,6 +864,64 @@ export async function applyAuthChoiceApiProviders(
         applyDefaultConfig: applyTogetherConfig,
         applyProviderConfig: applyTogetherProviderConfig,
         noteDefault: TOGETHER_DEFAULT_MODEL_REF,
+        noteAgentModel,
+        prompter: params.prompter,
+      });
+      nextConfig = applied.config;
+      agentModelOverride = applied.agentModelOverride ?? agentModelOverride;
+    }
+    return { config: nextConfig, agentModelOverride };
+  }
+
+  if (authChoice === "novita-api-key") {
+    let hasCredential = false;
+
+    if (!hasCredential && params.opts?.token && params.opts?.tokenProvider === "novita") {
+      await setNovitaApiKey(normalizeApiKeyInput(params.opts.token), params.agentDir);
+      hasCredential = true;
+    }
+
+    if (!hasCredential) {
+      await params.prompter.note(
+        [
+          "Novita AI provides an OpenAI-compatible API endpoint with a broad model catalog.",
+          "Get your API key at: https://novita.ai/settings/key-management",
+        ].join("\n"),
+        "Novita AI",
+      );
+    }
+
+    const envKey = resolveEnvApiKey("novita");
+    if (envKey) {
+      const useExisting = await params.prompter.confirm({
+        message: `Use existing NOVITA_API_KEY (${envKey.source}, ${formatApiKeyPreview(envKey.apiKey)})?`,
+        initialValue: true,
+      });
+      if (useExisting) {
+        await setNovitaApiKey(envKey.apiKey, params.agentDir);
+        hasCredential = true;
+      }
+    }
+    if (!hasCredential) {
+      const key = await params.prompter.text({
+        message: "Enter Novita API key",
+        validate: validateApiKeyInput,
+      });
+      await setNovitaApiKey(normalizeApiKeyInput(String(key)), params.agentDir);
+    }
+    nextConfig = applyAuthProfileConfig(nextConfig, {
+      profileId: "novita:default",
+      provider: "novita",
+      mode: "api_key",
+    });
+    {
+      const applied = await applyDefaultModelChoice({
+        config: nextConfig,
+        setDefaultModel: params.setDefaultModel,
+        defaultModel: NOVITA_DEFAULT_MODEL_REF,
+        applyDefaultConfig: applyNovitaConfig,
+        applyProviderConfig: applyNovitaProviderConfig,
+        noteDefault: NOVITA_DEFAULT_MODEL_REF,
         noteAgentModel,
         prompter: params.prompter,
       });
