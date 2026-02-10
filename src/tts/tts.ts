@@ -154,6 +154,7 @@ type TtsDirectiveOverrides = {
   openai?: {
     voice?: string;
     model?: string;
+    speed?: number;
   };
   elevenlabs?: {
     voiceId?: string;
@@ -748,6 +749,11 @@ function parseTtsDirectives(
                 ...overrides.elevenlabs,
                 voiceSettings: { ...overrides.elevenlabs?.voiceSettings, speed: value },
               };
+              // Also set OpenAI speed (API supports 0.25-4.0, but we use same range for consistency)
+              overrides.openai = {
+                ...overrides.openai,
+                speed: value,
+              };
             }
             break;
           case "speakerboost":
@@ -1080,9 +1086,10 @@ async function openaiTTS(params: {
   model: string;
   voice: string;
   responseFormat: "mp3" | "opus" | "pcm";
+  speed?: number;
   timeoutMs: number;
 }): Promise<Buffer> {
-  const { text, apiKey, model, voice, responseFormat, timeoutMs } = params;
+  const { text, apiKey, model, voice, responseFormat, speed, timeoutMs } = params;
 
   if (!isValidOpenAIModel(model)) {
     throw new Error(`Invalid model: ${model}`);
@@ -1106,6 +1113,7 @@ async function openaiTTS(params: {
         input: text,
         voice,
         response_format: responseFormat,
+        ...(speed != null && { speed }),
       }),
       signal: controller.signal,
     });
@@ -1288,12 +1296,14 @@ export async function textToSpeech(params: {
       } else {
         const openaiModelOverride = params.overrides?.openai?.model;
         const openaiVoiceOverride = params.overrides?.openai?.voice;
+        const openaiSpeedOverride = params.overrides?.openai?.speed;
         audioBuffer = await openaiTTS({
           text: params.text,
           apiKey,
           model: openaiModelOverride ?? config.openai.model,
           voice: openaiVoiceOverride ?? config.openai.voice,
           responseFormat: output.openai,
+          speed: openaiSpeedOverride,
           timeoutMs: config.timeoutMs,
         });
       }
