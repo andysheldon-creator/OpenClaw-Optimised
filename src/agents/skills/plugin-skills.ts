@@ -12,7 +12,7 @@ import { loadPluginManifestRegistry } from "../../plugins/manifest-registry.js";
 const log = createSubsystemLogger("skills");
 
 export function resolvePluginSkillDirs(params: {
-  workspaceDir: string;
+  workspaceDir: string | undefined;
   config?: OpenClawConfig;
 }): string[] {
   const workspaceDir = (params.workspaceDir ?? "").trim();

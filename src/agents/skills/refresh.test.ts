@@ -15,9 +15,8 @@ describe("ensureSkillsWatcher", () => {
   it("does not crash when workspaceDir is undefined", async () => {
     const mod = await import("./refresh.js");
     // Should not throw TypeError: Cannot read properties of undefined (reading 'trim')
-    expect(() =>
-      mod.ensureSkillsWatcher({ workspaceDir: undefined as unknown as string }),
-    ).not.toThrow();
+    // Agent configs with workspace: null resolve to undefined (#12888)
+    expect(() => mod.ensureSkillsWatcher({ workspaceDir: undefined })).not.toThrow();
   });
 
   it("ignores node_modules, dist, .git, and Python venvs by default", async () => {
