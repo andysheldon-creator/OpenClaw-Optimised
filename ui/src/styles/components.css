@@ -978,6 +978,30 @@
   font-size: 11px;
 }
 
+.session-label-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.session-label-cell input {
+  flex: 1;
+  min-width: 0;
+}
+
+.session-badge {
+  flex-shrink: 0;
+  font-size: 14px;
+  line-height: 1;
+  opacity: 0.8;
+  cursor: help;
+}
+
+.session-badge:hover {
+  opacity: 1;
+}
+
 /* ===========================================
    Log Stream
    =========================================== */

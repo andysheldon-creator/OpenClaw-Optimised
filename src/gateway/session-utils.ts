@@ -6,7 +6,11 @@ import type {
   GatewaySessionsDefaults,
   SessionsListResult,
 } from "./session-utils.types.js";
-import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
+import {
+  resolveAgentDir,
+  resolveAgentWorkspaceDir,
+  resolveDefaultAgentId,
+} from "../agents/agent-scope.js";
 import { lookupContextTokens } from "../agents/context.js";
 import { DEFAULT_CONTEXT_TOKENS, DEFAULT_MODEL, DEFAULT_PROVIDER } from "../agents/defaults.js";
 import {
@@ -545,6 +549,83 @@ export function resolveSessionModelRef(
   return { provider, model };
 }
 
+function scanDeletedSessions(params: { storePath: string; agentId: string }): Array<{
+  key: string;
+  sessionId: string;
+  deletedAt: string | undefined;
+  metadata: SessionEntry;
+}> {
+  const { storePath, agentId: callerAgentId } = params;
+  // storePath is the sessions directory
+  const sessionsDir = storePath;
+
+  try {
+    if (!fs.existsSync(sessionsDir)) {
+      return [];
+    }
+
+    const files = fs.readdirSync(sessionsDir);
+    // Find deleted sessions by their metadata sidecar files
+    const metadataFiles = files.filter((f) => f.endsWith(".metadata.json"));
+
+    const deleted = metadataFiles
+      .map((file) => {
+        // Extract sessionId from filename: <sessionId>.metadata.json
+        const match = file.match(/^([0-9a-f-]{36})\.metadata\.json$/i);
+        const sessionId = match ? match[1] : null;
+
+        if (!sessionId) {
+          return null;
+        }
+
+        // Find the corresponding deleted transcript to get the timestamp
+        const deletedTranscript = files.find((f) => f.startsWith(`${sessionId}.jsonl.deleted.`));
+        const timestampMatch = deletedTranscript?.match(/\.deleted\.(.+)$/);
+        const timestamp = timestampMatch ? timestampMatch[1] : undefined;
+
+        // Read metadata from the sidecar file
+        let metadata: SessionEntry | null = null;
+        try {
+          const sidecarPath = path.join(sessionsDir, file);
+          const content = fs.readFileSync(sidecarPath, "utf-8");
+          const parsed = JSON.parse(content);
+          if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+            metadata = parsed as SessionEntry;
+          }
+        } catch {
+          // File read error or invalid JSON, skip
+        }
+
+        if (!metadata) {
+          return null;
+        }
+
+        // Determine the correct session key format
+        const isNamedSession = metadata.userCreated === true;
+        const agentId = normalizeAgentId(callerAgentId);
+
+        let key: string;
+        if (isNamedSession) {
+          key = `agent:${agentId}:named:${sessionId}`;
+        } else {
+          key = `agent:${agentId}:${sessionId}`;
+        }
+
+        return {
+          key,
+          sessionId,
+          deletedAt: timestamp,
+          metadata,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
+
+    return deleted;
+  } catch {
+    return [];
+  }
+}
+
 export function listSessionsFromStore(params: {
   cfg: OpenClawConfig;
   storePath: string;
@@ -670,9 +751,108 @@ export function listSessionsFromStore(params: {
         lastChannel: deliveryFields.lastChannel ?? entry?.lastChannel,
         lastTo: deliveryFields.lastTo ?? entry?.lastTo,
         lastAccountId: deliveryFields.lastAccountId ?? entry?.lastAccountId,
+        persistent: entry?.persistent,
+        userCreated: entry?.userCreated,
+        description: entry?.description,
+        createdAt: entry?.createdAt,
+        deleted: false,
+        deletedAt: undefined as string | undefined,
       };
     })
     .toSorted((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
+
+  // Only scan for deleted sessions when explicitly requested (e.g. Control UI).
+  // This avoids filesystem overhead and prevents deleted sessions from leaking into
+  // session resolution, agent tools, or lane execution.
+  const includeDeleted = opts.includeDeleted === true;
+  if (includeDeleted) {
+    // Get the sessions directory - handle both single and combined mode
+    let sessionsDir: string;
+    let deletedAgentId: string;
+
+    if (storePath === "(multiple)") {
+      // Combined mode - use the specified agent's sessions directory if provided,
+      // otherwise fall back to default agent
+      deletedAgentId = agentId || normalizeAgentId(resolveDefaultAgentId(cfg));
+      const agentDir = resolveAgentDir(cfg, deletedAgentId);
+      const agentScope = path.dirname(agentDir);
+      sessionsDir = path.join(agentScope, "sessions");
+    } else if (storePath.endsWith("sessions.json")) {
+      // Single agent mode — derive agentId from the path
+      // Path: {stateDir}/agents/{agentId}/sessions/sessions.json
+      sessionsDir = path.dirname(storePath);
+      const parentDir = path.basename(path.dirname(sessionsDir));
+      deletedAgentId = normalizeAgentId(
+        parentDir !== "agents" ? parentDir : resolveDefaultAgentId(cfg),
+      );
+    } else {
+      // Fallback - storePath might already be the sessions directory
+      sessionsDir = storePath;
+      deletedAgentId = normalizeAgentId(resolveDefaultAgentId(cfg));
+    }
+
+    const deletedSessions = scanDeletedSessions({
+      storePath: sessionsDir,
+      agentId: deletedAgentId,
+    });
+    const deletedRows = deletedSessions.map(({ key, sessionId, deletedAt, metadata }) => {
+      const entry = metadata;
+      const updatedAt = entry.updatedAt ?? null;
+      const input = entry.inputTokens ?? 0;
+      const output = entry.outputTokens ?? 0;
+      const total = entry.totalTokens ?? input + output;
+      const parsedAgent = parseAgentSessionKey(key);
+      const sessionAgentId = normalizeAgentId(parsedAgent?.agentId ?? resolveDefaultAgentId(cfg));
+      const resolvedModel = resolveSessionModelRef(cfg, entry, sessionAgentId);
+      const modelProvider = resolvedModel.provider ?? DEFAULT_PROVIDER;
+      const model = resolvedModel.model ?? DEFAULT_MODEL;
+
+      return {
+        key,
+        entry,
+        kind: "direct" as const, // Deleted sessions are typically direct/named
+        label: entry?.label,
+        displayName: entry?.label,
+        channel: entry?.channel,
+        subject: entry?.subject,
+        groupChannel: entry?.groupChannel,
+        space: entry?.space,
+        chatType: entry?.chatType,
+        origin: entry?.origin,
+        updatedAt,
+        sessionId,
+        systemSent: entry?.systemSent,
+        abortedLastRun: entry?.abortedLastRun,
+        thinkingLevel: entry?.thinkingLevel,
+        verboseLevel: entry?.verboseLevel,
+        reasoningLevel: entry?.reasoningLevel,
+        elevatedLevel: entry?.elevatedLevel,
+        sendPolicy: entry?.sendPolicy,
+        inputTokens: entry?.inputTokens,
+        outputTokens: entry?.outputTokens,
+        totalTokens: total,
+        responseUsage: entry?.responseUsage,
+        modelProvider,
+        model,
+        contextTokens: entry?.contextTokens,
+        deliveryContext: entry?.deliveryContext,
+        lastChannel: entry?.lastChannel,
+        lastTo: entry?.lastTo,
+        lastAccountId: entry?.lastAccountId,
+        persistent: entry.persistent,
+        userCreated: entry.userCreated,
+        description: entry.description,
+        createdAt: entry.createdAt,
+        deleted: true,
+        deletedAt: deletedAt ?? undefined,
+      };
+    });
+
+    // Merge active and deleted sessions
+    sessions = [...sessions, ...deletedRows].toSorted(
+      (a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0),
+    );
+  } // end includeDeleted
 
   if (search) {
     sessions = sessions.filter((s) => {
@@ -692,30 +872,31 @@ export function listSessionsFromStore(params: {
   }
 
   const finalSessions: GatewaySessionRow[] = sessions.map((s) => {
-    const { entry, ...rest } = s;
     let derivedTitle: string | undefined;
     let lastMessagePreview: string | undefined;
-    if (entry?.sessionId) {
+    if (s.entry?.sessionId) {
       if (includeDerivedTitles) {
         const firstUserMsg = readFirstUserMessageFromTranscript(
-          entry.sessionId,
+          s.entry.sessionId,
           storePath,
-          entry.sessionFile,
+          s.entry.sessionFile,
         );
-        derivedTitle = deriveSessionTitle(entry, firstUserMsg);
+        derivedTitle = deriveSessionTitle(s.entry, firstUserMsg);
       }
       if (includeLastMessage) {
         const lastMsg = readLastMessagePreviewFromTranscript(
-          entry.sessionId,
+          s.entry.sessionId,
           storePath,
-          entry.sessionFile,
+          s.entry.sessionFile,
         );
         if (lastMsg) {
           lastMessagePreview = lastMsg;
         }
       }
     }
-    return { ...rest, derivedTitle, lastMessagePreview } satisfies GatewaySessionRow;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { entry, ...sessionWithoutEntry } = s;
+    return { ...sessionWithoutEntry, derivedTitle, lastMessagePreview } satisfies GatewaySessionRow;
   });
 
   return {

@@ -19,6 +19,7 @@ import type {
   CronJob,
   CronRunLogEntry,
   CronStatus,
+  DeletedSessionEntry,
   HealthSnapshot,
   LogEntry,
   LogLevel,
@@ -143,12 +144,15 @@ export type AppViewState = {
   agentSkillsReport: SkillStatusReport | null;
   agentSkillsAgentId: string | null;
   sessionsLoading: boolean;
+  sessionsDeletedLoading: boolean;
   sessionsResult: SessionsListResult | null;
   sessionsError: string | null;
   sessionsFilterActive: string;
   sessionsFilterLimit: string;
   sessionsIncludeGlobal: boolean;
   sessionsIncludeUnknown: boolean;
+  sessionsShowDeleted: boolean;
+  sessionsDeletedList: DeletedSessionEntry[] | null;
   usageLoading: boolean;
   usageResult: SessionsUsageResult | null;
   usageCostSummary: CostUsageSummary | null;
@@ -221,6 +225,7 @@ export type AppViewState = {
   logsAtBottom: boolean;
   client: GatewayBrowserClient | null;
   refreshSessionsAfterChat: Set<string>;
+  sessionCreateCommands: Set<string>;
   connect: () => void;
   setTab: (tab: Tab) => void;
   setTheme: (theme: ThemeMode, context?: ThemeTransitionContext) => void;

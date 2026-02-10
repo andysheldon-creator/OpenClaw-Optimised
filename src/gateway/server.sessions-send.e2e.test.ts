@@ -9,6 +9,7 @@ import {
   getFreePort,
   installGatewayTestHooks,
   startGatewayServer,
+  testState,
 } from "./test-helpers.js";
 
 installGatewayTestHooks({ scope: "suite" });
@@ -24,6 +25,7 @@ beforeAll(async () => {
   gatewayPort = await getFreePort();
   process.env.OPENCLAW_GATEWAY_PORT = String(gatewayPort);
   process.env.OPENCLAW_GATEWAY_TOKEN = "test-token";
+  testState.gatewayAuth = { mode: "token", token: "test-token" };
   server = await startGatewayServer(gatewayPort);
 });
 

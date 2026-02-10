@@ -12,6 +12,9 @@ export type SessionsState = {
   sessionsFilterLimit: string;
   sessionsIncludeGlobal: boolean;
   sessionsIncludeUnknown: boolean;
+  sessionsShowDeleted: boolean;
+  sessionKey: string;
+  requestUpdate?: () => void;
 };
 
 export async function loadSessions(
@@ -39,6 +42,7 @@ export async function loadSessions(
     const params: Record<string, unknown> = {
       includeGlobal,
       includeUnknown,
+      includeDeleted: true,
     };
     if (activeMinutes > 0) {
       params.activeMinutes = activeMinutes;
@@ -54,6 +58,7 @@ export async function loadSessions(
     state.sessionsError = String(err);
   } finally {
     state.sessionsLoading = false;
+    state.requestUpdate?.();
   }
 }
 
@@ -86,8 +91,38 @@ export async function patchSession(
   try {
     await state.client.request("sessions.patch", params);
     await loadSessions(state);
+    state.requestUpdate?.();
   } catch (err) {
     state.sessionsError = String(err);
+    state.requestUpdate?.();
+  }
+}
+
+export async function restoreSession(state: SessionsState, sessionId: string) {
+  if (!state.client || !state.connected) {
+    return;
+  }
+  if (state.sessionsLoading) {
+    return;
+  }
+
+  const confirmed = window.confirm(
+    `Restore session "${sessionId}"?\n\nThis will recreate the session entry and restore its transcript.`,
+  );
+  if (!confirmed) {
+    return;
+  }
+
+  state.sessionsError = null;
+  try {
+    await state.client.request("sessions.restore", { sessionId });
+
+    // Refresh the session list after restore
+    await loadSessions(state);
+  } catch (err) {
+    state.sessionsError = String(err);
+  } finally {
+    state.requestUpdate?.();
   }
 }
 
@@ -98,20 +133,42 @@ export async function deleteSession(state: SessionsState, key: string) {
   if (state.sessionsLoading) {
     return;
   }
-  const confirmed = window.confirm(
-    `Delete session "${key}"?\n\nDeletes the session entry and archives its transcript.`,
-  );
+
+  // Prevent deleting main session
+  if (key === "agent:main:main") {
+    state.sessionsError = "Cannot delete the main session.";
+    return;
+  }
+
+  // Check if deleting the currently active session
+  const isActiveSession = key === state.sessionKey;
+  const confirmMessage = isActiveSession
+    ? `⚠️ You are currently using this session.\n\nDeleting it will return you to the main session.\n\nDelete session "${key}"?`
+    : `Delete session "${key}"?\n\nDeletes the session entry and archives its transcript.`;
+
+  const confirmed = window.confirm(confirmMessage);
   if (!confirmed) {
     return;
   }
-  state.sessionsLoading = true;
+
   state.sessionsError = null;
   try {
     await state.client.request("sessions.delete", { key, deleteTranscript: true });
+
+    // Redirect to main session if we deleted the active one
+    if (isActiveSession) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("session");
+      url.pathname = "/";
+      window.location.href = url.toString();
+      return;
+    }
+
+    // Refresh the session list after deletion
     await loadSessions(state);
   } catch (err) {
     state.sessionsError = String(err);
   } finally {
-    state.sessionsLoading = false;
+    state.requestUpdate?.();
   }
 }

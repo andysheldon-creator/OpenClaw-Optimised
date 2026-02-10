@@ -110,11 +110,14 @@ import type {
 } from "./nodes.js";
 import type {
   SessionsCompactParamsSchema,
+  SessionsCreateParamsSchema,
   SessionsDeleteParamsSchema,
+  SessionsListDeletedParamsSchema,
   SessionsListParamsSchema,
   SessionsPatchParamsSchema,
   SessionsPreviewParamsSchema,
   SessionsResetParamsSchema,
+  SessionsRestoreParamsSchema,
   SessionsResolveParamsSchema,
   SessionsUsageParamsSchema,
 } from "./sessions.js";
@@ -163,8 +166,11 @@ export type SessionsResolveParams = Static<typeof SessionsResolveParamsSchema>;
 export type SessionsPatchParams = Static<typeof SessionsPatchParamsSchema>;
 export type SessionsResetParams = Static<typeof SessionsResetParamsSchema>;
 export type SessionsDeleteParams = Static<typeof SessionsDeleteParamsSchema>;
+export type SessionsCreateParams = Static<typeof SessionsCreateParamsSchema>;
 export type SessionsCompactParams = Static<typeof SessionsCompactParamsSchema>;
 export type SessionsUsageParams = Static<typeof SessionsUsageParamsSchema>;
+export type SessionsListDeletedParams = Static<typeof SessionsListDeletedParamsSchema>;
+export type SessionsRestoreParams = Static<typeof SessionsRestoreParamsSchema>;
 export type ConfigGetParams = Static<typeof ConfigGetParamsSchema>;
 export type ConfigSetParams = Static<typeof ConfigSetParamsSchema>;
 export type ConfigApplyParams = Static<typeof ConfigApplyParamsSchema>;

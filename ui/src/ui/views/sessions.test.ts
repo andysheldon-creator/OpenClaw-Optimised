@@ -27,6 +27,8 @@ function buildProps(result: SessionsListResult): SessionsProps {
     onRefresh: () => undefined,
     onPatch: () => undefined,
     onDelete: () => undefined,
+    showDeleted: false,
+    onRestore: () => undefined,
   };
 }
 

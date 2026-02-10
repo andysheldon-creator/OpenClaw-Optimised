@@ -400,6 +400,12 @@ export type GatewaySessionRow = {
   model?: string;
   modelProvider?: string;
   contextTokens?: number;
+  persistent?: boolean;
+  userCreated?: boolean;
+  description?: string;
+  createdAt?: number;
+  deleted?: boolean;
+  deletedAt?: string;
 };
 
 export type SessionsListResult = {
@@ -408,6 +414,17 @@ export type SessionsListResult = {
   count: number;
   defaults: GatewaySessionsDefaults;
   sessions: GatewaySessionRow[];
+};
+
+export type DeletedSessionEntry = {
+  sessionId: string;
+  file: string;
+  size: number;
+  deletedAt: string | null;
+  mtime: number;
+  label?: string;
+  description?: string;
+  persistent?: boolean;
 };
 
 export type SessionsPatchResult = {

@@ -21,6 +21,8 @@ export const SessionsListParamsSchema = Type.Object(
     spawnedBy: Type.Optional(NonEmptyString),
     agentId: Type.Optional(NonEmptyString),
     search: Type.Optional(Type.String()),
+    /** Include deleted sessions in the result set. Defaults to false. */
+    includeDeleted: Type.Optional(Type.Boolean()),
   },
   { additionalProperties: false },
 );
@@ -94,6 +96,17 @@ export const SessionsDeleteParamsSchema = Type.Object(
   { additionalProperties: false },
 );
 
+export const SessionsCreateParamsSchema = Type.Object(
+  {
+    label: SessionLabelString,
+    description: Type.Optional(Type.String({ maxLength: 500 })),
+    persistent: Type.Optional(Type.Boolean()),
+    agentId: Type.Optional(NonEmptyString),
+    basedOn: Type.Optional(NonEmptyString),
+  },
+  { additionalProperties: false },
+);
+
 export const SessionsCompactParamsSchema = Type.Object(
   {
     key: NonEmptyString,
@@ -114,6 +127,22 @@ export const SessionsUsageParamsSchema = Type.Object(
     limit: Type.Optional(Type.Integer({ minimum: 1 })),
     /** Include context weight breakdown (systemPromptReport). */
     includeContextWeight: Type.Optional(Type.Boolean()),
+  },
+  { additionalProperties: false },
+);
+
+export const SessionsListDeletedParamsSchema = Type.Object(
+  {
+    agentId: Type.Optional(NonEmptyString),
+    limit: Type.Optional(Type.Integer({ minimum: 1 })),
+  },
+  { additionalProperties: false },
+);
+
+export const SessionsRestoreParamsSchema = Type.Object(
+  {
+    sessionId: NonEmptyString,
+    agentId: Type.Optional(NonEmptyString),
   },
   { additionalProperties: false },
 );

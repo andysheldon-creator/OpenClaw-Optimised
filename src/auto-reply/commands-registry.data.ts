@@ -423,6 +423,44 @@ function buildChatCommands(): ChatCommandDefinition[] {
       ],
     }),
     defineChatCommand({
+      key: "session-new",
+      description: "Create a new named session.",
+      textAlias: "/session new",
+      scope: "text",
+      category: "session",
+      args: [
+        {
+          name: "name",
+          description: "Session name/label",
+          type: "string",
+          captureRemaining: true,
+        },
+      ],
+    }),
+    defineChatCommand({
+      key: "session-list",
+      description: "List available sessions.",
+      textAlias: "/session list",
+      scope: "text",
+      category: "session",
+    }),
+    defineChatCommand({
+      key: "session-switch",
+      description: "Switch to an existing session (or main if no name given).",
+      textAlias: "/session switch",
+      scope: "text",
+      category: "session",
+      args: [
+        {
+          name: "name",
+          description: "Session name/label or key (optional, defaults to main)",
+          type: "string",
+          captureRemaining: true,
+          required: false,
+        },
+      ],
+    }),
+    defineChatCommand({
       key: "think",
       nativeName: "think",
       description: "Set thinking level.",

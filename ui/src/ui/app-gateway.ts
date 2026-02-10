@@ -5,7 +5,12 @@ import type { GatewayEventFrame, GatewayHelloOk } from "./gateway.ts";
 import type { Tab } from "./navigation.ts";
 import type { UiSettings } from "./storage.ts";
 import type { AgentsListResult, PresenceEntry, HealthSnapshot, StatusSummary } from "./types.ts";
-import { CHAT_SESSIONS_ACTIVE_MINUTES, flushChatQueueForEvent } from "./app-chat.ts";
+import {
+  CHAT_SESSIONS_ACTIVE_MINUTES,
+  clearChatState,
+  flushChatQueueForEvent,
+  refreshChat,
+} from "./app-chat.ts";
 import {
   applySettings,
   loadCron,
@@ -13,6 +18,7 @@ import {
   setLastActiveSessionKey,
 } from "./app-settings.ts";
 import { handleAgentEvent, resetToolStream, type AgentEventPayload } from "./app-tool-stream.ts";
+import { extractText } from "./chat/message-extract.ts";
 import { loadAgents } from "./controllers/agents.ts";
 import { loadAssistantIdentity } from "./controllers/assistant-identity.ts";
 import { loadChatHistory } from "./controllers/chat.ts";
@@ -52,6 +58,7 @@ type GatewayHost = {
   sessionKey: string;
   chatRunId: string | null;
   refreshSessionsAfterChat: Set<string>;
+  sessionCreateCommands: Set<string>;
   execApprovalQueue: ExecApprovalRequest[];
   execApprovalError: string | null;
 };
@@ -208,6 +215,31 @@ function handleGatewayEventUnsafe(host: GatewayHost, evt: GatewayEventFrame) {
           void loadSessions(host as unknown as OpenClawApp, {
             activeMinutes: CHAT_SESSIONS_ACTIVE_MINUTES,
           });
+        }
+      }
+      if (runId && host.sessionCreateCommands.has(runId)) {
+        host.sessionCreateCommands.delete(runId);
+        if (state === "final" && payload?.message) {
+          // Extract session key from the response
+          const text = extractText(payload.message);
+          const keyMatch = text?.match(/Key:\s*(agent:[^\s]+)/);
+          if (keyMatch && keyMatch[1]) {
+            const newSessionKey = keyMatch[1];
+            // Clear current chat state before switching
+            clearChatState(host as unknown as OpenClawApp);
+            // Switch to the newly created session
+            const url = new URL(window.location.href);
+            // For main session, remove URL param; for others, set it
+            if (newSessionKey === "agent:main:main") {
+              url.searchParams.delete("session");
+            } else {
+              url.searchParams.set("session", newSessionKey);
+            }
+            window.history.pushState({}, "", url.toString());
+            // Trigger session switch
+            host.sessionKey = newSessionKey;
+            void refreshChat(host as unknown as OpenClawApp);
+          }
         }
       }
     }

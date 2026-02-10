@@ -221,12 +221,15 @@ export class OpenClawApp extends LitElement {
   @state() agentSkillsAgentId: string | null = null;
 
   @state() sessionsLoading = false;
+  @state() sessionsDeletedLoading = false;
   @state() sessionsResult: SessionsListResult | null = null;
   @state() sessionsError: string | null = null;
   @state() sessionsFilterActive = "";
   @state() sessionsFilterLimit = "120";
   @state() sessionsIncludeGlobal = true;
   @state() sessionsIncludeUnknown = false;
+  @state() sessionsShowDeleted = false;
+  @state() sessionsDeletedList: import("./types.js").DeletedSessionEntry[] | null = null;
 
   @state() usageLoading = false;
   @state() usageResult: import("./types.js").SessionsUsageResult | null = null;
@@ -337,6 +340,7 @@ export class OpenClawApp extends LitElement {
   private toolStreamById = new Map<string, ToolStreamEntry>();
   private toolStreamOrder: string[] = [];
   refreshSessionsAfterChat = new Set<string>();
+  sessionCreateCommands = new Set<string>();
   basePath = "";
   private popStateHandler = () =>
     onPopStateInternal(this as unknown as Parameters<typeof onPopStateInternal>[0]);
