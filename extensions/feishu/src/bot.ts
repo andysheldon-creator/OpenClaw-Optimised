@@ -829,6 +829,7 @@ export async function handleFeishuMessage(params: {
         runtime: runtime as RuntimeEnv,
         chatId: ctx.chatId,
         replyToMessageId: ctx.messageId,
+      skipReplyToInMessages: !isGroup,
         accountId: account.accountId,
       });
 
@@ -902,6 +903,7 @@ export async function handleFeishuMessage(params: {
       runtime: runtime as RuntimeEnv,
       chatId: ctx.chatId,
       replyToMessageId: ctx.messageId,
+      skipReplyToInMessages: !isGroup,
       mentionTargets: ctx.mentionTargets,
       accountId: account.accountId,
     });

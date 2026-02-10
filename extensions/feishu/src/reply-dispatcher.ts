@@ -34,6 +34,8 @@ export type CreateFeishuReplyDispatcherParams = {
   runtime: RuntimeEnv;
   chatId: string;
   replyToMessageId?: string;
+  /** When true, use replyToMessageId for typing indicator only, not for sending messages */
+  skipReplyToInMessages?: boolean;
   /** Mention targets, will be auto-included in replies */
   mentionTargets?: MentionTarget[];
   /** Account ID for multi-account support */
@@ -42,7 +44,8 @@ export type CreateFeishuReplyDispatcherParams = {
 
 export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherParams) {
   const core = getFeishuRuntime();
-  const { cfg, agentId, chatId, replyToMessageId, mentionTargets, accountId } = params;
+  const { cfg, agentId, chatId, replyToMessageId, skipReplyToInMessages, mentionTargets, accountId } = params;
+  const sendReplyToMessageId = skipReplyToInMessages ? undefined : replyToMessageId;
 
   // Resolve account for config access
   const account = resolveFeishuAccount({ cfg, accountId });
@@ -133,7 +136,7 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
               cfg,
               to: chatId,
               text: chunk,
-              replyToMessageId,
+              replyToMessageId: sendReplyToMessageId,
               mentions: isFirstChunk ? mentionTargets : undefined,
               accountId,
             });
@@ -151,7 +154,7 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
               cfg,
               to: chatId,
               text: chunk,
-              replyToMessageId,
+              replyToMessageId: sendReplyToMessageId,
               mentions: isFirstChunk ? mentionTargets : undefined,
               accountId,
             });
