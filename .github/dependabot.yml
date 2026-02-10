@@ -31,6 +31,10 @@ updates:
     open-pull-requests-limit: 10
     registries:
       - npm-npmjs
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+      include: scope
 
   # GitHub Actions
   - package-ecosystem: github-actions
@@ -47,6 +51,9 @@ updates:
           - minor
           - patch
     open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+      include: scope
 
   # Swift Package Manager - macOS app
   - package-ecosystem: swift
@@ -63,6 +70,9 @@ updates:
           - minor
           - patch
     open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+      include: scope
 
   # Swift Package Manager - shared MoltbotKit
   - package-ecosystem: swift
@@ -79,6 +89,9 @@ updates:
           - minor
           - patch
     open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+      include: scope
 
   # Swift Package Manager - Swabble
   - package-ecosystem: swift
@@ -95,6 +108,9 @@ updates:
           - minor
           - patch
     open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+      include: scope
 
   # Gradle - Android app
   - package-ecosystem: gradle
@@ -111,3 +127,6 @@ updates:
           - minor
           - patch
     open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+      include: scope
