@@ -279,36 +279,13 @@ export async function agentCommand(
       allowedModelCatalog = allowed.allowedCatalog;
     }
 
-    if (sessionEntry && sessionStore && sessionKey && hasStoredOverride) {
-      const entry = sessionEntry;
-      const overrideProvider = sessionEntry.providerOverride?.trim() || defaultProvider;
-      const overrideModel = sessionEntry.modelOverride?.trim();
-      if (overrideModel) {
-        const key = modelKey(overrideProvider, overrideModel);
-        if (
-          !isCliProvider(overrideProvider, cfg) &&
-          allowedModelKeys.size > 0 &&
-          !allowedModelKeys.has(key)
-        ) {
-          const { updated } = applyModelOverrideToSessionEntry({
-            entry,
-            selection: { provider: defaultProvider, model: defaultModel, isDefault: true },
-          });
-          if (updated) {
-            sessionStore[sessionKey] = entry;
-            await updateSessionStore(storePath, (store) => {
-              store[sessionKey] = entry;
-            });
-          }
-        }
-      }
-    }
-
+    // Apply session model override if present and allowed
     const storedProviderOverride = sessionEntry?.providerOverride?.trim();
     const storedModelOverride = sessionEntry?.modelOverride?.trim();
     if (storedModelOverride) {
       const candidateProvider = storedProviderOverride || defaultProvider;
       const key = modelKey(candidateProvider, storedModelOverride);
+      // Only apply if allowed (allowlist empty means all allowed)
       if (
         isCliProvider(candidateProvider, cfg) ||
         allowedModelKeys.size === 0 ||
