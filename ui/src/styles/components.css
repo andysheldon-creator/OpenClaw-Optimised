@@ -1669,6 +1669,8 @@
   white-space: pre-wrap;
   font-family: var(--mono);
   font-size: 13px;
+  max-height: 120px;
+  overflow-y: auto;
 }
 
 .exec-approval-meta {
