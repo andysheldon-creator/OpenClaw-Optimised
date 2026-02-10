@@ -109,6 +109,12 @@ type GrokSearchResponse = {
     content?: Array<{
       type?: string;
       text?: string;
+      annotations?: Array<{
+        type?: string;
+        url?: string;
+        start_index?: number;
+        end_index?: number;
+      }>;
     }>;
   }>;
   output_text?: string; // deprecated field - kept for backwards compatibility
@@ -138,6 +144,14 @@ function extractGrokContent(data: GrokSearchResponse): string | undefined {
     return fromResponses;
   }
   return typeof data.output_text === "string" ? data.output_text : undefined;
+}
+
+function extractGrokCitations(data: GrokSearchResponse): string[] {
+  const annotations = data.output?.[0]?.content?.[0]?.annotations;
+  if (!annotations?.length) {
+    return data.citations ?? [];
+  }
+  return annotations.filter((a) => a.type === "url_citation" && a.url).map((a) => a.url!);
 }
 
 function resolveSearchConfig(cfg?: OpenClawConfig): WebSearchConfig {
@@ -494,7 +508,7 @@ async function runGrokSearch(params: {
 
   const data = (await res.json()) as GrokSearchResponse;
   const content = extractGrokContent(data) ?? "No response";
-  const citations = data.citations ?? [];
+  const citations = extractGrokCitations(data);
   const inlineCitations = data.inline_citations;
 
   return { content, citations, inlineCitations };
@@ -731,4 +745,5 @@ export const __testing = {
   resolveGrokModel,
   resolveGrokInlineCitations,
   extractGrokContent,
+  extractGrokCitations,
 } as const;
