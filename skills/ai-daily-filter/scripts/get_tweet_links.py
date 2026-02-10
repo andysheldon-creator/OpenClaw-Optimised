@@ -37,7 +37,7 @@ async def get_tweet_links(url):
                 print(f"  {l['text']}: {l['href']}")
             
             if not external:
-                print("  (无外部链接)")
+                print("  (no external links)")
                 
         except Exception as e:
             print(f"错误 [{url}]: {e}")

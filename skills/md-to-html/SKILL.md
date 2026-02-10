@@ -107,6 +107,15 @@ UTC → 北京时间：
 ai_posts_summary_YYYY-MM-DD.html
 ```
 
+## 图片路径注意事项
+
+根据输出目录位置计算正确的相对路径：
+- 如果 HTML 在 `processed/output/`，截图在 `screenshots/2026-02-09/`
+- 相对路径应为 `../../screenshots/2026-02-09/xx.png`（向上两级）
+- assets 同理：`../../assets/logo.png`
+
+**常见错误**：只用一级 `../` 会导致找不到图片
+
 ## 文件结构
 
 ```

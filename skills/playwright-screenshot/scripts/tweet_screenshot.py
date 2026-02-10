@@ -1,5 +1,6 @@
 """
-Tweet Screenshot - Final Version v3
+Tweet Screenshot - Final Version v6
+Full page screenshot + precise crop
 """
 from playwright.sync_api import sync_playwright
 from PIL import Image
@@ -7,14 +8,17 @@ import os
 
 CDP_URL = "http://localhost:9222"
 
-def screenshot_tweet(url, output_path):
-    """Screenshot a tweet - clean, no sidebars, no reply box"""
+def screenshot_tweet(url, output_path, max_height=1500):
+    """
+    Screenshot a tweet - clean, no sidebars, no reply box
+    """
     with sync_playwright() as p:
         browser = p.chromium.connect_over_cdp(CDP_URL)
         context = browser.contexts[0]
         page = context.new_page()
         
-        page.set_viewport_size({"width": 1400, "height": 900})
+        # Tall viewport to capture long content
+        page.set_viewport_size({"width": 1400, "height": 2000})
         
         try:
             print(f"Navigating: {url}")
@@ -22,32 +26,60 @@ def screenshot_tweet(url, output_path):
             page.wait_for_selector('article', timeout=15000)
             page.wait_for_timeout(2500)
             
-            tweet = page.locator('article').first
-            tweet_box = tweet.bounding_box()
+            article = page.locator('article').first
+            art_box = article.bounding_box()
             
-            if not tweet_box:
+            if not art_box:
                 print("Could not find tweet")
                 return None
             
-            temp_path = output_path + ".temp.png"
-            page.screenshot(path=temp_path)
-            img = Image.open(temp_path)
-            
+            # Get primary column for horizontal bounds
             primary_col = page.locator('[data-testid="primaryColumn"]').first
             col_box = primary_col.bounding_box()
             
-            # More room on the left to capture full text
-            # Right edge: stop at the divider line (narrower crop)
-            left = int(col_box['x']) - 35 if col_box else 377
-            tweet_width = 530  # Adjust for wider left margin
+            # Horizontal bounds: primaryColumn gives us the content area
+            if col_box:
+                # Content starts at column edge, with generous margin to catch emojis/bullets
+                left = int(col_box['x']) - 25
+            else:
+                left = 360
+            
+            tweet_width = 560  # Wide enough for full content
             right = left + tweet_width
             
-            top = max(0, int(tweet_box['y']) - 10)
-            # Stop after action bar, before "Relevant" and reply box
-            content_height = int(tweet_box['height']) - 70
-            bottom = top + min(content_height, 630)
+            # Vertical bounds
+            top = max(0, int(art_box['y']) - 8)
             
-            print(f"Crop: L={left}, R={right}, T={top}, B={bottom}")
+            # Find the action bar bottom (reply/retweet/like/bookmark row)
+            # This is the last thing we want to include
+            reply_icon = page.locator('article [data-testid="reply"]').first
+            
+            if reply_icon.count() > 0:
+                ri_box = reply_icon.bounding_box()
+                if ri_box:
+                    # Stop at action bar icons, exclude Relevant dropdown
+                    bottom = int(ri_box['y']) - 45
+                else:
+                    bottom = int(art_box['y'] + art_box['height']) - 120
+            else:
+                bottom = int(art_box['y'] + art_box['height']) - 120
+            
+            # Apply max height limit
+            content_height = bottom - top
+            if max_height > 0 and content_height > max_height:
+                bottom = top + max_height
+            
+            # Take full page screenshot
+            temp_path = output_path + ".temp.png"
+            page.screenshot(path=temp_path, full_page=True)
+            img = Image.open(temp_path)
+            
+            # Ensure bounds are within image
+            right = min(right, img.width)
+            bottom = min(bottom, img.height)
+            
+            print(f"Bounds: L={left}, R={right}, T={top}, B={bottom}")
+            print(f"Content height: {bottom - top}px")
             
             cropped = img.crop((left, top, right, bottom))
             
@@ -66,4 +98,5 @@ if __name__ == "__main__":
     import sys
     url = sys.argv[1] if len(sys.argv) > 1 else "https://x.com/OpenAI/status/2019474152743223477"
     output = sys.argv[2] if len(sys.argv) > 2 else "tweet.png"
-    screenshot_tweet(url, output)
+    max_h = int(sys.argv[3]) if len(sys.argv) > 3 else 1500
+    screenshot_tweet(url, output, max_h)

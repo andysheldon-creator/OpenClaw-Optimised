@@ -44,19 +44,21 @@ Invoke-WebRequest -Uri "http://localhost:9222/json/version" -UseBasicParsing
 For Twitter/X posts, use the dedicated tweet script for clean cropping:
 
 ```bash
-python scripts/tweet_screenshot.py <url> <output.png>
+python scripts/tweet_screenshot.py <url> <output.png> [max_height]
 ```
 
 Example:
 ```bash
 python scripts/tweet_screenshot.py "https://x.com/OpenAI/status/123456" tweet.png
+python scripts/tweet_screenshot.py "https://x.com/LangChain/status/789" long_tweet.png 1500
 ```
 
 Features:
-- Auto-crops to tweet content only
-- Removes left navigation and right sidebar
-- Removes reply box
-- Preserves full tweet text, images, and engagement stats
+- Auto-crops to tweet content only (removes left nav, right sidebar, reply box)
+- **Dynamic height detection** - captures full tweet including preview cards
+- Default max height: 1500px (pass 0 for unlimited)
+- Preserves full tweet text, images, embedded cards, and engagement stats
+- Excludes "Relevant" dropdown and "Post your reply" section
 
 ## General Screenshots
 
