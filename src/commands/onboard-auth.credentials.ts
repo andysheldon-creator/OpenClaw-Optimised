@@ -242,8 +242,6 @@ export function setXaiApiKey(key: string, agentDir?: string) {
   });
 }
 
-export const LITELLM_DEFAULT_MODEL_REF = "litellm/gpt-4";
-
 export async function setLitellmApiKey(key: string, agentDir?: string) {
   upsertAuthProfile({
     profileId: "litellm:default",

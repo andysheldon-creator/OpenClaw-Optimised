@@ -372,11 +372,12 @@ export async function runOnboardingWizard(
   });
   const authChoiceFromPrompt = opts.authChoice === undefined;
   let authChoice: AuthChoice;
+  let authChoiceOverride: AuthChoice | undefined = opts.authChoice;
 
   // Loop to allow retrying auth choice if user cancels during configuration
   while (true) {
     authChoice =
-      opts.authChoice ??
+      authChoiceOverride ??
       (await promptAuthChoiceGrouped({
         prompter,
         store: authStore,
@@ -392,7 +393,7 @@ export async function runOnboardingWizard(
         setDefaultModel: true,
         opts: {
           tokenProvider: opts.tokenProvider,
-          token: opts.authChoice === "apiKey" && opts.token ? opts.token : undefined,
+          token: authChoiceOverride === "apiKey" && opts.token ? opts.token : undefined,
         },
       });
       nextConfig = authResult.config;
@@ -400,8 +401,8 @@ export async function runOnboardingWizard(
     } catch (error) {
       // If user cancelled to go back to auth selection, loop again
       if (error instanceof Error && error.message === "AUTH_CHOICE_CANCELLED") {
-        // Clear opts.authChoice so we prompt again
-        opts.authChoice = undefined;
+        // Clear override so we prompt again (without mutating opts)
+        authChoiceOverride = undefined;
         continue;
       }
       // Re-throw other errors

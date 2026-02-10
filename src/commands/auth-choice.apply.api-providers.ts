@@ -1120,6 +1120,12 @@ export async function applyAuthChoiceApiProviders(
       if (modelInfo?.maxOutputTokens) {
         maxTokens = modelInfo.maxOutputTokens;
       }
+    } else if (params.opts?.nonInteractive) {
+      // In non-interactive mode, fail fast instead of prompting
+      throw new Error(
+        `LiteLLM model discovery failed: no models found at ${normalizedBaseUrl}. ` +
+          `Use --litellm-model to specify a model explicitly.`,
+      );
     } else {
       // No models available from LiteLLM - offer manual entry or retry
       await params.prompter.note(
