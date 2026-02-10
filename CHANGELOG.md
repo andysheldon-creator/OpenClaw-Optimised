@@ -11,7 +11,7 @@ Docs: https://docs.openclaw.ai
 - Channels: comprehensive BlueBubbles and channel cleanup. (#11093) Thanks @tyler6204.
 - Plugins: device pairing + phone control plugins (Telegram `/pair`, iOS/Android node controls). (#11755) Thanks @mbelinky.
 - Tools: add Grok (xAI) as a `web_search` provider. (#12419) Thanks @tmchow.
-- Tools: add Tavily as a `web_search` provider with configurable search depth. (#13171)
+- Tools: add Tavily as a `web_search` provider with configurable search depth. (#13171) Thanks @a-anand-91119.
 - Gateway: add agent management RPC methods for the web UI (`agents.create`, `agents.update`, `agents.delete`). (#11045) Thanks @advaitpaliwal.
 - Web UI: show a Compaction divider in chat history. (#11341) Thanks @Takhoffman.
 - Agents: include runtime shell in agent envelopes. (#1835) Thanks @Takhoffman.
@@ -20,7 +20,7 @@ Docs: https://docs.openclaw.ai
 
 ### Fixes
 
-- Tools: rewrite Grok `web_search` response parser for xAI Responses API; extract provider dispatch in `runWebSearch`. (#13171)
+- Tools: rewrite Grok `web_search` response parser for xAI Responses API; extract provider dispatch in `runWebSearch`. (#13171) Thanks @a-anand-91119.
 - Discord: add exec approval cleanup option to delete DMs after approval/denial/timeout. (#13205) Thanks @thewilloftheshadow.
 - Sessions: prune stale entries, cap session store size, rotate large stores, accept duration/size thresholds, default to warn-only maintenance, and prune cron run sessions after retention windows. (#13083) Thanks @skyfallsin, @Glucksberg, @gumadeiras.
 - CI: Implement pipeline and workflow order. Thanks @quotentiroler.
