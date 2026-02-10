@@ -16,6 +16,7 @@ type BrowserRequestParams = {
   method?: string;
   path?: string;
   query?: Record<string, unknown>;
+  profile?: string;
   body?: unknown;
   timeoutMs?: number;
 };
@@ -150,7 +151,14 @@ export const browserHandlers: GatewayRequestHandlers = {
     const typed = params as BrowserRequestParams;
     const methodRaw = typeof typed.method === "string" ? typed.method.trim().toUpperCase() : "";
     const path = typeof typed.path === "string" ? typed.path.trim() : "";
-    const query = typed.query && typeof typed.query === "object" ? typed.query : undefined;
+    const rawQuery = typed.query && typeof typed.query === "object" ? typed.query : undefined;
+    const explicitProfile = typeof typed.profile === "string" ? typed.profile.trim() : "";
+    const queryProfile = typeof rawQuery?.profile === "string" ? rawQuery.profile.trim() : "";
+    const profile = explicitProfile || queryProfile || undefined;
+    const query = {
+      ...rawQuery,
+      ...(profile ? { profile } : {}),
+    };
     const body = typed.body;
     const timeoutMs =
       typeof typed.timeoutMs === "number" && Number.isFinite(typed.timeoutMs)
@@ -210,7 +218,7 @@ export const browserHandlers: GatewayRequestHandlers = {
         query,
         body,
         timeoutMs,
-        profile: typeof query?.profile === "string" ? query.profile : undefined,
+        profile,
       };
       const res = await context.nodeRegistry.invoke({
         nodeId: nodeTarget.nodeId,
