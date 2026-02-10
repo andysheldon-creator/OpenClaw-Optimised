@@ -87,7 +87,16 @@ const FTS_TABLE = "chunks_fts";
 const EMBEDDING_CACHE_TABLE = "embedding_cache";
 const SESSION_DIRTY_DEBOUNCE_MS = 5000;
 const EMBEDDING_BATCH_MAX_TOKENS = 8000;
-const EMBEDDING_MODEL_MAX_TOKENS = 8192;
+const DEFAULT_EMBEDDING_MAX_INPUT_TOKENS = 8192;
+const KNOWN_EMBEDDING_MAX_INPUT_TOKENS: Record<string, number> = {
+  "openai:text-embedding-3-small": 8192,
+  "openai:text-embedding-3-large": 8192,
+  "openai:text-embedding-ada-002": 8191,
+  "gemini:text-embedding-004": 2048,
+  "voyage:voyage-3": 32000,
+  "voyage:voyage-3-lite": 16000,
+  "voyage:voyage-code-3": 32000,
+};
 const EMBEDDING_INDEX_CONCURRENCY = 4;
 const EMBEDDING_RETRY_MAX_ATTEMPTS = 3;
 const EMBEDDING_RETRY_BASE_DELAY_MS = 500;
@@ -1551,20 +1560,29 @@ export class MemoryIndexManager implements MemorySearchManager {
     return Buffer.byteLength(text, "utf8");
   }
 
+  private getMaxInputTokens(): number {
+    if (typeof this.provider.maxInputTokens === "number") {
+      return this.provider.maxInputTokens;
+    }
+    const key = `${this.provider.id}:${this.provider.model}`.toLowerCase();
+    return KNOWN_EMBEDDING_MAX_INPUT_TOKENS[key] ?? DEFAULT_EMBEDDING_MAX_INPUT_TOKENS;
+  }
+
   private splitChunkToTokenLimit(chunk: MemoryChunk): MemoryChunk[] {
-    if (this.estimateEmbeddingTokens(chunk.text) <= EMBEDDING_MODEL_MAX_TOKENS) {
+    const maxInputTokens = this.getMaxInputTokens();
+    if (this.estimateEmbeddingTokens(chunk.text) <= maxInputTokens) {
       return [chunk];
     }
     const parts: MemoryChunk[] = [];
     let cursor = 0;
     while (cursor < chunk.text.length) {
       let low = cursor + 1;
-      let high = Math.min(chunk.text.length, cursor + EMBEDDING_MODEL_MAX_TOKENS);
+      let high = Math.min(chunk.text.length, cursor + maxInputTokens);
       let best = cursor;
       while (low <= high) {
         const mid = Math.floor((low + high) / 2);
         const bytes = this.estimateEmbeddingTokens(chunk.text.slice(cursor, mid));
-        if (bytes <= EMBEDDING_MODEL_MAX_TOKENS) {
+        if (bytes <= maxInputTokens) {
           best = mid;
           low = mid + 1;
         } else {

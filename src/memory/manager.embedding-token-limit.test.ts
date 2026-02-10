@@ -13,6 +13,7 @@ vi.mock("./embeddings.js", () => ({
     provider: {
       id: "mock",
       model: "mock-embed",
+      maxInputTokens: 8192,
       embedQuery,
       embedBatch,
     },
