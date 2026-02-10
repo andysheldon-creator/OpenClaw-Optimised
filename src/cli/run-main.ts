@@ -40,8 +40,8 @@ export async function runCli(argv: string[] = process.argv) {
   // Capture all console output into structured logs while keeping stdout/stderr behavior.
   enableConsoleCapture();
 
-  const { buildProgram } = await import("./program.js");
-  const program = buildProgram();
+  const { buildProgramShell } = await import("./program/build-program-shell.js");
+  const { program, ctx } = buildProgramShell();
 
   // Global error handlers to prevent silent crashes from unhandled rejections/exceptions.
   // These log the error and exit gracefully instead of crashing without trace.
@@ -53,14 +53,28 @@ export async function runCli(argv: string[] = process.argv) {
   });
 
   const parseArgv = rewriteUpdateFlagArgv(normalizedArgv);
-  // Register the primary subcommand if one exists (for lazy-loading)
+  // Try to register only the specific command needed instead of all 11 groups.
+  // Falls back to full registration for unknown commands or bare `openclaw --help`.
   const primary = getPrimaryCommand(parseArgv);
+
+  let commandRegistered = false;
   if (primary) {
     const { registerSubCliByName } = await import("./program/register.subclis.js");
-    await registerSubCliByName(program, primary);
+    commandRegistered = await registerSubCliByName(program, primary);
+
+    if (!commandRegistered) {
+      const { registerCoreCommandByName } = await import("./program/register.core-lazy.js");
+      commandRegistered = await registerCoreCommandByName(program, ctx, primary, parseArgv);
+    }
   }
 
-  const shouldSkipPluginRegistration = !primary && hasHelpOrVersion(parseArgv);
+  if (!commandRegistered) {
+    const { registerProgramCommands } = await import("./program/command-registry.js");
+    registerProgramCommands(program, ctx, parseArgv);
+  }
+
+  const shouldSkipPluginRegistration =
+    (!primary && hasHelpOrVersion(parseArgv)) || (primary != null && commandRegistered);
   if (!shouldSkipPluginRegistration) {
     // Register plugin CLI commands before parsing
     const { registerPluginCliCommands } = await import("../plugins/cli.js");
