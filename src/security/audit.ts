@@ -32,6 +32,11 @@ import {
   formatPermissionRemediation,
   inspectPathPermissions,
 } from "./audit-fs.js";
+import {
+  classifyChannelWarningSeverity,
+  countBySeverity,
+  normalizeAllowFromList,
+} from "./audit-helpers.js";
 
 export type SecurityAuditSeverity = "info" | "warn" | "critical";
 
@@ -84,47 +89,6 @@ export type SecurityAuditOptions = {
   /** Dependency injection for tests (Windows ACL checks). */
   execIcacls?: ExecFn;
 };
-
-function countBySeverity(findings: SecurityAuditFinding[]): SecurityAuditSummary {
-  let critical = 0;
-  let warn = 0;
-  let info = 0;
-  for (const f of findings) {
-    if (f.severity === "critical") {
-      critical += 1;
-    } else if (f.severity === "warn") {
-      warn += 1;
-    } else {
-      info += 1;
-    }
-  }
-  return { critical, warn, info };
-}
-
-function normalizeAllowFromList(list: Array<string | number> | undefined | null): string[] {
-  if (!Array.isArray(list)) {
-    return [];
-  }
-  return list.map((v) => String(v).trim()).filter(Boolean);
-}
-
-function classifyChannelWarningSeverity(message: string): SecurityAuditSeverity {
-  const s = message.toLowerCase();
-  if (
-    s.includes("dms: open") ||
-    s.includes('grouppolicy="open"') ||
-    s.includes('dmpolicy="open"')
-  ) {
-    return "critical";
-  }
-  if (s.includes("allows any") || s.includes("anyone can dm") || s.includes("public")) {
-    return "critical";
-  }
-  if (s.includes("locked") || s.includes("disabled")) {
-    return "info";
-  }
-  return "warn";
-}
 
 async function collectFilesystemFindings(params: {
   stateDir: string;
