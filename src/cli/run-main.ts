@@ -34,6 +34,7 @@ export async function runCli(argv: string[] = process.argv) {
   assertSupportedRuntime();
 
   if (await tryRouteCli(normalizedArgv)) {
+    await flushAndExit(Number(process.exitCode ?? 0));
     return;
   }
 
@@ -69,6 +70,25 @@ export async function runCli(argv: string[] = process.argv) {
   }
 
   await program.parseAsync(parseArgv);
+
+  // Exit explicitly once the command action resolves.  Without this,
+  // eager side-effect imports (e.g. messaging-provider modules) can keep
+  // the Node event loop alive and the CLI hangs after the command finishes.
+  await flushAndExit(Number(process.exitCode ?? 0));
+}
+
+/** Drain stdout/stderr so piped output is not truncated, then exit. */
+async function flushAndExit(code: number): Promise<void> {
+  process.exitCode = code;
+  await Promise.all([
+    new Promise<void>((r) => {
+      process.stdout.write("", () => r());
+    }),
+    new Promise<void>((r) => {
+      process.stderr.write("", () => r());
+    }),
+  ]);
+  process.exit();
 }
 
 function stripWindowsNodeExec(argv: string[]): string[] {
