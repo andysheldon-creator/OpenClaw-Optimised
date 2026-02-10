@@ -1,4 +1,5 @@
 import type { OpenClawConfig } from "../config/config.js";
+import { isVerbose } from "../globals.js";
 
 export type DiagnosticSessionState = "idle" | "processing" | "waiting";
 
@@ -167,6 +168,12 @@ function getDiagnosticEventsState(): DiagnosticEventsGlobalState {
   return globalStore.__openclawDiagnosticEventsState;
 }
 
+function debugLog(message: string): void {
+  if (isVerbose()) {
+    console.log(message);
+  }
+}
+
 export function isDiagnosticsEnabled(config?: OpenClawConfig): boolean {
   return config?.diagnostics?.enabled === true;
 }
@@ -185,7 +192,7 @@ export function emitDiagnosticEvent(event: DiagnosticEventInput) {
     seq: (state.seq += 1),
     ts: Date.now(),
   } satisfies DiagnosticEventPayload;
-  console.log(
+  debugLog(
     `[diagnostic-events] emit type=${enriched.type} seq=${enriched.seq} listeners=${state.listeners.size}`,
   );
   state.dispatchDepth += 1;
@@ -194,11 +201,11 @@ export function emitDiagnosticEvent(event: DiagnosticEventInput) {
     listenerIndex += 1;
     const listenerName = listener.name || `listener_${listenerIndex}`;
     try {
-      console.log(
+      debugLog(
         `[diagnostic-events] dispatch type=${enriched.type} seq=${enriched.seq} listener=${listenerName}`,
       );
       listener(enriched);
-      console.log(
+      debugLog(
         `[diagnostic-events] dispatched type=${enriched.type} seq=${enriched.seq} listener=${listenerName}`,
       );
     } catch (err) {
@@ -221,12 +228,12 @@ export function onDiagnosticEvent(listener: (evt: DiagnosticEventPayload) => voi
   const state = getDiagnosticEventsState();
   state.listeners.add(listener);
   const listenerName = listener.name || "listener";
-  console.log(
+  debugLog(
     `[diagnostic-events] subscribe listeners=${state.listeners.size} listener=${listenerName}`,
   );
   return () => {
     state.listeners.delete(listener);
-    console.log(
+    debugLog(
       `[diagnostic-events] unsubscribe listeners=${state.listeners.size} listener=${listenerName}`,
     );
   };
@@ -234,11 +241,11 @@ export function onDiagnosticEvent(listener: (evt: DiagnosticEventPayload) => voi
 
 export function resetDiagnosticEventsForTest(): void {
   const state = getDiagnosticEventsState();
-  console.log(
+  debugLog(
     `[diagnostic-events] reset before seq=${state.seq} listeners=${state.listeners.size} depth=${state.dispatchDepth}`,
   );
   state.seq = 0;
   state.listeners.clear();
   state.dispatchDepth = 0;
-  console.log("[diagnostic-events] reset complete");
+  debugLog("[diagnostic-events] reset complete");
 }
