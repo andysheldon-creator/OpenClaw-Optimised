@@ -234,6 +234,16 @@ export async function deliverOutboundPayloads(params: {
       results.push(await handler.sendText(text));
       return;
     }
+    // Safety: if text fits within limit AND we're in length mode (default),
+    // send directly without chunking. This prevents the chunker from splitting
+    // messages that don't need it, which was causing mid-sentence truncation
+    // on Signal/TUI. (#12064)
+    // Note: newline mode is intentionally allowed to chunk even when text fits,
+    // for readability (paragraph boundaries).
+    if (text.length <= textLimit && chunkMode === "length") {
+      results.push(await handler.sendText(text));
+      return;
+    }
     if (chunkMode === "newline") {
       const mode = handler.chunkerMode ?? "text";
       const blockChunks =
@@ -257,6 +267,11 @@ export async function deliverOutboundPayloads(params: {
       return;
     }
     const chunks = handler.chunker(text, textLimit);
+    // Guard: if chunker returns empty array, send original text intact.
+    if (!chunks.length && text) {
+      results.push(await handler.sendText(text));
+      return;
+    }
     for (const chunk of chunks) {
       throwIfAborted(abortSignal);
       results.push(await handler.sendText(chunk));
