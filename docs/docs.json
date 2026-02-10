@@ -180,6 +180,10 @@
       "destination": "/gateway/sandboxing"
     },
     {
+      "source": "/vault",
+      "destination": "/gateway/vault"
+    },
+    {
       "source": "/AGENTS.default",
       "destination": "/reference/AGENTS.default"
     },
@@ -1115,7 +1119,8 @@
                     "pages": [
                       "gateway/security/index",
                       "gateway/sandboxing",
-                      "gateway/sandbox-vs-tool-policy-vs-elevated"
+                      "gateway/sandbox-vs-tool-policy-vs-elevated",
+                      "gateway/vault"
                     ]
                   },
                   {
