@@ -13,7 +13,7 @@ const ajv = new (AjvCtor as unknown as new (opts?: object) => import("ajv").defa
   coerceTypes: false,
 });
 const addFormats = ((addFormatsModule as unknown as { default?: typeof addFormatsModule })
-  .default ?? addFormatsModule) as (ajv: unknown) => void;
+  .default ?? addFormatsModule) as unknown as (ajv: unknown) => void;
 addFormats(ajv);
 
 type DeliveryPayload = {
@@ -145,7 +145,12 @@ export function validateJsonSchema(
     return { valid: false, error: `JSON parse error: ${String(err)}` };
   }
 
-  const validate = ajv.compile(schema);
+  let validate: ReturnType<typeof ajv.compile>;
+  try {
+    validate = ajv.compile(schema);
+  } catch (compileErr) {
+    return { valid: false, error: `Schema compilation error: ${String(compileErr)}` };
+  }
   if (validate(parsed)) {
     return { valid: true, data: parsed };
   }
