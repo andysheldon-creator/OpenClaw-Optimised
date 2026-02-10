@@ -221,6 +221,11 @@ function parseBinProbePayload(payloadJSON: string | null | undefined, payload?: 
     if (Array.isArray(parsed.bins)) {
       return parsed.bins.map((bin) => String(bin).trim()).filter(Boolean);
     }
+    // system.which returns an object map of bin -> resolvedPath.
+    // For eligibility we only need to know which bin names are present.
+    if (parsed.bins && typeof parsed.bins === "object") {
+      return Object.keys(parsed.bins).map((bin) => bin.trim()).filter(Boolean);
+    }
     if (typeof parsed.stdout === "string") {
       return parsed.stdout
         .split(/\r?\n/)
