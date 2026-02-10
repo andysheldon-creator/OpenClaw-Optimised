@@ -123,16 +123,14 @@ export async function createThreadDiscord(
 
   // Regular threads: create from an existing message when messageId is provided,
   // otherwise create a standard thread in the channel.
-  // NOTE: Forum channels (type 15) require content for the initial post; attempting
-  // to create a thread without content or messageId will fail at Discord's API.
-  // Provide a clear error here instead of relying on Discord's generic validation.
-  if (!payload.messageId) {
-    throw new Error(
-      "Forum channel threads require initial post content. Provide 'content' (message field) " +
-        "for forum posts, or 'messageId' to create a thread from an existing message.",
-    );
+  if (payload.messageId) {
+    const route = Routes.threads(channelId, payload.messageId);
+    return await rest.post(route, { body });
   }
-  const route = Routes.threads(channelId, payload.messageId);
+
+  // No content and no messageId — create a plain thread (works for text channels).
+  // Forum channels (type 15) would fail here at Discord's API level, which is fine.
+  const route = `/channels/${channelId}/threads`;
   return await rest.post(route, { body });
 }
 
