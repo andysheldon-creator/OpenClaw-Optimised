@@ -3,7 +3,7 @@ import { chunkText } from "../../../auto-reply/chunk.js";
 import { shouldLogVerbose } from "../../../globals.js";
 import { missingTargetError } from "../../../infra/outbound/target-errors.js";
 import { sendPollWhatsApp } from "../../../web/outbound.js";
-import { isWhatsAppGroupJid, normalizeWhatsAppTarget } from "../../../whatsapp/normalize.js";
+import { isWhatsAppGroupJid, isWhatsAppNewsletterJid, normalizeWhatsAppTarget } from "../../../whatsapp/normalize.js";
 
 export const whatsappOutbound: ChannelOutboundAdapter = {
   deliveryMode: "gateway",
@@ -34,7 +34,7 @@ export const whatsappOutbound: ChannelOutboundAdapter = {
           ),
         };
       }
-      if (isWhatsAppGroupJid(normalizedTo)) {
+      if (isWhatsAppGroupJid(normalizedTo) || isWhatsAppNewsletterJid(normalizedTo)) {
         return { ok: true, to: normalizedTo };
       }
       if (mode === "implicit" || mode === "heartbeat") {
