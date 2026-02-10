@@ -1,9 +1,9 @@
-import type { NormalizedChatType } from "../channels/chat-type.js";
+import type { ChatType } from "../channels/chat-type.js";
 
 export type ReplyMode = "text" | "command";
 export type TypingMode = "never" | "instant" | "thinking" | "message";
 export type SessionScope = "per-sender" | "global";
-export type DmScope = "main" | "per-peer" | "per-channel-peer";
+export type DmScope = "main" | "per-peer" | "per-channel-peer" | "per-account-channel-peer";
 export type ReplyToMode = "off" | "first" | "all";
 export type GroupPolicy = "open" | "disabled" | "allowlist";
 export type DmPolicy = "pairing" | "allowlist" | "open" | "disabled";
@@ -50,7 +50,7 @@ export type HumanDelayConfig = {
 export type SessionSendPolicyAction = "allow" | "deny";
 export type SessionSendPolicyMatch = {
   channel?: string;
-  chatType?: NormalizedChatType;
+  chatType?: ChatType;
   keyPrefix?: string;
 };
 export type SessionSendPolicyRule = {
@@ -71,6 +71,8 @@ export type SessionResetConfig = {
   idleMinutes?: number;
 };
 export type SessionResetByTypeConfig = {
+  direct?: SessionResetConfig;
+  /** @deprecated Use `direct` instead. Kept for backward compatibility. */
   dm?: SessionResetConfig;
   group?: SessionResetConfig;
   thread?: SessionResetConfig;

@@ -1,7 +1,7 @@
 import type { IncomingMessage } from "node:http";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
-import type { ClawdbotConfig } from "../config/config.js";
 import type { ChannelPlugin } from "../channels/plugins/types.js";
+import type { OpenClawConfig } from "../config/config.js";
 import { setActivePluginRegistry } from "../plugins/runtime.js";
 import { createIMessageTestPlugin, createTestRegistry } from "../test-utils/channel-plugins.js";
 import {
@@ -26,7 +26,7 @@ describe("gateway hooks helpers", () => {
         token: "secret",
         path: "hooks///",
       },
-    } as ClawdbotConfig;
+    } as OpenClawConfig;
     const resolved = resolveHooksConfig(base);
     expect(resolved?.basePath).toBe("/hooks");
     expect(resolved?.token).toBe("secret");
@@ -35,27 +35,29 @@ describe("gateway hooks helpers", () => {
   test("resolveHooksConfig rejects root path", () => {
     const cfg = {
       hooks: { enabled: true, token: "x", path: "/" },
-    } as ClawdbotConfig;
+    } as OpenClawConfig;
     expect(() => resolveHooksConfig(cfg)).toThrow("hooks.path may not be '/'");
   });
 
-  test("extractHookToken prefers bearer > header > query", () => {
+  test("extractHookToken prefers bearer > header", () => {
     const req = {
       headers: {
         authorization: "Bearer top",
-        "x-clawdbot-token": "header",
+        "x-openclaw-token": "header",
       },
     } as unknown as IncomingMessage;
-    const url = new URL("http://localhost/hooks/wake?token=query");
-    expect(extractHookToken(req, url)).toBe("top");
+    const result1 = extractHookToken(req);
+    expect(result1).toBe("top");
 
     const req2 = {
-      headers: { "x-clawdbot-token": "header" },
+      headers: { "x-openclaw-token": "header" },
     } as unknown as IncomingMessage;
-    expect(extractHookToken(req2, url)).toBe("header");
+    const result2 = extractHookToken(req2);
+    expect(result2).toBe("header");
 
     const req3 = { headers: {} } as unknown as IncomingMessage;
-    expect(extractHookToken(req3, url)).toBe("query");
+    const result3 = extractHookToken(req3);
+    expect(result3).toBeUndefined();
   });
 
   test("normalizeWakePayload trims + validates", () => {

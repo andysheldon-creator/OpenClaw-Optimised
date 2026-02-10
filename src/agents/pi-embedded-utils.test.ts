@@ -1,6 +1,6 @@
 import type { AssistantMessage } from "@mariozechner/pi-ai";
 import { describe, expect, it } from "vitest";
-import { extractAssistantText } from "./pi-embedded-utils.js";
+import { extractAssistantText, formatReasoningMessage } from "./pi-embedded-utils.js";
 
 describe("extractAssistantText", () => {
   it("strips Minimax tool invocation XML from text", () => {
@@ -73,6 +73,19 @@ describe("extractAssistantText", () => {
 
     const result = extractAssistantText(msg);
     expect(result).toBe("This is a normal response without any tool calls.");
+  });
+
+  it("sanitizes HTTP-ish error text only when stopReason is error", () => {
+    const msg: AssistantMessage = {
+      role: "assistant",
+      stopReason: "error",
+      errorMessage: "500 Internal Server Error",
+      content: [{ type: "text", text: "500 Internal Server Error" }],
+      timestamp: Date.now(),
+    };
+
+    const result = extractAssistantText(msg);
+    expect(result).toBe("HTTP 500: Internal Server Error");
   });
 
   it("strips Minimax tool invocations with extra attributes", () => {
@@ -506,5 +519,43 @@ File contents here`,
 
     const result = extractAssistantText(msg);
     expect(result).toBe("StartMiddleEnd");
+  });
+});
+
+describe("formatReasoningMessage", () => {
+  it("returns empty string for empty input", () => {
+    expect(formatReasoningMessage("")).toBe("");
+  });
+
+  it("returns empty string for whitespace-only input", () => {
+    expect(formatReasoningMessage("   \n  \t  ")).toBe("");
+  });
+
+  it("wraps single line in italics", () => {
+    expect(formatReasoningMessage("Single line of reasoning")).toBe(
+      "Reasoning:\n_Single line of reasoning_",
+    );
+  });
+
+  it("wraps each line separately for multiline text (Telegram fix)", () => {
+    expect(formatReasoningMessage("Line one\nLine two\nLine three")).toBe(
+      "Reasoning:\n_Line one_\n_Line two_\n_Line three_",
+    );
+  });
+
+  it("preserves empty lines between reasoning text", () => {
+    expect(formatReasoningMessage("First block\n\nSecond block")).toBe(
+      "Reasoning:\n_First block_\n\n_Second block_",
+    );
+  });
+
+  it("handles mixed empty and non-empty lines", () => {
+    expect(formatReasoningMessage("A\n\nB\nC")).toBe("Reasoning:\n_A_\n\n_B_\n_C_");
+  });
+
+  it("trims leading/trailing whitespace", () => {
+    expect(formatReasoningMessage("  \n  Reasoning here  \n  ")).toBe(
+      "Reasoning:\n_Reasoning here_",
+    );
   });
 });
