@@ -74,6 +74,9 @@ export function createDirectRoomTracker(client: MatrixClient, opts: DirectRoomTr
       if (aliasState?.alias && typeof aliasState.alias === "string" && aliasState.alias.trim()) {
         return true;
       }
+      if (Array.isArray(aliasState?.alt_aliases) && aliasState.alt_aliases.length > 0) {
+        return true;
+      }
     } catch {
       // No alias set
     }
