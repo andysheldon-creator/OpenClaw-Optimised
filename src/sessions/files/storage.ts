@@ -1,7 +1,10 @@
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
+import type { InputFileLimits } from "../../media/input-files.js";
 import type { SessionFileType, SessionFileMetadata } from "./types.js";
+import { logVerbose, shouldLogVerbose } from "../../globals.js";
+import { extractPdfContent } from "../../media/input-files.js";
 import { parseCsv } from "./csv-parser.js";
 import { loadIndex, addFileToIndex, removeFileFromIndex } from "./index.js";
 import { resolveSessionFilesDir } from "./paths.js";
@@ -28,8 +31,30 @@ export async function saveFile(params: {
   // Save raw content (no conversion)
   let content: string;
   if (type === "pdf") {
-    // PDF handled separately (will implement in next task)
-    content = buffer.toString("utf-8"); // Temporary, will fix in Task 2
+    // PDF still needs extraction (can't store as raw binary)
+    const limits: InputFileLimits = {
+      allowUrl: false,
+      allowedMimes: new Set(["application/pdf"]),
+      maxBytes: 50 * 1024 * 1024, // 50MB default
+      maxChars: 1_000_000, // 1M chars default
+      maxRedirects: 5,
+      timeoutMs: 30_000,
+      pdf: {
+        maxPages: 100,
+        maxPixels: 10_000_000,
+        minTextChars: 10,
+      },
+    };
+    try {
+      const extracted = await extractPdfContent({ buffer, limits });
+      content = extracted.text || "";
+    } catch (err) {
+      // If PDF extraction fails, log error and save empty string
+      if (shouldLogVerbose()) {
+        logVerbose(`PDF extraction failed for ${filename}: ${String(err)}`);
+      }
+      content = ""; // Empty string if extraction fails
+    }
   } else {
     // All other types: save raw content
     content = buffer.toString("utf-8");
