@@ -304,11 +304,13 @@ export class MemoryIndexManager implements MemorySearchManager {
       return vectorResults.filter((entry) => entry.score >= minScore).slice(0, maxResults);
     }
 
-    const merged = this.mergeHybridResults({
+    const merged = await this.mergeHybridResults({
       vector: vectorResults,
       keyword: keywordResults,
       vectorWeight: hybrid.vectorWeight,
       textWeight: hybrid.textWeight,
+      mmr: hybrid.mmr,
+      temporalDecay: hybrid.temporalDecay,
     });
 
     return merged.filter((entry) => entry.score >= minScore).slice(0, maxResults);
@@ -363,8 +365,10 @@ export class MemoryIndexManager implements MemorySearchManager {
     keyword: Array<MemorySearchResult & { id: string; textScore: number }>;
     vectorWeight: number;
     textWeight: number;
-  }): MemorySearchResult[] {
-    const merged = mergeHybridResults({
+    mmr?: { enabled: boolean; lambda: number };
+    temporalDecay?: { enabled: boolean; halfLifeDays: number };
+  }): Promise<MemorySearchResult[]> {
+    return mergeHybridResults({
       vector: params.vector.map((r) => ({
         id: r.id,
         path: r.path,
@@ -385,8 +389,10 @@ export class MemoryIndexManager implements MemorySearchManager {
       })),
       vectorWeight: params.vectorWeight,
       textWeight: params.textWeight,
-    });
-    return merged.map((entry) => entry as MemorySearchResult);
+      mmr: params.mmr,
+      temporalDecay: params.temporalDecay,
+      workspaceDir: this.workspaceDir,
+    }).then((entries) => entries.map((entry) => entry as MemorySearchResult));
   }
 
   async sync(params?: {
