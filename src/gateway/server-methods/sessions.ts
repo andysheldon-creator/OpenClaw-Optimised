@@ -28,6 +28,7 @@ import {
 } from "../protocol/index.js";
 import {
   archiveFileOnDisk,
+  findStoreKeysIgnoreCase,
   listSessionsFromStore,
   loadCombinedSessionStoreForGateway,
   loadSessionEntry,
@@ -104,12 +105,18 @@ export const sessionsHandlers: GatewayRequestHandlers = {
 
     for (const key of keys) {
       try {
-        const target = resolveGatewaySessionStoreTarget({ cfg, key });
+        const target = resolveGatewaySessionStoreTarget({ cfg, key, scanLegacyKeys: false });
         const store = storeCache.get(target.storePath) ?? loadSessionStore(target.storePath);
         storeCache.set(target.storePath, store);
         const entry =
+          store[target.canonicalKey] ??
           target.storeKeys.map((candidate) => store[candidate]).find(Boolean) ??
-          store[target.canonicalKey];
+          // Case-insensitive fallback for legacy mixed-case store keys (store already loaded).
+          (() => {
+            const lowered = target.canonicalKey.toLowerCase();
+            const legacyHit = Object.keys(store).find((k) => k.toLowerCase() === lowered);
+            return legacyHit ? store[legacyHit] : undefined;
+          })();
         if (!entry?.sessionId) {
           previews.push({ key, status: "missing", items: [] });
           continue;
@@ -134,7 +141,7 @@ export const sessionsHandlers: GatewayRequestHandlers = {
 
     respond(true, { ts: Date.now(), previews } satisfies SessionsPreviewResult, undefined);
   },
-  "sessions.resolve": ({ params, respond }) => {
+  "sessions.resolve": async ({ params, respond }) => {
     if (!validateSessionsResolveParams(params)) {
       respond(
         false,
@@ -149,7 +156,7 @@ export const sessionsHandlers: GatewayRequestHandlers = {
     const p = params;
     const cfg = loadConfig();
 
-    const resolved = resolveSessionKeyFromResolveParams({ cfg, p });
+    const resolved = await resolveSessionKeyFromResolveParams({ cfg, p });
     if (!resolved.ok) {
       respond(false, undefined, resolved.error);
       return;
@@ -180,10 +187,17 @@ export const sessionsHandlers: GatewayRequestHandlers = {
     const storePath = target.storePath;
     const applied = await updateSessionStore(storePath, async (store) => {
       const primaryKey = target.storeKeys[0] ?? key;
-      const existingKey = target.storeKeys.find((candidate) => store[candidate]);
-      if (existingKey && existingKey !== primaryKey && !store[primaryKey]) {
-        store[primaryKey] = store[existingKey];
-        delete store[existingKey];
+      // Migrate first legacy entry to canonical key, then clean up all case variants.
+      if (!store[primaryKey]) {
+        const existingKey = target.storeKeys.find((candidate) => store[candidate]);
+        if (existingKey) {
+          store[primaryKey] = store[existingKey];
+        }
+      }
+      for (const variant of findStoreKeysIgnoreCase(store, primaryKey)) {
+        if (variant !== primaryKey) {
+          delete store[variant];
+        }
       }
       return await applySessionsPatchToStore({
         cfg,
@@ -236,10 +250,17 @@ export const sessionsHandlers: GatewayRequestHandlers = {
     const storePath = target.storePath;
     const next = await updateSessionStore(storePath, (store) => {
       const primaryKey = target.storeKeys[0] ?? key;
-      const existingKey = target.storeKeys.find((candidate) => store[candidate]);
-      if (existingKey && existingKey !== primaryKey && !store[primaryKey]) {
-        store[primaryKey] = store[existingKey];
-        delete store[existingKey];
+      // Migrate first legacy entry to canonical key, then clean up all case variants.
+      if (!store[primaryKey]) {
+        const existingKey = target.storeKeys.find((candidate) => store[candidate]);
+        if (existingKey) {
+          store[primaryKey] = store[existingKey];
+        }
+      }
+      for (const variant of findStoreKeysIgnoreCase(store, primaryKey)) {
+        if (variant !== primaryKey) {
+          delete store[variant];
+        }
       }
       const entry = store[primaryKey];
       const now = Date.now();
@@ -331,10 +352,17 @@ export const sessionsHandlers: GatewayRequestHandlers = {
     }
     await updateSessionStore(storePath, (store) => {
       const primaryKey = target.storeKeys[0] ?? key;
-      const existingKey = target.storeKeys.find((candidate) => store[candidate]);
-      if (existingKey && existingKey !== primaryKey && !store[primaryKey]) {
-        store[primaryKey] = store[existingKey];
-        delete store[existingKey];
+      // Migrate first legacy entry to canonical key, then clean up all case variants.
+      if (!store[primaryKey]) {
+        const existingKey = target.storeKeys.find((candidate) => store[candidate]);
+        if (existingKey) {
+          store[primaryKey] = store[existingKey];
+        }
+      }
+      for (const variant of findStoreKeysIgnoreCase(store, primaryKey)) {
+        if (variant !== primaryKey) {
+          delete store[variant];
+        }
       }
       if (store[primaryKey]) {
         delete store[primaryKey];
@@ -392,10 +420,17 @@ export const sessionsHandlers: GatewayRequestHandlers = {
     // Lock + read in a short critical section; transcript work happens outside.
     const compactTarget = await updateSessionStore(storePath, (store) => {
       const primaryKey = target.storeKeys[0] ?? key;
-      const existingKey = target.storeKeys.find((candidate) => store[candidate]);
-      if (existingKey && existingKey !== primaryKey && !store[primaryKey]) {
-        store[primaryKey] = store[existingKey];
-        delete store[existingKey];
+      // Migrate first legacy entry to canonical key, then clean up all case variants.
+      if (!store[primaryKey]) {
+        const existingKey = target.storeKeys.find((candidate) => store[candidate]);
+        if (existingKey) {
+          store[primaryKey] = store[existingKey];
+        }
+      }
+      for (const variant of findStoreKeysIgnoreCase(store, primaryKey)) {
+        if (variant !== primaryKey) {
+          delete store[variant];
+        }
       }
       return { entry: store[primaryKey], primaryKey };
     });
