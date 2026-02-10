@@ -101,7 +101,8 @@ async function runToolResultReceivedHook(args: {
       };
     }
 
-    if (hookResult?.result !== undefined) {
+    // Check for property existence rather than value to allow null results
+    if (hookResult && "result" in hookResult) {
       return { blocked: false, result: hookResult.result };
     }
   } catch (err) {

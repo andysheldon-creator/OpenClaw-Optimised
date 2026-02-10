@@ -151,8 +151,9 @@ export function createHookRunner(registry: PluginRegistry, options: HookRunnerOp
 
     for (const hook of hooks) {
       try {
+        // Support both sync and async handlers
         const handlerResult = await (
-          hook.handler as (event: unknown, ctx: unknown) => Promise<TResult | void>
+          hook.handler as (event: unknown, ctx: unknown) => Promise<TResult | void> | TResult | void
         )(event, ctx);
 
         if (handlerResult !== undefined && handlerResult !== null) {
