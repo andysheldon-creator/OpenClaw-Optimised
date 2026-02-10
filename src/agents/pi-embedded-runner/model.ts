@@ -165,6 +165,24 @@ export function resolveModel(
   const authStorage = discoverAuthStorage(resolvedAgentDir);
   const modelRegistry = discoverModels(authStorage, resolvedAgentDir);
   const model = modelRegistry.find(provider, modelId) as Model<Api> | null;
+
+  // Check if this is an openai-codex model that needs API format override
+  const normalizedProvider = normalizeProviderId(provider);
+  const trimmedModelId = modelId.trim().toLowerCase();
+  if (
+    model &&
+    normalizedProvider === "openai-codex" &&
+    (trimmedModelId === "gpt-5.3-codex" || trimmedModelId === "gpt-5.2-codex")
+  ) {
+    // Force correct API format for openai-codex models regardless of registry entry
+    const fixedModel = {
+      ...model,
+      api: "openai-codex-responses" as Api,
+      baseUrl: "https://chatgpt.com/backend-api",
+    };
+    return { model: normalizeModelCompat(fixedModel as Model<Api>), authStorage, modelRegistry };
+  }
+
   if (!model) {
     const providers = cfg?.models?.providers ?? {};
     const inlineModels = buildInlineProviderModels(providers);

@@ -65,6 +65,7 @@ export async function deliverAgentCommandResult(params: {
   sessionEntry: SessionEntry | undefined;
   result: RunResult;
   payloads: RunResult["payloads"];
+  workspaceDir?: string;
 }) {
   const { cfg, deps, runtime, opts, sessionEntry, payloads, result } = params;
   const deliver = opts.deliver === true;
@@ -134,7 +135,7 @@ export async function deliverAgentCommandResult(params: {
     }
   }
 
-  const normalizedPayloads = normalizeOutboundPayloadsForJson(payloads ?? [], params.runtime.cwd);
+  const normalizedPayloads = normalizeOutboundPayloadsForJson(payloads ?? [], params.workspaceDir);
   if (opts.json) {
     runtime.log(
       JSON.stringify(
@@ -156,7 +157,7 @@ export async function deliverAgentCommandResult(params: {
     return { payloads: [], meta: result.meta };
   }
 
-  const deliveryPayloads = normalizeOutboundPayloads(payloads);
+  const deliveryPayloads = normalizeOutboundPayloads(payloads, params.workspaceDir);
   const logPayload = (payload: NormalizedOutboundPayload) => {
     if (opts.json) {
       return;
@@ -189,6 +190,7 @@ export async function deliverAgentCommandResult(params: {
         bestEffort: bestEffortDeliver,
         onError: (err) => logDeliveryError(err),
         onPayload: logPayload,
+        workspaceDir: params.workspaceDir,
         deps: createOutboundSendDeps(deps),
       });
     }
