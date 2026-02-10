@@ -88,11 +88,13 @@ export const AgentDefaultsSchema = z
       })
       .strict()
       .optional(),
+    excludeTools: z.array(z.string()).optional(),
     compaction: z
       .object({
         mode: z.union([z.literal("default"), z.literal("safeguard")]).optional(),
         reserveTokensFloor: z.number().int().nonnegative().optional(),
         maxHistoryShare: z.number().min(0.1).max(0.9).optional(),
+        proactiveCompactionRatio: z.number().min(0.1).max(0.5).optional(),
         memoryFlush: z
           .object({
             enabled: z.boolean().optional(),

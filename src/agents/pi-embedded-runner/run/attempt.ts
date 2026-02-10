@@ -41,6 +41,7 @@ import { subscribeEmbeddedPiSession } from "../../pi-embedded-subscribe.js";
 import {
   ensurePiCompactionReserveTokens,
   resolveCompactionReserveTokensFloor,
+  resolveProactiveCompactionRatio,
 } from "../../pi-settings.js";
 import { toClientToolDefinitions } from "../../pi-tool-definition-adapter.js";
 import { createOpenClawCodingTools } from "../../pi-tools.js";
@@ -442,6 +443,8 @@ export async function runEmbeddedAttempt(
       ensurePiCompactionReserveTokens({
         settingsManager,
         minReserveTokens: resolveCompactionReserveTokensFloor(params.config),
+        contextWindowTokens: params.model?.contextWindow,
+        proactiveCompactionRatio: resolveProactiveCompactionRatio(params.config),
       });
 
       // Call for side effects (sets compaction/pruning runtime state)
@@ -456,6 +459,7 @@ export async function runEmbeddedAttempt(
       const { builtInTools, customTools } = splitSdkTools({
         tools,
         sandboxEnabled: !!sandbox?.enabled,
+        excludeTools: params.config?.agents?.defaults?.excludeTools,
       });
 
       // Add client tools (OpenResponses hosted tools) to customTools

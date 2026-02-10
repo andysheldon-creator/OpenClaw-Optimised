@@ -82,6 +82,11 @@ export function stripThoughtSignatures<T>(
 }
 
 export const DEFAULT_BOOTSTRAP_MAX_CHARS = 20_000;
+/**
+ * Aggregate limit across ALL bootstrap context files combined (~8K tokens).
+ * Prevents workspaces with many context files from consuming excessive tokens.
+ */
+export const DEFAULT_BOOTSTRAP_AGGREGATE_MAX_CHARS = 32_000;
 const BOOTSTRAP_HEAD_RATIO = 0.7;
 const BOOTSTRAP_TAIL_RATIO = 0.2;
 
@@ -159,21 +164,47 @@ export async function ensureSessionHeader(params: {
   await fs.writeFile(file, `${JSON.stringify(entry)}\n`, "utf-8");
 }
 
+export function resolveBootstrapAggregateMaxChars(cfg?: OpenClawConfig): number {
+  const raw = (cfg?.agents?.defaults as Record<string, unknown> | undefined)
+    ?.bootstrapAggregateMaxChars;
+  if (typeof raw === "number" && Number.isFinite(raw) && raw > 0) {
+    return Math.floor(raw);
+  }
+  return DEFAULT_BOOTSTRAP_AGGREGATE_MAX_CHARS;
+}
+
 export function buildBootstrapContextFiles(
   files: WorkspaceBootstrapFile[],
-  opts?: { warn?: (message: string) => void; maxChars?: number },
+  opts?: {
+    warn?: (message: string) => void;
+    maxChars?: number;
+    aggregateMaxChars?: number;
+  },
 ): EmbeddedContextFile[] {
   const maxChars = opts?.maxChars ?? DEFAULT_BOOTSTRAP_MAX_CHARS;
+  const aggregateMax = opts?.aggregateMaxChars ?? DEFAULT_BOOTSTRAP_AGGREGATE_MAX_CHARS;
   const result: EmbeddedContextFile[] = [];
+  let totalChars = 0;
   for (const file of files) {
     if (file.missing) {
+      const missingContent = `[MISSING] Expected at: ${file.path}`;
+      totalChars += missingContent.length;
       result.push({
         path: file.name,
-        content: `[MISSING] Expected at: ${file.path}`,
+        content: missingContent,
       });
       continue;
     }
-    const trimmed = trimBootstrapContent(file.content ?? "", file.name, maxChars);
+    // Compute remaining budget: apply both per-file and aggregate limits
+    const remainingBudget = Math.max(0, aggregateMax - totalChars);
+    if (remainingBudget === 0) {
+      opts?.warn?.(
+        `workspace bootstrap file ${file.name} skipped: aggregate context budget exhausted (${aggregateMax} chars)`,
+      );
+      continue;
+    }
+    const effectiveMaxChars = Math.min(maxChars, remainingBudget);
+    const trimmed = trimBootstrapContent(file.content ?? "", file.name, effectiveMaxChars);
     if (!trimmed.content) {
       continue;
     }
@@ -182,6 +213,7 @@ export function buildBootstrapContextFiles(
         `workspace bootstrap file ${file.name} is ${trimmed.originalLength} chars (limit ${trimmed.maxChars}); truncating in injected context`,
       );
     }
+    totalChars += trimmed.content.length;
     result.push({
       path: file.name,
       content: trimmed.content,

@@ -39,6 +39,7 @@ import {
 import {
   ensurePiCompactionReserveTokens,
   resolveCompactionReserveTokensFloor,
+  resolveProactiveCompactionRatio,
 } from "../pi-settings.js";
 import { createOpenClawCodingTools } from "../pi-tools.js";
 import { resolveSandboxContext } from "../sandbox.js";
@@ -384,6 +385,8 @@ export async function compactEmbeddedPiSessionDirect(
       ensurePiCompactionReserveTokens({
         settingsManager,
         minReserveTokens: resolveCompactionReserveTokensFloor(params.config),
+        contextWindowTokens: model?.contextWindow,
+        proactiveCompactionRatio: resolveProactiveCompactionRatio(params.config),
       });
       // Call for side effects (sets compaction/pruning runtime state)
       buildEmbeddedExtensionPaths({
@@ -397,6 +400,7 @@ export async function compactEmbeddedPiSessionDirect(
       const { builtInTools, customTools } = splitSdkTools({
         tools,
         sandboxEnabled: !!sandbox?.enabled,
+        excludeTools: params.config?.agents?.defaults?.excludeTools,
       });
 
       const { session } = await createAgentSession({

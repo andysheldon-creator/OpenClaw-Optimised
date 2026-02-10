@@ -99,8 +99,7 @@ describe("buildAgentSystemPrompt", () => {
     });
 
     expect(prompt).toContain("## OpenClaw CLI Quick Reference");
-    expect(prompt).toContain("openclaw gateway restart");
-    expect(prompt).toContain("Do not invent commands");
+    expect(prompt).toContain("openclaw gateway status|start|stop|restart");
   });
 
   it("lists available tools when provided", () => {
@@ -109,7 +108,7 @@ describe("buildAgentSystemPrompt", () => {
       toolNames: ["exec", "sessions_list", "sessions_history", "sessions_send"],
     });
 
-    expect(prompt).toContain("Tool availability (filtered by policy):");
+    expect(prompt).toContain("Tool availability (filtered by policy)");
     expect(prompt).toContain("sessions_list");
     expect(prompt).toContain("sessions_history");
     expect(prompt).toContain("sessions_send");
@@ -124,8 +123,8 @@ describe("buildAgentSystemPrompt", () => {
       docsPath: "/tmp/openclaw/docs",
     });
 
-    expect(prompt).toContain("- Read: Read file contents");
-    expect(prompt).toContain("- Exec: Run shell commands");
+    expect(prompt).toContain("- Read\n");
+    expect(prompt).toContain("- Exec\n");
     expect(prompt).toContain(
       "- If exactly one skill clearly applies: read its SKILL.md at <location> with `Read`, then follow it.",
     );
@@ -237,7 +236,7 @@ describe("buildAgentSystemPrompt", () => {
     });
 
     expect(prompt).toContain("## Model Aliases");
-    expect(prompt).toContain("Prefer aliases when specifying model overrides");
+    expect(prompt).toContain("Prefer aliases for model overrides");
     expect(prompt).toContain("- Opus: anthropic/claude-opus-4-5");
   });
 
@@ -310,9 +309,7 @@ describe("buildAgentSystemPrompt", () => {
       ],
     });
 
-    expect(prompt).toContain(
-      "If SOUL.md is present, embody its persona and tone. Avoid stiff, generic replies; follow its guidance unless higher-priority instructions override it.",
-    );
+    expect(prompt).toContain("If SOUL.md is present, embody its persona and tone.");
   });
 
   it("summarizes the message tool when available", () => {
@@ -321,7 +318,7 @@ describe("buildAgentSystemPrompt", () => {
       toolNames: ["message"],
     });
 
-    expect(prompt).toContain("message: Send messages and channel actions");
+    expect(prompt).toContain("- message");
     expect(prompt).toContain("### message tool");
     expect(prompt).toContain("respond with ONLY: NO_REPLY");
   });
@@ -407,10 +404,10 @@ describe("buildAgentSystemPrompt", () => {
       },
     });
 
-    expect(prompt).toContain("You are running in a sandboxed runtime");
+    expect(prompt).toContain("sandboxed runtime");
     expect(prompt).toContain("Sub-agents stay sandboxed");
-    expect(prompt).toContain("User can toggle with /elevated on|off|ask|full.");
-    expect(prompt).toContain("Current elevated level: on");
+    expect(prompt).toContain("Elevated exec available");
+    expect(prompt).toContain("Current: on");
   });
 
   it("includes reaction guidance when provided", () => {
@@ -423,6 +420,6 @@ describe("buildAgentSystemPrompt", () => {
     });
 
     expect(prompt).toContain("## Reactions");
-    expect(prompt).toContain("Reactions are enabled for Telegram in MINIMAL mode.");
+    expect(prompt).toContain("Reactions enabled for Telegram (MINIMAL)");
   });
 });
