@@ -1,8 +1,6 @@
 {
   "id": "google-drive",
-  "configSchema": {
-    "type": "object",
-    "additionalProperties": false,
-    "properties": {}
-  }
+  "name": "Google Drive",
+  "description": "Browse and download Google Drive files, read Google Docs, and read Google Sheets ranges.",
+  "configSchema": { "type": "object", "additionalProperties": false, "properties": {} }
 }

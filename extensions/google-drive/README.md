@@ -1,6 +1,6 @@
 # Google Drive Plugin
 
-OpenClaw plugin for browsing Google Drive, downloading files, and reading Google Docs.
+OpenClaw plugin for browsing Google Drive, downloading files, reading Google Docs, and reading Google Sheets.
 
 ## Features
 
@@ -8,6 +8,7 @@ OpenClaw plugin for browsing Google Drive, downloading files, and reading Google
 - **Get file metadata**: Retrieve detailed information about files
 - **Download files**: Download regular files or export Google Workspace files (Docs, Sheets, Slides) to PDF, DOCX, etc.
 - **Read Google Docs**: Extract content from Google Docs as markdown or plain text
+- **Read Google Sheets**: Read cell ranges from spreadsheets via the Sheets API (A1 notation)
 
 ## Setup
 
@@ -78,7 +79,7 @@ openclaw models auth login --provider google-drive
 **Local environment:**
 
 1. Browser will open automatically for Google authentication
-2. Request access to Google Drive (read-only) and Google Docs (read-only)
+2. Request access to Google Drive (read-only), Google Docs (read-only), and Google Sheets (read-only)
 3. Store the credentials in `~/.openclaw/agents/<agentId>/agent/auth-profiles.json`
 
 **Fly.io / Remote environment:**
@@ -122,15 +123,22 @@ Or enable for all agents:
 
 ### List Files
 
+Listing works for **My Drive** and **Shared Drives**. Use `driveId` when listing a Shared Drive (or a folder inside one).
+
 ```json
 {
   "action": "list",
-  "folderId": "root", // Optional: folder ID or "root" for root folder
-  "query": "name contains 'report'", // Optional: search query
-  "maxResults": 100, // Optional: max results (default: 100)
-  "pageToken": "..." // Optional: for pagination
+  "folderId": "root",
+  "driveId": "0ABC...",
+  "query": "name contains 'report'",
+  "maxResults": 100,
+  "pageToken": "..."
 }
 ```
+
+- **folderId**: Folder ID to list, or `"root"` for the root of My Drive (or the Shared Drive when `driveId` is set).
+- **driveId**: Optional. Shared Drive ID. When set, listing is scoped to that drive; use with `folderId` to list a folder inside it, or omit `folderId`/use `"root"` to list the Shared Drive root.
+- **query**, **maxResults**, **pageToken**: Optional (search, limit, pagination).
 
 ### Get File Metadata
 
@@ -165,9 +173,21 @@ Supported export formats for Google Workspace files:
 {
   "action": "read_docs",
   "fileId": "1abc123...",
-  "format": "markdown" // Optional: "markdown" (default) or "text"
+  "format": "markdown"
 }
 ```
+
+### Read Google Sheets
+
+```json
+{
+  "action": "read_sheets",
+  "spreadsheetId": "1abc123...",
+  "range": "Sheet1!A1:D10"
+}
+```
+
+Use A1 notation for `range` (e.g. `Sheet1!A1:Z`, `A1:D10`). Returns `values` (array of rows) and `range`.
 
 ## Examples
 
@@ -209,12 +229,23 @@ Supported export formats for Google Workspace files:
 }
 ```
 
+### Read a Google Sheets range
+
+```json
+{
+  "action": "read_sheets",
+  "spreadsheetId": "1abc123...",
+  "range": "Sheet1!A1:D10"
+}
+```
+
 ## Scopes
 
 The plugin requests the following OAuth scopes:
 
 - `https://www.googleapis.com/auth/drive.readonly` - Read-only access to Google Drive
 - `https://www.googleapis.com/auth/documents.readonly` - Read-only access to Google Docs
+- `https://www.googleapis.com/auth/spreadsheets.readonly` - Read-only access to Google Sheets
 
 ## Troubleshooting
 

@@ -1,7 +1,7 @@
 import type { drive_v3 } from "googleapis";
 import { createGoogleDriveClient } from "./client.js";
 // Dynamic type import for OAuthCredentials (not in plugin SDK)
-type OAuthCredentials = import("../../src/agents/auth-profiles/types.js").OAuthCredentials;
+type OAuthCredentials = import("../../../src/agents/auth-profiles/types.js").OAuthCredentials;
 
 export async function getGoogleDriveFile(params: {
   credentials: OAuthCredentials;
@@ -26,6 +26,7 @@ export async function getGoogleDriveFile(params: {
     fileId: params.fileId,
     fields:
       "id, name, mimeType, size, modifiedTime, createdTime, webViewLink, webContentLink, parents, capabilities",
+    supportsAllDrives: true,
   });
 
   const file = response.data;

@@ -3,7 +3,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
 // Dynamic type import for OAuthCredentials (not in plugin SDK)
-type OAuthCredentials = import("../../src/agents/auth-profiles/types.js").OAuthCredentials;
+type OAuthCredentials = import("../../../src/agents/auth-profiles/types.js").OAuthCredentials;
 
 const CLIENT_ID_KEY = "GOOGLE_CLIENT_ID";
 const CLIENT_SECRET_KEY = "GOOGLE_CLIENT_SECRET";
@@ -17,6 +17,7 @@ const USERINFO_URL = "https://www.googleapis.com/oauth2/v1/userinfo?alt=json";
 const SCOPES = [
   "https://www.googleapis.com/auth/drive.readonly",
   "https://www.googleapis.com/auth/documents.readonly",
+  "https://www.googleapis.com/auth/spreadsheets.readonly",
 ];
 
 export type GoogleDriveOAuthCredentials = {

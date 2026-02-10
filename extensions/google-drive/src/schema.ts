@@ -1,10 +1,18 @@
 import { Type, type Static } from "@sinclair/typebox";
+import { stringEnum } from "openclaw/plugin-sdk";
 
-export const GoogleDriveListSchema = Type.Object({
-  action: Type.Literal("list"),
+const GOOGLE_DRIVE_ACTIONS = ["list", "get", "download", "read_docs", "read_sheets"] as const;
+
+// Flattened object schema (no Type.Union) so providers that reject anyOf accept the tool.
+// Action determines which optional fields are required; runtime validates.
+export const GoogleDriveSchema = Type.Object({
+  action: stringEnum(GOOGLE_DRIVE_ACTIONS, {
+    description: "Action: list (browse), get (metadata), download, read_docs, read_sheets",
+  }),
+  // list
   folderId: Type.Optional(
     Type.String({
-      description: "Folder ID to list (omit for root directory). Use 'root' for root folder.",
+      description: "Folder ID to list (omit for root). Use 'root' for root folder.",
     }),
   ),
   query: Type.Optional(
@@ -14,7 +22,7 @@ export const GoogleDriveListSchema = Type.Object({
   ),
   maxResults: Type.Optional(
     Type.Number({
-      description: "Maximum number of results to return (default: 100, max: 1000).",
+      description: "Max results to return (default: 100, max: 1000).",
       minimum: 1,
       maximum: 1000,
       default: 100,
@@ -25,52 +33,55 @@ export const GoogleDriveListSchema = Type.Object({
       description: "Page token for pagination (from previous list response).",
     }),
   ),
-});
-
-export const GoogleDriveGetSchema = Type.Object({
-  action: Type.Literal("get"),
-  fileId: Type.String({
-    description: "File ID to get metadata for.",
-  }),
-});
-
-export const GoogleDriveDownloadSchema = Type.Object({
-  action: Type.Literal("download"),
-  fileId: Type.String({
-    description: "File ID to download.",
-  }),
+  driveId: Type.Optional(
+    Type.String({
+      description:
+        "Shared Drive ID when listing a Shared Drive (or use with folderId for a folder inside that drive).",
+    }),
+  ),
+  debug: Type.Optional(
+    Type.Boolean({
+      description:
+        "If true, include _debug in the list result (request params, hint when 0 files).",
+    }),
+  ),
+  // get, download, read_docs
+  fileId: Type.Optional(
+    Type.String({
+      description: "Drive/Docs file ID (for get, download, read_docs).",
+    }),
+  ),
+  // download
   exportFormat: Type.Optional(
     Type.String({
       description:
-        "Export format for Google Workspace files. Options: 'pdf', 'docx', 'txt', 'html', 'rtf', 'odt', 'xlsx', 'csv', 'tsv', 'pptx', 'png', 'jpg', 'svg'. Omit for original format.",
+        "Export format for Google Workspace files: pdf, docx, txt, html, rtf, odt, xlsx, csv, tsv, pptx, png, jpg, svg. Omit for original format.",
     }),
   ),
   outputPath: Type.Optional(
     Type.String({
-      description:
-        "Optional output path (relative to workspace). If omitted, file will be saved with original name.",
+      description: "Output path (relative to workspace). Omit to use original name.",
     }),
   ),
-});
-
-export const GoogleDocsReadSchema = Type.Object({
-  action: Type.Literal("read_docs"),
-  fileId: Type.String({
-    description: "Google Docs file ID to read.",
-  }),
+  // read_docs
   format: Type.Optional(
     Type.String({
-      description: "Output format: 'markdown' (default) or 'text'.",
+      description: "Output format for read_docs: 'markdown' (default) or 'text'.",
       default: "markdown",
     }),
   ),
+  // read_sheets
+  spreadsheetId: Type.Optional(
+    Type.String({
+      description: "Google Sheets spreadsheet ID (for read_sheets).",
+    }),
+  ),
+  range: Type.Optional(
+    Type.String({
+      description:
+        "A1 notation range for read_sheets (e.g. 'Sheet1!A1:D10' or 'A1:Z'). Required for read_sheets.",
+    }),
+  ),
 });
-
-export const GoogleDriveSchema = Type.Union([
-  GoogleDriveListSchema,
-  GoogleDriveGetSchema,
-  GoogleDriveDownloadSchema,
-  GoogleDocsReadSchema,
-]);
 
 export type GoogleDriveParams = Static<typeof GoogleDriveSchema>;

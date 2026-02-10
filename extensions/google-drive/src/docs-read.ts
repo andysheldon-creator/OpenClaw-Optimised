@@ -1,7 +1,7 @@
 import type { docs_v1 } from "googleapis";
 import { createGoogleDocsClient } from "./client.js";
 // Dynamic type import for OAuthCredentials (not in plugin SDK)
-type OAuthCredentials = import("../../src/agents/auth-profiles/types.js").OAuthCredentials;
+type OAuthCredentials = import("../../../src/agents/auth-profiles/types.js").OAuthCredentials;
 
 export async function readGoogleDocs(params: {
   credentials: OAuthCredentials;
@@ -31,7 +31,8 @@ export async function readGoogleDocs(params: {
   };
 }
 
-function convertDocumentToText(
+/** Convert Docs API document to markdown or text. Exported for unit tests. */
+export function convertDocumentToText(
   document: docs_v1.Schema$Document,
   format: "markdown" | "text",
 ): string {

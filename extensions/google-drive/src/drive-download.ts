@@ -3,7 +3,7 @@ import { promises as fs } from "node:fs";
 import { join, dirname, basename } from "node:path";
 import { createGoogleDriveClient } from "./client.js";
 // Dynamic type import for OAuthCredentials (not in plugin SDK)
-type OAuthCredentials = import("../../src/agents/auth-profiles/types.js").OAuthCredentials;
+type OAuthCredentials = import("../../../src/agents/auth-profiles/types.js").OAuthCredentials;
 import { getGoogleDriveFile } from "./drive-get.js";
 
 const GOOGLE_WORKSPACE_MIME_TYPES = {
@@ -93,6 +93,7 @@ export async function downloadGoogleDriveFile(params: {
       {
         fileId: params.fileId,
         mimeType: exportMimeType,
+        supportsAllDrives: true,
       },
       { responseType: "stream" },
     );
@@ -102,6 +103,7 @@ export async function downloadGoogleDriveFile(params: {
       {
         fileId: params.fileId,
         alt: "media",
+        supportsAllDrives: true,
       },
       { responseType: "stream" },
     );

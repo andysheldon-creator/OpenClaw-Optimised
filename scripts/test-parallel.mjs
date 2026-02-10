@@ -6,15 +6,15 @@ const pnpm = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 const runs = [
   {
     name: "unit",
-    args: ["vitest", "run", "--config", "vitest.unit.config.ts"],
+    args: ["exec", "vitest", "run", "--config", "vitest.unit.config.ts"],
   },
   {
     name: "extensions",
-    args: ["vitest", "run", "--config", "vitest.extensions.config.ts"],
+    args: ["exec", "vitest", "run", "--config", "vitest.extensions.config.ts"],
   },
   {
     name: "gateway",
-    args: ["vitest", "run", "--config", "vitest.gateway.config.ts"],
+    args: ["exec", "vitest", "run", "--config", "vitest.gateway.config.ts"],
   },
 ];
 
@@ -99,8 +99,16 @@ process.on("SIGTERM", () => shutdown("SIGTERM"));
 
 if (passthroughArgs.length > 0) {
   const args = maxWorkers
-    ? ["vitest", "run", "--maxWorkers", String(maxWorkers), ...windowsCiArgs, ...passthroughArgs]
-    : ["vitest", "run", ...windowsCiArgs, ...passthroughArgs];
+    ? [
+        "exec",
+        "vitest",
+        "run",
+        "--maxWorkers",
+        String(maxWorkers),
+        ...windowsCiArgs,
+        ...passthroughArgs,
+      ]
+    : ["exec", "vitest", "run", ...windowsCiArgs, ...passthroughArgs];
   const nodeOptions = process.env.NODE_OPTIONS ?? "";
   const nextNodeOptions = WARNING_SUPPRESSION_FLAGS.reduce(
     (acc, flag) => (acc.includes(flag) ? acc : `${acc} ${flag}`.trim()),
