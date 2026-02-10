@@ -25,6 +25,7 @@ describe("failover-error", () => {
   it("infers timeout from common node error codes", () => {
     expect(resolveFailoverReasonFromError({ code: "ETIMEDOUT" })).toBe("timeout");
     expect(resolveFailoverReasonFromError({ code: "ECONNRESET" })).toBe("timeout");
+    expect(resolveFailoverReasonFromError({ code: "ECONNREFUSED" })).toBe("timeout");
   });
 
   it("coerces failover-worthy errors into FailoverError with metadata", () => {
