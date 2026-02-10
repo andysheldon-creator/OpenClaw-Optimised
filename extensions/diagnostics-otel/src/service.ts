@@ -221,17 +221,8 @@ export function createDiagnosticsOtelService(): OpenClawPluginService {
           processors: [logProcessor],
         });
         const otelLogger = logProvider.getLogger("openclaw");
-        otelLogger.emit({
-          body: "diagnostics-otel startup ping",
-          severityText: "INFO",
-          severityNumber: 9 as SeverityNumber,
-          attributes: { "openclaw.probe": true },
-          timestamp: new Date(),
-        });
-        process.stderr.write("[otel-probe] startup ping emitted\n");
 
         stopLogTransport = registerLogTransport((logObj) => {
-          process.stderr.write("[otel-probe] registerLogTransport callback fired\n");
           const safeStringify = (value: unknown) => {
             try {
               return JSON.stringify(value);
@@ -583,7 +574,6 @@ export function createDiagnosticsOtelService(): OpenClawPluginService {
       };
 
       unsubscribe = onDiagnosticEvent((evt: DiagnosticEventPayload) => {
-        process.stderr.write(`[otel-probe] diagnostic event: ${evt.type}\n`);
         switch (evt.type) {
           case "model.usage":
             recordModelUsage(evt);
