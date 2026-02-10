@@ -91,6 +91,11 @@ export type CliBackendConfig = {
   imageMode?: "repeat" | "list";
   /** Serialize runs for this CLI. */
   serialize?: boolean;
+  /** When true, the CLI runner will NOT inject "Tools are disabled" into the system prompt,
+   * allowing the CLI backend to handle its own tool execution (e.g. claude -p with built-in tools). */
+  toolsEnabled?: boolean;
+  /** Extra CLI args to pass (appended after all other computed args). */
+  extraArgs?: string[];
 };
 
 export type AgentDefaultsConfig = {

@@ -265,6 +265,8 @@ export const CliBackendSchema = z
     imageArg: z.string().optional(),
     imageMode: z.union([z.literal("repeat"), z.literal("list")]).optional(),
     serialize: z.boolean().optional(),
+    toolsEnabled: z.boolean().optional(),
+    extraArgs: z.array(z.string()).optional(),
   })
   .strict();
 

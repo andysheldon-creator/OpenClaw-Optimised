@@ -338,6 +338,39 @@ export function parseCliJson(raw: string, backend: CliBackendConfig): CliOutput 
   } catch {
     return null;
   }
+
+  // Some CLI backends (e.g. Claude CLI --output-format json) return a JSON array
+  // of event objects instead of a single object. Iterate entries to find text/session/usage.
+  if (Array.isArray(parsed)) {
+    let sessionId: string | undefined;
+    let usage: CliUsage | undefined;
+    let text = "";
+    for (const entry of parsed) {
+      if (!isRecord(entry)) {
+        continue;
+      }
+      if (!sessionId) {
+        sessionId = pickSessionId(entry, backend);
+      }
+      if (isRecord(entry.usage)) {
+        usage = toUsage(entry.usage) ?? usage;
+      }
+      // Same priority as the single-object path: message → content → result → top-level
+      const candidate =
+        collectText(entry.message) ||
+        collectText(entry.content) ||
+        collectText(entry.result) ||
+        collectText(entry);
+      if (candidate) {
+        text = candidate;
+      }
+    }
+    if (!text.trim()) {
+      return null;
+    }
+    return { text: text.trim(), sessionId, usage };
+  }
+
   if (!isRecord(parsed)) {
     return null;
   }
@@ -533,6 +566,10 @@ export function buildCliArgs(params: {
         }
       }
     }
+  }
+  // Append extra args from backend config (e.g. --tools, --allowedTools)
+  if (params.backend.extraArgs && params.backend.extraArgs.length > 0) {
+    args.push(...params.backend.extraArgs);
   }
   if (params.promptArg !== undefined) {
     args.push(params.promptArg);

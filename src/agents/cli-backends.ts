@@ -102,7 +102,8 @@ function mergeBackendConfig(base: CliBackendConfig, override?: CliBackendConfig)
     args: override.args ?? base.args,
     env: { ...base.env, ...override.env },
     modelAliases: { ...base.modelAliases, ...override.modelAliases },
-    clearEnv: Array.from(new Set([...(base.clearEnv ?? []), ...(override.clearEnv ?? [])])),
+    // If override explicitly provides clearEnv (even empty), use it instead of merging
+    clearEnv: override.clearEnv !== undefined ? override.clearEnv : (base.clearEnv ?? []),
     sessionIdFields: override.sessionIdFields ?? base.sessionIdFields,
     sessionArgs: override.sessionArgs ?? base.sessionArgs,
     resumeArgs: override.resumeArgs ?? base.resumeArgs,

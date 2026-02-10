@@ -80,7 +80,7 @@ export async function runCliAgent(params: {
 
   const extraSystemPrompt = [
     params.extraSystemPrompt?.trim(),
-    "Tools are disabled in this session. Do not call tools.",
+    backend.toolsEnabled ? undefined : "Tools are disabled in this session. Do not call tools.",
   ]
     .filter(Boolean)
     .join("\n");
