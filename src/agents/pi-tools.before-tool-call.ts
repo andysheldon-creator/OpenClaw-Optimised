@@ -6,6 +6,8 @@ import {
   formatBlockMessage,
   loadAgentShieldConfig,
 } from "../security/agentshield.js";
+
+import { isPlainObject } from "../utils.js";
 import { normalizeToolName } from "./tool-policy.js";
 
 type HookContext = {
@@ -16,10 +18,6 @@ type HookContext = {
 type HookOutcome = { blocked: true; reason: string } | { blocked: false; params: unknown };
 
 const log = createSubsystemLogger("agents/tools");
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
 
 export async function runBeforeToolCallHook(args: {
   toolName: string;
