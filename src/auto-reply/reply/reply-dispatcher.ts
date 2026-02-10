@@ -2,6 +2,7 @@ import type { HumanDelayConfig } from "../../config/types.js";
 import type { GetReplyOptions, ReplyPayload } from "../types.js";
 import type { ResponsePrefixContext } from "./response-prefix-template.js";
 import type { TypingController } from "./typing.js";
+import { getGlobalHookRunner } from "../../plugins/hook-runner-global.js";
 import { sleep } from "../../utils.js";
 import { normalizeReplyPayload, type NormalizeReplySkipReason } from "./normalize-reply.js";
 
@@ -53,6 +54,8 @@ export type ReplyDispatcherOptions = {
   onSkip?: ReplyDispatchSkipHandler;
   /** Human-like delay between block replies for natural rhythm. */
   humanDelay?: HumanDelayConfig;
+  /** Context for the message_sending plugin hook. */
+  hookContext?: { channelId: string; accountId?: string; conversationId?: string };
 };
 
 export type ReplyDispatcherWithTypingOptions = Omit<ReplyDispatcherOptions, "onIdle"> & {
@@ -140,7 +143,27 @@ export function createReplyDispatcher(options: ReplyDispatcherOptions): ReplyDis
             await sleep(delayMs);
           }
         }
-        await options.deliver(normalized, { kind });
+        // Run message_sending plugin hook — allows plugins to modify or cancel outgoing text.
+        let outPayload = normalized;
+        const hookRunner = getGlobalHookRunner();
+        if (hookRunner?.hasHooks("message_sending") && outPayload.text) {
+          try {
+            const hookCtx = options.hookContext ?? { channelId: "unknown" };
+            const hookResult = await hookRunner.runMessageSending(
+              { to: hookCtx.conversationId ?? "", content: outPayload.text },
+              hookCtx,
+            );
+            if (hookResult?.cancel) {
+              return; // plugin cancelled this message
+            }
+            if (hookResult?.content !== undefined) {
+              outPayload = { ...outPayload, text: hookResult.content };
+            }
+          } catch {
+            // hook errors are already caught+logged by the runner; deliver original
+          }
+        }
+        await options.deliver(outPayload, { kind });
       })
       .catch((err) => {
         options.onError?.(err, { kind });
