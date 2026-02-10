@@ -81,4 +81,45 @@ describe("env snapshot TOCTOU via createConfigIO", () => {
       expect(parsed.gateway.remote.token).toBe("original-key-123");
     });
   });
+
+  it("env snapshot is reusable across multiple writes in the same read cycle", async () => {
+    const env: Record<string, string> = {
+      MY_TOKEN: "secret-abc",
+    };
+
+    const configJson = JSON.stringify({ gateway: { auth: { token: "${MY_TOKEN}" } } }, null, 2);
+
+    await withTempConfig(configJson, async (configPath) => {
+      // Read config — captures env snapshot
+      const ioRead = createConfigIO({ configPath, env: env as unknown as NodeJS.ProcessEnv });
+      const snapshot = await ioRead.readConfigFileSnapshot();
+      const envSnap = ioRead.getEnvSnapshot();
+
+      // Mutate env between read and writes
+      env.MY_TOKEN = "mutated-xyz";
+
+      // First write with snapshot bridging
+      const ioWrite1 = createConfigIO({ configPath, env: env as unknown as NodeJS.ProcessEnv });
+      if (envSnap) {
+        ioWrite1.setEnvSnapshot(envSnap);
+      }
+      await ioWrite1.writeConfigFile(snapshot.config);
+
+      const written1 = await fs.readFile(configPath, "utf-8");
+      const parsed1 = JSON.parse(written1);
+      expect(parsed1.gateway.auth.token).toBe("${MY_TOKEN}");
+
+      // Second write — reuse the SAME snapshot (simulates retained snapshot)
+      const ioWrite2 = createConfigIO({ configPath, env: env as unknown as NodeJS.ProcessEnv });
+      if (envSnap) {
+        ioWrite2.setEnvSnapshot(envSnap);
+      }
+      await ioWrite2.writeConfigFile(snapshot.config);
+
+      const written2 = await fs.readFile(configPath, "utf-8");
+      const parsed2 = JSON.parse(written2);
+      // Should still restore correctly — snapshot wasn't consumed/deleted
+      expect(parsed2.gateway.auth.token).toBe("${MY_TOKEN}");
+    });
+  });
 });

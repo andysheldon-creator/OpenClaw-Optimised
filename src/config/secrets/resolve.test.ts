@@ -269,8 +269,19 @@ describe("resolveConfigSecrets", () => {
       token: "$secret{nonexistent-test-secret-xyzzy}",
       secrets: { provider: "keyring" },
     };
-    // On both macOS and Linux, this should throw because the secret doesn't exist
-    await expect(resolveConfigSecrets(config)).rejects.toThrow(/not found|keychain|keyring/i);
+    // On both macOS and Linux, this should throw MissingSecretError because the secret doesn't exist
+    const { MissingSecretError } = await import("./errors.js");
+    await expect(resolveConfigSecrets(config)).rejects.toThrow(MissingSecretError);
+  });
+
+  it("stub provider error message uses relative docs path", async () => {
+    const config = {
+      token: "$secret{X}",
+      secrets: { provider: "aws" },
+    };
+    await expect(resolveConfigSecrets(config)).rejects.toThrow(/docs\/gateway\/secrets/);
+    // Should NOT contain an absolute URL
+    await expect(resolveConfigSecrets(config)).rejects.not.toThrow(/https?:\/\//);
   });
 
   it("throws SecretsProviderError for doppler provider with secret refs", async () => {
