@@ -2,8 +2,10 @@ import { describe, expect, test } from "vitest";
 import {
   clearAgentRunContext,
   emitAgentEvent,
+  getAgentEventStats,
   getAgentRunContext,
   onAgentEvent,
+  pruneOrphanedSeqByRun,
   registerAgentRunContext,
   resetAgentRunContextForTest,
 } from "./agent-events.js";
@@ -60,5 +62,49 @@ describe("agent-events sequencing", () => {
     stop();
 
     expect(phases).toEqual(["start", "end"]);
+  });
+
+  test("clearAgentRunContext also clears seqByRun entry", () => {
+    resetAgentRunContextForTest();
+
+    // Register context and emit events (creates seqByRun entry)
+    registerAgentRunContext("run-leak-test", { sessionKey: "main" });
+    emitAgentEvent({ runId: "run-leak-test", stream: "lifecycle", data: { phase: "start" } });
+    emitAgentEvent({ runId: "run-leak-test", stream: "lifecycle", data: { phase: "end" } });
+
+    const statsBefore = getAgentEventStats();
+    expect(statsBefore.seqByRunSize).toBeGreaterThan(0);
+    expect(statsBefore.runContextSize).toBeGreaterThan(0);
+
+    // Clear context should also clear seqByRun
+    clearAgentRunContext("run-leak-test");
+
+    const statsAfter = getAgentEventStats();
+    expect(statsAfter.seqByRunSize).toBe(0);
+    expect(statsAfter.runContextSize).toBe(0);
+  });
+
+  test("pruneOrphanedSeqByRun removes entries without context", () => {
+    resetAgentRunContextForTest();
+
+    // Create orphaned seqByRun entries by emitting events without registering context
+    emitAgentEvent({ runId: "orphan-1", stream: "lifecycle", data: {} });
+    emitAgentEvent({ runId: "orphan-2", stream: "lifecycle", data: {} });
+
+    // Create a proper entry with context
+    registerAgentRunContext("valid-run", { sessionKey: "main" });
+    emitAgentEvent({ runId: "valid-run", stream: "lifecycle", data: {} });
+
+    const statsBefore = getAgentEventStats();
+    expect(statsBefore.seqByRunSize).toBe(3);
+    expect(statsBefore.runContextSize).toBe(1);
+
+    // Prune should remove orphaned entries
+    const pruned = pruneOrphanedSeqByRun();
+    expect(pruned).toBe(2);
+
+    const statsAfter = getAgentEventStats();
+    expect(statsAfter.seqByRunSize).toBe(1);
+    expect(statsAfter.runContextSize).toBe(1);
   });
 });

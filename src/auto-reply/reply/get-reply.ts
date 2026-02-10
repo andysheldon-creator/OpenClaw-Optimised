@@ -6,6 +6,7 @@ import {
   resolveSessionAgentId,
   resolveAgentSkillsFilter,
 } from "../../agents/agent-scope.js";
+import { routeModel } from "../../agents/model-routing.js";
 import { resolveModelRefFromString } from "../../agents/model-selection.js";
 import { resolveAgentTimeoutMs } from "../../agents/timeout.js";
 import { DEFAULT_AGENT_WORKSPACE_DIR, ensureAgentWorkspace } from "../../agents/workspace.js";
@@ -278,6 +279,25 @@ export async function getReplyFromConfig(
   }
   directives = inlineActionResult.directives;
   abortedLastRun = inlineActionResult.abortedLastRun ?? abortedLastRun;
+
+  // Apply approval interlay routing if model routing is enabled
+  // Note: systemPromptLength is estimated (actual system prompt not available at this stage)
+  const routingDecision = await routeModel({
+    cfg,
+    inputText: cleanedBody,
+    messageHistoryDepth: sessionEntry?.compactionCount ?? 0, // Use compaction count as proxy for history depth
+    hasToolCalls: false, // Tool calls detected dynamically during execution
+    systemPromptLength: 3000, // Typical system prompt ~3KB; actual value computed during execution
+    hasSessionModelOverride: Boolean(sessionEntry?.modelOverride),
+    sessionKey,
+    userId: ctx.SenderId ?? "unknown",
+  });
+
+  // If routing decision overrides the model, apply it
+  if (routingDecision && !sessionEntry?.modelOverride) {
+    provider = routingDecision.provider;
+    model = routingDecision.model;
+  }
 
   await stageSandboxMedia({
     ctx,

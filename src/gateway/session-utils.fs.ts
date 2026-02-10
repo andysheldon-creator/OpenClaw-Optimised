@@ -4,10 +4,29 @@ import path from "node:path";
 import type { SessionPreviewItem } from "./session-utils.types.js";
 import { resolveSessionTranscriptPath } from "../config/sessions.js";
 import { resolveRequiredHomeDir } from "../infra/home-dir.js";
+import { recordTrace } from "../infra/perf-trace.js";
 import { extractToolCallNames, hasToolCall } from "../utils/transcript-tools.js";
 import { stripEnvelope } from "./chat-sanitize.js";
 
+/**
+ * Maximum bytes to read from the tail of a transcript file.
+ * Callers cap to ≤1000 messages anyway, so reading the last 2 MB covers
+ * even very large sessions without loading the entire file into memory.
+ */
+const SESSION_MESSAGES_TAIL_BYTES = 2 * 1024 * 1024;
+
 export function readSessionMessages(
+  sessionId: string,
+  storePath: string | undefined,
+  sessionFile?: string,
+): unknown[] {
+  const t0 = performance.now();
+  const result = readSessionMessagesImpl(sessionId, storePath, sessionFile);
+  recordTrace("gateway.readSessionMessages", performance.now() - t0);
+  return result;
+}
+
+function readSessionMessagesImpl(
   sessionId: string,
   storePath: string | undefined,
   sessionFile?: string,
@@ -19,39 +38,70 @@ export function readSessionMessages(
     return [];
   }
 
-  const lines = fs.readFileSync(filePath, "utf-8").split(/\r?\n/);
-  const messages: unknown[] = [];
-  for (const line of lines) {
-    if (!line.trim()) {
-      continue;
+  // Tail-read: only load the last SESSION_MESSAGES_TAIL_BYTES of the file.
+  // This avoids OOM on large transcripts while still returning enough data
+  // for the caller's limit (typically ≤1000 messages).
+  let fd: number | null = null;
+  try {
+    fd = fs.openSync(filePath, "r");
+    const stat = fs.fstatSync(fd);
+    const size = stat.size;
+    if (size === 0) {
+      return [];
     }
-    try {
-      const parsed = JSON.parse(line);
-      if (parsed?.message) {
-        messages.push(parsed.message);
+
+    const readStart = Math.max(0, size - SESSION_MESSAGES_TAIL_BYTES);
+    const readLen = Math.min(size, SESSION_MESSAGES_TAIL_BYTES);
+    const buf = Buffer.alloc(readLen);
+    fs.readSync(fd, buf, 0, readLen, readStart);
+
+    const chunk = buf.toString("utf-8");
+    const lines = chunk.split(/\r?\n/);
+    // If we started mid-file, the first "line" is likely a partial JSON
+    // record — skip it to avoid parse errors.
+    const startIdx = readStart > 0 ? 1 : 0;
+
+    const messages: unknown[] = [];
+    for (let i = startIdx; i < lines.length; i++) {
+      const line = lines[i];
+      if (line.length === 0 || (line.charCodeAt(0) <= 32 && !line.trim())) {
         continue;
       }
+      try {
+        const parsed = JSON.parse(line);
+        if (parsed?.message) {
+          messages.push(parsed.message);
+          continue;
+        }
 
-      // Compaction entries are not "message" records, but they're useful context for debugging.
-      // Emit a lightweight synthetic message that the Web UI can render as a divider.
-      if (parsed?.type === "compaction") {
-        const ts = typeof parsed.timestamp === "string" ? Date.parse(parsed.timestamp) : Number.NaN;
-        const timestamp = Number.isFinite(ts) ? ts : Date.now();
-        messages.push({
-          role: "system",
-          content: [{ type: "text", text: "Compaction" }],
-          timestamp,
-          __openclaw: {
-            kind: "compaction",
-            id: typeof parsed.id === "string" ? parsed.id : undefined,
-          },
-        });
+        // Compaction entries are not "message" records, but they're useful context for debugging.
+        // Emit a lightweight synthetic message that the Web UI can render as a divider.
+        if (parsed?.type === "compaction") {
+          const ts =
+            typeof parsed.timestamp === "string" ? Date.parse(parsed.timestamp) : Number.NaN;
+          const timestamp = Number.isFinite(ts) ? ts : Date.now();
+          messages.push({
+            role: "system",
+            content: [{ type: "text", text: "Compaction" }],
+            timestamp,
+            __openclaw: {
+              kind: "compaction",
+              id: typeof parsed.id === "string" ? parsed.id : undefined,
+            },
+          });
+        }
+      } catch {
+        // ignore bad lines
       }
-    } catch {
-      // ignore bad lines
+    }
+    return messages;
+  } catch {
+    return [];
+  } finally {
+    if (fd !== null) {
+      fs.closeSync(fd);
     }
   }
-  return messages;
 }
 
 export function resolveSessionTranscriptCandidates(

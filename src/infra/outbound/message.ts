@@ -3,7 +3,10 @@ import type { PollInput } from "../../polls.js";
 import { getChannelPlugin, normalizeChannelId } from "../../channels/plugins/index.js";
 import { loadConfig } from "../../config/config.js";
 import { callGateway, randomIdempotencyKey } from "../../gateway/call.js";
+import { addBreadcrumb } from "../../logging/error-context.js";
 import { normalizePollInput } from "../../polls.js";
+import { resolveSlackAccount } from "../../slack/accounts.js";
+import { slackChannelCache } from "../../slack/channel-cache.js";
 import {
   GATEWAY_CLIENT_MODES,
   GATEWAY_CLIENT_NAMES,
@@ -106,17 +109,70 @@ function resolveGatewayOptions(opts?: MessageGatewayOptions) {
   };
 }
 
-export async function sendMessage(params: MessageSendParams): Promise<MessageSendResult> {
-  const cfg = params.cfg ?? loadConfig();
-  const channel = params.channel?.trim()
-    ? normalizeChannelId(params.channel)
-    : (await resolveMessageChannelSelection({ cfg })).channel;
-  if (!channel) {
-    throw new Error(`Unknown channel: ${params.channel}`);
+/**
+ * Resolve Slack channel name to ID if needed
+ * Supports: channel names (#general), Slack mentions (<#C123|name>), or IDs (C123)
+ */
+async function resolveSlackChannelNameToId(
+  input: string,
+  cfg: OpenClawConfig,
+  accountId?: string | null,
+): Promise<string | undefined> {
+  try {
+    const account = resolveSlackAccount({ cfg, accountId: accountId ?? undefined });
+    if (!account.token) {
+      return undefined;
+    }
+
+    const channel = await slackChannelCache.resolveChannel(account.token, input);
+    return channel?.id;
+  } catch (err) {
+    // If resolution fails, return undefined to fall back to the original input
+    return undefined;
   }
-  const plugin = getChannelPlugin(channel);
-  if (!plugin) {
-    throw new Error(`Unknown channel: ${channel}`);
+}
+
+export async function sendMessage(params: MessageSendParams): Promise<MessageSendResult> {
+  try {
+    addBreadcrumb(`Starting sendMessage to channel: ${params.channel}`);
+    const cfg = params.cfg ?? loadConfig();
+    const channel = params.channel?.trim()
+      ? normalizeChannelId(params.channel)
+      : (await resolveMessageChannelSelection({ cfg })).channel;
+    if (!channel) {
+      throw new Error(`Unknown channel: ${params.channel}`);
+    }
+    addBreadcrumb(`Channel resolved: ${channel}`);
+    const plugin = getChannelPlugin(channel);
+    if (!plugin) {
+      throw new Error(`Unknown channel: ${channel}`);
+    }
+    addBreadcrumb(`Plugin initialized for channel: ${channel}`);
+
+    return await sendMessageWithContext(params, channel, cfg, plugin);
+  } catch (err) {
+    addBreadcrumb(`Error in sendMessage: ${err instanceof Error ? err.message : String(err)}`);
+    throw err;
+  }
+}
+
+async function sendMessageWithContext(
+  params: MessageSendParams,
+  channel: string,
+  cfg: OpenClawConfig,
+  plugin: ReturnType<typeof getChannelPlugin>,
+): Promise<MessageSendResult> {
+  // Resolve Slack channel names to IDs automatically
+  let resolvedTo = params.to;
+  if (channel === "slack" && params.to) {
+    const input = params.to.trim();
+    // Try to resolve channel names (e.g., "general", "#general", "#alerts" -> channel ID)
+    if (input.startsWith("#") || (!input.startsWith("C") && !input.match(/^<#[CG]/))) {
+      const resolved = await resolveSlackChannelNameToId(input, cfg, params.accountId);
+      if (resolved) {
+        resolvedTo = resolved;
+      }
+    }
   }
   const deliveryMode = plugin.outbound?.deliveryMode ?? "direct";
   const normalizedPayloads = normalizeReplyPayloadsForDelivery([
@@ -138,7 +194,7 @@ export async function sendMessage(params: MessageSendParams): Promise<MessageSen
   if (params.dryRun) {
     return {
       channel,
-      to: params.to,
+      to: resolvedTo,
       via: deliveryMode === "gateway" ? "gateway" : "direct",
       mediaUrl: primaryMediaUrl,
       mediaUrls: mirrorMediaUrls.length ? mirrorMediaUrls : undefined,
@@ -150,7 +206,7 @@ export async function sendMessage(params: MessageSendParams): Promise<MessageSen
     const outboundChannel = channel;
     const resolvedTarget = resolveOutboundTarget({
       channel: outboundChannel,
-      to: params.to,
+      to: resolvedTo,
       cfg,
       accountId: params.accountId,
       mode: "explicit",
@@ -194,7 +250,7 @@ export async function sendMessage(params: MessageSendParams): Promise<MessageSen
     token: gateway.token,
     method: "send",
     params: {
-      to: params.to,
+      to: resolvedTo,
       message: params.content,
       mediaUrl: params.mediaUrl,
       mediaUrls: mirrorMediaUrls.length ? mirrorMediaUrls : params.mediaUrls,
@@ -212,7 +268,7 @@ export async function sendMessage(params: MessageSendParams): Promise<MessageSen
 
   return {
     channel,
-    to: params.to,
+    to: resolvedTo,
     via: "gateway",
     mediaUrl: primaryMediaUrl,
     mediaUrls: mirrorMediaUrls.length ? mirrorMediaUrls : undefined,

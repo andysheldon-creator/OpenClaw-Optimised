@@ -48,10 +48,38 @@ export function getAgentRunContext(runId: string) {
 
 export function clearAgentRunContext(runId: string) {
   runContextById.delete(runId);
+  seqByRun.delete(runId);
 }
 
 export function resetAgentRunContextForTest() {
   runContextById.clear();
+  seqByRun.clear();
+}
+
+/**
+ * Safety-net prune for seqByRun entries that are no longer tracked in runContextById.
+ * Called periodically to prevent unbounded growth if lifecycle events are missed.
+ * Returns the number of orphaned entries pruned.
+ */
+export function pruneOrphanedSeqByRun(): number {
+  let pruned = 0;
+  for (const runId of seqByRun.keys()) {
+    if (!runContextById.has(runId)) {
+      seqByRun.delete(runId);
+      pruned++;
+    }
+  }
+  return pruned;
+}
+
+/**
+ * Get current sizes for monitoring/debugging.
+ */
+export function getAgentEventStats(): { seqByRunSize: number; runContextSize: number } {
+  return {
+    seqByRunSize: seqByRun.size,
+    runContextSize: runContextById.size,
+  };
 }
 
 export function emitAgentEvent(event: Omit<AgentEventPayload, "seq" | "ts">) {
