@@ -1493,42 +1493,26 @@ export async function maybeApplyTtsToPayload(params: {
 
   if (textForAudio.length > maxLength) {
     if (!isSummarizationEnabled(prefsPath)) {
-      // Truncate text when summarization is disabled
-      logVerbose(
-        `TTS: truncating long text (${textForAudio.length} > ${maxLength}), summarization disabled.`,
-      );
+      logVerbose(`TTS: truncating long text (${textForAudio.length} > ${maxLength}), summarization disabled.`);
       textForAudio = `${textForAudio.slice(0, maxLength - 3)}...`;
     } else {
-      // Summarize text when enabled
       try {
-        const summary = await summarizeText({
-          text: textForAudio,
-          targetLength: maxLength,
-          cfg: params.cfg,
-          config,
-          timeoutMs: config.timeoutMs,
-        });
+        const summary = await summarizeText({ text: textForAudio, targetLength: maxLength, cfg: params.cfg, config, timeoutMs: config.timeoutMs });
         textForAudio = summary.summary;
         wasSummarized = true;
         if (textForAudio.length > config.maxTextLength) {
-          logVerbose(
-            `TTS: summary exceeded hard limit (${textForAudio.length} > ${config.maxTextLength}); truncating.`,
-          );
+          logVerbose(`TTS: summary exceeded hard limit (${textForAudio.length} > ${config.maxTextLength}); truncating.`);
           textForAudio = `${textForAudio.slice(0, config.maxTextLength - 3)}...`;
         }
       } catch (err) {
-        const error = err as Error;
-        logVerbose(`TTS: summarization failed, truncating instead: ${error.message}`);
+        logVerbose(`TTS: summarization failed, truncating instead: ${(err as Error).message}`);
         textForAudio = `${textForAudio.slice(0, maxLength - 3)}...`;
       }
     }
   }
 
-  // Strip markdown formatting so TTS engines don't read symbols literally
-  // (e.g. "hashtag hashtag hashtag" for ### headers)
-  if (!wasSummarized) {
-    textForAudio = stripMarkdown(textForAudio);
-  }
+  // Strip markdown so TTS engines don't read formatting symbols literally (e.g. ### → "hashtag")
+  if (!wasSummarized) textForAudio = stripMarkdown(textForAudio);
 
   const ttsStart = Date.now();
   const result = await textToSpeech({
