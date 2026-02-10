@@ -264,24 +264,16 @@ export const whatsappPlugin: ChannelPlugin<ResolvedWhatsAppAccount> = {
       }
       return Array.from(actions);
     },
-    supportsAction: ({ action, cfg }) => {
-      // Core actions always supported
-      if (action === "react") {
-        return true;
-      }
-      // Group admin actions only supported when enabled
-      const groupAdminActions = [
+    supportsAction: ({ action }) => {
+      const supportedActions = [
+        "react",
         "updateGroupSubject",
         "updateGroupDescription",
         "updateGroupPhoto",
         "updateGroupParticipants",
         "updateGroupSettings",
       ];
-      if (groupAdminActions.includes(action)) {
-        const gate = createActionGate(cfg?.channels?.whatsapp?.actions);
-        return gate("groupAdmin");
-      }
-      return false;
+      return supportedActions.includes(action);
     },
     handleAction: async ({ action, params, cfg, accountId }) => {
       const groupAdminActions = [
@@ -300,7 +292,8 @@ export const whatsappPlugin: ChannelPlugin<ResolvedWhatsAppAccount> = {
           {
             action: "react",
             chatJid:
-              readStringParam(params, "chatJid") ?? readStringParam(params, "to", { required: true }),
+              readStringParam(params, "chatJid") ??
+              readStringParam(params, "to", { required: true }),
             messageId: readStringParam(params, "messageId", { required: true }),
             emoji: readStringParam(params, "emoji", { allowEmpty: true }),
             remove: typeof params.remove === "boolean" ? params.remove : undefined,
