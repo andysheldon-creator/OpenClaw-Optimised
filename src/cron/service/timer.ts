@@ -300,35 +300,57 @@ function findDueJobs(state: CronServiceState): CronJob[] {
 }
 
 export async function runMissedJobs(state: CronServiceState) {
-  if (!state.store) {
-    return;
-  }
-  const now = state.deps.nowMs();
-  const missed = state.store.jobs.filter((j) => {
-    if (!j.state) {
-      j.state = {};
+  // Find missed jobs under the lock
+  const missedJobs = await locked(state, async () => {
+    if (!state.store) {
+      return [];
     }
-    if (!j.enabled) {
-      return false;
+    const now = state.deps.nowMs();
+    const missed = state.store.jobs.filter((j) => {
+      if (!j.state) {
+        j.state = {};
+      }
+      if (!j.enabled) {
+        return false;
+      }
+      if (typeof j.state.runningAtMs === "number") {
+        return false;
+      }
+      const next = j.state.nextRunAtMs;
+      if (j.schedule.kind === "at" && j.state.lastStatus === "ok") {
+        return false;
+      }
+      return typeof next === "number" && now >= next;
+    });
+
+    // Mark jobs as running to prevent double execution
+    for (const job of missed) {
+      job.state.runningAtMs = now;
     }
-    if (typeof j.state.runningAtMs === "number") {
-      return false;
+
+    if (missed.length > 0) {
+      await persist(state);
     }
-    const next = j.state.nextRunAtMs;
-    if (j.schedule.kind === "at" && j.state.lastStatus === "ok") {
-      return false;
-    }
-    return typeof next === "number" && now >= next;
+
+    return missed;
   });
 
-  if (missed.length > 0) {
+  if (missedJobs.length > 0) {
     state.deps.log.info(
-      { count: missed.length, jobIds: missed.map((j) => j.id) },
+      { count: missedJobs.length, jobIds: missedJobs.map((j) => j.id) },
       "cron: running missed jobs after restart",
     );
-    for (const job of missed) {
+
+    // Execute jobs
+    const now = state.deps.nowMs();
+    for (const job of missedJobs) {
       await executeJob(state, job, now, { forced: false });
     }
+
+    // Persist the updated state after all jobs have run
+    await locked(state, async () => {
+      await persist(state);
+    });
   }
 }
 
