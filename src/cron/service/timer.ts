@@ -73,8 +73,10 @@ function applyJobResult(
     job.state.consecutiveErrors = 0;
   }
 
+  // Fix #13249: Delete one-shot jobs with deleteAfterRun on ANY terminal status
+  // (ok, error, or skipped) to prevent infinite loops when status is "skipped"
   const shouldDelete =
-    job.schedule.kind === "at" && result.status === "ok" && job.deleteAfterRun === true;
+    job.schedule.kind === "at" && job.deleteAfterRun === true;
 
   if (!shouldDelete) {
     if (job.schedule.kind === "at") {
