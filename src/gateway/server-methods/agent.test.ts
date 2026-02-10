@@ -323,6 +323,7 @@ describe("gateway agent handler", () => {
     });
 
     let capturedEntry: Record<string, unknown> | undefined;
+    mocks.updateSessionStore.mockClear();
     mocks.updateSessionStore.mockImplementation(async (_path, updater) => {
       const store: Record<string, unknown> = {};
       await updater(store);
