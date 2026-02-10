@@ -9,10 +9,10 @@
 import type { GatewayRequestHandlers } from "./types.js";
 import { listAgentIds } from "../../agents/agent-scope.js";
 import { loadConfig } from "../../config/config.js";
-import { loadSessionStore, type SessionEntry } from "../../config/sessions.js";
+import type { SessionEntry } from "../../config/sessions.js";
 import { parseAgentSessionKey } from "../../routing/session-key.js";
-import { ErrorCodes, errorShape } from "../protocol/index.js";
-import { listAgentsForGateway } from "../session-utils.js";
+import { errorShape } from "../protocol/index.js";
+import { listAgentsForGateway, loadCombinedSessionStoreForGateway } from "../session-utils.js";
 
 /* ------------------------------------------------------------------ */
 /* Types                                                              */
@@ -99,7 +99,7 @@ export const agentsHealthHandlers: GatewayRequestHandlers = {
       const agentsMeta = listAgentsForGateway(cfg);
 
       // Load all sessions
-      const sessionStore = loadSessionStore();
+      const { store: sessionStore } = loadCombinedSessionStoreForGateway(cfg);
       const sessionsByAgent = new Map<string, SessionEntry[]>();
       for (const [key, entry] of Object.entries(sessionStore)) {
         const parsed = parseAgentSessionKey(key);
@@ -203,7 +203,7 @@ export const agentsHealthHandlers: GatewayRequestHandlers = {
         false,
         undefined,
         errorShape(
-          ErrorCodes.INTERNAL_ERROR,
+          "UNAVAILABLE",
           `agents.health failed: ${err instanceof Error ? err.message : String(err)}`,
         ),
       );

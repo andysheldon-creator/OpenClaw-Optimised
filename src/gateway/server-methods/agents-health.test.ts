@@ -88,10 +88,10 @@ vi.mock("../../config/config.js", () => ({
 
 vi.mock("../session-utils.js", () => ({
   listAgentsForGateway: () => mocks.listAgentsForGatewayReturn,
-}));
-
-vi.mock("../../config/sessions.js", () => ({
-  loadSessionStore: () => mocks.sessionStoreReturn,
+  loadCombinedSessionStoreForGateway: () => ({
+    storePath: "/tmp/test-store",
+    store: mocks.sessionStoreReturn,
+  }),
 }));
 
 vi.mock("../../routing/session-key.js", () => ({
@@ -102,8 +102,7 @@ vi.mock("../../routing/session-key.js", () => ({
 }));
 
 vi.mock("../protocol/index.js", () => ({
-  ErrorCodes: { INTERNAL_ERROR: -32603, INVALID_REQUEST: -32600 },
-  errorShape: (code: number, msg: string) => ({ code, message: msg }),
+  errorShape: (code: string, msg: string) => ({ code, message: msg }),
 }));
 
 /* ------------------------------------------------------------------ */
