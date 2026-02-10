@@ -121,9 +121,12 @@ It handles authentication and business logic.`;
     );
     expect(allMatch).toBe(true);
 
-    // 5. Get file content
+    // 5. Get file content (now in markdown format)
     const { buffer, metadata } = await getFile({ sessionId, agentId, fileId, filesDir: testDir });
-    expect(buffer.toString()).toBe(textContent);
+    const retrievedContent = buffer.toString("utf-8");
+    // File is now saved as markdown (wrapped in code block for plain text)
+    expect(retrievedContent).toContain("Chapter 1: Introduction");
+    expect(retrievedContent).toContain("frontend");
     expect(metadata.filename).toBe("document.txt");
 
     // 6. Delete file
