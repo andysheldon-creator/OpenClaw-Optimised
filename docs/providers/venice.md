@@ -23,10 +23,10 @@ Venice AI provides privacy-focused AI inference with support for uncensored mode
 
 Venice offers two privacy levels — understanding this is key to choosing your model:
 
-| Mode           | Description                                                                                                          | Models                                         |
-| -------------- | -------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| **Private**    | Fully private. Prompts/responses are **never stored or logged**. Ephemeral.                                          | Llama, Qwen, DeepSeek, Venice Uncensored, etc. |
-| **Anonymized** | Proxied through Venice with metadata stripped. The underlying provider (OpenAI, Anthropic) sees anonymized requests. | Claude, GPT, Gemini, Grok, Kimi, MiniMax       |
+| Mode           | Description                                                                                                          | Models                                                        |
+| -------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| **Private**    | Fully private. Prompts/responses are **never stored or logged**. Ephemeral.                                          | Llama, Qwen, DeepSeek, Kimi, MiniMax, Venice Uncensored, etc. |
+| **Anonymized** | Proxied through Venice with metadata stripped. The underlying provider (OpenAI, Anthropic) sees anonymized requests. | Claude, GPT, Gemini, Grok                                     |
 
 ## Features
 
