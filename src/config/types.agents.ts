@@ -9,6 +9,13 @@ import type {
 } from "./types.sandbox.js";
 import type { AgentToolsConfig, MemorySearchConfig } from "./types.tools.js";
 
+export type AgentDiscordConfig = {
+  /** Webhook URL for routing Discord replies through this agent's identity. */
+  responseWebhook?: string;
+  /** Optional avatar URL for webhook messages (overrides webhook default). */
+  responseWebhookAvatar?: string;
+};
+
 export type AgentModelConfig =
   | string
   | {
@@ -34,6 +41,8 @@ export type AgentConfig = {
   heartbeat?: AgentDefaultsConfig["heartbeat"];
   identity?: IdentityConfig;
   groupChat?: GroupChatConfig;
+  /** Per-agent Discord configuration (webhook routing, etc.). */
+  discord?: AgentDiscordConfig;
   subagents?: {
     /** Allow spawning sub-agents under other agent ids. Use "*" to allow any. */
     allowAgents?: string[];
