@@ -610,6 +610,13 @@ async function runExecProcess(opts: {
       return;
     }
     settled = true;
+    outcome.aggregated = remapMediaContainerPaths(
+      outcome.aggregated,
+      opts.containerWorkdir ?? undefined,
+    );
+    if (outcome.reason) {
+      outcome.reason = remapMediaContainerPaths(outcome.reason, opts.containerWorkdir ?? undefined);
+    }
     resolveFn?.(outcome);
   };
 
@@ -795,6 +802,18 @@ async function runExecProcess(opts: {
     promise,
     kill: () => killSession(session),
   };
+}
+
+export function remapMediaContainerPaths(
+  text: string,
+  containerWorkdir: string | undefined,
+): string {
+  if (!containerWorkdir || !/media:/i.test(text)) {
+    return text;
+  }
+  const prefix = containerWorkdir.endsWith("/") ? containerWorkdir : containerWorkdir + "/";
+  const escaped = prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return text.replace(new RegExp(`(\\bMEDIA:\\s*[\`"']?)${escaped}`, "gi"), "$1./");
 }
 
 export function createExecTool(
