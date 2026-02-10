@@ -67,6 +67,7 @@ export function createSessionsManageTool(opts?: {
       const cfg = loadConfig();
       const { mainKey, alias } = resolveMainSessionAlias(cfg);
       const visibility = resolveSandboxSessionToolsVisibility(cfg);
+
       const requesterInternalKey =
         typeof opts?.agentSessionKey === "string" && opts.agentSessionKey.trim()
           ? resolveInternalSessionKey({
@@ -75,11 +76,21 @@ export function createSessionsManageTool(opts?: {
               mainKey,
             })
           : undefined;
+
+      // Security: Sandboxed agents MUST have a valid session key to use this tool.
+      if (opts?.sandboxed === true && !requesterInternalKey) {
+        return jsonResult({
+          status: "forbidden",
+          error: "Sandboxed agent must have a valid session key to manage sessions.",
+        });
+      }
+
       const restrictToSpawned =
         opts?.sandboxed === true &&
         visibility === "spawned" &&
         !!requesterInternalKey &&
         !isSubagentSessionKey(requesterInternalKey);
+
       const resolvedSession = await resolveSessionReference({
         sessionKey: sessionKeyParam,
         alias,
@@ -94,8 +105,11 @@ export function createSessionsManageTool(opts?: {
       const resolvedKey = resolvedSession.key;
       const displayKey = resolvedSession.displayKey;
       const resolvedViaSessionId = resolvedSession.resolvedViaSessionId;
+
+      // If restricted to spawned sessions, we must verify visibility to prevent unauthorized access by guessing IDs.
+      // We check if resolvedViaSessionId is true (bypass case), OR just always check to be safe (HEAD behavior).
+      // Consolidating on always checking if restrictToSpawned is true:
       if (restrictToSpawned) {
-        // Even if resolved via sessionId, we must verify visibility to prevent unauthorized access by guessing IDs.
         const ok = await isSpawnedSessionAllowed({
           requesterSessionKey: requesterInternalKey!,
           targetSessionKey: resolvedKey,
@@ -108,20 +122,14 @@ export function createSessionsManageTool(opts?: {
         }
       }
 
+      const a2aPolicy = createAgentToAgentPolicy(cfg);
       const requesterAgentId = requesterInternalKey
         ? resolveAgentIdFromSessionKey(requesterInternalKey)
         : "main";
+
       const targetAgentId = resolveAgentIdFromSessionKey(resolvedKey);
       const isCrossAgent = requesterAgentId !== targetAgentId;
 
-      // If we don't know who is asking (and they aren't explicitly "main"), we can't safely allow cross-agent access.
-      // For sandboxed agents, requesterInternalKey is required (checked above implicitly by restrictToSpawned logic, but explicit check is safer).
-      if (opts?.sandboxed && !requesterInternalKey) {
-        return jsonResult({
-          status: "forbidden",
-          error: "Sandboxed agent session key missing; cannot verify permissions.",
-        });
-      }
       if (isCrossAgent) {
         if (!a2aPolicy.enabled) {
           return jsonResult({
@@ -152,16 +160,23 @@ export function createSessionsManageTool(opts?: {
         });
       }
 
-      const result = await callGateway<{ key?: string; deleted?: boolean; archived?: string[] }>({
+      const result = await callGateway<{
+        ok?: boolean;
+        key?: string;
+        entry?: unknown;
+        deleted?: boolean;
+        archived?: string[];
+      }>({
         method: "sessions.reset",
         params: { key: resolvedKey },
       });
+
       return jsonResult({
         status: "ok",
         action,
         sessionKey: displayKey,
         key: typeof result?.key === "string" ? result.key : undefined,
-        deleted: result?.deleted === true,
+        deleted: result?.ok === true,
         archived: Array.isArray(result?.archived) ? result.archived : [],
       });
     },

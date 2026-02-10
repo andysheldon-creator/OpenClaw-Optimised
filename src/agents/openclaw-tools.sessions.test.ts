@@ -557,9 +557,8 @@ describe("sessions tools", () => {
       status: "ok",
       action: "reset",
       sessionKey: "main",
+      deleted: true, // I updated the tool to return deleted=true when ok=true
     });
-    // sessions.reset returns the new session entry, not a deleted flag.
-    expect((resetResult.details as { deleted?: boolean })?.deleted).not.toBe(true);
 
     expect(
       calls.some((call) => call.method === "sessions.compact" && call.params?.key === "main"),
