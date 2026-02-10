@@ -34,29 +34,6 @@ import {
   pcmDurationMsFromBytes,
 } from "./audio-utils.js";
 
-
-
-
-
-  close: () => void;
-};
-
-  providerCallId: string;
-  sipChannelId: string;
-  media?: MediaGraph;
-  speaking: boolean;
-  ttsTimer?: NodeJS.Timeout;
-  stt?: CoreSttSession;
-  sttMessageHandler?: (msg: Buffer) => void;
-  rtpMessageHandler?: (msg: Buffer, rinfo: RemoteInfo) => void;
-  pendingMulaw?: Buffer;
-  pendingSpeakText?: string;
-  rtpPeer?: { address: string; port: number };
-  answeredEmitted?: boolean;
-  rtpSeen?: boolean;
-  rtpState?: { seq: number; ts: number; ssrc: number };
-};
-
 export class AsteriskAriProvider implements VoiceCallProvider {
   readonly name = "asterisk-ari" as const;
 
