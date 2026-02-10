@@ -11,13 +11,20 @@ export const DEFAULT_SANDBOX_IDLE_HOURS = 24;
 export const DEFAULT_SANDBOX_MAX_AGE_DAYS = 7;
 
 export const DEFAULT_TOOL_ALLOW = [
+  // Core coding tools
   "exec",
   "process",
   "read",
   "write",
   "edit",
   "apply_patch",
+  // Gateway tools (API keys handled server-side)
   "image",
+  "web_search",
+  "web_fetch",
+  "tts",
+  "notion",
+  // Session management
   "sessions_list",
   "sessions_history",
   "sessions_send",
