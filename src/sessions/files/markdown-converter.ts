@@ -11,3 +11,16 @@ export function csvToMarkdownTable(csv: string): string {
   // Trim trailing whitespace and newlines
   return result.trimEnd();
 }
+
+export function jsonToMarkdown(json: string): string {
+  // Try to format JSON if valid, otherwise use as-is
+  let formatted = json;
+  try {
+    const parsed = JSON.parse(json);
+    formatted = JSON.stringify(parsed, null, 2);
+  } catch {
+    // Invalid JSON, use as-is
+    formatted = json;
+  }
+  return `\`\`\`json\n${formatted}\n\`\`\``;
+}

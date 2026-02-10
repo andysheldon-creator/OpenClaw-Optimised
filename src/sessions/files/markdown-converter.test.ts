@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { csvToMarkdownTable } from "./markdown-converter.js";
+import { csvToMarkdownTable, jsonToMarkdown } from "./markdown-converter.js";
 
 describe("csvToMarkdownTable", () => {
   it("converts simple CSV to markdown table", () => {
@@ -37,5 +37,28 @@ describe("csvToMarkdownTable", () => {
     const result = csvToMarkdownTable(csv);
     // Library format includes trailing spaces
     expect(result).toBe("| id | name | price | \n|----|------|-------|");
+  });
+});
+
+describe("jsonToMarkdown", () => {
+  it("converts JSON object to markdown code block", () => {
+    const json = '{"key":"value","number":123}';
+    const result = jsonToMarkdown(json);
+    expect(result).toContain("```json");
+    expect(result).toContain('"key": "value"');
+    expect(result).toContain("```");
+  });
+
+  it("preserves indentation", () => {
+    const json = '{\n  "key": "value"\n}';
+    const result = jsonToMarkdown(json);
+    expect(result).toContain('  "key"');
+  });
+
+  it("handles invalid JSON gracefully", () => {
+    const json = "{ invalid json }";
+    const result = jsonToMarkdown(json);
+    expect(result).toContain("```json");
+    expect(result).toContain("{ invalid json }");
   });
 });
