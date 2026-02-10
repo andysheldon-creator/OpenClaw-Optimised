@@ -1125,6 +1125,7 @@ describe("createTelegramBot", () => {
     loadConfig.mockReturnValue({
       channels: {
         telegram: {
+          groupPolicy: "allowlist",
           groups: {
             "123": { requireMention: false },
           },
