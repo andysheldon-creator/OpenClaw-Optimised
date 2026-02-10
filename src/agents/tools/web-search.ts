@@ -109,6 +109,13 @@ type GrokSearchResponse = {
     content?: Array<{
       type?: string;
       text?: string;
+      annotations?: Array<{
+        type?: string;
+        url?: string;
+        start_index?: number;
+        end_index?: number;
+        title?: string;
+      }>;
     }>;
   }>;
   output_text?: string; // deprecated field - kept for backwards compatibility
@@ -131,13 +138,46 @@ type PerplexitySearchResponse = {
 
 type PerplexityBaseUrlHint = "direct" | "openrouter";
 
-function extractGrokContent(data: GrokSearchResponse): string | undefined {
-  // xAI Responses API format: output[0].content[0].text
-  const fromResponses = data.output?.[0]?.content?.[0]?.text;
-  if (typeof fromResponses === "string" && fromResponses) {
-    return fromResponses;
+function extractGrokContent(data: GrokSearchResponse): {
+  text: string | undefined;
+  annotations: GrokSearchResponse["inline_citations"] | undefined;
+} {
+  // xAI Responses API: content is in output[].content[].text where type === "message"
+  // and annotations live in output[].content[].annotations
+  let text = "";
+  let annotations: GrokSearchResponse["inline_citations"] | undefined;
+
+  if (Array.isArray(data.output)) {
+    for (const item of data.output) {
+      if (item.type === "message" && Array.isArray(item.content)) {
+        for (const block of item.content) {
+          if (block.type === "output_text" && block.text) {
+            text += (text ? "\n" : "") + block.text;
+            if (!annotations && Array.isArray(block.annotations)) {
+              annotations = block.annotations
+                .filter((a) => a.type === "url_citation")
+                .map((a) => ({
+                  start_index: a.start_index ?? 0,
+                  end_index: a.end_index ?? 0,
+                  url: a.url ?? "",
+                }));
+            }
+          }
+        }
+      }
+    }
   }
-  return typeof data.output_text === "string" ? data.output_text : undefined;
+
+  if (text) {
+    return { text, annotations };
+  }
+
+  // Fallback to deprecated output_text for backwards compatibility
+  if (typeof data.output_text === "string" && data.output_text) {
+    return { text: data.output_text, annotations: undefined };
+  }
+
+  return { text: undefined, annotations: undefined };
 }
 
 function resolveSearchConfig(cfg?: OpenClawConfig): WebSearchConfig {
@@ -473,9 +513,8 @@ async function runGrokSearch(params: {
     tools: [{ type: "web_search" }],
   };
 
-  if (params.inlineCitations) {
-    body.include = ["inline_citations"];
-  }
+  // xAI Responses API returns inline citations by default;
+  // the `include` parameter is SDK-only and rejected by the REST API
 
   const res = await fetch(XAI_API_ENDPOINT, {
     method: "POST",
@@ -493,9 +532,13 @@ async function runGrokSearch(params: {
   }
 
   const data = (await res.json()) as GrokSearchResponse;
-  const content = extractGrokContent(data) ?? "No response";
+  const extracted = extractGrokContent(data);
+  const content = extracted.text ?? "No response";
   const citations = data.citations ?? [];
-  const inlineCitations = data.inline_citations;
+  // Only include inline citations when the config option is enabled
+  const inlineCitations = params.inlineCitations
+    ? (extracted.annotations ?? data.inline_citations)
+    : undefined;
 
   return { content, citations, inlineCitations };
 }
