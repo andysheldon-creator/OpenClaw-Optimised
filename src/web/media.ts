@@ -125,6 +125,10 @@ async function loadWebMediaInternal(
   options: WebMediaOptions = {},
 ): Promise<WebMediaResult> {
   const { maxBytes, optimizeImages = true, ssrfPolicy } = options;
+  // Strip MEDIA: prefix used by agent tools (e.g. TTS) to tag local media paths.
+  if (/^MEDIA:\s*/i.test(mediaUrl)) {
+    mediaUrl = mediaUrl.replace(/^MEDIA:\s*/i, "");
+  }
   // Use fileURLToPath for proper handling of file:// URLs (handles file://localhost/path, etc.)
   if (mediaUrl.startsWith("file://")) {
     try {
