@@ -74,4 +74,6 @@ export type AgentCommandOpts = {
   extraSystemPrompt?: string;
   /** Per-call stream param overrides (best-effort). */
   streamParams?: AgentStreamParams;
+  /** Model override for this run (e.g., "openrouter/pony-alpha"). Takes precedence over session override. */
+  model?: string;
 };
