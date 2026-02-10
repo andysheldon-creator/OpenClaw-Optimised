@@ -10,7 +10,6 @@ final class MenuSessionsInjector: NSObject, NSMenuDelegate {
     private let tag = 9_415_557
     private let nodesTag = 9_415_558
     private let fallbackWidth: CGFloat = 320
-    private let activeWindowSeconds: TimeInterval = 24 * 60 * 60
 
     private weak var originalDelegate: NSMenuDelegate?
     private weak var statusItem: NSStatusItem?
@@ -25,15 +24,12 @@ final class MenuSessionsInjector: NSObject, NSMenuDelegate {
     private var cachedSnapshot: SessionStoreSnapshot?
     private var cachedErrorText: String?
     private var cacheUpdatedAt: Date?
-    private let refreshIntervalSeconds: TimeInterval = 12
     private var cachedUsageSummary: GatewayUsageSummary?
     private var cachedUsageErrorText: String?
     private var usageCacheUpdatedAt: Date?
-    private let usageRefreshIntervalSeconds: TimeInterval = 30
     private var cachedCostSummary: GatewayCostUsageSummary?
     private var cachedCostErrorText: String?
     private var costCacheUpdatedAt: Date?
-    private let costRefreshIntervalSeconds: TimeInterval = 45
     private let nodesStore = NodesStore.shared
     #if DEBUG
     private var testControlChannelConnected: Bool?
@@ -159,7 +155,9 @@ final class MenuSessionsInjector: NSObject, NSMenuDelegate {
 extension MenuSessionsInjector {
     // MARK: - Injection
 
-    private var mainSessionKey: String { WorkActivityStore.shared.mainSessionKey }
+    private var mainSessionKey: String {
+        WorkActivityStore.shared.mainSessionKey
+    }
 
     private func inject(into menu: NSMenu) {
         self.cancelPreviewTasks()
@@ -183,7 +181,7 @@ extension MenuSessionsInjector {
                 if row.key == "main", mainKey != "main" { return false }
                 if row.key == mainKey { return true }
                 guard let updatedAt = row.updatedAt else { return false }
-                return now.timeIntervalSince(updatedAt) <= self.activeWindowSeconds
+                return now.timeIntervalSince(updatedAt) <= 86400
             }.sorted { lhs, rhs in
                 if lhs.key == mainKey { return true }
                 if rhs.key == mainKey { return false }
@@ -664,7 +662,7 @@ extension MenuSessionsInjector {
     // MARK: - Cache
 
     private func refreshCache(force: Bool) async {
-        if !force, let updated = self.cacheUpdatedAt, Date().timeIntervalSince(updated) < self.refreshIntervalSeconds {
+        if !force, let updated = self.cacheUpdatedAt, Date().timeIntervalSince(updated) < 12 {
             return
         }
 
@@ -692,7 +690,7 @@ extension MenuSessionsInjector {
     private func refreshUsageCache(force: Bool) async {
         if !force,
            let updated = self.usageCacheUpdatedAt,
-           Date().timeIntervalSince(updated) < self.usageRefreshIntervalSeconds
+           Date().timeIntervalSince(updated) < 30
         {
             return
         }
@@ -714,7 +712,7 @@ extension MenuSessionsInjector {
     private func refreshCostUsageCache(force: Bool) async {
         if !force,
            let updated = self.costCacheUpdatedAt,
-           Date().timeIntervalSince(updated) < self.costRefreshIntervalSeconds
+           Date().timeIntervalSince(updated) < 45
         {
             return
         }
@@ -1171,8 +1169,7 @@ extension MenuSessionsInjector {
 
     private func makeHostedView(rootView: AnyView, width: CGFloat, highlighted: Bool) -> NSView {
         if highlighted {
-            let container = HighlightedMenuItemHostView(rootView: rootView, width: width)
-            return container
+            return HighlightedMenuItemHostView(rootView: rootView, width: width)
         }
 
         let hosting = NSHostingView(rootView: rootView)
