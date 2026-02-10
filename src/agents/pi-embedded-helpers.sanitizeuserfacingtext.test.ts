@@ -51,6 +51,34 @@ describe("sanitizeUserFacingText", () => {
     expect(sanitizeUserFacingText(raw)).toBe("LLM error server_error: Something exploded");
   });
 
+  it("does not rewrite normal text containing '402'", () => {
+    // Dollar amounts (GitHub issue #12711)
+    expect(sanitizeUserFacingText("Your MTD spend is $402.55")).toBe("Your MTD spend is $402.55");
+    // Street addresses
+    expect(sanitizeUserFacingText("Meet me at 402 Main Street")).toBe("Meet me at 402 Main Street");
+    // General numeric context
+    expect(sanitizeUserFacingText("The report lists 402 items in total")).toBe(
+      "The report lists 402 items in total",
+    );
+    // Historical year
+    expect(sanitizeUserFacingText("In the year 1402 the empire expanded")).toBe(
+      "In the year 1402 the empire expanded",
+    );
+  });
+
+  it("still rewrites leaked billing error payloads", () => {
+    // HTTP status error
+    expect(sanitizeUserFacingText("402 Payment Required")).toContain("billing");
+    // Error-prefix form
+    expect(sanitizeUserFacingText("Error: 402 Payment Required")).toContain("billing");
+    // JSON API error payload with billing keywords
+    expect(
+      sanitizeUserFacingText(
+        '{"type":"error","error":{"message":"insufficient credits","type":"billing_error"}}',
+      ),
+    ).toContain("billing");
+  });
+
   it("collapses consecutive duplicate paragraphs", () => {
     const text = "Hello there!\n\nHello there!";
     expect(sanitizeUserFacingText(text)).toBe("Hello there!");
