@@ -8,6 +8,9 @@ const {
   resolveGrokApiKey,
   resolveGrokModel,
   resolveGrokInlineCitations,
+  extractGrokContent,
+  extractGrokCitations,
+  isAbortError,
 } = __testing;
 
 describe("web_search perplexity baseUrl defaults", () => {
@@ -102,5 +105,65 @@ describe("web_search grok config resolution", () => {
   it("respects inlineCitations config", () => {
     expect(resolveGrokInlineCitations({ inlineCitations: true })).toBe(true);
     expect(resolveGrokInlineCitations({ inlineCitations: false })).toBe(false);
+  });
+});
+
+describe("web_search grok response parsing", () => {
+  it("uses output_text when present", () => {
+    expect(extractGrokContent({ output_text: "hello" })).toBe("hello");
+  });
+
+  it("extracts message output_text content when output_text is absent", () => {
+    expect(
+      extractGrokContent({
+        output: [
+          { type: "web_search_call" },
+          {
+            type: "message",
+            content: [
+              { type: "output_text", text: "first" },
+              { type: "output_text", text: "second" },
+            ],
+          },
+        ],
+      }),
+    ).toBe("first\n\nsecond");
+  });
+
+  it("uses top-level citations when present", () => {
+    expect(extractGrokCitations({ citations: ["https://a.example", "https://b.example"] })).toEqual(
+      ["https://a.example", "https://b.example"],
+    );
+  });
+
+  it("extracts citations from output message annotations when top-level citations are absent", () => {
+    expect(
+      extractGrokCitations({
+        output: [
+          {
+            type: "message",
+            content: [
+              {
+                type: "output_text",
+                text: "x",
+                annotations: [
+                  { type: "url_citation", url: "https://a.example" },
+                  { type: "url_citation", url: "https://a.example" },
+                  { type: "url_citation", url: "https://b.example" },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    ).toEqual(["https://a.example", "https://b.example"]);
+  });
+});
+
+describe("web_search grok abort detection", () => {
+  it("recognizes AbortError-like values", () => {
+    expect(isAbortError({ name: "AbortError" })).toBe(true);
+    expect(isAbortError(new Error("x"))).toBe(false);
+    expect(isAbortError(null)).toBe(false);
   });
 });

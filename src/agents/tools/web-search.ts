@@ -104,6 +104,17 @@ type GrokConfig = {
 type GrokSearchResponse = {
   output_text?: string;
   citations?: string[];
+  output?: Array<{
+    type?: string;
+    content?: Array<{
+      type?: string;
+      text?: string;
+      annotations?: Array<{
+        type?: string;
+        url?: string;
+      }>;
+    }>;
+  }>;
   inline_citations?: Array<{
     start_index: number;
     end_index: number;
@@ -436,15 +447,36 @@ async function runGrokSearch(params: {
     body.include = ["inline_citations"];
   }
 
-  const res = await fetch(XAI_API_ENDPOINT, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${params.apiKey}`,
-    },
-    body: JSON.stringify(body),
-    signal: withTimeout(undefined, params.timeoutSeconds * 1000),
-  });
+  const callXai = async (timeoutSeconds: number) =>
+    fetch(XAI_API_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${params.apiKey}`,
+      },
+      body: JSON.stringify(body),
+      signal: withTimeout(undefined, timeoutSeconds * 1000),
+    });
+
+  let res: Response;
+  try {
+    res = await callXai(params.timeoutSeconds);
+  } catch (error) {
+    if (!isAbortError(error)) {
+      throw error;
+    }
+    const retryTimeoutSeconds = Math.min(Math.max(params.timeoutSeconds + 15, 45), 90);
+    try {
+      res = await callXai(retryTimeoutSeconds);
+    } catch (retryError) {
+      if (isAbortError(retryError)) {
+        if (retryError instanceof Error) {
+          retryError.message = `xAI web_search timed out after ${params.timeoutSeconds}s (retried ${retryTimeoutSeconds}s). Increase tools.web.search.timeoutSeconds or use a faster Grok model. Original error: ${retryError.message}`;
+        }
+      }
+      throw retryError;
+    }
+  }
 
   if (!res.ok) {
     const detail = await readResponseText(res);
@@ -452,11 +484,56 @@ async function runGrokSearch(params: {
   }
 
   const data = (await res.json()) as GrokSearchResponse;
-  const content = data.output_text ?? "No response";
-  const citations = data.citations ?? [];
+  const content = extractGrokContent(data) ?? "No response";
+  const citations = extractGrokCitations(data);
   const inlineCitations = data.inline_citations;
 
   return { content, citations, inlineCitations };
+}
+
+function isAbortError(error: unknown): boolean {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+  const maybeNamed = error as { name?: unknown };
+  return maybeNamed.name === "AbortError";
+}
+
+function extractGrokContent(data: GrokSearchResponse): string | undefined {
+  if (typeof data.output_text === "string" && data.output_text.trim()) {
+    return data.output_text;
+  }
+  const chunks =
+    data.output
+      ?.filter((entry) => entry.type === "message")
+      .flatMap((entry) => entry.content ?? [])
+      .filter((entry) => entry.type === "output_text" && typeof entry.text === "string")
+      .map((entry) => entry.text!.trim())
+      .filter(Boolean) ?? [];
+  if (chunks.length === 0) {
+    return undefined;
+  }
+  return chunks.join("\n\n");
+}
+
+function extractGrokCitations(data: GrokSearchResponse): string[] {
+  if (Array.isArray(data.citations) && data.citations.length > 0) {
+    return data.citations;
+  }
+  const urls = new Set<string>();
+  for (const item of data.output ?? []) {
+    if (item.type !== "message") {
+      continue;
+    }
+    for (const content of item.content ?? []) {
+      for (const annotation of content.annotations ?? []) {
+        if (annotation.type === "url_citation" && typeof annotation.url === "string") {
+          urls.add(annotation.url);
+        }
+      }
+    }
+  }
+  return [...urls];
 }
 
 async function runWebSearch(params: {
@@ -687,4 +764,7 @@ export const __testing = {
   resolveGrokApiKey,
   resolveGrokModel,
   resolveGrokInlineCitations,
+  extractGrokContent,
+  extractGrokCitations,
+  isAbortError,
 } as const;
