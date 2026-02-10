@@ -310,6 +310,66 @@ describe("Agent-specific tool filtering", () => {
     expect(bobNames).not.toContain("exec");
   });
 
+  it("should apply DM sender policy for direct sessions", () => {
+    const cfg: OpenClawConfig = {
+      channels: {
+        whatsapp: {
+          toolsBySender: {
+            "+14155550101": { allow: ["read", "exec"] },
+            "*": { deny: ["*"] },
+          },
+        },
+      },
+    };
+
+    const trustedTools = createOpenClawCodingTools({
+      config: cfg,
+      sessionKey: "agent:main:whatsapp:direct:+14155550101",
+      messageProvider: "whatsapp",
+      workspaceDir: "/tmp/test-dm-trusted",
+      agentDir: "/tmp/agent-dm",
+    });
+    const trustedNames = trustedTools.map((t) => t.name);
+    expect(trustedNames).toContain("read");
+    expect(trustedNames).toContain("exec");
+
+    const unknownTools = createOpenClawCodingTools({
+      config: cfg,
+      sessionKey: "agent:main:whatsapp:direct:+14155550199",
+      messageProvider: "whatsapp",
+      workspaceDir: "/tmp/test-dm-unknown",
+      agentDir: "/tmp/agent-dm",
+    });
+    const unknownNames = unknownTools.map((t) => t.name);
+    expect(unknownNames).not.toContain("read");
+    expect(unknownNames).not.toContain("exec");
+  });
+
+  it("should ignore sender-specific DM policy on unverified channels", () => {
+    const cfg: OpenClawConfig = {
+      channels: {
+        whatsapp: {
+          verified: false,
+          toolsBySender: {
+            "+14155550101": { allow: ["read", "exec"] },
+            "*": { deny: ["*"] },
+          },
+        },
+      },
+    };
+
+    const trustedTools = createOpenClawCodingTools({
+      config: cfg,
+      sessionKey: "agent:main:whatsapp:direct:+14155550101",
+      messageProvider: "whatsapp",
+      workspaceDir: "/tmp/test-dm-unverified",
+      agentDir: "/tmp/agent-dm-unverified",
+    });
+    const trustedNames = trustedTools.map((t) => t.name);
+    expect(trustedNames).not.toContain("read");
+    expect(trustedNames).not.toContain("exec");
+  });
+
   it("should not let default sender policy override group tools", () => {
     const cfg: OpenClawConfig = {
       channels: {

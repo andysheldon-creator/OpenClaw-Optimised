@@ -2,7 +2,10 @@ import type { OpenClawConfig } from "../config/config.js";
 import type { AnyAgentTool } from "./pi-tools.types.js";
 import type { SandboxToolPolicy } from "./sandbox.js";
 import { getChannelDock } from "../channels/dock.js";
-import { resolveChannelGroupToolsPolicy } from "../config/group-policy.js";
+import {
+  resolveChannelDMToolsPolicy,
+  resolveChannelGroupToolsPolicy,
+} from "../config/group-policy.js";
 import { resolveThreadParentSessionKey } from "../sessions/session-key-utils.js";
 import { normalizeMessageChannel } from "../utils/message-channel.js";
 import { resolveAgentConfig, resolveAgentIdFromSessionKey } from "./agent-scope.js";
@@ -159,10 +162,14 @@ function normalizeProviderKey(value: string): string {
   return value.trim().toLowerCase();
 }
 
-function resolveGroupContextFromSessionKey(sessionKey?: string | null): {
+type SessionChannelContext = {
   channel?: string;
-  groupId?: string;
-} {
+  accountId?: string;
+  kind?: "group" | "channel" | "direct" | "dm";
+  peerId?: string;
+};
+
+function resolveGroupContextFromSessionKey(sessionKey?: string | null): SessionChannelContext {
   const raw = (sessionKey ?? "").trim();
   if (!raw) {
     return {};
@@ -173,18 +180,43 @@ function resolveGroupContextFromSessionKey(sessionKey?: string | null): {
   if (body[0] === "subagent") {
     body = body.slice(1);
   }
+  const resolveKind = (value?: string): SessionChannelContext["kind"] => {
+    const normalized = value?.trim().toLowerCase();
+    if (
+      normalized === "group" ||
+      normalized === "channel" ||
+      normalized === "direct" ||
+      normalized === "dm"
+    ) {
+      return normalized;
+    }
+    return undefined;
+  };
   if (body.length < 3) {
     return {};
   }
-  const [channel, kind, ...rest] = body;
-  if (kind !== "group" && kind !== "channel") {
+  const channel = body[0]?.trim().toLowerCase();
+  if (!channel) {
     return {};
   }
-  const groupId = rest.join(":").trim();
-  if (!groupId) {
+  const directKind = resolveKind(body[1]);
+  if (directKind) {
+    const peerId = body.slice(2).join(":").trim();
+    if (!peerId) {
+      return {};
+    }
+    return { channel, kind: directKind, peerId };
+  }
+  const accountKind = resolveKind(body[2]);
+  if (!accountKind) {
     return {};
   }
-  return { channel: channel.trim().toLowerCase(), groupId };
+  const accountId = body[1]?.trim();
+  const peerId = body.slice(3).join(":").trim();
+  if (!peerId) {
+    return {};
+  }
+  return { channel, accountId, kind: accountKind, peerId };
 }
 
 function resolveProviderToolPolicy(params: {
@@ -291,14 +323,47 @@ export function resolveGroupToolPolicy(params: {
   }
   const sessionContext = resolveGroupContextFromSessionKey(params.sessionKey);
   const spawnedContext = resolveGroupContextFromSessionKey(params.spawnedBy);
-  const groupId = params.groupId ?? sessionContext.groupId ?? spawnedContext.groupId;
-  if (!groupId) {
-    return undefined;
-  }
+  const groupId =
+    params.groupId ??
+    (sessionContext.kind === "group" || sessionContext.kind === "channel"
+      ? sessionContext.peerId
+      : undefined) ??
+    (spawnedContext.kind === "group" || spawnedContext.kind === "channel"
+      ? spawnedContext.peerId
+      : undefined);
   const channelRaw = params.messageProvider ?? sessionContext.channel ?? spawnedContext.channel;
   const channel = normalizeMessageChannel(channelRaw);
   if (!channel) {
     return undefined;
+  }
+  const accountId = params.accountId ?? sessionContext.accountId ?? spawnedContext.accountId;
+  if (!groupId) {
+    const isDirectContext =
+      sessionContext.kind === "direct" ||
+      sessionContext.kind === "dm" ||
+      spawnedContext.kind === "direct" ||
+      spawnedContext.kind === "dm" ||
+      Boolean(params.senderId || params.senderName || params.senderUsername || params.senderE164);
+    if (!isDirectContext) {
+      return undefined;
+    }
+    const senderIdFromSession =
+      (sessionContext.kind === "direct" || sessionContext.kind === "dm"
+        ? sessionContext.peerId
+        : undefined) ??
+      (spawnedContext.kind === "direct" || spawnedContext.kind === "dm"
+        ? spawnedContext.peerId
+        : undefined);
+    const toolsConfig = resolveChannelDMToolsPolicy({
+      cfg: params.config,
+      channel,
+      accountId,
+      senderId: params.senderId ?? senderIdFromSession,
+      senderName: params.senderName,
+      senderUsername: params.senderUsername,
+      senderE164: params.senderE164,
+    });
+    return pickToolPolicy(toolsConfig);
   }
   let dock;
   try {
@@ -312,7 +377,7 @@ export function resolveGroupToolPolicy(params: {
       groupId,
       groupChannel: params.groupChannel,
       groupSpace: params.groupSpace,
-      accountId: params.accountId,
+      accountId,
       senderId: params.senderId,
       senderName: params.senderName,
       senderUsername: params.senderUsername,
@@ -322,7 +387,7 @@ export function resolveGroupToolPolicy(params: {
       cfg: params.config,
       channel,
       groupId,
-      accountId: params.accountId,
+      accountId,
       senderId: params.senderId,
       senderName: params.senderName,
       senderUsername: params.senderUsername,

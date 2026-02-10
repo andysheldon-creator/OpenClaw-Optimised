@@ -11,6 +11,11 @@ export type ChannelGroupConfig = {
   toolsBySender?: GroupToolPolicyBySenderConfig;
 };
 
+export type ChannelDmConfig = {
+  verified?: boolean;
+  toolsBySender?: GroupToolPolicyBySenderConfig;
+};
+
 export type ChannelGroupPolicy = {
   allowlistEnabled: boolean;
   allowed: boolean;
@@ -19,6 +24,13 @@ export type ChannelGroupPolicy = {
 };
 
 type ChannelGroups = Record<string, ChannelGroupConfig>;
+
+const CHANNEL_VERIFIED_DEFAULTS: Record<string, boolean> = {
+  whatsapp: true,
+  imessage: true,
+  signal: true,
+  sms: false,
+};
 
 function resolveChannelGroupConfig(
   groups: ChannelGroups | undefined,
@@ -133,14 +145,60 @@ function resolveChannelGroups(
   if (!channelConfig) {
     return undefined;
   }
-  const accountGroups =
-    channelConfig.accounts?.[normalizedAccountId]?.groups ??
-    channelConfig.accounts?.[
-      Object.keys(channelConfig.accounts ?? {}).find(
+  const accountGroups = resolveAccountConfig(channelConfig.accounts, normalizedAccountId)?.groups;
+  return accountGroups ?? channelConfig.groups;
+}
+
+function resolveAccountConfig<T>(
+  accounts: Record<string, T> | undefined,
+  normalizedAccountId: string,
+): T | undefined {
+  if (!accounts) {
+    return undefined;
+  }
+  return (
+    accounts[normalizedAccountId] ??
+    accounts[
+      Object.keys(accounts).find(
         (key) => key.toLowerCase() === normalizedAccountId.toLowerCase(),
       ) ?? ""
-    ]?.groups;
-  return accountGroups ?? channelConfig.groups;
+    ]
+  );
+}
+
+function resolveChannelDmConfigs(
+  cfg: OpenClawConfig,
+  channel: GroupPolicyChannel,
+  accountId?: string | null,
+): { account?: ChannelDmConfig; channel?: ChannelDmConfig } {
+  const normalizedAccountId = normalizeAccountId(accountId);
+  const channelConfig = cfg.channels?.[channel] as
+    | (ChannelDmConfig & {
+        accounts?: Record<string, ChannelDmConfig>;
+      })
+    | undefined;
+  if (!channelConfig) {
+    return {};
+  }
+  return {
+    account: resolveAccountConfig(channelConfig.accounts, normalizedAccountId),
+    channel: channelConfig,
+  };
+}
+
+function resolveChannelVerifiedFlag(
+  cfg: OpenClawConfig,
+  channel: GroupPolicyChannel,
+  accountId?: string | null,
+): boolean {
+  const { account, channel: channelConfig } = resolveChannelDmConfigs(cfg, channel, accountId);
+  if (typeof account?.verified === "boolean") {
+    return account.verified;
+  }
+  if (typeof channelConfig?.verified === "boolean") {
+    return channelConfig.verified;
+  }
+  return CHANNEL_VERIFIED_DEFAULTS[channel.trim().toLowerCase()] ?? false;
 }
 
 export function resolveChannelGroupPolicy(params: {
@@ -235,4 +293,28 @@ export function resolveChannelGroupToolsPolicy(
     return defaultConfig.tools;
   }
   return undefined;
+}
+
+export function resolveChannelDMToolsPolicy(
+  params: {
+    cfg: OpenClawConfig;
+    channel: GroupPolicyChannel;
+    accountId?: string | null;
+  } & GroupToolPolicySender,
+): GroupToolPolicyConfig | undefined {
+  const { cfg, channel, accountId } = params;
+  const { account, channel: channelConfig } = resolveChannelDmConfigs(cfg, channel, accountId);
+  const verified = resolveChannelVerifiedFlag(cfg, channel, accountId);
+  const resolvePolicy = (toolsBySender?: GroupToolPolicyBySenderConfig) =>
+    verified
+      ? resolveToolsBySender({
+          toolsBySender,
+          senderId: params.senderId,
+          senderName: params.senderName,
+          senderUsername: params.senderUsername,
+          senderE164: params.senderE164,
+        })
+      : resolveToolsBySender({ toolsBySender });
+
+  return resolvePolicy(account?.toolsBySender) ?? resolvePolicy(channelConfig?.toolsBySender);
 }
