@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { rewriteUpdateFlagArgv } from "./run-main.js";
 
 describe("rewriteUpdateFlagArgv", () => {
