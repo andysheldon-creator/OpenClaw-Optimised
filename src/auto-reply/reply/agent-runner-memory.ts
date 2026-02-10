@@ -96,15 +96,16 @@ export async function runMemoryFlushIfNeeded(params: {
     .filter(Boolean)
     .join("\n\n");
   try {
+    const agentFallbacksOverride = resolveAgentModelFallbacksOverride(
+      params.followupRun.run.config,
+      resolveAgentIdFromSessionKey(params.followupRun.run.sessionKey),
+    );
     await runWithModelFallback({
       cfg: params.followupRun.run.config,
       provider: params.followupRun.run.provider,
       model: params.followupRun.run.model,
       agentDir: params.followupRun.run.agentDir,
-      fallbacksOverride: resolveAgentModelFallbacksOverride(
-        params.followupRun.run.config,
-        resolveAgentIdFromSessionKey(params.followupRun.run.sessionKey),
-      ),
+      fallbacksOverride: agentFallbacksOverride,
       run: (provider, model) => {
         const authProfileId =
           provider === params.followupRun.run.provider
@@ -113,6 +114,7 @@ export async function runMemoryFlushIfNeeded(params: {
         return runEmbeddedPiAgent({
           sessionId: params.followupRun.run.sessionId,
           sessionKey: params.sessionKey,
+          fallbacksOverride: agentFallbacksOverride,
           agentId: params.followupRun.run.agentId,
           messageProvider: params.sessionCtx.Provider?.trim().toLowerCase() || undefined,
           agentAccountId: params.sessionCtx.AccountId,

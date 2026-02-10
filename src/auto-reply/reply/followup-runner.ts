@@ -125,21 +125,23 @@ export function createFollowupRunner(params: {
       let fallbackProvider = queued.run.provider;
       let fallbackModel = queued.run.model;
       try {
+        const agentFallbacksOverride = resolveAgentModelFallbacksOverride(
+          queued.run.config,
+          resolveAgentIdFromSessionKey(queued.run.sessionKey),
+        );
         const fallbackResult = await runWithModelFallback({
           cfg: queued.run.config,
           provider: queued.run.provider,
           model: queued.run.model,
           agentDir: queued.run.agentDir,
-          fallbacksOverride: resolveAgentModelFallbacksOverride(
-            queued.run.config,
-            resolveAgentIdFromSessionKey(queued.run.sessionKey),
-          ),
+          fallbacksOverride: agentFallbacksOverride,
           run: (provider, model) => {
             const authProfileId =
               provider === queued.run.provider ? queued.run.authProfileId : undefined;
             return runEmbeddedPiAgent({
               sessionId: queued.run.sessionId,
               sessionKey: queued.run.sessionKey,
+              fallbacksOverride: agentFallbacksOverride,
               agentId: queued.run.agentId,
               messageProvider: queued.run.messageProvider,
               agentAccountId: queued.run.agentAccountId,
