@@ -20,7 +20,6 @@ import {
   resolveExecApprovalsFromFile,
 } from "../infra/exec-approvals.js";
 import { requestHeartbeatNow } from "../infra/heartbeat-wake.js";
-import { buildNodeShellCommand } from "../infra/node-shell.js";
 import {
   getShellPathFromLoginShell,
   resolveShellEnvFallbackTimeoutMs,
@@ -1038,7 +1037,6 @@ export function createExecTool(
             "exec host=node requires a node that supports system.run (companion app or node host).",
           );
         }
-        const argv = buildNodeShellCommand(params.command, nodeInfo?.platform);
 
         const nodeEnv = params.env ? { ...params.env } : undefined;
 
@@ -1108,8 +1106,9 @@ export function createExecTool(
             nodeId,
             command: "system.run",
             params: {
-              command: argv,
-              rawCommand: params.command,
+              // Pass raw command string; Node's system.run handles shell wrapping internally.
+              // Previously passed `argv` array which caused "spawn /bin/sh ENOENT" errors.
+              command: params.command,
               cwd: workdir,
               env: nodeEnv,
               timeoutMs: typeof params.timeout === "number" ? params.timeout * 1000 : undefined,
