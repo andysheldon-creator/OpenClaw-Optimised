@@ -12,6 +12,15 @@ export function resolveAgentTimeoutSeconds(cfg?: OpenClawConfig): number {
   return Math.max(seconds, 1);
 }
 
+/**
+ * Sentinel value returned by {@link resolveAgentTimeoutMs} when the caller
+ * explicitly requests "no timeout" (timeout = 0).  Callers that schedule
+ * timers (e.g. `setTimeout`) **must** check for this value and skip the
+ * timer entirely rather than passing it to `setTimeout`, because Node
+ * clamps values above `2_147_483_647` (≈ 24.8 days) to `1 ms`.
+ */
+export const NO_TIMEOUT = 0;
+
 export function resolveAgentTimeoutMs(opts: {
   cfg?: OpenClawConfig;
   overrideMs?: number | null;
@@ -22,12 +31,10 @@ export function resolveAgentTimeoutMs(opts: {
   const clampTimeoutMs = (valueMs: number) =>
     Math.min(Math.max(valueMs, minMs), MAX_SAFE_TIMEOUT_MS);
   const defaultMs = clampTimeoutMs(resolveAgentTimeoutSeconds(opts.cfg) * 1000);
-  // Use the maximum timer-safe timeout to represent "no timeout" when explicitly set to 0.
-  const NO_TIMEOUT_MS = MAX_SAFE_TIMEOUT_MS;
   const overrideMs = normalizeNumber(opts.overrideMs);
   if (overrideMs !== undefined) {
     if (overrideMs === 0) {
-      return NO_TIMEOUT_MS;
+      return NO_TIMEOUT;
     }
     if (overrideMs < 0) {
       return defaultMs;
@@ -37,7 +44,7 @@ export function resolveAgentTimeoutMs(opts: {
   const overrideSeconds = normalizeNumber(opts.overrideSeconds);
   if (overrideSeconds !== undefined) {
     if (overrideSeconds === 0) {
-      return NO_TIMEOUT_MS;
+      return NO_TIMEOUT;
     }
     if (overrideSeconds < 0) {
       return defaultMs;

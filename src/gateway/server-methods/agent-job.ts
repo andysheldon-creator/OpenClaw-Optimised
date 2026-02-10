@@ -79,7 +79,9 @@ export async function waitForAgentJob(params: {
   if (cached) {
     return cached;
   }
-  if (timeoutMs <= 0) {
+  // timeoutMs === 0 means "no timeout" — wait indefinitely for the agent
+  // to finish.  Only bail out for truly invalid (negative) values.
+  if (timeoutMs < 0) {
     return null;
   }
 
@@ -127,8 +129,13 @@ export async function waitForAgentJob(params: {
       recordAgentRunSnapshot(snapshot);
       finish(snapshot);
     });
-    const timerDelayMs = Math.max(1, Math.min(Math.floor(timeoutMs), 2_147_483_647));
-    const timer = setTimeout(() => finish(null), timerDelayMs);
+    // When timeoutMs is 0 the caller requested "no timeout" — skip the
+    // completion timer instead of scheduling one that overflows Node's
+    // 32-bit signed integer limit for setTimeout.
+    const timer =
+      timeoutMs > 0
+        ? setTimeout(() => finish(null), Math.min(Math.floor(timeoutMs), 2_147_483_647))
+        : undefined;
   });
 }
 

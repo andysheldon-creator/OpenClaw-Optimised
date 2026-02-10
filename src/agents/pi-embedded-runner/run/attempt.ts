@@ -666,29 +666,32 @@ export async function runEmbeddedAttempt(
 
       let abortWarnTimer: NodeJS.Timeout | undefined;
       const isProbeSession = params.sessionId?.startsWith("probe-") ?? false;
-      const abortTimer = setTimeout(
-        () => {
-          if (!isProbeSession) {
-            log.warn(
-              `embedded run timeout: runId=${params.runId} sessionId=${params.sessionId} timeoutMs=${params.timeoutMs}`,
-            );
-          }
-          abortRun(true);
-          if (!abortWarnTimer) {
-            abortWarnTimer = setTimeout(() => {
-              if (!activeSession.isStreaming) {
-                return;
-              }
+      // When timeoutMs is 0 the caller requested "no timeout" — skip the
+      // abort timer entirely instead of scheduling one that would overflow
+      // Node's 32-bit signed integer limit and fire almost immediately.
+      const abortTimer =
+        params.timeoutMs > 0
+          ? setTimeout(() => {
               if (!isProbeSession) {
                 log.warn(
-                  `embedded run abort still streaming: runId=${params.runId} sessionId=${params.sessionId}`,
+                  `embedded run timeout: runId=${params.runId} sessionId=${params.sessionId} timeoutMs=${params.timeoutMs}`,
                 );
               }
-            }, 10_000);
-          }
-        },
-        Math.max(1, params.timeoutMs),
-      );
+              abortRun(true);
+              if (!abortWarnTimer) {
+                abortWarnTimer = setTimeout(() => {
+                  if (!activeSession.isStreaming) {
+                    return;
+                  }
+                  if (!isProbeSession) {
+                    log.warn(
+                      `embedded run abort still streaming: runId=${params.runId} sessionId=${params.sessionId}`,
+                    );
+                  }
+                }, 10_000);
+              }
+            }, params.timeoutMs)
+          : undefined;
 
       let messagesSnapshot: AgentMessage[] = [];
       let sessionIdUsed = activeSession.sessionId;
