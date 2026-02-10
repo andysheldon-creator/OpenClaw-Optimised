@@ -95,12 +95,19 @@ export async function signalCheck(
   timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<{ ok: boolean; status?: number | null; error?: string | null }> {
   const normalized = normalizeBaseUrl(baseUrl);
+  // Try the REST health endpoint first (signal-cli <0.13)
   try {
     const res = await fetchWithTimeout(`${normalized}/api/v1/check`, { method: "GET" }, timeoutMs);
-    if (!res.ok) {
-      return { ok: false, status: res.status, error: `HTTP ${res.status}` };
+    if (res.ok) {
+      return { ok: true, status: res.status, error: null };
     }
-    return { ok: true, status: res.status, error: null };
+  } catch {
+    // REST endpoint unavailable, try JSON-RPC below
+  }
+  // Fall back to JSON-RPC "version" method (signal-cli 0.13+)
+  try {
+    await signalRpcRequest("version", undefined, { baseUrl, timeoutMs });
+    return { ok: true, status: 200, error: null };
   } catch (err) {
     return {
       ok: false,
