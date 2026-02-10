@@ -429,10 +429,26 @@ export class TwilioProvider implements VoiceCallProvider {
    * @param streamUrl - WebSocket URL (wss://...) for the media stream
    */
   getStreamConnectXml(streamUrl: string): string {
+    // Twilio Media Streams strips query parameters from the WebSocket URL,
+    // so the token embedded in the URL never reaches the server.  Pass it
+    // as a <Parameter> as well — Twilio forwards <Parameter> values inside
+    // the `start` message's `customParameters` object.
+    let parameterTag = "";
+    try {
+      const parsed = new URL(streamUrl);
+      const token = parsed.searchParams.get("token");
+      if (token) {
+        parameterTag = `\n      <Parameter name="token" value="${escapeXml(token)}" />`;
+      }
+    } catch {
+      // leave empty — fall back to URL-only auth
+    }
+
     return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Connect>
-    <Stream url="${escapeXml(streamUrl)}" />
+    <Stream url="${escapeXml(streamUrl)}">${parameterTag}
+    </Stream>
   </Connect>
 </Response>`;
   }

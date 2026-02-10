@@ -57,4 +57,31 @@ describe("TwilioProvider", () => {
     expect(result.providerResponseBody).toContain(STREAM_URL_PREFIX);
     expect(result.providerResponseBody).toContain("<Connect>");
   });
+
+  it("includes token as <Parameter> in stream TwiML for Twilio customParameters fallback", () => {
+    const provider = createProvider();
+    const ctx = createContext("CallStatus=ringing&Direction=inbound&CallSid=CA789");
+
+    const result = provider.parseWebhookEvent(ctx);
+
+    // Twilio strips query params from WebSocket URLs, so the token must also
+    // be passed as a <Parameter> so it arrives in start.customParameters.
+    expect(result.providerResponseBody).toContain('<Parameter name="token" value="');
+  });
+
+  it("getStreamConnectXml embeds token parameter from URL", () => {
+    const provider = createProvider();
+    const xml = provider.getStreamConnectXml("wss://example.com/stream?token=abc123");
+
+    expect(xml).toContain('<Parameter name="token" value="abc123"');
+    expect(xml).toContain("<Stream");
+  });
+
+  it("getStreamConnectXml handles URL without token gracefully", () => {
+    const provider = createProvider();
+    const xml = provider.getStreamConnectXml("wss://example.com/stream");
+
+    expect(xml).not.toContain("<Parameter");
+    expect(xml).toContain("<Stream");
+  });
 });

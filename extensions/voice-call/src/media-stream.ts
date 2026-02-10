@@ -146,6 +146,11 @@ export class MediaStreamHandler {
     const streamSid = message.streamSid || "";
     const callSid = message.start?.callSid || "";
 
+    // Twilio strips query parameters from the WebSocket URL, so the token
+    // extracted from the upgrade request may be missing.  Fall back to the
+    // `customParameters` object that Twilio forwards from <Parameter> tags.
+    const effectiveToken = streamToken ?? message.start?.customParameters?.token ?? undefined;
+
     console.log(`[MediaStream] Stream started: ${streamSid} (call: ${callSid})`);
     if (!callSid) {
       console.warn("[MediaStream] Missing callSid; closing stream");
@@ -154,7 +159,7 @@ export class MediaStreamHandler {
     }
     if (
       this.config.shouldAcceptStream &&
-      !this.config.shouldAcceptStream({ callId: callSid, streamSid, token: streamToken })
+      !this.config.shouldAcceptStream({ callId: callSid, streamSid, token: effectiveToken })
     ) {
       console.warn(`[MediaStream] Rejecting stream for unknown call: ${callSid}`);
       ws.close(1008, "Unknown call");
@@ -393,6 +398,7 @@ interface TwilioMediaMessage {
     accountSid: string;
     callSid: string;
     tracks: string[];
+    customParameters?: Record<string, string>;
     mediaFormat: {
       encoding: string;
       sampleRate: number;
