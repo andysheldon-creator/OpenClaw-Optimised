@@ -1,8 +1,18 @@
+import AjvModule, { type ErrorObject } from "ajv";
+import addFormats from "ajv-formats";
 import {
   DEFAULT_HEARTBEAT_ACK_MAX_CHARS,
   stripHeartbeatToken,
 } from "../../auto-reply/heartbeat.js";
 import { truncateUtf16Safe } from "../../utils.js";
+
+const AjvCtor = (AjvModule as unknown as { default?: typeof AjvModule }).default ?? AjvModule;
+const ajv = new (AjvCtor as unknown as new (opts?: object) => import("ajv").default)({
+  allErrors: true,
+  strict: false,
+  coerceTypes: false,
+});
+addFormats(ajv);
 
 type DeliveryPayload = {
   text?: string;
@@ -79,4 +89,71 @@ export function isHeartbeatOnlyResponse(payloads: DeliveryPayload[], ackMaxChars
 export function resolveHeartbeatAckMaxChars(agentCfg?: { heartbeat?: { ackMaxChars?: number } }) {
   const raw = agentCfg?.heartbeat?.ackMaxChars ?? DEFAULT_HEARTBEAT_ACK_MAX_CHARS;
   return Math.max(0, raw);
+}
+
+/**
+ * Try to extract a JSON object or array from text that may contain
+ * markdown fences or surrounding prose.
+ */
+export function extractJsonFromText(text: string): string | null {
+  const trimmed = text.trim();
+  if (
+    (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
+    (trimmed.startsWith("[") && trimmed.endsWith("]"))
+  ) {
+    return trimmed;
+  }
+
+  const fenceMatch = trimmed.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+  if (fenceMatch?.[1]) {
+    return fenceMatch[1].trim();
+  }
+
+  const braceStart = trimmed.indexOf("{");
+  const bracketStart = trimmed.indexOf("[");
+  const start =
+    braceStart === -1
+      ? bracketStart
+      : bracketStart === -1
+        ? braceStart
+        : Math.min(braceStart, bracketStart);
+  if (start === -1) {
+    return null;
+  }
+  const opener = trimmed[start];
+  const closer = opener === "{" ? "}" : "]";
+  const lastClose = trimmed.lastIndexOf(closer);
+  if (lastClose <= start) {
+    return null;
+  }
+  return trimmed.slice(start, lastClose + 1);
+}
+
+/**
+ * Validate a JSON string against a JSON Schema.
+ */
+export function validateJsonSchema(
+  jsonString: string,
+  schema: Record<string, unknown>,
+): { valid: true; data: unknown } | { valid: false; error: string } {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(jsonString);
+  } catch (err) {
+    return { valid: false, error: `JSON parse error: ${String(err)}` };
+  }
+
+  const validate = ajv.compile(schema);
+  if (validate(parsed)) {
+    return { valid: true, data: parsed };
+  }
+  const errors =
+    validate.errors
+      ?.map((err: ErrorObject) => {
+        const missing = (err.params as { missingProperty?: string }).missingProperty;
+        const path = err.instancePath || missing || "root";
+        return `${path}: ${err.message}`;
+      })
+      .join("; ") ?? "Unknown validation error";
+  return { valid: false, error: `Schema validation failed: ${errors}` };
 }

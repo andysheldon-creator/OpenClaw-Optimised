@@ -61,11 +61,13 @@ import { resolveCronDeliveryPlan } from "../delivery.js";
 import { resolveDeliveryTarget } from "./delivery-target.js";
 import {
   isHeartbeatOnlyResponse,
+  extractJsonFromText,
   pickLastDeliverablePayload,
   pickLastNonEmptyTextFromPayloads,
   pickSummaryFromOutput,
   pickSummaryFromPayloads,
   resolveHeartbeatAckMaxChars,
+  validateJsonSchema,
 } from "./helpers.js";
 import { resolveCronSession } from "./session.js";
 
@@ -105,6 +107,8 @@ export type RunCronAgentTurnResult = {
   error?: string;
   sessionId?: string;
   sessionKey?: string;
+  /** Parsed and validated structured output (when responseSchema is set). */
+  structuredOutput?: unknown;
 };
 
 export async function runCronIsolatedAgentTurn(params: {
@@ -280,6 +284,7 @@ export async function runCronIsolatedAgentTurn(params: {
   });
 
   const agentPayload = params.job.payload.kind === "agentTurn" ? params.job.payload : null;
+  const responseSchema = agentPayload?.responseSchema;
   const deliveryPlan = resolveCronDeliveryPlan(params.job);
   const deliveryRequested = deliveryPlan.requested;
 
@@ -334,6 +339,11 @@ export async function runCronIsolatedAgentTurn(params: {
   if (deliveryRequested) {
     commandBody =
       `${commandBody}\n\nReturn your summary as plain text; it will be delivered automatically. If the task explicitly calls for messaging a specific external recipient, note who/where it should go instead of sending it yourself.`.trim();
+  }
+  if (responseSchema) {
+    const schemaStr = JSON.stringify(responseSchema, null, 2);
+    commandBody =
+      `${commandBody}\n\n--- STRUCTURED OUTPUT REQUIREMENT ---\nAfter completing all tool calls and research, your FINAL response MUST be a single valid JSON object matching this schema:\n\`\`\`json\n${schemaStr}\n\`\`\`\nDo not include any text outside the JSON object. Do not wrap in markdown fences. Output ONLY the JSON.`.trim();
   }
 
   const existingSnapshot = cronSession.sessionEntry.skillsSnapshot;
@@ -468,6 +478,36 @@ export async function runCronIsolatedAgentTurn(params: {
   const summary = pickSummaryFromPayloads(payloads) ?? pickSummaryFromOutput(firstText);
   const outputText = pickLastNonEmptyTextFromPayloads(payloads);
   const synthesizedText = outputText?.trim() || summary?.trim() || undefined;
+  let structuredOutput: unknown | undefined;
+  if (responseSchema) {
+    if (!outputText) {
+      return withRunSession({
+        status: "error",
+        error: "Structured output required but no JSON found in agent response",
+        summary,
+        outputText,
+      });
+    }
+    const jsonStr = extractJsonFromText(outputText);
+    if (!jsonStr) {
+      return withRunSession({
+        status: "error",
+        error: "Structured output required but no JSON found in agent response",
+        summary,
+        outputText,
+      });
+    }
+    const validation = validateJsonSchema(jsonStr, responseSchema);
+    if (!validation.valid) {
+      return withRunSession({
+        status: "error",
+        error: validation.error,
+        summary,
+        outputText,
+      });
+    }
+    structuredOutput = validation.data;
+  }
   const deliveryPayload = pickLastDeliverablePayload(payloads);
   const deliveryPayloads =
     deliveryPayload !== undefined
@@ -592,5 +632,5 @@ export async function runCronIsolatedAgentTurn(params: {
     }
   }
 
-  return withRunSession({ status: "ok", summary, outputText });
+  return withRunSession({ status: "ok", summary, outputText, structuredOutput });
 }
