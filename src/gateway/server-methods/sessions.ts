@@ -13,6 +13,7 @@ import {
   type SessionEntry,
   updateSessionStore,
 } from "../../config/sessions.js";
+import { createInternalHookEvent, triggerInternalHook } from "../../hooks/internal-hooks.js";
 import { normalizeAgentId, parseAgentSessionKey } from "../../routing/session-key.js";
 import {
   ErrorCodes,
@@ -234,6 +235,17 @@ export const sessionsHandlers: GatewayRequestHandlers = {
     const cfg = loadConfig();
     const target = resolveGatewaySessionStoreTarget({ cfg, key });
     const storePath = target.storePath;
+
+    // Trigger command:new hook before reset so hooks can access the current session (#13280)
+    const { entry: previousEntry } = loadSessionEntry(key);
+    const hookEvent = createInternalHookEvent("command", "new", key, {
+      sessionEntry: previousEntry,
+      previousSessionEntry: previousEntry,
+      commandSource: "api",
+      cfg,
+    });
+    await triggerInternalHook(hookEvent);
+
     const next = await updateSessionStore(storePath, (store) => {
       const primaryKey = target.storeKeys[0] ?? key;
       const existingKey = target.storeKeys.find((candidate) => store[candidate]);
