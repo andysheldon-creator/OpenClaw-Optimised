@@ -504,6 +504,16 @@ const ERROR_PATTERNS = {
     "messages.1.content.1.tool_use.id",
     "invalid request format",
   ],
+  serverError: [
+    /\b500\b.*(?:internal server error|api_error)/,
+    /\b502\b/,
+    /\b503\b/,
+    /\b529\b/,
+    "internal server error",
+    "bad gateway",
+    "service unavailable",
+    "no capacity available",
+  ],
 } as const;
 
 const TOOL_CALL_INPUT_MISSING_RE =
@@ -563,6 +573,10 @@ export function isAuthErrorMessage(raw: string): boolean {
 
 export function isOverloadedErrorMessage(raw: string): boolean {
   return matchesErrorPatterns(raw, ERROR_PATTERNS.overloaded);
+}
+
+export function isServerErrorMessage(raw: string): boolean {
+  return matchesErrorPatterns(raw, ERROR_PATTERNS.serverError);
 }
 
 export function parseImageDimensionError(raw: string): {
@@ -652,6 +666,9 @@ export function classifyFailoverReason(raw: string): FailoverReason | null {
   }
   if (isAuthErrorMessage(raw)) {
     return "auth";
+  }
+  if (isServerErrorMessage(raw)) {
+    return "server_error";
   }
   return null;
 }

@@ -26,6 +26,7 @@ export {
   isImageDimensionErrorMessage,
   isImageSizeError,
   isOverloadedErrorMessage,
+  isServerErrorMessage,
   isRawApiErrorPayload,
   isRateLimitAssistantError,
   isRateLimitErrorMessage,

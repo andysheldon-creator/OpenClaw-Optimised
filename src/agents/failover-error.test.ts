@@ -12,6 +12,10 @@ describe("failover-error", () => {
     expect(resolveFailoverReasonFromError({ status: 403 })).toBe("auth");
     expect(resolveFailoverReasonFromError({ status: 408 })).toBe("timeout");
     expect(resolveFailoverReasonFromError({ status: 400 })).toBe("format");
+    expect(resolveFailoverReasonFromError({ status: 500 })).toBe("server_error");
+    expect(resolveFailoverReasonFromError({ status: 502 })).toBe("server_error");
+    expect(resolveFailoverReasonFromError({ status: 503 })).toBe("server_error");
+    expect(resolveFailoverReasonFromError({ status: 529 })).toBe("server_error");
   });
 
   it("infers format errors from error messages", () => {
@@ -46,6 +50,34 @@ describe("failover-error", () => {
     });
     expect(err?.reason).toBe("format");
     expect(err?.status).toBe(400);
+  });
+
+  it("infers server_error from error messages", () => {
+    expect(
+      resolveFailoverReasonFromError({
+        message: "503 service unavailable",
+      }),
+    ).toBe("server_error");
+    expect(
+      resolveFailoverReasonFromError({
+        message: "No capacity available for model claude-opus-4-6-thinking",
+      }),
+    ).toBe("server_error");
+    expect(
+      resolveFailoverReasonFromError({
+        message: "502 bad gateway",
+      }),
+    ).toBe("server_error");
+  });
+
+  it("coerces server errors with a 503 status", () => {
+    const err = coerceToFailoverError(
+      { status: 503, message: "Service Unavailable" },
+      { provider: "anthropic", model: "claude-opus-4-6" },
+    );
+    expect(err?.reason).toBe("server_error");
+    expect(err?.status).toBe(503);
+    expect(err?.provider).toBe("anthropic");
   });
 
   it("describes non-Error values consistently", () => {

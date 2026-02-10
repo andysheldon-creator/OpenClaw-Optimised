@@ -50,6 +50,8 @@ export function resolveFailoverStatus(reason: FailoverReason): number | undefine
       return 408;
     case "format":
       return 400;
+    case "server_error":
+      return 503;
     default:
       return undefined;
   }
@@ -162,6 +164,9 @@ export function resolveFailoverReasonFromError(err: unknown): FailoverReason | n
   }
   if (status === 400) {
     return "format";
+  }
+  if (status !== undefined && status >= 500) {
+    return "server_error";
   }
 
   const code = (getErrorCode(err) ?? "").toUpperCase();
