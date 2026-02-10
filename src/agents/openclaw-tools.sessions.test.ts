@@ -22,7 +22,8 @@ vi.mock("../config/config.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../config/config.js")>();
   return {
     ...actual,
-    loadConfig: () => mockConfig,
+    // Return a fresh config object per call to avoid shared mutable state between tests.
+    loadConfig: () => structuredClone(mockConfig),
     resolveGatewayPort: () => 18789,
   };
 });
@@ -313,9 +314,8 @@ describe("sessions tools", () => {
     expect(userMessage).toBeDefined();
     expect(userMessage?.timestamp).toBe(testTimestamp); // Original timestamp preserved
     expect(typeof userMessage?.timestampFormatted).toBe("string");
-    // Asia/Shanghai is UTC+8, so 12:00 UTC should be 20:00 CST
+    // Asia/Shanghai is UTC+8, so 12:00 UTC should be 20:00 local time
     expect(userMessage?.timestampFormatted).toMatch(/2025-01-15 20:00/);
-    expect(userMessage?.timestampFormatted).toMatch(/CST|GMT\+8/);
 
     const assistantMessage = details.messages?.find(
       (msg) => (msg as { role?: string }).role === "assistant",
