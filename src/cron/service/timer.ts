@@ -3,6 +3,7 @@ import type { CronJob } from "../types.js";
 import type { CronEvent, CronServiceState } from "./state.js";
 import { resolveCronDeliveryPlan } from "../delivery.js";
 import { sweepCronRunSessions } from "../session-reaper.js";
+import { DEFAULT_AGENT_ID } from "../../routing/session-key.js";
 import {
   computeJobNextRunAtMs,
   nextWakeAtMs,
@@ -275,16 +276,40 @@ export async function onTimer(state: CronServiceState) {
       });
     }
     // Piggyback session reaper on timer tick (self-throttled to every 5 min).
-    if (state.deps.sessionStorePath) {
-      try {
-        await sweepCronRunSessions({
-          cronConfig: state.deps.cronConfig,
-          sessionStorePath: state.deps.sessionStorePath,
-          nowMs: state.deps.nowMs(),
-          log: state.deps.log,
-        });
-      } catch (err) {
-        state.deps.log.warn({ err: String(err) }, "cron: session reaper sweep failed");
+    const storePaths = new Set<string>();
+    if (state.deps.resolveSessionStorePath) {
+      const defaultAgentId = state.deps.defaultAgentId ?? DEFAULT_AGENT_ID;
+      if (state.store?.jobs?.length) {
+        for (const job of state.store.jobs) {
+          const agentId =
+            typeof job.agentId === "string" && job.agentId.trim()
+              ? job.agentId
+              : defaultAgentId;
+          storePaths.add(state.deps.resolveSessionStorePath(agentId));
+        }
+      } else {
+        storePaths.add(state.deps.resolveSessionStorePath(defaultAgentId));
+      }
+    } else if (state.deps.sessionStorePath) {
+      storePaths.add(state.deps.sessionStorePath);
+    }
+
+    if (storePaths.size > 0) {
+      const nowMs = state.deps.nowMs();
+      for (const storePath of storePaths) {
+        try {
+          await sweepCronRunSessions({
+            cronConfig: state.deps.cronConfig,
+            sessionStorePath: storePath,
+            nowMs,
+            log: state.deps.log,
+          });
+        } catch (err) {
+          state.deps.log.warn(
+            { err: String(err), storePath },
+            "cron: session reaper sweep failed",
+          );
+        }
       }
     }
   } finally {

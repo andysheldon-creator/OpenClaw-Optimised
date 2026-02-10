@@ -45,14 +45,18 @@ export function buildGatewayCronService(params: {
   };
 
   const defaultAgentId = resolveDefaultAgentId(params.cfg);
-  const sessionStorePath = resolveStorePath(params.cfg.session?.store, {
-    agentId: defaultAgentId,
-  });
+  const resolveSessionStorePath = (agentId?: string) =>
+    resolveStorePath(params.cfg.session?.store, {
+      agentId: agentId ?? defaultAgentId,
+    });
+  const sessionStorePath = resolveSessionStorePath(defaultAgentId);
 
   const cron = new CronService({
     storePath,
     cronEnabled,
     cronConfig: params.cfg.cron,
+    defaultAgentId,
+    resolveSessionStorePath,
     sessionStorePath,
     enqueueSystemEvent: (text, opts) => {
       const { agentId, cfg: runtimeConfig } = resolveCronAgent(opts?.agentId);

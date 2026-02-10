@@ -171,4 +171,32 @@ describe("sweepCronRunSessions", () => {
     });
     expect(r2.swept).toBe(false);
   });
+
+  it("throttles per store path", async () => {
+    const now = Date.now();
+    const otherPath = path.join(tmpDir, "sessions-other.json");
+    fs.writeFileSync(storePath, JSON.stringify({}));
+    fs.writeFileSync(otherPath, JSON.stringify({}));
+
+    const r1 = await sweepCronRunSessions({
+      sessionStorePath: storePath,
+      nowMs: now,
+      log,
+    });
+    expect(r1.swept).toBe(true);
+
+    const r2 = await sweepCronRunSessions({
+      sessionStorePath: otherPath,
+      nowMs: now + 1000,
+      log,
+    });
+    expect(r2.swept).toBe(true);
+
+    const r3 = await sweepCronRunSessions({
+      sessionStorePath: storePath,
+      nowMs: now + 1000,
+      log,
+    });
+    expect(r3.swept).toBe(false);
+  });
 });

@@ -17,7 +17,7 @@ const CRON_RUN_KEY_PATTERN = /:cron:[^:]+:run:/;
 /** Minimum interval between reaper sweeps (avoid running every timer tick). */
 const MIN_SWEEP_INTERVAL_MS = 5 * 60_000; // 5 minutes
 
-let lastSweepAtMs = 0;
+const lastSweepAtMsByStore = new Map<string, number>();
 
 export function resolveRetentionMs(cronConfig?: CronConfig): number | null {
   if (cronConfig?.sessionRetention === false) {
@@ -63,6 +63,8 @@ export async function sweepCronRunSessions(params: {
   force?: boolean;
 }): Promise<ReaperResult> {
   const now = params.nowMs ?? Date.now();
+  const storePath = params.sessionStorePath;
+  const lastSweepAtMs = lastSweepAtMsByStore.get(storePath) ?? 0;
 
   // Throttle: don't sweep more often than every 5 minutes.
   if (!params.force && now - lastSweepAtMs < MIN_SWEEP_INTERVAL_MS) {
@@ -73,8 +75,6 @@ export async function sweepCronRunSessions(params: {
   if (retentionMs === null) {
     return { swept: false, pruned: 0 };
   }
-
-  const storePath = params.sessionStorePath;
 
   let pruned = 0;
   try {
@@ -100,7 +100,7 @@ export async function sweepCronRunSessions(params: {
     return { swept: false, pruned: 0 };
   }
 
-  lastSweepAtMs = now;
+  lastSweepAtMsByStore.set(storePath, now);
 
   if (pruned > 0) {
     params.log.info(
@@ -114,5 +114,5 @@ export async function sweepCronRunSessions(params: {
 
 /** Reset the throttle timer (for tests). */
 export function resetReaperThrottle(): void {
-  lastSweepAtMs = 0;
+  lastSweepAtMsByStore.clear();
 }
