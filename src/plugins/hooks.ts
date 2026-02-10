@@ -331,7 +331,8 @@ export function createHookRunner(registry: PluginRegistry, options: HookRunnerOp
       event,
       ctx,
       (acc, next) => ({
-        result: next.result ?? acc?.result,
+        // Use property existence check to preserve null overrides
+        result: "result" in next ? next.result : acc?.result,
         block: next.block ?? acc?.block,
         blockReason: next.blockReason ?? acc?.blockReason,
       }),
