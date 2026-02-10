@@ -133,10 +133,15 @@ const ERROR_PATTERNS: ErrorPattern[] = [
 
   // Model Issues
   {
-    match: (_err, msg) =>
-      msg.toLowerCase().includes("model not found") ||
-      msg.toLowerCase().includes("invalid model") ||
-      msg.toLowerCase().includes("model does not exist"),
+    match: (_err, msg) => {
+      const lower = msg.toLowerCase();
+      return (
+        lower.includes("model not found") ||
+        lower.includes("invalid model") ||
+        lower.includes("model does not exist") ||
+        (lower.includes("model") && lower.includes("does not exist"))
+      );
+    },
     friendly: {
       title: "Model Not Found",
       description: "The specified model is not available.",
