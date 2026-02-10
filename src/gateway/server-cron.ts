@@ -52,7 +52,10 @@ export function buildGatewayCronService(params: {
         cfg: runtimeConfig,
         agentId,
       });
-      enqueueSystemEvent(text, { sessionKey });
+      enqueueSystemEvent(text, {
+        sessionKey,
+        eventType: opts?.eventType,
+      });
     },
     requestHeartbeatNow,
     runHeartbeatOnce: async (opts) => {

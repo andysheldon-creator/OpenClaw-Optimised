@@ -2,6 +2,14 @@
 // prefixed to the next prompt. We intentionally avoid persistence to keep
 // events ephemeral. Events are session-scoped and require an explicit key.
 
+export type SystemEventType =
+  | "exec-completion"
+  | "subagent-announce"
+  | "heartbeat"
+  | "cron"
+  | "channel"
+  | "system";
+
 export type SystemEvent = { text: string; ts: number };
 
 const MAX_EVENTS = 20;
@@ -14,9 +22,13 @@ type SessionQueue = {
 
 const queues = new Map<string, SessionQueue>();
 
+// Global suppression list - can be enhanced to be per-agent in the future
+let globalSuppressedEvents: Set<SystemEventType> = new Set();
+
 type SystemEventOptions = {
   sessionKey: string;
   contextKey?: string | null;
+  eventType?: SystemEventType;
 };
 
 function requireSessionKey(key?: string | null): string {
@@ -38,6 +50,33 @@ function normalizeContextKey(key?: string | null): string | null {
   return trimmed.toLowerCase();
 }
 
+export function setSuppressedSystemEventTypes(types: SystemEventType[]): void {
+  globalSuppressedEvents = new Set(types);
+}
+
+export function getSuppressedSystemEventTypes(): SystemEventType[] {
+  return Array.from(globalSuppressedEvents);
+}
+
+/**
+ * Initialize system event filtering from agent configuration.
+ * TODO: This is currently a global setting. In future PRs, this should be enhanced
+ * to support per-agent configuration via sessionKey to agentId resolution.
+ */
+export function initializeSystemEventFiltering(agentDefaults?: {
+  systemEvents?: { suppress?: SystemEventType[] };
+}): void {
+  const suppressList = agentDefaults?.systemEvents?.suppress ?? [];
+  setSuppressedSystemEventTypes(suppressList);
+}
+
+function shouldSuppressEvent(eventType?: SystemEventType): boolean {
+  if (!eventType) {
+    return false; // Untyped events pass through (backward compatibility)
+  }
+  return globalSuppressedEvents.has(eventType);
+}
+
 export function isSystemEventContextChanged(
   sessionKey: string,
   contextKey?: string | null,
@@ -49,6 +88,11 @@ export function isSystemEventContextChanged(
 }
 
 export function enqueueSystemEvent(text: string, options: SystemEventOptions) {
+  // Check if this event type should be suppressed
+  if (shouldSuppressEvent(options?.eventType)) {
+    return;
+  }
+
   const key = requireSessionKey(options?.sessionKey);
   const entry =
     queues.get(key) ??
@@ -106,4 +150,5 @@ export function hasSystemEvents(sessionKey: string) {
 
 export function resetSystemEventsForTest() {
   queues.clear();
+  globalSuppressedEvents.clear();
 }

@@ -391,7 +391,7 @@ function maybeNotifyOnExit(session: ProcessSession, status: "completed" | "faile
   const summary = output
     ? `Exec ${status} (${session.id.slice(0, 8)}, ${exitLabel}) :: ${output}`
     : `Exec ${status} (${session.id.slice(0, 8)}, ${exitLabel})`;
-  enqueueSystemEvent(summary, { sessionKey });
+  enqueueSystemEvent(summary, { sessionKey, eventType: "exec-completion" });
   requestHeartbeatNow({ reason: `exec:${session.id}:exit` });
 }
 
@@ -414,7 +414,11 @@ function emitExecSystemEvent(text: string, opts: { sessionKey?: string; contextK
   if (!sessionKey) {
     return;
   }
-  enqueueSystemEvent(text, { sessionKey, contextKey: opts.contextKey });
+  enqueueSystemEvent(text, {
+    sessionKey,
+    contextKey: opts.contextKey,
+    eventType: "exec-completion",
+  });
   requestHeartbeatNow({ reason: "exec-event" });
 }
 
