@@ -39,12 +39,11 @@ export const linePlugin: ChannelPlugin<ResolvedLineAccount> = {
     notifyApproval: async ({ cfg, id }) => {
       const line = getLineRuntime().channel.line;
       const account = line.resolveLineAccount({ cfg });
-      const token = account.channelAccessToken || account.config.channelAccessToken;
-      if (!token) {
+      if (!account.channelAccessToken) {
         throw new Error("LINE channel access token not configured");
       }
       await line.pushMessageLine(id, "OpenClaw: your access has been approved.", {
-        channelAccessToken: token,
+        channelAccessToken: account.channelAccessToken,
       });
     },
   },
