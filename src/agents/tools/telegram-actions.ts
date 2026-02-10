@@ -333,9 +333,8 @@ export async function handleTelegramAction(
       required: true,
       integer: true,
     });
-    const disableNotification = typeof params.disableNotification === "boolean" 
-      ? params.disableNotification 
-      : undefined;
+    const disableNotification =
+      typeof params.disableNotification === "boolean" ? params.disableNotification : undefined;
     const token = resolveTelegramToken(cfg, { accountId }).token;
     if (!token) {
       throw new Error(

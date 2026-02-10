@@ -213,9 +213,8 @@ export const telegramMessageActions: ChannelMessageActionAdapter = {
         required: true,
         integer: true,
       });
-      const disableNotification = typeof params.disableNotification === "boolean" 
-        ? params.disableNotification 
-        : undefined;
+      const disableNotification =
+        typeof params.disableNotification === "boolean" ? params.disableNotification : undefined;
       return await handleTelegramAction(
         {
           action: "pinMessage",
@@ -252,7 +251,9 @@ export const telegramMessageActions: ChannelMessageActionAdapter = {
       // Note: Telegram Bot API doesn't provide a direct method to list pinned messages
       // This would need to be implemented by reading recent messages and checking if they're pinned
       // For now, we'll return a not implemented error
-      throw new Error("list-pins action is not yet implemented for Telegram. The Telegram Bot API doesn't provide a direct method to list pinned messages.");
+      throw new Error(
+        "list-pins action is not yet implemented for Telegram. The Telegram Bot API doesn't provide a direct method to list pinned messages.",
+      );
     }
 
     throw new Error(`Action ${action} is not supported for provider ${providerId}.`);
