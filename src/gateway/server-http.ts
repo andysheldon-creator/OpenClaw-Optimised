@@ -18,6 +18,7 @@ import {
   handleA2uiHttpRequest,
 } from "../canvas-host/a2ui.js";
 import { loadConfig } from "../config/config.js";
+import { createDedupeCache } from "../infra/dedupe.js";
 import { handleSlackHttpRequest } from "../slack/http/index.js";
 import { authorizeGatewayConnect, isLocalDirectRequest, type ResolvedGatewayAuth } from "./auth.js";
 import {
@@ -136,6 +137,10 @@ export function createHooksRequestHandler(
   } & HookDispatchers,
 ): HooksRequestHandler {
   const { getHooksConfig, bindHost, port, logHooks, dispatchAgentHook, dispatchWakeHook } = opts;
+  // Dedup cache for hook dispatches (prevents duplicate processing from
+  // at-least-once delivery systems like Gmail Pub/Sub).
+  const hookDedup = createDedupeCache({ ttlMs: 5 * 60_000, maxSize: 500 });
+
   return async (req, res) => {
     const hooksConfig = getHooksConfig();
     if (!hooksConfig) {
@@ -243,6 +248,14 @@ export function createHooksRequestHandler(
             sendJson(res, 400, { ok: false, error: getHookChannelError() });
             return true;
           }
+          // Dedup mapped hook dispatches by session key (prevents duplicate
+          // processing from at-least-once delivery, e.g. Gmail Pub/Sub retries).
+          const dedupKey = mapped.action.sessionKey?.trim();
+          if (dedupKey && hookDedup.check(dedupKey)) {
+            sendJson(res, 200, { ok: true, duplicate: true });
+            return true;
+          }
+
           const runId = dispatchAgentHook({
             message: mapped.action.message,
             name: mapped.action.name ?? "Hook",
