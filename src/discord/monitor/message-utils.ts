@@ -97,6 +97,7 @@ export async function resolveDiscordChannelInfo(
 export async function resolveMediaList(
   message: Message,
   maxBytes: number,
+  fetchImpl?: typeof fetch,
 ): Promise<DiscordMediaInfo[]> {
   const attachments = message.attachments ?? [];
   if (attachments.length === 0) {
@@ -107,6 +108,7 @@ export async function resolveMediaList(
     try {
       const fetched = await fetchRemoteMedia({
         url: attachment.url,
+        fetchImpl,
         filePathHint: attachment.filename ?? attachment.url,
       });
       const saved = await saveMediaBuffer(

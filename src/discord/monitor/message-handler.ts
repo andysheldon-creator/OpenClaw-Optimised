@@ -29,6 +29,7 @@ export function createDiscordMessageHandler(params: {
   guildHistories: Map<string, HistoryEntry[]>;
   historyLimit: number;
   mediaMaxBytes: number;
+  proxyFetch?: typeof fetch;
   textLimit: number;
   replyToMode: ReplyToMode;
   dmEnabled: boolean;

@@ -6,6 +6,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const reactMessageDiscord = vi.fn(async () => {});
 const removeReactionDiscord = vi.fn(async () => {});
 
+let capturedFetchImpl: unknown;
+const fetchRemoteMediaSpy = vi.fn(async (opts: { fetchImpl?: unknown }) => {
+  capturedFetchImpl = opts.fetchImpl;
+  return { buffer: Buffer.from("img"), contentType: "image/png", fileName: "a.png" };
+});
+
 vi.mock("../send.js", () => ({
   reactMessageDiscord: (...args: unknown[]) => reactMessageDiscord(...args),
   removeReactionDiscord: (...args: unknown[]) => removeReactionDiscord(...args),
@@ -23,6 +29,18 @@ vi.mock("../../auto-reply/reply/reply-dispatcher.js", () => ({
     dispatcher: {},
     replyOptions: {},
     markDispatchIdle: vi.fn(),
+  })),
+}));
+
+vi.mock("../../media/fetch.js", () => ({
+  fetchRemoteMedia: (...args: unknown[]) =>
+    fetchRemoteMediaSpy(...(args as [{ fetchImpl?: unknown }])),
+}));
+
+vi.mock("../../media/store.js", () => ({
+  saveMediaBuffer: vi.fn(async () => ({
+    path: "/tmp/saved.png",
+    contentType: "image/png",
   })),
 }));
 
@@ -122,5 +140,71 @@ describe("processDiscordMessage ack reactions", () => {
     await processDiscordMessage(ctx as any);
 
     expect(reactMessageDiscord).toHaveBeenCalledWith("c1", "m1", "👀", { rest: {} });
+  });
+});
+
+describe("processDiscordMessage proxy fetch", () => {
+  beforeEach(() => {
+    fetchRemoteMediaSpy.mockClear();
+    capturedFetchImpl = undefined;
+  });
+
+  it("threads proxyFetch from context into fetchRemoteMedia for attachments", async () => {
+    const fakeFetch = vi.fn() as unknown as typeof fetch;
+    const ctx = await createBaseContext({
+      sender: { label: "user" },
+      proxyFetch: fakeFetch,
+      message: {
+        id: "m2",
+        channelId: "c1",
+        timestamp: new Date().toISOString(),
+        attachments: [
+          {
+            id: "att1",
+            url: "https://cdn.discordapp.com/attachments/1/2/image.png",
+            filename: "image.png",
+            content_type: "image/png",
+            size: 1024,
+          },
+        ],
+      },
+      messageText: "check this image",
+      baseText: "check this image",
+    });
+
+    // oxlint-disable-next-line typescript/no-explicit-any
+    await processDiscordMessage(ctx as any);
+
+    expect(fetchRemoteMediaSpy).toHaveBeenCalledTimes(1);
+    expect(capturedFetchImpl).toBe(fakeFetch);
+  });
+
+  it("passes undefined fetchImpl when proxyFetch is not set", async () => {
+    capturedFetchImpl = "sentinel";
+    const ctx = await createBaseContext({
+      sender: { label: "user" },
+      message: {
+        id: "m3",
+        channelId: "c1",
+        timestamp: new Date().toISOString(),
+        attachments: [
+          {
+            id: "att2",
+            url: "https://cdn.discordapp.com/attachments/1/2/doc.pdf",
+            filename: "doc.pdf",
+            content_type: "application/pdf",
+            size: 512,
+          },
+        ],
+      },
+      messageText: "here is a doc",
+      baseText: "here is a doc",
+    });
+
+    // oxlint-disable-next-line typescript/no-explicit-any
+    await processDiscordMessage(ctx as any);
+
+    expect(fetchRemoteMediaSpy).toHaveBeenCalledTimes(1);
+    expect(capturedFetchImpl).toBeUndefined();
   });
 });

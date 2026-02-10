@@ -251,6 +251,7 @@ Outbound Discord API calls retry on rate limits (429) using Discord `retry_after
     discord: {
       enabled: true,
       token: "abc.123",
+      proxy: "http://your-proxy:port", // optional HTTP(S) proxy for media downloads
       groupPolicy: "allowlist",
       guilds: {
         "*": {
@@ -344,6 +345,7 @@ ack reaction after the bot replies.
 - `chunkMode`: `length` (default) splits only when exceeding `textChunkLimit`; `newline` splits on blank lines (paragraph boundaries) before length chunking.
 - `maxLinesPerMessage`: soft max line count per message. Default: 17.
 - `mediaMaxMb`: clamp inbound media saved to disk.
+- `proxy`: HTTP(S) proxy URL for outbound Discord requests (media downloads). Uses undici `ProxyAgent` to bypass Node.js 22+ native fetch limitations with `global-agent`.
 - `historyLimit`: number of recent guild messages to include as context when replying to a mention (default 20; falls back to `messages.groupChat.historyLimit`; `0` disables).
 - `dmHistoryLimit`: DM history limit in user turns. Per-user overrides: `dms["<user_id>"].historyLimit`.
 - `retry`: retry policy for outbound Discord API calls (attempts, minDelayMs, maxDelayMs, jitter).
