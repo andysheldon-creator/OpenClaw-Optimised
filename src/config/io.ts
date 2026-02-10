@@ -604,7 +604,7 @@ export function loadConfig(): OpenClawConfig {
       return cached.config;
     }
   }
-  let config = io.loadConfig();
+  const config = io.loadConfig();
 
   if (shouldUseConfigCache(process.env)) {
     const cacheMs = resolveConfigCacheMs(process.env);

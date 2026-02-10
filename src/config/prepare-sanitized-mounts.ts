@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { loadConfig } from "./io.js";
+
 import { resolveConfigPath } from "./paths.js";
 import { sanitizeConfigSecrets } from "./sanitize-secrets.js";
 
@@ -55,8 +55,11 @@ export async function prepareSanitizedMounts(): Promise<SanitizedMounts> {
   const configPath = resolveConfigPath();
   if (configPath && fs.existsSync(configPath)) {
     try {
-      // Load raw config then sanitize explicitly (don't use env var to avoid race conditions)
-      const rawConfig = loadConfig();
+      // Load config from the exact resolved path so sanitization matches the mounted file
+      const { loadConfig: loadResolvedConfig } = await import("./io.js").then((m) =>
+        m.createConfigIO({ configPath }),
+      );
+      const rawConfig = loadResolvedConfig();
       const config = sanitizeConfigSecrets(rawConfig, { force: true });
 
       const ext = path.extname(configPath);
