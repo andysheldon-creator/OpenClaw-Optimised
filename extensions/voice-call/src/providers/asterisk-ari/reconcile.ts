@@ -12,8 +12,14 @@ export async function reconcileLingeringCalls(params: {
   try {
     const channels = await params.client.listChannels();
     const appChannels = channels.filter((ch) => {
-      const appData = ch.dialplan?.app_data ?? "";
-      return ch.dialplan?.app_name === "Stasis" && appData.includes(params.cfg.app);
+      if (ch.dialplan?.app_name !== "Stasis") return false;
+
+      // ARI: dialplan.app_name is the dialplan application (usually "Stasis").
+      // dialplan.app_data is the Stasis payload: "<app>,<args...>".
+      // Match by the *actual* Stasis app name (first token), not substring search.
+      const appData = (ch.dialplan?.app_data ?? "").trim();
+      const stasisApp = appData.split(",")[0]?.trim();
+      return stasisApp === params.cfg.app;
     });
     for (const channel of appChannels) {
       await params.client.safeHangupChannel(channel.id).catch(() => {});
