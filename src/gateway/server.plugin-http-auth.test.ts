@@ -62,7 +62,15 @@ function createResponse(): {
   const setHeader = vi.fn();
   let body = "";
   const end = vi.fn((chunk?: unknown) => {
-    body = chunk == null ? "" : String(chunk);
+    if (typeof chunk === "string") {
+      body = chunk;
+      return;
+    }
+    if (chunk == null) {
+      body = "";
+      return;
+    }
+    body = JSON.stringify(chunk);
   });
   const res = {
     headersSent: false,
