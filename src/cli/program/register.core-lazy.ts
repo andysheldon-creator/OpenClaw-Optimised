@@ -50,7 +50,28 @@ const lazyCoreEntries: LazyCoreEntry[] = [
     },
   },
   {
-    id: "maintenance",
+    id: "doctor",
+    register: async ({ program }) => {
+      const { registerMaintenanceCommands } = await import("./register.maintenance.js");
+      registerMaintenanceCommands(program);
+    },
+  },
+  {
+    id: "dashboard",
+    register: async ({ program }) => {
+      const { registerMaintenanceCommands } = await import("./register.maintenance.js");
+      registerMaintenanceCommands(program);
+    },
+  },
+  {
+    id: "reset",
+    register: async ({ program }) => {
+      const { registerMaintenanceCommands } = await import("./register.maintenance.js");
+      registerMaintenanceCommands(program);
+    },
+  },
+  {
+    id: "uninstall",
     register: async ({ program }) => {
       const { registerMaintenanceCommands } = await import("./register.maintenance.js");
       registerMaintenanceCommands(program);
@@ -78,6 +99,13 @@ const lazyCoreEntries: LazyCoreEntry[] = [
     },
   },
   {
+    id: "agents",
+    register: async ({ program, ctx }) => {
+      const { registerAgentCommands } = await import("./register.agent.js");
+      registerAgentCommands(program, { agentChannelOptions: ctx.agentChannelOptions });
+    },
+  },
+  {
     id: "browser",
     register: async ({ program }) => {
       const { registerBrowserCli } = await import("../browser-cli.js");
@@ -85,7 +113,23 @@ const lazyCoreEntries: LazyCoreEntry[] = [
     },
   },
   {
-    id: "status-health-sessions",
+    id: "status",
+    register: async ({ program }) => {
+      const { registerStatusHealthSessionsCommands } =
+        await import("./register.status-health-sessions.js");
+      registerStatusHealthSessionsCommands(program);
+    },
+  },
+  {
+    id: "health",
+    register: async ({ program }) => {
+      const { registerStatusHealthSessionsCommands } =
+        await import("./register.status-health-sessions.js");
+      registerStatusHealthSessionsCommands(program);
+    },
+  },
+  {
+    id: "sessions",
     register: async ({ program }) => {
       const { registerStatusHealthSessionsCommands } =
         await import("./register.status-health-sessions.js");
