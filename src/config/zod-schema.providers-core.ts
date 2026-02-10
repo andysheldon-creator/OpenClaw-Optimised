@@ -821,6 +821,7 @@ export const BlueBubblesAccountSchemaBase = z
   .object({
     name: z.string().optional(),
     capabilities: z.array(z.string()).optional(),
+    verified: ChannelVerifiedSchema,
     markdown: MarkdownConfigSchema,
     configWrites: z.boolean().optional(),
     enabled: z.boolean().optional(),
@@ -843,6 +844,7 @@ export const BlueBubblesAccountSchemaBase = z
     groups: z.record(z.string(), BlueBubblesGroupConfigSchema.optional()).optional(),
     heartbeat: ChannelHeartbeatVisibilitySchema,
     responsePrefix: z.string().optional(),
+    toolsBySender: ToolPolicyBySenderSchema,
   })
   .strict();
 
