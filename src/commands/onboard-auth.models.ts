@@ -137,7 +137,6 @@ const DIGITALOCEAN_GRADIENT_MODEL_CATALOG = {
   "llama3.3-70b-instruct": { name: "Llama 3.3 70B Instruct", reasoning: false },
   "openai-gpt-oss-120b": { name: "GPT OSS 120B", reasoning: false },
   "deepseek-r1-distill-llama-70b": { name: "DeepSeek R1 Distill Llama 70B", reasoning: true },
-  "anthropic-claude-4.5-sonnet": { name: "Claude 4.5 Sonnet", reasoning: false },
 } as const;
 
 type DigitalOceanGradientCatalogId = keyof typeof DIGITALOCEAN_GRADIENT_MODEL_CATALOG;
