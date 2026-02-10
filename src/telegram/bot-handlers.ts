@@ -587,6 +587,7 @@ export const registerTelegramHandlers = ({
             {
               forceWasMentioned: true,
               messageIdOverride: callback.id,
+              reactionMessageId: String(callbackMessage.message_id),
             },
           );
           return;
@@ -607,6 +608,7 @@ export const registerTelegramHandlers = ({
       await processMessage({ message: syntheticMessage, me: ctx.me, getFile }, [], storeAllowFrom, {
         forceWasMentioned: true,
         messageIdOverride: callback.id,
+        reactionMessageId: String(callbackMessage.message_id),
       });
     } catch (err) {
       runtime.error?.(danger(`callback handler failed: ${String(err)}`));

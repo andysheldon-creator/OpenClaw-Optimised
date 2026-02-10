@@ -93,6 +93,7 @@ export type RegisterTelegramHandlerParams = {
     storeAllowFrom: string[],
     options?: {
       messageIdOverride?: string;
+      reactionMessageId?: string;
       forceWasMentioned?: boolean;
     },
   ) => Promise<void>;

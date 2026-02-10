@@ -393,6 +393,41 @@ describe("createTelegramBot", () => {
     expect(answerCallbackQuerySpy).toHaveBeenCalledWith("cbq-1");
   });
 
+  it("exposes real message_id via MessageSidFull for callback_query reactions", async () => {
+    onSpy.mockReset();
+    const replySpy = replyModule.__replySpy as unknown as ReturnType<typeof vi.fn>;
+    replySpy.mockReset();
+
+    createTelegramBot({ token: "tok" });
+    const callbackHandler = onSpy.mock.calls.find((call) => call[0] === "callback_query")?.[1] as (
+      ctx: Record<string, unknown>,
+    ) => Promise<void>;
+    expect(callbackHandler).toBeDefined();
+
+    // callback.id is a large callback query ID, NOT a valid Telegram message_id
+    await callbackHandler({
+      callbackQuery: {
+        id: "7433195443371913934",
+        data: "button_click",
+        from: { id: 42, first_name: "Test", username: "tester" },
+        message: {
+          chat: { id: 5678, type: "group" },
+          date: 1736380800,
+          message_id: 1887,
+        },
+      },
+      me: { username: "openclaw_bot" },
+      getFile: async () => ({ download: async () => new Uint8Array() }),
+    });
+
+    expect(replySpy).toHaveBeenCalledTimes(1);
+    const payload = replySpy.mock.calls[0][0];
+    // MessageSid stays as callback.id for dedup
+    expect(payload.MessageSid).toBe("7433195443371913934");
+    // MessageSidFull has the real message_id for reactions
+    expect(payload.MessageSidFull).toBe("1887");
+  });
+
   it("blocks callback_query when inline buttons are allowlist-only and sender not authorized", async () => {
     onSpy.mockReset();
     const replySpy = replyModule.__replySpy as unknown as ReturnType<typeof vi.fn>;
