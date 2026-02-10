@@ -92,6 +92,7 @@ export type SessionEntry = {
   lastAccountId?: string;
   lastThreadId?: string | number;
   skillsSnapshot?: SessionSkillSnapshot;
+  allowAgentsSnapshot?: AllowAgentsSnapshot;
   systemPromptReport?: SessionSystemPromptReport;
 };
 
@@ -118,6 +119,13 @@ export type SessionSkillSnapshot = {
   prompt: string;
   skills: Array<{ name: string; primaryEnv?: string }>;
   resolvedSkills?: Skill[];
+  version?: number;
+};
+
+export type AllowAgentsSnapshot = {
+  /** Resolved allowAgents list from config at snapshot time. */
+  allowAgents: string[];
+  /** Version counter for staleness detection (mirrors skillsSnapshot.version pattern). */
   version?: number;
 };
 

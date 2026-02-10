@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import type { OpenClawConfig } from "../../config/config.js";
+import { resolveAgentConfig } from "../../agents/agent-scope.js";
 import { resolveUserTimezone } from "../../agents/date-time.js";
 import { buildWorkspaceSkillSnapshot } from "../../agents/skills.js";
 import { ensureSkillsWatcher, getSkillsSnapshotVersion } from "../../agents/skills/refresh.js";
@@ -12,6 +13,38 @@ import {
 } from "../../infra/format-time/format-datetime.ts";
 import { getRemoteSkillEligibility } from "../../infra/skills-remote.js";
 import { drainSystemEventEntries } from "../../infra/system-events.js";
+import { normalizeAgentId } from "../../routing/session-key.js";
+
+// ---------------------------------------------------------------------------
+// allowAgents version tracking
+// ---------------------------------------------------------------------------
+// Module-level version counter for allowAgents config changes.
+// Starts at 0 in every new process.  When we detect that the live config
+// differs from a session's persisted snapshot we bump this counter, which
+// forces all other sessions to refresh on their next turn as well.
+// After a full gateway restart the counter resets to 0 while persisted
+// sessions still carry a version > 0 — the dual-condition check
+//   (version === 0 && persistedVersion > 0)
+// treats that inversion as a restart signal and triggers a rebuild.
+// ---------------------------------------------------------------------------
+
+let allowAgentsConfigVersion = 0;
+
+function bumpAllowAgentsVersion(): number {
+  const now = Date.now();
+  allowAgentsConfigVersion = Math.max(now, allowAgentsConfigVersion + 1);
+  return allowAgentsConfigVersion;
+}
+
+/** Exposed for tests. */
+export function getAllowAgentsConfigVersion(): number {
+  return allowAgentsConfigVersion;
+}
+
+/** Exposed for tests — resets the module-level counter to simulate a process restart. */
+export function resetAllowAgentsConfigVersionForTest(): void {
+  allowAgentsConfigVersion = 0;
+}
 
 export async function prependSystemEvents(params: {
   cfg: OpenClawConfig;
@@ -220,6 +253,108 @@ export async function ensureSkillSnapshot(params: {
   }
 
   return { sessionEntry: nextEntry, skillsSnapshot, systemSent };
+}
+
+// ---------------------------------------------------------------------------
+// ensureAllowAgentsSnapshot — mirrors ensureSkillSnapshot for allowAgents
+// ---------------------------------------------------------------------------
+
+function arraysEqualSorted(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+  const sa = a.toSorted();
+  const sb = b.toSorted();
+  for (let i = 0; i < sa.length; i++) {
+    if (sa[i] !== sb[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+export async function ensureAllowAgentsSnapshot(params: {
+  cfg: OpenClawConfig;
+  agentId: string;
+  sessionEntry?: SessionEntry;
+  sessionStore?: Record<string, SessionEntry>;
+  sessionKey?: string;
+  storePath?: string;
+  sessionId?: string;
+}): Promise<{
+  sessionEntry?: SessionEntry;
+  allowAgentsSnapshot?: SessionEntry["allowAgentsSnapshot"];
+}> {
+  const { cfg, agentId, sessionKey, sessionStore, storePath, sessionId } = params;
+  let nextEntry = params.sessionEntry;
+
+  const configVersion = getAllowAgentsConfigVersion();
+
+  // Resolve the persisted version with SessionStore fallback (same pattern as PR #12209).
+  const persistedVersion =
+    nextEntry?.allowAgentsSnapshot?.version ??
+    (sessionStore && sessionKey
+      ? sessionStore[sessionKey]?.allowAgentsSnapshot?.version
+      : undefined) ??
+    0;
+
+  // Dual-condition restart detection (same pattern as skill snapshot refresh):
+  //  1. Normal update:  config version bumped by a previous call → persisted is behind.
+  //  2. Post-restart:   in-memory version reset to 0 but session still carries a version > 0.
+  const shouldRefreshSnapshot =
+    (configVersion > 0 && persistedVersion < configVersion) ||
+    (configVersion === 0 && persistedVersion > 0);
+
+  // Resolve current allowAgents from live config.
+  const normalizedAgentId = normalizeAgentId(agentId);
+  const currentAllowAgents =
+    resolveAgentConfig(cfg, normalizedAgentId)?.subagents?.allowAgents ?? [];
+
+  // Also detect data drift (config changed without a version bump).
+  const storedAllowAgents = nextEntry?.allowAgentsSnapshot?.allowAgents;
+  const dataChanged =
+    !storedAllowAgents || !arraysEqualSorted(currentAllowAgents, storedAllowAgents);
+
+  if (!shouldRefreshSnapshot && !dataChanged && nextEntry?.allowAgentsSnapshot) {
+    return {
+      sessionEntry: nextEntry,
+      allowAgentsSnapshot: nextEntry.allowAgentsSnapshot,
+    };
+  }
+
+  // Bump the module-level version when live data diverges from the snapshot so
+  // that OTHER sessions also refresh on their next turn.
+  if (dataChanged && configVersion === persistedVersion) {
+    bumpAllowAgentsVersion();
+  }
+
+  const snapshot: NonNullable<SessionEntry["allowAgentsSnapshot"]> = {
+    allowAgents: currentAllowAgents,
+    version: getAllowAgentsConfigVersion(),
+  };
+
+  // Persist the refreshed snapshot on the session entry + store.
+  if (sessionStore && sessionKey) {
+    const current = nextEntry ??
+      sessionStore[sessionKey] ?? {
+        sessionId: sessionId ?? crypto.randomUUID(),
+        updatedAt: Date.now(),
+      };
+    nextEntry = {
+      ...current,
+      sessionId: sessionId ?? current.sessionId ?? crypto.randomUUID(),
+      updatedAt: Date.now(),
+      allowAgentsSnapshot: snapshot,
+    };
+    sessionStore[sessionKey] = { ...sessionStore[sessionKey], ...nextEntry };
+    if (storePath) {
+      await updateSessionStore(storePath, (store) => {
+        store[sessionKey] = { ...store[sessionKey], ...nextEntry };
+      });
+    }
+  }
+
+  return { sessionEntry: nextEntry, allowAgentsSnapshot: snapshot };
 }
 
 export async function incrementCompactionCount(params: {

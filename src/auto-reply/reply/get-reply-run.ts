@@ -42,7 +42,11 @@ import { buildGroupIntro } from "./groups.js";
 import { buildInboundMetaSystemPrompt, buildInboundUserContextPrefix } from "./inbound-meta.js";
 import { resolveQueueSettings } from "./queue.js";
 import { routeReply } from "./route-reply.js";
-import { ensureSkillSnapshot, prependSystemEvents } from "./session-updates.js";
+import {
+  ensureAllowAgentsSnapshot,
+  ensureSkillSnapshot,
+  prependSystemEvents,
+} from "./session-updates.js";
 import { resolveTypingMode } from "./typing-mode.js";
 import { appendUntrustedContext } from "./untrusted-context.js";
 
@@ -254,6 +258,19 @@ export async function runPreparedReply(
   sessionEntry = skillResult.sessionEntry ?? sessionEntry;
   currentSystemSent = skillResult.systemSent;
   const skillsSnapshot = skillResult.skillsSnapshot;
+
+  // Refresh allowAgents snapshot (same restart-detection pattern as skills).
+  const allowAgentsResult = await ensureAllowAgentsSnapshot({
+    cfg,
+    agentId,
+    sessionEntry,
+    sessionStore,
+    sessionKey,
+    storePath,
+    sessionId,
+  });
+  sessionEntry = allowAgentsResult.sessionEntry ?? sessionEntry;
+
   const prefixedBody = prefixedBodyBase;
   const mediaNote = buildInboundMediaNote(ctx);
   const mediaReplyHint = mediaNote
