@@ -41,6 +41,7 @@ See [Venice AI](/providers/venice).
 - [OpenRouter](/providers/openrouter)
 - [Vercel AI Gateway](/providers/vercel-ai-gateway)
 - [Together AI](/providers/together)
+- [Novita AI](/providers/novita)
 - [Cloudflare AI Gateway](/providers/cloudflare-ai-gateway)
 - [Moonshot AI (Kimi + Kimi Coding)](/providers/moonshot)
 - [OpenCode Zen](/providers/opencode)

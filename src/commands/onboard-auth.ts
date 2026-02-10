@@ -19,6 +19,8 @@ export {
   applyOpenrouterProviderConfig,
   applySyntheticConfig,
   applySyntheticProviderConfig,
+  applyNovitaConfig,
+  applyNovitaProviderConfig,
   applyTogetherConfig,
   applyTogetherProviderConfig,
   applyVeniceConfig,
@@ -57,6 +59,7 @@ export {
   setOpencodeZenApiKey,
   setOpenrouterApiKey,
   setSyntheticApiKey,
+  setNovitaApiKey,
   setTogetherApiKey,
   setVeniceApiKey,
   setVercelAiGatewayApiKey,
@@ -68,6 +71,7 @@ export {
   XIAOMI_DEFAULT_MODEL_REF,
   ZAI_DEFAULT_MODEL_REF,
   TOGETHER_DEFAULT_MODEL_REF,
+  NOVITA_DEFAULT_MODEL_REF,
   XAI_DEFAULT_MODEL_REF,
 } from "./onboard-auth.credentials.js";
 export {
