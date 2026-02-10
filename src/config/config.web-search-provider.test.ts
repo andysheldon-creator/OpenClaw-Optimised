@@ -31,7 +31,6 @@ describe("web search provider config", () => {
             provider: "nimble",
             nimble: {
               apiKey: "test-key",
-              baseUrl: "https://sdk.nimbleway.com/v1/search",
             },
           },
         },

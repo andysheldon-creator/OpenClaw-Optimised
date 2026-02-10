@@ -197,7 +197,6 @@ export const ToolsWebSearchSchema = z
     nimble: z
       .object({
         apiKey: z.string().optional(),
-        baseUrl: z.string().optional(),
       })
       .strict()
       .optional(),

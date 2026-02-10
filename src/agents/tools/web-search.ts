@@ -112,7 +112,6 @@ type GrokConfig = {
 
 type NimbleConfig = {
   apiKey?: string;
-  baseUrl?: string;
 };
 
 type GrokSearchResponse = {
@@ -424,14 +423,6 @@ function resolveNimbleApiKey(nimble?: NimbleConfig): string | undefined {
   return fromEnv || undefined;
 }
 
-function resolveNimbleBaseUrl(nimble?: NimbleConfig): string {
-  const fromConfig =
-    nimble && "baseUrl" in nimble && typeof nimble.baseUrl === "string"
-      ? nimble.baseUrl.trim()
-      : "";
-  return fromConfig || NIMBLE_API_ENDPOINT;
-}
-
 function resolveSearchCount(value: unknown, fallback: number): number {
   const parsed = typeof value === "number" && Number.isFinite(value) ? value : fallback;
   const clamped = Math.max(1, Math.min(MAX_SEARCH_COUNT, Math.floor(parsed)));
@@ -638,7 +629,6 @@ async function runWebSearch(params: {
   perplexityModel?: string;
   grokModel?: string;
   grokInlineCitations?: boolean;
-  nimbleBaseUrl?: string;
   nimbleDeepSearch?: boolean;
 }): Promise<Record<string, unknown>> {
   const cacheKey = normalizeCacheKey(
@@ -647,7 +637,7 @@ async function runWebSearch(params: {
       : params.provider === "perplexity"
         ? `${params.provider}:${params.query}:${params.perplexityBaseUrl ?? DEFAULT_PERPLEXITY_BASE_URL}:${params.perplexityModel ?? DEFAULT_PERPLEXITY_MODEL}`
         : params.provider === "nimble"
-          ? `${params.provider}:${params.query}:${params.count}:${params.nimbleBaseUrl ?? NIMBLE_API_ENDPOINT}:${String(params.nimbleDeepSearch ?? false)}`
+          ? `${params.provider}:${params.query}:${params.count}:${String(params.nimbleDeepSearch ?? false)}`
           : `${params.provider}:${params.query}:${params.grokModel ?? DEFAULT_GROK_MODEL}:${String(params.grokInlineCitations ?? false)}`,
   );
   const cached = readCache(SEARCH_CACHE, cacheKey);
@@ -705,7 +695,7 @@ async function runWebSearch(params: {
       query: params.query,
       count: params.count,
       apiKey: params.apiKey,
-      baseUrl: params.nimbleBaseUrl ?? NIMBLE_API_ENDPOINT,
+      baseUrl: NIMBLE_API_ENDPOINT,
       timeoutSeconds: params.timeoutSeconds,
       deepSearch: params.nimbleDeepSearch ?? false,
     });
@@ -896,7 +886,6 @@ export function createWebSearchTool(options?: {
         perplexityModel: resolvePerplexityModel(perplexityConfig),
         grokModel: resolveGrokModel(grokConfig),
         grokInlineCitations: resolveGrokInlineCitations(grokConfig),
-        nimbleBaseUrl: resolveNimbleBaseUrl(nimbleConfig),
         nimbleDeepSearch: deepSearch,
       });
       return jsonResult(result);
@@ -915,5 +904,4 @@ export const __testing = {
   resolveGrokInlineCitations,
   extractGrokContent,
   resolveNimbleApiKey,
-  resolveNimbleBaseUrl,
 } as const;

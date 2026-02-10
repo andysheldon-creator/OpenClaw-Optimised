@@ -368,8 +368,6 @@ export type ToolsConfig = {
       nimble?: {
         /** API key for Nimble (defaults to NIMBLE_API_KEY env var). */
         apiKey?: string;
-        /** Base URL for API requests (defaults to https://sdk.nimbleway.com/v1/search). */
-        baseUrl?: string;
       };
     };
     fetch?: {

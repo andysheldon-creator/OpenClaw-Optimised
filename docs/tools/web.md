@@ -82,8 +82,6 @@ Example: switch to Nimble Search:
         provider: "nimble",
         nimble: {
           apiKey: "your-nimble-api-key",
-          // Optional: custom base URL (defaults to https://sdk.nimbleway.com/v1/search)
-          baseUrl: "https://sdk.nimbleway.com/v1/search",
         },
       },
     },
