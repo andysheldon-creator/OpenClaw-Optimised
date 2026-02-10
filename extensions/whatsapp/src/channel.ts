@@ -301,9 +301,6 @@ export const whatsappPlugin: ChannelPlugin<ResolvedWhatsAppAccount> = {
       if (trimmed) {
         const normalizedTo = normalizeWhatsAppTarget(trimmed);
         if (!normalizedTo) {
-          if ((mode === "implicit" || mode === "heartbeat") && allowList.length > 0) {
-            return { ok: true, to: allowList[0] };
-          }
           return {
             ok: false,
             error: missingTargetError(
@@ -322,13 +319,15 @@ export const whatsappPlugin: ChannelPlugin<ResolvedWhatsAppAccount> = {
           if (allowList.includes(normalizedTo)) {
             return { ok: true, to: normalizedTo };
           }
-          return { ok: true, to: allowList[0] };
+          return {
+            ok: false,
+            error: missingTargetError(
+              "WhatsApp",
+              "<E.164|group JID> or channels.whatsapp.allowFrom[0]",
+            ),
+          };
         }
         return { ok: true, to: normalizedTo };
-      }
-
-      if (allowList.length > 0) {
-        return { ok: true, to: allowList[0] };
       }
       return {
         ok: false,

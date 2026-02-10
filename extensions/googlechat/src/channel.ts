@@ -386,9 +386,6 @@ export const googlechatPlugin: ChannelPlugin<ResolvedGoogleChatAccount> = {
       if (trimmed) {
         const normalized = normalizeGoogleChatTarget(trimmed);
         if (!normalized) {
-          if ((mode === "implicit" || mode === "heartbeat") && allowList.length > 0) {
-            return { ok: true, to: allowList[0] };
-          }
           return {
             ok: false,
             error: missingTargetError(
@@ -400,9 +397,6 @@ export const googlechatPlugin: ChannelPlugin<ResolvedGoogleChatAccount> = {
         return { ok: true, to: normalized };
       }
 
-      if (allowList.length > 0) {
-        return { ok: true, to: allowList[0] };
-      }
       return {
         ok: false,
         error: missingTargetError(

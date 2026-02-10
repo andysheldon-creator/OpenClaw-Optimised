@@ -63,18 +63,20 @@ export const twitchOutbound: ChannelOutboundAdapter = {
         if (allowList.includes(normalizedTo)) {
           return { ok: true, to: normalizedTo };
         }
-        // Fallback to first allowFrom entry
-        return { ok: true, to: allowList[0] };
+        return {
+          ok: false,
+          error: missingTargetError(
+            "Twitch",
+            "<channel-name> or channels.twitch.accounts.<account>.allowFrom[0]",
+          ),
+        };
       }
 
       // For explicit mode, accept any valid channel name
       return { ok: true, to: normalizedTo };
     }
 
-    // No target provided, use allowFrom fallback
-    if (allowList.length > 0) {
-      return { ok: true, to: allowList[0] };
-    }
+    // No target provided - error
 
     // No target and no allowFrom - error
     return {
