@@ -458,7 +458,7 @@ export function applyCompactionDefaults(cfg: OpenClawConfig): OpenClawConfig {
         ...defaults,
         compaction: {
           ...compaction,
-          mode: "safeguard",
+          mode: "default",
         },
       },
     },
