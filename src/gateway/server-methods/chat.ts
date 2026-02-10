@@ -369,12 +369,14 @@ export const chatHandlers: GatewayRequestHandlers = {
       );
       return;
     }
+    const rawSessionKey = p.sessionKey;
+    const { cfg, entry, canonicalKey: sessionKey } = loadSessionEntry(rawSessionKey);
     let parsedMessage = p.message;
     let parsedImages: ChatImageContent[] = [];
     if (normalizedAttachments.length > 0) {
       try {
         const parsed = await parseMessageWithAttachments(p.message, normalizedAttachments, {
-          maxBytes: 5_000_000,
+          maxBytes: cfg.gateway?.http?.endpoints?.responses?.images?.maxBytes ?? 5_000_000,
           log: context.logGateway,
         });
         parsedMessage = parsed.message;
@@ -384,8 +386,6 @@ export const chatHandlers: GatewayRequestHandlers = {
         return;
       }
     }
-    const rawSessionKey = p.sessionKey;
-    const { cfg, entry, canonicalKey: sessionKey } = loadSessionEntry(rawSessionKey);
     const timeoutMs = resolveAgentTimeoutMs({
       cfg,
       overrideMs: p.timeoutMs,
