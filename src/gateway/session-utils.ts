@@ -590,20 +590,39 @@ function scanDeletedSessions(params: { storePath: string; agentId: string }): Ar
         let metadata: SessionEntry | null = null;
         try {
           const fullPath = path.join(sessionsDir, file);
-          const content = fs.readFileSync(fullPath, "utf-8");
-          const lines = content.split("\n").filter((line) => line.trim());
-          if (lines.length > 0) {
-            const lastLine = lines[lines.length - 1];
+          const stat = fs.statSync(fullPath);
+          const fileSize = stat.size;
+          if (fileSize > 0) {
+            // Read only the tail of the file to find metadata (avoid loading entire transcript)
+            const TAIL_SIZE = 8192;
+            const readSize = Math.min(TAIL_SIZE, fileSize);
+            const buffer = Buffer.alloc(readSize);
+            const fd = fs.openSync(fullPath, "r");
             try {
-              const parsed = JSON.parse(lastLine);
-              if (parsed.__session_metadata__) {
-                const meta = parsed.__session_metadata__;
-                if (meta && typeof meta === "object" && !Array.isArray(meta)) {
-                  metadata = meta as SessionEntry;
+              fs.readSync(fd, buffer, 0, readSize, fileSize - readSize);
+              const tail = buffer.toString("utf-8");
+              const lines = tail.split("\n");
+              // Check last non-empty line for metadata
+              for (let i = lines.length - 1; i >= 0; i--) {
+                const line = lines[i].trim();
+                if (!line) {
+                  continue;
                 }
+                try {
+                  const parsed = JSON.parse(line);
+                  if (parsed.__session_metadata__) {
+                    const meta = parsed.__session_metadata__;
+                    if (meta && typeof meta === "object" && !Array.isArray(meta)) {
+                      metadata = meta as SessionEntry;
+                    }
+                  }
+                } catch {
+                  // Not JSON or not metadata
+                }
+                break; // Only check the last non-empty line
               }
-            } catch {
-              // Last line isn't valid JSON or doesn't have metadata
+            } finally {
+              fs.closeSync(fd);
             }
           }
         } catch {
