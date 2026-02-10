@@ -453,7 +453,14 @@ export async function runEmbeddedPiAgent(
             enforceFinalTag: params.enforceFinalTag,
           });
 
-          const { aborted, promptError, timedOut, timedOutDuringCompaction, sessionIdUsed, lastAssistant } = attempt;
+          const {
+            aborted,
+            promptError,
+            timedOut,
+            timedOutDuringCompaction,
+            sessionIdUsed,
+            lastAssistant,
+          } = attempt;
           mergeUsageIntoAccumulator(
             usageAccumulator,
             attempt.attemptUsage ?? normalizeUsage(lastAssistant?.usage as UsageLike),
