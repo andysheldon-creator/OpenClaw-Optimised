@@ -69,4 +69,26 @@ describe("sanitizeUserFacingText", () => {
     const text = "Hello there!\n\nDifferent line.";
     expect(sanitizeUserFacingText(text)).toBe(text);
   });
+
+  it("sanitizes real billing error messages", () => {
+    const billingMsg =
+      "⚠️ API provider returned a billing error — your API key has run out of credits or has an insufficient balance. Check your provider's billing dashboard and top up or switch to a different API key.";
+    expect(sanitizeUserFacingText("insufficient credits")).toBe(billingMsg);
+    expect(sanitizeUserFacingText("billing: please upgrade your plan")).toBe(billingMsg);
+    expect(sanitizeUserFacingText("Your credit balance is too low")).toBe(billingMsg);
+  });
+
+  it("does not rewrite assistant content discussing billing topics", () => {
+    const prose =
+      "**Billing:** Processed through ABC Financial Services. Members pay 26 bi-weekly **payments** of $19.99.";
+    expect(sanitizeUserFacingText(prose)).toBe(prose);
+
+    const multiSentence =
+      "The gym membership billing cycle runs monthly. Payment is processed on the 1st of each month via credit card.";
+    expect(sanitizeUserFacingText(multiSentence)).toBe(multiSentence);
+
+    const withParagraphs =
+      "Here is a summary of the billing and payment options:\n\n1. Monthly plan: $29.99/month";
+    expect(sanitizeUserFacingText(withParagraphs)).toBe(withParagraphs);
+  });
 });
