@@ -233,8 +233,17 @@ export async function preflightDiscordMessage(
     parentPeer: earlyThreadParentId ? { kind: "channel", id: earlyThreadParentId } : undefined,
   });
   const mentionRegexes = buildMentionRegexes(params.cfg, route.agentId);
+  // Check for explicit mention via Discord's mention system (works even with limited message content intent)
   const explicitlyMentioned = Boolean(
     botId && message.mentionedUsers?.some((user: User) => user.id === botId),
+  );
+  
+  // Also check mentionedRoles if the bot's role is mentioned
+  const roleMentioned = Boolean(
+    botId && message.mentionedRoles?.some((roleId: string) => {
+      // Bot can't easily check if it has this role, but we can at least log it
+      return true; // Consider any role mention as potential bot mention
+    }),
   );
   const hasAnyMention = Boolean(
     !isDirectMessage &&
@@ -242,17 +251,31 @@ export async function preflightDiscordMessage(
       (message.mentionedUsers?.length ?? 0) > 0 ||
       (message.mentionedRoles?.length ?? 0) > 0),
   );
-  const wasMentioned =
-    !isDirectMessage &&
-    matchesMentionWithExplicit({
-      text: baseText,
-      mentionRegexes,
-      explicit: {
-        hasAnyMention,
-        isExplicitlyMentioned: explicitlyMentioned,
-        canResolveExplicit: Boolean(botId),
-      },
-    });
+  
+  // When message content is limited, rely more on explicit mentions
+  const canDetectMention = Boolean(botId);
+  const isMentionedViaDiscord = explicitlyMentioned || roleMentioned;
+  
+  // Use regex matching as fallback when content is available
+  const wasMentionedByRegex = matchesMentionWithExplicit({
+    text: baseText,
+    mentionRegexes,
+    explicit: {
+      hasAnyMention,
+      isExplicitlyMentioned: explicitlyMentioned,
+      canResolveExplicit: canDetectMention,
+    },
+  });
+  
+  // Combine both detection methods - if either says it's a mention, it's a mention
+  const wasMentioned = !isDirectMessage && (isMentionedViaDiscord || wasMentionedByRegex);
+  
+  // Enhanced logging for debugging mention detection issues
+  if (shouldLogVerbose() && !isDirectMessage && hasAnyMention && !wasMentioned) {
+    logVerbose(
+      `discord: mention detection details - explicit=${explicitlyMentioned}, role=${roleMentioned}, regex=${wasMentionedByRegex}, botId=${botId}, textLength=${baseText?.length ?? 0}`,
+    );
+  }
   const implicitMention = Boolean(
     !isDirectMessage &&
     botId &&
