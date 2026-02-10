@@ -41,6 +41,7 @@ import { applyReplyTagsToPayload, isRenderablePayload } from "./reply-payloads.j
 export type AgentRunLoopResult =
   | {
       kind: "success";
+      runId: string;
       runResult: Awaited<ReturnType<typeof runEmbeddedPiAgent>>;
       fallbackProvider?: string;
       fallbackModel?: string;
@@ -49,7 +50,12 @@ export type AgentRunLoopResult =
       /** Payload keys sent directly (not via pipeline) during tool flush. */
       directlySentBlockKeys?: Set<string>;
     }
-  | { kind: "final"; payload: ReplyPayload };
+  | {
+      kind: "final";
+      runId: string;
+      payload: ReplyPayload;
+      errorInfo?: { message: string; errorType: string };
+    };
 
 export async function runAgentTurnWithFallback(params: {
   commandBody: string;
@@ -482,9 +488,11 @@ export async function runAgentTurnWithFallback(params: {
         didResetAfterCompactionFailure = true;
         return {
           kind: "final",
+          runId,
           payload: {
             text: "⚠️ Context limit exceeded. I've reset our conversation to start fresh - please try again.\n\nTo prevent this, increase your compaction buffer by setting `agents.defaults.compaction.reserveTokensFloor` to 4000 or higher in your config.",
           },
+          errorInfo: { message: embeddedError.message, errorType: "context_overflow" },
         };
       }
       if (embeddedError?.kind === "role_ordering") {
@@ -492,9 +500,11 @@ export async function runAgentTurnWithFallback(params: {
         if (didReset) {
           return {
             kind: "final",
+            runId,
             payload: {
               text: "⚠️ Message ordering conflict. I've reset the conversation - please try again.",
             },
+            errorInfo: { message: embeddedError.message, errorType: "role_ordering" },
           };
         }
       }
@@ -515,9 +525,11 @@ export async function runAgentTurnWithFallback(params: {
         didResetAfterCompactionFailure = true;
         return {
           kind: "final",
+          runId,
           payload: {
             text: "⚠️ Context limit exceeded during compaction. I've reset our conversation to start fresh - please try again.\n\nTo prevent this, increase your compaction buffer by setting `agents.defaults.compaction.reserveTokensFloor` to 4000 or higher in your config.",
           },
+          errorInfo: { message, errorType: "compaction_failure" },
         };
       }
       if (isRoleOrderingError) {
@@ -525,9 +537,11 @@ export async function runAgentTurnWithFallback(params: {
         if (didReset) {
           return {
             kind: "final",
+            runId,
             payload: {
               text: "⚠️ Message ordering conflict. I've reset the conversation - please try again.",
             },
+            errorInfo: { message, errorType: "role_ordering" },
           };
         }
       }
@@ -571,9 +585,11 @@ export async function runAgentTurnWithFallback(params: {
 
         return {
           kind: "final",
+          runId,
           payload: {
             text: "⚠️ Session history was corrupted. I've reset the conversation - please try again!",
           },
+          errorInfo: { message, errorType: "session_corruption" },
         };
       }
 
@@ -587,8 +603,17 @@ export async function runAgentTurnWithFallback(params: {
 
       return {
         kind: "final",
+        runId,
         payload: {
           text: fallbackText,
+        },
+        errorInfo: {
+          message,
+          errorType: isContextOverflow
+            ? "context_overflow"
+            : isRoleOrderingError
+              ? "role_ordering"
+              : "unknown",
         },
       };
     }
@@ -596,6 +621,7 @@ export async function runAgentTurnWithFallback(params: {
 
   return {
     kind: "success",
+    runId,
     runResult,
     fallbackProvider,
     fallbackModel,
