@@ -236,15 +236,20 @@ export const sessionsHandlers: GatewayRequestHandlers = {
     const target = resolveGatewaySessionStoreTarget({ cfg, key });
     const storePath = target.storePath;
 
-    // Trigger command:new hook before reset so hooks can access the current session (#13280)
-    const { entry: previousEntry } = loadSessionEntry(key);
-    const hookEvent = createInternalHookEvent("command", "new", key, {
-      sessionEntry: previousEntry,
-      previousSessionEntry: previousEntry,
-      commandSource: "api",
-      cfg,
-    });
-    await triggerInternalHook(hookEvent);
+    // Trigger command:new hook before reset so hooks can access the current session (#13280).
+    // Best-effort: hook failure must not prevent the reset from proceeding.
+    try {
+      const { entry: previousEntry } = loadSessionEntry(key);
+      const hookEvent = createInternalHookEvent("command", "new", key, {
+        sessionEntry: previousEntry,
+        previousSessionEntry: previousEntry,
+        commandSource: "api",
+        cfg,
+      });
+      await triggerInternalHook(hookEvent);
+    } catch {
+      // Hook context loading or dispatch failed — proceed with reset anyway.
+    }
 
     const next = await updateSessionStore(storePath, (store) => {
       const primaryKey = target.storeKeys[0] ?? key;
