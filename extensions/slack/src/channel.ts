@@ -456,12 +456,33 @@ export const slackPlugin: ChannelPlugin<ResolvedSlackAccount> = {
         accountId,
         name,
       }),
-    validateInput: ({ accountId, input }) => {
+    validateInput: ({ cfg, accountId, input }) => {
+      const account = resolveSlackAccount({ cfg, accountId });
+      const mode = account.config.mode ?? "socket";
+
       if (input.useEnv && accountId !== DEFAULT_ACCOUNT_ID) {
         return "Slack env tokens can only be used for the default account.";
       }
-      if (!input.useEnv && (!input.botToken || !input.appToken)) {
-        return "Slack requires --bot-token and --app-token (or --use-env).";
+
+      if (!input.useEnv && !input.botToken) {
+        return "Slack requires --bot-token (or --use-env).";
+      }
+
+      // Socket mode requires an app token; HTTP mode does not.
+      if (!input.useEnv && mode !== "http" && !input.appToken) {
+        return (
+          "Slack socket mode requires --app-token. " +
+          "For HTTP mode, set channels.slack.mode=\"http\" and channels.slack.signingSecret."
+        );
+      }
+
+      // HTTP mode requires a signing secret. The CLI does not currently accept it as a flag,
+      // so validate that it's present in config (either base or per-account).
+      if (mode === "http" && !account.config.signingSecret?.trim()) {
+        return (
+          "Slack HTTP mode requires channels.slack.signingSecret " +
+          "(or channels.slack.accounts.<id>.signingSecret)."
+        );
       }
       return null;
     },
