@@ -39,8 +39,9 @@ describe("applyAuthChoiceHuggingface", () => {
 
   it("prompts for key and model, then writes config and auth profile", async () => {
     tempStateDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-hf-"));
-    process.env.OPENCLAW_AGENT_DIR = path.join(tempStateDir, "agent");
-    await fs.mkdir(process.env.OPENCLAW_AGENT_DIR, { recursive: true });
+    const agentDir = path.join(tempStateDir, "agent");
+    process.env.OPENCLAW_AGENT_DIR = agentDir;
+    await fs.mkdir(agentDir, { recursive: true });
 
     const text = vi.fn().mockResolvedValue("hf-test-token");
     const select: WizardPrompter["select"] = vi.fn(
@@ -85,7 +86,7 @@ describe("applyAuthChoiceHuggingface", () => {
       expect.objectContaining({ message: "Default Hugging Face model" }),
     );
 
-    const authProfilePath = authProfilePathFor(process.env.OPENCLAW_AGENT_DIR!);
+    const authProfilePath = authProfilePathFor(agentDir);
     const raw = await fs.readFile(authProfilePath, "utf8");
     const parsed = JSON.parse(raw) as {
       profiles?: Record<string, { key?: string }>;
