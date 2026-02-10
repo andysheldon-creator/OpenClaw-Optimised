@@ -653,13 +653,13 @@ export function createDiagnosticsOtelService(): OpenClawPluginService {
       stopLogTransport = null;
       if (logProvider) {
         await logProvider.shutdown().catch((err) => {
-          console.warn(`diagnostics-otel: logProvider.shutdown failed: ${formatError(err)}`);
+          ctx.logger.warn(`diagnostics-otel: logProvider.shutdown failed: ${formatError(err)}`);
         });
         logProvider = null;
       }
       if (sdk) {
         await sdk.shutdown().catch((err) => {
-          console.warn(`diagnostics-otel: sdk.shutdown failed: ${formatError(err)}`);
+          ctx.logger.warn(`diagnostics-otel: sdk.shutdown failed: ${formatError(err)}`);
         });
         sdk = null;
       }
