@@ -121,7 +121,9 @@ export function isCloudflareOrHtmlErrorPage(raw: string): boolean {
     return true;
   }
 
-  return status.code < 600 && HTML_ERROR_PREFIX_RE.test(status.rest);
+  return (
+    status.code < 600 && HTML_ERROR_PREFIX_RE.test(status.rest) && /<\/html>/i.test(status.rest)
+  );
 }
 
 export function isTransientHttpError(raw: string): boolean {

@@ -583,6 +583,10 @@ export async function runAgentTurnWithFallback(params: {
 
       if (isTransientHttp && !didRetryTransientHttpError) {
         didRetryTransientHttpError = true;
+        // Retry the full runWithModelFallback() cycle — transient errors
+        // (502/521/etc.) typically affect the whole provider, so falling
+        // back to an alternate model first would not help. Instead we wait
+        // and retry the complete primary→fallback chain.
         defaultRuntime.error(
           `Transient HTTP provider error before reply (${message}). Retrying once in ${TRANSIENT_HTTP_RETRY_DELAY_MS}ms.`,
         );

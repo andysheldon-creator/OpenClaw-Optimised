@@ -21,4 +21,9 @@ describe("isCloudflareOrHtmlErrorPage", () => {
     expect(isCloudflareOrHtmlErrorPage("500 Internal Server Error")).toBe(false);
     expect(isCloudflareOrHtmlErrorPage("429 Too Many Requests")).toBe(false);
   });
+
+  it("does not flag quoted HTML without a closing html tag", () => {
+    const plainTextWithHtmlPrefix = "500 <!DOCTYPE html> upstream responded with partial HTML text";
+    expect(isCloudflareOrHtmlErrorPage(plainTextWithHtmlPrefix)).toBe(false);
+  });
 });

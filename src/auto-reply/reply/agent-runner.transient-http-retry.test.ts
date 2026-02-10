@@ -4,6 +4,7 @@ import type { FollowupRun, QueueSettings } from "./queue.js";
 import { createMockTypingController } from "./test-helpers.js";
 
 const runEmbeddedPiAgentMock = vi.fn();
+const runtimeErrorMock = vi.fn();
 
 vi.mock("../../agents/model-fallback.js", () => ({
   runWithModelFallback: async ({
@@ -26,6 +27,14 @@ vi.mock("../../agents/pi-embedded.js", () => ({
   runEmbeddedPiAgent: (params: unknown) => runEmbeddedPiAgentMock(params),
 }));
 
+vi.mock("../../runtime.js", () => ({
+  defaultRuntime: {
+    log: vi.fn(),
+    error: (...args: unknown[]) => runtimeErrorMock(...args),
+    exit: vi.fn(),
+  },
+}));
+
 vi.mock("./queue.js", async () => {
   const actual = await vi.importActual<typeof import("./queue.js")>("./queue.js");
   return {
@@ -40,6 +49,7 @@ import { runReplyAgent } from "./agent-runner.js";
 describe("runReplyAgent transient HTTP retry", () => {
   beforeEach(() => {
     runEmbeddedPiAgentMock.mockReset();
+    runtimeErrorMock.mockReset();
     vi.useFakeTimers();
   });
 
@@ -48,8 +58,6 @@ describe("runReplyAgent transient HTTP retry", () => {
   });
 
   it("retries once after transient 521 HTML failure and then succeeds", async () => {
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-
     runEmbeddedPiAgentMock
       .mockRejectedValueOnce(
         new Error(
@@ -118,12 +126,11 @@ describe("runReplyAgent transient HTTP retry", () => {
     const result = await runPromise;
 
     expect(runEmbeddedPiAgentMock).toHaveBeenCalledTimes(2);
-    expect(errorSpy).toHaveBeenCalledWith(
+    expect(runtimeErrorMock).toHaveBeenCalledWith(
       expect.stringContaining("Transient HTTP provider error before reply"),
     );
 
     const payload = Array.isArray(result) ? result[0] : result;
     expect(payload?.text).toContain("Recovered response");
-    errorSpy.mockRestore();
   });
 });
