@@ -1,4 +1,5 @@
 const DEFAULT_PORT = 18792
+const DEFAULT_HOST = '127.0.0.1'
 
 function clampPort(value) {
   const n = Number.parseInt(String(value || ''), 10)
@@ -7,10 +8,27 @@ function clampPort(value) {
   return n
 }
 
-function updateRelayUrl(port) {
+function sanitizeHost(raw) {
+  let h = (raw || '').trim()
+  h = h.replace(/^(?:https?|wss?):\/\//, '')
+  h = h.replace(/\/.*$/, '')
+  if (h.startsWith('[')) {
+    h = h.replace(/\]:\d+$/, ']')
+  } else if ((h.match(/:/g) || []).length === 1) {
+    h = h.replace(/:\d+$/, '')
+  }
+  return h || DEFAULT_HOST
+}
+
+function formatHost(host) {
+  if (host.includes(':') && !host.startsWith('[')) return `[${host}]`
+  return host
+}
+
+function updateRelayUrl(host, port) {
   const el = document.getElementById('relay-url')
   if (!el) return
-  el.textContent = `http://127.0.0.1:${port}/`
+  el.textContent = `http://${formatHost(host)}:${port}/`
 }
 
 function setStatus(kind, message) {
@@ -20,8 +38,9 @@ function setStatus(kind, message) {
   status.textContent = message || ''
 }
 
-async function checkRelayReachable(port) {
-  const url = `http://127.0.0.1:${port}/`
+async function checkRelayReachable(host, port) {
+  const h = formatHost(host)
+  const url = `http://${h}:${port}/`
   const ctrl = new AbortController()
   const t = setTimeout(() => ctrl.abort(), 900)
   try {
@@ -31,7 +50,7 @@ async function checkRelayReachable(port) {
   } catch {
     setStatus(
       'error',
-      `Relay not reachable at ${url}. Start OpenClaw’s browser relay on this machine, then click the toolbar button again.`,
+      `Relay not reachable at ${url}. Make sure the OpenClaw gateway is running on the configured host and port.`,
     )
   } finally {
     clearTimeout(t)
@@ -39,20 +58,25 @@ async function checkRelayReachable(port) {
 }
 
 async function load() {
-  const stored = await chrome.storage.local.get(['relayPort'])
+  const stored = await chrome.storage.local.get(['relayPort', 'relayHost'])
   const port = clampPort(stored.relayPort)
+  const host = sanitizeHost(stored.relayHost)
   document.getElementById('port').value = String(port)
-  updateRelayUrl(port)
-  await checkRelayReachable(port)
+  document.getElementById('host').value = host === DEFAULT_HOST ? '' : host
+  updateRelayUrl(host, port)
+  await checkRelayReachable(host, port)
 }
 
 async function save() {
-  const input = document.getElementById('port')
-  const port = clampPort(input.value)
-  await chrome.storage.local.set({ relayPort: port })
-  input.value = String(port)
-  updateRelayUrl(port)
-  await checkRelayReachable(port)
+  const portInput = document.getElementById('port')
+  const hostInput = document.getElementById('host')
+  const port = clampPort(portInput.value)
+  const host = sanitizeHost(hostInput.value)
+  await chrome.storage.local.set({ relayPort: port, relayHost: host === DEFAULT_HOST ? '' : host })
+  portInput.value = String(port)
+  hostInput.value = host === DEFAULT_HOST ? '' : host
+  updateRelayUrl(host, port)
+  await checkRelayReachable(host, port)
 }
 
 document.getElementById('save').addEventListener('click', () => void save())
