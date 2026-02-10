@@ -83,6 +83,7 @@ export {
   buildMinimaxModelDefinition,
   buildMoonshotModelDefinition,
   buildDigitalOceanGradientModelDefinition,
+  buildDigitalOceanGradientModels,
   DEFAULT_MINIMAX_BASE_URL,
   MOONSHOT_CN_BASE_URL,
   QIANFAN_BASE_URL,

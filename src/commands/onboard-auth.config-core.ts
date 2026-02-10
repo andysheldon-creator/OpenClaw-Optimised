@@ -42,6 +42,7 @@ import {
   buildMoonshotModelDefinition,
   buildXaiModelDefinition,
   buildDigitalOceanGradientModelDefinition,
+  buildDigitalOceanGradientModels,
   QIANFAN_BASE_URL,
   QIANFAN_DEFAULT_MODEL_REF,
   KIMI_CODING_MODEL_REF,
@@ -863,9 +864,13 @@ export function applyDigitalOceanGradientProviderConfig(cfg: OpenClawConfig): Op
   const providers = { ...cfg.models?.providers };
   const existingProvider = providers.digitalocean;
   const existingModels = Array.isArray(existingProvider?.models) ? existingProvider.models : [];
-  const defaultModel = buildDigitalOceanGradientModelDefinition();
-  const hasDefaultModel = existingModels.some((model) => model.id === DIGITALOCEAN_GRADIENT_DEFAULT_MODEL_ID);
-  const mergedModels = hasDefaultModel ? existingModels : [...existingModels, defaultModel];
+  const defaultModels = buildDigitalOceanGradientModels();
+  
+  // Merge existing models with default models, avoiding duplicates
+  const existingModelIds = new Set(existingModels.map((m) => m.id));
+  const newModels = defaultModels.filter((m) => !existingModelIds.has(m.id));
+  const mergedModels = existingModels.length > 0 ? [...existingModels, ...newModels] : defaultModels;
+  
   const { apiKey: existingApiKey, ...existingProviderRest } = (existingProvider ?? {}) as Record<
     string,
     unknown
@@ -877,7 +882,7 @@ export function applyDigitalOceanGradientProviderConfig(cfg: OpenClawConfig): Op
     baseUrl: DIGITALOCEAN_GRADIENT_BASE_URL,
     api: "openai-completions" as ModelApi,
     ...(normalizedApiKey ? { apiKey: normalizedApiKey } : {}),
-    models: mergedModels.length > 0 ? mergedModels : [defaultModel],
+    models: mergedModels,
   };
 
   return {

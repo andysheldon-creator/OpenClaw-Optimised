@@ -133,14 +133,33 @@ export const DIGITALOCEAN_GRADIENT_DEFAULT_COST = {
   cacheWrite: 0,
 };
 
-export function buildDigitalOceanGradientModelDefinition(): ModelDefinitionConfig {
+const DIGITALOCEAN_GRADIENT_MODEL_CATALOG = {
+  "llama3.3-70b-instruct": { name: "Llama 3.3 70B Instruct", reasoning: false },
+  "openai-gpt-oss-120b": { name: "GPT OSS 120B", reasoning: false },
+  "deepseek-r1-distill-llama-70b": { name: "DeepSeek R1 Distill Llama 70B", reasoning: true },
+  "anthropic-claude-4.5-sonnet": { name: "Claude 4.5 Sonnet", reasoning: false },
+} as const;
+
+type DigitalOceanGradientCatalogId = keyof typeof DIGITALOCEAN_GRADIENT_MODEL_CATALOG;
+
+export function buildDigitalOceanGradientModelDefinition(
+  modelId?: string,
+): ModelDefinitionConfig {
+  const id = modelId ?? DIGITALOCEAN_GRADIENT_DEFAULT_MODEL_ID;
+  const catalog = DIGITALOCEAN_GRADIENT_MODEL_CATALOG[id as DigitalOceanGradientCatalogId];
   return {
-    id: DIGITALOCEAN_GRADIENT_DEFAULT_MODEL_ID,
-    name: "Llama 3.3 70B Instruct",
-    reasoning: false,
+    id,
+    name: catalog?.name ?? `DigitalOcean ${id}`,
+    reasoning: catalog?.reasoning ?? false,
     input: ["text"],
     cost: DIGITALOCEAN_GRADIENT_DEFAULT_COST,
     contextWindow: DIGITALOCEAN_GRADIENT_DEFAULT_CONTEXT_WINDOW,
     maxTokens: DIGITALOCEAN_GRADIENT_DEFAULT_MAX_TOKENS,
   };
+}
+
+export function buildDigitalOceanGradientModels(): ModelDefinitionConfig[] {
+  return Object.keys(DIGITALOCEAN_GRADIENT_MODEL_CATALOG).map((modelId) =>
+    buildDigitalOceanGradientModelDefinition(modelId),
+  );
 }
