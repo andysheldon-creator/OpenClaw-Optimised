@@ -8,9 +8,9 @@ import { refreshChat } from "./app-chat.ts";
 import { syncUrlWithSessionKey } from "./app-settings.ts";
 import { OpenClawApp } from "./app.ts";
 import { ChatState, loadChatHistory } from "./controllers/chat.ts";
+import { t } from "./i18n.ts";
 import { icons } from "./icons.ts";
 import { iconForTab, pathForTab, titleForTab, type Tab } from "./navigation.ts";
-import { t } from "./i18n.ts";
 
 export function renderTab(state: AppViewState, tab: Tab) {
   const href = pathForTab(tab, state.basePath);
@@ -163,11 +163,7 @@ export function renderChatControls(state: AppViewState) {
           });
         }}
         aria-pressed=${showThinking}
-        title=${
-          disableThinkingToggle
-            ? t("chat.disabledOnboarding")
-            : t("chat.toggleThinking")
-        }
+        title=${disableThinkingToggle ? t("chat.disabledOnboarding") : t("chat.toggleThinking")}
       >
         ${icons.brain}
       </button>
@@ -184,11 +180,7 @@ export function renderChatControls(state: AppViewState) {
           });
         }}
         aria-pressed=${focusActive}
-        title=${
-          disableFocusToggle
-            ? t("chat.disabledOnboarding")
-            : t("chat.toggleFocus")
-        }
+        title=${disableFocusToggle ? t("chat.disabledOnboarding") : t("chat.toggleFocus")}
       >
         ${focusIcon}
       </button>

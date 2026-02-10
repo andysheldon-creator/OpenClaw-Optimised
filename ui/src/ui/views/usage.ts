@@ -1,8 +1,8 @@
 import { html, svg, nothing } from "lit";
 import { formatDurationCompact } from "../../../../src/infra/format-time/format-duration.ts";
+import { t } from "../i18n.ts";
 import { extractQueryTerms, filterSessionsByQuery, parseToolSummary } from "../usage-helpers.ts";
 import { usageStylesString } from "./usageStyles.ts";
-import { t } from "../i18n.ts";
 import {
   UsageSessionEntry,
   UsageTotals,
@@ -14,12 +14,9 @@ import {
   SessionLogRole,
   UsageProps,
 } from "./usageTypes.ts";
-
 export type { UsageColumnId, SessionLogEntry, SessionLogRole };
-
 // ~4 chars per token is a rough approximation
 const CHARS_PER_TOKEN = 4;
-
 function charsToTokens(chars: number): number {
   return Math.round(chars / CHARS_PER_TOKEN);
 }
@@ -43,7 +40,6 @@ function formatHourLabel(hour: number): string {
 function buildPeakErrorHours(sessions: UsageSessionEntry[], timeZone: "local" | "utc") {
   const hourErrors = Array.from({ length: 24 }, () => 0);
   const hourMsgs = Array.from({ length: 24 }, () => 0);
-
   for (const session of sessions) {
     const usage = session.usage;
     if (!usage?.messageCounts || usage.messageCounts.total === 0) {
@@ -58,7 +54,6 @@ function buildPeakErrorHours(sessions: UsageSessionEntry[], timeZone: "local" | 
     const endMs = Math.max(start, end);
     const durationMs = Math.max(endMs - startMs, 1);
     const totalMinutes = durationMs / 60000;
-
     let cursor = startMs;
     while (cursor < endMs) {
       const date = new Date(cursor);
@@ -72,7 +67,6 @@ function buildPeakErrorHours(sessions: UsageSessionEntry[], timeZone: "local" | 
       cursor = nextMs + 1;
     }
   }
-
   return hourMsgs
     .map((msgs, hour) => {
       const errors = hourErrors[hour];
@@ -100,9 +94,15 @@ type UsageMosaicStats = {
   hourTotals: number[];
   weekdayTotals: Array<{ label: string; tokens: number }>;
 };
-
-const WEEKDAYS = [t("usage.sun"), t("usage.mon"), t("usage.tue"), t("usage.wed"), t("usage.thu"), t("usage.fri"), t("usage.sat")];
-
+const WEEKDAYS = [
+  t("usage.sun"),
+  t("usage.mon"),
+  t("usage.tue"),
+  t("usage.wed"),
+  t("usage.thu"),
+  t("usage.fri"),
+  t("usage.sat"),
+];
 function getZonedHour(date: Date, zone: "local" | "utc"): number {
   return zone === "utc" ? date.getUTCHours() : date.getHours();
 }
@@ -129,21 +129,18 @@ function buildUsageMosaicStats(
   const weekdayTotals = Array.from({ length: 7 }, () => 0);
   let totalTokens = 0;
   let hasData = false;
-
   for (const session of sessions) {
     const usage = session.usage;
     if (!usage || !usage.totalTokens || usage.totalTokens <= 0) {
       continue;
     }
     totalTokens += usage.totalTokens;
-
     const start = usage.firstActivity ?? session.updatedAt;
     const end = usage.lastActivity ?? session.updatedAt;
     if (!start || !end) {
       continue;
     }
     hasData = true;
-
     const startMs = Math.min(start, end);
     const endMs = Math.max(start, end);
     const durationMs = Math.max(endMs - startMs, 1);
@@ -1262,9 +1259,7 @@ function renderUsageInsights(
   const errorHint = t("usage.errorHint");
   const throughputHint = t("usage.throughputHint");
   const tokensHint = t("usage.tokensHint");
-  const costHint = showCostHint
-    ? t("usage.costHintMissing")
-    : t("usage.costHint");
+  const costHint = showCostHint ? t("usage.costHintMissing") : t("usage.costHint");
 
   const errorDays = aggregates.daily
     .filter((day) => day.messages > 0 && day.errors > 0)
@@ -2383,7 +2378,11 @@ function renderSessionLogsCompact(
           const { log, toolInfo, cleanContent } = entry;
           const roleClass = log.role === "user" ? "user" : "assistant";
           const roleLabel =
-            log.role === "user" ? t("chat.you") : log.role === "assistant" ? t("chat.assistant") : t("common.tool");
+            log.role === "user"
+              ? t("chat.you")
+              : log.role === "assistant"
+                ? t("chat.assistant")
+                : t("common.tool");
           return html`
           <div class="session-log-entry ${roleClass}">
             <div class="session-log-meta">

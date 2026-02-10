@@ -24,9 +24,7 @@ import {
   formatCronState,
   formatNextRun,
 } from "../presenter.ts";
-
 export type AgentsPanel = "overview" | "files" | "tools" | "skills" | "channels" | "cron";
-
 export type AgentsProps = {
   loading: boolean;
   error: string | null;
@@ -82,7 +80,6 @@ export type AgentsProps = {
   onAgentSkillsClear: (agentId: string) => void;
   onAgentSkillsDisableAll: (agentId: string) => void;
 };
-
 const TOOL_SECTIONS = [
   {
     id: "fs",
@@ -123,7 +120,11 @@ const TOOL_SECTIONS = [
     label: t("agents.catSessions"),
     tools: [
       { id: "sessions_list", label: "sessions_list", description: t("agents.descSessionsList") },
-      { id: "sessions_history", label: "sessions_history", description: t("agents.descSessionsHistory") },
+      {
+        id: "sessions_history",
+        label: "sessions_history",
+        description: t("agents.descSessionsHistory"),
+      },
       { id: "sessions_send", label: "sessions_send", description: t("agents.descSessionsSend") },
       { id: "sessions_spawn", label: "sessions_spawn", description: t("agents.descSessionsSpawn") },
       { id: "session_status", label: "session_status", description: t("agents.descSessionStatus") },
@@ -166,19 +167,16 @@ const TOOL_SECTIONS = [
     tools: [{ id: "image", label: "image", description: t("agents.descImage") }],
   },
 ];
-
 const PROFILE_OPTIONS = [
   { id: "minimal", label: t("agents.presetMinimal") },
   { id: "coding", label: t("agents.presetCoding") },
   { id: "messaging", label: t("agents.presetMessaging") },
   { id: "full", label: t("agents.presetFull") },
 ] as const;
-
 type ToolPolicy = {
   allow?: string[];
   deny?: string[];
 };
-
 type AgentConfigEntry = {
   id: string;
   name?: string;
@@ -193,7 +191,6 @@ type AgentConfigEntry = {
     deny?: string[];
   };
 };
-
 type ConfigSnapshot = {
   agents?: {
     defaults?: { workspace?: string; model?: unknown; models?: Record<string, { alias?: string }> };
@@ -206,7 +203,6 @@ type ConfigSnapshot = {
     deny?: string[];
   };
 };
-
 function normalizeAgentLabel(agent: { id: string; name?: string; identity?: { name?: string } }) {
   return agent.name?.trim() || agent.identity?.name?.trim() || agent.id;
 }
@@ -298,7 +294,6 @@ type AgentContext = {
   skillsLabel: string;
   isDefault: boolean;
 };
-
 function buildAgentContext(
   agent: AgentsListResult["agents"][number],
   configForm: Record<string, unknown> | null,
@@ -411,7 +406,6 @@ type ConfiguredModelOption = {
   value: string;
   label: string;
 };
-
 function resolveConfiguredModels(
   configForm: Record<string, unknown> | null,
 ): ConfiguredModelOption[] {
@@ -456,7 +450,6 @@ type CompiledPattern =
   | { kind: "all" }
   | { kind: "exact"; value: string }
   | { kind: "regex"; value: RegExp };
-
 function compilePattern(pattern: string): CompiledPattern {
   const normalized = normalizeToolName(pattern);
   if (!normalized) {
@@ -542,7 +535,6 @@ export function renderAgents(props: AgentsProps) {
   const selectedAgent = selectedId
     ? (agents.find((agent) => agent.id === selectedId) ?? null)
     : null;
-
   return html`
     <div class="agents-layout">
       <section class="card agents-sidebar">
@@ -889,7 +881,9 @@ function renderAgentOverview(params: {
                   : html`
                       <option value="">
                         ${
-                          defaultPrimary ? t("agents.overview.inheritDefaultModel", { model: defaultPrimary }) : t("agents.overview.inheritDefault")
+                          defaultPrimary
+                            ? t("agents.overview.inheritDefaultModel", { model: defaultPrimary })
+                            : t("agents.overview.inheritDefault")
                         }
                       </option>
                     `
@@ -1154,12 +1148,17 @@ function renderAgentChannels(params: {
                 ${entries.map((entry) => {
                   const summary = summarizeChannelAccounts(entry.accounts);
                   const status = summary.total
-                    ? t("agents.channels.connected", { count: String(summary.connected), total: String(summary.total) })
+                    ? t("agents.channels.connected", {
+                        count: String(summary.connected),
+                        total: String(summary.total),
+                      })
                     : t("agents.channels.noAccounts");
                   const config = summary.configured
                     ? t("agents.channels.configured", { count: String(summary.configured) })
                     : t("agents.channels.notConfigured");
-                  const enabled = summary.total ? t("agents.channels.enabledCount", { count: String(summary.enabled) }) : t("common.disabled");
+                  const enabled = summary.total
+                    ? t("agents.channels.enabledCount", { count: String(summary.enabled) })
+                    : t("common.disabled");
                   const extras = resolveChannelExtras(params.configForm, entry.id);
                   return html`
                     <div class="list-item">

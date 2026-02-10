@@ -143,7 +143,9 @@ export async function revokeDeviceToken(
   if (!state.client || !state.connected) {
     return;
   }
-  const confirmed = window.confirm(t("devices.revokeConfirm", { deviceId: params.deviceId, role: params.role }));
+  const confirmed = window.confirm(
+    t("devices.revokeConfirm", { deviceId: params.deviceId, role: params.role }),
+  );
   if (!confirmed) {
     return;
   }

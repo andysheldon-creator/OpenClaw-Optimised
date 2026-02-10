@@ -1,9 +1,9 @@
 import { html, nothing } from "lit";
 import type { ConfigUiHints } from "../types.ts";
+import { t } from "../i18n.ts";
 import { icons } from "../icons.ts";
 import { renderNode } from "./config-form.node.ts";
 import { hintForPath, humanize, schemaType, type JsonSchema } from "./config-form.shared.ts";
-import { t } from "../i18n.ts";
 
 export type ConfigFormProps = {
   schema: JsonSchema | null;
@@ -243,36 +243,105 @@ export const SECTION_META: Record<string, { label: string; description: string }
     label: t("configSections.env.label"),
     description: t("configSections.env.description"),
   },
-  update: { label: t("configSections.update.label"), description: t("configSections.update.description") },
-  agents: { label: t("configSections.agents.label"), description: t("configSections.agents.description") },
-  auth: { label: t("configSections.auth.label"), description: t("configSections.auth.description") },
+  update: {
+    label: t("configSections.update.label"),
+    description: t("configSections.update.description"),
+  },
+  agents: {
+    label: t("configSections.agents.label"),
+    description: t("configSections.agents.description"),
+  },
+  auth: {
+    label: t("configSections.auth.label"),
+    description: t("configSections.auth.description"),
+  },
   channels: {
     label: t("configSections.channelsSection.label"),
     description: t("configSections.channelsSection.description"),
   },
-  messages: { label: t("configSections.messages.label"), description: t("configSections.messages.description") },
-  commands: { label: t("configSections.commands.label"), description: t("configSections.commands.description") },
-  hooks: { label: t("configSections.hooks.label"), description: t("configSections.hooks.description") },
-  skills: { label: t("configSections.skillsSection.label"), description: t("configSections.skillsSection.description") },
-  tools: { label: t("configSections.tools.label"), description: t("configSections.tools.description") },
-  gateway: { label: t("configSections.gatewaySection.label"), description: t("configSections.gatewaySection.description") },
-  wizard: { label: t("configSections.wizard.label"), description: t("configSections.wizard.description") },
+  messages: {
+    label: t("configSections.messages.label"),
+    description: t("configSections.messages.description"),
+  },
+  commands: {
+    label: t("configSections.commands.label"),
+    description: t("configSections.commands.description"),
+  },
+  hooks: {
+    label: t("configSections.hooks.label"),
+    description: t("configSections.hooks.description"),
+  },
+  skills: {
+    label: t("configSections.skillsSection.label"),
+    description: t("configSections.skillsSection.description"),
+  },
+  tools: {
+    label: t("configSections.tools.label"),
+    description: t("configSections.tools.description"),
+  },
+  gateway: {
+    label: t("configSections.gatewaySection.label"),
+    description: t("configSections.gatewaySection.description"),
+  },
+  wizard: {
+    label: t("configSections.wizard.label"),
+    description: t("configSections.wizard.description"),
+  },
   // Additional sections
-  meta: { label: t("configSections.meta.label"), description: t("configSections.meta.description") },
-  logging: { label: t("configSections.logging.label"), description: t("configSections.logging.description") },
-  browser: { label: t("configSections.browser.label"), description: t("configSections.browser.description") },
+  meta: {
+    label: t("configSections.meta.label"),
+    description: t("configSections.meta.description"),
+  },
+  logging: {
+    label: t("configSections.logging.label"),
+    description: t("configSections.logging.description"),
+  },
+  browser: {
+    label: t("configSections.browser.label"),
+    description: t("configSections.browser.description"),
+  },
   ui: { label: "UI", description: t("configSections.ui.description") },
-  models: { label: t("configSections.models.label"), description: t("configSections.models.description") },
-  bindings: { label: t("configSections.bindings.label"), description: t("configSections.bindings.description") },
-  broadcast: { label: t("configSections.broadcast.label"), description: t("configSections.broadcast.description") },
-  audio: { label: t("configSections.audio.label"), description: t("configSections.audio.description") },
-  session: { label: t("configSections.sessionSection.label"), description: t("configSections.sessionSection.description") },
-  cron: { label: t("configSections.cronSection.label"), description: t("configSections.cronSection.description") },
+  models: {
+    label: t("configSections.models.label"),
+    description: t("configSections.models.description"),
+  },
+  bindings: {
+    label: t("configSections.bindings.label"),
+    description: t("configSections.bindings.description"),
+  },
+  broadcast: {
+    label: t("configSections.broadcast.label"),
+    description: t("configSections.broadcast.description"),
+  },
+  audio: {
+    label: t("configSections.audio.label"),
+    description: t("configSections.audio.description"),
+  },
+  session: {
+    label: t("configSections.sessionSection.label"),
+    description: t("configSections.sessionSection.description"),
+  },
+  cron: {
+    label: t("configSections.cronSection.label"),
+    description: t("configSections.cronSection.description"),
+  },
   web: { label: t("configSections.web.label"), description: t("configSections.web.description") },
-  discovery: { label: t("configSections.discovery.label"), description: t("configSections.discovery.description") },
-  canvasHost: { label: t("configSections.canvasHost.label"), description: t("configSections.canvasHost.description") },
-  talk: { label: t("configSections.talk.label"), description: t("configSections.talk.description") },
-  plugins: { label: t("configSections.plugins.label"), description: t("configSections.plugins.description") },
+  discovery: {
+    label: t("configSections.discovery.label"),
+    description: t("configSections.discovery.description"),
+  },
+  canvasHost: {
+    label: t("configSections.canvasHost.label"),
+    description: t("configSections.canvasHost.description"),
+  },
+  talk: {
+    label: t("configSections.talk.label"),
+    description: t("configSections.talk.description"),
+  },
+  plugins: {
+    label: t("configSections.plugins.label"),
+    description: t("configSections.plugins.description"),
+  },
 };
 
 function getSectionIcon(key: string) {

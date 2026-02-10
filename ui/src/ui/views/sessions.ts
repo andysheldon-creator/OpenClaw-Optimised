@@ -1,9 +1,9 @@
 import { html, nothing } from "lit";
 import type { GatewaySessionRow, SessionsListResult } from "../types.ts";
 import { formatRelativeTimestamp } from "../format.ts";
+import { t } from "../i18n.ts";
 import { pathForTab } from "../navigation.ts";
 import { formatSessionTokens } from "../presenter.ts";
-import { t } from "../i18n.ts";
 
 export type SessionsProps = {
   loading: boolean;

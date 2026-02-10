@@ -12,10 +12,10 @@
  *   3. Import the JSON and add to `BUNDLES`.
  */
 
-import en from "./locales/en.json" with { type: "json" };
-import tr from "./locales/tr.json" with { type: "json" };
-import fr from "./locales/fr.json" with { type: "json" };
 import de from "./locales/de.json" with { type: "json" };
+import en from "./locales/en.json" with { type: "json" };
+import fr from "./locales/fr.json" with { type: "json" };
+import tr from "./locales/tr.json" with { type: "json" };
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 

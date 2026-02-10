@@ -99,9 +99,7 @@ export async function deleteSession(state: SessionsState, key: string) {
   if (state.sessionsLoading) {
     return;
   }
-  const confirmed = window.confirm(
-    t("sessions.deleteConfirm", { key }),
-  );
+  const confirmed = window.confirm(t("sessions.deleteConfirm", { key }));
   if (!confirmed) {
     return;
   }

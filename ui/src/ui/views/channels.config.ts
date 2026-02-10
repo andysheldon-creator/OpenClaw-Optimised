@@ -1,8 +1,8 @@
 import { html } from "lit";
 import type { ConfigUiHints } from "../types.ts";
 import type { ChannelsProps } from "./channels.types.ts";
-import { analyzeConfigSchema, renderNode, schemaType, type JsonSchema } from "./config-form.ts";
 import { t } from "../i18n.ts";
+import { analyzeConfigSchema, renderNode, schemaType, type JsonSchema } from "./config-form.ts";
 
 type ChannelConfigFormProps = {
   channelId: string;

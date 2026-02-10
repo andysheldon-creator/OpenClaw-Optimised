@@ -7,8 +7,8 @@ import {
   waitWhatsAppLogin,
 } from "./controllers/channels.ts";
 import { loadConfig, saveConfig } from "./controllers/config.ts";
-import { createNostrProfileFormState } from "./views/channels.nostr-profile-form.ts";
 import { t } from "./i18n.ts";
+import { createNostrProfileFormState } from "./views/channels.nostr-profile-form.ts";
 
 export async function handleWhatsAppStart(host: OpenClawApp, force: boolean) {
   await startWhatsAppLogin(host, force);
@@ -145,7 +145,8 @@ export async function handleNostrProfileSave(host: OpenClawApp) {
     } | null;
 
     if (!response.ok || data?.ok === false || !data) {
-      const errorMessage = data?.error ?? t("channels.profileUpdateFailed", { status: String(response.status) });
+      const errorMessage =
+        data?.error ?? t("channels.profileUpdateFailed", { status: String(response.status) });
       host.nostrProfileFormState = {
         ...state,
         saving: false,
@@ -237,9 +238,7 @@ export async function handleNostrProfileImport(host: OpenClawApp) {
       importing: false,
       values: nextValues,
       error: null,
-      success: data.saved
-        ? t("channels.profileImportedFromRelays")
-        : t("channels.profileImported"),
+      success: data.saved ? t("channels.profileImportedFromRelays") : t("channels.profileImported"),
       showAdvanced,
     };
 

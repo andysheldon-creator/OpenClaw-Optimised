@@ -51,10 +51,10 @@ import {
   updateSkillEnabled,
 } from "./controllers/skills.ts";
 import { loadUsage, loadSessionTimeSeries, loadSessionLogs } from "./controllers/usage.ts";
+import { t } from "./i18n.ts";
 import { icons } from "./icons.ts";
 import { normalizeBasePath, getTabGroups, subtitleForTab, titleForTab } from "./navigation.ts";
-import { t, getLocale, setLocale, getAvailableLocales } from "./i18n.ts";
-
+import { renderLanguagePicker } from "./render-language-picker.ts";
 // Module-scope debounce for usage date changes (avoids type-unsafe hacks on state object)
 let usageDateDebounceTimeout: number | null = null;
 const debouncedLoadUsage = (state: UsageState) => {
@@ -78,10 +78,8 @@ import { renderOverview } from "./views/overview.ts";
 import { renderSessions } from "./views/sessions.ts";
 import { renderSkills } from "./views/skills.ts";
 import { renderUsage } from "./views/usage.ts";
-
 const AVATAR_DATA_RE = /^data:/i;
 const AVATAR_HTTP_RE = /^https?:\/\//i;
-
 function resolveAssistantAvatarUrl(state: AppViewState): string | undefined {
   const list = state.agentsList?.agents ?? [];
   const parsed = parseAgentSessionKey(state.sessionKey);
@@ -196,31 +194,7 @@ export function renderApp(state: AppViewState) {
             </a>
           </div>
         </div>
-        <div class="nav-group nav-group--language">
-          <div class="nav-label nav-label--static">
-            <span class="nav-label__icon" aria-hidden="true">${icons.globe ?? "🌐"}</span>
-            <span class="nav-label__text">${t("language.label")}</span>
-          </div>
-          <div class="nav-group__items">
-            <select
-              class="nav-locale-select"
-              .value=${getLocale()}
-              @change=${(e: Event) => {
-                const next = (e.target as HTMLSelectElement).value;
-                setLocale(next);
-                state.applySettings({ ...state.settings, locale: next });
-              }}
-            >
-              ${getAvailableLocales().map(
-                (entry) => html`
-                  <option value=${entry.code} ?selected=${entry.code === getLocale()}>
-                    ${entry.nativeLabel}
-                  </option>
-                `,
-              )}
-            </select>
-          </div>
-        </div>
+        ${renderLanguagePicker(state)}
       </aside>
       <main class="content ${isChat ? "content--chat" : ""}">
         <section class="content-header">

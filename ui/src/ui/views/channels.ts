@@ -15,8 +15,8 @@ import type {
 } from "../types.ts";
 import type { ChannelKey, ChannelsChannelData, ChannelsProps } from "./channels.types.ts";
 import { formatRelativeTimestamp } from "../format.ts";
-import { renderChannelConfigSection } from "./channels.config.ts";
 import { t } from "../i18n.ts";
+import { renderChannelConfigSection } from "./channels.config.ts";
 import { renderDiscordCard } from "./channels.discord.ts";
 import { renderGoogleChatCard } from "./channels.googlechat.ts";
 import { renderIMessageCard } from "./channels.imessage.ts";

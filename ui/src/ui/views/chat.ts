@@ -10,8 +10,8 @@ import {
   renderStreamingGroup,
 } from "../chat/grouped-render.ts";
 import { normalizeMessage, normalizeRoleForGrouping } from "../chat/message-normalizer.ts";
-import { icons } from "../icons.ts";
 import { t } from "../i18n.ts";
+import { icons } from "../icons.ts";
 import { renderMarkdownSidebar } from "./markdown-sidebar.ts";
 import "../components/resizable-divider.ts";
 
@@ -332,7 +332,9 @@ export function renderChat(props: ChatProps) {
                       <div class="chat-queue__text">
                         ${
                           item.text ||
-                          (item.attachments?.length ? t("chat.image", { count: String(item.attachments.length) }) : "")
+                          (item.attachments?.length
+                            ? t("chat.image", { count: String(item.attachments.length) })
+                            : "")
                         }
                       </div>
                       <button
@@ -480,7 +482,10 @@ function buildChatItems(props: ChatProps): Array<ChatItem | MessageGroup> {
       key: "chat:history:notice",
       message: {
         role: "system",
-        content: t("chat.showingLast", { limit: String(CHAT_HISTORY_RENDER_LIMIT), hidden: String(historyStart) }),
+        content: t("chat.showingLast", {
+          limit: String(CHAT_HISTORY_RENDER_LIMIT),
+          hidden: String(historyStart),
+        }),
         timestamp: Date.now(),
       },
     });

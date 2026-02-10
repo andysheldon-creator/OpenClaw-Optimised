@@ -1,12 +1,12 @@
 import type { GatewayBrowserClient } from "../gateway.ts";
 import type { ConfigSchemaResponse, ConfigSnapshot, ConfigUiHints } from "../types.ts";
+import { t } from "../i18n.ts";
 import {
   cloneConfigObject,
   removePathValue,
   serializeConfigForm,
   setPathValue,
 } from "./config/form-utils.ts";
-import { t } from "../i18n.ts";
 
 export type ConfigState = {
   client: GatewayBrowserClient | null;

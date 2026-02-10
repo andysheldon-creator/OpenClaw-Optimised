@@ -37,9 +37,9 @@ function groupSkills(skills: SkillStatusEntry[]): SkillGroup[] {
       other.skills.push(skill);
     }
   }
-  const ordered = sourceGroups.map((group) => groups.get(group.id)).filter(
-    (group): group is SkillGroup => Boolean(group && group.skills.length > 0),
-  );
+  const ordered = sourceGroups
+    .map((group) => groups.get(group.id))
+    .filter((group): group is SkillGroup => Boolean(group && group.skills.length > 0));
   if (other.skills.length > 0) {
     ordered.push(other);
   }

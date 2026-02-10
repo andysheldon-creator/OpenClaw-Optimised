@@ -1,7 +1,7 @@
 import { html, nothing } from "lit";
 import type { PresenceEntry } from "../types.ts";
-import { formatPresenceAge, formatPresenceSummary } from "../presenter.ts";
 import { t } from "../i18n.ts";
+import { formatPresenceAge, formatPresenceSummary } from "../presenter.ts";
 
 export type InstancesProps = {
   loading: boolean;
@@ -51,7 +51,8 @@ export function renderInstances(props: InstancesProps) {
 }
 
 function renderEntry(entry: PresenceEntry) {
-  const lastInput = entry.lastInputSeconds != null ? `${entry.lastInputSeconds}s ago` : t("common.na");
+  const lastInput =
+    entry.lastInputSeconds != null ? `${entry.lastInputSeconds}s ago` : t("common.na");
   const mode = entry.mode ?? "unknown";
   const roles = Array.isArray(entry.roles) ? entry.roles.filter(Boolean) : [];
   const scopes = Array.isArray(entry.scopes) ? entry.scopes.filter(Boolean) : [];

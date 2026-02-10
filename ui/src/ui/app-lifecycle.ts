@@ -39,9 +39,10 @@ type LifecycleHost = {
 export function handleConnected(host: LifecycleHost) {
   // Initialize locale from saved settings or detect from browser
   const savedSettings = loadSettings();
-  const locale = savedSettings.locale && savedSettings.locale !== "en"
-    ? savedSettings.locale
-    : detectBrowserLocale();
+  const locale =
+    savedSettings.locale && savedSettings.locale !== "en"
+      ? savedSettings.locale
+      : detectBrowserLocale();
   setLocale(locale);
   // Re-render on locale change
   onLocaleChange(() => {

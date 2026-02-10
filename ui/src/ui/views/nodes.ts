@@ -12,7 +12,6 @@ import type {
 } from "../controllers/exec-approvals.ts";
 import { clampText, formatRelativeTimestamp, formatList } from "../format.ts";
 import { t } from "../i18n.ts";
-
 export type NodesProps = {
   loading: boolean;
   nodes: Array<Record<string, unknown>>;
@@ -49,7 +48,6 @@ export type NodesProps = {
   onExecApprovalsRemove: (path: Array<string | number>) => void;
   onSaveExecApprovals: () => void;
 };
-
 export function renderNodes(props: NodesProps) {
   const bindingState = resolveBindingsState(props);
   const approvalsState = resolveExecApprovalsState(props);
@@ -227,7 +225,6 @@ type BindingAgent = {
   isDefault: boolean;
   binding?: string | null;
 };
-
 type BindingNode = {
   id: string;
   label: string;
@@ -862,7 +859,9 @@ function renderExecApprovalsPolicy(state: ExecApprovalsState) {
               isDefaults
                 ? t("nodes.allowSkillExecsDesc")
                 : autoIsDefault
-                  ? t("nodes.usingDefault", { value: defaults.autoAllowSkills ? t("common.on") : t("common.off") })
+                  ? t("nodes.usingDefault", {
+                      value: defaults.autoAllowSkills ? t("common.on") : t("common.off"),
+                    })
                   : t("nodes.override", { value: autoEffective ? t("common.on") : t("common.off") })
             }
           </div>

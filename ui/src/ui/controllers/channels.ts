@@ -1,6 +1,6 @@
 import type { ChannelsState } from "./channels.types.ts";
-import { ChannelsStatusSnapshot } from "../types.ts";
 import { t } from "../i18n.ts";
+import { ChannelsStatusSnapshot } from "../types.ts";
 
 export type { ChannelsState };
 

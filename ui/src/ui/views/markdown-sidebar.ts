@@ -1,8 +1,8 @@
 import { html } from "lit";
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
+import { t } from "../i18n.ts";
 import { icons } from "../icons.ts";
 import { toSanitizedMarkdownHtml } from "../markdown.ts";
-import { t } from "../i18n.ts";
 
 export type MarkdownSidebarProps = {
   content: string | null;

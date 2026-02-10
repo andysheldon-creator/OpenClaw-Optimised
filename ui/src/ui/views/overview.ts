@@ -2,8 +2,8 @@ import { html } from "lit";
 import type { GatewayHelloOk } from "../gateway.ts";
 import type { UiSettings } from "../storage.ts";
 import { formatRelativeTimestamp, formatDurationHuman } from "../format.ts";
-import { formatNextRun } from "../presenter.ts";
 import { t } from "../i18n.ts";
+import { formatNextRun } from "../presenter.ts";
 
 export type OverviewProps = {
   connected: boolean;
