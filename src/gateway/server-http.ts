@@ -1,5 +1,6 @@
 import type { TlsOptions } from "node:tls";
 import type { WebSocketServer } from "ws";
+import { timingSafeEqual } from "node:crypto";
 import {
   createServer as createHttpServer,
   type Server as HttpServer,
@@ -157,7 +158,13 @@ export function createHooksRequestHandler(
     }
 
     const token = extractHookToken(req);
-    if (!token || token !== hooksConfig.token) {
+    const tokenBuf = Buffer.from(token ?? "");
+    const expectedBuf = Buffer.from(hooksConfig.token);
+    if (
+      !token ||
+      tokenBuf.length !== expectedBuf.length ||
+      !timingSafeEqual(tokenBuf, expectedBuf)
+    ) {
       res.statusCode = 401;
       res.setHeader("Content-Type", "text/plain; charset=utf-8");
       res.end("Unauthorized");
