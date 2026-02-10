@@ -218,7 +218,7 @@ export function extractAssistantText(msg: AssistantMessage): string {
         .filter(Boolean)
     : [];
   const extracted = blocks.join("\n").trim();
-  return sanitizeUserFacingText(extracted);
+  return sanitizeUserFacingText(extracted, { source: "assistant" });
 }
 
 export function extractAssistantThinking(msg: AssistantMessage): string {

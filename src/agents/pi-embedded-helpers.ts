@@ -16,6 +16,7 @@ export {
   isBillingAssistantError,
   parseApiErrorInfo,
   sanitizeUserFacingText,
+  type SanitizeTextSource,
   isBillingErrorMessage,
   isCloudCodeAssistFormatError,
   isCompactionFailureError,

@@ -61,3 +61,61 @@ describe("sanitizeUserFacingText", () => {
     expect(sanitizeUserFacingText(text)).toBe(text);
   });
 });
+
+describe('sanitizeUserFacingText with { source: "assistant" }', () => {
+  const assistant = { source: "assistant" as const };
+
+  it("does not rewrite billing-related keywords in assistant text", () => {
+    expect(sanitizeUserFacingText("Your credit balance is $42.00", assistant)).toBe(
+      "Your credit balance is $42.00",
+    );
+    expect(sanitizeUserFacingText("billing: please upgrade your plan", assistant)).toBe(
+      "billing: please upgrade your plan",
+    );
+    expect(sanitizeUserFacingText("insufficient credits for this operation", assistant)).toBe(
+      "insufficient credits for this operation",
+    );
+  });
+
+  it("does not rewrite HTTP status codes in assistant text", () => {
+    expect(sanitizeUserFacingText("500 Internal Server Error", assistant)).toBe(
+      "500 Internal Server Error",
+    );
+    expect(sanitizeUserFacingText("402 Payment Required", assistant)).toBe("402 Payment Required");
+  });
+
+  it("does not rewrite error-prefixed text in assistant text", () => {
+    expect(sanitizeUserFacingText("Error: something went wrong in the build", assistant)).toBe(
+      "Error: something went wrong in the build",
+    );
+    expect(sanitizeUserFacingText("Failed: deployment step 3", assistant)).toBe(
+      "Failed: deployment step 3",
+    );
+  });
+
+  it("does not rewrite raw JSON error payloads in assistant text", () => {
+    const raw = '{"type":"error","error":{"message":"Something exploded","type":"server_error"}}';
+    expect(sanitizeUserFacingText(raw, assistant)).toBe(raw);
+  });
+
+  it("still strips <final> tags for assistant text", () => {
+    expect(sanitizeUserFacingText("<final>Hello</final>", assistant)).toBe("Hello");
+    expect(sanitizeUserFacingText("Hi <final>there</final>!", assistant)).toBe("Hi there!");
+  });
+
+  it("still collapses consecutive duplicate paragraphs for assistant text", () => {
+    const text = "Hello there!\n\nHello there!";
+    expect(sanitizeUserFacingText(text, assistant)).toBe("Hello there!");
+  });
+
+  it("does not collapse distinct paragraphs for assistant text", () => {
+    const text = "Hello there!\n\nDifferent line.";
+    expect(sanitizeUserFacingText(text, assistant)).toBe(text);
+  });
+
+  it("passes through normal assistant content unchanged", () => {
+    const response =
+      "Here are your Linear issues:\n1. Show Credit Balance - Task #1234\n2. 402 API endpoint - Task #5678";
+    expect(sanitizeUserFacingText(response, assistant)).toBe(response);
+  });
+});

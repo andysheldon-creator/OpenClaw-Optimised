@@ -62,7 +62,7 @@ export function normalizeReplyPayload(
   }
 
   if (text) {
-    text = sanitizeUserFacingText(text);
+    text = sanitizeUserFacingText(text, { source: "assistant" });
   }
   if (!text?.trim() && !hasMedia && !hasChannelData) {
     opts.onSkip?.("empty");

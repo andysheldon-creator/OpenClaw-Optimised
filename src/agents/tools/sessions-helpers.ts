@@ -389,5 +389,5 @@ export function extractAssistantText(message: unknown): string | undefined {
     }
   }
   const joined = chunks.join("").trim();
-  return joined ? sanitizeUserFacingText(joined) : undefined;
+  return joined ? sanitizeUserFacingText(joined, { source: "assistant" }) : undefined;
 }

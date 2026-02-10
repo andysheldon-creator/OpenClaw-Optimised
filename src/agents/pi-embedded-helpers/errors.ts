@@ -402,7 +402,27 @@ export function formatAssistantErrorText(
   return raw.length > 600 ? `${raw.slice(0, 600)}…` : raw;
 }
 
-export function sanitizeUserFacingText(text: string): string {
+/**
+ * Source of the text being sanitized.
+ *
+ * - `"assistant"` — normal assistant response content.  Only safe transforms
+ *   are applied (tag stripping, duplicate collapse).  Error-detection
+ *   heuristics are skipped to avoid false positives when the response happens
+ *   to mention billing keywords, HTTP status codes, etc.
+ *
+ * - `"error"` — an API / provider error message.  Full error-detection and
+ *   rewriting logic is applied (HTTP status formatting, rate-limit /
+ *   overloaded detection, etc.).
+ *
+ * For backward compatibility the parameter is optional; when omitted the
+ * function behaves as before (applies all checks).
+ */
+export type SanitizeTextSource = "assistant" | "error";
+
+export function sanitizeUserFacingText(
+  text: string,
+  options?: { source?: SanitizeTextSource },
+): string {
   if (!text) {
     return text;
   }
@@ -410,6 +430,13 @@ export function sanitizeUserFacingText(text: string): string {
   const trimmed = stripped.trim();
   if (!trimmed) {
     return stripped;
+  }
+
+  // When the text is known to be a normal assistant response, skip the
+  // error-detection heuristics that can false-positive on legitimate content
+  // containing billing keywords, HTTP status codes, or error-like prefixes.
+  if (options?.source === "assistant") {
+    return collapseConsecutiveDuplicateBlocks(stripped);
   }
 
   if (/incorrect role information|roles must alternate/i.test(trimmed)) {
