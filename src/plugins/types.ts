@@ -365,6 +365,13 @@ export type PluginHookMessageReceivedEvent = {
   metadata?: Record<string, unknown>;
 };
 
+export type PluginHookMessageReceivedResult = {
+  /** Mutated message content. If provided, replaces the original content. */
+  content?: string;
+  /** If true, suppress the message entirely (don't process it). */
+  cancel?: boolean;
+};
+
 // message_sending hook
 export type PluginHookMessageSendingEvent = {
   to: string;
@@ -489,7 +496,7 @@ export type PluginHookHandlerMap = {
   message_received: (
     event: PluginHookMessageReceivedEvent,
     ctx: PluginHookMessageContext,
-  ) => Promise<void> | void;
+  ) => Promise<PluginHookMessageReceivedResult | void> | PluginHookMessageReceivedResult | void;
   message_sending: (
     event: PluginHookMessageSendingEvent,
     ctx: PluginHookMessageContext,
