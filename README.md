@@ -347,7 +347,7 @@ The `--secure` flag starts a host-side secrets proxy + an isolated Docker contai
 graph LR
   GW["Gateway Container<br/>(no secrets)"] -->|PROXY_URL| RELAY["Relay<br/>(socat)"]
   RELAY -->|forwards| PROXY["Secrets Proxy<br/>127.0.0.1 (host)"]
-  PROXY -->|injects credentials| API["☁️ LLM APIs"]
+  PROXY -->|injects credentials| API["☁️ Allowlisted APIs<br/>(LLMs · Channels · Integrations)"]
   API -->|response| PROXY --> RELAY --> GW
 
   style GW fill:#1a1a2e,color:#fff
