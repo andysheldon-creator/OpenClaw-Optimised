@@ -119,7 +119,7 @@ function isReasoningModel(model: ShengSuanYunModel): boolean {
  * Determine if a model supports vision/image inputs.
  */
 function supportsVision(model: ShengSuanYunModel): boolean {
-  const modality = (model.architecture?.input ?? model.architecture?.modality ?? "").toLowerCase();
+  const modality = (model.architecture?.input ?? "").toLowerCase();
   return (
     modality.includes("image") || modality.includes("vision") || modality === "text+image->text"
   );
@@ -237,8 +237,4 @@ export async function getShengSuanYunModalityModels(): Promise<MModel[]> {
     console.error("[shengsuanyun-models] Error fetching modality models:", err);
     return [];
   }
-}
-
-export async function discoverAllShengSuanYunModels(): Promise<ModelDefinitionConfig[]> {
-  return await getShengSuanYunModels();
 }

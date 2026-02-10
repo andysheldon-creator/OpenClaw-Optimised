@@ -182,7 +182,21 @@ async function loadShengSuanYunTools(opts?: { config?: OpenClawConfig }): Promis
   return tools;
 }
 
-type JsonSchema = Record<string, unknown>;
+interface JsonSchema {
+  $schema?: string;
+  type?: string;
+  title?: string;
+  description?: string;
+  default?: unknown;
+  properties?: Record<string, JsonSchema>;
+  required?: string[];
+  items?: JsonSchema;
+  anyOf?: JsonSchema[];
+  enum?: Array<string | number>;
+  format?: string;
+  ssy?: string;
+  [key: string]: unknown;
+}
 
 export function generateTypebox(schema: JsonSchema): TSchema {
   const getOptions = (s: JsonSchema): Record<string, unknown> => {
