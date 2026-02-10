@@ -26,6 +26,8 @@ import {
   type SessionScope,
   updateSessionStore,
 } from "../../config/sessions.js";
+import { createHookRunner } from "../../plugins/hooks.js";
+import { getPluginRegistry } from "../../plugins/registry.js";
 import { normalizeMainKey } from "../../routing/session-key.js";
 import { normalizeSessionDeliveryFields } from "../../utils/delivery-context.js";
 import { resolveCommandAuthorization } from "../command-auth.js";
@@ -221,6 +223,27 @@ export async function initSessionState(params: {
   const freshEntry = entry
     ? evaluateSessionFreshness({ updatedAt: entry.updatedAt, now, policy: resetPolicy }).fresh
     : false;
+
+  const resetReason = isNewSession ? (resetTriggered ? "new" : "auto") : undefined;
+  if ((isNewSession || !freshEntry) && entry && entry.sessionId) {
+    // Session is ending (either explicitly via /new or implicitly via auto-reset)
+    const registry = getPluginRegistry();
+    if (registry) {
+      const hooks = createHookRunner(registry);
+      const reason = resetReason ?? "auto";
+      await hooks.runSessionBeforeEnd(
+        {
+          sessionId: entry.sessionId,
+          reason,
+          messageCount: entry.messageCount ?? 0,
+        },
+        {
+          sessionId: entry.sessionId,
+          agentId,
+        },
+      );
+    }
+  }
 
   if (!isNewSession && freshEntry) {
     sessionId = entry.sessionId;

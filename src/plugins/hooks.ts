@@ -28,6 +28,7 @@ import type {
   PluginHookRegistration,
   PluginHookSessionContext,
   PluginHookSessionEndEvent,
+  PluginHookSessionBeforeEndEvent,
   PluginHookSessionStartEvent,
   PluginHookToolContext,
   PluginHookToolResultPersistContext,
@@ -58,6 +59,7 @@ export type {
   PluginHookSessionContext,
   PluginHookSessionStartEvent,
   PluginHookSessionEndEvent,
+  PluginHookSessionBeforeEndEvent,
   PluginHookGatewayContext,
   PluginHookGatewayStartEvent,
   PluginHookGatewayStopEvent,
@@ -397,6 +399,17 @@ export function createHookRunner(registry: PluginRegistry, options: HookRunnerOp
     return runVoidHook("session_end", event, ctx);
   }
 
+  /**
+   * Run session_before_end hook.
+   * Runs sequentially to allow async work before session is cleared.
+   */
+  async function runSessionBeforeEnd(
+    event: PluginHookSessionBeforeEndEvent,
+    ctx: PluginHookSessionContext,
+  ): Promise<void> {
+    return runVoidHook("session_before_end", event, ctx);
+  }
+
   // =========================================================================
   // Gateway Hooks
   // =========================================================================
@@ -458,6 +471,7 @@ export function createHookRunner(registry: PluginRegistry, options: HookRunnerOp
     // Session hooks
     runSessionStart,
     runSessionEnd,
+    runSessionBeforeEnd,
     // Gateway hooks
     runGatewayStart,
     runGatewayStop,
