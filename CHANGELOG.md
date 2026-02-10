@@ -6,6 +6,7 @@ Docs: https://docs.openclaw.ai
 
 ### Added
 
+- Slack: add `thread.implicitMentionAsParent` config option to disable implicit bot responses in threads the bot started. (#13419)
 - Commands: add `commands.allowFrom` config for separate command authorization, allowing operators to restrict slash commands to specific users while keeping chat open to others. (#12430) Thanks @thewilloftheshadow.
 - iOS: alpha node app + setup-code onboarding. (#11756) Thanks @mbelinky.
 - Channels: comprehensive BlueBubbles and channel cleanup. (#11093) Thanks @tyler6204.

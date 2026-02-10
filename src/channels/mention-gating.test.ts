@@ -66,4 +66,52 @@ describe("resolveMentionGatingWithBypass", () => {
     expect(res.shouldBypassMention).toBe(false);
     expect(res.shouldSkip).toBe(true);
   });
+
+  it("skips when implicitMention is false even in bot-started threads (#13419)", () => {
+    const res = resolveMentionGatingWithBypass({
+      isGroup: true,
+      requireMention: true,
+      canDetectMention: true,
+      wasMentioned: false,
+      implicitMention: false,
+      hasAnyMention: false,
+      allowTextCommands: true,
+      hasControlCommand: false,
+      commandAuthorized: false,
+    });
+    expect(res.effectiveWasMentioned).toBe(false);
+    expect(res.shouldSkip).toBe(true);
+  });
+
+  it("responds when implicitMention is true in bot-started threads (#13419)", () => {
+    const res = resolveMentionGatingWithBypass({
+      isGroup: true,
+      requireMention: true,
+      canDetectMention: true,
+      wasMentioned: false,
+      implicitMention: true,
+      hasAnyMention: false,
+      allowTextCommands: true,
+      hasControlCommand: false,
+      commandAuthorized: false,
+    });
+    expect(res.effectiveWasMentioned).toBe(true);
+    expect(res.shouldSkip).toBe(false);
+  });
+
+  it("responds to explicit @mention even when implicitMention is false (#13419)", () => {
+    const res = resolveMentionGatingWithBypass({
+      isGroup: true,
+      requireMention: true,
+      canDetectMention: true,
+      wasMentioned: true,
+      implicitMention: false,
+      hasAnyMention: true,
+      allowTextCommands: true,
+      hasControlCommand: false,
+      commandAuthorized: false,
+    });
+    expect(res.effectiveWasMentioned).toBe(true);
+    expect(res.shouldSkip).toBe(false);
+  });
 });

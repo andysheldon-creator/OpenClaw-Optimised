@@ -73,6 +73,8 @@ export type SlackThreadConfig = {
   historyScope?: "thread" | "channel";
   /** If true, thread sessions inherit the parent channel transcript. Default: false. */
   inheritParent?: boolean;
+  /** If false, bot will not implicitly respond in threads it started without an explicit @mention. Default: true. */
+  implicitMentionAsParent?: boolean;
 };
 
 export type SlackAccountConfig = {

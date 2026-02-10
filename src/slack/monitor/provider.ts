@@ -115,6 +115,7 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
   const replyToMode = slackCfg.replyToMode ?? "off";
   const threadHistoryScope = slackCfg.thread?.historyScope ?? "thread";
   const threadInheritParent = slackCfg.thread?.inheritParent ?? false;
+  const threadImplicitMentionAsParent = slackCfg.thread?.implicitMentionAsParent ?? true;
   const slashCommand = resolveSlackSlashCommandConfig(opts.slashCommand ?? slackCfg.slashCommand);
   const textLimit = resolveTextChunkLimit(cfg, "slack", account.accountId);
   const ackReactionScope = cfg.messages?.ackReactionScope ?? "group-mentions";
@@ -196,6 +197,7 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
     replyToMode,
     threadHistoryScope,
     threadInheritParent,
+    threadImplicitMentionAsParent,
     slashCommand,
     textLimit,
     ackReactionScope,

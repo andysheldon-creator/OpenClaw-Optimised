@@ -226,7 +226,8 @@ export async function prepareSlackMessage(params: {
     !isDirectMessage &&
     ctx.botUserId &&
     message.thread_ts &&
-    message.parent_user_id === ctx.botUserId,
+    message.parent_user_id === ctx.botUserId &&
+    ctx.threadImplicitMentionAsParent,
   );
 
   const sender = message.user ? await ctx.resolveUserName(message.user) : null;

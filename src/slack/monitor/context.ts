@@ -89,6 +89,7 @@ export type SlackMonitorContext = {
   replyToMode: "off" | "first" | "all";
   threadHistoryScope: "thread" | "channel";
   threadInheritParent: boolean;
+  threadImplicitMentionAsParent: boolean;
   slashCommand: Required<import("../../config/config.js").SlackSlashCommandConfig>;
   textLimit: number;
   ackReactionScope: string;
@@ -150,6 +151,7 @@ export function createSlackMonitorContext(params: {
   replyToMode: SlackMonitorContext["replyToMode"];
   threadHistoryScope: SlackMonitorContext["threadHistoryScope"];
   threadInheritParent: SlackMonitorContext["threadInheritParent"];
+  threadImplicitMentionAsParent: SlackMonitorContext["threadImplicitMentionAsParent"];
   slashCommand: SlackMonitorContext["slashCommand"];
   textLimit: number;
   ackReactionScope: string;
@@ -412,6 +414,7 @@ export function createSlackMonitorContext(params: {
     replyToMode: params.replyToMode,
     threadHistoryScope: params.threadHistoryScope,
     threadInheritParent: params.threadInheritParent,
+    threadImplicitMentionAsParent: params.threadImplicitMentionAsParent,
     slashCommand: params.slashCommand,
     textLimit: params.textLimit,
     ackReactionScope: params.ackReactionScope,
