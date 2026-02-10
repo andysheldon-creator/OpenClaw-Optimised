@@ -493,6 +493,12 @@ export async function runReplyAgent(params: {
     }
 
     // If verbose is enabled and this is a new session, prepend a session hint.
+    // IMPORTANT: internal hooks like agent:reply should see only the agent's
+    // user-facing reply text for the turn (not verbose/session/usage decorations).
+    const replyTextForHook = replyPayloads
+      .filter((p) => typeof p.text === "string")
+      .map((p) => p.text)
+      .join("\n");
     let finalPayloads = replyPayloads;
     const verboseEnabled = resolvedVerboseLevel !== "off";
     if (autoCompactionCompleted) {
@@ -517,10 +523,7 @@ export async function runReplyAgent(params: {
     // Emit agent:reply hook for post-turn processing (e.g., promise verification).
     await emitAgentReplyHook({
       cfg,
-      replyText: finalPayloads
-        .filter((p) => typeof p.text === "string")
-        .map((p) => p.text)
-        .join("\n"),
+      replyText: replyTextForHook,
       sessionKey: sessionKey ?? "",
       sessionId: followupRun.run.sessionId,
       channel: replyToChannel,

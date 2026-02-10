@@ -32,7 +32,10 @@ export async function emitAgentReplyHook(opts: {
     });
     await triggerInternalHook(hookEvent);
     return hookEvent.messages;
-  } catch {
+  } catch (err) {
+    // triggerInternalHook already logs per-handler errors, but log here too in case
+    // loading/dispatch fails (misconfig, bad module, etc.).
+    console.error(`[hooks] agent:reply hook failed: ${String(err)}`);
     return [];
   }
 }
