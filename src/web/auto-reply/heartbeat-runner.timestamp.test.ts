@@ -2,9 +2,8 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
+import type { OpenClawConfig } from "../../config/config.js";
 import { runWebHeartbeatOnce } from "./heartbeat-runner.js";
-
-type LoadedConfig = ReturnType<typeof import("../../config/config.js").loadConfig>;
 
 describe("runWebHeartbeatOnce (timestamp)", () => {
   it("injects a cron-style Current time line into the heartbeat prompt", async () => {
@@ -24,7 +23,7 @@ describe("runWebHeartbeatOnce (timestamp)", () => {
         },
         session: { store: storePath },
         channels: { whatsapp: { allowFrom: ["*"] } },
-      } as unknown as LoadedConfig;
+      } as unknown as OpenClawConfig;
 
       await runWebHeartbeatOnce({
         cfg,
