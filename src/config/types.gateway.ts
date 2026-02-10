@@ -87,6 +87,15 @@ export type GatewayAuthConfig = {
   password?: string;
   /** Allow Tailscale identity headers when serve mode is enabled. */
   allowTailscale?: boolean;
+  /**
+   * SECURITY: Require authentication even for loopback (127.0.0.1) connections.
+   * When true, co-located services must present valid token/password credentials.
+   * Default: false (local-only connections skip auth for developer convenience).
+   *
+   * Enable this for hardened deployments where SSRF or local privilege
+   * escalation from co-located services is a concern.
+   */
+  requireOnLoopback?: boolean;
 };
 
 export type GatewayTailscaleMode = "off" | "serve" | "funnel";

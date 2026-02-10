@@ -39,14 +39,18 @@ const SMS_DANGEROUS_COMMANDS = ["sms.send"];
 // iOS nodes don't implement system.run/which, but they do support notifications.
 const IOS_SYSTEM_COMMANDS = ["system.notify"];
 
-const SYSTEM_COMMANDS = [
-  "system.run",
-  "system.which",
+// Safe system commands that are allowed by default.
+const SYSTEM_SAFE_COMMANDS = [
   "system.notify",
   "system.execApprovals.get",
   "system.execApprovals.set",
   "browser.proxy",
 ];
+
+// Dangerous system commands that require explicit opt-in.
+// SECURITY: system.run allows arbitrary command execution on the host.
+// system.which can be used to probe the host for installed software.
+const SYSTEM_DANGEROUS_COMMANDS = ["system.run", "system.which"];
 
 // "High risk" node commands. These can be enabled by explicitly adding them to
 // `gateway.nodes.allowCommands` (and ensuring they're not blocked by denyCommands).
@@ -57,6 +61,7 @@ export const DEFAULT_DANGEROUS_NODE_COMMANDS = [
   ...CALENDAR_DANGEROUS_COMMANDS,
   ...REMINDERS_DANGEROUS_COMMANDS,
   ...SMS_DANGEROUS_COMMANDS,
+  ...SYSTEM_DANGEROUS_COMMANDS,
 ];
 
 const PLATFORM_DEFAULTS: Record<string, string[]> = {
@@ -93,11 +98,11 @@ const PLATFORM_DEFAULTS: Record<string, string[]> = {
     ...REMINDERS_COMMANDS,
     ...PHOTOS_COMMANDS,
     ...MOTION_COMMANDS,
-    ...SYSTEM_COMMANDS,
+    ...SYSTEM_SAFE_COMMANDS,
   ],
-  linux: [...SYSTEM_COMMANDS],
-  windows: [...SYSTEM_COMMANDS],
-  unknown: [...CANVAS_COMMANDS, ...CAMERA_COMMANDS, ...LOCATION_COMMANDS, ...SYSTEM_COMMANDS],
+  linux: [...SYSTEM_SAFE_COMMANDS],
+  windows: [...SYSTEM_SAFE_COMMANDS],
+  unknown: [...CANVAS_COMMANDS, ...CAMERA_COMMANDS, ...LOCATION_COMMANDS, ...SYSTEM_SAFE_COMMANDS],
 };
 
 function normalizePlatformId(platform?: string, deviceFamily?: string): string {

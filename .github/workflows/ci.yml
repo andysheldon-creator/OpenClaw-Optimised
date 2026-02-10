@@ -9,6 +9,11 @@ concurrency:
   group: ci-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
+# SECURITY: Restrict GITHUB_TOKEN to read-only by default.
+# Individual jobs can escalate permissions if needed.
+permissions:
+  contents: read
+
 jobs:
   # Detect docs-only changes to skip heavy jobs (test, build, Windows, macOS, Android).
   # Lint and format always run. Fail-safe: if detection fails, run everything.
@@ -53,6 +58,11 @@ jobs:
 
           if [ "${{ github.event_name }}" = "push" ]; then
             BASE="${{ github.event.before }}"
+            # SECURITY: On force-pushes or initial branch pushes, github.event.before
+            # is the zero SHA (0000000...). Fall back to HEAD~1 to avoid skipping checks.
+            if [ "$BASE" = "0000000000000000000000000000000000000000" ] || [ -z "$BASE" ]; then
+              BASE="$(git rev-parse HEAD~1 2>/dev/null || echo "")"
+            fi
           else
             BASE="${{ github.event.pull_request.base.sha }}"
           fi

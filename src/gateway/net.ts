@@ -79,12 +79,60 @@ function stripOptionalPort(ip: string): string {
   return ip;
 }
 
-export function parseForwardedForClientIp(forwardedFor?: string): string | undefined {
-  const raw = forwardedFor?.split(",")[0]?.trim();
-  if (!raw) {
+/**
+ * Parse the client IP from the X-Forwarded-For header.
+ *
+ * SECURITY: Uses the rightmost-untrusted approach per
+ * https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For#selecting_an_ip_address
+ *
+ * The X-Forwarded-For header is a comma-separated list where each proxy
+ * prepends the client IP to the left. Walking from right-to-left:
+ * - Skip IPs that belong to trusted proxies.
+ * - The first non-trusted IP is the actual client IP.
+ *
+ * If no trusted proxies are configured (or for Tailscale-specific use),
+ * falls back to the leftmost IP (legacy behavior, maintained for compatibility).
+ */
+export function parseForwardedForClientIp(
+  forwardedFor?: string,
+  trustedProxies?: string[],
+): string | undefined {
+  if (!forwardedFor) {
     return undefined;
   }
-  return normalizeIp(stripOptionalPort(raw));
+
+  const parts = forwardedFor
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (parts.length === 0) {
+    return undefined;
+  }
+
+  // If we have trusted proxy info, use rightmost-untrusted approach.
+  if (trustedProxies && trustedProxies.length > 0) {
+    // Walk from right to left, skipping trusted proxies.
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const part = parts[i];
+      if (!part) {
+        continue;
+      }
+      const ip = normalizeIp(stripOptionalPort(part));
+      if (!ip) {
+        continue;
+      }
+      if (!isTrustedProxyAddress(ip, trustedProxies)) {
+        return ip;
+      }
+    }
+    // All IPs are trusted — return the leftmost as fallback.
+    const first = parts[0];
+    return first ? normalizeIp(stripOptionalPort(first)) : undefined;
+  }
+
+  // Fallback: leftmost IP (no trusted proxy info available).
+  const first = parts[0];
+  return first ? normalizeIp(stripOptionalPort(first)) : undefined;
 }
 
 function parseRealIp(realIp?: string): string | undefined {
@@ -116,7 +164,11 @@ export function resolveGatewayClientIp(params: {
   if (!isTrustedProxyAddress(remote, params.trustedProxies)) {
     return remote;
   }
-  return parseForwardedForClientIp(params.forwardedFor) ?? parseRealIp(params.realIp) ?? remote;
+  return (
+    parseForwardedForClientIp(params.forwardedFor, params.trustedProxies) ??
+    parseRealIp(params.realIp) ??
+    remote
+  );
 }
 
 export function isLocalGatewayAddress(ip: string | undefined): boolean {

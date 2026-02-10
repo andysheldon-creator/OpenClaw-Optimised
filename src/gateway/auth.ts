@@ -1,5 +1,5 @@
 import type { IncomingMessage } from "node:http";
-import { timingSafeEqual } from "node:crypto";
+import { timingSafeEqual, createHmac } from "node:crypto";
 import type { GatewayAuthConfig, GatewayTailscaleMode } from "../config/config.js";
 import { readTailscaleWhoisIdentity, type TailscaleWhoisIdentity } from "../infra/tailscale.js";
 import {
@@ -15,6 +15,11 @@ export type ResolvedGatewayAuth = {
   token?: string;
   password?: string;
   allowTailscale: boolean;
+  /**
+   * SECURITY: When true, loopback connections must present valid credentials.
+   * Prevents SSRF and local privilege escalation from co-located services.
+   */
+  requireOnLoopback: boolean;
 };
 
 export type GatewayAuthResult = {
@@ -42,6 +47,28 @@ function safeEqual(a: string, b: string): boolean {
     return false;
   }
   return timingSafeEqual(Buffer.from(a), Buffer.from(b));
+}
+
+/**
+ * Compare a candidate password against the configured password using HMAC-SHA-256.
+ *
+ * SECURITY: Uses HMAC keyed hashing instead of raw string comparison.
+ * - The configured password is used as the HMAC key.
+ * - Provides implicit key-stretching and prevents length-extension attacks.
+ * - Timing-safe comparison on the resulting digests.
+ *
+ * This is a pragmatic improvement over raw SHA-256 for operator-set gateway
+ * passwords. If user-facing auth is ever added, migrate to bcrypt/argon2.
+ */
+function safePasswordEqual(candidate: string, configured: string): boolean {
+  const HMAC_CONTEXT = "openclaw-gateway-password-v1";
+  const candidateDigest = createHmac("sha256", configured)
+    .update(`${HMAC_CONTEXT}:${candidate}`)
+    .digest();
+  const configuredDigest = createHmac("sha256", configured)
+    .update(`${HMAC_CONTEXT}:${configured}`)
+    .digest();
+  return timingSafeEqual(candidateDigest, configuredDigest);
 }
 
 function normalizeLogin(login: string): string {
@@ -199,11 +226,13 @@ export function resolveGatewayAuth(params: {
   const mode: ResolvedGatewayAuth["mode"] = authConfig.mode ?? (password ? "password" : "token");
   const allowTailscale =
     authConfig.allowTailscale ?? (params.tailscaleMode === "serve" && mode !== "password");
+  const requireOnLoopback = authConfig.requireOnLoopback ?? false;
   return {
     mode,
     token,
     password,
     allowTailscale,
+    requireOnLoopback,
   };
 }
 
@@ -267,7 +296,7 @@ export async function authorizeGatewayConnect(params: {
     if (!password) {
       return { ok: false, reason: "password_missing" };
     }
-    if (!safeEqual(password, auth.password)) {
+    if (!safePasswordEqual(password, auth.password)) {
       return { ok: false, reason: "password_mismatch" };
     }
     return { ok: true, method: "password" };

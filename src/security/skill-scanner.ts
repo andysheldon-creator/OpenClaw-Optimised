@@ -91,6 +91,33 @@ const LINE_RULES: LineRule[] = [
     pattern: /\beval\s*\(|new\s+Function\s*\(/,
   },
   {
+    ruleId: "dynamic-function-constructor",
+    severity: "critical",
+    message: "Function constructor used for dynamic code execution",
+    // Matches: Function("..."), Function`...`, global["Function"]
+    pattern: /\bFunction\s*\(|Function\s*`|\bglobal\s*\[\s*["']Function["']\s*\]/,
+  },
+  {
+    ruleId: "reflect-dynamic-call",
+    severity: "warn",
+    message: "Reflect API used for dynamic invocation — may bypass static analysis",
+    pattern: /\bReflect\.(apply|construct)\s*\(/,
+  },
+  {
+    ruleId: "dynamic-property-eval",
+    severity: "warn",
+    message: "Dynamic property access on global with string concatenation — possible eval bypass",
+    // Matches: global["ev" + "al"], globalThis["ev" + "al"], window["ev" + "al"]
+    pattern: /\b(global|globalThis|window|self)\s*\[\s*["'][^"']*["']\s*\+/,
+  },
+  {
+    ruleId: "import-meta-resolve",
+    severity: "warn",
+    message: "Dynamic import() detected — may load arbitrary modules at runtime",
+    // Matches: import("...") or import(`...`)
+    pattern: /\bimport\s*\(\s*[^)]/,
+  },
+  {
     ruleId: "crypto-mining",
     severity: "critical",
     message: "Possible crypto-mining reference detected",
@@ -101,6 +128,13 @@ const LINE_RULES: LineRule[] = [
     severity: "warn",
     message: "WebSocket connection to non-standard port",
     pattern: /new\s+WebSocket\s*\(\s*["']wss?:\/\/[^"']*:(\d+)/,
+  },
+  {
+    ruleId: "env-harvesting",
+    severity: "warn",
+    message: "Bulk environment variable access detected",
+    // Matches: process.env (without specific key access like process.env.NODE_ENV)
+    pattern: /\bprocess\.env\b(?!\.\w)/,
   },
 ];
 

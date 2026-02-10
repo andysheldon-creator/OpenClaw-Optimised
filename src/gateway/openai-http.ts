@@ -6,6 +6,7 @@ import { agentCommand } from "../commands/agent.js";
 import { emitAgentEvent, onAgentEvent } from "../infra/agent-events.js";
 import { defaultRuntime } from "../runtime.js";
 import { authorizeGatewayConnect, type ResolvedGatewayAuth } from "./auth.js";
+import { sanitizeErrorMessage } from "./error-sanitizer.js";
 import {
   readJsonBodyOrError,
   sendJson,
@@ -262,7 +263,10 @@ export async function handleOpenAiHttpRequest(
       });
     } catch (err) {
       sendJson(res, 500, {
-        error: { message: String(err), type: "api_error" },
+        error: {
+          message: sanitizeErrorMessage(err, "Failed to process chat completion request."),
+          type: "api_error",
+        },
       });
     }
     return true;
@@ -402,7 +406,9 @@ export async function handleOpenAiHttpRequest(
         choices: [
           {
             index: 0,
-            delta: { content: `Error: ${String(err)}` },
+            delta: {
+              content: `Error: ${sanitizeErrorMessage(err, "An error occurred during streaming.")}`,
+            },
             finish_reason: "stop",
           },
         ],

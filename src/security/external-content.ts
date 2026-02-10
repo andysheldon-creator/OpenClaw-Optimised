@@ -25,15 +25,62 @@ const SUSPICIOUS_PATTERNS = [
   /delete\s+all\s+(emails?|files?|data)/i,
   /<\/?system>/i,
   /\]\s*\n\s*\[?(system|assistant|user)\]?:/i,
+  // Additional prompt injection patterns
+  /\bdo\s+not\s+follow\s+(any|your|the)\s+(previous|prior|original)/i,
+  /\boverride\s+(all\s+)?(safety|restrictions?|rules?|guidelines?)/i,
+  /\bact\s+as\s+(if|though)?\s*(you\s+)?(are|were)\s+(a|an|the)\s+/i,
+  /\bjailbreak/i,
+  /\bDAN\s*mode/i,
+  /\bpretend\s+(you\s+)?(are|were)\s+/i,
+  /\b(reveal|show|print|output)\s+(your\s+)?(system\s+)?(prompt|instructions?)/i,
+  /\bbase64\s*decode/i,
+  /\bdata\s*exfil/i,
 ];
 
 /**
+ * Remove zero-width and invisible Unicode characters that could be used
+ * to bypass pattern matching.
+ *
+ * SECURITY: Attackers can insert zero-width joiners, non-joiners, and
+ * other invisible characters between letters to evade regex detection
+ * (e.g., "i​g​n​o​r​e" with ZWJ between each character).
+ */
+const INVISIBLE_CHARS_PATTERN = /[\u200B-\u200F\u2028-\u202F\u2060-\u2069\uFEFF\u00AD]/g;
+
+/**
+ * Normalize external content for security pattern matching.
+ *
+ * 1. NFKC normalization: Converts Unicode homoglyphs to their canonical forms
+ *    (e.g., "ⅰ" → "i", fullwidth "Ａ" → "A", "①" → "1").
+ * 2. Strip zero-width/invisible characters that could split words.
+ * 3. Collapse excessive whitespace to single spaces.
+ *
+ * SECURITY: This prevents bypasses using:
+ * - Unicode homoglyphs (visually similar characters from different scripts)
+ * - Zero-width characters (invisible characters between letters)
+ * - Fullwidth characters (CJK fullwidth ASCII variants)
+ */
+function normalizeForDetection(content: string): string {
+  // NFKC normalization: handles homoglyphs and compatibility characters.
+  let normalized = content.normalize("NFKC");
+  // Remove zero-width and invisible characters.
+  normalized = normalized.replace(INVISIBLE_CHARS_PATTERN, "");
+  // Collapse whitespace for consistent matching.
+  normalized = normalized.replace(/\s+/g, " ");
+  return normalized;
+}
+
+/**
  * Check if content contains suspicious patterns that may indicate injection.
+ *
+ * Content is first normalized using NFKC Unicode normalization and
+ * zero-width character stripping to prevent homoglyph bypass attacks.
  */
 export function detectSuspiciousPatterns(content: string): string[] {
+  const normalized = normalizeForDetection(content);
   const matches: string[] = [];
   for (const pattern of SUSPICIOUS_PATTERNS) {
-    if (pattern.test(content)) {
+    if (pattern.test(normalized)) {
       matches.push(pattern.source);
     }
   }

@@ -1,13 +1,30 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { readJsonBody } from "./hooks.js";
 
+/**
+ * Set standard security headers on all API responses.
+ *
+ * SECURITY: These headers provide defense-in-depth against:
+ * - Content-type sniffing (X-Content-Type-Options)
+ * - Clickjacking (X-Frame-Options)
+ * - Referrer leakage (Referrer-Policy)
+ * - Caching of sensitive responses (Cache-Control on non-SSE responses)
+ */
+function setSecurityHeaders(res: ServerResponse): void {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+}
+
 export function sendJson(res: ServerResponse, status: number, body: unknown) {
+  setSecurityHeaders(res);
   res.statusCode = status;
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.end(JSON.stringify(body));
 }
 
 export function sendText(res: ServerResponse, status: number, body: string) {
+  setSecurityHeaders(res);
   res.statusCode = status;
   res.setHeader("Content-Type", "text/plain; charset=utf-8");
   res.end(body);
@@ -48,9 +65,10 @@ export function writeDone(res: ServerResponse) {
 }
 
 export function setSseHeaders(res: ServerResponse) {
+  setSecurityHeaders(res);
   res.statusCode = 200;
   res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
-  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Cache-Control", "no-cache, no-store");
   res.setHeader("Connection", "keep-alive");
   res.flushHeaders?.();
 }

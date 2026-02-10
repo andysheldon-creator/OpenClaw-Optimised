@@ -11,8 +11,27 @@ export const REDACTED_SENTINEL = "__OPENCLAW_REDACTED__";
 /**
  * Patterns that identify sensitive config field names.
  * Aligned with the UI-hint logic in schema.ts.
+ *
+ * SECURITY: This list must be kept comprehensive. Any field name matching
+ * these patterns will have its value replaced with REDACTED_SENTINEL
+ * in gateway API responses and the Web UI config editor.
  */
-const SENSITIVE_KEY_PATTERNS = [/token/i, /password/i, /secret/i, /api.?key/i];
+const SENSITIVE_KEY_PATTERNS = [
+  /token/i,
+  /password/i,
+  /secret/i,
+  /api.?key/i,
+  /credential/i,
+  /bearer/i,
+  /private.?key/i,
+  /signing.?key/i,
+  /access.?key/i,
+  /cookie/i,
+  /auth.?token/i,
+  /session.?key/i,
+  /webhook.?secret/i,
+  /encryption.?key/i,
+];
 
 function isSensitiveKey(key: string): boolean {
   return SENSITIVE_KEY_PATTERNS.some((pattern) => pattern.test(key));

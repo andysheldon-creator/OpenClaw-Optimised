@@ -1,13 +1,22 @@
+# =============================================================================
+# SECURITY: Sensitive credentials (API keys, session tokens) should be stored
+# in a `.env` file (not committed to VCS) and loaded via env_file below.
+# Avoid passing secrets as inline `environment` values — they are visible in
+# `docker inspect`, process listings, and orchestrator logs.
+#
+# Required .env keys:
+#   OPENCLAW_GATEWAY_TOKEN, CLAUDE_AI_SESSION_KEY,
+#   CLAUDE_WEB_SESSION_KEY, CLAUDE_WEB_COOKIE
+# =============================================================================
+
 services:
   openclaw-gateway:
     image: ${OPENCLAW_IMAGE:-openclaw:local}
+    env_file:
+      - .env
     environment:
       HOME: /home/node
       TERM: xterm-256color
-      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
-      CLAUDE_AI_SESSION_KEY: ${CLAUDE_AI_SESSION_KEY}
-      CLAUDE_WEB_SESSION_KEY: ${CLAUDE_WEB_SESSION_KEY}
-      CLAUDE_WEB_COOKIE: ${CLAUDE_WEB_COOKIE}
     volumes:
       - ${OPENCLAW_CONFIG_DIR}:/home/node/.openclaw
       - ${OPENCLAW_WORKSPACE_DIR}:/home/node/.openclaw/workspace
@@ -29,14 +38,12 @@ services:
 
   openclaw-cli:
     image: ${OPENCLAW_IMAGE:-openclaw:local}
+    env_file:
+      - .env
     environment:
       HOME: /home/node
       TERM: xterm-256color
-      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
       BROWSER: echo
-      CLAUDE_AI_SESSION_KEY: ${CLAUDE_AI_SESSION_KEY}
-      CLAUDE_WEB_SESSION_KEY: ${CLAUDE_WEB_SESSION_KEY}
-      CLAUDE_WEB_COOKIE: ${CLAUDE_WEB_COOKIE}
     volumes:
       - ${OPENCLAW_CONFIG_DIR}:/home/node/.openclaw
       - ${OPENCLAW_WORKSPACE_DIR}:/home/node/.openclaw/workspace

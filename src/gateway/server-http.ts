@@ -96,7 +96,8 @@ async function authorizeCanvasRequest(params: {
   clients: Set<GatewayWsClient>;
 }): Promise<boolean> {
   const { req, auth, trustedProxies, clients } = params;
-  if (isLocalDirectRequest(req, trustedProxies)) {
+  // SECURITY: Only skip auth for loopback if requireOnLoopback is not set.
+  if (!auth.requireOnLoopback && isLocalDirectRequest(req, trustedProxies)) {
     return true;
   }
 
@@ -187,11 +188,22 @@ export function createHooksRequestHandler(
       return true;
     }
 
-    const payload = typeof body.value === "object" && body.value !== null ? body.value : {};
+    // SECURITY (API-3): Validate that the payload is a plain JSON object.
+    // Reject arrays, primitives, and null values to prevent type confusion
+    // in downstream processing and ensure consistent field validation.
+    const payload = body.value;
+    if (typeof payload !== "object" || payload === null || Array.isArray(payload)) {
+      sendJson(res, 400, {
+        ok: false,
+        error: "request body must be a JSON object",
+      });
+      return true;
+    }
+    const payloadObj = payload as Record<string, unknown>;
     const headers = normalizeHookHeaders(req);
 
     if (subPath === "wake") {
-      const normalized = normalizeWakePayload(payload as Record<string, unknown>);
+      const normalized = normalizeWakePayload(payloadObj);
       if (!normalized.ok) {
         sendJson(res, 400, { ok: false, error: normalized.error });
         return true;
@@ -202,7 +214,7 @@ export function createHooksRequestHandler(
     }
 
     if (subPath === "agent") {
-      const normalized = normalizeAgentPayload(payload as Record<string, unknown>);
+      const normalized = normalizeAgentPayload(payloadObj);
       if (!normalized.ok) {
         sendJson(res, 400, { ok: false, error: normalized.error });
         return true;
@@ -215,7 +227,7 @@ export function createHooksRequestHandler(
     if (hooksConfig.mappings.length > 0) {
       try {
         const mapped = await applyHookMappings(hooksConfig.mappings, {
-          payload: payload as Record<string, unknown>,
+          payload: payloadObj,
           headers,
           url,
           path: subPath,

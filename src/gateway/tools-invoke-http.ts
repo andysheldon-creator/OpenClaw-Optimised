@@ -22,6 +22,7 @@ import { getPluginToolMeta } from "../plugins/tools.js";
 import { isSubagentSessionKey } from "../routing/session-key.js";
 import { normalizeMessageChannel } from "../utils/message-channel.js";
 import { authorizeGatewayConnect, type ResolvedGatewayAuth } from "./auth.js";
+import { sanitizeErrorMessage } from "./error-sanitizer.js";
 import {
   readJsonBodyOrError,
   sendInvalidRequest,
@@ -131,7 +132,14 @@ export async function handleToolsInvokeHttpRequest(
   if (bodyUnknown === undefined) {
     return true;
   }
-  const body = (bodyUnknown ?? {}) as ToolsInvokeBody;
+  // SECURITY (QA-1): Runtime validation instead of unsafe `as` cast on untrusted input.
+  // Reject non-object payloads to prevent type confusion attacks.
+  const rawBody = bodyUnknown ?? {};
+  if (typeof rawBody !== "object" || rawBody === null || Array.isArray(rawBody)) {
+    sendInvalidRequest(res, "request body must be a JSON object");
+    return true;
+  }
+  const body: ToolsInvokeBody = rawBody;
 
   const toolName = typeof body.tool === "string" ? body.tool.trim() : "";
   if (!toolName) {
@@ -319,7 +327,10 @@ export async function handleToolsInvokeHttpRequest(
   } catch (err) {
     sendJson(res, 400, {
       ok: false,
-      error: { type: "tool_error", message: err instanceof Error ? err.message : String(err) },
+      error: {
+        type: "tool_error",
+        message: sanitizeErrorMessage(err, "Tool execution failed."),
+      },
     });
   }
 

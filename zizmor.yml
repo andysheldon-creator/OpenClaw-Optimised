@@ -2,16 +2,23 @@
 # https://docs.zizmor.sh/configuration/
 
 rules:
-  # Disable unpinned-uses - pinning to SHA hashes is a significant change
-  # that should be done deliberately, not enforced by pre-commit
+  # SECURITY: All rules are now enabled.
+  # Previously, unpinned-uses, excessive-permissions, and artipacked
+  # were disabled. These are now enforced to improve supply chain security.
+
+  # unpinned-uses: Actions should be pinned to SHA hashes to prevent
+  # dependency confusion and compromised action version attacks.
+  # When adding new actions, pin them to their full SHA hash:
+  #   uses: actions/checkout@<commit-sha>  # v4
   unpinned-uses:
-    disable: true
+    level: warning # Warn (not fail) during transition — pin actions incrementally.
 
-  # Disable excessive-permissions for now - adding explicit permissions
-  # blocks requires careful review of each workflow's needs
+  # excessive-permissions: Workflows should declare minimal permissions.
+  # The top-level permissions: { contents: read } has been added to ci.yml.
   excessive-permissions:
-    disable: true
+    level: error
 
-  # Disable artipacked (persist-credentials) - low confidence finding
+  # artipacked: Checkout actions should use persist-credentials: false
+  # to prevent credential leakage via git config.
   artipacked:
-    disable: true
+    level: warning # Warn during transition.
