@@ -20,7 +20,7 @@ import {
   resolveExecApprovalsFromFile,
 } from "../infra/exec-approvals.js";
 import { requestHeartbeatNow } from "../infra/heartbeat-wake.js";
-import { buildNodeShellCommand } from "../infra/node-shell.js";
+import { buildNodeShellCommand, wrapScriptCommand } from "../infra/node-shell.js";
 import {
   getShellPathFromLoginShell,
   resolveShellEnvFallbackTimeoutMs,
@@ -436,6 +436,9 @@ async function runExecProcess(opts: {
 }): Promise<ExecProcessHandle> {
   const startedAt = Date.now();
   const sessionId = createSessionSlug();
+  // Wrap shebang-prefixed scripts in a heredoc so the shell delegates to
+  // the correct interpreter instead of executing lines as shell commands.
+  const shellCommand = wrapScriptCommand(opts.command);
   let child: ChildProcessWithoutNullStreams | null = null;
   let pty: PtyHandle | null = null;
   let stdin: SessionStdin | undefined;
@@ -446,7 +449,7 @@ async function runExecProcess(opts: {
         "docker",
         ...buildDockerExecArgs({
           containerName: opts.sandbox.containerName,
-          command: opts.command,
+          command: shellCommand,
           workdir: opts.containerWorkdir ?? opts.sandbox.containerWorkdir,
           env: opts.env,
           tty: opts.usePty,
@@ -485,7 +488,7 @@ async function runExecProcess(opts: {
       if (!spawnPty) {
         throw new Error("PTY support is unavailable (node-pty spawn not found).");
       }
-      pty = spawnPty(shell, [...shellArgs, opts.command], {
+      pty = spawnPty(shell, [...shellArgs, shellCommand], {
         cwd: opts.workdir,
         env: opts.env,
         name: process.env.TERM ?? "xterm-256color",
@@ -517,7 +520,7 @@ async function runExecProcess(opts: {
       logWarn(`exec: PTY spawn failed (${errText}); retrying without PTY for "${opts.command}".`);
       opts.warnings.push(warning);
       const { child: spawned } = await spawnWithFallback({
-        argv: [shell, ...shellArgs, opts.command],
+        argv: [shell, ...shellArgs, shellCommand],
         options: {
           cwd: opts.workdir,
           env: opts.env,
@@ -544,7 +547,7 @@ async function runExecProcess(opts: {
   } else {
     const { shell, args: shellArgs } = getShellConfig();
     const { child: spawned } = await spawnWithFallback({
-      argv: [shell, ...shellArgs, opts.command],
+      argv: [shell, ...shellArgs, shellCommand],
       options: {
         cwd: opts.workdir,
         env: opts.env,
@@ -1045,8 +1048,12 @@ export function createExecTool(
         if (nodeEnv) {
           applyPathPrepend(nodeEnv, defaultPathPrepend, { requireExisting: true });
         }
+        // Evaluate the actual command that will be executed (which may be
+        // wrapped in a heredoc for shebang scripts) so the allowlist analysis
+        // matches what the node runs.
+        const actualCommand = argv[argv.length - 1];
         const baseAllowlistEval = evaluateShellAllowlist({
-          command: params.command,
+          command: actualCommand,
           allowlist: [],
           safeBins: new Set(),
           cwd: workdir,
