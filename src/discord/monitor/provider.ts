@@ -222,7 +222,7 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
           const channels = guildCfg?.channels ?? {};
           const channelKeys = Object.keys(channels).filter((key) => key !== "*");
           if (channelKeys.length === 0) {
-            entries.push({ input: guildKey, guildKey });
+            entries.push({ input: `guild:${guildKey}`, guildKey });
             continue;
           }
           for (const channelKey of channelKeys) {

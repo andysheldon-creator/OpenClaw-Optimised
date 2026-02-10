@@ -394,7 +394,7 @@ export const discordOnboardingAdapter: ChannelOnboardingAdapter = {
         const channels = value?.channels ?? {};
         const channelKeys = Object.keys(channels);
         if (channelKeys.length === 0) {
-          return [guildKey];
+          return [`guild:${guildKey}`];
         }
         return channelKeys.map((channelKey) => `${guildKey}/${channelKey}`);
       },
