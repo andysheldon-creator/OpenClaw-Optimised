@@ -9,6 +9,10 @@ type ChannelAuthOptions = {
   channel?: string;
   account?: string;
   verbose?: boolean;
+  /** Use pairing code instead of QR (WhatsApp only). */
+  useCode?: boolean;
+  /** Phone number for pairing code (E.164 format). */
+  phoneNumber?: string;
 };
 
 export async function runChannelLogin(
@@ -34,6 +38,8 @@ export async function runChannelLogin(
     runtime,
     verbose: Boolean(opts.verbose),
     channelInput,
+    useCode: opts.useCode,
+    phoneNumber: opts.phoneNumber,
   });
 }
 

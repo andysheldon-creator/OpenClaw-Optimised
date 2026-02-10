@@ -214,6 +214,10 @@ export type ChannelAuthAdapter = {
     runtime: RuntimeEnv;
     verbose?: boolean;
     channelInput?: string | null;
+    /** Use pairing code instead of QR (WhatsApp only). */
+    useCode?: boolean;
+    /** Phone number for pairing code (E.164 format). */
+    phoneNumber?: string;
   }) => Promise<void>;
 };
 
