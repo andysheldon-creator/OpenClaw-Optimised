@@ -135,8 +135,14 @@ export async function deleteFile(params: {
     return; // Already deleted
   }
   const fileBase = `${fileId}-${file.filename}`;
+  const mdPath = path.join(baseDir, `${fileBase}.md`);
   const rawPath = path.join(baseDir, `${fileBase}.raw`);
+
+  // Delete .md file
+  await fs.unlink(mdPath).catch(() => {});
+  // Also try to delete .raw for cleanup (backward compatibility)
   await fs.unlink(rawPath).catch(() => {});
+
   if (file.type === "csv") {
     const parsedPath = path.join(baseDir, `${fileBase}.parsed.json`);
     await fs.unlink(parsedPath).catch(() => {});

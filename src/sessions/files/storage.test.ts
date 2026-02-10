@@ -85,6 +85,29 @@ describe("file storage", () => {
     expect(files).toHaveLength(0);
   });
 
+  describe("deleteFile with markdown", () => {
+    it("deletes .md file", async () => {
+      const csvBuffer = Buffer.from("id,name\n1,Test", "utf-8");
+      const fileId = await saveFile({
+        sessionId,
+        agentId,
+        filename: "test.csv",
+        type: "csv",
+        buffer: csvBuffer,
+        filesDir: testDir,
+      });
+
+      const mdPath = path.join(testDir, `${fileId}-test.csv.md`);
+      await deleteFile({ sessionId, agentId, fileId, filesDir: testDir });
+
+      const exists = await fs
+        .access(mdPath)
+        .then(() => true)
+        .catch(() => false);
+      expect(exists).toBe(false);
+    });
+  });
+
   describe("saveFile with markdown", () => {
     it("saves CSV file as .md instead of .raw", async () => {
       const csvBuffer = Buffer.from("id,name\n1,Test", "utf-8");
