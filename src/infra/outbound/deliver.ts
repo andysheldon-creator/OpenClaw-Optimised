@@ -85,6 +85,7 @@ async function createChannelHandler(params: {
   threadId?: string | number | null;
   deps?: OutboundSendDeps;
   gifPlayback?: boolean;
+  viewOnce?: boolean;
 }): Promise<ChannelHandler> {
   const outbound = await loadChannelOutboundAdapter(params.channel);
   if (!outbound?.sendText || !outbound?.sendMedia) {
@@ -100,6 +101,7 @@ async function createChannelHandler(params: {
     threadId: params.threadId,
     deps: params.deps,
     gifPlayback: params.gifPlayback,
+    viewOnce: params.viewOnce,
   });
   if (!handler) {
     throw new Error(`Outbound not configured for channel: ${params.channel}`);
@@ -117,6 +119,7 @@ function createPluginHandler(params: {
   threadId?: string | number | null;
   deps?: OutboundSendDeps;
   gifPlayback?: boolean;
+  viewOnce?: boolean;
 }): ChannelHandler | null {
   const outbound = params.outbound;
   if (!outbound?.sendText || !outbound?.sendMedia) {
@@ -141,6 +144,7 @@ function createPluginHandler(params: {
             replyToId: params.replyToId,
             threadId: params.threadId,
             gifPlayback: params.gifPlayback,
+            viewOnce: params.viewOnce,
             deps: params.deps,
             payload,
           })
@@ -166,6 +170,7 @@ function createPluginHandler(params: {
         replyToId: params.replyToId,
         threadId: params.threadId,
         gifPlayback: params.gifPlayback,
+        viewOnce: params.viewOnce,
         deps: params.deps,
       }),
   };
@@ -181,6 +186,7 @@ export async function deliverOutboundPayloads(params: {
   threadId?: string | number | null;
   deps?: OutboundSendDeps;
   gifPlayback?: boolean;
+  viewOnce?: boolean;
   abortSignal?: AbortSignal;
   bestEffort?: boolean;
   onError?: (err: unknown, payload: NormalizedOutboundPayload) => void;
@@ -207,6 +213,7 @@ export async function deliverOutboundPayloads(params: {
     replyToId: params.replyToId,
     threadId: params.threadId,
     gifPlayback: params.gifPlayback,
+    viewOnce: params.viewOnce,
   });
   const textLimit = handler.chunker
     ? resolveTextChunkLimit(cfg, channel, accountId, {
