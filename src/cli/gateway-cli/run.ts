@@ -95,7 +95,14 @@ async function runGatewayCommand(opts: GatewayRunOpts) {
   // Prime the config cache via async snapshot BEFORE the sync loadConfig()
   // call below.  This resolves $secret{} references (GCP, keyring, etc.)
   // and caches the result so loadConfig() returns the resolved config.
-  await readConfigFileSnapshot().catch(() => null);
+  // Non-fatal: if secret resolution fails, log the error and fall through
+  // to loadConfig() which will surface its own diagnostics.
+  await readConfigFileSnapshot().catch((err: unknown) => {
+    console.warn(
+      `[config] Failed to resolve secrets during config snapshot: ${err instanceof Error ? err.message : String(err)}`,
+    );
+    return null;
+  });
   const cfg = loadConfig();
   const portOverride = parsePort(opts.port);
   if (opts.port !== undefined && portOverride === null) {
