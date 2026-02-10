@@ -1,90 +1,28 @@
 ---
 title: CI Pipeline
-description: How the OpenClaw CI pipeline works and why jobs are ordered the way they are.
+description: How the OpenClaw CI pipeline works and why jobs are ordered the way they are. Latest changes: Feb 09, 2026
 ---
 
 # CI Pipeline
 
-OpenClaw uses a tiered CI pipeline that fails fast on cheap checks before
-running expensive builds and tests. This saves runner minutes and reduces
-GitHub API pressure.
+The CI runs on every push to `main` and every pull request. It uses smart scoping to skip expensive jobs when only docs or native code changed.
 
-## Pipeline Tiers
+## Job Overview
 
-```
-Tier 0 — Scope detection (~12 s, free runners)
-  docs-scope → changed-scope
-
-Tier 1 — Cheapest gates (parallel, ~43 s)
-  check-format     secrets
-
-Tier 2 — After format (parallel, ~2 min)
-  check-lint       code-size
-
-Tier 3 — Build (~3 min)
-  build-artifacts   install-check
-
-Tier 4 — Tests (~5 min)
-  checks (node tsgo / test / protocol, bun test)
-  checks-windows (lint / test / protocol)
-
-Tier 5 — Platform (most expensive)
-  macos (TS tests + Swift lint/build/test)
-  android (test + build)
-  ios (disabled)
-```
-
-## Dependency Graph
-
-```
-docs-scope ──► changed-scope ──┐
-                                │
-check-format ──► check-lint  ──►├──► build-artifacts ──► checks-windows
-             ├─► code-size  ──►├──► install-check
-                                ├──► checks
-                                ├──► macos
-                                └──► android
-secrets (independent)
-```
-
-## Job Details
-
-### Tier 0 — Scope Detection
-
-| Job             | Runner          | Purpose                                                                 |
-| --------------- | --------------- | ----------------------------------------------------------------------- |
-| `docs-scope`    | `ubuntu-latest` | Detects docs-only PRs to skip heavy jobs                                |
-| `changed-scope` | `ubuntu-latest` | Detects which areas changed (node/macos/android) to skip unrelated jobs |
-
-### Tier 1 — Cheapest Gates
-
-| Job            | Runner            | Purpose                                     |
-| -------------- | ----------------- | ------------------------------------------- |
-| `check-format` | Blacksmith 4 vCPU | Runs `pnpm format` — cheapest gate (~43 s)  |
-| `secrets`      | Blacksmith 4 vCPU | Runs `detect-secrets` scan against baseline |
-
-### Tier 2 — After Format
-
-| Job          | Runner            | Depends on     | Purpose                                                     |
-| ------------ | ----------------- | -------------- | ----------------------------------------------------------- |
-| `check-lint` | Blacksmith 4 vCPU | `check-format` | Runs `pnpm lint` — cleaner output after format passes       |
-| `code-size`  | Blacksmith 4 vCPU | `check-format` | Checks LOC thresholds — accurate counts need formatted code |
-
-### Tier 3 — Build
-
-| Job               | Runner            | Depends on                | Purpose                               |
-| ----------------- | ----------------- | ------------------------- | ------------------------------------- |
-| `build-artifacts` | Blacksmith 4 vCPU | `check-lint`, `code-size` | Builds dist and uploads artifact      |
-| `install-check`   | Blacksmith 4 vCPU | `check-lint`, `code-size` | Verifies `pnpm install` works cleanly |
-
-### Tier 4+ — Tests and Platform
-
-| Job              | Runner             | Depends on                                   | Purpose                                                |
-| ---------------- | ------------------ | -------------------------------------------- | ------------------------------------------------------ |
-| `checks`         | Blacksmith 4 vCPU  | `check-lint`, `code-size`                    | TypeScript checks, tests (Node + Bun), protocol checks |
-| `checks-windows` | Blacksmith Windows | `build-artifacts`, `check-lint`, `code-size` | Windows-specific lint, tests, protocol checks          |
-| `macos`          | `macos-latest`     | `check-lint`, `code-size`                    | TS tests + Swift lint/build/test (PR only)             |
-| `android`        | Blacksmith 4 vCPU  | `check-lint`, `code-size`                    | Gradle test + build                                    |
+| Job               | Purpose                                         | When it runs              |
+| ----------------- | ----------------------------------------------- | ------------------------- |
+| `docs-scope`      | Detect docs-only changes                        | Always                    |
+| `changed-scope`   | Detect which areas changed (node/macos/android) | Non-docs PRs              |
+| `check`           | TypeScript types, lint, format                  | Non-docs changes          |
+| `check-docs`      | Markdown lint + broken link check               | Docs changed              |
+| `code-analysis`   | LOC threshold check (1000 lines)                | PRs only                  |
+| `secrets`         | Detect leaked secrets                           | Always                    |
+| `build-artifacts` | Build dist once, share with other jobs          | Non-docs, node changes    |
+| `release-check`   | Validate npm pack contents                      | After build               |
+| `checks`          | Node/Bun tests + protocol check                 | Non-docs, node changes    |
+| `checks-windows`  | Windows-specific tests                          | Non-docs, node changes    |
+| `macos`           | Swift lint/build/test + TS tests                | PRs with macos changes    |
+| `android`         | Gradle build + tests                            | Non-docs, android changes |
 
 ## Code-Size Gate
 
@@ -128,14 +66,11 @@ The analysis skips: `node_modules`, `dist`, `vendor`, `.git`, `coverage`,
 The `setup-node-env` composite action (`.github/actions/setup-node-env/`)
 handles the shared setup boilerplate:
 
-- Submodule init/update with retry (5 attempts, exponential backoff)
+- Submodule checkout with retry (5 attempts)
 - Node.js 22 setup
 - pnpm via corepack + store cache
 - Optional Bun install
 - `pnpm install` with retry
-
-The `macos` job also caches SwiftPM packages (`~/Library/Caches/org.swift.swiftpm`)
-to speed up dependency resolution.
 
 This eliminates ~40 lines of duplicated YAML per job.
 
@@ -148,9 +83,18 @@ This eliminates ~40 lines of duplicated YAML per job.
 
 ## Runners
 
-| Name                            | OS           | vCPUs | Used by          |
-| ------------------------------- | ------------ | ----- | ---------------- |
-| `blacksmith-4vcpu-ubuntu-2404`  | Ubuntu 24.04 | 4     | Most jobs        |
-| `blacksmith-4vcpu-windows-2025` | Windows 2025 | 4     | `checks-windows` |
-| `macos-latest`                  | macOS        | —     | `macos`, `ios`   |
-| `ubuntu-latest`                 | Ubuntu       | 2     | Scope detection  |
+| Runner                          | Jobs                          |
+| ------------------------------- | ----------------------------- |
+| `blacksmith-4vcpu-ubuntu-2404`  | Most Linux jobs               |
+| `blacksmith-4vcpu-windows-2025` | `checks-windows`              |
+| `macos-latest`                  | `macos`, `ios`                |
+| `ubuntu-latest`                 | Scope detection (lightweight) |
+
+## Local Equivalents
+
+```bash
+pnpm check          # types + lint + format
+pnpm test           # vitest tests
+pnpm check:docs     # docs format + lint + broken links
+pnpm release:check  # validate npm pack
+```
