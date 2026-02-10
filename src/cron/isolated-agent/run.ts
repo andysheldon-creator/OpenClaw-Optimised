@@ -478,7 +478,7 @@ export async function runCronIsolatedAgentTurn(params: {
   const summary = pickSummaryFromPayloads(payloads) ?? pickSummaryFromOutput(firstText);
   const outputText = pickLastNonEmptyTextFromPayloads(payloads);
   let synthesizedText = outputText?.trim() || summary?.trim() || undefined;
-  let structuredOutput: unknown | undefined;
+  let structuredOutput: unknown;
   if (responseSchema) {
     if (!outputText) {
       return withRunSession({
