@@ -9,6 +9,14 @@ import { defaultRuntime, type RuntimeEnv } from "../runtime.js";
 import { resolveWhatsAppAccount } from "./accounts.js";
 import { createWaSocket, formatError, logoutWeb, waitForWaConnection } from "./session.js";
 
+/**
+ * Delay before requesting pairing code (ms).
+ * Baileys needs time to establish the WebSocket connection and complete
+ * the initial handshake before requestPairingCode() can be called.
+ * Without this delay, the request fails with connection errors.
+ */
+const PAIRING_CODE_INIT_DELAY_MS = 1500;
+
 export type LoginWebOptions = {
   /** Use pairing code instead of QR. */
   useCode?: boolean;
@@ -61,8 +69,8 @@ export async function loginWeb(
     const normalizedPhone = phoneNumber.replace(/^\+/, "");
     logInfo(`Requesting pairing code for ${phoneNumber}...`, runtime);
 
-    // Wait a moment for socket to initialize before requesting pairing code
-    await new Promise((r) => setTimeout(r, 1500));
+    // Wait for socket to initialize before requesting pairing code
+    await new Promise((r) => setTimeout(r, PAIRING_CODE_INIT_DELAY_MS));
 
     try {
       const code = await sock.requestPairingCode(normalizedPhone);
