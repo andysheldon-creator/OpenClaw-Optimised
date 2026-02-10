@@ -30,7 +30,7 @@ export const whatsappOutbound: ChannelOutboundAdapter = {
           ok: false,
           error: missingTargetError(
             "WhatsApp",
-            "<E.164|group JID> or channels.whatsapp.allowFrom[0]",
+            "<E.164|group JID|newsletter JID> or channels.whatsapp.allowFrom[0]",
           ),
         };
       }
@@ -54,7 +54,7 @@ export const whatsappOutbound: ChannelOutboundAdapter = {
     }
     return {
       ok: false,
-      error: missingTargetError("WhatsApp", "<E.164|group JID> or channels.whatsapp.allowFrom[0]"),
+      error: missingTargetError("WhatsApp", "<E.164|group JID|newsletter JID> or channels.whatsapp.allowFrom[0]"),
     };
   },
   sendText: async ({ to, text, accountId, deps, gifPlayback }) => {
