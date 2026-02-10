@@ -2,6 +2,8 @@ import type { GatewayBrowserClient } from "../gateway.ts";
 import type { ConfigSchemaResponse, ConfigSnapshot, ConfigUiHints } from "../types.ts";
 import {
   cloneConfigObject,
+  coerceValueToSchema,
+  getSchemaForPath,
   removePathValue,
   serializeConfigForm,
   setPathValue,
@@ -177,8 +179,11 @@ export function updateConfigFormValue(
   path: Array<string | number>,
   value: unknown,
 ) {
+  const schema = getSchemaForPath(state.configSchema, path);
+  const coercedValue = coerceValueToSchema(value, schema);
+
   const base = cloneConfigObject(state.configForm ?? state.configSnapshot?.config ?? {});
-  setPathValue(base, path, value);
+  setPathValue(base, path, coercedValue);
   state.configForm = base;
   state.configFormDirty = true;
   if (state.configFormMode === "form") {
