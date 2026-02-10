@@ -20,6 +20,12 @@ export function isVerbose() {
   return globalVerbose;
 }
 
+/**
+ * Returns true when verbose output should be emitted.
+ * Note: file-log-level check requires `warmLoggerModule()` to have been called
+ * first (done in CLI preaction for all command paths). Before warmup, only the
+ * explicit `--verbose` flag (`globalVerbose`) is considered.
+ */
 export function shouldLogVerbose() {
   return globalVerbose || Boolean(logMod()?.isFileLogLevelEnabled("debug"));
 }

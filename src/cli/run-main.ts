@@ -66,7 +66,8 @@ export async function runCli(argv: string[] = process.argv) {
     return;
   }
 
-  const primary = getPrimaryCommand(normalizedArgv);
+  const parseArgv = rewriteUpdateFlagArgv(normalizedArgv);
+  const primary = getPrimaryCommand(parseArgv);
 
   // Capture all console output into structured logs while keeping stdout/stderr behavior.
   const { enableConsoleCapture } = await import("../logging.js");
@@ -78,8 +79,6 @@ export async function runCli(argv: string[] = process.argv) {
   const buildFn = isHelpOnly && !primary ? "buildMinimalHelpProgram" : "buildProgram";
   const mod = await import("./program.js");
   const program = await mod[buildFn]();
-
-  const parseArgv = rewriteUpdateFlagArgv(normalizedArgv);
   // Register the primary subcommand if one exists (for lazy-loading)
   if (primary) {
     const { registerSubCliByName } = await import("./program/register.subclis.js");

@@ -224,7 +224,11 @@ export async function registerProgramCommands(
       })
     : commandRegistry;
 
-  await Promise.all(entries.map((entry) => entry.register({ program, ctx, argv })));
+  // Register sequentially to preserve deterministic command order on the
+  // shared Commander `program`. Each `register` can still lazy-import internally.
+  for (const entry of entries) {
+    await entry.register({ program, ctx, argv });
+  }
 }
 
 export function findRoutedCommand(path: string[]): RouteSpec | null {
