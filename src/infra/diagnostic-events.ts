@@ -150,6 +150,7 @@ export type DiagnosticEventInput = DiagnosticEventPayload extends infer Event
 type DiagnosticEventsGlobalState = {
   seq: number;
   listeners: Set<(evt: DiagnosticEventPayload) => void>;
+  dispatchDepth: number;
 };
 
 function getDiagnosticEventsState(): DiagnosticEventsGlobalState {
@@ -160,6 +161,7 @@ function getDiagnosticEventsState(): DiagnosticEventsGlobalState {
     globalStore.__openclawDiagnosticEventsState = {
       seq: 0,
       listeners: new Set<(evt: DiagnosticEventPayload) => void>(),
+      dispatchDepth: 0,
     };
   }
   return globalStore.__openclawDiagnosticEventsState;
@@ -171,6 +173,13 @@ export function isDiagnosticsEnabled(config?: OpenClawConfig): boolean {
 
 export function emitDiagnosticEvent(event: DiagnosticEventInput) {
   const state = getDiagnosticEventsState();
+  if (state.dispatchDepth > 100) {
+    console.error(
+      `[diagnostic-events] recursion guard tripped at depth=${state.dispatchDepth}, dropping type=${event.type}`,
+    );
+    return;
+  }
+
   const enriched = {
     ...event,
     seq: (state.seq += 1),
@@ -179,14 +188,18 @@ export function emitDiagnosticEvent(event: DiagnosticEventInput) {
   console.log(
     `[diagnostic-events] emit type=${enriched.type} seq=${enriched.seq} listeners=${state.listeners.size}`,
   );
+  state.dispatchDepth += 1;
+  let listenerIndex = 0;
   for (const listener of state.listeners) {
+    listenerIndex += 1;
+    const listenerName = listener.name || `listener_${listenerIndex}`;
     try {
       console.log(
-        `[diagnostic-events] dispatch type=${enriched.type} seq=${enriched.seq} listener=${String(listener)}`,
+        `[diagnostic-events] dispatch type=${enriched.type} seq=${enriched.seq} listener=${listenerName}`,
       );
       listener(enriched);
       console.log(
-        `[diagnostic-events] dispatched type=${enriched.type} seq=${enriched.seq} listener=${String(listener)}`,
+        `[diagnostic-events] dispatched type=${enriched.type} seq=${enriched.seq} listener=${listenerName}`,
       );
     } catch (err) {
       const errorMessage =
@@ -201,18 +214,20 @@ export function emitDiagnosticEvent(event: DiagnosticEventInput) {
       // Ignore listener failures.
     }
   }
+  state.dispatchDepth -= 1;
 }
 
 export function onDiagnosticEvent(listener: (evt: DiagnosticEventPayload) => void): () => void {
   const state = getDiagnosticEventsState();
   state.listeners.add(listener);
+  const listenerName = listener.name || "listener";
   console.log(
-    `[diagnostic-events] subscribe listeners=${state.listeners.size} listener=${String(listener)}`,
+    `[diagnostic-events] subscribe listeners=${state.listeners.size} listener=${listenerName}`,
   );
   return () => {
     state.listeners.delete(listener);
     console.log(
-      `[diagnostic-events] unsubscribe listeners=${state.listeners.size} listener=${String(listener)}`,
+      `[diagnostic-events] unsubscribe listeners=${state.listeners.size} listener=${listenerName}`,
     );
   };
 }
@@ -220,9 +235,10 @@ export function onDiagnosticEvent(listener: (evt: DiagnosticEventPayload) => voi
 export function resetDiagnosticEventsForTest(): void {
   const state = getDiagnosticEventsState();
   console.log(
-    `[diagnostic-events] reset before seq=${state.seq} listeners=${state.listeners.size}`,
+    `[diagnostic-events] reset before seq=${state.seq} listeners=${state.listeners.size} depth=${state.dispatchDepth}`,
   );
   state.seq = 0;
   state.listeners.clear();
+  state.dispatchDepth = 0;
   console.log("[diagnostic-events] reset complete");
 }
