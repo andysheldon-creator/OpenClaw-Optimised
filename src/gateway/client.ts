@@ -327,7 +327,17 @@ export class GatewayClient {
         if (parsed.ok) {
           pending.resolve(parsed.payload);
         } else {
-          pending.reject(new Error(parsed.error?.message ?? "unknown error"));
+          const errMsg = parsed.error?.message ?? "unknown error";
+          const details = parsed.error?.details;
+          let detailsSuffix = "";
+          if (details && typeof details === "object") {
+            try {
+              detailsSuffix = `: ${JSON.stringify(details)}`;
+            } catch {
+              // Ignore circular references or BigInt values
+            }
+          }
+          pending.reject(new Error(`${errMsg}${detailsSuffix}`));
         }
       }
     } catch (err) {
