@@ -56,6 +56,7 @@ export const MatrixConfigSchema = z.object({
   autoJoin: z.enum(["always", "allowlist", "off"]).optional(),
   autoJoinAllowlist: z.array(allowFromEntry).optional(),
   groupAllowFrom: z.array(allowFromEntry).optional(),
+  sessionScope: z.enum(["room", "agent"]).optional(),
   dm: matrixDmSchema,
   groups: z.object({}).catchall(matrixRoomSchema).optional(),
   rooms: z.object({}).catchall(matrixRoomSchema).optional(),

@@ -2,6 +2,7 @@ import type { DmPolicy, GroupPolicy } from "openclaw/plugin-sdk";
 export type { DmPolicy, GroupPolicy };
 
 export type ReplyToMode = "off" | "first" | "all";
+export type MatrixSessionScope = "room" | "agent";
 
 export type MatrixDmConfig = {
   /** If false, ignore all incoming Matrix DMs. Default: true. */
@@ -64,6 +65,8 @@ export type MatrixConfig = {
   groupPolicy?: GroupPolicy;
   /** Allowlist for group senders (matrix user IDs). */
   groupAllowFrom?: Array<string | number>;
+  /** Session scope for room messages: room (default) or agent. */
+  sessionScope?: MatrixSessionScope;
   /** Control reply threading when reply tags are present (off|first|all). */
   replyToMode?: ReplyToMode;
   /** How to handle thread replies (off|inbound|always). */
