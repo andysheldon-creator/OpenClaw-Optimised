@@ -664,10 +664,16 @@ export async function runEmbeddedAttempt(
       };
       setActiveEmbeddedRun(params.sessionId, queueHandle);
 
+      let promptSettled = false;
       let abortWarnTimer: NodeJS.Timeout | undefined;
       const isProbeSession = params.sessionId?.startsWith("probe-") ?? false;
       const abortTimer = setTimeout(
         () => {
+          if (promptSettled) {
+            // Prompt already completed — timer is stale (e.g. laptop sleep-wake).
+            // Do NOT set timedOut/aborted; clearTimeout will run shortly.
+            return;
+          }
           if (!isProbeSession) {
             log.warn(
               `embedded run timeout: runId=${params.runId} sessionId=${params.sessionId} timeoutMs=${params.timeoutMs}`,
@@ -827,6 +833,9 @@ export async function runEmbeddedAttempt(
           log.debug(
             `embedded run prompt end: runId=${params.runId} sessionId=${params.sessionId} durationMs=${Date.now() - promptStartedAt}`,
           );
+          // Mark prompt as settled to prevent stale timeout (e.g., laptop sleep-wake)
+          // from incorrectly triggering abortRun. Set BEFORE the next await to prevent race.
+          promptSettled = true;
         }
 
         try {
