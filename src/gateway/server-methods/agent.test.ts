@@ -213,4 +213,200 @@ describe("gateway agent handler", () => {
     expect(capturedEntry?.cliSessionIds).toBeUndefined();
     expect(capturedEntry?.claudeCliSessionId).toBeUndefined();
   });
+
+  it("stores explicit channel/to in session entry for cron/subagent announce", async () => {
+    mocks.loadSessionEntry.mockReturnValue({
+      cfg: {},
+      storePath: "/tmp/sessions.json",
+      entry: {
+        sessionId: "existing-session-id",
+        updatedAt: Date.now(),
+      },
+      canonicalKey: "agent:main:main",
+    });
+
+    let capturedEntry: Record<string, unknown> | undefined;
+    mocks.updateSessionStore.mockImplementation(async (_path, updater) => {
+      const store: Record<string, unknown> = {};
+      await updater(store);
+      capturedEntry = store["agent:main:main"] as Record<string, unknown>;
+    });
+
+    mocks.agentCommand.mockResolvedValue({
+      payloads: [{ text: "ok" }],
+      meta: { durationMs: 100 },
+    });
+
+    const respond = vi.fn();
+    await agentHandlers.agent({
+      params: {
+        message: "test",
+        agentId: "main",
+        sessionKey: "agent:main:main",
+        idempotencyKey: "test-explicit-route",
+        channel: "telegram",
+        to: "@testuser",
+        accountId: "test-account",
+        threadId: "thread-123",
+      },
+      respond,
+      context: makeContext(),
+      req: { type: "req", id: "3", method: "agent" },
+      client: null,
+      isWebchatConnect: () => false,
+    });
+
+    expect(mocks.updateSessionStore).toHaveBeenCalled();
+    expect(capturedEntry).toBeDefined();
+    expect(capturedEntry?.lastChannel).toBe("telegram");
+    expect(capturedEntry?.lastTo).toBe("@testuser");
+    expect(capturedEntry?.lastAccountId).toBe("test-account");
+    expect(capturedEntry?.lastThreadId).toBe("thread-123");
+  });
+
+  it("uses replyTo override when both replyTo and to are provided", async () => {
+    mocks.loadSessionEntry.mockReturnValue({
+      cfg: {},
+      storePath: "/tmp/sessions.json",
+      entry: {
+        sessionId: "existing-session-id",
+        updatedAt: Date.now(),
+      },
+      canonicalKey: "agent:main:main",
+    });
+
+    let capturedEntry: Record<string, unknown> | undefined;
+    mocks.updateSessionStore.mockImplementation(async (_path, updater) => {
+      const store: Record<string, unknown> = {};
+      await updater(store);
+      capturedEntry = store["agent:main:main"] as Record<string, unknown>;
+    });
+
+    mocks.agentCommand.mockResolvedValue({
+      payloads: [{ text: "ok" }],
+      meta: { durationMs: 100 },
+    });
+
+    const respond = vi.fn();
+    await agentHandlers.agent({
+      params: {
+        message: "test",
+        agentId: "main",
+        sessionKey: "agent:main:main",
+        idempotencyKey: "test-replyto-override",
+        to: "@originaluser",
+        replyTo: "@replyuser",
+        channel: "telegram",
+      },
+      respond,
+      context: makeContext(),
+      req: { type: "req", id: "4", method: "agent" },
+      client: null,
+      isWebchatConnect: () => false,
+    });
+
+    expect(mocks.updateSessionStore).toHaveBeenCalled();
+    expect(capturedEntry).toBeDefined();
+    // replyTo should take precedence over to
+    expect(capturedEntry?.lastTo).toBe("@replyuser");
+  });
+
+  it("uses replyChannel and replyAccountId overrides for delivery context", async () => {
+    mocks.loadSessionEntry.mockReturnValue({
+      cfg: {},
+      storePath: "/tmp/sessions.json",
+      entry: {
+        sessionId: "existing-session-id",
+        updatedAt: Date.now(),
+      },
+      canonicalKey: "agent:main:main",
+    });
+
+    let capturedEntry: Record<string, unknown> | undefined;
+    mocks.updateSessionStore.mockImplementation(async (_path, updater) => {
+      const store: Record<string, unknown> = {};
+      await updater(store);
+      capturedEntry = store["agent:main:main"] as Record<string, unknown>;
+    });
+
+    mocks.agentCommand.mockResolvedValue({
+      payloads: [{ text: "ok" }],
+      meta: { durationMs: 100 },
+    });
+
+    const respond = vi.fn();
+    await agentHandlers.agent({
+      params: {
+        message: "test",
+        agentId: "main",
+        sessionKey: "agent:main:main",
+        idempotencyKey: "test-reply-overrides",
+        channel: "original-channel",
+        replyChannel: "discord",
+        accountId: "original-account",
+        replyAccountId: "reply-account",
+        to: "@testuser",
+      },
+      respond,
+      context: makeContext(),
+      req: { type: "req", id: "5", method: "agent" },
+      client: null,
+      isWebchatConnect: () => false,
+    });
+
+    expect(mocks.updateSessionStore).toHaveBeenCalled();
+    expect(capturedEntry).toBeDefined();
+    // replyChannel and replyAccountId should override base values
+    expect(capturedEntry?.lastChannel).toBe("discord");
+    expect(capturedEntry?.lastAccountId).toBe("reply-account");
+    expect(capturedEntry?.lastTo).toBe("@testuser");
+  });
+
+  it("persists lastThreadId from explicit delivery context", async () => {
+    mocks.loadSessionEntry.mockReturnValue({
+      cfg: {},
+      storePath: "/tmp/sessions.json",
+      entry: {
+        sessionId: "existing-session-id",
+        updatedAt: Date.now(),
+        lastThreadId: "existing-thread",
+      },
+      canonicalKey: "agent:main:main",
+    });
+
+    let capturedEntry: Record<string, unknown> | undefined;
+    mocks.updateSessionStore.mockImplementation(async (_path, updater) => {
+      const store: Record<string, unknown> = {};
+      await updater(store);
+      capturedEntry = store["agent:main:main"] as Record<string, unknown>;
+    });
+
+    mocks.agentCommand.mockResolvedValue({
+      payloads: [{ text: "ok" }],
+      meta: { durationMs: 100 },
+    });
+
+    const respond = vi.fn();
+    await agentHandlers.agent({
+      params: {
+        message: "test",
+        agentId: "main",
+        sessionKey: "agent:main:main",
+        idempotencyKey: "test-thread-id",
+        channel: "telegram",
+        to: "@testuser",
+        threadId: "new-thread-456",
+      },
+      respond,
+      context: makeContext(),
+      req: { type: "req", id: "6", method: "agent" },
+      client: null,
+      isWebchatConnect: () => false,
+    });
+
+    expect(mocks.updateSessionStore).toHaveBeenCalled();
+    expect(capturedEntry).toBeDefined();
+    // New threadId should override existing one
+    expect(capturedEntry?.lastThreadId).toBe("new-thread-456");
+  });
 });
