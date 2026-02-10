@@ -26,7 +26,8 @@ export type AuthChoiceGroupId =
   | "litellm"
   | "together"
   | "qianfan"
-  | "xai";
+  | "xai"
+  | "custom";
 
 export type AuthChoiceGroup = {
   value: AuthChoiceGroupId;
@@ -155,6 +156,12 @@ const AUTH_CHOICE_GROUP_DEFS: {
     hint: "Account ID + Gateway ID + API key",
     choices: ["cloudflare-ai-gateway-api-key"],
   },
+  {
+    value: "custom",
+    label: "Custom Provider",
+    hint: "Any OpenAI or Anthropic compatible endpoint",
+    choices: ["custom-api-key"],
+  },
 ];
 
 export function buildAuthChoiceOptions(params: {
@@ -264,6 +271,7 @@ export function buildAuthChoiceOptions(params: {
     label: "LiteLLM API key",
     hint: "OpenAI-compatible proxy (any model)",
   });
+  options.push({ value: "custom-api-key", label: "Custom Provider" });
   if (params.includeSkip) {
     options.push({ value: "skip", label: "Skip for now" });
   }

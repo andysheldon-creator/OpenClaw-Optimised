@@ -19,6 +19,7 @@ import {
 } from "../commands/auth-choice.js";
 import { applyPrimaryModel, promptDefaultModel } from "../commands/model-picker.js";
 import { setupChannels } from "../commands/onboard-channels.js";
+import { promptCustomApiConfig } from "../commands/onboard-custom.js";
 import {
   applyWizardMetadata,
   DEFAULT_WORKSPACE,
@@ -374,6 +375,8 @@ export async function runOnboardingWizard(
   let authChoice: AuthChoice;
   let authChoiceOverride: AuthChoice | undefined = opts.authChoice;
 
+  let customPreferredProvider: string | undefined;
+
   // Loop to allow retrying auth choice if user cancels during configuration
   while (true) {
     authChoice =
@@ -383,6 +386,17 @@ export async function runOnboardingWizard(
         store: authStore,
         includeSkip: true,
       }));
+
+    if (authChoice === "custom-api-key") {
+      const customResult = await promptCustomApiConfig({
+        prompter,
+        runtime,
+        config: nextConfig,
+      });
+      nextConfig = customResult.config;
+      customPreferredProvider = customResult.providerId;
+      break;
+    }
 
     try {
       const authResult = await applyAuthChoice({
@@ -410,13 +424,14 @@ export async function runOnboardingWizard(
     }
   }
 
-  if (authChoiceFromPrompt) {
+  if (authChoiceFromPrompt && authChoice !== "custom-api-key") {
     const modelSelection = await promptDefaultModel({
       config: nextConfig,
       prompter,
       allowKeep: true,
       ignoreAllowlist: true,
-      preferredProvider: resolvePreferredProviderForAuthChoice(authChoice),
+      preferredProvider:
+        customPreferredProvider ?? resolvePreferredProviderForAuthChoice(authChoice),
     });
     if (modelSelection.model) {
       nextConfig = applyPrimaryModel(nextConfig, modelSelection.model);
