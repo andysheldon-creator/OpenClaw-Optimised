@@ -24,11 +24,11 @@ export function resolveFinalAssistantText(params: {
 }) {
   const finalText = params.finalText ?? "";
   if (finalText.trim()) {
-    return finalText;
+    return sanitizeForDisplay(finalText);
   }
   const streamedText = params.streamedText ?? "";
   if (streamedText.trim()) {
-    return streamedText;
+    return sanitizeForDisplay(streamedText);
   }
   return "(no output)";
 }
