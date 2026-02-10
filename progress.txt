@@ -1,0 +1,43 @@
+# Feature Dev Progress: Fix top menu - keep it short for testing model selection
+
+## Completed Stories
+
+### US-001: Add environment-based menu configuration to navigation.ts
+**Status:** ✅ COMPLETE
+
+**Changes:**
+- Added `MenuMode` TypeScript type definition (`"full" | "short"`)
+- Added `SHORT_TAB_GROUPS` constant with essential tabs: chat, config, debug
+- Added `isShortMenuMode(env?)` function that checks `VITE_SHORT_MENU` env var
+- Added `getTabGroups(env?)` helper that returns appropriate tab groups based on mode
+- Preserved existing `TAB_GROUPS` unchanged for backward compatibility
+- Added comprehensive tests for all new functionality (42 tests total, all passing)
+
+**Tests:**
+- SHORT_TAB_GROUPS structure and content validation
+- isShortMenuMode() with various env values (string "true", boolean true, "false", etc.)
+- getTabGroups() returns correct tab groups based on env
+- MenuMode type validation
+
+**Commit:** feat: US-001 - Add environment-based menu configuration to navigation.ts
+
+## Codebase Patterns
+
+### Environment-based Feature Flags
+```typescript
+// Pattern: Optional env parameter for testability
+export function isShortMenuMode(env?: { VITE_SHORT_MENU?: string | boolean }): boolean {
+  const targetEnv = env ?? import.meta.env;
+  return targetEnv?.VITE_SHORT_MENU === "true" || targetEnv?.VITE_SHORT_MENU === true;
+}
+```
+
+### Tab Group Constants
+- Full menu: `TAB_GROUPS` - All 4 groups with all tabs
+- Short menu: `SHORT_TAB_GROUPS` - Essential tabs only (chat, config, debug)
+- Runtime selection: `getTabGroups()` chooses based on env
+
+## Build & Test Results
+- ✅ TypeScript typecheck passes
+- ✅ Build completes successfully
+- ✅ All 42 navigation tests pass

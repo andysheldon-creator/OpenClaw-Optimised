@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   TAB_GROUPS,
+  SHORT_TAB_GROUPS,
+  isShortMenuMode,
+  getTabGroups,
   iconForTab,
   inferBasePathFromPathname,
   normalizeBasePath,
@@ -10,6 +13,7 @@ import {
   tabFromPath,
   titleForTab,
   type Tab,
+  type MenuMode,
 } from "./navigation.ts";
 
 /** All valid tab identifiers derived from TAB_GROUPS */
@@ -185,5 +189,93 @@ describe("TAB_GROUPS", () => {
     const allTabs = TAB_GROUPS.flatMap((g) => g.tabs);
     const uniqueTabs = new Set(allTabs);
     expect(uniqueTabs.size).toBe(allTabs.length);
+  });
+});
+
+describe("SHORT_TAB_GROUPS", () => {
+  it("contains only essential tabs: chat, config, debug", () => {
+    const labels = SHORT_TAB_GROUPS.map((g) => g.label);
+    expect(labels).toContain("Chat");
+    expect(labels).toContain("Settings");
+    expect(labels).toHaveLength(2);
+  });
+
+  it("includes chat tab in Chat group", () => {
+    const chatGroup = SHORT_TAB_GROUPS.find((g) => g.label === "Chat");
+    expect(chatGroup?.tabs).toContain("chat");
+    expect(chatGroup?.tabs).toHaveLength(1);
+  });
+
+  it("includes config and debug tabs in Settings group", () => {
+    const settingsGroup = SHORT_TAB_GROUPS.find((g) => g.label === "Settings");
+    expect(settingsGroup?.tabs).toContain("config");
+    expect(settingsGroup?.tabs).toContain("debug");
+    expect(settingsGroup?.tabs).toHaveLength(2);
+  });
+
+  it("does not include non-essential tabs", () => {
+    const allShortTabs = SHORT_TAB_GROUPS.flatMap((g) => g.tabs);
+    expect(allShortTabs).not.toContain("agents");
+    expect(allShortTabs).not.toContain("skills");
+    expect(allShortTabs).not.toContain("nodes");
+    expect(allShortTabs).not.toContain("overview");
+    expect(allShortTabs).not.toContain("channels");
+    expect(allShortTabs).not.toContain("sessions");
+    expect(allShortTabs).not.toContain("usage");
+    expect(allShortTabs).not.toContain("cron");
+    expect(allShortTabs).not.toContain("logs");
+  });
+});
+
+describe("isShortMenuMode", () => {
+  it("returns false when VITE_SHORT_MENU is not set", () => {
+    expect(isShortMenuMode({})).toBe(false);
+  });
+
+  it("returns true when VITE_SHORT_MENU is 'true' (string)", () => {
+    expect(isShortMenuMode({ VITE_SHORT_MENU: "true" })).toBe(true);
+  });
+
+  it("returns true when VITE_SHORT_MENU is true (boolean)", () => {
+    expect(isShortMenuMode({ VITE_SHORT_MENU: true })).toBe(true);
+  });
+
+  it("returns false when VITE_SHORT_MENU is 'false'", () => {
+    expect(isShortMenuMode({ VITE_SHORT_MENU: "false" })).toBe(false);
+  });
+
+  it("returns false when VITE_SHORT_MENU is any other value", () => {
+    expect(isShortMenuMode({ VITE_SHORT_MENU: "yes" })).toBe(false);
+    expect(isShortMenuMode({ VITE_SHORT_MENU: "1" })).toBe(false);
+    expect(isShortMenuMode({ VITE_SHORT_MENU: "" })).toBe(false);
+  });
+
+  it("uses import.meta.env when no env argument provided", () => {
+    // Just verify it doesn't throw - the actual value depends on build config
+    expect(() => isShortMenuMode()).not.toThrow();
+  });
+});
+
+describe("getTabGroups", () => {
+  it("returns TAB_GROUPS when short menu mode is disabled", () => {
+    expect(getTabGroups({})).toBe(TAB_GROUPS);
+  });
+
+  it("returns SHORT_TAB_GROUPS when short menu mode is enabled", () => {
+    expect(getTabGroups({ VITE_SHORT_MENU: "true" })).toBe(SHORT_TAB_GROUPS);
+  });
+
+  it("uses import.meta.env when no env argument provided", () => {
+    // Just verify it doesn't throw - the actual value depends on build config
+    expect(() => getTabGroups()).not.toThrow();
+  });
+});
+
+describe("MenuMode type", () => {
+  it("accepts valid menu mode values", () => {
+    const full: MenuMode = "full";
+    const short: MenuMode = "short";
+    expect(full).toBe("full");
+    expect(short).toBe("short");
   });
 });
