@@ -1,10 +1,12 @@
 import type { startGatewayServer } from "../../gateway/server.js";
 import type { defaultRuntime } from "../../runtime.js";
+import { recordGatewaySignalSync, recordGatewayStartSync } from "../../infra/gateway-incidents.js";
 import { acquireGatewayLock } from "../../infra/gateway-lock.js";
 import {
   consumeGatewaySigusr1RestartAuthorization,
   isGatewaySigusr1RestartExternallyAllowed,
 } from "../../infra/restart.js";
+import { clearShutdownInProgress, markShutdownInProgress } from "../../infra/shutdown-state.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 
 const gatewayLog = createSubsystemLogger("gateway");
@@ -33,6 +35,12 @@ export async function runGatewayLoop(params: {
     }
     shuttingDown = true;
     const isRestart = action === "restart";
+    markShutdownInProgress(isRestart ? `restart:${signal}` : `stop:${signal}`);
+    try {
+      recordGatewaySignalSync(signal);
+    } catch {
+      // ignore
+    }
     gatewayLog.info(`received ${signal}; ${isRestart ? "restarting" : "shutting down"}`);
 
     const forceExitTimer = setTimeout(() => {
@@ -53,6 +61,7 @@ export async function runGatewayLoop(params: {
         clearTimeout(forceExitTimer);
         server = null;
         if (isRestart) {
+          clearShutdownInProgress();
           shuttingDown = false;
           restartResolver?.();
         } else {
@@ -93,6 +102,11 @@ export async function runGatewayLoop(params: {
     // eslint-disable-next-line no-constant-condition
     while (true) {
       server = await params.start();
+      try {
+        recordGatewayStartSync();
+      } catch {
+        // ignore incident log failures
+      }
       await new Promise<void>((resolve) => {
         restartResolver = resolve;
       });
