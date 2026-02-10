@@ -223,6 +223,36 @@ describe("redactConfigSnapshot", () => {
     const gw = result.config.gateway as Record<string, Record<string, string>>;
     expect(gw.auth.token).toBe(REDACTED_SENTINEL);
   });
+
+  it("does not redact 'tokens' (plural) fields like maxTokens (#12078)", () => {
+    const snapshot = makeSnapshot({
+      models: {
+        providers: {
+          lmstudio: {
+            apiKey: "sk-local-key",
+            models: [
+              {
+                id: "openai/gpt-oss-120b",
+                maxTokens: 10000,
+                contextWindow: 100000,
+              },
+            ],
+          },
+        },
+      },
+    });
+    const result = redactConfigSnapshot(snapshot);
+    const providers = (result.config.models as Record<string, unknown>).providers as Record<
+      string,
+      Record<string, unknown>
+    >;
+    const models = providers.lmstudio.models as Array<Record<string, unknown>>;
+    // maxTokens should be preserved as a number, not redacted
+    expect(models[0].maxTokens).toBe(10000);
+    expect(models[0].contextWindow).toBe(100000);
+    // apiKey should still be redacted
+    expect(providers.lmstudio.apiKey).toBe(REDACTED_SENTINEL);
+  });
 });
 
 describe("restoreRedactedValues", () => {
