@@ -556,6 +556,9 @@ describe("QmdMemoryManager", () => {
     const isAllowed = (key?: string) =>
       (manager as unknown as { isScopeAllowed: (key?: string) => boolean }).isScopeAllowed(key);
     expect(isAllowed("agent:main:slack:channel:c123")).toBe(true);
+    expect(isAllowed("agent:main:slack:direct:u123")).toBe(true);
+    expect(isAllowed("agent:main:slack:dm:u123")).toBe(true);
+    expect(isAllowed("agent:main:discord:direct:u123")).toBe(false);
     expect(isAllowed("agent:main:discord:channel:c123")).toBe(false);
 
     await manager.close();
