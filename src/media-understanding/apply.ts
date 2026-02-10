@@ -1,7 +1,6 @@
 import path from "node:path";
 import type { MsgContext } from "../auto-reply/templating.js";
 import type { OpenClawConfig } from "../config/config.js";
-import type { SessionFileType } from "../sessions/files/types.js";
 import type {
   MediaUnderstandingCapability,
   MediaUnderstandingDecision,
@@ -24,29 +23,8 @@ import {
   normalizeMimeList,
   normalizeMimeType,
 } from "../media/input-files.js";
-import { convertToMarkdown } from "../sessions/files/markdown-converter.js";
 import { resolveAttachmentKind } from "./attachments.js";
 import { runWithConcurrency } from "./concurrency.js";
-
-function mimeToFileType(mime: string): SessionFileType | null {
-  const normalized = normalizeMimeType(mime);
-  if (!normalized) {
-    return null;
-  }
-  if (normalized === "text/csv") {
-    return "csv";
-  }
-  if (normalized === "application/pdf") {
-    return "pdf";
-  }
-  if (normalized === "application/json") {
-    return "json";
-  }
-  if (normalized.startsWith("text/")) {
-    return "text";
-  }
-  return null;
-}
 import {
   extractMediaUserText,
   formatAudioTranscripts,
@@ -461,21 +439,6 @@ async function extractFileBlocks(params: {
         blockText = "[PDF content rendered to images; images not forwarded to model]";
       } else {
         blockText = "[No extractable text]";
-      }
-    } else {
-      // Convert to markdown format for consistent agent access
-      // This matches what persistSessionFiles does for storage
-      const fileType = mimeToFileType(mimeType);
-      if (fileType) {
-        try {
-          const buffer = bufferResult.buffer;
-          blockText = await convertToMarkdown(buffer, fileType, bufferResult.fileName ?? "");
-        } catch (err) {
-          // If conversion fails, fall back to raw text
-          if (shouldLogVerbose()) {
-            logVerbose(`media: markdown conversion failed for ${mimeType}: ${String(err)}`);
-          }
-        }
       }
     }
     const safeName = (bufferResult.fileName ?? `file-${attachment.index + 1}`)
