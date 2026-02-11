@@ -9,7 +9,12 @@ import {
 import type { MentionTarget } from "./mention.js";
 import { resolveFeishuAccount } from "./accounts.js";
 import { getFeishuRuntime } from "./runtime.js";
-import { sendMessageFeishu, sendMarkdownCardFeishu } from "./send.js";
+import {
+  sendMessageFeishu,
+  sendMarkdownCardFeishu,
+  sendStreamingCardFeishu,
+  streamUpdateCardElementFeishu,
+} from "./send.js";
 import { addTypingIndicator, removeTypingIndicator, type TypingIndicatorState } from "./typing.js";
 
 /**
@@ -96,6 +101,14 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
   const chunkMode = core.channel.text.resolveChunkMode(cfg, "feishu");
   const tableMode = core.channel.text.resolveMarkdownTableMode({ cfg, channel: "feishu" });
 
+  // ── CardKit streaming state ──
+  let streamingCardId: string | null = null;
+  let streamingSequence = 0;
+  let streamingMessageSent = false;
+  let streamingAccumulatedText = ""; // Accumulated text for current card
+  let streamingDisabled = false; // Disable after CardKit failure for this dispatcher
+  const STREAMING_CARD_MAX_CHARS = 3000; // Start a new card after this many chars
+
   const { dispatcher, replyOptions, markDispatchIdle } =
     core.channel.reply.createReplyDispatcherWithTyping({
       responsePrefix: prefixContext.responsePrefix,
@@ -119,6 +132,71 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
         // Determine if we should use card for this message
         const useCard = renderMode === "card" || (renderMode === "auto" && shouldUseCard(text));
 
+        // ── CardKit streaming path ──
+        // Only use CardKit when streaming is enabled AND not disabled by prior failure
+        if (useCard && !streamingDisabled && (feishuCfg as Record<string, unknown>)?.streaming !== false) {
+          try {
+            // Accumulate text
+            streamingAccumulatedText += text;
+
+            // Check if current card is too long → start a new one
+            if (streamingCardId && streamingAccumulatedText.length > STREAMING_CARD_MAX_CHARS) {
+              params.runtime.log?.(
+                `feishu[${account.accountId}] deliver: accumulated ${streamingAccumulatedText.length} chars, starting new card`,
+              );
+              streamingCardId = null;
+              streamingSequence = 0;
+              streamingAccumulatedText = text; // New card starts with current chunk
+            }
+
+            if (!streamingCardId) {
+              // First chunk (or new card after overflow): send streaming card
+              params.runtime.log?.(
+                `feishu[${account.accountId}] deliver: sending streaming card`,
+              );
+              const result = await sendStreamingCardFeishu({
+                cfg,
+                to: chatId,
+                content: streamingAccumulatedText,
+                // Only reply to original message for the first card
+                replyToMessageId: streamingMessageSent ? undefined : replyToMessageId,
+                accountId,
+              });
+              streamingCardId = result.cardId;
+              streamingSequence = 0;
+              streamingMessageSent = true;
+              params.runtime.log?.(
+                `feishu[${account.accountId}] deliver: streaming card sent, cardId=${streamingCardId}`,
+              );
+            } else {
+              // Subsequent chunks: stream-update with ACCUMULATED text
+              streamingSequence++;
+              params.runtime.log?.(
+                `feishu[${account.accountId}] deliver: stream update seq=${streamingSequence} len=${streamingAccumulatedText.length}`,
+              );
+              await streamUpdateCardElementFeishu({
+                cfg,
+                cardId: streamingCardId,
+                content: streamingAccumulatedText,
+                sequence: streamingSequence,
+                accountId,
+              });
+            }
+
+            return;
+          } catch (err) {
+            // Fallback to regular card send if CardKit fails
+            // Disable streaming for the rest of this dispatcher to avoid duplicated content
+            params.runtime.log?.(
+              `feishu[${account.accountId}] deliver: CardKit failed, disabling streaming: ${String(err)}`,
+            );
+            streamingCardId = null;
+            streamingAccumulatedText = "";
+            streamingDisabled = true;
+          }
+        }
+
+        // ── Fallback: regular send (non-streaming) ──
         // Only include @mentions in the first chunk (avoid duplicate @s)
         let isFirstChunk = true;
 

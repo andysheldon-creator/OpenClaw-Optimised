@@ -278,6 +278,136 @@ export async function updateCardFeishu(params: {
   }
 }
 
+// ── CardKit API (streaming card entity) ──────────────────────────
+
+const STREAMING_ELEMENT_ID = "streaming_content";
+
+/**
+ * Build a streaming-capable card JSON with a named markdown element.
+ */
+function buildStreamingCardJson(content: string): string {
+  return JSON.stringify({
+    schema: "2.0",
+    config: { update_multi: true, streaming_mode: true },
+    body: {
+      elements: [
+        {
+          tag: "markdown",
+          content,
+          element_id: STREAMING_ELEMENT_ID,
+        },
+      ],
+    },
+  });
+}
+
+/**
+ * Send a streaming-capable card message and return { messageId, cardId }.
+ * Flow: send interactive message with streaming_mode → idConvert → card_id.
+ */
+export async function sendStreamingCardFeishu(params: {
+  cfg: ClawdbotConfig;
+  to: string;
+  content: string;
+  replyToMessageId?: string;
+  accountId?: string;
+}): Promise<{ messageId: string; cardId: string; chatId: string }> {
+  const { cfg, to, content, replyToMessageId, accountId } = params;
+  const account = resolveFeishuAccount({ cfg, accountId });
+  if (!account.configured) {
+    throw new Error(`Feishu account "${account.accountId}" not configured`);
+  }
+
+  const client = createFeishuClient(account);
+  const receiveId = normalizeFeishuTarget(to);
+  if (!receiveId) {
+    throw new Error(`Invalid Feishu target: ${to}`);
+  }
+
+  const receiveIdType = resolveReceiveIdType(receiveId);
+  const cardJson = buildStreamingCardJson(content);
+
+  // Step 1: Send the card message
+  let messageId: string;
+  if (replyToMessageId) {
+    const response = await client.im.message.reply({
+      path: { message_id: replyToMessageId },
+      data: { content: cardJson, msg_type: "interactive" },
+    });
+    if (response.code !== 0) {
+      throw new Error(`Feishu streaming card reply failed: ${response.msg || `code ${response.code}`}`);
+    }
+    if (!response.data?.message_id) {
+      throw new Error("Feishu streaming card reply succeeded but returned no message_id");
+    }
+    messageId = response.data.message_id;
+  } else {
+    const response = await client.im.message.create({
+      params: { receive_id_type: receiveIdType },
+      data: { receive_id: receiveId, content: cardJson, msg_type: "interactive" },
+    });
+    if (response.code !== 0) {
+      throw new Error(`Feishu streaming card send failed: ${response.msg || `code ${response.code}`}`);
+    }
+    if (!response.data?.message_id) {
+      throw new Error("Feishu streaming card send succeeded but returned no message_id");
+    }
+    messageId = response.data.message_id;
+  }
+
+  // Step 2: Convert message_id → card_id
+  const convertResponse = await client.cardkit.v1.card.idConvert({
+    data: { message_id: messageId },
+  });
+  if (convertResponse.code !== 0 || !convertResponse.data?.card_id) {
+    throw new Error(`Feishu CardKit idConvert failed: ${convertResponse.msg || `code ${convertResponse.code}`}`);
+  }
+
+  return {
+    messageId,
+    cardId: convertResponse.data.card_id,
+    chatId: receiveId,
+  };
+}
+
+/**
+ * Stream-update a card element's text content (typewriter effect).
+ * Uses cardkit.v1.cardElement.content — auto-detects incremental changes.
+ * Sequence must be strictly increasing per card_id.
+ */
+export async function streamUpdateCardElementFeishu(params: {
+  cfg: ClawdbotConfig;
+  cardId: string;
+  content: string;
+  sequence: number;
+  accountId?: string;
+}): Promise<void> {
+  const { cfg, cardId, content, sequence, accountId } = params;
+  const account = resolveFeishuAccount({ cfg, accountId });
+  if (!account.configured) {
+    throw new Error(`Feishu account "${account.accountId}" not configured`);
+  }
+
+  const client = createFeishuClient(account);
+
+  const response = await client.cardkit.v1.cardElement.content({
+    path: {
+      card_id: cardId,
+      element_id: STREAMING_ELEMENT_ID,
+    },
+    data: {
+      content,
+      sequence,
+    },
+  });
+
+  if (response.code !== 0) {
+    throw new Error(
+      `Feishu CardKit stream update failed: ${response.msg || `code ${response.code}`}`,
+    );
+  }
+}
+
 /**
  * Build a Feishu interactive card with markdown content.
  * Cards render markdown properly (code blocks, tables, links, etc.)
