@@ -51,7 +51,7 @@ describe("normalizeUsage", () => {
     expect(
       deriveSessionTotalTokens({
         usage: {
-          input: 27,
+          input: 250_000,
           cacheRead: 2_400_000,
           cacheWrite: 0,
           total: 2_402_300,
@@ -61,7 +61,9 @@ describe("normalizeUsage", () => {
     ).toBe(200_000);
   });
 
-  it("uses prompt tokens when within context window", () => {
+  it("uses input tokens (not cache sums) for context usage", () => {
+    // cacheRead/cacheWrite are informational and should NOT inflate the
+    // prompt-token count used for context-window percentage (#13853).
     expect(
       deriveSessionTotalTokens({
         usage: {
@@ -72,6 +74,6 @@ describe("normalizeUsage", () => {
         },
         contextTokens: 200_000,
       }),
-    ).toBe(1_550);
+    ).toBe(1_200);
   });
 });

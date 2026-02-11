@@ -97,11 +97,13 @@ export function derivePromptTokens(usage?: {
   if (!usage) {
     return undefined;
   }
+  // `input` already represents the total prompt tokens sent to the model.
+  // `cacheRead` and `cacheWrite` are informational breakdowns of how the
+  // provider served those tokens (from cache vs freshly processed) and
+  // should NOT be added on top — doing so inflates context-window usage
+  // reporting (#13853).
   const input = usage.input ?? 0;
-  const cacheRead = usage.cacheRead ?? 0;
-  const cacheWrite = usage.cacheWrite ?? 0;
-  const sum = input + cacheRead + cacheWrite;
-  return sum > 0 ? sum : undefined;
+  return input > 0 ? input : undefined;
 }
 
 export function deriveSessionTotalTokens(params: {
