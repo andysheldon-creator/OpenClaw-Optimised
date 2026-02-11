@@ -98,6 +98,38 @@ export async function runAgentTurnWithFallback(params: {
   let fallbackModel = params.followupRun.run.model;
   let didResetAfterCompactionFailure = false;
 
+  // Emit lifecycle:start once for the entire run (including all fallback attempts).
+  // Per-attempt lifecycle events are no longer emitted by the subscription handler
+  // to avoid premature chatLink consumption in the gateway during model fallback.
+  const startedAt = Date.now();
+  // Helper to emit terminal lifecycle event exactly once (prevents error→end double emission)
+  let didEmitTerminalLifecycle = false;
+  const emitLifecycleTerminal = (phase: "end" | "error", error?: string) => {
+    if (didEmitTerminalLifecycle) {
+      return;
+    }
+    didEmitTerminalLifecycle = true;
+    emitAgentEvent({
+      runId,
+      stream: "lifecycle",
+      data: { phase, startedAt, endedAt: Date.now(), ...(error ? { error } : {}) },
+    });
+  };
+
+  emitAgentEvent({
+    runId,
+    stream: "lifecycle",
+    data: {
+      phase: "start",
+      startedAt,
+    },
+  });
+
+  // CLI backends emit assistant text in a .then() callback which can race with
+  // lifecycle:end. We capture the text here and emit it synchronously before
+  // lifecycle:end to guarantee ordering.
+  let pendingCliAssistantText: string | undefined;
+
   while (true) {
     try {
       const allowPartialStream = !(
@@ -164,92 +196,36 @@ export async function runAgentTurnWithFallback(params: {
           });
 
           if (isCliProvider(provider, params.followupRun.run.config)) {
-            const startedAt = Date.now();
-            emitAgentEvent({
-              runId,
-              stream: "lifecycle",
-              data: {
-                phase: "start",
-                startedAt,
-              },
-            });
             const cliSessionId = getCliSessionId(params.getActiveSessionEntry(), provider);
-            return (async () => {
-              let lifecycleTerminalEmitted = false;
-              try {
-                const result = await runCliAgent({
-                  sessionId: params.followupRun.run.sessionId,
-                  sessionKey: params.sessionKey,
-                  agentId: params.followupRun.run.agentId,
-                  sessionFile: params.followupRun.run.sessionFile,
-                  workspaceDir: params.followupRun.run.workspaceDir,
-                  config: params.followupRun.run.config,
-                  prompt: params.commandBody,
-                  provider,
-                  model,
-                  thinkLevel: params.followupRun.run.thinkLevel,
-                  timeoutMs: params.followupRun.run.timeoutMs,
-                  runId,
-                  extraSystemPrompt: params.followupRun.run.extraSystemPrompt,
-                  ownerNumbers: params.followupRun.run.ownerNumbers,
-                  cliSessionId,
-                  images: params.opts?.images,
-                });
-
-                // CLI backends don't emit streaming assistant events, so we need to
-                // emit one with the final text so server-chat can populate its buffer
-                // and send the response to TUI/WebSocket clients.
-                const cliText = result.payloads?.[0]?.text?.trim();
-                if (cliText) {
-                  emitAgentEvent({
-                    runId,
-                    stream: "assistant",
-                    data: { text: cliText },
-                  });
-                }
-
-                emitAgentEvent({
-                  runId,
-                  stream: "lifecycle",
-                  data: {
-                    phase: "end",
-                    startedAt,
-                    endedAt: Date.now(),
-                  },
-                });
-                lifecycleTerminalEmitted = true;
-
-                return result;
-              } catch (err) {
-                emitAgentEvent({
-                  runId,
-                  stream: "lifecycle",
-                  data: {
-                    phase: "error",
-                    startedAt,
-                    endedAt: Date.now(),
-                    error: String(err),
-                  },
-                });
-                lifecycleTerminalEmitted = true;
-                throw err;
-              } finally {
-                // Defensive backstop: never let a CLI run complete without a terminal
-                // lifecycle event, otherwise downstream consumers can hang.
-                if (!lifecycleTerminalEmitted) {
-                  emitAgentEvent({
-                    runId,
-                    stream: "lifecycle",
-                    data: {
-                      phase: "error",
-                      startedAt,
-                      endedAt: Date.now(),
-                      error: "CLI run completed without lifecycle terminal event",
-                    },
-                  });
-                }
+            // NOTE: lifecycle events are emitted at the outer level (before/after the while loop),
+            // so we don't emit them here to avoid premature gateway chatLink consumption during fallback.
+            return runCliAgent({
+              sessionId: params.followupRun.run.sessionId,
+              sessionKey: params.sessionKey,
+              agentId: params.followupRun.run.agentId,
+              sessionFile: params.followupRun.run.sessionFile,
+              workspaceDir: params.followupRun.run.workspaceDir,
+              config: params.followupRun.run.config,
+              prompt: params.commandBody,
+              provider,
+              model,
+              thinkLevel: params.followupRun.run.thinkLevel,
+              timeoutMs: params.followupRun.run.timeoutMs,
+              runId,
+              extraSystemPrompt: params.followupRun.run.extraSystemPrompt,
+              ownerNumbers: params.followupRun.run.ownerNumbers,
+              cliSessionId,
+              images: params.opts?.images,
+            }).then((result) => {
+              // CLI backends don't emit streaming assistant events. Capture the text
+              // here so we can emit it synchronously before lifecycle:end to avoid
+              // race conditions with event ordering.
+              const cliText = result.payloads?.[0]?.text?.trim();
+              if (cliText) {
+                pendingCliAssistantText = cliText;
               }
-            })();
+              return result;
+            });
           }
           const authProfileId =
             provider === params.followupRun.run.provider
@@ -480,6 +456,7 @@ export async function runAgentTurnWithFallback(params: {
         (await params.resetSessionAfterCompactionFailure(embeddedError.message))
       ) {
         didResetAfterCompactionFailure = true;
+        emitLifecycleTerminal("error", embeddedError.message);
         return {
           kind: "final",
           payload: {
@@ -490,6 +467,7 @@ export async function runAgentTurnWithFallback(params: {
       if (embeddedError?.kind === "role_ordering") {
         const didReset = await params.resetSessionAfterRoleOrderingConflict(embeddedError.message);
         if (didReset) {
+          emitLifecycleTerminal("error", embeddedError.message);
           return {
             kind: "final",
             payload: {
@@ -499,6 +477,15 @@ export async function runAgentTurnWithFallback(params: {
         }
       }
 
+      // Emit pending CLI assistant text before lifecycle:end to guarantee ordering
+      if (pendingCliAssistantText) {
+        emitAgentEvent({
+          runId,
+          stream: "assistant",
+          data: { text: pendingCliAssistantText },
+        });
+      }
+      emitLifecycleTerminal("end");
       break;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -513,6 +500,7 @@ export async function runAgentTurnWithFallback(params: {
         (await params.resetSessionAfterCompactionFailure(message))
       ) {
         didResetAfterCompactionFailure = true;
+        emitLifecycleTerminal("error", message);
         return {
           kind: "final",
           payload: {
@@ -523,6 +511,7 @@ export async function runAgentTurnWithFallback(params: {
       if (isRoleOrderingError) {
         const didReset = await params.resetSessionAfterRoleOrderingConflict(message);
         if (didReset) {
+          emitLifecycleTerminal("error", message);
           return {
             kind: "final",
             payload: {
@@ -569,6 +558,7 @@ export async function runAgentTurnWithFallback(params: {
           );
         }
 
+        emitLifecycleTerminal("error", message);
         return {
           kind: "final",
           payload: {
@@ -585,6 +575,7 @@ export async function runAgentTurnWithFallback(params: {
           ? "⚠️ Message ordering conflict - please try again. If this persists, use /new to start a fresh session."
           : `⚠️ Agent failed before reply: ${trimmedMessage}.\nLogs: openclaw logs --follow`;
 
+      emitLifecycleTerminal("error", message);
       return {
         kind: "final",
         payload: {
