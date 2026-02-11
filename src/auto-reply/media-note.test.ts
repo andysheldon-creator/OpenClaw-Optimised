@@ -26,7 +26,7 @@ describe("buildInboundMediaNote", () => {
     );
   });
 
-  it("skips media notes for attachments with understanding output", () => {
+  it("keeps suppressed attachments as media source lines", () => {
     const note = buildInboundMediaNote({
       MediaPaths: ["/tmp/a.png", "/tmp/b.png"],
       MediaUrls: ["https://example.com/a.png", "https://example.com/b.png"],
@@ -39,7 +39,12 @@ describe("buildInboundMediaNote", () => {
         },
       ],
     });
-    expect(note).toBe("[media attached: /tmp/b.png | https://example.com/b.png]");
+    expect(note).toBe(
+      [
+        "[media attached: /tmp/b.png | https://example.com/b.png]",
+        "[media source: /tmp/a.png]",
+      ].join("\n"),
+    );
   });
 
   it("only suppresses attachments when media understanding succeeded", () => {
@@ -104,6 +109,27 @@ describe("buildInboundMediaNote", () => {
         },
       ],
     });
-    expect(note).toBe("[media attached: /tmp/b.png | https://example.com/b.png]");
+    expect(note).toBe(
+      [
+        "[media attached: /tmp/b.png | https://example.com/b.png]",
+        "[media source: /tmp/a.png]",
+      ].join("\n"),
+    );
+  });
+
+  it("formats all-suppressed entries as media source lines only", () => {
+    const note = buildInboundMediaNote({
+      MediaPaths: ["/tmp/a.png"],
+      MediaUrls: ["https://example.com/a.png"],
+      MediaUnderstanding: [
+        {
+          kind: "image.description",
+          attachmentIndex: 0,
+          text: "A photo of a cat",
+          provider: "openai",
+        },
+      ],
+    });
+    expect(note).toBe("[media source: /tmp/a.png]");
   });
 });
