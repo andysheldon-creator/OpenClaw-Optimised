@@ -20,7 +20,10 @@ import {
   browserTabs,
 } from "../../browser/client.js";
 import { resolveBrowserConfig } from "../../browser/config.js";
-import { DEFAULT_AI_SNAPSHOT_MAX_CHARS } from "../../browser/constants.js";
+import {
+  DEFAULT_AI_SNAPSHOT_MAX_CHARS,
+  DEFAULT_BROWSER_ACT_TIMEOUT_MS,
+} from "../../browser/constants.js";
 import { loadConfig } from "../../config/config.js";
 import { saveMediaBuffer } from "../../media/store.js";
 import { BrowserToolSchema } from "./browser-tool.schema.js";
@@ -38,8 +41,6 @@ type BrowserProxyResult = {
   result: unknown;
   files?: BrowserProxyFile[];
 };
-
-const DEFAULT_BROWSER_PROXY_TIMEOUT_MS = 20_000;
 
 type BrowserNodeTarget = {
   nodeId: string;
@@ -125,7 +126,7 @@ async function callBrowserProxy(params: {
   const gatewayTimeoutMs =
     typeof params.timeoutMs === "number" && Number.isFinite(params.timeoutMs)
       ? Math.max(1, Math.floor(params.timeoutMs))
-      : DEFAULT_BROWSER_PROXY_TIMEOUT_MS;
+      : DEFAULT_BROWSER_ACT_TIMEOUT_MS;
   const payload = await callGatewayTool<{ payloadJSON?: string; payload?: string }>(
     "node.invoke",
     { timeoutMs: gatewayTimeoutMs },
@@ -271,6 +272,8 @@ export function createBrowserTool(opts?: {
             allowHostControl: opts?.allowHostControl,
           });
 
+      const actTimeoutMs = resolveBrowserConfig(loadConfig().browser).actTimeoutMs;
+
       const proxyRequest = nodeTarget
         ? async (opts: {
             method: string;
@@ -286,7 +289,7 @@ export function createBrowserTool(opts?: {
               path: opts.path,
               query: opts.query,
               body: opts.body,
-              timeoutMs: opts.timeoutMs,
+              timeoutMs: opts.timeoutMs ?? actTimeoutMs,
               profile: opts.profile,
             });
             const mapping = await persistProxyFiles(proxy.files);
@@ -412,7 +415,7 @@ export function createBrowserTool(opts?: {
           if (targetId) {
             await browserCloseTab(baseUrl, targetId, { profile });
           } else {
-            await browserAct(baseUrl, { kind: "close" }, { profile });
+            await browserAct(baseUrl, { kind: "close" }, { profile, actTimeoutMs });
           }
           return jsonResult({ ok: true });
         }
@@ -493,6 +496,7 @@ export function createBrowserTool(opts?: {
                 labels,
                 mode,
                 profile,
+                actTimeoutMs,
               });
           if (snapshot.format === "ai") {
             if (labels && snapshot.imagePath) {
@@ -536,6 +540,7 @@ export function createBrowserTool(opts?: {
                 element,
                 type,
                 profile,
+                actTimeoutMs,
               });
           return await imageResultFromFile({
             label: "browser:screenshot",
@@ -565,6 +570,7 @@ export function createBrowserTool(opts?: {
               url: targetUrl,
               targetId,
               profile,
+              actTimeoutMs,
             }),
           );
         }
@@ -583,7 +589,9 @@ export function createBrowserTool(opts?: {
             });
             return jsonResult(result);
           }
-          return jsonResult(await browserConsoleMessages(baseUrl, { level, targetId, profile }));
+          return jsonResult(
+            await browserConsoleMessages(baseUrl, { level, targetId, profile, actTimeoutMs }),
+          );
         }
         case "pdf": {
           const targetId = typeof params.targetId === "string" ? params.targetId.trim() : undefined;
@@ -594,7 +602,7 @@ export function createBrowserTool(opts?: {
                 profile,
                 body: { targetId },
               })) as Awaited<ReturnType<typeof browserPdfSave>>)
-            : await browserPdfSave(baseUrl, { targetId, profile });
+            : await browserPdfSave(baseUrl, { targetId, profile, actTimeoutMs });
           return {
             content: [{ type: "text", text: `FILE:${result.path}` }],
             details: result,
@@ -638,6 +646,7 @@ export function createBrowserTool(opts?: {
               targetId,
               timeoutMs,
               profile,
+              actTimeoutMs,
             }),
           );
         }
@@ -670,6 +679,7 @@ export function createBrowserTool(opts?: {
               targetId,
               timeoutMs,
               profile,
+              actTimeoutMs,
             }),
           );
         }
@@ -688,6 +698,7 @@ export function createBrowserTool(opts?: {
                 })
               : await browserAct(baseUrl, request as Parameters<typeof browserAct>[1], {
                   profile,
+                  actTimeoutMs,
                 });
             return jsonResult(result);
           } catch (err) {

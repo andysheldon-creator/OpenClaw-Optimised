@@ -5,6 +5,7 @@ import type {
   BrowserPageError,
 } from "./pw-session.js";
 import { fetchBrowserJson } from "./client-fetch.js";
+import { DEFAULT_BROWSER_ACT_TIMEOUT_MS } from "./constants.js";
 
 function buildProfileQuery(profile?: string): string {
   return profile ? `?profile=${encodeURIComponent(profile)}` : "";
@@ -20,7 +21,7 @@ function withBaseUrl(baseUrl: string | undefined, path: string): string {
 
 export async function browserConsoleMessages(
   baseUrl: string | undefined,
-  opts: { level?: string; targetId?: string; profile?: string } = {},
+  opts: { level?: string; targetId?: string; profile?: string; actTimeoutMs?: number } = {},
 ): Promise<{ ok: true; messages: BrowserConsoleMessage[]; targetId: string }> {
   const q = new URLSearchParams();
   if (opts.level) {
@@ -37,25 +38,27 @@ export async function browserConsoleMessages(
     ok: true;
     messages: BrowserConsoleMessage[];
     targetId: string;
-  }>(withBaseUrl(baseUrl, `/console${suffix}`), { timeoutMs: 20000 });
+  }>(withBaseUrl(baseUrl, `/console${suffix}`), {
+    timeoutMs: opts.actTimeoutMs ?? DEFAULT_BROWSER_ACT_TIMEOUT_MS,
+  });
 }
 
 export async function browserPdfSave(
   baseUrl: string | undefined,
-  opts: { targetId?: string; profile?: string } = {},
+  opts: { targetId?: string; profile?: string; actTimeoutMs?: number } = {},
 ): Promise<BrowserActionPathResult> {
   const q = buildProfileQuery(opts.profile);
   return await fetchBrowserJson<BrowserActionPathResult>(withBaseUrl(baseUrl, `/pdf${q}`), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ targetId: opts.targetId }),
-    timeoutMs: 20000,
+    timeoutMs: opts.actTimeoutMs ?? DEFAULT_BROWSER_ACT_TIMEOUT_MS,
   });
 }
 
 export async function browserPageErrors(
   baseUrl: string | undefined,
-  opts: { targetId?: string; clear?: boolean; profile?: string } = {},
+  opts: { targetId?: string; clear?: boolean; profile?: string; actTimeoutMs?: number } = {},
 ): Promise<{ ok: true; targetId: string; errors: BrowserPageError[] }> {
   const q = new URLSearchParams();
   if (opts.targetId) {
@@ -72,7 +75,9 @@ export async function browserPageErrors(
     ok: true;
     targetId: string;
     errors: BrowserPageError[];
-  }>(withBaseUrl(baseUrl, `/errors${suffix}`), { timeoutMs: 20000 });
+  }>(withBaseUrl(baseUrl, `/errors${suffix}`), {
+    timeoutMs: opts.actTimeoutMs ?? DEFAULT_BROWSER_ACT_TIMEOUT_MS,
+  });
 }
 
 export async function browserRequests(
@@ -82,6 +87,7 @@ export async function browserRequests(
     filter?: string;
     clear?: boolean;
     profile?: string;
+    actTimeoutMs?: number;
   } = {},
 ): Promise<{ ok: true; targetId: string; requests: BrowserNetworkRequest[] }> {
   const q = new URLSearchParams();
@@ -102,7 +108,9 @@ export async function browserRequests(
     ok: true;
     targetId: string;
     requests: BrowserNetworkRequest[];
-  }>(withBaseUrl(baseUrl, `/requests${suffix}`), { timeoutMs: 20000 });
+  }>(withBaseUrl(baseUrl, `/requests${suffix}`), {
+    timeoutMs: opts.actTimeoutMs ?? DEFAULT_BROWSER_ACT_TIMEOUT_MS,
+  });
 }
 
 export async function browserTraceStart(
@@ -113,6 +121,7 @@ export async function browserTraceStart(
     snapshots?: boolean;
     sources?: boolean;
     profile?: string;
+    actTimeoutMs?: number;
   } = {},
 ): Promise<BrowserActionTargetOk> {
   const q = buildProfileQuery(opts.profile);
@@ -125,33 +134,33 @@ export async function browserTraceStart(
       snapshots: opts.snapshots,
       sources: opts.sources,
     }),
-    timeoutMs: 20000,
+    timeoutMs: opts.actTimeoutMs ?? DEFAULT_BROWSER_ACT_TIMEOUT_MS,
   });
 }
 
 export async function browserTraceStop(
   baseUrl: string | undefined,
-  opts: { targetId?: string; path?: string; profile?: string } = {},
+  opts: { targetId?: string; path?: string; profile?: string; actTimeoutMs?: number } = {},
 ): Promise<BrowserActionPathResult> {
   const q = buildProfileQuery(opts.profile);
   return await fetchBrowserJson<BrowserActionPathResult>(withBaseUrl(baseUrl, `/trace/stop${q}`), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ targetId: opts.targetId, path: opts.path }),
-    timeoutMs: 20000,
+    timeoutMs: opts.actTimeoutMs ?? DEFAULT_BROWSER_ACT_TIMEOUT_MS,
   });
 }
 
 export async function browserHighlight(
   baseUrl: string | undefined,
-  opts: { ref: string; targetId?: string; profile?: string },
+  opts: { ref: string; targetId?: string; profile?: string; actTimeoutMs?: number },
 ): Promise<BrowserActionTargetOk> {
   const q = buildProfileQuery(opts.profile);
   return await fetchBrowserJson<BrowserActionTargetOk>(withBaseUrl(baseUrl, `/highlight${q}`), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ targetId: opts.targetId, ref: opts.ref }),
-    timeoutMs: 20000,
+    timeoutMs: opts.actTimeoutMs ?? DEFAULT_BROWSER_ACT_TIMEOUT_MS,
   });
 }
 
@@ -163,6 +172,7 @@ export async function browserResponseBody(
     timeoutMs?: number;
     maxChars?: number;
     profile?: string;
+    actTimeoutMs?: number;
   },
 ): Promise<{
   ok: true;
@@ -195,6 +205,6 @@ export async function browserResponseBody(
       timeoutMs: opts.timeoutMs,
       maxChars: opts.maxChars,
     }),
-    timeoutMs: 20000,
+    timeoutMs: opts.actTimeoutMs ?? DEFAULT_BROWSER_ACT_TIMEOUT_MS,
   });
 }

@@ -26,6 +26,7 @@ function makeState(
       cdpIsLoopback: profile !== "remote",
       remoteCdpTimeoutMs: 1500,
       remoteCdpHandshakeTimeoutMs: 3000,
+      actTimeoutMs: 30000,
       color: "#FF4500",
       headless: true,
       noSandbox: false,

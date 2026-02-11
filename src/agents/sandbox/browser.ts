@@ -2,6 +2,7 @@ import type { SandboxBrowserContext, SandboxConfig } from "./types.js";
 import { startBrowserBridgeServer, stopBrowserBridgeServer } from "../../browser/bridge-server.js";
 import { type ResolvedBrowserConfig, resolveProfile } from "../../browser/config.js";
 import {
+  DEFAULT_BROWSER_ACT_TIMEOUT_MS,
   DEFAULT_BROWSER_EVALUATE_ENABLED,
   DEFAULT_OPENCLAW_BROWSER_COLOR,
   DEFAULT_OPENCLAW_BROWSER_PROFILE_NAME,
@@ -57,6 +58,7 @@ function buildSandboxBrowserResolvedConfig(params: {
     cdpIsLoopback: true,
     remoteCdpTimeoutMs: 1500,
     remoteCdpHandshakeTimeoutMs: 3000,
+    actTimeoutMs: DEFAULT_BROWSER_ACT_TIMEOUT_MS,
     color: DEFAULT_OPENCLAW_BROWSER_COLOR,
     executablePath: undefined,
     headless: params.headless,

@@ -1,5 +1,6 @@
 import type { BrowserActionOk, BrowserActionTargetOk } from "./client-actions-types.js";
 import { fetchBrowserJson } from "./client-fetch.js";
+import { DEFAULT_BROWSER_ACT_TIMEOUT_MS } from "./constants.js";
 
 function buildProfileQuery(profile?: string): string {
   return profile ? `?profile=${encodeURIComponent(profile)}` : "";
@@ -15,7 +16,7 @@ function withBaseUrl(baseUrl: string | undefined, path: string): string {
 
 export async function browserCookies(
   baseUrl: string | undefined,
-  opts: { targetId?: string; profile?: string } = {},
+  opts: { targetId?: string; profile?: string; actTimeoutMs?: number } = {},
 ): Promise<{ ok: true; targetId: string; cookies: unknown[] }> {
   const q = new URLSearchParams();
   if (opts.targetId) {
@@ -29,7 +30,9 @@ export async function browserCookies(
     ok: true;
     targetId: string;
     cookies: unknown[];
-  }>(withBaseUrl(baseUrl, `/cookies${suffix}`), { timeoutMs: 20000 });
+  }>(withBaseUrl(baseUrl, `/cookies${suffix}`), {
+    timeoutMs: opts.actTimeoutMs ?? DEFAULT_BROWSER_ACT_TIMEOUT_MS,
+  });
 }
 
 export async function browserCookiesSet(
@@ -38,6 +41,7 @@ export async function browserCookiesSet(
     cookie: Record<string, unknown>;
     targetId?: string;
     profile?: string;
+    actTimeoutMs?: number;
   },
 ): Promise<BrowserActionTargetOk> {
   const q = buildProfileQuery(opts.profile);
@@ -45,20 +49,20 @@ export async function browserCookiesSet(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ targetId: opts.targetId, cookie: opts.cookie }),
-    timeoutMs: 20000,
+    timeoutMs: opts.actTimeoutMs ?? DEFAULT_BROWSER_ACT_TIMEOUT_MS,
   });
 }
 
 export async function browserCookiesClear(
   baseUrl: string | undefined,
-  opts: { targetId?: string; profile?: string } = {},
+  opts: { targetId?: string; profile?: string; actTimeoutMs?: number } = {},
 ): Promise<BrowserActionTargetOk> {
   const q = buildProfileQuery(opts.profile);
   return await fetchBrowserJson<BrowserActionTargetOk>(withBaseUrl(baseUrl, `/cookies/clear${q}`), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ targetId: opts.targetId }),
-    timeoutMs: 20000,
+    timeoutMs: opts.actTimeoutMs ?? DEFAULT_BROWSER_ACT_TIMEOUT_MS,
   });
 }
 
@@ -69,6 +73,7 @@ export async function browserStorageGet(
     key?: string;
     targetId?: string;
     profile?: string;
+    actTimeoutMs?: number;
   },
 ): Promise<{ ok: true; targetId: string; values: Record<string, string> }> {
   const q = new URLSearchParams();
@@ -86,7 +91,9 @@ export async function browserStorageGet(
     ok: true;
     targetId: string;
     values: Record<string, string>;
-  }>(withBaseUrl(baseUrl, `/storage/${opts.kind}${suffix}`), { timeoutMs: 20000 });
+  }>(withBaseUrl(baseUrl, `/storage/${opts.kind}${suffix}`), {
+    timeoutMs: opts.actTimeoutMs ?? DEFAULT_BROWSER_ACT_TIMEOUT_MS,
+  });
 }
 
 export async function browserStorageSet(
@@ -97,6 +104,7 @@ export async function browserStorageSet(
     value: string;
     targetId?: string;
     profile?: string;
+    actTimeoutMs?: number;
   },
 ): Promise<BrowserActionTargetOk> {
   const q = buildProfileQuery(opts.profile);
@@ -110,14 +118,14 @@ export async function browserStorageSet(
         key: opts.key,
         value: opts.value,
       }),
-      timeoutMs: 20000,
+      timeoutMs: opts.actTimeoutMs ?? DEFAULT_BROWSER_ACT_TIMEOUT_MS,
     },
   );
 }
 
 export async function browserStorageClear(
   baseUrl: string | undefined,
-  opts: { kind: "local" | "session"; targetId?: string; profile?: string },
+  opts: { kind: "local" | "session"; targetId?: string; profile?: string; actTimeoutMs?: number },
 ): Promise<BrowserActionTargetOk> {
   const q = buildProfileQuery(opts.profile);
   return await fetchBrowserJson<BrowserActionTargetOk>(
@@ -126,21 +134,21 @@ export async function browserStorageClear(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ targetId: opts.targetId }),
-      timeoutMs: 20000,
+      timeoutMs: opts.actTimeoutMs ?? DEFAULT_BROWSER_ACT_TIMEOUT_MS,
     },
   );
 }
 
 export async function browserSetOffline(
   baseUrl: string | undefined,
-  opts: { offline: boolean; targetId?: string; profile?: string },
+  opts: { offline: boolean; targetId?: string; profile?: string; actTimeoutMs?: number },
 ): Promise<BrowserActionTargetOk> {
   const q = buildProfileQuery(opts.profile);
   return await fetchBrowserJson<BrowserActionTargetOk>(withBaseUrl(baseUrl, `/set/offline${q}`), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ targetId: opts.targetId, offline: opts.offline }),
-    timeoutMs: 20000,
+    timeoutMs: opts.actTimeoutMs ?? DEFAULT_BROWSER_ACT_TIMEOUT_MS,
   });
 }
 
@@ -150,6 +158,7 @@ export async function browserSetHeaders(
     headers: Record<string, string>;
     targetId?: string;
     profile?: string;
+    actTimeoutMs?: number;
   },
 ): Promise<BrowserActionTargetOk> {
   const q = buildProfileQuery(opts.profile);
@@ -157,7 +166,7 @@ export async function browserSetHeaders(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ targetId: opts.targetId, headers: opts.headers }),
-    timeoutMs: 20000,
+    timeoutMs: opts.actTimeoutMs ?? DEFAULT_BROWSER_ACT_TIMEOUT_MS,
   });
 }
 
@@ -169,6 +178,7 @@ export async function browserSetHttpCredentials(
     clear?: boolean;
     targetId?: string;
     profile?: string;
+    actTimeoutMs?: number;
   } = {},
 ): Promise<BrowserActionTargetOk> {
   const q = buildProfileQuery(opts.profile);
@@ -183,7 +193,7 @@ export async function browserSetHttpCredentials(
         password: opts.password,
         clear: opts.clear,
       }),
-      timeoutMs: 20000,
+      timeoutMs: opts.actTimeoutMs ?? DEFAULT_BROWSER_ACT_TIMEOUT_MS,
     },
   );
 }
@@ -198,6 +208,7 @@ export async function browserSetGeolocation(
     clear?: boolean;
     targetId?: string;
     profile?: string;
+    actTimeoutMs?: number;
   } = {},
 ): Promise<BrowserActionTargetOk> {
   const q = buildProfileQuery(opts.profile);
@@ -214,7 +225,7 @@ export async function browserSetGeolocation(
         origin: opts.origin,
         clear: opts.clear,
       }),
-      timeoutMs: 20000,
+      timeoutMs: opts.actTimeoutMs ?? DEFAULT_BROWSER_ACT_TIMEOUT_MS,
     },
   );
 }
@@ -225,6 +236,7 @@ export async function browserSetMedia(
     colorScheme: "dark" | "light" | "no-preference" | "none";
     targetId?: string;
     profile?: string;
+    actTimeoutMs?: number;
   },
 ): Promise<BrowserActionTargetOk> {
   const q = buildProfileQuery(opts.profile);
@@ -235,13 +247,13 @@ export async function browserSetMedia(
       targetId: opts.targetId,
       colorScheme: opts.colorScheme,
     }),
-    timeoutMs: 20000,
+    timeoutMs: opts.actTimeoutMs ?? DEFAULT_BROWSER_ACT_TIMEOUT_MS,
   });
 }
 
 export async function browserSetTimezone(
   baseUrl: string | undefined,
-  opts: { timezoneId: string; targetId?: string; profile?: string },
+  opts: { timezoneId: string; targetId?: string; profile?: string; actTimeoutMs?: number },
 ): Promise<BrowserActionTargetOk> {
   const q = buildProfileQuery(opts.profile);
   return await fetchBrowserJson<BrowserActionTargetOk>(withBaseUrl(baseUrl, `/set/timezone${q}`), {
@@ -251,45 +263,45 @@ export async function browserSetTimezone(
       targetId: opts.targetId,
       timezoneId: opts.timezoneId,
     }),
-    timeoutMs: 20000,
+    timeoutMs: opts.actTimeoutMs ?? DEFAULT_BROWSER_ACT_TIMEOUT_MS,
   });
 }
 
 export async function browserSetLocale(
   baseUrl: string | undefined,
-  opts: { locale: string; targetId?: string; profile?: string },
+  opts: { locale: string; targetId?: string; profile?: string; actTimeoutMs?: number },
 ): Promise<BrowserActionTargetOk> {
   const q = buildProfileQuery(opts.profile);
   return await fetchBrowserJson<BrowserActionTargetOk>(withBaseUrl(baseUrl, `/set/locale${q}`), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ targetId: opts.targetId, locale: opts.locale }),
-    timeoutMs: 20000,
+    timeoutMs: opts.actTimeoutMs ?? DEFAULT_BROWSER_ACT_TIMEOUT_MS,
   });
 }
 
 export async function browserSetDevice(
   baseUrl: string | undefined,
-  opts: { name: string; targetId?: string; profile?: string },
+  opts: { name: string; targetId?: string; profile?: string; actTimeoutMs?: number },
 ): Promise<BrowserActionTargetOk> {
   const q = buildProfileQuery(opts.profile);
   return await fetchBrowserJson<BrowserActionTargetOk>(withBaseUrl(baseUrl, `/set/device${q}`), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ targetId: opts.targetId, name: opts.name }),
-    timeoutMs: 20000,
+    timeoutMs: opts.actTimeoutMs ?? DEFAULT_BROWSER_ACT_TIMEOUT_MS,
   });
 }
 
 export async function browserClearPermissions(
   baseUrl: string | undefined,
-  opts: { targetId?: string; profile?: string } = {},
+  opts: { targetId?: string; profile?: string; actTimeoutMs?: number } = {},
 ): Promise<BrowserActionOk> {
   const q = buildProfileQuery(opts.profile);
   return await fetchBrowserJson<BrowserActionOk>(withBaseUrl(baseUrl, `/set/geolocation${q}`), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ targetId: opts.targetId, clear: true }),
-    timeoutMs: 20000,
+    timeoutMs: opts.actTimeoutMs ?? DEFAULT_BROWSER_ACT_TIMEOUT_MS,
   });
 }

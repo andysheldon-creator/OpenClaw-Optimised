@@ -4,6 +4,7 @@ import type {
   BrowserActionTabResult,
 } from "./client-actions-types.js";
 import { fetchBrowserJson } from "./client-fetch.js";
+import { DEFAULT_BROWSER_ACT_TIMEOUT_MS } from "./constants.js";
 
 function buildProfileQuery(profile?: string): string {
   return profile ? `?profile=${encodeURIComponent(profile)}` : "";
@@ -105,6 +106,7 @@ export async function browserNavigate(
     url: string;
     targetId?: string;
     profile?: string;
+    actTimeoutMs?: number;
   },
 ): Promise<BrowserActionTabResult> {
   const q = buildProfileQuery(opts.profile);
@@ -112,7 +114,7 @@ export async function browserNavigate(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ url: opts.url, targetId: opts.targetId }),
-    timeoutMs: 20000,
+    timeoutMs: opts.actTimeoutMs ?? DEFAULT_BROWSER_ACT_TIMEOUT_MS,
   });
 }
 
@@ -124,6 +126,7 @@ export async function browserArmDialog(
     targetId?: string;
     timeoutMs?: number;
     profile?: string;
+    actTimeoutMs?: number;
   },
 ): Promise<BrowserActionOk> {
   const q = buildProfileQuery(opts.profile);
@@ -136,7 +139,7 @@ export async function browserArmDialog(
       targetId: opts.targetId,
       timeoutMs: opts.timeoutMs,
     }),
-    timeoutMs: 20000,
+    timeoutMs: opts.actTimeoutMs ?? DEFAULT_BROWSER_ACT_TIMEOUT_MS,
   });
 }
 
@@ -150,6 +153,7 @@ export async function browserArmFileChooser(
     targetId?: string;
     timeoutMs?: number;
     profile?: string;
+    actTimeoutMs?: number;
   },
 ): Promise<BrowserActionOk> {
   const q = buildProfileQuery(opts.profile);
@@ -164,7 +168,7 @@ export async function browserArmFileChooser(
       targetId: opts.targetId,
       timeoutMs: opts.timeoutMs,
     }),
-    timeoutMs: 20000,
+    timeoutMs: opts.actTimeoutMs ?? DEFAULT_BROWSER_ACT_TIMEOUT_MS,
   });
 }
 
@@ -175,6 +179,7 @@ export async function browserWaitForDownload(
     targetId?: string;
     timeoutMs?: number;
     profile?: string;
+    actTimeoutMs?: number;
   },
 ): Promise<{ ok: true; targetId: string; download: BrowserDownloadPayload }> {
   const q = buildProfileQuery(opts.profile);
@@ -190,7 +195,7 @@ export async function browserWaitForDownload(
       path: opts.path,
       timeoutMs: opts.timeoutMs,
     }),
-    timeoutMs: 20000,
+    timeoutMs: opts.actTimeoutMs ?? DEFAULT_BROWSER_ACT_TIMEOUT_MS,
   });
 }
 
@@ -202,6 +207,7 @@ export async function browserDownload(
     targetId?: string;
     timeoutMs?: number;
     profile?: string;
+    actTimeoutMs?: number;
   },
 ): Promise<{ ok: true; targetId: string; download: BrowserDownloadPayload }> {
   const q = buildProfileQuery(opts.profile);
@@ -218,21 +224,24 @@ export async function browserDownload(
       path: opts.path,
       timeoutMs: opts.timeoutMs,
     }),
-    timeoutMs: 20000,
+    timeoutMs: opts.actTimeoutMs ?? DEFAULT_BROWSER_ACT_TIMEOUT_MS,
   });
 }
 
 export async function browserAct(
   baseUrl: string | undefined,
   req: BrowserActRequest,
-  opts?: { profile?: string },
+  opts?: { profile?: string; actTimeoutMs?: number },
 ): Promise<BrowserActResponse> {
   const q = buildProfileQuery(opts?.profile);
+  const baseTimeout = opts?.actTimeoutMs ?? DEFAULT_BROWSER_ACT_TIMEOUT_MS;
+  const reqTimeoutMs = "timeoutMs" in req ? (req.timeoutMs ?? 0) : 0;
+  const httpTimeout = Math.max(baseTimeout, reqTimeoutMs + 5000);
   return await fetchBrowserJson<BrowserActResponse>(withBaseUrl(baseUrl, `/act${q}`), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(req),
-    timeoutMs: 20000,
+    timeoutMs: httpTimeout,
   });
 }
 
@@ -245,6 +254,7 @@ export async function browserScreenshotAction(
     element?: string;
     type?: "png" | "jpeg";
     profile?: string;
+    actTimeoutMs?: number;
   },
 ): Promise<BrowserActionPathResult> {
   const q = buildProfileQuery(opts.profile);
@@ -258,6 +268,6 @@ export async function browserScreenshotAction(
       element: opts.element,
       type: opts.type,
     }),
-    timeoutMs: 20000,
+    timeoutMs: opts.actTimeoutMs ?? DEFAULT_BROWSER_ACT_TIMEOUT_MS,
   });
 }

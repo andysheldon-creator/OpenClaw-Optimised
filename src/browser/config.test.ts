@@ -22,6 +22,7 @@ describe("browser config", () => {
     expect(openclaw?.cdpUrl).toBe("http://127.0.0.1:18800");
     expect(resolved.remoteCdpTimeoutMs).toBe(1500);
     expect(resolved.remoteCdpHandshakeTimeoutMs).toBe(3000);
+    expect(resolved.actTimeoutMs).toBe(30000);
   });
 
   it("derives default ports from OPENCLAW_GATEWAY_PORT when unset", () => {
@@ -84,6 +85,28 @@ describe("browser config", () => {
     });
     expect(resolved.remoteCdpTimeoutMs).toBe(2200);
     expect(resolved.remoteCdpHandshakeTimeoutMs).toBe(5000);
+  });
+
+  it("supports custom actTimeoutMs as number", () => {
+    const resolved = resolveBrowserConfig({ actTimeoutMs: 60000 });
+    expect(resolved.actTimeoutMs).toBe(60000);
+  });
+
+  it("supports custom actTimeoutMs as duration string", () => {
+    expect(resolveBrowserConfig({ actTimeoutMs: "60s" }).actTimeoutMs).toBe(60000);
+    expect(resolveBrowserConfig({ actTimeoutMs: "1m" }).actTimeoutMs).toBe(60000);
+    expect(resolveBrowserConfig({ actTimeoutMs: "90000ms" }).actTimeoutMs).toBe(90000);
+    expect(resolveBrowserConfig({ actTimeoutMs: "2m" }).actTimeoutMs).toBe(120000);
+    expect(resolveBrowserConfig({ actTimeoutMs: "45000" }).actTimeoutMs).toBe(45000);
+  });
+
+  it("falls back to default actTimeoutMs for invalid values", () => {
+    expect(resolveBrowserConfig({ actTimeoutMs: -1 }).actTimeoutMs).toBe(30000);
+    expect(resolveBrowserConfig({ actTimeoutMs: 0 }).actTimeoutMs).toBe(30000);
+    expect(resolveBrowserConfig({ actTimeoutMs: NaN }).actTimeoutMs).toBe(30000);
+    expect(resolveBrowserConfig({ actTimeoutMs: undefined }).actTimeoutMs).toBe(30000);
+    expect(resolveBrowserConfig({ actTimeoutMs: "bad" }).actTimeoutMs).toBe(30000);
+    expect(resolveBrowserConfig({ actTimeoutMs: "" }).actTimeoutMs).toBe(30000);
   });
 
   it("falls back to default color for invalid hex", () => {

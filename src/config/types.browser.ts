@@ -36,6 +36,8 @@ export type BrowserConfig = {
   defaultProfile?: string;
   /** Named browser profiles with explicit CDP ports or URLs. */
   profiles?: Record<string, BrowserProfileConfig>;
+  /** Browser act/interaction HTTP timeout. Accepts a number (ms) or a duration string ("30s", "1m", etc.). Default: "30s". */
+  actTimeoutMs?: number | string;
   /** Default snapshot options (applied by the browser tool/CLI when unset). */
   snapshotDefaults?: BrowserSnapshotDefaults;
 };

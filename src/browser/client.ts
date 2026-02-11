@@ -1,4 +1,5 @@
 import { fetchBrowserJson } from "./client-fetch.js";
+import { DEFAULT_BROWSER_ACT_TIMEOUT_MS } from "./constants.js";
 
 export type BrowserStatus = {
   enabled: boolean;
@@ -136,14 +137,14 @@ export async function browserStop(baseUrl?: string, opts?: { profile?: string })
 
 export async function browserResetProfile(
   baseUrl?: string,
-  opts?: { profile?: string },
+  opts?: { profile?: string; actTimeoutMs?: number },
 ): Promise<BrowserResetProfileResult> {
   const q = buildProfileQuery(opts?.profile);
   return await fetchBrowserJson<BrowserResetProfileResult>(
     withBaseUrl(baseUrl, `/reset-profile${q}`),
     {
       method: "POST",
-      timeoutMs: 20000,
+      timeoutMs: opts?.actTimeoutMs ?? DEFAULT_BROWSER_ACT_TIMEOUT_MS,
     },
   );
 }
@@ -191,12 +192,13 @@ export type BrowserDeleteProfileResult = {
 export async function browserDeleteProfile(
   baseUrl: string | undefined,
   profile: string,
+  opts?: { actTimeoutMs?: number },
 ): Promise<BrowserDeleteProfileResult> {
   return await fetchBrowserJson<BrowserDeleteProfileResult>(
     withBaseUrl(baseUrl, `/profiles/${encodeURIComponent(profile)}`),
     {
       method: "DELETE",
-      timeoutMs: 20000,
+      timeoutMs: opts?.actTimeoutMs ?? DEFAULT_BROWSER_ACT_TIMEOUT_MS,
     },
   );
 }
@@ -289,6 +291,7 @@ export async function browserSnapshot(
     labels?: boolean;
     mode?: "efficient";
     profile?: string;
+    actTimeoutMs?: number;
   },
 ): Promise<SnapshotResult> {
   const q = new URLSearchParams();
@@ -330,7 +333,7 @@ export async function browserSnapshot(
     q.set("profile", opts.profile);
   }
   return await fetchBrowserJson<SnapshotResult>(withBaseUrl(baseUrl, `/snapshot?${q.toString()}`), {
-    timeoutMs: 20000,
+    timeoutMs: opts.actTimeoutMs ?? DEFAULT_BROWSER_ACT_TIMEOUT_MS,
   });
 }
 

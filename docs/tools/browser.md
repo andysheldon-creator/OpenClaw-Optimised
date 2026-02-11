@@ -62,6 +62,7 @@ Browser settings live in `~/.openclaw/openclaw.json`.
     // cdpUrl: "http://127.0.0.1:18792", // legacy single-profile override
     remoteCdpTimeoutMs: 1500, // remote CDP HTTP timeout (ms)
     remoteCdpHandshakeTimeoutMs: 3000, // remote CDP WebSocket handshake timeout (ms)
+    actTimeoutMs: "30s", // browser act/interaction HTTP timeout (number in ms, or duration string)
     defaultProfile: "chrome",
     color: "#FF4500",
     headless: false,
@@ -86,7 +87,8 @@ Notes:
 - `cdpUrl` defaults to the relay port when unset.
 - `remoteCdpTimeoutMs` applies to remote (non-loopback) CDP reachability checks.
 - `remoteCdpHandshakeTimeoutMs` applies to remote CDP WebSocket reachability checks.
-- `attachOnly: true` means “never launch a local browser; only attach if it is already running.”
+- `actTimeoutMs` controls the HTTP timeout for browser actions (click, type, navigate, snapshot, etc.). Accepts a number (ms) or a duration string like `"30s"`, `"1m"`, `"90000ms"`. Default: `"30s"`. Increase to `"60s"` or more if actions time out on slow-loading pages.
+- `attachOnly: true` means "never launch a local browser; only attach if it is already running."
 - `color` + per-profile `color` tint the browser UI so you can see which profile is active.
 - Default profile is `chrome` (extension relay). Use `defaultProfile: "openclaw"` for the managed browser.
 - Auto-detect order: system default browser if Chromium-based; otherwise Chrome → Brave → Edge → Chromium → Chrome Canary.
