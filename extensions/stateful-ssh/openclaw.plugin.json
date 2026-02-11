@@ -1,5 +1,7 @@
 {
   "id": "stateful-ssh",
+  "name": "Stateful SSH",
+  "description": "Persistent SSH session management with state preservation.",
   "configSchema": {
     "type": "object",
     "additionalProperties": false,

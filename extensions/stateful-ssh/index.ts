@@ -1,8 +1,4 @@
-import type {
-  AnyAgentTool,
-  OpenClawPluginApi,
-  OpenClawPluginToolFactory,
-} from "../../src/plugins/types.js";
+import type { OpenClawPluginApi } from "../../src/plugins/types.js";
 import {
   createOpenSSHSessionTool,
   createExecuteSSHCommandTool,
@@ -12,45 +8,23 @@ import {
 } from "./src/ssh-tools.js";
 
 export default function register(api: OpenClawPluginApi) {
-  // Register all SSH tools
+  // Register all SSH tools with explicit names
   api.registerTool(
-    ((ctx) => {
+    (ctx) => {
       if (ctx.sandboxed) {
         return null;
       }
-      return createOpenSSHSessionTool(api) as AnyAgentTool;
-    }) as OpenClawPluginToolFactory,
-    { optional: true }
-  );
-
-  api.registerTool(
-    ((ctx) => {
-      if (ctx.sandboxed) {
-        return null;
-      }
-      return createExecuteSSHCommandTool(api) as AnyAgentTool;
-    }) as OpenClawPluginToolFactory,
-    { optional: true }
-  );
-
-  api.registerTool(
-    ((ctx) => {
-      if (ctx.sandboxed) {
-        return null;
-      }
-      return createCloseSSHSessionTool(api) as AnyAgentTool;
-    }) as OpenClawPluginToolFactory,
-    { optional: true }
-  );
-
-  api.registerTool(
-    ((ctx) => {
-      if (ctx.sandboxed) {
-        return null;
-      }
-      return createListSSHSessionsTool(api) as AnyAgentTool;
-    }) as OpenClawPluginToolFactory,
-    { optional: true }
+      return [
+        createOpenSSHSessionTool(api),
+        createExecuteSSHCommandTool(api),
+        createCloseSSHSessionTool(api),
+        createListSSHSessionsTool(api),
+      ];
+    },
+    {
+      names: ["open_ssh_session", "execute_ssh_command", "close_ssh_session", "list_ssh_sessions"],
+      optional: true
+    }
   );
 
   // Register cleanup handler
