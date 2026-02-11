@@ -29,6 +29,12 @@ export type ApplyAuthChoiceParams = {
     cloudflareAiGatewayGatewayId?: string;
     cloudflareAiGatewayApiKey?: string;
     xaiApiKey?: string;
+    // LiteLLM-specific options
+    litellmApiKey?: string;
+    litellmBaseUrl?: string;
+    litellmModel?: string;
+    // Non-interactive mode flag
+    nonInteractive?: boolean;
   };
 };
 

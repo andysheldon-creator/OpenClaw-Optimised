@@ -21,6 +21,7 @@ import {
   applyOpencodeZenConfig,
   applyOpenrouterConfig,
   applySyntheticConfig,
+  applyLitellmConfig,
   applyVeniceConfig,
   applyTogetherConfig,
   applyVercelAiGatewayConfig,
@@ -32,6 +33,7 @@ import {
   setQianfanApiKey,
   setGeminiApiKey,
   setKimiCodingApiKey,
+  setLitellmApiKey,
   setMinimaxApiKey,
   setMoonshotApiKey,
   setOpencodeZenApiKey,
@@ -312,6 +314,32 @@ export async function applyNonInteractiveAuthChoice(params: {
       mode: "api_key",
     });
     return applyOpenrouterConfig(nextConfig);
+  }
+
+  if (authChoice === "litellm-api-key") {
+    const resolved = await resolveNonInteractiveApiKey({
+      provider: "litellm",
+      cfg: baseConfig,
+      flagValue: opts.litellmApiKey,
+      flagName: "--litellm-api-key",
+      envVar: "LITELLM_API_KEY",
+      runtime,
+    });
+    if (!resolved) {
+      return null;
+    }
+    if (resolved.source !== "profile") {
+      await setLitellmApiKey(resolved.key);
+    }
+    nextConfig = applyAuthProfileConfig(nextConfig, {
+      profileId: "litellm:default",
+      provider: "litellm",
+      mode: "api_key",
+    });
+    return applyLitellmConfig(nextConfig, {
+      baseUrl: opts.litellmBaseUrl?.trim() || "http://localhost:4000",
+      modelId: opts.litellmModel?.trim() || "gpt-4",
+    });
   }
 
   if (authChoice === "ai-gateway-api-key") {

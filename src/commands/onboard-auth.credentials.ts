@@ -241,3 +241,16 @@ export function setXaiApiKey(key: string, agentDir?: string) {
     agentDir: resolveAuthAgentDir(agentDir),
   });
 }
+
+export async function setLitellmApiKey(key: string, agentDir?: string, baseUrl?: string) {
+  upsertAuthProfile({
+    profileId: "litellm:default",
+    credential: {
+      type: "api_key",
+      provider: "litellm",
+      key,
+      ...(baseUrl ? { metadata: { baseUrl: baseUrl.trim() } } : {}),
+    },
+    agentDir: resolveAuthAgentDir(agentDir),
+  });
+}

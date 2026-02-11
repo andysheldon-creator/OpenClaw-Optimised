@@ -19,6 +19,7 @@ export type AuthChoice =
   | "kimi-code-api-key"
   | "synthetic-api-key"
   | "venice-api-key"
+  | "litellm-api-key"
   | "together-api-key"
   | "codex-cli"
   | "apiKey"
@@ -105,6 +106,9 @@ export type OnboardOptions = {
   opencodeZenApiKey?: string;
   xaiApiKey?: string;
   qianfanApiKey?: string;
+  litellmApiKey?: string;
+  litellmBaseUrl?: string;
+  litellmModel?: string;
   gatewayPort?: number;
   gatewayBind?: GatewayBind;
   gatewayAuth?: GatewayAuthChoice;

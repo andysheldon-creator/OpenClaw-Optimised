@@ -23,6 +23,7 @@ export type AuthChoiceGroupId =
   | "synthetic"
   | "venice"
   | "qwen"
+  | "litellm"
   | "together"
   | "qianfan"
   | "xai"
@@ -118,6 +119,12 @@ const AUTH_CHOICE_GROUP_DEFS: {
     label: "OpenCode Zen",
     hint: "API key",
     choices: ["opencode-zen"],
+  },
+  {
+    value: "litellm",
+    label: "LiteLLM",
+    hint: "OpenAI-compatible proxy (self-hosted)",
+    choices: ["litellm-api-key"],
   },
   {
     value: "xiaomi",
@@ -259,8 +266,12 @@ export function buildAuthChoiceOptions(params: {
     label: "MiniMax M2.1 Lightning",
     hint: "Faster, higher output cost",
   });
+  options.push({
+    value: "litellm-api-key",
+    label: "LiteLLM API key",
+    hint: "OpenAI-compatible proxy (any model)",
+  });
   options.push({ value: "custom-api-key", label: "Custom Provider" });
-
   if (params.includeSkip) {
     options.push({ value: "skip", label: "Skip for now" });
   }
