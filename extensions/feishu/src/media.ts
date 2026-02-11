@@ -1,5 +1,6 @@
 import type { ClawdbotConfig } from "openclaw/plugin-sdk";
 import fs from "fs";
+import { parseBuffer, type IFileInfo } from "music-metadata";
 import os from "os";
 import path from "path";
 import { Readable } from "stream";
@@ -421,10 +422,12 @@ export async function sendAudioFeishu(params: {
   cfg: ClawdbotConfig;
   to: string;
   fileKey: string;
+  /** Audio duration in milliseconds — required for Feishu to show playback time */
+  duration?: number;
   replyToMessageId?: string;
   accountId?: string;
 }): Promise<SendMediaResult> {
-  const { cfg, to, fileKey, replyToMessageId, accountId } = params;
+  const { cfg, to, fileKey, duration, replyToMessageId, accountId } = params;
   const account = resolveFeishuAccount({ cfg, accountId });
   if (!account.configured) {
     throw new Error(`Feishu account "${account.accountId}" not configured`);
@@ -437,7 +440,11 @@ export async function sendAudioFeishu(params: {
   }
 
   const receiveIdType = resolveReceiveIdType(receiveId);
-  const content = JSON.stringify({ file_key: fileKey });
+  const contentObj: Record<string, unknown> = { file_key: fileKey };
+  if (typeof duration === "number" && duration > 0) {
+    contentObj.duration = String(duration);
+  }
+  const content = JSON.stringify(contentObj);
 
   if (replyToMessageId) {
     const response = await client.im.message.reply({
@@ -524,6 +531,29 @@ function isAudioFile(fileName: string): boolean {
 }
 
 /**
+ * Get audio duration in milliseconds from a buffer.
+ * Returns undefined if parsing fails (duration is best-effort).
+ */
+async function getAudioDurationMs(buffer: Buffer, fileName?: string): Promise<number | undefined> {
+  try {
+    const fileInfo: IFileInfo | undefined = fileName
+      ? { mimeType: undefined, size: buffer.byteLength, path: fileName }
+      : undefined;
+    const metadata = await parseBuffer(buffer, fileInfo, {
+      duration: true,
+      skipCovers: true,
+    });
+    const durationSeconds = metadata.format.duration;
+    if (typeof durationSeconds === "number" && Number.isFinite(durationSeconds)) {
+      return Math.max(0, Math.round(durationSeconds * 1000));
+    }
+  } catch {
+    // Duration is optional; ignore parse failures.
+  }
+  return undefined;
+}
+
+/**
  * Check if a string is a local file path (not a URL)
  */
 function isLocalPath(urlOrPath: string): boolean {
@@ -595,14 +625,16 @@ export async function sendMediaFeishu(params: {
   } else if (isAudioFile(name)) {
     // Audio files: upload as opus and send as playable audio message
     const fileType = detectFileType(name);
+    const durationMs = await getAudioDurationMs(buffer, name);
     const { fileKey } = await uploadFileFeishu({
       cfg,
       file: buffer,
       fileName: name,
       fileType,
+      duration: durationMs,
       accountId,
     });
-    return sendAudioFeishu({ cfg, to, fileKey, replyToMessageId, accountId });
+    return sendAudioFeishu({ cfg, to, fileKey, duration: durationMs, replyToMessageId, accountId });
   } else {
     const fileType = detectFileType(name);
     const { fileKey } = await uploadFileFeishu({

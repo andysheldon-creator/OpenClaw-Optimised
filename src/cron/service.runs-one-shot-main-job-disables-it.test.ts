@@ -200,6 +200,72 @@ describe("CronService", () => {
     await store.cleanup();
   });
 
+  it("wakeMode now passes job agentId to runHeartbeatOnce", async () => {
+    const store = await makeStorePath();
+    const enqueueSystemEvent = vi.fn();
+    const requestHeartbeatNow = vi.fn();
+
+    let now = 0;
+    const nowMs = () => {
+      now += 10;
+      return now;
+    };
+
+    let resolveHeartbeat: ((res: HeartbeatRunResult) => void) | null = null;
+    const runHeartbeatOnce = vi.fn(
+      async () =>
+        await new Promise<HeartbeatRunResult>((resolve) => {
+          resolveHeartbeat = resolve;
+        }),
+    );
+
+    const cron = new CronService({
+      storePath: store.storePath,
+      cronEnabled: true,
+      log: noopLogger,
+      nowMs,
+      enqueueSystemEvent,
+      requestHeartbeatNow,
+      runHeartbeatOnce,
+      runIsolatedAgentJob: vi.fn(async () => ({ status: "ok" })),
+    });
+
+    await cron.start();
+    const job = await cron.add({
+      name: "agent-scoped reminder",
+      agentId: "yun",
+      enabled: true,
+      schedule: { kind: "at", at: new Date(1).toISOString() },
+      sessionTarget: "main",
+      wakeMode: "now",
+      payload: { kind: "systemEvent", text: "reminder" },
+    });
+
+    const runPromise = cron.run(job.id, "force");
+    for (let i = 0; i < 10; i++) {
+      if (runHeartbeatOnce.mock.calls.length > 0) {
+        break;
+      }
+      await Promise.resolve();
+    }
+
+    expect(runHeartbeatOnce).toHaveBeenCalledTimes(1);
+    expect(runHeartbeatOnce).toHaveBeenCalledWith(
+      expect.objectContaining({ agentId: "yun" }),
+    );
+    expect(enqueueSystemEvent).toHaveBeenCalledWith("reminder", {
+      agentId: "yun",
+    });
+
+    resolveHeartbeat?.({ status: "ran", durationMs: 50 });
+    await runPromise;
+
+    expect(job.state.lastStatus).toBe("ok");
+
+    cron.stop();
+    await store.cleanup();
+  });
+
   it("wakeMode now falls back to queued heartbeat when main lane stays busy", async () => {
     const store = await makeStorePath();
     const enqueueSystemEvent = vi.fn();
