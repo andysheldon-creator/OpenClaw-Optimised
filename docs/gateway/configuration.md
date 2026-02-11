@@ -326,18 +326,7 @@ When validation fails:
 
 ## Config hot reload
 
-The Gateway watches `~/.openclaw/openclaw.json` and applies changes automatically.
-
-| Mode               | Behavior                                          |
-| ------------------ | ------------------------------------------------- |
-| `hybrid` (default) | Hot-apply safe changes; restart for critical ones |
-| `hot`              | Only hot-apply; log when restart is needed        |
-| `restart`          | Restart on any change                             |
-| `off`              | Disable watching                                  |
-
-**Hot-applied** (no restart): `hooks`, `browser`, `cron`, `heartbeat`, channels (`web`, `telegram`, `discord`, `signal`, `imessage`), `agent`, `models`, `routing`, `messages`, `session`, `logging`, `skills`, `ui`, `talk`.
-
-**Requires restart**: `gateway` (port/bind/auth/tailscale), `discovery`, `canvasHost`, `plugins`.
+The Gateway watches `~/.openclaw/openclaw.json` and applies changes automatically — no manual restart needed for most settings.
 
 ```json5
 {
@@ -346,6 +335,37 @@ The Gateway watches `~/.openclaw/openclaw.json` and applies changes automaticall
   },
 }
 ```
+
+<Tabs>
+  <Tab title="hybrid (default)">
+    Hot-applies safe changes instantly. Automatically restarts the Gateway for critical ones (port, bind, auth, etc.).
+  </Tab>
+  <Tab title="hot">
+    Hot-applies safe changes only. Logs a warning when a restart is needed but doesn't restart — you handle it.
+  </Tab>
+  <Tab title="restart">
+    Restarts the Gateway on **any** config change, safe or not.
+  </Tab>
+  <Tab title="off">
+    Disables file watching entirely. Changes only take effect on the next manual restart.
+  </Tab>
+</Tabs>
+
+<AccordionGroup>
+  <Accordion title="What hot-applies vs what requires a restart">
+
+| Category            | Fields                                                      | Restart needed? |
+| ------------------- | ----------------------------------------------------------- | --------------- |
+| Channels            | `web`, `telegram`, `discord`, `signal`, `imessage`, `slack` | No              |
+| Agent & models      | `agent`, `models`, `routing`                                | No              |
+| Automation          | `hooks`, `cron`, `heartbeat`                                | No              |
+| Sessions & messages | `session`, `messages`                                       | No              |
+| Tools & UI          | `browser`, `skills`, `ui`, `talk`, `logging`                | No              |
+| Gateway server      | `gateway` (port, bind, auth, tailscale)                     | **Yes**         |
+| Infrastructure      | `discovery`, `canvasHost`, `plugins`                        | **Yes**         |
+
+  </Accordion>
+</AccordionGroup>
 
 ## Config RPC (programmatic updates)
 
