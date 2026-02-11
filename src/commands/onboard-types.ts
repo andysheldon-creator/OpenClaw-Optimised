@@ -38,6 +38,7 @@ export type AuthChoice =
   | "qwen-portal"
   | "xai-api-key"
   | "qianfan-api-key"
+  | "databricks-api-key"
   | "custom-api-key"
   | "skip";
 export type AuthChoiceGroupId =
@@ -57,6 +58,7 @@ export type AuthChoiceGroupId =
   | "venice"
   | "qwen"
   | "qianfan"
+  | "databricks"
   | "xai"
   | "custom";
 export type GatewayAuthChoice = "token" | "password";
@@ -105,6 +107,8 @@ export type OnboardOptions = {
   opencodeZenApiKey?: string;
   xaiApiKey?: string;
   qianfanApiKey?: string;
+  databricksApiKey?: string;
+  databricksHost?: string;
   gatewayPort?: number;
   gatewayBind?: GatewayBind;
   gatewayAuth?: GatewayAuthChoice;

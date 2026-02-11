@@ -10,6 +10,7 @@ import {
   buildCloudflareAiGatewayModelDefinition,
   resolveCloudflareAiGatewayBaseUrl,
 } from "./cloudflare-ai-gateway.js";
+import { resolveDatabricksServicePrincipalEnv } from "./databricks-auth.js";
 import { resolveAwsSdkEnvVarName, resolveEnvApiKey } from "./model-auth.js";
 import {
   buildSyntheticModelDefinition,
@@ -79,6 +80,19 @@ const OLLAMA_API_BASE_URL = "http://127.0.0.1:11434";
 const OLLAMA_DEFAULT_CONTEXT_WINDOW = 128000;
 const OLLAMA_DEFAULT_MAX_TOKENS = 8192;
 const OLLAMA_DEFAULT_COST = {
+  input: 0,
+  output: 0,
+  cacheRead: 0,
+  cacheWrite: 0,
+};
+
+// Databricks AI Gateway: uses OpenAI-compatible API via /serving-endpoints path.
+// Auth: PAT token (DATABRICKS_TOKEN) or service principal OAuth token.
+// Base URL pattern: https://<workspace>.cloud.databricks.com/serving-endpoints
+export const DATABRICKS_DEFAULT_MODEL_ID = "databricks-meta-llama-3-3-70b-instruct";
+const DATABRICKS_DEFAULT_CONTEXT_WINDOW = 128000;
+const DATABRICKS_DEFAULT_MAX_TOKENS = 4096;
+const DATABRICKS_DEFAULT_COST = {
   input: 0,
   output: 0,
   cacheRead: 0,
@@ -454,6 +468,48 @@ export function buildQianfanProvider(): ProviderConfig {
   };
 }
 
+/**
+ * Build a Databricks AI Gateway provider.
+ * Databricks serves models via an OpenAI-compatible endpoint at
+ * `https://<workspace>.cloud.databricks.com/serving-endpoints`.
+ * The base URL must be configured by the user (workspace-specific).
+ */
+export function buildDatabricksProvider(baseUrl: string): ProviderConfig {
+  return {
+    baseUrl,
+    api: "openai-completions",
+    models: [
+      {
+        id: DATABRICKS_DEFAULT_MODEL_ID,
+        name: "Llama 3.3 70B Instruct",
+        reasoning: false,
+        input: ["text"],
+        cost: DATABRICKS_DEFAULT_COST,
+        contextWindow: DATABRICKS_DEFAULT_CONTEXT_WINDOW,
+        maxTokens: DATABRICKS_DEFAULT_MAX_TOKENS,
+      },
+      {
+        id: "databricks-dbrx-instruct",
+        name: "DBRX Instruct",
+        reasoning: false,
+        input: ["text"],
+        cost: DATABRICKS_DEFAULT_COST,
+        contextWindow: 32768,
+        maxTokens: DATABRICKS_DEFAULT_MAX_TOKENS,
+      },
+      {
+        id: "databricks-mixtral-8x7b-instruct",
+        name: "Mixtral 8x7B Instruct",
+        reasoning: false,
+        input: ["text"],
+        cost: DATABRICKS_DEFAULT_COST,
+        contextWindow: 32768,
+        maxTokens: DATABRICKS_DEFAULT_MAX_TOKENS,
+      },
+    ],
+  };
+}
+
 export async function resolveImplicitProviders(params: {
   agentDir: string;
 }): Promise<ModelsConfig["providers"]> {
@@ -564,6 +620,28 @@ export async function resolveImplicitProviders(params: {
     resolveApiKeyFromProfiles({ provider: "qianfan", store: authStore });
   if (qianfanKey) {
     providers.qianfan = { ...buildQianfanProvider(), apiKey: qianfanKey };
+  }
+
+  // Databricks AI Gateway: supports PAT token (DATABRICKS_TOKEN / DATABRICKS_API_KEY)
+  // or service principal OAuth (DATABRICKS_CLIENT_ID + DATABRICKS_CLIENT_SECRET).
+  // Both modes require DATABRICKS_HOST for the workspace URL.
+  const databricksKey =
+    resolveEnvApiKeyVarName("databricks") ??
+    resolveApiKeyFromProfiles({ provider: "databricks", store: authStore });
+  const databricksSp = resolveDatabricksServicePrincipalEnv();
+  if (databricksKey || databricksSp) {
+    const host = process.env.DATABRICKS_HOST?.trim() ?? databricksSp?.workspaceUrl;
+    if (host) {
+      // Normalize: ensure base URL ends with /serving-endpoints
+      const normalizedHost = host.replace(/\/+$/, "");
+      const baseUrl = normalizedHost.endsWith("/serving-endpoints")
+        ? normalizedHost
+        : `${normalizedHost}/serving-endpoints`;
+      // For PAT: apiKey is the env var name; for service principal: use a placeholder
+      // since the actual token is exchanged at runtime via resolveApiKeyForProvider.
+      const apiKey = databricksKey ?? "databricks-sp-oauth";
+      providers.databricks = { ...buildDatabricksProvider(baseUrl), apiKey };
+    }
   }
 
   return providers;

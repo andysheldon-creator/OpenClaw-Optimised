@@ -15,6 +15,8 @@ import {
   applyAuthProfileConfig,
   applyCloudflareAiGatewayConfig,
   applyCloudflareAiGatewayProviderConfig,
+  applyDatabricksConfig,
+  applyDatabricksProviderConfig,
   applyQianfanConfig,
   applyQianfanProviderConfig,
   applyKimiCodeConfig,
@@ -39,6 +41,7 @@ import {
   applyXiaomiProviderConfig,
   applyZaiConfig,
   CLOUDFLARE_AI_GATEWAY_DEFAULT_MODEL_REF,
+  DATABRICKS_DEFAULT_MODEL_REF,
   QIANFAN_DEFAULT_MODEL_REF,
   KIMI_CODING_MODEL_REF,
   MOONSHOT_DEFAULT_MODEL_REF,
@@ -49,6 +52,7 @@ import {
   VERCEL_AI_GATEWAY_DEFAULT_MODEL_REF,
   XIAOMI_DEFAULT_MODEL_REF,
   setCloudflareAiGatewayConfig,
+  setDatabricksApiKey,
   setQianfanApiKey,
   setGeminiApiKey,
   setKimiCodingApiKey,
@@ -116,6 +120,8 @@ export async function applyAuthChoiceApiProviders(
       authChoice = "opencode-zen";
     } else if (params.opts.tokenProvider === "qianfan") {
       authChoice = "qianfan-api-key";
+    } else if (params.opts.tokenProvider === "databricks") {
+      authChoice = "databricks-api-key";
     }
   }
 
@@ -914,6 +920,108 @@ export async function applyAuthChoiceApiProviders(
         applyDefaultConfig: applyQianfanConfig,
         applyProviderConfig: applyQianfanProviderConfig,
         noteDefault: QIANFAN_DEFAULT_MODEL_REF,
+        noteAgentModel,
+        prompter: params.prompter,
+      });
+      nextConfig = applied.config;
+      agentModelOverride = applied.agentModelOverride ?? agentModelOverride;
+    }
+    return { config: nextConfig, agentModelOverride };
+  }
+
+  if (authChoice === "databricks-api-key") {
+    let hasCredential = false;
+    let databricksHost = "";
+
+    if (!hasCredential && params.opts?.token && params.opts?.tokenProvider === "databricks") {
+      await setDatabricksApiKey(normalizeApiKeyInput(params.opts.token), params.agentDir);
+      hasCredential = true;
+    }
+
+    if (!hasCredential) {
+      await params.prompter.note(
+        [
+          "Databricks AI Gateway provides access to models via OpenAI-compatible endpoints.",
+          "You can authenticate with either:",
+          "  1. PAT token (DATABRICKS_TOKEN) - personal access token",
+          "  2. Service principal (DATABRICKS_CLIENT_ID + DATABRICKS_CLIENT_SECRET) - OAuth client_credentials",
+          "For PAT tokens: https://docs.databricks.com/en/dev-tools/auth/pat.html",
+          "For service principals: https://docs.databricks.com/en/dev-tools/auth/oauth-m2m.html",
+        ].join("\n"),
+        "Databricks",
+      );
+    }
+
+    // Check for existing PAT token in env
+    const envKey = resolveEnvApiKey("databricks");
+    if (envKey) {
+      const useExisting = await params.prompter.confirm({
+        message: `Use existing DATABRICKS_TOKEN (${envKey.source}, ${formatApiKeyPreview(envKey.apiKey)})?`,
+        initialValue: true,
+      });
+      if (useExisting) {
+        await setDatabricksApiKey(envKey.apiKey, params.agentDir);
+        hasCredential = true;
+      }
+    }
+
+    // Check for service principal env vars
+    if (!hasCredential) {
+      const spClientId = process.env.DATABRICKS_CLIENT_ID?.trim();
+      const spClientSecret = process.env.DATABRICKS_CLIENT_SECRET?.trim();
+      if (spClientId && spClientSecret) {
+        const useSp = await params.prompter.confirm({
+          message: `Use existing service principal (DATABRICKS_CLIENT_ID: ${spClientId.slice(0, 8)}...)?`,
+          initialValue: true,
+        });
+        if (useSp) {
+          // Service principal auth is resolved at runtime via the OIDC token exchange.
+          // Store a placeholder so the profile is registered.
+          await setDatabricksApiKey("databricks-sp-oauth", params.agentDir);
+          hasCredential = true;
+        }
+      }
+    }
+
+    if (!hasCredential) {
+      const key = await params.prompter.text({
+        message:
+          "Enter Databricks PAT token (or set DATABRICKS_CLIENT_ID + DATABRICKS_CLIENT_SECRET env vars for service principal)",
+        validate: validateApiKeyInput,
+      });
+      await setDatabricksApiKey(normalizeApiKeyInput(String(key)), params.agentDir);
+    }
+
+    // Prompt for workspace host URL
+    const envHost = process.env.DATABRICKS_HOST?.trim();
+    if (envHost) {
+      databricksHost = envHost;
+    } else {
+      const host = await params.prompter.text({
+        message: "Enter Databricks workspace URL (e.g. https://my-workspace.cloud.databricks.com)",
+        validate: (val) => (String(val).trim() ? undefined : "Workspace URL is required"),
+      });
+      databricksHost = String(host).trim();
+    }
+    // Normalize: ensure base URL ends with /serving-endpoints
+    const normalizedHost = databricksHost.replace(/\/+$/, "");
+    const baseUrl = normalizedHost.endsWith("/serving-endpoints")
+      ? normalizedHost
+      : `${normalizedHost}/serving-endpoints`;
+
+    nextConfig = applyAuthProfileConfig(nextConfig, {
+      profileId: "databricks:default",
+      provider: "databricks",
+      mode: "api_key",
+    });
+    {
+      const applied = await applyDefaultModelChoice({
+        config: nextConfig,
+        setDefaultModel: params.setDefaultModel,
+        defaultModel: DATABRICKS_DEFAULT_MODEL_REF,
+        applyDefaultConfig: (cfg) => applyDatabricksConfig(cfg, { baseUrl }),
+        applyProviderConfig: (cfg) => applyDatabricksProviderConfig(cfg, { baseUrl }),
+        noteDefault: DATABRICKS_DEFAULT_MODEL_REF,
         noteAgentModel,
         prompter: params.prompter,
       });

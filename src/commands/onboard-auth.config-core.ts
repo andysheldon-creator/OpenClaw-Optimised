@@ -5,6 +5,7 @@ import {
   resolveCloudflareAiGatewayBaseUrl,
 } from "../agents/cloudflare-ai-gateway.js";
 import {
+  buildDatabricksProvider,
   buildQianfanProvider,
   buildXiaomiProvider,
   QIANFAN_DEFAULT_MODEL_ID,
@@ -29,6 +30,7 @@ import {
 } from "../agents/venice-models.js";
 import {
   CLOUDFLARE_AI_GATEWAY_DEFAULT_MODEL_REF,
+  DATABRICKS_DEFAULT_MODEL_REF,
   OPENROUTER_DEFAULT_MODEL_REF,
   TOGETHER_DEFAULT_MODEL_REF,
   VERCEL_AI_GATEWAY_DEFAULT_MODEL_REF,
@@ -868,6 +870,97 @@ export function applyQianfanConfig(cfg: OpenClawConfig): OpenClawConfig {
               }
             : undefined),
           primary: QIANFAN_DEFAULT_MODEL_REF,
+        },
+      },
+    },
+  };
+}
+
+/**
+ * Apply Databricks provider configuration without changing the default model.
+ * Registers Databricks models and sets up the provider, but preserves existing model selection.
+ * Requires a `baseUrl` (workspace-specific serving endpoint URL).
+ */
+export function applyDatabricksProviderConfig(
+  cfg: OpenClawConfig,
+  opts?: { baseUrl?: string },
+): OpenClawConfig {
+  const models = { ...cfg.agents?.defaults?.models };
+  models[DATABRICKS_DEFAULT_MODEL_REF] = {
+    ...models[DATABRICKS_DEFAULT_MODEL_REF],
+    alias: models[DATABRICKS_DEFAULT_MODEL_REF]?.alias ?? "Databricks",
+  };
+
+  const providers = { ...cfg.models?.providers };
+  const existingProvider = providers.databricks;
+  const existingModels = Array.isArray(existingProvider?.models) ? existingProvider.models : [];
+  // Use provided baseUrl, fall back to existing provider or env var
+  const resolvedBaseUrl =
+    opts?.baseUrl?.trim() ??
+    existingProvider?.baseUrl ??
+    (process.env.DATABRICKS_HOST
+      ? `${process.env.DATABRICKS_HOST.replace(/\/+$/, "")}/serving-endpoints`
+      : "");
+  const defaultProvider = buildDatabricksProvider(resolvedBaseUrl);
+  const mergedModels = [
+    ...existingModels,
+    ...defaultProvider.models.filter(
+      (model) => !existingModels.some((existing) => existing.id === model.id),
+    ),
+  ];
+  const { apiKey: existingApiKey, ...existingProviderRest } = (existingProvider ?? {}) as Record<
+    string,
+    unknown
+  > as { apiKey?: string };
+  const resolvedApiKey = typeof existingApiKey === "string" ? existingApiKey : undefined;
+  const normalizedApiKey = resolvedApiKey?.trim();
+  providers.databricks = {
+    ...existingProviderRest,
+    baseUrl: resolvedBaseUrl,
+    api: "openai-completions",
+    ...(normalizedApiKey ? { apiKey: normalizedApiKey } : {}),
+    models: mergedModels.length > 0 ? mergedModels : defaultProvider.models,
+  };
+
+  return {
+    ...cfg,
+    agents: {
+      ...cfg.agents,
+      defaults: {
+        ...cfg.agents?.defaults,
+        models,
+      },
+    },
+    models: {
+      mode: cfg.models?.mode ?? "merge",
+      providers,
+    },
+  };
+}
+
+/**
+ * Apply Databricks provider configuration AND set Databricks as the default model.
+ * Use this when Databricks is the primary provider choice during onboarding.
+ */
+export function applyDatabricksConfig(
+  cfg: OpenClawConfig,
+  opts?: { baseUrl?: string },
+): OpenClawConfig {
+  const next = applyDatabricksProviderConfig(cfg, opts);
+  const existingModel = next.agents?.defaults?.model;
+  return {
+    ...next,
+    agents: {
+      ...next.agents,
+      defaults: {
+        ...next.agents?.defaults,
+        model: {
+          ...(existingModel && "fallbacks" in (existingModel as Record<string, unknown>)
+            ? {
+                fallbacks: (existingModel as { fallbacks?: string[] }).fallbacks,
+              }
+            : undefined),
+          primary: DATABRICKS_DEFAULT_MODEL_REF,
         },
       },
     },

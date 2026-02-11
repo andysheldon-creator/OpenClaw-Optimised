@@ -115,6 +115,7 @@ export async function setVeniceApiKey(key: string, agentDir?: string) {
   });
 }
 
+export const DATABRICKS_DEFAULT_MODEL_REF = "databricks/databricks-meta-llama-3-3-70b-instruct";
 export const ZAI_DEFAULT_MODEL_REF = "zai/glm-4.7";
 export const XIAOMI_DEFAULT_MODEL_REF = "xiaomi/mimo-v2-flash";
 export const OPENROUTER_DEFAULT_MODEL_REF = "openrouter/auto";
@@ -224,6 +225,18 @@ export function setQianfanApiKey(key: string, agentDir?: string) {
     credential: {
       type: "api_key",
       provider: "qianfan",
+      key,
+    },
+    agentDir: resolveAuthAgentDir(agentDir),
+  });
+}
+
+export async function setDatabricksApiKey(key: string, agentDir?: string) {
+  upsertAuthProfile({
+    profileId: "databricks:default",
+    credential: {
+      type: "api_key",
+      provider: "databricks",
       key,
     },
     agentDir: resolveAuthAgentDir(agentDir),

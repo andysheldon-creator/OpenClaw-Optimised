@@ -16,6 +16,11 @@ import {
   resolveAuthProfileOrder,
   resolveAuthStorePathForDisplay,
 } from "./auth-profiles.js";
+import {
+  exchangeDatabricksServicePrincipalToken,
+  hasDatabricksServicePrincipalEnv,
+  resolveDatabricksServicePrincipalEnv,
+} from "./databricks-auth.js";
 import { normalizeProviderId } from "./model-selection.js";
 
 export { ensureAuthProfileStore, resolveAuthProfileOrder } from "./auth-profiles.js";
@@ -208,6 +213,20 @@ export async function resolveApiKeyForProvider(params: {
   }
 
   const normalized = normalizeProviderId(provider);
+
+  // Databricks service principal: exchange client_id + client_secret for an access token.
+  if (normalized === "databricks") {
+    const spConfig = resolveDatabricksServicePrincipalEnv();
+    if (spConfig) {
+      const accessToken = await exchangeDatabricksServicePrincipalToken(spConfig);
+      return {
+        apiKey: accessToken,
+        source: "env: DATABRICKS_CLIENT_ID + DATABRICKS_CLIENT_SECRET (OAuth)",
+        mode: "oauth",
+      };
+    }
+  }
+
   if (authOverride === undefined && normalized === "amazon-bedrock") {
     return resolveAwsSdkAuthInfo();
   }
@@ -287,6 +306,12 @@ export function resolveEnvApiKey(provider: string): EnvApiKeyResult | null {
     return pick("KIMI_API_KEY") ?? pick("KIMICODE_API_KEY");
   }
 
+  // Databricks supports PAT tokens and service principal OAuth tokens.
+  // DATABRICKS_TOKEN is the standard env var for PAT auth.
+  if (normalized === "databricks") {
+    return pick("DATABRICKS_TOKEN") ?? pick("DATABRICKS_API_KEY");
+  }
+
   const envMap: Record<string, string> = {
     openai: "OPENAI_API_KEY",
     google: "GEMINI_API_KEY",
@@ -308,6 +333,7 @@ export function resolveEnvApiKey(provider: string): EnvApiKeyResult | null {
     together: "TOGETHER_API_KEY",
     qianfan: "QIANFAN_API_KEY",
     ollama: "OLLAMA_API_KEY",
+    databricks: "DATABRICKS_TOKEN",
   };
   const envVar = envMap[normalized];
   if (!envVar) {
@@ -367,6 +393,11 @@ export function resolveModelAuthMode(
 
   if (getCustomProviderApiKey(cfg, resolved)) {
     return "api-key";
+  }
+
+  // Databricks service principal: detect client_id + client_secret env vars.
+  if (normalizeProviderId(resolved) === "databricks" && hasDatabricksServicePrincipalEnv()) {
+    return "oauth";
   }
 
   return "unknown";
