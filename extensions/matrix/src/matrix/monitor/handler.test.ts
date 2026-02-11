@@ -1,5 +1,24 @@
-import { describe, expect, it } from "vitest";
-import { resolveMatrixSessionKey } from "./handler.js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { setMatrixRuntime } from "../../runtime.js";
+import { fetchEventSummary } from "../actions/summary.js";
+import { createMatrixRoomMessageHandler, resolveMatrixSessionKey } from "./handler.js";
+
+vi.mock("../actions/summary.js", () => ({
+  fetchEventSummary: vi.fn(),
+}));
+
+vi.mock("../send.js", () => ({
+  reactMatrixMessage: vi.fn().mockResolvedValue(undefined),
+  sendMessageMatrix: vi
+    .fn()
+    .mockResolvedValue({ messageId: "$reply", roomId: "!room:example.org" }),
+  sendReadReceiptMatrix: vi.fn().mockResolvedValue(undefined),
+  sendTypingMatrix: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("./replies.js", () => ({
+  deliverMatrixReplies: vi.fn().mockResolvedValue(undefined),
+}));
 
 describe("resolveMatrixSessionKey", () => {
   it("keeps per-room session key when sessionScope is room", () => {
@@ -197,5 +216,171 @@ describe("resolveMatrixSessionKey", () => {
       sessionKey: "agent:myagent:matrix:main:thread:$MixedCase:Thread.ID",
       parentSessionKey: "agent:myagent:matrix:main",
     });
+  });
+});
+
+describe("createMatrixRoomMessageHandler", () => {
+  const roomId = "!room:example.org";
+  const threadRootId = "$ThreadRoot:Example.Org";
+  const messageId = "$message:example.org";
+  const mockFetchEventSummary = vi.mocked(fetchEventSummary);
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    setMatrixRuntime({
+      channel: {
+        mentions: {
+          matchesMentionPatterns: vi.fn(() => false),
+        },
+      },
+    } as any);
+  });
+
+  function createHandlerHarness() {
+    const recordInboundSession = vi.fn().mockResolvedValue(undefined);
+    const dispatchReplyFromConfig = vi.fn().mockResolvedValue({
+      queuedFinal: true,
+      counts: { final: 1 },
+    });
+
+    const core = {
+      channel: {
+        pairing: {
+          readAllowFromStore: vi.fn().mockResolvedValue([]),
+        },
+        commands: {
+          shouldHandleTextCommands: vi.fn(() => false),
+        },
+        text: {
+          hasControlCommand: vi.fn(() => false),
+          resolveMarkdownTableMode: vi.fn(() => "code"),
+        },
+        routing: {
+          resolveAgentRoute: vi.fn(() => ({
+            agentId: "main",
+            accountId: "default",
+            sessionKey: "agent:main:matrix:channel:!room:example.org",
+            mainSessionKey: "agent:main:matrix:channel:!room:example.org",
+          })),
+        },
+        session: {
+          resolveStorePath: vi.fn(() => "/tmp/matrix-session.json"),
+          readSessionUpdatedAt: vi.fn(() => undefined),
+          recordInboundSession,
+        },
+        reply: {
+          resolveEnvelopeFormatOptions: vi.fn(() => ({ template: "channel+name+time" })),
+          formatAgentEnvelope: vi.fn((opts: { body: string }) => opts.body),
+          finalizeInboundContext: vi.fn((ctx: Record<string, unknown>) => ctx),
+          createReplyDispatcherWithTyping: vi.fn(() => ({
+            dispatcher: vi.fn(),
+            replyOptions: {},
+            markDispatchIdle: vi.fn(),
+          })),
+          resolveHumanDelayConfig: vi.fn(() => undefined),
+          dispatchReplyFromConfig,
+        },
+        reactions: {
+          shouldAckReaction: vi.fn(() => false),
+        },
+      },
+      system: {
+        enqueueSystemEvent: vi.fn(),
+      },
+    } as any;
+
+    const runtime = {
+      error: vi.fn(),
+    } as any;
+
+    const logger = {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
+    } as any;
+
+    const handler = createMatrixRoomMessageHandler({
+      client: {
+        getUserId: vi.fn().mockResolvedValue("@bot:example.org"),
+      } as any,
+      core,
+      cfg: {},
+      runtime,
+      logger,
+      logVerboseMessage: vi.fn(),
+      allowFrom: [],
+      roomsConfig: {
+        [roomId]: {
+          autoReply: true,
+        },
+      },
+      mentionRegexes: [],
+      groupPolicy: "open",
+      replyToMode: "off",
+      threadReplies: "inbound",
+      dmEnabled: true,
+      dmPolicy: "open",
+      textLimit: 4000,
+      mediaMaxBytes: 1024 * 1024,
+      startupMs: 0,
+      startupGraceMs: 0,
+      directTracker: {
+        isDirectMessage: vi.fn().mockResolvedValue(false),
+      },
+      getRoomInfo: vi.fn().mockResolvedValue({
+        name: "Matrix Room",
+        canonicalAlias: "#room:example.org",
+        altAliases: [],
+      }),
+      getMemberDisplayName: vi.fn().mockResolvedValue("Alice"),
+    });
+
+    const event = {
+      type: "m.room.message",
+      sender: "@alice:example.org",
+      event_id: messageId,
+      origin_server_ts: Date.now(),
+      content: {
+        msgtype: "m.text",
+        body: "hello from thread",
+        "m.relates_to": {
+          rel_type: "m.thread",
+          event_id: threadRootId,
+        },
+      },
+      unsigned: {},
+    } as any;
+
+    return {
+      handler,
+      event,
+      recordInboundSession,
+      dispatchReplyFromConfig,
+    };
+  }
+
+  it("does not record session when thread root fetch throws, but still dispatches reply", async () => {
+    mockFetchEventSummary.mockRejectedValueOnce(new Error("temporary matrix timeout"));
+
+    const { handler, event, recordInboundSession, dispatchReplyFromConfig } =
+      createHandlerHarness();
+
+    await handler(roomId, event);
+
+    expect(recordInboundSession).not.toHaveBeenCalled();
+    expect(dispatchReplyFromConfig).toHaveBeenCalledTimes(1);
+  });
+
+  it("records session when thread root fetch returns null, and still dispatches reply", async () => {
+    mockFetchEventSummary.mockResolvedValueOnce(null);
+
+    const { handler, event, recordInboundSession, dispatchReplyFromConfig } =
+      createHandlerHarness();
+
+    await handler(roomId, event);
+
+    expect(recordInboundSession).toHaveBeenCalledTimes(1);
+    expect(dispatchReplyFromConfig).toHaveBeenCalledTimes(1);
   });
 });

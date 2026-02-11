@@ -488,26 +488,38 @@ export function createMatrixRoomMessageHandler(params: MatrixMonitorHandlerParam
         });
 
         if (existingSession === undefined) {
-          const rootEvent = await fetchEventSummary(client, roomId, threadRootId);
-          if (!rootEvent) {
+          let rootEvent: Awaited<ReturnType<typeof fetchEventSummary>> | undefined;
+          let rootFetchErrored = false;
+          try {
+            rootEvent = await fetchEventSummary(client, roomId, threadRootId);
+          } catch (err) {
+            rootFetchErrored = true;
             shouldRecordSession = false;
             logVerboseMessage(
-              `matrix: thread root unavailable for ${threadRootId}; deferring session record for retry`,
+              `matrix: thread root fetch failed for ${threadRootId}; deferring session record for retry (${String(err)})`,
             );
-          } else if (rootEvent.body) {
-            const rootSenderName = rootEvent.sender
-              ? await getMemberDisplayName(roomId, rootEvent.sender).catch(() => undefined)
-              : undefined;
+          }
 
-            threadStarterBody = core.channel.reply.formatAgentEnvelope({
-              channel: "Matrix",
-              from: rootSenderName ?? rootEvent.sender ?? "Unknown",
-              timestamp: rootEvent.timestamp,
-              envelope: core.channel.reply.resolveEnvelopeFormatOptions(cfg),
-              body: rootEvent.body,
-            });
+          if (!rootFetchErrored) {
+            if (!rootEvent) {
+              logVerboseMessage(
+                `matrix: thread root unavailable for ${threadRootId}; recording session without thread starter context`,
+              );
+            } else if (rootEvent.body) {
+              const rootSenderName = rootEvent.sender
+                ? await getMemberDisplayName(roomId, rootEvent.sender).catch(() => undefined)
+                : undefined;
 
-            threadLabel = `Matrix thread in ${roomName ?? roomId}`;
+              threadStarterBody = core.channel.reply.formatAgentEnvelope({
+                channel: "Matrix",
+                from: rootSenderName ?? rootEvent.sender ?? "Unknown",
+                timestamp: rootEvent.timestamp,
+                envelope: core.channel.reply.resolveEnvelopeFormatOptions(cfg),
+                body: rootEvent.body,
+              });
+
+              threadLabel = `Matrix thread in ${roomName ?? roomId}`;
+            }
           }
         }
       }
