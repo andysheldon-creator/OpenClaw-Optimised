@@ -32,7 +32,7 @@ import { enqueueSystemEvent } from "../infra/system-events.js";
 import { logInfo, logWarn } from "../logger.js";
 import { formatSpawnError, spawnWithFallback } from "../process/spawn-utils.js";
 import { parseAgentSessionKey, resolveAgentIdFromSessionKey } from "../routing/session-key.js";
-import { analyzeCommand, type RubberBandResult } from "../security/rubberband.js";
+import { runRubberBandCheck } from "../security/rubberband.js";
 import {
   type ProcessSession,
   type SessionStdin,
@@ -1080,33 +1080,16 @@ export function createExecTool(
         }
 
         // === RUBBERBAND CHECK (before approval decision) ===
-        const rbOptsNode = Object.keys(rbConfig).length > 0 ? { config: rbConfig } : undefined;
-        const rbResult: RubberBandResult = analyzeCommand(params.command, rbOptsNode);
-        let rbRequiresApproval = false;
-
-        if (rbResult.disposition === "BLOCK") {
-          const rules = rbResult.matches.map((m) => m.rule_id).join(", ");
-          const blockMsg = `🔴 RubberBand BLOCK (score ${rbResult.score}): ${rules}\nCommand: ${params.command}`;
-          emitExecSystemEvent(blockMsg, { sessionKey: notifySessionKey });
-          if (rbConfig.notifyChannel && rbNotifyCfg) {
-            await notifyUserChannel(blockMsg, { sessionKey: notifySessionKey, cfg: rbNotifyCfg });
-          }
-          throw new Error(
-            `exec blocked by pattern analysis (score ${rbResult.score}/100): ${rules}\n` +
-              "This command was flagged as potentially dangerous and cannot be executed.",
-          );
-        }
-
-        if (rbResult.disposition === "ALERT" && rbResult.matches.length > 0) {
-          const rules = rbResult.matches.map((m) => m.rule_id).join(", ");
-          const alertMsg = `⚠️ RubberBand ALERT (score ${rbResult.score}): ${rules}\nCommand: ${params.command}`;
-          warnings.push(`⚠️ Pattern warning (score ${rbResult.score}): ${rules}`);
-          emitExecSystemEvent(alertMsg, { sessionKey: notifySessionKey });
-          if (rbConfig.notifyChannel && rbNotifyCfg) {
-            await notifyUserChannel(alertMsg, { sessionKey: notifySessionKey, cfg: rbNotifyCfg });
-          }
-          // ALERT: warn only, no approval required (UX simplified for channels without approval UI)
-        }
+        await runRubberBandCheck({
+          command: params.command,
+          rbConfig,
+          warnings,
+          notifySessionKey,
+          rbNotifyCfg,
+          emitExecSystemEvent,
+          notifyUserChannel,
+        });
+        const rbRequiresApproval = false; // ALERT warns only; BLOCK throws above
         // === END RUBBERBAND ===
         const boundNode = defaults?.node?.trim();
         const requestedNode = params.node?.trim();
@@ -1390,33 +1373,16 @@ export function createExecTool(
         }
 
         // === RUBBERBAND CHECK (before approval decision) ===
-        const rbOptsGateway = Object.keys(rbConfig).length > 0 ? { config: rbConfig } : undefined;
-        const rbResult: RubberBandResult = analyzeCommand(params.command, rbOptsGateway);
-        let rbRequiresApproval = false;
-
-        if (rbResult.disposition === "BLOCK") {
-          const rules = rbResult.matches.map((m) => m.rule_id).join(", ");
-          const blockMsg = `🔴 RubberBand BLOCK (score ${rbResult.score}): ${rules}\nCommand: ${params.command}`;
-          emitExecSystemEvent(blockMsg, { sessionKey: notifySessionKey });
-          if (rbConfig.notifyChannel && rbNotifyCfg) {
-            await notifyUserChannel(blockMsg, { sessionKey: notifySessionKey, cfg: rbNotifyCfg });
-          }
-          throw new Error(
-            `exec blocked by pattern analysis (score ${rbResult.score}/100): ${rules}\n` +
-              "This command was flagged as potentially dangerous and cannot be executed.",
-          );
-        }
-
-        if (rbResult.disposition === "ALERT" && rbResult.matches.length > 0) {
-          const rules = rbResult.matches.map((m) => m.rule_id).join(", ");
-          const alertMsg = `⚠️ RubberBand ALERT (score ${rbResult.score}): ${rules}\nCommand: ${params.command}`;
-          warnings.push(`⚠️ Pattern warning (score ${rbResult.score}): ${rules}`);
-          emitExecSystemEvent(alertMsg, { sessionKey: notifySessionKey });
-          if (rbConfig.notifyChannel && rbNotifyCfg) {
-            await notifyUserChannel(alertMsg, { sessionKey: notifySessionKey, cfg: rbNotifyCfg });
-          }
-          // ALERT: warn only, no approval required (UX simplified for channels without approval UI)
-        }
+        await runRubberBandCheck({
+          command: params.command,
+          rbConfig,
+          warnings,
+          notifySessionKey,
+          rbNotifyCfg,
+          emitExecSystemEvent,
+          notifyUserChannel,
+        });
+        const rbRequiresApproval = false; // ALERT warns only; BLOCK throws above
         // === END RUBBERBAND ===
 
         const allowlistEval = evaluateShellAllowlist({
@@ -1646,29 +1612,15 @@ export function createExecTool(
       // For sandbox (and gateway with bypassApprovals), RubberBand runs here.
       // Sandbox ALERT only warns (no approval flow) - sandbox isolation provides defense-in-depth.
       if (host === "sandbox" || (host === "gateway" && bypassApprovals)) {
-        const rbOptsSandbox = Object.keys(rbConfig).length > 0 ? { config: rbConfig } : undefined;
-        const rbResult: RubberBandResult = analyzeCommand(params.command, rbOptsSandbox);
-        if (rbResult.disposition === "BLOCK") {
-          const rules = rbResult.matches.map((m) => m.rule_id).join(", ");
-          const blockMsg = `🔴 RubberBand BLOCK (score ${rbResult.score}): ${rules}\nCommand: ${params.command}`;
-          emitExecSystemEvent(blockMsg, { sessionKey: notifySessionKey });
-          if (rbConfig.notifyChannel && rbNotifyCfg) {
-            await notifyUserChannel(blockMsg, { sessionKey: notifySessionKey, cfg: rbNotifyCfg });
-          }
-          throw new Error(
-            `exec blocked by pattern analysis (score ${rbResult.score}/100): ${rules}\n` +
-              "This command was flagged as potentially dangerous and cannot be executed.",
-          );
-        }
-        if (rbResult.disposition === "ALERT" && rbResult.matches.length > 0) {
-          const rules = rbResult.matches.map((m) => m.rule_id).join(", ");
-          const alertMsg = `⚠️ RubberBand ALERT (score ${rbResult.score}): ${rules}\nCommand: ${params.command}`;
-          warnings.push(`⚠️ Pattern warning (score ${rbResult.score}): ${rules}`);
-          emitExecSystemEvent(alertMsg, { sessionKey: notifySessionKey });
-          if (rbConfig.notifyChannel && rbNotifyCfg) {
-            await notifyUserChannel(alertMsg, { sessionKey: notifySessionKey, cfg: rbNotifyCfg });
-          }
-        }
+        await runRubberBandCheck({
+          command: params.command,
+          rbConfig,
+          warnings,
+          notifySessionKey,
+          rbNotifyCfg,
+          emitExecSystemEvent,
+          notifyUserChannel,
+        });
       }
 
       const effectiveTimeout =
