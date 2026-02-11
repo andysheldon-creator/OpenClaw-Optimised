@@ -39,6 +39,37 @@ describe("transcribeSarvamAudio", () => {
     resolvePinnedHostnameWithPolicySpy = null;
   });
 
+  it("uses a safe fallback file name when fileName is missing", async () => {
+    let seenInit: RequestInit | undefined;
+    const fetchFn = async (_input: RequestInfo | URL, init?: RequestInit) => {
+      seenInit = init;
+      return new Response(
+        JSON.stringify({
+          transcript: "hello",
+          language_code: "kn-IN",
+          model: "saaras:v2.5",
+        }),
+        {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        },
+      );
+    };
+
+    const result = await transcribeSarvamAudio({
+      buffer: Buffer.from("audio"),
+      apiKey: "test-key",
+      timeoutMs: 1000,
+      fetchFn,
+    });
+
+    const form = seenInit?.body as FormData;
+    const file = form.get("file");
+    expect(file).toBeInstanceOf(File);
+    expect((file as File).name).toBe("audio");
+    expect(result.text).toBe("hello");
+  });
+
   it("respects api-subscription-key header overrides", async () => {
     let seenKey: string | null = null;
     const fetchFn = async (_input: RequestInfo | URL, init?: RequestInit) => {

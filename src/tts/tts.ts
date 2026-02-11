@@ -1,3 +1,4 @@
+import type { Dispatcher } from "undici";
 import { completeSimple, type TextContent } from "@mariozechner/pi-ai";
 import { EdgeTTS } from "node-edge-tts";
 import {
@@ -32,6 +33,11 @@ import {
 import { resolveModel } from "../agents/pi-embedded-runner/model.js";
 import { normalizeChannelId } from "../channels/plugins/index.js";
 import { logVerbose } from "../globals.js";
+import {
+  closeDispatcher,
+  createPinnedDispatcher,
+  resolvePinnedHostname,
+} from "../infra/net/ssrf.js";
 import { isVoiceCompatibleAudio } from "../media/audio.js";
 import { CONFIG_DIR, resolveUserPath } from "../utils.js";
 
@@ -64,21 +70,41 @@ const DEFAULT_ELEVENLABS_VOICE_SETTINGS = {
 };
 
 const TELEGRAM_OUTPUT = {
-  openai: "opus" as const,
+  openai: {
+    format: "opus" as const,
+    extension: ".opus",
+    voiceCompatible: true,
+  },
   // ElevenLabs output formats use codec_sample_rate_bitrate naming.
   // Opus @ 48kHz/64kbps is a good voice-note tradeoff for Telegram.
-  elevenlabs: "opus_48000_64",
-  sarvam: "mp3",
-  extension: ".opus",
-  voiceCompatible: true,
+  elevenlabs: {
+    format: "opus_48000_64",
+    extension: ".opus",
+    voiceCompatible: true,
+  },
+  sarvam: {
+    format: "mp3",
+    extension: ".mp3",
+    voiceCompatible: false,
+  },
 };
 
 const DEFAULT_OUTPUT = {
-  openai: "mp3" as const,
-  elevenlabs: "mp3_44100_128",
-  sarvam: "mp3",
-  extension: ".mp3",
-  voiceCompatible: false,
+  openai: {
+    format: "mp3" as const,
+    extension: ".mp3",
+    voiceCompatible: false,
+  },
+  elevenlabs: {
+    format: "mp3_44100_128",
+    extension: ".mp3",
+    voiceCompatible: false,
+  },
+  sarvam: {
+    format: "mp3",
+    extension: ".mp3",
+    voiceCompatible: false,
+  },
 };
 
 const TELEPHONY_OUTPUT = {
@@ -1180,6 +1206,50 @@ function inferSarvamExtension(codec: string): string {
   return ".mp3";
 }
 
+function resolveSarvamUrl(baseUrl: string, endpoint: string): URL {
+  const url = new URL(endpoint.replace(/^\/+/, ""), `${normalizeSarvamBaseUrl(baseUrl)}/`);
+  if (!["http:", "https:"].includes(url.protocol)) {
+    throw new Error(`Invalid Sarvam URL protocol: ${url.protocol}`);
+  }
+  return url;
+}
+
+async function postSarvamJson<T>(params: {
+  apiKey: string;
+  baseUrl: string;
+  endpoint: string;
+  payload: unknown;
+  timeoutMs: number;
+  errorPrefix: string;
+}): Promise<T> {
+  const url = resolveSarvamUrl(params.baseUrl, params.endpoint);
+  const pinned = await resolvePinnedHostname(url.hostname);
+  const dispatcher = createPinnedDispatcher(pinned);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), params.timeoutMs);
+  try {
+    const response = await fetch(url.toString(), {
+      method: "POST",
+      headers: {
+        "api-subscription-key": params.apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(params.payload),
+      signal: controller.signal,
+      dispatcher,
+    } as RequestInit & { dispatcher: Dispatcher });
+
+    if (!response.ok) {
+      throw new Error(`${params.errorPrefix} API error (${response.status})`);
+    }
+
+    return (await response.json()) as T;
+  } finally {
+    clearTimeout(timeout);
+    await closeDispatcher(dispatcher);
+  }
+}
+
 function decodeBase64Audio(input: string): Buffer {
   const normalized = input.trim().replace(/^data:audio\/[^;]+;base64,/, "");
   return Buffer.from(normalized, "base64");
@@ -1202,45 +1272,33 @@ async function sarvamTTS(params: {
   temperature?: number;
   timeoutMs: number;
 }): Promise<{ audioBuffer: Buffer; outputAudioCodec: string }> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), params.timeoutMs);
-  try {
-    const response = await fetch(`${normalizeSarvamBaseUrl(params.baseUrl)}/text-to-speech`, {
-      method: "POST",
-      headers: {
-        "api-subscription-key": params.apiKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        inputs: [params.text],
-        target_language_code: params.languageCode,
-        speaker: params.speaker,
-        model: params.model,
-        output_audio_codec: params.outputAudioCodec,
-        speech_sample_rate: params.speechSampleRate,
-        pace: params.pace,
-        temperature: params.temperature,
-      }),
-      signal: controller.signal,
-    });
+  const payload = await postSarvamJson<SarvamTtsResponse>({
+    apiKey: params.apiKey,
+    baseUrl: params.baseUrl,
+    endpoint: "/text-to-speech",
+    payload: {
+      inputs: [params.text],
+      target_language_code: params.languageCode,
+      speaker: params.speaker,
+      model: params.model,
+      output_audio_codec: params.outputAudioCodec,
+      speech_sample_rate: params.speechSampleRate,
+      pace: params.pace,
+      temperature: params.temperature,
+    },
+    timeoutMs: params.timeoutMs,
+    errorPrefix: "Sarvam TTS",
+  });
 
-    if (!response.ok) {
-      throw new Error(`Sarvam TTS API error (${response.status})`);
-    }
-
-    const payload = (await response.json()) as SarvamTtsResponse;
-    const base64Audio = payload.audios?.[0]?.trim();
-    if (!base64Audio) {
-      throw new Error("Sarvam TTS response missing audio data");
-    }
-
-    return {
-      audioBuffer: decodeBase64Audio(base64Audio),
-      outputAudioCodec: params.outputAudioCodec,
-    };
-  } finally {
-    clearTimeout(timeout);
+  const base64Audio = payload.audios?.[0]?.trim();
+  if (!base64Audio) {
+    throw new Error("Sarvam TTS response missing audio data");
   }
+
+  return {
+    audioBuffer: decodeBase64Audio(base64Audio),
+    outputAudioCodec: params.outputAudioCodec,
+  };
 }
 
 function inferEdgeExtension(outputFormat: string): string {
@@ -1319,8 +1377,8 @@ export async function textToSpeech(params: {
 
         const sarvamCodec =
           channelId === "telegram"
-            ? output.sarvam
-            : config.sarvam.outputAudioCodec || output.sarvam;
+            ? output.sarvam.format
+            : config.sarvam.outputAudioCodec || output.sarvam.format;
         const sarvamResult = await sarvamTTS({
           text: params.text,
           apiKey,
@@ -1340,6 +1398,7 @@ export async function textToSpeech(params: {
         const audioPath = path.join(tempDir, `voice-${Date.now()}${extension}`);
         writeFileSync(audioPath, sarvamResult.audioBuffer);
         scheduleCleanup(tempDir);
+        const voiceCompatible = isVoiceCompatibleAudio({ fileName: audioPath });
 
         return {
           success: true,
@@ -1347,7 +1406,7 @@ export async function textToSpeech(params: {
           latencyMs: Date.now() - providerStart,
           provider,
           outputFormat: sarvamResult.outputAudioCodec,
-          voiceCompatible: false,
+          voiceCompatible,
         };
       }
 
@@ -1442,7 +1501,7 @@ export async function textToSpeech(params: {
           baseUrl: config.elevenlabs.baseUrl,
           voiceId: voiceIdOverride ?? config.elevenlabs.voiceId,
           modelId: modelIdOverride ?? config.elevenlabs.modelId,
-          outputFormat: output.elevenlabs,
+          outputFormat: output.elevenlabs.format,
           seed: seedOverride ?? config.elevenlabs.seed,
           applyTextNormalization: normalizationOverride ?? config.elevenlabs.applyTextNormalization,
           languageCode: languageOverride ?? config.elevenlabs.languageCode,
@@ -1457,15 +1516,16 @@ export async function textToSpeech(params: {
           apiKey,
           model: openaiModelOverride ?? config.openai.model,
           voice: openaiVoiceOverride ?? config.openai.voice,
-          responseFormat: output.openai,
+          responseFormat: output.openai.format,
           timeoutMs: config.timeoutMs,
         });
       }
 
       const latencyMs = Date.now() - providerStart;
 
+      const providerOutput = provider === "openai" ? output.openai : output.elevenlabs;
       const tempDir = mkdtempSync(path.join(tmpdir(), "tts-"));
-      const audioPath = path.join(tempDir, `voice-${Date.now()}${output.extension}`);
+      const audioPath = path.join(tempDir, `voice-${Date.now()}${providerOutput.extension}`);
       writeFileSync(audioPath, audioBuffer);
       scheduleCleanup(tempDir);
 
@@ -1474,8 +1534,8 @@ export async function textToSpeech(params: {
         audioPath,
         latencyMs,
         provider,
-        outputFormat: provider === "openai" ? output.openai : output.elevenlabs,
-        voiceCompatible: output.voiceCompatible,
+        outputFormat: providerOutput.format,
+        voiceCompatible: providerOutput.voiceCompatible,
       };
     } catch (err) {
       const error = err as Error;

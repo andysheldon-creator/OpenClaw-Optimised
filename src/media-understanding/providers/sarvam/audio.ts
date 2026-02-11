@@ -56,7 +56,8 @@ export async function transcribeSarvamAudio(
   const model = resolveModel(params.model);
 
   const form = new FormData();
-  const fileName = params.fileName?.trim() || path.basename(params.fileName) || "audio";
+  const rawFileName = params.fileName?.trim();
+  const fileName = rawFileName ? path.basename(rawFileName) : "audio";
   const bytes = new Uint8Array(params.buffer);
   const blob = new Blob([bytes], { type: resolveUploadMime(params.mime) });
   form.append("file", blob, fileName);
