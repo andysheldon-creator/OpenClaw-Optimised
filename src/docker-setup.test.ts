@@ -85,6 +85,13 @@ function resolveBashForCompatCheck(): string | null {
 }
 
 describe("docker-setup.sh", () => {
+  // This test suite runs bash scripts and stubs a `docker` CLI.
+  // The Windows CI environment is not guaranteed to have a compatible bash.
+  if (process.platform === "win32") {
+    it.skip("skipped on Windows", () => {});
+    return;
+  }
+
   it("handles unset optional env vars under strict mode", async () => {
     const sandbox = await createDockerSetupSandbox();
     const env = createEnv(sandbox, {
