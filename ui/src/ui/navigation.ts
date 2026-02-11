@@ -1,5 +1,9 @@
 import type { IconName } from "./icons.js";
 
+/** Menu mode type for controlling navigation visibility */
+export type MenuMode = "full" | "short";
+
+/** Full navigation with all tabs (default behavior) */
 export const TAB_GROUPS = [
   { label: "Chat", tabs: ["chat"] },
   {
@@ -9,6 +13,33 @@ export const TAB_GROUPS = [
   { label: "Agent", tabs: ["agents", "skills", "nodes"] },
   { label: "Settings", tabs: ["config", "debug", "logs"] },
 ] as const;
+
+/** Short navigation for testing model selection - only essential tabs */
+export const SHORT_TAB_GROUPS = [
+  { label: "Chat", tabs: ["chat"] },
+  { label: "Settings", tabs: ["config", "debug"] },
+] as const;
+
+/**
+ * Check if short menu mode is enabled via environment variable.
+ * Set VITE_SHORT_MENU=true to enable simplified navigation.
+ *
+ * @param env - Optional env object for testing. Defaults to import.meta.env.
+ */
+export function isShortMenuMode(env?: { VITE_SHORT_MENU?: string | boolean }): boolean {
+  const targetEnv = env ?? import.meta.env;
+  return targetEnv?.VITE_SHORT_MENU === "true" || targetEnv?.VITE_SHORT_MENU === true;
+}
+
+/**
+ * Get the appropriate tab groups based on current menu mode.
+ * Returns SHORT_TAB_GROUPS when VITE_SHORT_MENU is enabled, otherwise TAB_GROUPS.
+ *
+ * @param env - Optional env object for testing. Defaults to import.meta.env.
+ */
+export function getTabGroups(env?: { VITE_SHORT_MENU?: string | boolean }) {
+  return isShortMenuMode(env) ? SHORT_TAB_GROUPS : TAB_GROUPS;
+}
 
 export type Tab =
   | "agents"

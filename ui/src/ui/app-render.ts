@@ -52,7 +52,14 @@ import {
 } from "./controllers/skills.ts";
 import { loadUsage, loadSessionTimeSeries, loadSessionLogs } from "./controllers/usage.ts";
 import { icons } from "./icons.ts";
-import { normalizeBasePath, TAB_GROUPS, subtitleForTab, titleForTab } from "./navigation.ts";
+import {
+  normalizeBasePath,
+  TAB_GROUPS,
+  SHORT_TAB_GROUPS,
+  isShortMenuMode,
+  subtitleForTab,
+  titleForTab,
+} from "./navigation.ts";
 
 // Module-scope debounce for usage date changes (avoids type-unsafe hacks on state object)
 let usageDateDebounceTimeout: number | null = null;
@@ -115,6 +122,7 @@ export function renderApp(state: AppViewState) {
     state.agentsList?.defaultId ??
     state.agentsList?.agents?.[0]?.id ??
     null;
+  const tabGroups = isShortMenuMode() ? SHORT_TAB_GROUPS : TAB_GROUPS;
 
   return html`
     <div class="shell ${isChat ? "shell--chat" : ""} ${chatFocus ? "shell--chat-focus" : ""} ${state.settings.navCollapsed ? "shell--nav-collapsed" : ""} ${state.onboarding ? "shell--onboarding" : ""}">
@@ -152,7 +160,7 @@ export function renderApp(state: AppViewState) {
         </div>
       </header>
       <aside class="nav ${state.settings.navCollapsed ? "nav--collapsed" : ""}">
-        ${TAB_GROUPS.map((group) => {
+        ${tabGroups.map((group) => {
           const isGroupCollapsed = state.settings.navGroupsCollapsed[group.label] ?? false;
           const hasActiveTab = group.tabs.some((tab) => tab === state.tab);
           return html`
