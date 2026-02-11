@@ -1,4 +1,3 @@
-import type { ChatType } from "../channels/chat-type.js";
 import type { OpenClawConfig } from "../config/config.js";
 import { resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { normalizeChatType } from "../channels/chat-type.js";
@@ -12,11 +11,10 @@ import {
   sanitizeAgentId,
 } from "./session-key.js";
 
-/** @deprecated Use ChatType from channels/chat-type.js */
-export type RoutePeerKind = ChatType;
+export type RoutePeerKind = "direct" | "dm" | "group" | "channel" | "thread";
 
 export type RoutePeer = {
-  kind: ChatType;
+  kind: RoutePeerKind;
   id: string;
 };
 
