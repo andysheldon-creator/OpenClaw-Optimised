@@ -14,8 +14,8 @@ import type {
   AgentsFilesListResult,
   AgentIdentityResult,
   ChannelsStatusSnapshot,
-  ConfigSnapshot,
   ConfigUiHints,
+  ConfigSnapshot,
   CronJob,
   CronRunLogEntry,
   CronStatus,
@@ -104,6 +104,7 @@ export type AppViewState = {
   configUiHints: ConfigUiHints;
   configForm: Record<string, unknown> | null;
   configFormOriginal: Record<string, unknown> | null;
+  configFormDirty: boolean;
   configFormMode: "form" | "raw";
   configSearchQuery: string;
   configActiveSection: string | null;
@@ -118,7 +119,6 @@ export type AppViewState = {
   whatsappBusy: boolean;
   nostrProfileFormState: NostrProfileFormState | null;
   nostrProfileAccountId: string | null;
-  configFormDirty: boolean;
   presenceLoading: boolean;
   presenceEntries: PresenceEntry[];
   presenceError: string | null;
