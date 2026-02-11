@@ -335,7 +335,7 @@ export function buildConfigSchema(params?: {
 }
 
 export const OPENCLAW_CONFIG_SCHEMA_RESPONSE: ConfigSchemaResponse = {
-  schema: OpenClawSchema.toJSONSchema(),
+  schema: OpenClawSchema.toJSONSchema({ target: "draft-07", unrepresentable: "any" }),
   uiHints: applySensitiveHints(buildBaseHints()),
   version: VERSION,
   generatedAt: new Date().toISOString(),
