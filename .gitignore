@@ -71,7 +71,7 @@ apps/ios/*.mobileprovision
 .local/
 IDENTITY.md
 USER.md
-.tgz
+*.tgz
 
 # local tooling
 .serena/
