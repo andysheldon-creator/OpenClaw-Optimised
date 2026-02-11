@@ -78,6 +78,8 @@ type ConnectedTarget = {
 };
 
 const RELAY_AUTH_HEADER = "x-openclaw-relay-token";
+const SYNTHETIC_BROWSER_SESSION_ID = "openclaw-browser-session";
+const SYNTHETIC_BROWSER_TARGET_ID = "openclaw-browser-target";
 
 function headerValue(value: string | string[] | undefined): string | undefined {
   if (!value) {
@@ -282,6 +284,20 @@ export async function ensureChromeExtensionRelayServer(opts: {
       case "Target.getTargetInfo": {
         const params = (cmd.params ?? {}) as { targetId?: string };
         const targetId = typeof params.targetId === "string" ? params.targetId : undefined;
+        if (
+          targetId === SYNTHETIC_BROWSER_TARGET_ID ||
+          cmd.sessionId === SYNTHETIC_BROWSER_SESSION_ID
+        ) {
+          return {
+            targetInfo: {
+              targetId: SYNTHETIC_BROWSER_TARGET_ID,
+              type: "browser",
+              title: "OpenClaw Browser",
+              url: "",
+              attached: true,
+            },
+          };
+        }
         if (targetId) {
           for (const t of connectedTargets.values()) {
             if (t.targetId === targetId) {
@@ -310,6 +326,32 @@ export async function ensureChromeExtensionRelayServer(opts: {
           }
         }
         throw new Error("target not found");
+      }
+      case "Target.attachToBrowserTarget": {
+        // Chrome extension relay blocks this method. Playwright still calls it in some flows,
+        // so provide a synthetic browser-level session locally instead of forwarding.
+        return { sessionId: SYNTHETIC_BROWSER_SESSION_ID };
+      }
+      case "Target.detachFromTarget": {
+        const params = (cmd.params ?? {}) as { sessionId?: string; targetId?: string };
+        if (
+          params.sessionId === SYNTHETIC_BROWSER_SESSION_ID ||
+          params.targetId === SYNTHETIC_BROWSER_TARGET_ID
+        ) {
+          return {};
+        }
+
+        const id = nextExtensionId++;
+        return await sendToExtension({
+          id,
+          method: "forwardCDPCommand",
+          params: {
+            id,
+            method: cmd.method,
+            params: cmd.params,
+            sessionId: cmd.sessionId,
+          },
+        });
       }
       default: {
         const id = nextExtensionId++;
@@ -686,6 +728,24 @@ export async function ensureChromeExtensionRelayServer(opts: {
               );
             }
           }
+        }
+        if (cmd.method === "Target.attachToBrowserTarget") {
+          ws.send(
+            JSON.stringify({
+              method: "Target.attachedToTarget",
+              params: {
+                sessionId: SYNTHETIC_BROWSER_SESSION_ID,
+                targetInfo: {
+                  targetId: SYNTHETIC_BROWSER_TARGET_ID,
+                  type: "browser",
+                  title: "OpenClaw Browser",
+                  url: "",
+                  attached: true,
+                },
+                waitingForDebugger: false,
+              },
+            } satisfies CdpEvent),
+          );
         }
 
         sendResponseToCdp(ws, { id: cmd.id, sessionId: cmd.sessionId, result });

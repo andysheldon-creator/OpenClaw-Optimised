@@ -53,58 +53,59 @@ export async function fetchBrowserJson<T>(
   init?: RequestInit & { timeoutMs?: number },
 ): Promise<T> {
   const timeoutMs = init?.timeoutMs ?? 5000;
-  try {
-    if (isAbsoluteHttp(url)) {
+  if (isAbsoluteHttp(url)) {
+    try {
       return await fetchHttpJson<T>(url, { ...init, timeoutMs });
+    } catch (err) {
+      throw enhanceBrowserFetchError(url, err, timeoutMs);
     }
-    const started = await startBrowserControlServiceFromConfig();
-    if (!started) {
-      throw new Error("browser control disabled");
-    }
-    const dispatcher = createBrowserRouteDispatcher(createBrowserControlContext());
-    const parsed = new URL(url, "http://localhost");
-    const query: Record<string, unknown> = {};
-    for (const [key, value] of parsed.searchParams.entries()) {
-      query[key] = value;
-    }
-    let body = init?.body;
-    if (typeof body === "string") {
-      try {
-        body = JSON.parse(body);
-      } catch {
-        // keep as string
-      }
-    }
-    const dispatchPromise = dispatcher.dispatch({
-      method:
-        init?.method?.toUpperCase() === "DELETE"
-          ? "DELETE"
-          : init?.method?.toUpperCase() === "POST"
-            ? "POST"
-            : "GET",
-      path: parsed.pathname,
-      query,
-      body,
-    });
-
-    const result = await (timeoutMs
-      ? Promise.race([
-          dispatchPromise,
-          new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error("timed out")), timeoutMs),
-          ),
-        ])
-      : dispatchPromise);
-
-    if (result.status >= 400) {
-      const message =
-        result.body && typeof result.body === "object" && "error" in result.body
-          ? String((result.body as { error?: unknown }).error)
-          : `HTTP ${result.status}`;
-      throw new Error(message);
-    }
-    return result.body as T;
-  } catch (err) {
-    throw enhanceBrowserFetchError(url, err, timeoutMs);
   }
+
+  const started = await startBrowserControlServiceFromConfig();
+  if (!started) {
+    throw new Error("browser control disabled");
+  }
+  const dispatcher = createBrowserRouteDispatcher(createBrowserControlContext());
+  const parsed = new URL(url, "http://localhost");
+  const query: Record<string, unknown> = {};
+  for (const [key, value] of parsed.searchParams.entries()) {
+    query[key] = value;
+  }
+  let body = init?.body;
+  if (typeof body === "string") {
+    try {
+      body = JSON.parse(body);
+    } catch {
+      // keep as string
+    }
+  }
+  const dispatchPromise = dispatcher.dispatch({
+    method:
+      init?.method?.toUpperCase() === "DELETE"
+        ? "DELETE"
+        : init?.method?.toUpperCase() === "POST"
+          ? "POST"
+          : "GET",
+    path: parsed.pathname,
+    query,
+    body,
+  });
+
+  const result = await (timeoutMs
+    ? Promise.race([
+        dispatchPromise,
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("timed out")), timeoutMs),
+        ),
+      ])
+    : dispatchPromise);
+
+  if (result.status >= 400) {
+    const message =
+      result.body && typeof result.body === "object" && "error" in result.body
+        ? String((result.body as { error?: unknown }).error)
+        : `HTTP ${result.status}`;
+    throw new Error(message);
+  }
+  return result.body as T;
 }

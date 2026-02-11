@@ -298,6 +298,71 @@ describe("chrome extension relay server", () => {
     ext.close();
   }, 15_000);
 
+  it("handles attachToBrowserTarget without forwarding to extension", async () => {
+    const port = await getFreePort();
+    cdpUrl = `http://127.0.0.1:${port}`;
+    await ensureChromeExtensionRelayServer({ cdpUrl });
+
+    const ext = new WebSocket(`ws://127.0.0.1:${port}/extension`);
+    await waitForOpen(ext);
+
+    const forwardedMethods: string[] = [];
+    // If relay forwards attachToBrowserTarget, force an explicit extension error.
+    ext.on("message", (raw) => {
+      const txt = Buffer.isBuffer(raw) ? raw.toString("utf8") : String(raw);
+      let msg: { id?: number; params?: { method?: string } } | null = null;
+      try {
+        msg = JSON.parse(txt) as { id?: number; params?: { method?: string } };
+      } catch {
+        return;
+      }
+      if (msg?.params?.method) {
+        forwardedMethods.push(msg.params.method);
+      }
+      if (msg?.id && msg?.params?.method === "Target.attachToBrowserTarget") {
+        ext.send(JSON.stringify({ id: msg.id, error: "Not allowed" }));
+      }
+      if (msg?.id && msg?.params?.method === "Target.detachFromTarget") {
+        ext.send(JSON.stringify({ id: msg.id, result: {} }));
+      }
+    });
+
+    const cdp = new WebSocket(`ws://127.0.0.1:${port}/cdp`, {
+      headers: relayAuthHeaders(`ws://127.0.0.1:${port}/cdp`),
+    });
+    await waitForOpen(cdp);
+    const q = createMessageQueue(cdp);
+
+    cdp.send(JSON.stringify({ id: 7, method: "Target.attachToBrowserTarget" }));
+    const m1 = JSON.parse(await q.next()) as {
+      id?: number;
+      result?: { sessionId?: string };
+      error?: { message?: string };
+    };
+    const m2 = JSON.parse(await q.next()) as {
+      id?: number;
+      result?: { sessionId?: string };
+      error?: { message?: string };
+    };
+    const response = m1.id === 7 ? m1 : m2;
+
+    expect(response.id).toBe(7);
+    expect(response.error).toBeUndefined();
+    expect(response.result?.sessionId).toBe("openclaw-browser-session");
+    expect(forwardedMethods).not.toContain("Target.attachToBrowserTarget");
+
+    cdp.send(
+      JSON.stringify({ id: 8, method: "Target.detachFromTarget", params: { targetId: "t1" } }),
+    );
+    const detachResponse = JSON.parse(await q.next()) as { id?: number; result?: unknown };
+    expect(detachResponse.id).toBe(8);
+    expect(detachResponse.result).toEqual({});
+    expect(forwardedMethods).toContain("Target.detachFromTarget");
+
+    cdp.close();
+    ext.close();
+  });
+
   it("rebroadcasts attach when a session id is reused for a new target", async () => {
     const port = await getFreePort();
     cdpUrl = `http://127.0.0.1:${port}`;
