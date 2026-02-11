@@ -77,6 +77,24 @@ export const HelloOkSchema = Type.Object(
         commit: Type.Optional(NonEmptyString),
         host: Type.Optional(NonEmptyString),
         connId: NonEmptyString,
+        identity: Type.Optional(
+          Type.Object(
+            {
+              kind: Type.Union([Type.Literal("upstream"), Type.Literal("fork")]),
+              mode: Type.Union([
+                Type.Literal("auto"),
+                Type.Literal("upstream"),
+                Type.Literal("fork"),
+              ]),
+              source: Type.Union([
+                Type.Literal("default"),
+                Type.Literal("config"),
+                Type.Literal("env"),
+              ]),
+            },
+            { additionalProperties: false },
+          ),
+        ),
       },
       { additionalProperties: false },
     ),

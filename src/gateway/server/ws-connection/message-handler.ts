@@ -27,6 +27,7 @@ import { rawDataToString } from "../../../infra/ws.js";
 import { isGatewayCliClient, isWebchatClient } from "../../../utils/message-channel.js";
 import { authorizeGatewayConnect, isLocalDirectRequest } from "../../auth.js";
 import { buildDeviceAuthPayload } from "../../device-auth.js";
+import { resolveGatewayInstanceIdentity } from "../../instance-identity.js";
 import { isLoopbackAddress, isTrustedProxyAddress, resolveGatewayClientIp } from "../../net.js";
 import { resolveNodeCommandAllowlist } from "../../node-command-policy.js";
 import { checkBrowserOrigin } from "../../origin-check.js";
@@ -192,6 +193,7 @@ export function attachGatewayWsMessageHandler(params: {
   } = params;
 
   const configSnapshot = loadConfig();
+  const gatewayIdentity = resolveGatewayInstanceIdentity({ cfg: configSnapshot, env: process.env });
   const trustedProxies = configSnapshot.gateway?.trustedProxies ?? [];
   const clientIp = resolveGatewayClientIp({ remoteAddr, forwardedFor, realIp, trustedProxies });
 
@@ -852,6 +854,7 @@ export function attachGatewayWsMessageHandler(params: {
             commit: process.env.GIT_COMMIT,
             host: os.hostname(),
             connId,
+            identity: gatewayIdentity,
           },
           features: { methods: gatewayMethods, events },
           snapshot,
