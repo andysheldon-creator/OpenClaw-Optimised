@@ -21,6 +21,7 @@ export interface SSHSession {
   lastActivity: number;
   buffer: string;
   promptPattern: RegExp;
+  commandQueue: Promise<void>;
 }
 
 export interface SSHSessionManagerOptions {
@@ -295,6 +296,7 @@ export class SSHSessionManager {
                 lastActivity: Date.now(),
                 buffer: "",
                 promptPattern,
+                commandQueue: Promise.resolve(),
               };
 
               this.sessions.set(sessionId, session);
@@ -337,6 +339,17 @@ export class SSHSessionManager {
       throw new Error(`Session not found: ${sessionId}`);
     }
 
+    // Wait for previous command to finish
+    await session.commandQueue;
+
+    // Execute this command and update the queue
+    const commandPromise = this.executeCommandInternal(session, command);
+    session.commandQueue = commandPromise.catch(() => {}); // Swallow errors to not block queue
+
+    return commandPromise;
+  }
+
+  private async executeCommandInternal(session: SSHSession, command: string): Promise<string> {
     session.lastActivity = Date.now();
     session.buffer = "";
 
