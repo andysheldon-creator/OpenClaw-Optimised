@@ -20,17 +20,10 @@ class AppUpdateHandler(
   fun handleUpdate(paramsJson: String?): GatewaySession.InvokeResult {
     try {
       val url = paramsJson?.let { raw ->
-        val urlKey = "\"url\""
-        val idx = raw.indexOf(urlKey)
-        if (idx < 0) null else {
-          val colon = raw.indexOf(':', idx + urlKey.length)
-          if (colon < 0) null else {
-            val tail = raw.substring(colon + 1).trimStart()
-            if (tail.startsWith("\"")) {
-              val end = tail.indexOf('"', 1)
-              if (end > 1) tail.substring(1, end) else null
-            } else null
-          }
+        try {
+          Json.parseToJsonElement(raw).jsonObject["url"]?.jsonPrimitive?.content
+        } catch (e: Exception) {
+          null
         }
       } ?: return GatewaySession.InvokeResult.error(
         code = "INVALID_REQUEST",

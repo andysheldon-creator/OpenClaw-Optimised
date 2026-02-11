@@ -378,20 +378,6 @@ class GatewaySession(
         )
       val signature = identityStore.signPayload(payload, identity)
       val publicKey = identityStore.publicKeyBase64Url(identity)
-      Log.w("DeviceAuth", "=== DEVICE AUTH DEBUG ===")
-      Log.w("DeviceAuth", "deviceId=${identity.deviceId}")
-      Log.w("DeviceAuth", "publicKey=${publicKey ?: "NULL"}")
-      Log.w("DeviceAuth", "signature=${signature ?: "NULL"}")
-      Log.w("DeviceAuth", "payload=$payload")
-      Log.w("DeviceAuth", "nonce=$connectNonce")
-      Log.w("DeviceAuth", "signedAt=$signedAtMs")
-      if (signature == null) Log.e("DeviceAuth", "SIGNING FAILED - signPayload returned null!")
-      if (publicKey == null) Log.e("DeviceAuth", "PUBLIC KEY FAILED - publicKeyBase64Url returned null!")
-      // Self-test: verify our own signature
-      if (signature != null && publicKey != null) {
-        val selfTestOk = identityStore.verifySelfSignature(payload, signature, identity)
-        Log.w("DeviceAuth", "self-test verify=${selfTestOk}")
-      }
       val deviceJson =
         if (!signature.isNullOrBlank() && !publicKey.isNullOrBlank()) {
           buildJsonObject {
