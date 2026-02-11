@@ -238,7 +238,6 @@ function createMockAccount(
     configured: true,
     config: {
       serverUrl: "http://localhost:1234",
-      password: "test-password",
       dmPolicy: "open",
       groupPolicy: "open",
       allowFrom: [],
@@ -546,7 +545,7 @@ describe("BlueBubbles webhook monitor", () => {
       expect(res.statusCode).toBe(401);
     });
 
-    it("allows localhost requests without authentication", async () => {
+    it("requires authentication for localhost requests when password is configured", async () => {
       const account = createMockAccount({ password: "secret-token" });
       const config: OpenClawConfig = {};
       const core = createMockRuntime();
@@ -579,7 +578,7 @@ describe("BlueBubbles webhook monitor", () => {
       const handled = await handleBlueBubblesWebhookRequest(req, res);
 
       expect(handled).toBe(true);
-      expect(res.statusCode).toBe(200);
+      expect(res.statusCode).toBe(401);
     });
 
     it("ignores unregistered webhook paths", async () => {
