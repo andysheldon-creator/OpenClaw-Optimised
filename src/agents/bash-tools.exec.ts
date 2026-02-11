@@ -1382,7 +1382,9 @@ export function createExecTool(
                 scopeKey: defaults?.scopeKey,
                 sessionKey: notifySessionKey,
                 timeoutSec: effectiveTimeout,
+                onUpdate,
               });
+              markBackgrounded(run.session);
             } catch {
               emitExecSystemEvent(
                 `Exec denied (gateway id=${approvalId}, spawn-failed): ${commandText}`,
@@ -1426,51 +1428,60 @@ export function createExecTool(
               }, approvalRunningNoticeMs);
             }
 
-            const outcome = await run.promise;
-            if (runningTimer) {
-              clearTimeout(runningTimer);
-            }
-            const output = normalizeNotifyOutput(
-              tail(outcome.aggregated || "", DEFAULT_NOTIFY_TAIL_CHARS),
-            );
-            const exitLabel = outcome.timedOut ? "timeout" : `code ${outcome.exitCode ?? "?"}`;
-            const summary = output
-              ? `Exec finished (gateway id=${approvalId}, session=${run.session.id}, ${exitLabel})\n${output}`
-              : `Exec finished (gateway id=${approvalId}, session=${run.session.id}, ${exitLabel})`;
-            emitExecSystemEvent(summary, { sessionKey: notifySessionKey, contextKey });
+            try {
+              const outcome = await run.promise;
+              if (runningTimer) {
+                clearTimeout(runningTimer);
+              }
+              const output = normalizeNotifyOutput(
+                tail(outcome.aggregated || "", DEFAULT_NOTIFY_TAIL_CHARS),
+              );
+              const exitLabel = outcome.timedOut ? "timeout" : `code ${outcome.exitCode ?? "?"}`;
+              const summary = output
+                ? `Exec finished (gateway id=${approvalId}, session=${run.session.id}, ${exitLabel})\n${output}`
+                : `Exec finished (gateway id=${approvalId}, session=${run.session.id}, ${exitLabel})`;
+              emitExecSystemEvent(summary, { sessionKey: notifySessionKey, contextKey });
 
-            if (outcome.status === "failed") {
+              if (outcome.status === "failed") {
+                return {
+                  content: [
+                    {
+                      type: "text",
+                      text: `${getWarningText()}${outcome.aggregated || outcome.reason || "Command failed."}`,
+                    },
+                  ],
+                  details: {
+                    status: "failed",
+                    exitCode: outcome.exitCode ?? null,
+                    durationMs: outcome.durationMs,
+                    aggregated: outcome.aggregated ?? "",
+                    cwd: run.session.cwd,
+                  },
+                };
+              }
               return {
                 content: [
                   {
                     type: "text",
-                    text: `${getWarningText()}${outcome.aggregated || outcome.reason || "Command failed."}`,
+                    text: `${getWarningText()}${outcome.aggregated || "(no output)"}`,
                   },
                 ],
                 details: {
-                  status: "failed",
-                  exitCode: outcome.exitCode ?? null,
+                  status: "completed",
+                  exitCode: outcome.exitCode ?? 0,
                   durationMs: outcome.durationMs,
                   aggregated: outcome.aggregated ?? "",
                   cwd: run.session.cwd,
                 },
               };
+            } finally {
+              if (runningTimer) {
+                clearTimeout(runningTimer);
+              }
+              if (signal && !signal.aborted) {
+                signal.removeEventListener("abort", onAbortSignal);
+              }
             }
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `${getWarningText()}${outcome.aggregated || "(no output)"}`,
-                },
-              ],
-              details: {
-                status: "completed",
-                exitCode: outcome.exitCode ?? 0,
-                durationMs: outcome.durationMs,
-                aggregated: outcome.aggregated ?? "",
-                cwd: run.session.cwd,
-              },
-            };
           })();
         }
 
