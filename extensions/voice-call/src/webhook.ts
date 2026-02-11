@@ -164,10 +164,11 @@ export class VoiceCallWebhookServer {
         if (this.provider.name === "twilio") {
           (this.provider as TwilioProvider).clearTtsQueue(providerCallId);
         }
-        // Stop filler on barge-in
+        // Stop filler and clear streaming TTS on barge-in
         const streamSid = this.callStreamSids.get(providerCallId);
         if (streamSid) {
           this.silenceFiller?.stop(streamSid);
+          this.mediaStreamHandler?.clearTtsQueue(streamSid);
         }
       },
       onPartialTranscript: (callId, partial) => {
