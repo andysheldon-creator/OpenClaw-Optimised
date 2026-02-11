@@ -49,6 +49,8 @@ type MessageSendParams = {
     mediaUrls?: string[];
   };
   abortSignal?: AbortSignal;
+  /** Thread/topic ID to forward to deliverOutboundPayloads (e.g., Feishu topic root_id). */
+  threadId?: string;
 };
 
 export type MessageSendResult = {
@@ -164,6 +166,7 @@ export async function sendMessage(params: MessageSendParams): Promise<MessageSen
       channel: outboundChannel,
       to: resolvedTarget.to,
       accountId: params.accountId,
+      threadId: params.threadId,
       payloads: normalizedPayloads,
       gifPlayback: params.gifPlayback,
       deps: params.deps,

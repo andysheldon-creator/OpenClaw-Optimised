@@ -247,6 +247,8 @@ export type ChannelThreadingToolContext = {
   currentChannelId?: string;
   currentChannelProvider?: ChannelId;
   currentThreadTs?: string;
+  /** Thread/topic ID for channels that use non-timestamp-based threading (e.g., Feishu topic root_id). */
+  currentThreadId?: string;
   replyToMode?: "off" | "first" | "all";
   hasRepliedRef?: { value: boolean };
   /**

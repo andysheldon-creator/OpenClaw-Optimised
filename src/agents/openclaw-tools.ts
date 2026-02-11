@@ -83,6 +83,7 @@ export function createOpenClawTools(options?: {
         currentChannelId: options?.currentChannelId,
         currentChannelProvider: options?.agentChannel,
         currentThreadTs: options?.currentThreadTs,
+        currentThreadId: options?.agentThreadId,
         replyToMode: options?.replyToMode,
         hasRepliedRef: options?.hasRepliedRef,
         sandboxRoot: options?.sandboxRoot,

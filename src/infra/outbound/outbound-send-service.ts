@@ -124,6 +124,7 @@ export async function executeSendAction(params: {
     gateway: params.ctx.gateway,
     mirror: params.ctx.mirror,
     abortSignal: params.ctx.abortSignal,
+    threadId: params.ctx.params?.threadId ?? undefined,
   });
 
   return {
