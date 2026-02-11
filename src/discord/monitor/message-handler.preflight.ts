@@ -49,6 +49,7 @@ import {
 } from "./format.js";
 import { resolveDiscordChannelInfo, resolveDiscordMessageText } from "./message-utils.js";
 import { resolveDiscordSenderIdentity, resolveDiscordWebhookId } from "./sender-identity.js";
+import { isSiblingBot as isSiblingBotCheck } from "./sibling-bots.js";
 import { resolveDiscordSystemEvent } from "./system-events.js";
 import { resolveDiscordThreadChannel, resolveDiscordThreadParentInfo } from "./threading.js";
 
@@ -73,6 +74,11 @@ export async function preflightDiscordMessage(
     return null;
   }
 
+  // Check if the author is a sibling bot (a different Discord account in the
+  // same OpenClaw instance).  Sibling bots bypass bot filtering and mention
+  // gating so multi-agent setups work correctly.
+  const isSibling = Boolean(author.bot && isSiblingBotCheck(params.accountId, author.id));
+
   const pluralkitConfig = params.discordConfig?.pluralkit;
   const webhookId = resolveDiscordWebhookId(message);
   const shouldCheckPluralKit = Boolean(pluralkitConfig?.enabled) && !webhookId;
@@ -94,7 +100,7 @@ export async function preflightDiscordMessage(
   });
 
   if (author.bot) {
-    if (!allowBots && !sender.isPluralKit) {
+    if (!isSibling && !allowBots && !sender.isPluralKit) {
       logVerbose("discord: drop bot message (allowBots=false)");
       return null;
     }
@@ -466,7 +472,7 @@ export async function preflightDiscordMessage(
     commandAuthorized,
   });
   const effectiveWasMentioned = mentionGate.effectiveWasMentioned;
-  if (isGuildMessage && shouldRequireMention) {
+  if (isGuildMessage && shouldRequireMention && !isSibling) {
     if (botId && mentionGate.shouldSkip) {
       logVerbose(`discord: drop guild message (mention required, botId=${botId})`);
       logger.info(
@@ -529,6 +535,7 @@ export async function preflightDiscordMessage(
     token: params.token,
     runtime: params.runtime,
     botUserId: params.botUserId,
+    isSiblingBot: isSibling,
     guildHistories: params.guildHistories,
     historyLimit: params.historyLimit,
     mediaMaxBytes: params.mediaMaxBytes,
