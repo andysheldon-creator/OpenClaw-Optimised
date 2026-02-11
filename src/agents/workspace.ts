@@ -294,12 +294,41 @@ export async function loadWorkspaceBootstrapFiles(dir: string): Promise<Workspac
 
 const SUBAGENT_BOOTSTRAP_ALLOWLIST = new Set([DEFAULT_AGENTS_FILENAME, DEFAULT_TOOLS_FILENAME]);
 
+/**
+ * Files to load during heartbeat runs.
+ * Heartbeats only need HEARTBEAT.md (task checklist) and AGENTS.md (identity/rules).
+ */
+const HEARTBEAT_BOOTSTRAP_ALLOWLIST = new Set([
+  DEFAULT_HEARTBEAT_FILENAME,
+  DEFAULT_AGENTS_FILENAME,
+  DEFAULT_IDENTITY_FILENAME,
+]);
+
+/**
+ * Files to exclude from normal (non-heartbeat) DM sessions.
+ * HEARTBEAT.md contains instructions for the heartbeat poller and is not
+ * needed during interactive conversations.
+ */
+const DM_BOOTSTRAP_EXCLUDELIST = new Set([DEFAULT_HEARTBEAT_FILENAME]);
+
+export type FilterBootstrapOptions = {
+  /** When true, apply heartbeat-specific file filtering. */
+  isHeartbeat?: boolean;
+};
+
 export function filterBootstrapFilesForSession(
   files: WorkspaceBootstrapFile[],
   sessionKey?: string,
+  opts?: FilterBootstrapOptions,
 ): WorkspaceBootstrapFile[] {
-  if (!sessionKey || !isSubagentSessionKey(sessionKey)) {
-    return files;
+  // Subagent sessions: minimal context (existing behavior)
+  if (sessionKey && isSubagentSessionKey(sessionKey)) {
+    return files.filter((file) => SUBAGENT_BOOTSTRAP_ALLOWLIST.has(file.name));
   }
-  return files.filter((file) => SUBAGENT_BOOTSTRAP_ALLOWLIST.has(file.name));
+  // Heartbeat sessions: only heartbeat-relevant files
+  if (opts?.isHeartbeat) {
+    return files.filter((file) => HEARTBEAT_BOOTSTRAP_ALLOWLIST.has(file.name));
+  }
+  // Normal DM sessions: exclude heartbeat instructions
+  return files.filter((file) => !DM_BOOTSTRAP_EXCLUDELIST.has(file.name));
 }

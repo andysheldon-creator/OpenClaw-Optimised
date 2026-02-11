@@ -102,4 +102,6 @@ export type RunEmbeddedPiAgentParams = {
   streamParams?: AgentStreamParams;
   ownerNumbers?: string[];
   enforceFinalTag?: boolean;
+  /** When true, this run is a heartbeat poll — used to filter bootstrap files. */
+  isHeartbeat?: boolean;
 };

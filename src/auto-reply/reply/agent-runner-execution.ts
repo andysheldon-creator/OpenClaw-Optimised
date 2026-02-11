@@ -286,6 +286,7 @@ export async function runAgentTurnWithFallback(params: {
             extraSystemPrompt: params.followupRun.run.extraSystemPrompt,
             ownerNumbers: params.followupRun.run.ownerNumbers,
             enforceFinalTag: resolveEnforceFinalTag(params.followupRun.run, provider),
+            isHeartbeat: params.isHeartbeat,
             provider,
             model,
             authProfileId,

@@ -5,6 +5,7 @@ import { buildBootstrapContextFiles, resolveBootstrapMaxChars } from "./pi-embed
 import {
   filterBootstrapFilesForSession,
   loadWorkspaceBootstrapFiles,
+  type FilterBootstrapOptions,
   type WorkspaceBootstrapFile,
 } from "./workspace.js";
 
@@ -24,11 +25,16 @@ export async function resolveBootstrapFilesForRun(params: {
   sessionKey?: string;
   sessionId?: string;
   agentId?: string;
+  isHeartbeat?: boolean;
 }): Promise<WorkspaceBootstrapFile[]> {
   const sessionKey = params.sessionKey ?? params.sessionId;
+  const filterOpts: FilterBootstrapOptions | undefined = params.isHeartbeat
+    ? { isHeartbeat: true }
+    : undefined;
   const bootstrapFiles = filterBootstrapFilesForSession(
     await loadWorkspaceBootstrapFiles(params.workspaceDir),
     sessionKey,
+    filterOpts,
   );
   return applyBootstrapHookOverrides({
     files: bootstrapFiles,
@@ -46,6 +52,7 @@ export async function resolveBootstrapContextForRun(params: {
   sessionKey?: string;
   sessionId?: string;
   agentId?: string;
+  isHeartbeat?: boolean;
   warn?: (message: string) => void;
 }): Promise<{
   bootstrapFiles: WorkspaceBootstrapFile[];
