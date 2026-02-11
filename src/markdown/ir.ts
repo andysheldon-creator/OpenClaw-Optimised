@@ -503,7 +503,9 @@ function renderTableAsCode(state: RenderState) {
 }
 
 function renderTokens(tokens: MarkdownToken[], state: RenderState): void {
-  for (const token of tokens) {
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i];
+    const nextToken = tokens[i + 1];
     switch (token.type) {
       case "inline":
         if (token.children) {
@@ -561,7 +563,10 @@ function renderTokens(tokens: MarkdownToken[], state: RenderState): void {
         appendText(state, "\n");
         break;
       case "paragraph_close":
-        appendParagraphSeparator(state);
+        // Skip separator if next token is a list (no blank line between header and list)
+        if (nextToken?.type !== "bullet_list_open" && nextToken?.type !== "ordered_list_open") {
+          appendParagraphSeparator(state);
+        }
         break;
       case "heading_open":
         if (state.headingStyle === "bold") {
@@ -572,7 +577,10 @@ function renderTokens(tokens: MarkdownToken[], state: RenderState): void {
         if (state.headingStyle === "bold") {
           closeStyle(state, "bold");
         }
-        appendParagraphSeparator(state);
+        // Skip separator if next token is a list (no blank line between header and list)
+        if (nextToken?.type !== "bullet_list_open" && nextToken?.type !== "ordered_list_open") {
+          appendParagraphSeparator(state);
+        }
         break;
       case "blockquote_open":
         if (state.blockquotePrefix) {
@@ -587,6 +595,10 @@ function renderTokens(tokens: MarkdownToken[], state: RenderState): void {
         break;
       case "bullet_list_close":
         state.env.listStack.pop();
+        // Add blank line after top-level lists
+        if (state.env.listStack.length === 0) {
+          appendParagraphSeparator(state);
+        }
         break;
       case "ordered_list_open": {
         const start = Number(getAttr(token, "start") ?? "1");
@@ -595,6 +607,10 @@ function renderTokens(tokens: MarkdownToken[], state: RenderState): void {
       }
       case "ordered_list_close":
         state.env.listStack.pop();
+        // Add blank line after top-level lists
+        if (state.env.listStack.length === 0) {
+          appendParagraphSeparator(state);
+        }
         break;
       case "list_item_open":
         appendListPrefix(state);
