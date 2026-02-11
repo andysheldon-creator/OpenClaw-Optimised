@@ -192,6 +192,14 @@ const entries: SubCliEntry[] = [
     },
   },
   {
+    name: "rube",
+    description: "Rube MCP integration - connect to 500+ apps",
+    register: async (program) => {
+      const { registerPluginCliCommands } = await import("../../plugins/cli.js");
+      registerPluginCliCommands(program, await loadConfig());
+    },
+  },
+  {
     name: "channels",
     description: "Channel management",
     register: async (program) => {

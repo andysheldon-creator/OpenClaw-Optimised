@@ -1,0 +1,40 @@
+{
+  "id": "rube-mcp",
+  "name": "Rube MCP",
+  "description": "Connect to 500+ apps via Rube MCP - Gmail, Slack, GitHub, and more",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "enabled": {
+        "type": "boolean",
+        "description": "Enable Rube MCP integration",
+        "default": true
+      },
+      "oauth": {
+        "type": "object",
+        "description": "OAuth credentials (managed by 'clawdbot rube login')",
+        "properties": {
+          "accessToken": { "type": "string" },
+          "refreshToken": { "type": "string" },
+          "expiresAt": { "type": "number" },
+          "clientId": { "type": "string" }
+        },
+        "required": ["accessToken", "expiresAt", "clientId"]
+      },
+      "cachedTools": {
+        "type": "array",
+        "description": "Cached tool definitions (managed by 'clawdbot rube login/refresh')",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "description": { "type": "string" },
+            "inputSchema": { "type": "object" }
+          },
+          "required": ["name", "inputSchema"]
+        }
+      }
+    }
+  }
+}

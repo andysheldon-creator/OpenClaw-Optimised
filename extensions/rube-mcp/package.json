@@ -1,0 +1,21 @@
+{
+  "name": "@clawdbot/rube-mcp",
+  "version": "1.0.0",
+  "description": "Rube MCP integration for Clawdbot - connect to 500+ apps",
+  "type": "module",
+  "main": "index.ts",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.3"
+  },
+  "devDependencies": {
+    "clawdbot": "workspace:*",
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "clawdbot": "*"
+  }
+}
