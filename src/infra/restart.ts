@@ -150,6 +150,7 @@ export function triggerOpenClawRestart(): RestartAttempt {
     resolveGatewayLaunchAgentLabel(process.env.OPENCLAW_PROFILE);
   const uid = typeof process.getuid === "function" ? process.getuid() : undefined;
   const target = uid !== undefined ? `gui/${uid}/${label}` : label;
+  const domain = uid !== undefined ? `gui/${uid}` : "";
   const args = ["kickstart", "-k", target];
   tried.push(`launchctl ${args.join(" ")}`);
   const res = spawnSync("launchctl", args, {
@@ -159,6 +160,41 @@ export function triggerOpenClawRestart(): RestartAttempt {
   if (!res.error && res.status === 0) {
     return { ok: true, method: "launchctl", tried };
   }
+
+  // Kickstart can fail when launchd has unloaded the service (e.g. after
+  // interpreting rapid SIGUSR1 restarts as a crash loop).  Re-bootstrap
+  // the plist and retry once.
+  const home = process.env.HOME || "";
+  const plistPath = home ? `${home}/Library/LaunchAgents/${label}.plist` : "";
+  if (plistPath && domain) {
+    // bootout first (ignore failure — service may already be unloaded)
+    const bootoutArgs = ["bootout", domain, plistPath];
+    tried.push(`launchctl ${bootoutArgs.join(" ")}`);
+    spawnSync("launchctl", bootoutArgs, {
+      encoding: "utf8",
+      timeout: SPAWN_TIMEOUT_MS,
+    });
+    // Re-bootstrap
+    const bootstrapArgs = ["bootstrap", domain, plistPath];
+    tried.push(`launchctl ${bootstrapArgs.join(" ")}`);
+    const bootstrapRes = spawnSync("launchctl", bootstrapArgs, {
+      encoding: "utf8",
+      timeout: SPAWN_TIMEOUT_MS,
+    });
+    if (!bootstrapRes.error && bootstrapRes.status === 0) {
+      // Retry kickstart after re-registration
+      const retryArgs = ["kickstart", "-k", target];
+      tried.push(`launchctl ${retryArgs.join(" ")} (retry)`);
+      const retryRes = spawnSync("launchctl", retryArgs, {
+        encoding: "utf8",
+        timeout: SPAWN_TIMEOUT_MS,
+      });
+      if (!retryRes.error && retryRes.status === 0) {
+        return { ok: true, method: "launchctl", tried };
+      }
+    }
+  }
+
   return {
     ok: false,
     method: "launchctl",
