@@ -146,20 +146,99 @@ describe("web_search grok config resolution", () => {
 
 describe("web_search grok response parsing", () => {
   it("extracts content from Responses API output blocks", () => {
-    expect(
-      extractGrokContent({
-        output: [
-          {
-            content: [{ text: "hello from output" }],
-          },
-        ],
-      }),
-    ).toBe("hello from output");
+    const result = extractGrokContent({
+      output: [
+        {
+          type: "message",
+          content: [{ type: "output_text", text: "hello from output" }],
+        },
+      ],
+    });
+    expect(result.text).toBe("hello from output");
+    expect(result.annotations).toBeUndefined();
+  });
+
+  it("extracts annotations from content blocks", () => {
+    const result = extractGrokContent({
+      output: [
+        {
+          type: "message",
+          content: [
+            {
+              type: "output_text",
+              text: "hello with citation",
+              annotations: [
+                {
+                  type: "url_citation",
+                  url: "https://example.com",
+                  start_index: 0,
+                  end_index: 5,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    expect(result.text).toBe("hello with citation");
+    expect(result.annotations).toEqual([
+      { start_index: 0, end_index: 5, url: "https://example.com" },
+    ]);
   });
 
   it("falls back to deprecated output_text", () => {
-    expect(extractGrokContent({ output_text: "hello from output_text" })).toBe(
-      "hello from output_text",
-    );
+    const result = extractGrokContent({ output_text: "hello from output_text" });
+    expect(result.text).toBe("hello from output_text");
+    expect(result.annotations).toBeUndefined();
+  });
+
+  it("returns undefined text when no content found", () => {
+    const result = extractGrokContent({});
+    expect(result.text).toBeUndefined();
+    expect(result.annotations).toBeUndefined();
+  });
+
+  it("adjusts annotation offsets when concatenating multiple blocks", () => {
+    const result = extractGrokContent({
+      output: [
+        {
+          type: "message",
+          content: [
+            {
+              type: "output_text",
+              text: "hello", // length 5
+              annotations: [
+                { type: "url_citation", url: "https://a.com", start_index: 0, end_index: 5 },
+              ],
+            },
+            {
+              type: "output_text",
+              text: "world", // offset = 5 + 1 ("\n") = 6
+              annotations: [
+                { type: "url_citation", url: "https://b.com", start_index: 0, end_index: 5 },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    expect(result.text).toBe("hello\nworld");
+    expect(result.annotations).toEqual([
+      { start_index: 0, end_index: 5, url: "https://a.com" },
+      { start_index: 6, end_index: 11, url: "https://b.com" },
+    ]);
+  });
+
+  it("skips non-message output items", () => {
+    const result = extractGrokContent({
+      output: [
+        { type: "web_search_call" },
+        {
+          type: "message",
+          content: [{ type: "output_text", text: "actual content" }],
+        },
+      ],
+    });
+    expect(result.text).toBe("actual content");
   });
 });
