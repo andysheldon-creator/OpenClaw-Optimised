@@ -31,6 +31,7 @@ import { enforceEmbeddingMaxInputTokens } from "./embedding-chunk-limits.js";
 import { estimateUtf8Bytes } from "./embedding-input-limits.js";
 import { DEFAULT_GEMINI_EMBEDDING_MODEL } from "./embeddings-gemini.js";
 import { DEFAULT_OPENAI_EMBEDDING_MODEL } from "./embeddings-openai.js";
+import { DEFAULT_VERTEX_EMBEDDING_MODEL } from "./embeddings-vertex.js";
 import { DEFAULT_VOYAGE_EMBEDDING_MODEL } from "./embeddings-voyage.js";
 import {
   createEmbeddingProvider,
@@ -38,6 +39,7 @@ import {
   type EmbeddingProviderResult,
   type GeminiEmbeddingClient,
   type OpenAiEmbeddingClient,
+  type VertexEmbeddingClient,
   type VoyageEmbeddingClient,
 } from "./embeddings.js";
 import { bm25RankToScore, buildFtsQuery, mergeHybridResults } from "./hybrid.js";
@@ -115,11 +117,18 @@ export class MemoryIndexManager implements MemorySearchManager {
   private readonly workspaceDir: string;
   private readonly settings: ResolvedMemorySearchConfig;
   private provider: EmbeddingProvider;
-  private readonly requestedProvider: "openai" | "local" | "gemini" | "voyage" | "auto";
-  private fallbackFrom?: "openai" | "local" | "gemini" | "voyage";
+  private readonly requestedProvider:
+    | "openai"
+    | "local"
+    | "gemini"
+    | "voyage"
+    | "google-vertex"
+    | "auto";
+  private fallbackFrom?: "openai" | "local" | "gemini" | "voyage" | "google-vertex";
   private fallbackReason?: string;
   private openAi?: OpenAiEmbeddingClient;
   private gemini?: GeminiEmbeddingClient;
+  private vertex?: VertexEmbeddingClient;
   private voyage?: VoyageEmbeddingClient;
   private batch: {
     enabled: boolean;
@@ -221,6 +230,7 @@ export class MemoryIndexManager implements MemorySearchManager {
     this.fallbackReason = params.providerResult.fallbackReason;
     this.openAi = params.providerResult.openAi;
     this.gemini = params.providerResult.gemini;
+    this.vertex = params.providerResult.vertex;
     this.voyage = params.providerResult.voyage;
     this.sources = new Set(params.settings.sources);
     this.db = this.openDatabase();
@@ -1371,7 +1381,12 @@ export class MemoryIndexManager implements MemorySearchManager {
     if (this.fallbackFrom) {
       return false;
     }
-    const fallbackFrom = this.provider.id as "openai" | "gemini" | "local" | "voyage";
+    const fallbackFrom = this.provider.id as
+      | "openai"
+      | "gemini"
+      | "local"
+      | "voyage"
+      | "google-vertex";
 
     const fallbackModel =
       fallback === "gemini"
@@ -1380,7 +1395,9 @@ export class MemoryIndexManager implements MemorySearchManager {
           ? DEFAULT_OPENAI_EMBEDDING_MODEL
           : fallback === "voyage"
             ? DEFAULT_VOYAGE_EMBEDDING_MODEL
-            : this.settings.model;
+            : fallback === "google-vertex"
+              ? DEFAULT_VERTEX_EMBEDDING_MODEL
+              : this.settings.model;
 
     const fallbackResult = await createEmbeddingProvider({
       config: this.cfg,
@@ -1397,6 +1414,7 @@ export class MemoryIndexManager implements MemorySearchManager {
     this.provider = fallbackResult.provider;
     this.openAi = fallbackResult.openAi;
     this.gemini = fallbackResult.gemini;
+    this.vertex = fallbackResult.vertex;
     this.voyage = fallbackResult.voyage;
     this.providerKey = this.computeProviderKey();
     this.batch = this.resolveBatchConfig();
