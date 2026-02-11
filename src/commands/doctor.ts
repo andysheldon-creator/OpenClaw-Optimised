@@ -48,6 +48,7 @@ import {
   detectLegacyStateMigrations,
   runLegacyStateMigrations,
 } from "./doctor-state-migrations.js";
+import { noteTtsConfigWarnings } from "./doctor-tts.js";
 import { maybeRepairUiProtocolFreshness } from "./doctor-ui.js";
 import { maybeOfferUpdateBeforeDoctor } from "./doctor-update.js";
 import { noteWorkspaceStatus } from "./doctor-workspace-status.js";
@@ -259,6 +260,7 @@ export async function doctorCommand(
   }
 
   noteWorkspaceStatus(cfg);
+  await noteTtsConfigWarnings(cfg);
 
   // Check and fix shell completion
   await doctorShellCompletion(runtime, prompter, {
