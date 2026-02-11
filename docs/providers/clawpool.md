@@ -13,11 +13,11 @@ title: "ClawPool"
 
 ## Why Use This?
 
-| Approach          | Cost                      | Best For                              |
-| ----------------- | ------------------------- | ------------------------------------- |
-| Anthropic API     | $50–500+/mo (per token)   | Production apps, high volume          |
-| Claude Max        | $200/mo                   | Heavy personal use, unlimited         |
-| **ClawPool**      | **$8/mo flat**            | Low-cost Opus 4.6 access              |
+| Approach      | Cost                    | Best For                      |
+| ------------- | ----------------------- | ----------------------------- |
+| Anthropic API | $50–500+/mo (per token) | Production apps, high volume  |
+| Claude Max    | $200/mo                 | Heavy personal use, unlimited |
+| **ClawPool**  | **$8/mo flat**          | Low-cost Opus 4.6 access      |
 
 If you're spending $50+/mo on Claude API calls through OpenClaw, ClawPool can cut that to $8/mo with the same models and no per-token billing.
 
@@ -62,9 +62,29 @@ Add ClawPool as a custom provider in `~/.openclaw/openclaw.json`:
         apiKey: "${CLAWPOOL_API_KEY}",
         api: "anthropic-messages",
         models: [
-          { id: "claude-opus-4-6", name: "Claude Opus 4.6", reasoning: true, input: ["text", "image"], contextWindow: 200000, maxTokens: 32000 },
-          { id: "claude-sonnet-4-5", name: "Claude Sonnet 4.5", reasoning: true, input: ["text", "image"], contextWindow: 200000, maxTokens: 16384 },
-          { id: "claude-haiku-4-5", name: "Claude Haiku 4.5", input: ["text", "image"], contextWindow: 200000, maxTokens: 8192 },
+          {
+            id: "claude-opus-4-6",
+            name: "Claude Opus 4.6",
+            reasoning: true,
+            input: ["text", "image"],
+            contextWindow: 200000,
+            maxTokens: 32000,
+          },
+          {
+            id: "claude-sonnet-4-5",
+            name: "Claude Sonnet 4.5",
+            reasoning: true,
+            input: ["text", "image"],
+            contextWindow: 200000,
+            maxTokens: 16384,
+          },
+          {
+            id: "claude-haiku-4-5",
+            name: "Claude Haiku 4.5",
+            input: ["text", "image"],
+            contextWindow: 200000,
+            maxTokens: 8192,
+          },
         ],
       },
     },
@@ -94,11 +114,13 @@ ClawPool is a transparent proxy — any model available on the Anthropic API wor
 ## Troubleshooting
 
 **Requests not routing to ClawPool**
+
 - Verify `baseUrl` is `https://proxy.clawpool.ai` (not `clawpool.ai`)
 - Verify `api` is `anthropic-messages` (not `openai-completions`)
 - Check that `CLAWPOOL_API_KEY` is set in your environment
 
 **Model not found**
+
 - Use model refs like `clawpool/claude-sonnet-4-5` (provider prefix + model ID)
 - Model IDs must match what's listed in the `models` array in your config
 
