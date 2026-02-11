@@ -161,18 +161,22 @@ export class VoiceCallWebhookServer {
         }
       },
       onSpeechStart: (providerCallId) => {
-        if (this.provider.name === "twilio") {
-          (this.provider as TwilioProvider).clearTtsQueue(providerCallId);
-        }
-        // Stop filler and clear streaming TTS on barge-in
+        // Only stop silence filler on VAD speech start (not TTS — too noise-sensitive)
         const streamSid = this.callStreamSids.get(providerCallId);
         if (streamSid) {
           this.silenceFiller?.stop(streamSid);
-          this.mediaStreamHandler?.clearTtsQueue(streamSid);
         }
       },
       onPartialTranscript: (callId, partial) => {
         console.log(`[voice-call] Partial for ${callId}: ${partial}`);
+        // Barge-in: clear TTS when actual speech is recognized (not just VAD noise)
+        if (this.provider.name === "twilio") {
+          (this.provider as TwilioProvider).clearTtsQueue(callId);
+        }
+        const streamSid = this.callStreamSids.get(callId);
+        if (streamSid) {
+          this.mediaStreamHandler?.clearTtsQueue(streamSid);
+        }
       },
       onConnect: (callId, streamSid) => {
         console.log(`[voice-call] Media stream connected: ${callId} -> ${streamSid}`);
