@@ -326,10 +326,12 @@ describe("installPluginFromArchive", () => {
         if (!Array.isArray(argv) || argv.length === 0) {
           throw new Error("expected argv");
         }
-        const res = spawnSync(argv[0], argv.slice(1), {
+        const command = process.platform === "win32" && argv[0] === "npm" ? "npm.cmd" : argv[0];
+        const res = spawnSync(command, argv.slice(1), {
           cwd: options?.cwd,
           encoding: "utf-8",
           env: process.env,
+          windowsHide: true,
         });
         return {
           code: res.status ?? 1,
