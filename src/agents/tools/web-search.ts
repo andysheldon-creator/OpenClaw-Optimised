@@ -18,7 +18,7 @@ import {
   writeCache,
 } from "./web-shared.js";
 
-const SEARCH_PROVIDERS = ["brave", "perplexity", "grok"] as const;
+const SEARCH_PROVIDERS = ["brave", "perplexity", "grok", "nimble"] as const;
 const DEFAULT_SEARCH_COUNT = 5;
 const MAX_SEARCH_COUNT = 10;
 
@@ -31,6 +31,8 @@ const OPENROUTER_KEY_PREFIXES = ["sk-or-"];
 
 const XAI_API_ENDPOINT = "https://api.x.ai/v1/responses";
 const DEFAULT_GROK_MODEL = "grok-4-1-fast";
+
+const NIMBLE_API_ENDPOINT = "https://sdk.nimbleway.com/v1/search";
 
 const SEARCH_CACHE = new Map<string, CacheEntry<Record<string, unknown>>>();
 const BRAVE_FRESHNESS_SHORTCUTS = new Set(["pd", "pw", "pm", "py"]);
@@ -65,6 +67,12 @@ const WebSearchSchema = Type.Object({
     Type.String({
       description:
         "Filter results by discovery time (Brave only). Values: 'pd' (past 24h), 'pw' (past week), 'pm' (past month), 'py' (past year), or date range 'YYYY-MM-DDtoYYYY-MM-DD'.",
+    }),
+  ),
+  deep_search: Type.Optional(
+    Type.Boolean({
+      description:
+        "Enable deep search mode (Nimble only). false (default): fast mode with concise, token-efficient results for agentic loops. true: deep mode with comprehensive full-page content for deeper analysis.",
     }),
   ),
 });
@@ -102,6 +110,10 @@ type GrokConfig = {
   inlineCitations?: boolean;
 };
 
+type NimbleConfig = {
+  apiKey?: string;
+};
+
 type GrokSearchResponse = {
   output?: Array<{
     type?: string;
@@ -133,6 +145,19 @@ type PerplexitySearchResponse = {
     };
   }>;
   citations?: string[];
+};
+
+type NimbleSearchResult = {
+  title?: string;
+  url?: string;
+  description?: string;
+};
+
+type NimbleSearchResponse = {
+  results?: NimbleSearchResult[];
+  query?: string;
+  count?: number;
+  tookMs?: number;
 };
 
 type PerplexityBaseUrlHint = "direct" | "openrouter";
@@ -205,6 +230,14 @@ function missingSearchKeyPayload(provider: (typeof SEARCH_PROVIDERS)[number]) {
       docs: "https://docs.openclaw.ai/tools/web",
     };
   }
+  if (provider === "nimble") {
+    return {
+      error: "missing_nimble_api_key",
+      message:
+        "web_search (nimble) needs a Nimble API key. Set NIMBLE_API_KEY in the Gateway environment, or configure tools.web.search.nimble.apiKey.",
+      docs: "https://docs.openclaw.ai/tools/web",
+    };
+  }
   return {
     error: "missing_brave_api_key",
     message: `web_search needs a Brave Search API key. Run \`${formatCliCommand("openclaw configure --section web")}\` to store it, or set BRAVE_API_KEY in the Gateway environment.`,
@@ -222,6 +255,9 @@ function resolveSearchProvider(search?: WebSearchConfig): (typeof SEARCH_PROVIDE
   }
   if (raw === "grok") {
     return "grok";
+  }
+  if (raw === "nimble") {
+    return "nimble";
   }
   if (raw === "brave") {
     return "brave";
@@ -365,6 +401,26 @@ function resolveGrokModel(grok?: GrokConfig): string {
 
 function resolveGrokInlineCitations(grok?: GrokConfig): boolean {
   return grok?.inlineCitations === true;
+}
+
+function resolveNimbleConfig(search?: WebSearchConfig): NimbleConfig {
+  if (!search || typeof search !== "object") {
+    return {};
+  }
+  const nimble = "nimble" in search ? search.nimble : undefined;
+  if (!nimble || typeof nimble !== "object") {
+    return {};
+  }
+  return nimble as NimbleConfig;
+}
+
+function resolveNimbleApiKey(nimble?: NimbleConfig): string | undefined {
+  const fromConfig = normalizeApiKey(nimble?.apiKey);
+  if (fromConfig) {
+    return fromConfig;
+  }
+  const fromEnv = normalizeApiKey(process.env.NIMBLE_API_KEY);
+  return fromEnv || undefined;
 }
 
 function resolveSearchCount(value: unknown, fallback: number): number {
@@ -524,6 +580,39 @@ async function runGrokSearch(params: {
   return { content, citations, inlineCitations };
 }
 
+async function runNimbleSearch(params: {
+  query: string;
+  count: number;
+  apiKey: string;
+  timeoutSeconds: number;
+  deepSearch: boolean;
+}): Promise<NimbleSearchResult[]> {
+  const endpoint = NIMBLE_API_ENDPOINT;
+
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${params.apiKey}`,
+    },
+    body: JSON.stringify({
+      query: params.query,
+      focus: "general",
+      max_results: params.count,
+      deep_search: params.deepSearch,
+    }),
+    signal: withTimeout(undefined, params.timeoutSeconds * 1000),
+  });
+
+  if (!res.ok) {
+    const detail = await readResponseText(res);
+    throw new Error(`Nimble API error (${res.status}): ${detail || res.statusText}`);
+  }
+
+  const data = (await res.json()) as NimbleSearchResponse;
+  return Array.isArray(data.results) ? data.results : [];
+}
+
 async function runWebSearch(params: {
   query: string;
   count: number;
@@ -539,13 +628,16 @@ async function runWebSearch(params: {
   perplexityModel?: string;
   grokModel?: string;
   grokInlineCitations?: boolean;
+  nimbleDeepSearch?: boolean;
 }): Promise<Record<string, unknown>> {
   const cacheKey = normalizeCacheKey(
     params.provider === "brave"
       ? `${params.provider}:${params.query}:${params.count}:${params.country || "default"}:${params.search_lang || "default"}:${params.ui_lang || "default"}:${params.freshness || "default"}`
       : params.provider === "perplexity"
         ? `${params.provider}:${params.query}:${params.perplexityBaseUrl ?? DEFAULT_PERPLEXITY_BASE_URL}:${params.perplexityModel ?? DEFAULT_PERPLEXITY_MODEL}`
-        : `${params.provider}:${params.query}:${params.grokModel ?? DEFAULT_GROK_MODEL}:${String(params.grokInlineCitations ?? false)}`,
+        : params.provider === "nimble"
+          ? `${params.provider}:${params.query}:${params.count}:${String(params.nimbleDeepSearch ?? false)}`
+          : `${params.provider}:${params.query}:${params.grokModel ?? DEFAULT_GROK_MODEL}:${String(params.grokInlineCitations ?? false)}`,
   );
   const cached = readCache(SEARCH_CACHE, cacheKey);
   if (cached) {
@@ -592,6 +684,39 @@ async function runWebSearch(params: {
       content: wrapWebContent(content),
       citations,
       inlineCitations,
+    };
+    writeCache(SEARCH_CACHE, cacheKey, payload, params.cacheTtlMs);
+    return payload;
+  }
+
+  if (params.provider === "nimble") {
+    const results = await runNimbleSearch({
+      query: params.query,
+      count: params.count,
+      apiKey: params.apiKey,
+      timeoutSeconds: params.timeoutSeconds,
+      deepSearch: params.nimbleDeepSearch ?? false,
+    });
+
+    const mapped = results.map((entry) => {
+      const description = entry.description ?? "";
+      const title = entry.title ?? "";
+      const url = entry.url ?? "";
+      const rawSiteName = resolveSiteName(url);
+      return {
+        title: title ? wrapWebContent(title, "web_search") : "",
+        url,
+        description: description ? wrapWebContent(description, "web_search") : "",
+        siteName: rawSiteName || undefined,
+      };
+    });
+
+    const payload = {
+      query: params.query,
+      provider: params.provider,
+      count: mapped.length,
+      tookMs: Date.now() - start,
+      results: mapped,
     };
     writeCache(SEARCH_CACHE, cacheKey, payload, params.cacheTtlMs);
     return payload;
@@ -670,13 +795,16 @@ export function createWebSearchTool(options?: {
   const provider = resolveSearchProvider(search);
   const perplexityConfig = resolvePerplexityConfig(search);
   const grokConfig = resolveGrokConfig(search);
+  const nimbleConfig = resolveNimbleConfig(search);
 
   const description =
     provider === "perplexity"
       ? "Search the web using Perplexity Sonar (direct or via OpenRouter). Returns AI-synthesized answers with citations from real-time web search."
       : provider === "grok"
         ? "Search the web using xAI Grok. Returns AI-synthesized answers with citations from real-time web search."
-        : "Search the web using Brave Search API. Supports region-specific and localized search via country and language parameters. Returns titles, URLs, and snippets for fast research.";
+        : provider === "nimble"
+          ? "Search the web using Nimble Search API. Returns structured search results with titles, URLs, and snippets for fast research."
+          : "Search the web using Brave Search API. Supports region-specific and localized search via country and language parameters. Returns titles, URLs, and snippets for fast research.";
 
   return {
     label: "Web Search",
@@ -691,7 +819,9 @@ export function createWebSearchTool(options?: {
           ? perplexityAuth?.apiKey
           : provider === "grok"
             ? resolveGrokApiKey(grokConfig)
-            : resolveSearchApiKey(search);
+            : provider === "nimble"
+              ? resolveNimbleApiKey(nimbleConfig)
+              : resolveSearchApiKey(search);
 
       if (!apiKey) {
         return jsonResult(missingSearchKeyPayload(provider));
@@ -720,6 +850,21 @@ export function createWebSearchTool(options?: {
           docs: "https://docs.openclaw.ai/tools/web",
         });
       }
+      const deepSearch = params.deep_search;
+      if (deepSearch !== undefined && typeof deepSearch !== "boolean") {
+        return jsonResult({
+          error: "invalid_deep_search",
+          message: "deep_search must be a boolean value.",
+          docs: "https://docs.openclaw.ai/tools/web",
+        });
+      }
+      if (deepSearch !== undefined && provider !== "nimble") {
+        return jsonResult({
+          error: "unsupported_deep_search",
+          message: "deep_search is only supported by the Nimble web_search provider.",
+          docs: "https://docs.openclaw.ai/tools/web",
+        });
+      }
       const result = await runWebSearch({
         query,
         count: resolveSearchCount(count, DEFAULT_SEARCH_COUNT),
@@ -739,6 +884,7 @@ export function createWebSearchTool(options?: {
         perplexityModel: resolvePerplexityModel(perplexityConfig),
         grokModel: resolveGrokModel(grokConfig),
         grokInlineCitations: resolveGrokInlineCitations(grokConfig),
+        nimbleDeepSearch: deepSearch,
       });
       return jsonResult(result);
     },
@@ -755,4 +901,5 @@ export const __testing = {
   resolveGrokModel,
   resolveGrokInlineCitations,
   extractGrokContent,
+  resolveNimbleApiKey,
 } as const;

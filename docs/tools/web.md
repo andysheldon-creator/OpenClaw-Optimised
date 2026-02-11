@@ -1,9 +1,10 @@
 ---
-summary: "Web search + fetch tools (Brave Search API, Perplexity direct/OpenRouter)"
+summary: "Web search + fetch tools (Brave Search API, Perplexity direct/OpenRouter, Nimble)"
 read_when:
   - You want to enable web_search or web_fetch
   - You need Brave Search API key setup
   - You want to use Perplexity Sonar for web search
+  - You want to use Nimble Search API
 title: "Web Tools"
 ---
 
@@ -11,7 +12,7 @@ title: "Web Tools"
 
 OpenClaw ships two lightweight web tools:
 
-- `web_search` — Search the web via Brave Search API (default) or Perplexity Sonar (direct or via OpenRouter).
+- `web_search` — Search the web via Brave Search API (default), Perplexity Sonar (direct or via OpenRouter), or Nimble Search API.
 - `web_fetch` — HTTP fetch + readable extraction (HTML → markdown/text).
 
 These are **not** browser automation. For JS-heavy sites or logins, use the
@@ -22,6 +23,7 @@ These are **not** browser automation. For JS-heavy sites or logins, use the
 - `web_search` calls your configured provider and returns results.
   - **Brave** (default): returns structured results (title, URL, snippet).
   - **Perplexity**: returns AI-synthesized answers with citations from real-time web search.
+  - **Nimble**: returns structured search results (title, URL, snippet) via Nimble's web search service.
 - Results are cached by query for 15 minutes (configurable).
 - `web_fetch` does a plain HTTP GET and extracts readable content
   (HTML → markdown/text). It does **not** execute JavaScript.
@@ -33,6 +35,7 @@ These are **not** browser automation. For JS-heavy sites or logins, use the
 | ------------------- | -------------------------------------------- | ---------------------------------------- | -------------------------------------------- |
 | **Brave** (default) | Fast, structured results, free tier          | Traditional search results               | `BRAVE_API_KEY`                              |
 | **Perplexity**      | AI-synthesized answers, citations, real-time | Requires Perplexity or OpenRouter access | `OPENROUTER_API_KEY` or `PERPLEXITY_API_KEY` |
+| **Nimble**          | Fast, structured results, real-time search   | Requires Nimble API access               | `NIMBLE_API_KEY`                             |
 
 See [Brave Search setup](/brave-search) and [Perplexity Sonar](/perplexity) for provider-specific details.
 
@@ -43,7 +46,7 @@ Set the provider in config:
   tools: {
     web: {
       search: {
-        provider: "brave", // or "perplexity"
+        provider: "brave", // or "perplexity", "grok", "nimble"
       },
     },
   },
@@ -62,6 +65,23 @@ Example: switch to Perplexity Sonar (direct API):
           apiKey: "pplx-...",
           baseUrl: "https://api.perplexity.ai",
           model: "perplexity/sonar-pro",
+        },
+      },
+    },
+  },
+}
+```
+
+Example: switch to Nimble Search:
+
+```json5
+{
+  tools: {
+    web: {
+      search: {
+        provider: "nimble",
+        nimble: {
+          apiKey: "your-nimble-api-key",
         },
       },
     },
@@ -149,6 +169,7 @@ Search the web using your configured provider.
 - API key for your chosen provider:
   - **Brave**: `BRAVE_API_KEY` or `tools.web.search.apiKey`
   - **Perplexity**: `OPENROUTER_API_KEY`, `PERPLEXITY_API_KEY`, or `tools.web.search.perplexity.apiKey`
+  - **Nimble**: `NIMBLE_API_KEY` or `tools.web.search.nimble.apiKey`
 
 ### Config
 
@@ -176,6 +197,9 @@ Search the web using your configured provider.
 - `search_lang` (optional): ISO language code for search results (e.g., "de", "en", "fr")
 - `ui_lang` (optional): ISO language code for UI elements
 - `freshness` (optional, Brave only): filter by discovery time (`pd`, `pw`, `pm`, `py`, or `YYYY-MM-DDtoYYYY-MM-DD`)
+- `deep_search` (optional, Nimble only): enable deep search mode (default: `false`)
+  - `false` (fast mode): Concise, token-efficient results for agentic loops
+  - `true` (deep mode): Comprehensive full-page content for deeper analysis
 
 **Examples:**
 
@@ -200,6 +224,12 @@ await web_search({
 await web_search({
   query: "TMBG interview",
   freshness: "pw",
+});
+
+// Nimble deep search for comprehensive analysis
+await web_search({
+  query: "Claude AI capabilities",
+  deep_search: true, // Enable deep mode for full-page content
 });
 ```
 
