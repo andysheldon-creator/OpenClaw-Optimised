@@ -11,7 +11,7 @@ export function slugifySessionKey(value: string) {
     .toLowerCase()
     .replace(/[^a-z0-9._-]+/g, "-")
     .replace(/^-+|-+$/g, "");
-  const base = safe.slice(0, 32) || "session";
+  const base = safe.slice(0, 48) || "session";
   return `${base}-${hash}`;
 }
 
