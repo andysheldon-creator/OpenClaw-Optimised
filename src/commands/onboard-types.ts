@@ -38,6 +38,7 @@ export type AuthChoice =
   | "qwen-portal"
   | "xai-api-key"
   | "qianfan-api-key"
+  | "huawei-maas-api-key"
   | "custom-api-key"
   | "skip";
 export type AuthChoiceGroupId =
@@ -105,6 +106,7 @@ export type OnboardOptions = {
   opencodeZenApiKey?: string;
   xaiApiKey?: string;
   qianfanApiKey?: string;
+  huaweiMaasApiKey?: string;
   gatewayPort?: number;
   gatewayBind?: GatewayBind;
   gatewayAuth?: GatewayAuthChoice;

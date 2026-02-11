@@ -11,6 +11,7 @@ import { buildTokenProfileId, validateAnthropicSetupToken } from "../../auth-tok
 import { applyGoogleGeminiModelDefault } from "../../google-gemini-model-default.js";
 import {
   applyAuthProfileConfig,
+  applyHuaweiMaasConfig,
   applyCloudflareAiGatewayConfig,
   applyQianfanConfig,
   applyKimiCodeConfig,
@@ -43,6 +44,7 @@ import {
   setVercelAiGatewayApiKey,
   setXiaomiApiKey,
   setZaiApiKey,
+  setHuaweiMaasApiKey,
 } from "../../onboard-auth.js";
 import { applyOpenAIConfig } from "../../openai-model-default.js";
 import { resolveNonInteractiveApiKey } from "../api-keys.js";
@@ -521,6 +523,29 @@ export async function applyNonInteractiveAuthChoice(params: {
 
   if (authChoice === "minimax") {
     return applyMinimaxConfig(nextConfig);
+  }
+
+  if (authChoice === "huawei-maas-api-key") {
+    const resolved = await resolveNonInteractiveApiKey({
+      provider: "huawei-maas",
+      cfg: baseConfig,
+      flagValue: opts.huaweiMaasApiKey,
+      flagName: "--huawei-maas-api-key",
+      envVar: "HUAWEI_MAAS_API_KEY",
+      runtime,
+    });
+    if (!resolved) {
+      return null;
+    }
+    if (resolved.source !== "profile") {
+      await setHuaweiMaasApiKey(resolved.key);
+    }
+    nextConfig = applyAuthProfileConfig(nextConfig, {
+      profileId: "huawei-maas:default",
+      provider: "huawei-maas",
+      mode: "api_key",
+    });
+    return applyHuaweiMaasConfig(nextConfig);
   }
 
   if (authChoice === "opencode-zen") {

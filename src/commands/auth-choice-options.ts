@@ -26,6 +26,7 @@ export type AuthChoiceGroupId =
   | "together"
   | "qianfan"
   | "xai"
+  | "huawei"
   | "custom";
 
 export type AuthChoiceGroup = {
@@ -70,6 +71,12 @@ const AUTH_CHOICE_GROUP_DEFS: {
     label: "Google",
     hint: "Gemini API key + OAuth",
     choices: ["gemini-api-key", "google-antigravity", "google-gemini-cli"],
+  },
+  {
+    value: "huawei",
+    label: "Huawei Cloud MAAS",
+    hint: "ModelArts MAAS API key",
+    choices: ["huawei-maas-api-key"],
   },
   {
     value: "xai",
@@ -234,6 +241,11 @@ export function buildAuthChoiceOptions(params: {
   options.push({
     value: "xiaomi-api-key",
     label: "Xiaomi API key",
+  });
+  options.push({
+    value: "huawei-maas-api-key",
+    label: "Huawei Cloud MAAS API key",
+    hint: "Supports multiple models including DeepSeek, Qwen, and Kimi",
   });
   options.push({
     value: "minimax-portal",
