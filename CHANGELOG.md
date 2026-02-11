@@ -2,6 +2,12 @@
 
 Docs: https://docs.openclaw.ai
 
+## 2026.2.10
+
+### Added
+
+- Tools/web_search: add custom `baseUrl` configuration support for Grok provider.
+
 ## 2026.2.9
 
 ### Added
