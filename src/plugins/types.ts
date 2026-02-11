@@ -317,6 +317,7 @@ export type PluginHookAgentContext = {
   sessionKey?: string;
   workspaceDir?: string;
   messageProvider?: string;
+  config?: OpenClawConfig;
 };
 
 // before_agent_start hook
