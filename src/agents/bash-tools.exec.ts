@@ -3,7 +3,10 @@ import type { ChildProcessWithoutNullStreams } from "node:child_process";
 import { Type } from "@sinclair/typebox";
 import crypto from "node:crypto";
 import path from "node:path";
+import type { OpenClawConfig } from "../config/types.js";
 import type { BashSandboxConfig } from "./bash-tools.shared.js";
+import { routeReply } from "../auto-reply/reply/route-reply.js";
+import { loadCombinedSessionStoreForGateway } from "../gateway/session-utils.js";
 import {
   type ExecAsk,
   type ExecHost,
@@ -29,6 +32,7 @@ import { enqueueSystemEvent } from "../infra/system-events.js";
 import { logInfo, logWarn } from "../logger.js";
 import { formatSpawnError, spawnWithFallback } from "../process/spawn-utils.js";
 import { parseAgentSessionKey, resolveAgentIdFromSessionKey } from "../routing/session-key.js";
+import { runRubberBandCheck } from "../security/rubberband.js";
 import {
   type ProcessSession,
   type SessionStdin,
@@ -163,6 +167,17 @@ type ExecProcessHandle = {
   kill: () => void;
 };
 
+export type RubberBandDefaults = {
+  enabled?: boolean;
+  mode?: "block" | "alert" | "log" | "off" | "shadow";
+  thresholds?: {
+    alert?: number;
+    block?: number;
+  };
+  allowedDestinations?: string[];
+  notifyChannel?: boolean;
+};
+
 export type ExecToolDefaults = {
   host?: ExecHost;
   security?: ExecSecurity;
@@ -182,6 +197,8 @@ export type ExecToolDefaults = {
   messageProvider?: string;
   notifyOnExit?: boolean;
   cwd?: string;
+  rubberband?: RubberBandDefaults;
+  cfg?: OpenClawConfig;
 };
 
 export type { BashSandboxConfig } from "./bash-tools.shared.js";
@@ -416,6 +433,33 @@ function emitExecSystemEvent(text: string, opts: { sessionKey?: string; contextK
   }
   enqueueSystemEvent(text, { sessionKey, contextKey: opts.contextKey });
   requestHeartbeatNow({ reason: "exec-event" });
+}
+
+async function notifyUserChannel(
+  text: string,
+  opts: { sessionKey?: string; cfg: Parameters<typeof routeReply>[0]["cfg"] },
+) {
+  const sessionKey = opts.sessionKey?.trim();
+  if (!sessionKey) {
+    return;
+  }
+  try {
+    const { store } = loadCombinedSessionStoreForGateway(opts.cfg);
+    const session = store[sessionKey];
+    if (!session?.lastChannel || !session?.lastTo) {
+      return;
+    }
+    await routeReply({
+      payload: { text },
+      channel: session.lastChannel,
+      to: session.lastTo,
+      sessionKey,
+      accountId: session.lastAccountId,
+      cfg: opts.cfg,
+    });
+  } catch (err) {
+    logWarn(`rubberband: failed to notify channel: ${String(err)}`);
+  }
 }
 
 async function runExecProcess(opts: {
@@ -817,6 +861,35 @@ export function createExecTool(
   const notifyOnExit = defaults?.notifyOnExit !== false;
   const notifySessionKey = defaults?.sessionKey?.trim() || undefined;
   const approvalRunningNoticeMs = resolveApprovalRunningNoticeMs(defaults?.approvalRunningNoticeMs);
+  // RubberBand config from defaults (only include defined values)
+  const rbConfig: Partial<{
+    enabled: boolean;
+    mode: "block" | "alert" | "log" | "off" | "shadow";
+    thresholds: { alert: number; block: number };
+    allowedDestinations: string[];
+    notifyChannel: boolean;
+  }> = {};
+  if (defaults?.rubberband) {
+    if (defaults.rubberband.enabled !== undefined) {
+      rbConfig.enabled = defaults.rubberband.enabled;
+    }
+    if (defaults.rubberband.mode !== undefined) {
+      rbConfig.mode = defaults.rubberband.mode;
+    }
+    if (defaults.rubberband.thresholds) {
+      rbConfig.thresholds = {
+        alert: defaults.rubberband.thresholds.alert ?? 40,
+        block: defaults.rubberband.thresholds.block ?? 60,
+      };
+    }
+    if (defaults.rubberband.allowedDestinations) {
+      rbConfig.allowedDestinations = defaults.rubberband.allowedDestinations;
+    }
+    if (defaults.rubberband.notifyChannel !== undefined) {
+      rbConfig.notifyChannel = defaults.rubberband.notifyChannel;
+    }
+  }
+  const rbNotifyCfg = defaults?.cfg;
   // Derive agentId only when sessionKey is an agent session key.
   const parsedAgentSession = parseAgentSessionKey(defaults?.sessionKey);
   const agentId =
@@ -1005,6 +1078,19 @@ export function createExecTool(
         if (hostSecurity === "deny") {
           throw new Error("exec denied: host=node security=deny");
         }
+
+        // === RUBBERBAND CHECK (before approval decision) ===
+        await runRubberBandCheck({
+          command: params.command,
+          rbConfig,
+          warnings,
+          notifySessionKey,
+          rbNotifyCfg,
+          emitExecSystemEvent,
+          notifyUserChannel,
+        });
+        const rbRequiresApproval = false; // ALERT warns only; BLOCK throws above
+        // === END RUBBERBAND ===
         const boundNode = defaults?.node?.trim();
         const requestedNode = params.node?.trim();
         if (boundNode && requestedNode && boundNode !== requestedNode) {
@@ -1088,12 +1174,14 @@ export function createExecTool(
             // Fall back to requiring approval if node approvals cannot be fetched.
           }
         }
-        const requiresAsk = requiresExecApproval({
-          ask: hostAsk,
-          security: hostSecurity,
-          analysisOk,
-          allowlistSatisfied,
-        });
+        const requiresAsk =
+          rbRequiresApproval ||
+          requiresExecApproval({
+            ask: hostAsk,
+            security: hostSecurity,
+            analysisOk,
+            allowlistSatisfied,
+          });
         const commandText = params.command;
         const invokeTimeoutMs = Math.max(
           10_000,
@@ -1283,6 +1371,20 @@ export function createExecTool(
         if (hostSecurity === "deny") {
           throw new Error("exec denied: host=gateway security=deny");
         }
+
+        // === RUBBERBAND CHECK (before approval decision) ===
+        await runRubberBandCheck({
+          command: params.command,
+          rbConfig,
+          warnings,
+          notifySessionKey,
+          rbNotifyCfg,
+          emitExecSystemEvent,
+          notifyUserChannel,
+        });
+        const rbRequiresApproval = false; // ALERT warns only; BLOCK throws above
+        // === END RUBBERBAND ===
+
         const allowlistEval = evaluateShellAllowlist({
           command: params.command,
           allowlist: approvals.allowlist,
@@ -1295,12 +1397,14 @@ export function createExecTool(
         const analysisOk = allowlistEval.analysisOk;
         const allowlistSatisfied =
           hostSecurity === "allowlist" && analysisOk ? allowlistEval.allowlistSatisfied : false;
-        const requiresAsk = requiresExecApproval({
-          ask: hostAsk,
-          security: hostSecurity,
-          analysisOk,
-          allowlistSatisfied,
-        });
+        const requiresAsk =
+          rbRequiresApproval ||
+          requiresExecApproval({
+            ask: hostAsk,
+            security: hostSecurity,
+            analysisOk,
+            allowlistSatisfied,
+          });
 
         if (requiresAsk) {
           const approvalId = crypto.randomUUID();
@@ -1504,6 +1608,21 @@ export function createExecTool(
         }
       }
 
+      // NOTE: RubberBand check moved earlier in the gateway and node paths to integrate with approval flow.
+      // For sandbox (and gateway with bypassApprovals), RubberBand runs here.
+      // Sandbox ALERT only warns (no approval flow) - sandbox isolation provides defense-in-depth.
+      if (host === "sandbox" || (host === "gateway" && bypassApprovals)) {
+        await runRubberBandCheck({
+          command: params.command,
+          rbConfig,
+          warnings,
+          notifySessionKey,
+          rbNotifyCfg,
+          emitExecSystemEvent,
+          notifyUserChannel,
+        });
+      }
+
       const effectiveTimeout =
         typeof params.timeout === "number" ? params.timeout : defaultTimeoutSec;
       const getWarningText = () => (warnings.length ? `${warnings.join("\n")}\n\n` : "");
@@ -1599,7 +1718,8 @@ export function createExecTool(
               return;
             }
             if (outcome.status === "failed") {
-              reject(new Error(outcome.reason ?? "Command failed."));
+              const warningPrefix = getWarningText();
+              reject(new Error(`${warningPrefix}${outcome.reason ?? "Command failed."}`));
               return;
             }
             resolve({
