@@ -30,10 +30,6 @@ import { logInfo, logWarn } from "../logger.js";
 import { formatSpawnError, spawnWithFallback } from "../process/spawn-utils.js";
 import { parseAgentSessionKey, resolveAgentIdFromSessionKey } from "../routing/session-key.js";
 import {
-  resolveApprovalRunningNoticeMs,
-  resolveApprovalTimeoutMs,
-} from "./exec-approval-timeouts.js";
-import {
   type ProcessSession,
   type SessionStdin,
   addSession,
@@ -55,6 +51,10 @@ import {
   resolveWorkdir,
   truncateMiddle,
 } from "./bash-tools.shared.js";
+import {
+  resolveApprovalRunningNoticeMs,
+  resolveApprovalTimeoutMs,
+} from "./exec-approval-timeouts.js";
 import { buildCursorPositionResponse, stripDsrRequests } from "./pty-dsr.js";
 import { getShellConfig, sanitizeBinaryOutput } from "./shell-utils.js";
 import { callGatewayTool } from "./tools/gateway.js";
