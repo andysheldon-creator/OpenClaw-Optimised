@@ -34,6 +34,7 @@ import { ensureAgentWorkspace } from "../../agents/workspace.js";
 import {
   normalizeThinkLevel,
   normalizeVerboseLevel,
+  resolveMaxThinkLevel,
   supportsXHighThinking,
 } from "../../auto-reply/thinking.js";
 import { createOutboundSendDeps, type CliDeps } from "../../cli/outbound-send-deps.js";
@@ -262,6 +263,7 @@ export async function runCronIsolatedAgentTurn(params: {
       catalog: await loadCatalog(),
     });
   }
+  thinkLevel = resolveMaxThinkLevel(thinkLevel, provider, model);
   if (thinkLevel === "xhigh" && !supportsXHighThinking(provider, model)) {
     logWarn(
       `[cron:${params.job.id}] Thinking level "xhigh" is not supported for ${provider}/${model}; downgrading to "high".`,
