@@ -15,6 +15,8 @@ const SENSITIVE_CONFIG_KEYS = new Set([
   "apiKey",
   "apiSecret",
   "token",
+  "botToken",
+  "appToken",
   "secret",
   "password",
   "accessKeyId",
