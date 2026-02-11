@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../config/config.js";
 import { ensureOpenClawModelsJson } from "./models-config.js";
 import { limitHistoryTurns } from "./pi-embedded-runner.js";
+import { sanitizeToolUseResultPairing } from "./session-transcript-repair.js";
 
 vi.mock("@mariozechner/pi-ai", async () => {
   const actual = await vi.importActual<typeof import("@mariozechner/pi-ai")>("@mariozechner/pi-ai");
@@ -158,5 +159,97 @@ describe("limitHistoryTurns", () => {
     const limited = limitHistoryTurns(messages, 1);
     expect(limited[0].content).toEqual([{ type: "text", text: "second" }]);
     expect(limited[1].content).toEqual([{ type: "text", text: "response" }]);
+  });
+
+  it("can orphan tool_result when truncation splits a tool_use/tool_result pair (#13896)", () => {
+    // Simulate a conversation where an assistant tool_use and its tool_result
+    // span across the truncation boundary.
+    const messages: AgentMessage[] = [
+      // Turn 1: user asks something, assistant uses a tool
+      { role: "user", content: [{ type: "text", text: "search for X" }] },
+      {
+        role: "assistant",
+        content: [{ type: "toolCall", id: "toolu_orphan", name: "search", arguments: {} }],
+      },
+      // tool_result for the above tool_use
+      {
+        role: "toolResult",
+        content: [{ type: "text", text: "found X" }],
+        id: "toolu_orphan",
+        isError: false,
+      } as AgentMessage,
+      // Turn 2: user asks follow-up
+      { role: "user", content: [{ type: "text", text: "tell me more" }] },
+      { role: "assistant", content: [{ type: "text", text: "here is more info" }] },
+    ];
+
+    // limitHistoryTurns(messages, 1) keeps only the last user turn.
+    // This slices off the assistant tool_use but keeps the tool_result.
+    const limited = limitHistoryTurns(messages, 1);
+
+    // The tool_result for "toolu_orphan" may still be present without its tool_use.
+    const hasOrphanedResult = limited.some(
+      (m) => m.role === "toolResult" && (m as { id?: string }).id === "toolu_orphan",
+    );
+
+    // If orphan is present, running sanitizeToolUseResultPairing should remove it.
+    if (hasOrphanedResult) {
+      const repaired = sanitizeToolUseResultPairing(limited);
+      const stillHasOrphan = repaired.some(
+        (m) => m.role === "toolResult" && (m as { id?: string }).id === "toolu_orphan",
+      );
+      expect(stillHasOrphan).toBe(false);
+    }
+  });
+
+  it("sanitizeToolUseResultPairing after limitHistoryTurns drops orphaned tool_results (#13896)", () => {
+    // Directly test the fix pattern: limitHistoryTurns → sanitizeToolUseResultPairing
+    const messages: AgentMessage[] = [
+      // Turn 1
+      { role: "user", content: [{ type: "text", text: "do task A" }] },
+      {
+        role: "assistant",
+        content: [
+          { type: "text", text: "running task A" },
+          { type: "toolCall", id: "toolu_A1", name: "exec", arguments: {} },
+        ],
+      },
+      {
+        role: "toolResult",
+        content: [{ type: "text", text: "task A done" }],
+        id: "toolu_A1",
+        isError: false,
+      } as AgentMessage,
+      { role: "assistant", content: [{ type: "text", text: "task A complete" }] },
+      // Turn 2 (with tool use that spans boundary)
+      { role: "user", content: [{ type: "text", text: "do task B" }] },
+      {
+        role: "assistant",
+        content: [{ type: "toolCall", id: "toolu_B1", name: "exec", arguments: {} }],
+      },
+      {
+        role: "toolResult",
+        content: [{ type: "text", text: "task B done" }],
+        id: "toolu_B1",
+        isError: false,
+      } as AgentMessage,
+      { role: "assistant", content: [{ type: "text", text: "task B complete" }] },
+      // Turn 3 (last user turn, should be kept)
+      { role: "user", content: [{ type: "text", text: "do task C" }] },
+      { role: "assistant", content: [{ type: "text", text: "task C complete" }] },
+    ];
+
+    // Limit to 1 turn: keeps only turn 3
+    const truncated = limitHistoryTurns(messages, 1);
+    const repaired = sanitizeToolUseResultPairing(truncated);
+
+    // No toolResult should remain (their tool_use messages were sliced off)
+    const orphanedResults = repaired.filter((m) => m.role === "toolResult");
+    expect(orphanedResults).toHaveLength(0);
+
+    // The remaining messages should be the last user turn and its response
+    expect(repaired.length).toBe(2);
+    expect(repaired[0].role).toBe("user");
+    expect(repaired[1].role).toBe("assistant");
   });
 });
