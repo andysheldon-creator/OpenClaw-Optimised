@@ -71,6 +71,7 @@ export function registerDaemonCli(program: Command) {
   daemon
     .command("stop")
     .description("Stop the Gateway service (launchd/systemd/schtasks)")
+    .option("--force", "Force-kill the gateway process if it does not exit gracefully", false)
     .option("--json", "Output JSON", false)
     .action(async (opts) => {
       await runDaemonStop(opts);
@@ -79,6 +80,7 @@ export function registerDaemonCli(program: Command) {
   daemon
     .command("restart")
     .description("Restart the Gateway service (launchd/systemd/schtasks)")
+    .option("--force", "Force-kill the gateway process if it does not exit gracefully", false)
     .option("--json", "Output JSON", false)
     .action(async (opts) => {
       await runDaemonRestart(opts);
