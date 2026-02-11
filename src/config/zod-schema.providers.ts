@@ -12,6 +12,7 @@ import {
   SlackConfigSchema,
   TelegramConfigSchema,
 } from "./zod-schema.providers-core.js";
+import { SpixiConfigSchema } from "./zod-schema.providers-spixi.js";
 import { WhatsAppConfigSchema } from "./zod-schema.providers-whatsapp.js";
 
 export * from "./zod-schema.providers-core.js";
@@ -35,8 +36,9 @@ export const ChannelsSchema = z
     slack: SlackConfigSchema.optional(),
     signal: SignalConfigSchema.optional(),
     imessage: IMessageConfigSchema.optional(),
+    spixi: SpixiConfigSchema.optional(),
     bluebubbles: BlueBubblesConfigSchema.optional(),
     msteams: MSTeamsConfigSchema.optional(),
   })
-  .passthrough() // Allow extension channel configs (nostr, matrix, zalo, etc.)
+  .passthrough()
   .optional();
