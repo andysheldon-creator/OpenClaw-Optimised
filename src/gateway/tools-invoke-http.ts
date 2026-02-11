@@ -27,6 +27,7 @@ import {
   sendInvalidRequest,
   sendJson,
   sendMethodNotAllowed,
+  sendRateLimited,
   sendUnauthorized,
 } from "./http-common.js";
 import { getBearerToken, getHeader } from "./http-utils.js";
@@ -123,7 +124,11 @@ export async function handleToolsInvokeHttpRequest(
     trustedProxies: opts.trustedProxies ?? cfg.gateway?.trustedProxies,
   });
   if (!authResult.ok) {
-    sendUnauthorized(res);
+    if (authResult.reason === "rate_limited") {
+      sendRateLimited(res);
+    } else {
+      sendUnauthorized(res);
+    }
     return true;
   }
 

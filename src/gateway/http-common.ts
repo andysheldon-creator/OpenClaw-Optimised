@@ -24,6 +24,13 @@ export function sendUnauthorized(res: ServerResponse) {
   });
 }
 
+export function sendRateLimited(res: ServerResponse) {
+  res.setHeader("Retry-After", "300");
+  sendJson(res, 429, {
+    error: { message: "Too many failed authentication attempts. Try again later.", type: "rate_limited" },
+  });
+}
+
 export function sendInvalidRequest(res: ServerResponse, message: string) {
   sendJson(res, 400, {
     error: { message, type: "invalid_request_error" },
