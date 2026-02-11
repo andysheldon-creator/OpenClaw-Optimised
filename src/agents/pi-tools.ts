@@ -279,7 +279,7 @@ export function createOpenClawCodingTools(options?: {
     spawnedBy: options?.spawnedBy,
   });
   const subagentPolicy = subagentPolicyContext.forceSubagent
-    ? resolveSubagentToolPolicy(options.config, subagentPolicyContext)
+    ? resolveSubagentToolPolicy(options?.config, subagentPolicyContext)
     : undefined;
   const allowBackground = isToolAllowedByPolicies("process", [
     profilePolicyWithAlsoAllow,
