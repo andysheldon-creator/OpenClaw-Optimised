@@ -157,13 +157,16 @@ type DiagnosticGlobalState = {
 
 function getGlobalState(): DiagnosticGlobalState {
   const g = globalThis as unknown as Record<string, DiagnosticGlobalState | undefined>;
-  if (!g[GLOBAL_KEY]) {
-    g[GLOBAL_KEY] = {
-      seq: 0,
-      listeners: new Set(),
-    };
+  const existing = g[GLOBAL_KEY];
+  if (existing) {
+    return existing;
   }
-  return g[GLOBAL_KEY] as DiagnosticGlobalState;
+  const fresh: DiagnosticGlobalState = {
+    seq: 0,
+    listeners: new Set(),
+  };
+  g[GLOBAL_KEY] = fresh;
+  return fresh;
 }
 
 const state = getGlobalState();

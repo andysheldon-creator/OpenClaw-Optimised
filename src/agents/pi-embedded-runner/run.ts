@@ -741,11 +741,13 @@ export async function runEmbeddedPiAgent(
             );
           }
 
-          // Transient retry: when the error is overloaded/rate-limited (e.g. 503 "no capacity"),
+          // Transient retry: when the error is specifically overloaded/no-capacity (e.g. 503),
           // retry with backoff for up to ~60s before falling through to profile rotation / failover.
+          // We intentionally do NOT retry on general rate-limit errors — those should go through
+          // the normal profile rotation flow.
           const isTransientCapacity =
             !aborted &&
-            (rateLimitFailure || isOverloadedErrorMessage(lastAssistant?.errorMessage ?? "")) &&
+            isOverloadedErrorMessage(lastAssistant?.errorMessage ?? "") &&
             !billingFailure &&
             !authFailure;
 
