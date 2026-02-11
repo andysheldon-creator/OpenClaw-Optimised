@@ -33,7 +33,10 @@ import { resolveModelAuthMode } from "../../model-auth.js";
 import { resolveDefaultModelForAgent } from "../../model-selection.js";
 import {
   isCloudCodeAssistFormatError,
+  isEmptyAssistantMessageContent,
   resolveBootstrapMaxChars,
+  stripImageBlocksFromMessages,
+  stripImageBlocksFromSessionFile,
   validateAnthropicTurns,
   validateGeminiTurns,
 } from "../../pi-embedded-helpers.js";
@@ -814,12 +817,59 @@ export async function runEmbeddedAttempt(
             });
           }
 
-          // Only pass images option if there are actually images to pass
-          // This avoids potential issues with models that don't expect the images parameter
-          if (imageResult.images.length > 0) {
-            await abortable(activeSession.prompt(effectivePrompt, { images: imageResult.images }));
-          } else {
-            await abortable(activeSession.prompt(effectivePrompt));
+          const promptWithCurrentImages = async (): Promise<void> => {
+            // Only pass images option if there are actually images to pass.
+            // This avoids potential issues with models that don't expect the images parameter.
+            if (imageResult.images.length > 0) {
+              await abortable(
+                activeSession.prompt(effectivePrompt, { images: imageResult.images }),
+              );
+            } else {
+              await abortable(activeSession.prompt(effectivePrompt));
+            }
+          };
+          const hasTrailingEmptyAssistant = (): boolean => {
+            const last = activeSession.messages.at(-1);
+            return last?.role === "assistant" && isEmptyAssistantMessageContent(last);
+          };
+
+          await promptWithCurrentImages();
+
+          // Recovery phase 1: one in-run retry with the exact same payload.
+          // This protects vision-capable models from occasional transient empty replies
+          // without immediately mutating/persisting image history.
+          if (hasTrailingEmptyAssistant()) {
+            log.warn(
+              `empty assistant response — retrying once with original context: runId=${params.runId} sessionId=${params.sessionId}`,
+            );
+            await promptWithCurrentImages();
+          }
+
+          // Recovery phase 2: only after two consecutive empty replies, strip image
+          // blocks in-memory and retry once without prompt images.
+          if (hasTrailingEmptyAssistant()) {
+            const { messages: stripped, hadImages } = stripImageBlocksFromMessages(
+              activeSession.messages,
+            );
+            if (hadImages) {
+              log.warn(
+                `empty assistant response persisted after same-context retry — stripping images and retrying: runId=${params.runId} sessionId=${params.sessionId}`,
+              );
+              activeSession.agent.replaceMessages(stripped);
+              await abortable(activeSession.prompt(effectivePrompt));
+
+              // Persist image stripping only after we needed strip-retry and when this
+              // turn didn't include direct prompt images. This avoids permanent deletion
+              // on one-off empty replies from otherwise healthy vision models.
+              if (!hasTrailingEmptyAssistant() && imageResult.images.length === 0) {
+                const fileStripped = stripImageBlocksFromSessionFile(params.sessionFile);
+                if (fileStripped > 0) {
+                  log.debug(
+                    `stripped ${fileStripped} image blocks from session file: ${params.sessionFile}`,
+                  );
+                }
+              }
+            }
           }
         } catch (err) {
           promptError = err;
@@ -830,7 +880,7 @@ export async function runEmbeddedAttempt(
         }
 
         try {
-          await waitForCompactionRetry();
+          await abortable(waitForCompactionRetry());
         } catch (err) {
           if (isRunnerAbortError(err)) {
             if (!promptError) {

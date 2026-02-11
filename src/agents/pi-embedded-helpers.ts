@@ -39,6 +39,8 @@ export { downgradeOpenAIReasoningBlocks } from "./pi-embedded-helpers/openai.js"
 export {
   isEmptyAssistantMessageContent,
   sanitizeSessionMessagesImages,
+  stripImageBlocksFromMessages,
+  stripImageBlocksFromSessionFile,
 } from "./pi-embedded-helpers/images.js";
 export {
   isMessagingToolDuplicate,
