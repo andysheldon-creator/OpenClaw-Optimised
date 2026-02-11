@@ -65,6 +65,32 @@ function parseDiscordChannelInput(raw: string): {
     if (!channel) {
       return guild ? { guild: guild.trim(), guildOnly: true } : {};
     }
+    const channelMention = channel.match(/^<#(\d+)>$/);
+    if (channelMention) {
+      const guildPrefix = guild?.match(/^(?:guild:|server:)?(\d+)$/i);
+      if (guildPrefix) {
+        return { guildId: guildPrefix[1], channelId: channelMention[1] };
+      }
+      if (guild && /^\d+$/.test(guild)) {
+        return { guildId: guild, channelId: channelMention[1] };
+      }
+      return { channelId: channelMention[1] };
+    }
+    const channelPrefix = channel.match(/^(?:channel:|discord:)?(\d+)$/i);
+    if (channelPrefix) {
+      const guildPrefix = guild?.match(/^(?:guild:|server:)?(\d+)$/i);
+      if (guildPrefix) {
+        return { guildId: guildPrefix[1], channelId: channelPrefix[1] };
+      }
+      if (guild && /^\d+$/.test(guild)) {
+        return { guildId: guild, channelId: channelPrefix[1] };
+      }
+      return { channelId: channelPrefix[1] };
+    }
+    const guildPrefix = guild?.match(/^(?:guild:|server:)?(\d+)$/i);
+    if (guildPrefix) {
+      return { guildId: guildPrefix[1], channel };
+    }
     if (guild && /^\d+$/.test(guild)) {
       return { guildId: guild, channel };
     }
