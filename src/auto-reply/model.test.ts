@@ -36,6 +36,27 @@ describe("extractModelDirective", () => {
       expect(result.rawProfile).toBe("myprofile");
     });
 
+    it("preserves @ in OpenRouter preset paths", () => {
+      const result = extractModelDirective("/model openrouter/@preset/kimi-2-5");
+      expect(result.hasDirective).toBe(true);
+      expect(result.rawModel).toBe("openrouter/@preset/kimi-2-5");
+      expect(result.rawProfile).toBeUndefined();
+    });
+
+    it("preserves @ in OpenRouter preset paths with profile override", () => {
+      const result = extractModelDirective("/model openrouter/@preset/kimi-2-5@myprofile");
+      expect(result.hasDirective).toBe(true);
+      expect(result.rawModel).toBe("openrouter/@preset/kimi-2-5");
+      expect(result.rawProfile).toBe("myprofile");
+    });
+
+    it("handles multiple @ in path correctly", () => {
+      const result = extractModelDirective("/model provider/@foo/@bar/model");
+      expect(result.hasDirective).toBe(true);
+      expect(result.rawModel).toBe("provider/@foo/@bar/model");
+      expect(result.rawProfile).toBeUndefined();
+    });
+
     it("returns no directive for plain text", () => {
       const result = extractModelDirective("hello world");
       expect(result.hasDirective).toBe(false);
