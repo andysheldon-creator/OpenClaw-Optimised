@@ -15,6 +15,18 @@ import { promptCustomApiConfig } from "./onboard-custom.js";
 
 type GatewayAuthChoice = "token" | "password";
 
+/** Reject undefined, empty, and the literal string "undefined" (a common serialization bug). */
+function sanitizeAuthValue(value: string | undefined): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  if (!trimmed || trimmed === "undefined" || trimmed === "null") {
+    return undefined;
+  }
+  return trimmed;
+}
+
 const ANTHROPIC_OAUTH_MODEL_KEYS = [
   "anthropic/claude-opus-4-6",
   "anthropic/claude-opus-4-5",
@@ -35,9 +47,11 @@ export function buildGatewayAuthConfig(params: {
   }
 
   if (params.mode === "token") {
-    return { ...base, mode: "token", token: params.token };
+    const token = sanitizeAuthValue(params.token);
+    return { ...base, mode: "token", ...(token && { token }) };
   }
-  return { ...base, mode: "password", password: params.password };
+  const password = sanitizeAuthValue(params.password);
+  return { ...base, mode: "password", ...(password && { password }) };
 }
 
 export async function promptAuthConfig(
