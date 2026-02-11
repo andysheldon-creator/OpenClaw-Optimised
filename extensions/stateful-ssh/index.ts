@@ -23,13 +23,20 @@ const statefulSSHPlugin = {
         ];
 
         // Return null if any tool creation failed
-        if (tools.some(tool => !tool)) {
+        if (tools.some((tool) => !tool)) {
           return null;
         }
 
         return tools;
       },
-      { names: ["open_ssh_session", "execute_ssh_command", "close_ssh_session", "list_ssh_sessions"] }
+      {
+        names: [
+          "open_ssh_session",
+          "execute_ssh_command",
+          "close_ssh_session",
+          "list_ssh_sessions",
+        ],
+      },
     );
 
     // Register cleanup handler
