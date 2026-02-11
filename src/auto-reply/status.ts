@@ -323,7 +323,7 @@ export function buildStatusMessage(args: StatusArgs): string {
   let contextTokens =
     entry?.contextTokens ??
     args.agent?.contextTokens ??
-    lookupContextTokens(model) ??
+    lookupContextTokens(model, provider) ??
     DEFAULT_CONTEXT_TOKENS;
 
   let inputTokens = entry?.inputTokens;
