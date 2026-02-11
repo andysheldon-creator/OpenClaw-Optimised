@@ -110,7 +110,7 @@ export function buildGatewayConnectionDetails(
       ? `${scheme}://${tailnetIPv4}:${localPort}`
       : preferLan && lanIPv4
         ? `${scheme}://${lanIPv4}:${localPort}`
-        : `${scheme}://127.0.0.1:${localPort}`;
+        : `${scheme}://${process.env.OPENCLAW_GATEWAY_HOST || "127.0.0.1"}:${localPort}`;
   const urlOverride =
     typeof options.url === "string" && options.url.trim().length > 0
       ? options.url.trim()
