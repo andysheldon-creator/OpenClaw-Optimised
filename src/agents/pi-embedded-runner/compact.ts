@@ -12,7 +12,9 @@ import type { ExecElevatedDefaults } from "../bash-tools.js";
 import type { EmbeddedPiCompactResult } from "./types.js";
 import { resolveHeartbeatPrompt } from "../../auto-reply/heartbeat.js";
 import { resolveChannelCapabilities } from "../../config/channel-capabilities.js";
+import { createInternalHookEvent, triggerInternalHook } from "../../hooks/internal-hooks.js";
 import { getMachineDisplayName } from "../../infra/machine-name.js";
+import { getGlobalHookRunner } from "../../plugins/hook-runner-global.js";
 import { type enqueueCommand, enqueueCommandInLane } from "../../process/command-queue.js";
 import { isSubagentSessionKey } from "../../routing/session-key.js";
 import { resolveSignalReactionLevel } from "../../signal/reaction-level.js";
@@ -209,6 +211,7 @@ export async function compactEmbeddedPiSessionDirect(
     });
 
     const sessionLabel = params.sessionKey ?? params.sessionId;
+    const resolvedMessageProvider = params.messageChannel ?? params.messageProvider;
     const { contextFiles } = await resolveBootstrapContextForRun({
       workspaceDir: effectiveWorkspace,
       config: params.config,
@@ -223,7 +226,7 @@ export async function compactEmbeddedPiSessionDirect(
         elevated: params.bashElevated,
       },
       sandbox,
-      messageProvider: params.messageChannel ?? params.messageProvider,
+      messageProvider: resolvedMessageProvider,
       agentAccountId: params.agentAccountId,
       sessionKey: params.sessionKey ?? params.sessionId,
       groupId: params.groupId,
@@ -400,7 +403,7 @@ export async function compactEmbeddedPiSessionDirect(
       });
 
       const { session } = await createAgentSession({
-        cwd: resolvedWorkspace,
+        cwd: effectiveWorkspace,
         agentDir,
         authStorage,
         modelRegistry,
@@ -429,13 +432,82 @@ export async function compactEmbeddedPiSessionDirect(
         const validated = transcriptPolicy.validateAnthropicTurns
           ? validateAnthropicTurns(validatedGemini)
           : validatedGemini;
+        // Apply validated transcript to the live session even when no history limit is configured,
+        // so compaction and hook metrics are based on the same message set.
+        session.agent.replaceMessages(validated);
+        // "Original" compaction metrics should describe the validated transcript that enters
+        // limiting/compaction, not the raw on-disk session snapshot.
+        const originalMessages = session.messages.slice();
+        const missingSessionKey = !params.sessionKey || !params.sessionKey.trim();
+        const hookSessionKey = params.sessionKey?.trim() || params.sessionId;
+        const hookRunner = getGlobalHookRunner();
+        const messageCountOriginal = originalMessages.length;
+        let tokenCountOriginal: number | undefined;
+        try {
+          tokenCountOriginal = 0;
+          for (const message of originalMessages) {
+            tokenCountOriginal += estimateTokens(message);
+          }
+        } catch {
+          tokenCountOriginal = undefined;
+        }
         const limited = limitHistoryTurns(
-          validated,
+          session.messages,
           getDmHistoryLimitFromSessionKey(params.sessionKey, params.config),
         );
-        if (limited.length > 0) {
-          session.agent.replaceMessages(limited);
+        session.agent.replaceMessages(limited);
+        const messageCountBefore = session.messages.length;
+        let tokenCountBefore: number | undefined;
+        try {
+          tokenCountBefore = 0;
+          for (const message of session.messages) {
+            tokenCountBefore += estimateTokens(message);
+          }
+        } catch {
+          tokenCountBefore = undefined;
         }
+        // TODO(#7175): Consider exposing full message snapshots or pre-compaction injection
+        // hooks; current events only report counts/metadata.
+        try {
+          const hookEvent = createInternalHookEvent("session", "compact:before", hookSessionKey, {
+            sessionId: params.sessionId,
+            missingSessionKey,
+            messageCount: messageCountBefore,
+            tokenCount: tokenCountBefore,
+            messageCountOriginal,
+            tokenCountOriginal,
+          });
+          await triggerInternalHook(hookEvent);
+        } catch (err) {
+          log.warn("session:compact:before hook failed", {
+            errorMessage: err instanceof Error ? err.message : String(err),
+            errorStack: err instanceof Error ? err.stack : undefined,
+          });
+        }
+        if (hookRunner?.hasHooks("before_compaction")) {
+          try {
+            await hookRunner.runBeforeCompaction(
+              {
+                messageCount: messageCountBefore,
+                tokenCount: tokenCountBefore,
+              },
+              {
+                agentId: sessionAgentId,
+                sessionKey: hookSessionKey,
+                workspaceDir: effectiveWorkspace,
+                messageProvider: resolvedMessageProvider,
+              },
+            );
+          } catch (err) {
+            log.warn("before_compaction hook failed", {
+              errorMessage: err instanceof Error ? err.message : String(err),
+              errorStack: err instanceof Error ? err.stack : undefined,
+            });
+          }
+        }
+        // Measure compactedCount from the original pre-limiting transcript so compaction
+        // lifecycle metrics represent total reduction through the compaction pipeline.
+        const messageCountCompactionInput = messageCountOriginal;
         const result = await session.compact(params.customInstructions);
         // Estimate tokens after compaction by summing token estimates for remaining messages
         let tokensAfter: number | undefined;
@@ -451,6 +523,51 @@ export async function compactEmbeddedPiSessionDirect(
         } catch {
           // If estimation fails, leave tokensAfter undefined
           tokensAfter = undefined;
+        }
+        const messageCountAfter = session.messages.length;
+        const compactedCount = Math.max(0, messageCountCompactionInput - messageCountAfter);
+        // TODO(#9611): Consider exposing compaction summaries or post-compaction injection;
+        // current events only report summary metadata.
+        try {
+          const hookEvent = createInternalHookEvent("session", "compact:after", hookSessionKey, {
+            sessionId: params.sessionId,
+            missingSessionKey,
+            messageCount: messageCountAfter,
+            tokenCount: tokensAfter,
+            compactedCount,
+            summaryLength: typeof result.summary === "string" ? result.summary.length : undefined,
+            tokensBefore: result.tokensBefore,
+            tokensAfter,
+            firstKeptEntryId: result.firstKeptEntryId,
+          });
+          await triggerInternalHook(hookEvent);
+        } catch (err) {
+          log.warn("session:compact:after hook failed", {
+            errorMessage: err instanceof Error ? err.message : String(err),
+            errorStack: err instanceof Error ? err.stack : undefined,
+          });
+        }
+        if (hookRunner?.hasHooks("after_compaction")) {
+          try {
+            await hookRunner.runAfterCompaction(
+              {
+                messageCount: messageCountAfter,
+                tokenCount: tokensAfter,
+                compactedCount,
+              },
+              {
+                agentId: sessionAgentId,
+                sessionKey: hookSessionKey,
+                workspaceDir: effectiveWorkspace,
+                messageProvider: resolvedMessageProvider,
+              },
+            );
+          } catch (err) {
+            log.warn("after_compaction hook failed", {
+              errorMessage: err instanceof Error ? err.message : String(err),
+              errorStack: err instanceof Error ? err.stack : undefined,
+            });
+          }
         }
         return {
           ok: true,
