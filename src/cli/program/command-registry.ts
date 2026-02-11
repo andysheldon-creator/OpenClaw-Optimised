@@ -1,15 +1,5 @@
 import type { Command } from "commander";
 import type { ProgramContext } from "./context.js";
-import { registerConfigCli } from "../config-cli.js";
-import { registerMemoryCli } from "../memory-cli.js";
-import { registerAgentCommands } from "./register.agent.js";
-import { registerConfigureCommand } from "./register.configure.js";
-import { registerMaintenanceCommands } from "./register.maintenance.js";
-import { registerMessageCommands } from "./register.message.js";
-import { registerOnboardCommand } from "./register.onboard.js";
-import { registerSetupCommand } from "./register.setup.js";
-import { registerStatusHealthSessionsCommands } from "./register.status-health-sessions.js";
-import { registerSubCliCommands } from "./register.subclis.js";
 
 type CommandRegisterParams = {
   program: Command;
@@ -19,50 +9,80 @@ type CommandRegisterParams = {
 
 type CommandRegistration = {
   id: string;
-  register: (params: CommandRegisterParams) => void | Promise<void>;
+  register: (params: CommandRegisterParams) => Promise<void>;
 };
 
 const commandRegistry: CommandRegistration[] = [
   {
     id: "setup",
-    register: ({ program }) => registerSetupCommand(program),
+    register: async ({ program }) => {
+      const { registerSetupCommand } = await import("./register.setup.js");
+      registerSetupCommand(program);
+    },
   },
   {
     id: "onboard",
-    register: ({ program }) => registerOnboardCommand(program),
+    register: async ({ program }) => {
+      const { registerOnboardCommand } = await import("./register.onboard.js");
+      registerOnboardCommand(program);
+    },
   },
   {
     id: "configure",
-    register: ({ program }) => registerConfigureCommand(program),
+    register: async ({ program }) => {
+      const { registerConfigureCommand } = await import("./register.configure.js");
+      registerConfigureCommand(program);
+    },
   },
   {
     id: "config",
-    register: ({ program }) => registerConfigCli(program),
+    register: async ({ program }) => {
+      const { registerConfigCli } = await import("../config-cli.js");
+      registerConfigCli(program);
+    },
   },
   {
     id: "maintenance",
-    register: ({ program }) => registerMaintenanceCommands(program),
+    register: async ({ program }) => {
+      const { registerMaintenanceCommands } = await import("./register.maintenance.js");
+      registerMaintenanceCommands(program);
+    },
   },
   {
     id: "message",
-    register: ({ program, ctx }) => registerMessageCommands(program, ctx),
+    register: async ({ program, ctx }) => {
+      const { registerMessageCommands } = await import("./register.message.js");
+      registerMessageCommands(program, ctx);
+    },
   },
   {
     id: "memory",
-    register: ({ program }) => registerMemoryCli(program),
+    register: async ({ program }) => {
+      const { registerMemoryCli } = await import("../memory-cli.js");
+      registerMemoryCli(program);
+    },
   },
   {
     id: "agent",
-    register: ({ program, ctx }) =>
-      registerAgentCommands(program, { agentChannelOptions: ctx.agentChannelOptions }),
+    register: async ({ program, ctx }) => {
+      const { registerAgentCommands } = await import("./register.agent.js");
+      registerAgentCommands(program, { agentChannelOptions: ctx.agentChannelOptions });
+    },
   },
   {
     id: "subclis",
-    register: ({ program, argv }) => registerSubCliCommands(program, argv),
+    register: async ({ program, argv }) => {
+      const { registerSubCliCommands } = await import("./register.subclis.js");
+      registerSubCliCommands(program, argv);
+    },
   },
   {
     id: "status-health-sessions",
-    register: ({ program }) => registerStatusHealthSessionsCommands(program),
+    register: async ({ program }) => {
+      const { registerStatusHealthSessionsCommands } =
+        await import("./register.status-health-sessions.js");
+      registerStatusHealthSessionsCommands(program);
+    },
   },
   {
     id: "browser",
@@ -78,7 +98,5 @@ export async function registerProgramCommands(
   ctx: ProgramContext,
   argv: string[] = process.argv,
 ) {
-  for (const entry of commandRegistry) {
-    await entry.register({ program, ctx, argv });
-  }
+  await Promise.all(commandRegistry.map((entry) => entry.register({ program, ctx, argv })));
 }
