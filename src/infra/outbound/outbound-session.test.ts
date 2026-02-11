@@ -113,4 +113,38 @@ describe("resolveOutboundSessionRoute", () => {
     expect(route?.sessionKey).toBe("agent:main:slack:group:g123");
     expect(route?.from).toBe("slack:group:G123");
   });
+
+  it("forwards threadId in fallback session resolver for plugin channels", async () => {
+    const route = await resolveOutboundSessionRoute({
+      cfg: baseConfig,
+      channel: "some-plugin" as never,
+      agentId: "main",
+      target: "group:room-42",
+      resolvedTarget: { kind: "group", id: "room-42" },
+      threadId: "topic-123",
+    });
+
+    expect(route).not.toBeNull();
+    expect(route?.threadId).toBe("topic-123");
+    // threadId should be encoded into peer id for group contexts
+    expect(route?.peer.id).toBe("room-42:topic:topic-123");
+    expect(route?.sessionKey).toContain("topic:topic-123");
+  });
+
+  it("does not encode threadId into peer id for direct fallback sessions", async () => {
+    const route = await resolveOutboundSessionRoute({
+      cfg: baseConfig,
+      channel: "some-plugin" as never,
+      agentId: "main",
+      target: "user:alice",
+      resolvedTarget: { kind: "user", id: "alice" },
+      threadId: "thread-99",
+    });
+
+    expect(route).not.toBeNull();
+    // For DMs, threadId should NOT be encoded into peer id
+    expect(route?.peer.id).toBe("alice");
+    // But threadId should still be forwarded in the route
+    expect(route?.threadId).toBe("thread-99");
+  });
 });
