@@ -700,3 +700,6 @@ export const chatHandlers: GatewayRequestHandlers = {
     respond(true, { ok: true, messageId: appended.messageId });
   },
 };
+
+// Legacy alias: "abort" → "chat.abort" for backwards compatibility (#5239)
+chatHandlers["abort"] = chatHandlers["chat.abort"];
