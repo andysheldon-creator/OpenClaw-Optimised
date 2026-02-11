@@ -265,9 +265,7 @@ describe("sessionsScrubCommand", () => {
 
     // Simulate: first pass reveals a new pattern, second pass catches it, third is stable
     mockReadFile.mockResolvedValue('{"content":"nested-token-abc123"}');
-    let callCount = 0;
     mockRedactSensitiveText.mockImplementation((text: string) => {
-      callCount++;
       if (text.includes("nested-token-abc123")) {
         return text.replace("nested-token-abc123", "***-abc123"); // partial redaction
       }
