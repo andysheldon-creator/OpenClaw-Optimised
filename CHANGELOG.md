@@ -410,8 +410,6 @@ Docs: https://docs.openclaw.ai
 - Onboarding: strengthen security warning copy for beta + access control expectations.
 - Onboarding: add Venice API key to non-interactive flow. (#1893) Thanks @jonisjongithub.
 - Config: auto-migrate legacy state/config paths and keep config resolution consistent across legacy filenames.
-- Agents: honor tools.exec.safeBins in exec allowlist checks. (#2281)
-- Docs: tighten Fly private deployment steps. (#2289) Thanks @dguido.
 - Gateway: warn on hook tokens via query params; document header auth preference. (#2200) Thanks @YuriNachos.
 - Gateway: add dangerous Control UI device auth bypass flag + audit warnings. (#2248)
 - Doctor: warn on gateway exposure without auth. (#2016) Thanks @Alex-Alaniz.
