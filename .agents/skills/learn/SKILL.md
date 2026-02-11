@@ -13,17 +13,23 @@ Use this skill when the user asks to find, search, discover, or install agent sk
 
 ## Safety
 
-- All skills are security scanned before installation
-- Score 90-100: SAFE — install proceeds
-- Score 70-89: REVIEW — shows issues, requires acknowledgment
-- Score <70: BLOCKED — refuses to install
-- Scans detect: prompt injection, RCE, credential exfiltration, obfuscation
+**Two-layer security model:**
+
+1. **Registry-side (agentskill.sh)**: All skills are pre-scanned before publication. Security score is computed and stored. Dangerous skills are flagged or rejected.
+
+2. **Client-side (this skill)**: Security score is displayed to user before install. Skills scoring <70 are blocked. User must acknowledge warnings for scores 70-89.
+
+| Score | Rating | Action |
+|-------|--------|--------|
+| 90-100 | SAFE | Install proceeds, user informed |
+| 70-89 | REVIEW | User must acknowledge issues |
+| <70 | BLOCKED | Installation refused |
 
 ## Commands
 
 ### `/learn <query>` — Search for Skills
 
-1. Use WebFetch to call: `https://agentskill.sh/api/agent/search?q=<URL-encoded query>&limit=5`
+1. Use `web_fetch` to call: `https://agentskill.sh/api/agent/search?q=<URL-encoded query>&limit=5`
 2. Parse the JSON response
 3. Display results in a table:
    ```
@@ -72,13 +78,18 @@ Delete the skill file from the install directory.
 
 Scan a local skill file for security issues without installing.
 
+### `/learn config autorating <on|off>` — Toggle Auto-Rating
+
+Enable or disable automatic skill rating after use.
+
 ## Install Flow
 
-1. Fetch skill content from API
-2. Run security scan (see Security Scan section)
-3. If score >= 70, show preview and ask for confirmation
-4. If score < 70, BLOCK installation
-5. Write skill file with metadata header:
+1. Fetch skill content from API (includes pre-computed `securityScore`)
+2. Display security score to user with explanation
+3. If score >= 90: Show preview, ask confirmation
+4. If score 70-89: Show warnings, require explicit acknowledgment
+5. If score < 70: BLOCK installation, explain why
+6. Write skill file with metadata header:
    ```
    # --- agentskill.sh ---
    # slug: <slug>
@@ -89,29 +100,33 @@ Scan a local skill file for security issues without installing.
    # source: https://agentskill.sh/<slug>
    # ---
    ```
-6. Track install via POST to API
+7. Track successful install via POST to API (fire-and-forget, only after file written)
 
-## Security Scan
+**Note**: Install tracking happens after successful file write. This is intentional — we only count completed installs, not failed attempts.
 
-Before installing ANY skill, scan for:
+## Security Scanning
 
-**CRITICAL (block on 5+):**
-- Prompt injection patterns
-- Remote code execution (`curl|bash`, `wget|sh`)
-- Credential exfiltration
-- Reverse shells
-- Destructive commands (`rm -rf /`)
+Skills on agentskill.sh are pre-scanned using these pattern categories:
 
-**HIGH:**
-- Obfuscated code (base64, hex)
-- Zero-width unicode
-- Suspicious URLs
-- Hardcoded secrets
+**CRITICAL patterns** (score penalty: -20 each, 5+ = score 0):
+- Prompt injection: `ignore.*previous`, `forget.*instructions`, `you are now`, `DAN mode`, `jailbreak`
+- Remote code execution: `curl.*\|.*bash`, `wget.*\|.*sh`, `eval\s*\(`, `base64.*-d.*\|.*bash`
+- Credential theft: `cat.*\.aws`, `cat.*\.ssh`, `keychain`, `credentials`
+- Reverse shells: `/dev/tcp/`, `nc\s+-e`, `socket.*connect`
+- Destructive: `rm\s+-rf\s+/`, `mkfs`, `dd.*if=/dev/zero`
 
-**MEDIUM:**
-- Unverified dependencies
-- Hidden payloads
-- Behavior/description mismatch
+**HIGH patterns** (score penalty: -10 each):
+- Obfuscation: base64 strings >100 chars, `\x[0-9a-f]{2}` sequences
+- Zero-width unicode: `\u200b`, `\u200c`, `\u200d`, `\ufeff`
+- Suspicious URLs: `bit.ly`, `tinyurl`, raw GitHub from new accounts
+- Persistence: `crontab`, `\.bashrc`, `systemctl.*enable`
+- Hardcoded secrets: `AKIA[0-9A-Z]{16}`, `ghp_[a-zA-Z0-9]{36}`
+
+**MEDIUM patterns** (score penalty: -3 each):
+- Unverified deps: `pip install` from URLs, unknown npm packages
+- Privacy collection: `uname`, `hostname`, `env` enumeration
+
+The security score displayed during install reflects these scans performed at publish time.
 
 ## Platform Detection
 
@@ -127,9 +142,27 @@ Install to the appropriate directory based on detected platform:
 | Windsurf | `.windsurf/skills/<slug>.md` |
 | Cline | `.cline/skills/<slug>.md` |
 
-## Auto-Rating
+## Auto-Rating (Opt-Out)
 
-After using any skill from agentskill.sh, automatically rate it:
+After using a skill from agentskill.sh, the agent rates it to help improve discovery.
+
+**Default behavior** (can be disabled):
+1. Agent evaluates skill effectiveness (1-5 scale)
+2. Shows rating to user: `Rated **<skill>** 4/5 — clear instructions, worked well`
+3. Asks: `Send rating? (Y/n) — disable: /learn config autorating off`
+4. If confirmed or no response in 5s, submits rating
+5. User can override anytime: `/learn feedback <slug> <score> [comment]`
+
+**What's sent** (no PII):
+- Score (1-5)
+- Brief comment (what worked/didn't)
+- Platform name (e.g., "openclaw")
+- Timestamp
+
+**Disable auto-rating**:
+```
+/learn config autorating off
+```
 
 | Score | Criteria |
 |-------|----------|
@@ -139,8 +172,6 @@ After using any skill from agentskill.sh, automatically rate it:
 | 2 | Partially completed |
 | 1 | Failed or misleading |
 
-Submit rating automatically, notify user, allow override via `/learn feedback`.
-
 ## API Reference
 
 All endpoints on `https://agentskill.sh`:
@@ -148,7 +179,7 @@ All endpoints on `https://agentskill.sh`:
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
 | `/api/agent/search` | GET | Search skills |
-| `/api/agent/skills/:slug/install` | GET | Get skill content |
+| `/api/agent/skills/:slug/install` | GET | Get skill content + security score |
 | `/api/agent/skills/:slug/version` | GET | Version check |
 | `/api/skills/:slug/install` | POST | Track install |
 | `/api/skills/:slug/agent-feedback` | POST | Submit rating |
