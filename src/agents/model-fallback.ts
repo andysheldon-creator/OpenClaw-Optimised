@@ -203,6 +203,37 @@ function resolveFallbackCandidates(params: {
     addCandidate({ provider: primary.provider, model: primary.model }, false);
   }
 
+  // Cross-provider failover: Add models from OTHER configured providers as emergency fallbacks.
+  // This ensures that when all profiles for the primary provider are rate-limited,
+  // we can escape to a different provider entirely.
+  // See: https://github.com/openclaw/openclaw/issues/13082
+  const configuredProviders = params.cfg?.models?.providers ?? {};
+  const seenProviders = new Set(candidates.map((c) => c.provider));
+
+  for (const [providerKey, providerConfig] of Object.entries(configuredProviders)) {
+    // Skip if we already have models from this provider in candidates
+    if (seenProviders.has(providerKey)) {
+      continue;
+    }
+
+    // Get models from this provider's configuration
+    const providerModels = providerConfig?.models;
+    if (!Array.isArray(providerModels) || providerModels.length === 0) {
+      continue;
+    }
+
+    // Add the first available model from this provider as a cross-provider fallback
+    for (const modelDef of providerModels) {
+      const modelId = typeof modelDef === "string" ? modelDef : modelDef?.id;
+      if (!modelId || typeof modelId !== "string") {
+        continue;
+      }
+      addCandidate({ provider: providerKey, model: modelId.trim() }, true);
+      seenProviders.add(providerKey);
+      break; // Only add one model per provider to avoid flooding fallbacks
+    }
+  }
+
   return candidates;
 }
 

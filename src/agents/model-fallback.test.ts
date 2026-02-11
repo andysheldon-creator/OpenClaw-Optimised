@@ -541,4 +541,64 @@ describe("runWithModelFallback", () => {
     expect(result.provider).toBe("openai");
     expect(result.model).toBe("gpt-4.1-mini");
   });
+
+  it("includes cross-provider fallbacks from configured providers (issue #13082)", async () => {
+    // Scenario: User has Anthropic as primary with Anthropic-only fallbacks,
+    // but also has OpenRouter configured. When Anthropic is rate-limited,
+    // we should escape to OpenRouter.
+    const cfg = makeCfg({
+      agents: {
+        defaults: {
+          model: {
+            primary: "anthropic/claude-sonnet-4",
+            fallbacks: ["anthropic/claude-opus-4"],
+          },
+          models: {
+            "anthropic/claude-sonnet-4": {},
+            "anthropic/claude-opus-4": {},
+            "openrouter/arcee-ai/trinity-large-preview:free": {},
+          },
+        },
+      },
+      models: {
+        providers: {
+          openrouter: {
+            baseUrl: "https://openrouter.ai/api/v1",
+            models: [{ id: "arcee-ai/trinity-large-preview:free" }],
+          },
+        },
+      },
+    });
+
+    const calls: Array<{ provider: string; model: string }> = [];
+
+    const run = vi
+      .fn()
+      .mockRejectedValueOnce(Object.assign(new Error("rate limited"), { status: 429 }))
+      .mockRejectedValueOnce(Object.assign(new Error("rate limited"), { status: 429 }))
+      .mockResolvedValueOnce("ok");
+
+    const result = await runWithModelFallback({
+      cfg,
+      provider: "anthropic",
+      model: "claude-sonnet-4",
+      run: async (provider, model) => {
+        calls.push({ provider, model });
+        return run(provider, model);
+      },
+    });
+
+    expect(result.result).toBe("ok");
+    expect(calls.length).toBe(3);
+    // First two attempts should be Anthropic models
+    expect(calls[0]).toEqual({ provider: "anthropic", model: "claude-sonnet-4" });
+    expect(calls[1]).toEqual({ provider: "anthropic", model: "claude-opus-4" });
+    // Third attempt should escape to OpenRouter (cross-provider fallback)
+    expect(calls[2]).toEqual({
+      provider: "openrouter",
+      model: "arcee-ai/trinity-large-preview:free",
+    });
+    expect(result.provider).toBe("openrouter");
+    expect(result.model).toBe("arcee-ai/trinity-large-preview:free");
+  });
 });
