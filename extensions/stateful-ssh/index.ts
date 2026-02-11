@@ -48,23 +48,15 @@ const statefulSSHPlugin = {
       });
 
       process.on("SIGINT", () => {
-        cleanupSSHSessions()
-          .catch((err) => {
-            console.error("Error cleaning up SSH sessions:", err);
-          })
-          .finally(() => {
-            process.exit(0);
-          });
+        cleanupSSHSessions().catch((err) => {
+          console.error("Error cleaning up SSH sessions:", err);
+        });
       });
 
       process.on("SIGTERM", () => {
-        cleanupSSHSessions()
-          .catch((err) => {
-            console.error("Error cleaning up SSH sessions:", err);
-          })
-          .finally(() => {
-            process.exit(0);
-          });
+        cleanupSSHSessions().catch((err) => {
+          console.error("Error cleaning up SSH sessions:", err);
+        });
       });
     }
   },
