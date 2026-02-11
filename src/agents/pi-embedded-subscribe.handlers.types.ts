@@ -61,6 +61,9 @@ export type EmbeddedPiSubscribeState = {
   messagingToolSentTargets: MessagingToolSend[];
   pendingMessagingTexts: Map<string, string>;
   pendingMessagingTargets: Map<string, MessagingToolSend>;
+
+  turnCount: number;
+  toolLoopHashes: string[];
 };
 
 export type EmbeddedPiSubscribeContext = {
@@ -74,6 +77,7 @@ export type EmbeddedPiSubscribeContext = {
   shouldEmitToolOutput: () => boolean;
   emitToolSummary: (toolName?: string, meta?: string) => void;
   emitToolOutput: (toolName?: string, meta?: string, output?: string) => void;
+  checkSafeguards: (toolName: string, meta?: string) => boolean;
   stripBlockTags: (
     text: string,
     state: { thinking: boolean; final: boolean; inlineCode?: InlineCodeState },

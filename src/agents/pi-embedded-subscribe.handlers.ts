@@ -21,6 +21,7 @@ import {
 
 export function createEmbeddedPiSessionEventHandler(ctx: EmbeddedPiSubscribeContext) {
   return (evt: EmbeddedPiSubscribeEvent) => {
+    console.log("Event received:", evt.type);
     switch (evt.type) {
       case "message_start":
         handleMessageStart(ctx, evt as never);

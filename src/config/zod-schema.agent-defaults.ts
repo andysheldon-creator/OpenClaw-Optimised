@@ -88,6 +88,13 @@ export const AgentDefaultsSchema = z
       })
       .strict()
       .optional(),
+    safeguards: z
+      .object({
+        maxTurns: z.number().int().positive().optional(),
+        loopDetection: z.boolean().optional(),
+      })
+      .strict()
+      .optional(),
     compaction: z
       .object({
         mode: z.union([z.literal("default"), z.literal("safeguard")]).optional(),

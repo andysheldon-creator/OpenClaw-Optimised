@@ -48,6 +48,13 @@ export type AgentContextPruningConfig = {
   };
 };
 
+export type AgentSafeguardsConfig = {
+  /** Max conversational turns before forced termination (default: 30). */
+  maxTurns?: number;
+  /** Enable infinite loop detection (default: true). */
+  loopDetection?: boolean;
+};
+
 export type CliBackendConfig = {
   /** CLI command to execute (absolute path or on PATH). */
   command: string;
@@ -130,6 +137,8 @@ export type AgentDefaultsConfig = {
   cliBackends?: Record<string, CliBackendConfig>;
   /** Opt-in: prune old tool results from the LLM context to reduce token usage. */
   contextPruning?: AgentContextPruningConfig;
+  /** Safeguards against infinite loops and excessive turns. */
+  safeguards?: AgentSafeguardsConfig;
   /** Compaction tuning and pre-compaction memory flush behavior. */
   compaction?: AgentCompactionConfig;
   /** Vector memory search configuration (per-agent overrides supported). */

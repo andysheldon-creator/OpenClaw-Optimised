@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { InlineCodeState } from "../markdown/code-spans.js";
 import type {
   EmbeddedPiSubscribeContext,
@@ -70,6 +71,8 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
     messagingToolSentTargets: [],
     pendingMessagingTexts: new Map(),
     pendingMessagingTargets: new Map(),
+    turnCount: 0,
+    toolLoopHashes: [],
   };
   const usageTotals = {
     input: 0,
@@ -293,6 +296,40 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
     }
     return `\`\`\`txt\n${trimmed}\n\`\`\``;
   };
+  const checkSafeguards = (toolName: string, meta?: string) => {
+    state.turnCount++;
+    const maxTurns = params.safeguards?.maxTurns ?? 30;
+    if (state.turnCount > maxTurns) {
+      const msg = `Agent terminated: Exceeded maximum of ${maxTurns} turns.`;
+      log.warn(msg);
+      params.onAbort?.(msg);
+      return false;
+    }
+
+    if (params.safeguards?.loopDetection !== false) {
+      const fingerprint = `${toolName}:${meta || ""}`;
+      const hash = createHash("sha256").update(fingerprint).digest("hex");
+      state.toolLoopHashes.push(hash);
+      if (state.toolLoopHashes.length > 5) {
+        state.toolLoopHashes.shift();
+      }
+
+      // Check for 3 consecutive identical hashes
+      const len = state.toolLoopHashes.length;
+      if (
+        len >= 3 &&
+        state.toolLoopHashes[len - 1] === state.toolLoopHashes[len - 2] &&
+        state.toolLoopHashes[len - 2] === state.toolLoopHashes[len - 3]
+      ) {
+        const msg = `Agent terminated: Loop detected (repeated tool usage: ${toolName}).`;
+        log.warn(msg);
+        params.onAbort?.(msg);
+        return false;
+      }
+    }
+    return true;
+  };
+
   const emitToolSummary = (toolName?: string, meta?: string) => {
     if (!params.onToolResult) {
       return;
@@ -314,6 +351,22 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
     }
   };
   const emitToolOutput = (toolName?: string, meta?: string, output?: string) => {
+    // Only check safeguards if not already checked in summary (some providers might call both?)
+    // Actually, usually summary comes first. But to be safe and simple, we'll check safeguards
+    // here too if summary wasn't emitted or if they are decoupled.
+    // However, increasing turn count twice for same tool call is bad.
+    // Usually `emitToolSummary` is called for the call, and `emitToolOutput` for the result.
+    // We should count the "turn" when the tool is *called* (Assistant -> Tool).
+    // `pi-embedded-subscribe` handles the *stream* from the agent.
+    // The events are usually: `tool_use` (summary) -> `tool_result` (output).
+    // We should probably only increment on `tool_use`.
+    // But `emitToolSummary` is called on `tool_use` (or equivalent).
+    // `emitToolOutput` is called when the result is available (if subscribed to it).
+    // We will assume `emitToolSummary` is the primary place to catch loops.
+    // If we only have output (e.g. from history?), we might miss it.
+    // But for live agents, summary is emitted first.
+    // Let's stick to `emitToolSummary` for the safeguards for now to avoid double counting.
+
     if (!params.onToolResult || !output) {
       return;
     }
@@ -566,7 +619,10 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
     messagingToolSentTargets.length = 0;
     pendingMessagingTexts.clear();
     pendingMessagingTargets.clear();
+    pendingMessagingTargets.clear();
     resetAssistantMessageState(0);
+    state.turnCount = 0;
+    state.toolLoopHashes.length = 0;
   };
 
   const ctx: EmbeddedPiSubscribeContext = {
@@ -578,6 +634,7 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
     shouldEmitToolResult,
     shouldEmitToolOutput,
     emitToolSummary,
+    checkSafeguards,
     emitToolOutput,
     stripBlockTags,
     emitBlockChunk,
