@@ -5,8 +5,13 @@ const DEFAULT_GROQ_AUDIO_BASE_URL = "https://api.groq.com/openai/v1";
 
 export const groqProvider: MediaUnderstandingProvider = {
   id: "groq",
-  capabilities: ["audio"],
+  capabilities: ["audio", "video"],
   transcribeAudio: (req) =>
+    transcribeOpenAiCompatibleAudio({
+      ...req,
+      baseUrl: req.baseUrl ?? DEFAULT_GROQ_AUDIO_BASE_URL,
+    }),
+  transcribeVideoAudio: (req) =>
     transcribeOpenAiCompatibleAudio({
       ...req,
       baseUrl: req.baseUrl ?? DEFAULT_GROQ_AUDIO_BASE_URL,

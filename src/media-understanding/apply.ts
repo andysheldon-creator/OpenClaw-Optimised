@@ -504,7 +504,9 @@ export async function applyMediaUnderstanding(params: {
 
     if (outputs.length > 0) {
       ctx.Body = formatMediaUnderstandingBody({ body: ctx.Body, outputs });
-      const audioOutputs = outputs.filter((output) => output.kind === "audio.transcription");
+      const audioOutputs = outputs.filter(
+        (output) => output.kind === "audio.transcription" || output.kind === "video.transcription",
+      );
       if (audioOutputs.length > 0) {
         const transcript = formatAudioTranscripts(audioOutputs);
         ctx.Transcript = transcript;

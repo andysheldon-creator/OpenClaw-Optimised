@@ -204,16 +204,25 @@ export const registerTelegramHandlers = ({
       const captionMsg = entry.messages.find((m) => m.msg.caption || m.msg.text);
       const primaryEntry = captionMsg ?? entry.messages[0];
 
-      const allMedia: TelegramMediaRef[] = [];
-      for (const { ctx } of entry.messages) {
+      const allMedia: Array<TelegramMediaRef & { messageId?: number }> = [];
+      for (const { ctx, msg } of entry.messages) {
         const media = await resolveMedia(ctx, mediaMaxBytes, opts.token, opts.proxyFetch);
         if (media) {
           allMedia.push({
             path: media.path,
             contentType: media.contentType,
             stickerMetadata: media.stickerMetadata,
+            messageId: msg.message_id,
           });
         }
+      }
+
+      const primaryMessageId = primaryEntry.msg.message_id;
+      const primaryIndex = allMedia.findIndex((media) => media.messageId === primaryMessageId);
+      if (primaryIndex > 0) {
+        // Ensure caption message media is the primary MediaPath.
+        const [primaryMedia] = allMedia.splice(primaryIndex, 1);
+        allMedia.unshift(primaryMedia);
       }
 
       const storeAllowFrom = await readChannelAllowFromStore("telegram").catch(() => []);

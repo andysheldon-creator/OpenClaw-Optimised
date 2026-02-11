@@ -35,7 +35,7 @@ import {
   DEFAULT_IMAGE_MODELS,
   DEFAULT_TIMEOUT_SECONDS,
 } from "./defaults.js";
-import { isMediaUnderstandingSkipError, MediaUnderstandingSkipError } from "./errors.js";
+import { isMediaUnderstandingSkipError } from "./errors.js";
 import { describeImageWithModel } from "./providers/image.js";
 import {
   buildMediaUnderstandingRegistry,
@@ -50,7 +50,7 @@ import {
   resolveScopeDecision,
   resolveTimeoutMs,
 } from "./resolve.js";
-import { estimateBase64Size, resolveVideoMaxBase64Bytes } from "./video.js";
+import { runVideoProvider } from "./video.js";
 
 export type ActiveMediaModel = {
   provider: string;
@@ -938,49 +938,22 @@ async function runProviderEntry(params: {
     };
   }
 
-  if (!provider.describeVideo) {
-    throw new Error(`Video understanding provider "${providerId}" not available.`);
-  }
-  const media = await params.cache.getBuffer({
-    attachmentIndex: params.attachmentIndex,
-    maxBytes,
-    timeoutMs,
-  });
-  const estimatedBase64Bytes = estimateBase64Size(media.size);
-  const maxBase64Bytes = resolveVideoMaxBase64Bytes(maxBytes);
-  if (estimatedBase64Bytes > maxBase64Bytes) {
-    throw new MediaUnderstandingSkipError(
-      "maxBytes",
-      `Video attachment ${params.attachmentIndex + 1} base64 payload ${estimatedBase64Bytes} exceeds ${maxBase64Bytes}`,
-    );
-  }
-  const auth = await resolveApiKeyForProvider({
-    provider: providerId,
+  // For video: delegate to video.ts which handles both transcription and description
+  return runVideoProvider({
+    provider,
+    providerId,
+    entry,
     cfg,
-    profileId: entry.profile,
-    preferredProfile: entry.preferredProfile,
-    agentDir: params.agentDir,
-  });
-  const apiKey = requireApiKey(auth, providerId);
-  const providerConfig = cfg.models?.providers?.[providerId];
-  const result = await provider.describeVideo({
-    buffer: media.buffer,
-    fileName: media.fileName,
-    mime: media.mime,
-    apiKey,
-    baseUrl: providerConfig?.baseUrl,
-    headers: providerConfig?.headers,
-    model: entry.model,
-    prompt,
-    timeoutMs,
-  });
-  return {
-    kind: "video.description",
+    cache: params.cache,
     attachmentIndex: params.attachmentIndex,
-    text: trimOutput(result.text, maxChars),
-    provider: providerId,
-    model: result.model ?? entry.model,
-  };
+    agentDir: params.agentDir,
+    maxBytes,
+    maxChars,
+    timeoutMs,
+    prompt,
+    config: params.config,
+    trimOutput,
+  });
 }
 
 async function runCliEntry(params: {
@@ -1074,10 +1047,16 @@ async function runAttachmentEntries(params: {
   config?: MediaUnderstandingConfig;
 }): Promise<{
   output: MediaUnderstandingOutput | null;
+  outputs?: MediaUnderstandingOutput[];
   attempts: MediaUnderstandingModelDecision[];
 }> {
   const { entries, capability } = params;
   const attempts: MediaUnderstandingModelDecision[] = [];
+
+  // For video: collect all outputs (transcription + description) instead of stopping at first success
+  const collectAll = capability === "video";
+  const collectedOutputs: MediaUnderstandingOutput[] = [];
+
   for (const entry of entries) {
     const entryType = entry.type ?? (entry.command ? "cli" : "provider");
     try {
@@ -1112,6 +1091,12 @@ async function runAttachmentEntries(params: {
           decision.model = result.model;
         }
         attempts.push(decision);
+
+        if (collectAll) {
+          collectedOutputs.push(result);
+          // Continue to next entry for video (collect both transcription and description)
+          continue;
+        }
         return { output: result, attempts };
       }
       attempts.push(
@@ -1144,6 +1129,11 @@ async function runAttachmentEntries(params: {
         logVerbose(`${capability} understanding failed: ${String(err)}`);
       }
     }
+  }
+
+  // For video: return all collected outputs
+  if (collectAll && collectedOutputs.length > 0) {
+    return { output: collectedOutputs[0], outputs: collectedOutputs, attempts };
   }
 
   return { output: null, attempts };
@@ -1263,7 +1253,11 @@ export async function runCapability(params: {
   const outputs: MediaUnderstandingOutput[] = [];
   const attachmentDecisions: MediaUnderstandingDecision["attachments"] = [];
   for (const attachment of selected) {
-    const { output, attempts } = await runAttachmentEntries({
+    const {
+      output,
+      outputs: multiOutputs,
+      attempts,
+    } = await runAttachmentEntries({
       capability,
       cfg,
       ctx,
@@ -1274,7 +1268,12 @@ export async function runCapability(params: {
       entries: resolvedEntries,
       config,
     });
-    if (output) {
+    // For video: use all collected outputs (transcription + description)
+    if (multiOutputs && multiOutputs.length > 0) {
+      for (const o of multiOutputs) {
+        outputs.push(o);
+      }
+    } else if (output) {
       outputs.push(output);
     }
     attachmentDecisions.push({

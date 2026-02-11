@@ -1,6 +1,7 @@
 export type MediaUnderstandingKind =
   | "audio.transcription"
   | "video.description"
+  | "video.transcription"
   | "image.description";
 
 export type MediaUnderstandingCapability = "image" | "audio" | "video";
@@ -109,6 +110,7 @@ export type MediaUnderstandingProvider = {
   id: string;
   capabilities?: MediaUnderstandingCapability[];
   transcribeAudio?: (req: AudioTranscriptionRequest) => Promise<AudioTranscriptionResult>;
+  transcribeVideoAudio?: (req: AudioTranscriptionRequest) => Promise<AudioTranscriptionResult>;
   describeVideo?: (req: VideoDescriptionRequest) => Promise<VideoDescriptionResult>;
   describeImage?: (req: ImageDescriptionRequest) => Promise<ImageDescriptionResult>;
 };

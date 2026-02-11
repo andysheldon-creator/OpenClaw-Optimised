@@ -66,6 +66,17 @@ export function formatMediaUnderstandingBody(params: {
       );
       continue;
     }
+    if (output.kind === "video.transcription") {
+      sections.push(
+        formatSection(
+          `Video Audio${suffix}`,
+          "Transcript",
+          output.text,
+          outputs.length === 1 ? userText : undefined,
+        ),
+      );
+      continue;
+    }
     if (output.kind === "image.description") {
       sections.push(
         formatSection(
