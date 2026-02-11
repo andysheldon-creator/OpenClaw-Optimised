@@ -317,6 +317,29 @@ export async function agentCommand(
         model = storedModelOverride;
       }
     }
+
+    // Model override passed directly to the agent command (e.g., from sessions_spawn).
+    // This takes precedence over session-stored overrides to avoid timing issues.
+    const directModelOverride = opts.model?.trim();
+    if (directModelOverride) {
+      // Split only on first slash to preserve hierarchical model IDs (e.g., openrouter/moonshotai/kimi-k2)
+      const slashIndex = directModelOverride.indexOf("/");
+      const [modelProvider, modelName] =
+        slashIndex === -1
+          ? [defaultProvider, directModelOverride]
+          : [directModelOverride.slice(0, slashIndex), directModelOverride.slice(slashIndex + 1)];
+      const candidateProvider = modelProvider || defaultProvider;
+      const candidateModel = modelName || directModelOverride;
+      const key = modelKey(candidateProvider, candidateModel);
+      if (
+        isCliProvider(candidateProvider, cfg) ||
+        allowedModelKeys.size === 0 ||
+        allowedModelKeys.has(key)
+      ) {
+        provider = candidateProvider;
+        model = candidateModel;
+      }
+    }
     if (sessionEntry) {
       const authProfileId = sessionEntry.authProfileOverride;
       if (authProfileId) {

@@ -53,6 +53,7 @@ SKIP_DIRS = {
     "Swabble",  # Separate Swift package
     "skills",  # Standalone skill scripts
     ".pi",  # Pi editor extensions
+    "OpenClawProtocol",  # Auto-generated protocol bindings
 }
 
 # Filename patterns to skip in short-file warnings (barrel exports, stubs)
