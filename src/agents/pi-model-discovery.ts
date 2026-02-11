@@ -77,9 +77,9 @@ function convertProfileToSdkCredential(
       }
       const cred: Record<string, unknown> = {
         type: "oauth",
-        access: profile.access,
-        refresh: profile.refresh,
-        expires: profile.expires,
+        ...(profile.access ? { access: profile.access } : {}),
+        ...(profile.refresh ? { refresh: profile.refresh } : {}),
+        ...(profile.expires != null ? { expires: profile.expires } : {}),
       };
       if (profile.enterpriseUrl) {
         cred.enterpriseUrl = profile.enterpriseUrl;
