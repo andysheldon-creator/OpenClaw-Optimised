@@ -172,7 +172,7 @@ Plugins run **in-process** with the Gateway. Treat them as trusted code:
 - Restart the Gateway after plugin changes.
 - If you install plugins from npm (`openclaw plugins install <npm-spec>`), treat it like running untrusted code:
   - The install path is `~/.openclaw/extensions/<pluginId>/` (or `$OPENCLAW_STATE_DIR/extensions/<pluginId>/`).
-  - OpenClaw uses `npm pack` and then runs `npm install --omit=dev` in that directory (npm lifecycle scripts can execute code during install).
+  - OpenClaw uses `npm pack` and then runs `npm install --omit=dev --ignore-scripts` in that directory (npm lifecycle scripts are blocked by default).
   - Prefer pinned, exact versions (`@scope/pkg@1.2.3`), and inspect the unpacked code on disk before enabling.
 
 Details: [Plugins](/tools/plugin)

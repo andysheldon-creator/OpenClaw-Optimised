@@ -166,7 +166,7 @@ OpenClaw 的立场：
 - 在插件更改后重启 Gateway 网关。
 - 如果你从 npm 安装插件（`openclaw plugins install <npm-spec>`），将其视为运行不受信任的代码：
   - 安装路径是 `~/.openclaw/extensions/<pluginId>/`（或 `$OPENCLAW_STATE_DIR/extensions/<pluginId>/`）。
-  - OpenClaw 使用 `npm pack` 然后在该目录中运行 `npm install --omit=dev`（npm 生命周期脚本可以在安装期间执行代码）。
+  - OpenClaw 使用 `npm pack` 然后在该目录中运行 `npm install --omit=dev --ignore-scripts`（npm 生命周期脚本默认被阻止）。
   - 优先使用固定的精确版本（`@scope/pkg@1.2.3`），并在启用之前检查磁盘上解压的代码。
 
 详情：[插件](/tools/plugin)

@@ -40,7 +40,7 @@ export async function ensureMatrixSdkInstalled(params: {
   const root = resolvePluginRoot();
   const command = fs.existsSync(path.join(root, "pnpm-lock.yaml"))
     ? ["pnpm", "install"]
-    : ["npm", "install", "--omit=dev", "--silent"];
+    : ["npm", "install", "--omit=dev", "--silent", "--ignore-scripts"];
   params.runtime.log?.(`matrix: installing dependencies via ${command[0]} (${root})…`);
   const result = await getMatrixRuntime().system.runCommandWithTimeout(command, {
     cwd: root,
