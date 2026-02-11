@@ -49,6 +49,9 @@ async function main() {
   const { loadDotEnv } = await import("../infra/dotenv.js");
   loadDotEnv({ quiet: true });
 
+  const { loadSupabaseEnv } = await import("../infra/supabase-env.js");
+  await loadSupabaseEnv();
+
   const { ensureOpenClawCliOnPath } = await import("../infra/path-env.js");
   ensureOpenClawCliOnPath();
 

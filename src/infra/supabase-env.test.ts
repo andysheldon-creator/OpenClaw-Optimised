@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
+import { loadDotEnvWithSupabase } from "./dotenv.js";
 import { fetchSupabaseEnvVars, loadSupabaseEnv, resolveSupabaseEnvConfig } from "./supabase-env.js";
 
 // ---------------------------------------------------------------------------
@@ -400,5 +401,93 @@ describe("loadSupabaseEnv", () => {
 
     expect(result).toBe(1);
     expect(process.env.SUPABASE_TEST_INJECTED).toBe("it-works");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Integration: loadDotEnvWithSupabase (full flow simulation)
+// ---------------------------------------------------------------------------
+
+describe("loadDotEnvWithSupabase integration", () => {
+  const savedEnv: Record<string, string | undefined> = {};
+  const keysToClean: string[] = [];
+
+  function saveKey(key: string): void {
+    savedEnv[key] = process.env[key];
+    keysToClean.push(key);
+  }
+
+  afterEach(() => {
+    for (const key of keysToClean) {
+      if (savedEnv[key] === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = savedEnv[key];
+      }
+    }
+    keysToClean.length = 0;
+  });
+
+  it("returns supabaseApplied=0 when bootstrap vars are unset", async () => {
+    saveKey("SUPABASE_URL");
+    saveKey("SUPABASE_SERVICE_ROLE_KEY");
+    delete process.env.SUPABASE_URL;
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    const result = await loadDotEnvWithSupabase({ quiet: true });
+    expect(result.supabaseApplied).toBe(0);
+  });
+
+  it("makes Supabase vars available in process.env before config would load", async () => {
+    saveKey("SUPABASE_URL");
+    saveKey("SUPABASE_SERVICE_ROLE_KEY");
+    saveKey("OPENAI_API_KEY");
+    saveKey("TELEGRAM_BOT_TOKEN");
+
+    process.env.SUPABASE_URL = "https://test.supabase.co";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "test-key";
+    delete process.env.OPENAI_API_KEY;
+    delete process.env.TELEGRAM_BOT_TOKEN;
+
+    // Monkey-patch global fetch for this test
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = createMockFetch([
+      { key: "OPENAI_API_KEY", value: "sk-from-supabase" },
+      { key: "TELEGRAM_BOT_TOKEN", value: "123:from-supabase" },
+    ]);
+
+    try {
+      const result = await loadDotEnvWithSupabase({ quiet: true });
+
+      expect(result.supabaseApplied).toBe(2);
+
+      // At this point in real startup, loadConfig() would run and see these:
+      expect(process.env.OPENAI_API_KEY).toBe("sk-from-supabase");
+      expect(process.env.TELEGRAM_BOT_TOKEN).toBe("123:from-supabase");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("local .env vars take precedence over Supabase vars", async () => {
+    saveKey("SUPABASE_URL");
+    saveKey("SUPABASE_SERVICE_ROLE_KEY");
+    saveKey("ALREADY_SET_KEY");
+
+    process.env.SUPABASE_URL = "https://test.supabase.co";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "test-key";
+    process.env.ALREADY_SET_KEY = "local-value";
+
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = createMockFetch([{ key: "ALREADY_SET_KEY", value: "supabase-value" }]);
+
+    try {
+      const result = await loadDotEnvWithSupabase({ quiet: true });
+
+      expect(result.supabaseApplied).toBe(0);
+      expect(process.env.ALREADY_SET_KEY).toBe("local-value");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 });
