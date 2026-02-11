@@ -98,7 +98,9 @@ describe("config env vars", () => {
                 tools: {
                   web: {
                     search: {
-                      apiKey: "${BRAVE_API_KEY}",
+                      brave: {
+                        apiKey: "${BRAVE_API_KEY}",
+                      },
                     },
                   },
                 },
@@ -113,11 +115,11 @@ describe("config env vars", () => {
           const { loadConfig } = await import("./config.js");
 
           const first = loadConfig();
-          expect(first.tools?.web?.search?.apiKey).toBe("from-dotenv");
+          expect(first.tools?.web?.search?.brave?.apiKey).toBe("from-dotenv");
 
           delete process.env.BRAVE_API_KEY;
           const second = loadConfig();
-          expect(second.tools?.web?.search?.apiKey).toBe("from-dotenv");
+          expect(second.tools?.web?.search?.brave?.apiKey).toBe("from-dotenv");
         },
       );
     });

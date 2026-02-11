@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { __testing } from "./web-search.js";
 
 const {
@@ -7,10 +7,8 @@ const {
   isDirectPerplexityBaseUrl,
   resolvePerplexityRequestModel,
   normalizeFreshness,
-  resolveGrokApiKey,
-  resolveGrokModel,
-  resolveGrokInlineCitations,
-  extractGrokContent,
+  buildSearchCacheKey,
+  performProviderSearch,
 } = __testing;
 
 describe("web_search perplexity baseUrl defaults", () => {
@@ -104,107 +102,299 @@ describe("web_search freshness normalization", () => {
   });
 });
 
-describe("web_search grok config resolution", () => {
-  it("uses config apiKey when provided", () => {
-    expect(resolveGrokApiKey({ apiKey: "xai-test-key" })).toBe("xai-test-key");
+describe("buildSearchCacheKey", () => {
+  const baseParams = { query: "test query", count: 5 } as const;
+
+  describe("brave", () => {
+    it("includes all locale and freshness fields", () => {
+      const key = buildSearchCacheKey({
+        ...baseParams,
+        provider: "brave",
+        country: "US",
+        search_lang: "en",
+        ui_lang: "en-US",
+        freshness: "pw",
+      });
+      expect(key).toBe("brave:test query:5:us:en:en-us:pw");
+    });
+
+    it("uses 'default' for missing optional fields", () => {
+      const key = buildSearchCacheKey({ ...baseParams, provider: "brave" });
+      expect(key).toBe("brave:test query:5:default:default:default:default");
+    });
+
+    it("produces different keys for different freshness values", () => {
+      const a = buildSearchCacheKey({ ...baseParams, provider: "brave", freshness: "pd" });
+      const b = buildSearchCacheKey({ ...baseParams, provider: "brave", freshness: "pm" });
+      expect(a).not.toBe(b);
+    });
   });
 
-  it("returns undefined when no apiKey is available", () => {
-    const previous = process.env.XAI_API_KEY;
-    try {
-      delete process.env.XAI_API_KEY;
-      expect(resolveGrokApiKey({})).toBeUndefined();
-      expect(resolveGrokApiKey(undefined)).toBeUndefined();
-    } finally {
-      if (previous === undefined) {
-        delete process.env.XAI_API_KEY;
-      } else {
-        process.env.XAI_API_KEY = previous;
-      }
-    }
+  describe("perplexity", () => {
+    it("includes explicit baseUrl and model", () => {
+      const key = buildSearchCacheKey({
+        ...baseParams,
+        provider: "perplexity",
+        perplexityBaseUrl: "https://custom.api/v1",
+        perplexityModel: "sonar",
+      });
+      expect(key).toBe("perplexity:test query:https://custom.api/v1:sonar");
+    });
+
+    it("falls back to default baseUrl and model", () => {
+      const key = buildSearchCacheKey({ ...baseParams, provider: "perplexity" });
+      expect(key).toBe("perplexity:test query:https://openrouter.ai/api/v1:perplexity/sonar-pro");
+    });
   });
 
-  it("uses default model when not specified", () => {
-    expect(resolveGrokModel({})).toBe("grok-4-1-fast");
-    expect(resolveGrokModel(undefined)).toBe("grok-4-1-fast");
+  describe("tavily", () => {
+    it("includes count, freshness, and searchDepth", () => {
+      const key = buildSearchCacheKey({
+        ...baseParams,
+        provider: "tavily",
+        freshness: "pw",
+        tavilySearchDepth: "basic",
+      });
+      expect(key).toBe("tavily:test query:5:pw:basic");
+    });
+
+    it("falls back to defaults for missing optional fields", () => {
+      const key = buildSearchCacheKey({ ...baseParams, provider: "tavily" });
+      expect(key).toBe("tavily:test query:5:default:advanced");
+    });
+
+    it("produces different keys for different search depths", () => {
+      const a = buildSearchCacheKey({
+        ...baseParams,
+        provider: "tavily",
+        tavilySearchDepth: "basic",
+      });
+      const b = buildSearchCacheKey({
+        ...baseParams,
+        provider: "tavily",
+        tavilySearchDepth: "advanced",
+      });
+      expect(a).not.toBe(b);
+    });
   });
 
-  it("uses config model when provided", () => {
-    expect(resolveGrokModel({ model: "grok-3" })).toBe("grok-3");
+  describe("grok", () => {
+    it("includes explicit model", () => {
+      const key = buildSearchCacheKey({
+        ...baseParams,
+        provider: "grok",
+        grokModel: "grok-custom",
+      });
+      expect(key).toBe("grok:test query:grok-custom");
+    });
+
+    it("falls back to default model", () => {
+      const key = buildSearchCacheKey({ ...baseParams, provider: "grok" });
+      expect(key).toBe("grok:test query:grok-4-1-fast-reasoning");
+    });
   });
 
-  it("defaults inlineCitations to false", () => {
-    expect(resolveGrokInlineCitations({})).toBe(false);
-    expect(resolveGrokInlineCitations(undefined)).toBe(false);
+  it("normalizes keys to lowercase", () => {
+    const key = buildSearchCacheKey({
+      ...baseParams,
+      query: "UPPER CASE",
+      provider: "brave",
+      country: "US",
+    });
+    expect(key).toBe("brave:upper case:5:us:default:default:default");
   });
 
-  it("respects inlineCitations config", () => {
-    expect(resolveGrokInlineCitations({ inlineCitations: true })).toBe(true);
-    expect(resolveGrokInlineCitations({ inlineCitations: false })).toBe(false);
+  it("different providers produce different keys for same query", () => {
+    const brave = buildSearchCacheKey({ ...baseParams, provider: "brave" });
+    const perplexity = buildSearchCacheKey({ ...baseParams, provider: "perplexity" });
+    const tavily = buildSearchCacheKey({ ...baseParams, provider: "tavily" });
+    const grok = buildSearchCacheKey({ ...baseParams, provider: "grok" });
+    const keys = new Set([brave, perplexity, tavily, grok]);
+    expect(keys.size).toBe(4);
   });
 });
 
-describe("web_search grok response parsing", () => {
-  it("extracts content from Responses API message blocks", () => {
-    const result = extractGrokContent({
-      output: [
-        {
-          type: "message",
-          content: [{ type: "output_text", text: "hello from output" }],
+describe("performProviderSearch", () => {
+  const mockFetch = vi.fn();
+
+  beforeEach(() => {
+    vi.stubGlobal("fetch", mockFetch);
+    mockFetch.mockReset();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("dispatches to brave and returns correct payload shape", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        web: {
+          results: [{ title: "T", url: "https://a.com", description: "D" }],
         },
-      ],
+      }),
     });
-    expect(result.text).toBe("hello from output");
-    expect(result.annotationCitations).toEqual([]);
+
+    const start = Date.now();
+    const payload = await performProviderSearch(
+      {
+        query: "brave test",
+        provider: "brave",
+        count: 3,
+        apiKey: "key",
+        timeoutSeconds: 10,
+      },
+      start,
+    );
+
+    expect(Object.keys(payload).toSorted()).toEqual([
+      "count",
+      "provider",
+      "query",
+      "results",
+      "tookMs",
+    ]);
+    expect(payload.query).toBe("brave test");
+    expect(payload.provider).toBe("brave");
+    expect(payload.count).toBe(1);
+    expect(payload.tookMs).toBeGreaterThanOrEqual(0);
+    expect(Array.isArray(payload.results)).toBe(true);
   });
 
-  it("extracts url_citation annotations from content blocks", () => {
-    const result = extractGrokContent({
-      output: [
+  it("dispatches to perplexity and returns correct payload shape", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        choices: [{ message: { content: "answer" } }],
+        citations: ["https://cite.com"],
+      }),
+    });
+
+    const start = Date.now();
+    const payload = await performProviderSearch(
+      {
+        query: "pplx test",
+        provider: "perplexity",
+        count: 5,
+        apiKey: "key",
+        timeoutSeconds: 10,
+        perplexityBaseUrl: "https://openrouter.ai/api/v1",
+        perplexityModel: "perplexity/sonar-pro",
+      },
+      start,
+    );
+
+    expect(Object.keys(payload).toSorted()).toEqual([
+      "citations",
+      "content",
+      "model",
+      "provider",
+      "query",
+      "tookMs",
+    ]);
+    expect(payload.query).toBe("pplx test");
+    expect(payload.provider).toBe("perplexity");
+    expect(payload.model).toBe("perplexity/sonar-pro");
+    expect(typeof payload.content).toBe("string");
+    expect(payload.tookMs).toBeGreaterThanOrEqual(0);
+    expect(payload.citations).toEqual(["https://cite.com"]);
+  });
+
+  it("dispatches to grok and returns correct payload shape", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        output: [
+          {
+            type: "message",
+            status: "completed",
+            content: [
+              {
+                text: "grok answer",
+                annotations: [{ url: "https://x.com", start_index: 0, end_index: 5 }],
+              },
+            ],
+          },
+        ],
+      }),
+    });
+
+    const start = Date.now();
+    const payload = await performProviderSearch(
+      {
+        query: "grok test",
+        provider: "grok",
+        count: 5,
+        apiKey: "key",
+        timeoutSeconds: 10,
+        grokModel: "grok-4-1-fast-reasoning",
+      },
+      start,
+    );
+
+    expect(Object.keys(payload).toSorted()).toEqual([
+      "citations",
+      "model",
+      "provider",
+      "query",
+      "results",
+      "tookMs",
+    ]);
+    expect(payload.query).toBe("grok test");
+    expect(payload.provider).toBe("grok");
+    expect(payload.model).toBe("grok-4-1-fast-reasoning");
+    expect(payload.tookMs).toBeGreaterThanOrEqual(0);
+    expect(Array.isArray(payload.results)).toBe(true);
+    expect(Array.isArray(payload.citations)).toBe(true);
+  });
+
+  it("dispatches to tavily and returns correct payload shape", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        results: [{ title: "T", url: "https://t.com", content: "C", score: 0.8 }],
+      }),
+    });
+
+    const start = Date.now();
+    const payload = await performProviderSearch(
+      {
+        query: "tavily test",
+        provider: "tavily",
+        count: 5,
+        apiKey: "key",
+        timeoutSeconds: 10,
+      },
+      start,
+    );
+
+    expect(Object.keys(payload).toSorted()).toEqual([
+      "count",
+      "provider",
+      "query",
+      "results",
+      "tookMs",
+    ]);
+    expect(payload.query).toBe("tavily test");
+    expect(payload.provider).toBe("tavily");
+    expect(payload.count).toBe(1);
+    expect(payload.tookMs).toBeGreaterThanOrEqual(0);
+    expect(Array.isArray(payload.results)).toBe(true);
+  });
+
+  it("throws for unsupported provider", async () => {
+    await expect(
+      performProviderSearch(
         {
-          type: "message",
-          content: [
-            {
-              type: "output_text",
-              text: "hello with citations",
-              annotations: [
-                {
-                  type: "url_citation",
-                  url: "https://example.com/a",
-                  start_index: 0,
-                  end_index: 5,
-                },
-                {
-                  type: "url_citation",
-                  url: "https://example.com/b",
-                  start_index: 6,
-                  end_index: 10,
-                },
-                {
-                  type: "url_citation",
-                  url: "https://example.com/a",
-                  start_index: 11,
-                  end_index: 15,
-                }, // duplicate
-              ],
-            },
-          ],
+          query: "q",
+          provider: "unknown" as never,
+          count: 5,
+          apiKey: "key",
+          timeoutSeconds: 10,
         },
-      ],
-    });
-    expect(result.text).toBe("hello with citations");
-    expect(result.annotationCitations).toEqual(["https://example.com/a", "https://example.com/b"]);
-  });
-
-  it("falls back to deprecated output_text", () => {
-    const result = extractGrokContent({ output_text: "hello from output_text" });
-    expect(result.text).toBe("hello from output_text");
-    expect(result.annotationCitations).toEqual([]);
-  });
-
-  it("returns undefined text when no content found", () => {
-    const result = extractGrokContent({});
-    expect(result.text).toBeUndefined();
-    expect(result.annotationCitations).toEqual([]);
+        Date.now(),
+      ),
+    ).rejects.toThrow("Unsupported web search provider.");
   });
 });

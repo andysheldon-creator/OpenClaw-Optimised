@@ -28,6 +28,8 @@ Docs: https://docs.openclaw.ai
 - Channels: IRC first-class channel support. (#11482) Thanks @vignesh07.
 - Plugins: device pairing + phone control plugins (Telegram `/pair`, iOS/Android node controls). (#11755) Thanks @mbelinky.
 - Tools: add Grok (xAI) as a `web_search` provider. (#12419) Thanks @tmchow.
+- Tools: add Tavily as a `web_search` provider with configurable search depth. (#13171) Thanks @a-anand-91119.
+- Configure: multi-provider web search in configure wizard; select Brave, Perplexity, Grok, or Tavily and enter per-provider API keys. Normalize Brave key to `tools.web.search.brave.apiKey` with legacy migration. (#13171) Thanks @a-anand-91119.
 - Gateway: add agent management RPC methods for the web UI (`agents.create`, `agents.update`, `agents.delete`). (#11045) Thanks @advaitpaliwal.
 - Gateway: stream thinking events to WS clients and broadcast tool events independent of verbose level. (#10568) Thanks @nk1tz.
 - Web UI: show a Compaction divider in chat history. (#11341) Thanks @Takhoffman.
@@ -39,6 +41,7 @@ Docs: https://docs.openclaw.ai
 
 ### Fixes
 
+- Tools: rewrite Grok `web_search` response parser for xAI Responses API; extract provider dispatch in `runWebSearch`. (#13171) Thanks @a-anand-91119.
 - Discord: add exec approval cleanup option to delete DMs after approval/denial/timeout. (#13205) Thanks @thewilloftheshadow.
 - Sessions: prune stale entries, cap session store size, rotate large stores, accept duration/size thresholds, default to warn-only maintenance, and prune cron run sessions after retention windows. (#13083) Thanks @skyfallsin, @Glucksberg, @gumadeiras.
 - CI: Implement pipeline and workflow order. Thanks @quotentiroler.
@@ -62,6 +65,7 @@ Docs: https://docs.openclaw.ai
 - Web UI: coerce Form Editor values to schema types before `config.set` and `config.apply`, preventing numeric and boolean fields from being serialized as strings. (#13468) Thanks @mcaxtr.
 - Tools/web_search: include provider-specific settings in the web search cache key, and pass `inlineCitations` for Grok. (#12419) Thanks @tmchow.
 - Tools/web_search: fix Grok response parsing for xAI Responses API output blocks. (#13049) Thanks @ereid7.
+- Tools/web_search: rewrite Grok response parser for xAI Responses API; fix status filter, remove unused `inlineCitations` config, add fixture-driven tests. (#13171) Thanks @a-anand-91119.
 - Tools/web_search: normalize direct Perplexity model IDs while keeping OpenRouter model IDs unchanged. (#12795) Thanks @cdorsey.
 - Model failover: treat HTTP 400 errors as failover-eligible, enabling automatic model fallback. (#1879) Thanks @orenyomtov.
 - Errors: prevent false positive context overflow detection when conversation mentions "context overflow" topic. (#2078) Thanks @sbking.
