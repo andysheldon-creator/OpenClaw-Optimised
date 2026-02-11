@@ -481,7 +481,7 @@ public struct AgentParams: Codable, Sendable {
     public let replychannel: String?
     public let accountid: String?
     public let replyaccountid: String?
-    public let threadid: String?
+    public let threadid: AnyCodable?
     public let groupid: String?
     public let groupchannel: String?
     public let groupspace: String?
@@ -506,7 +506,7 @@ public struct AgentParams: Codable, Sendable {
         replychannel: String?,
         accountid: String?,
         replyaccountid: String?,
-        threadid: String?,
+        threadid: AnyCodable?,
         groupid: String?,
         groupchannel: String?,
         groupspace: String?,
