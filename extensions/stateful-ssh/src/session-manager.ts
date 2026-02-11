@@ -344,7 +344,10 @@ export class SSHSessionManager {
 
     // Execute this command and update the queue
     const commandPromise = this.executeCommandInternal(session, command);
-    session.commandQueue = commandPromise.catch(() => {}); // Swallow errors to not block queue
+    session.commandQueue = commandPromise.then(
+      () => {},
+      () => {},
+    ); // Swallow errors to not block queue
 
     return commandPromise;
   }
