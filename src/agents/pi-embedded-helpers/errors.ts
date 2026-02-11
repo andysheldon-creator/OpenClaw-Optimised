@@ -151,6 +151,20 @@ function shouldRewriteContextOverflowText(raw: string): boolean {
   );
 }
 
+function shouldRewriteBillingText(raw: string): boolean {
+  if (!isBillingErrorMessage(raw)) {
+    return false;
+  }
+  // Precise billing patterns (402, "insufficient credits", etc.) are safe to rewrite unconditionally.
+  if (matchesErrorPatterns(raw.toLowerCase(), ERROR_PATTERNS.billing)) {
+    return true;
+  }
+  // The broad "billing + payment/upgrade/credits/plan" heuristic can match assistant prose
+  // discussing billing topics. Only rewrite when the text looks like a raw error payload,
+  // HTTP error, or prefixed error — never rewrite based on content heuristics alone.
+  return isRawApiErrorPayload(raw) || isLikelyHttpErrorText(raw) || ERROR_PREFIX_RE.test(raw);
+}
+
 type ErrorPayload = Record<string, unknown>;
 
 function isErrorPayloadObject(payload: unknown): payload is ErrorPayload {
