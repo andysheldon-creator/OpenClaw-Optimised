@@ -672,7 +672,12 @@ function printResult(result: UpdateRunResult, opts: PrintResultOptions) {
 }
 
 export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
-  process.noDeprecation = true;
+  // Wrap in try/catch: property is read-only on Node.js v23+ (#14107)
+  try {
+    process.noDeprecation = true;
+  } catch {
+    // Read-only in newer Node.js versions; use env var fallback below.
+  }
   process.env.NODE_NO_WARNINGS = "1";
   const timeoutMs = opts.timeout ? Number.parseInt(opts.timeout, 10) * 1000 : undefined;
   const shouldRestart = opts.restart !== false;
