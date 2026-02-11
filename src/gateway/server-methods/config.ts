@@ -25,6 +25,7 @@ import {
 } from "../../infra/restart-sentinel.js";
 import { scheduleGatewaySigusr1Restart } from "../../infra/restart.js";
 import { loadOpenClawPlugins } from "../../plugins/loader.js";
+import { buildGatewayReloadPlan, diffConfigPaths } from "../config-reload.js";
 import {
   ErrorCodes,
   errorShape,
@@ -309,6 +310,9 @@ export const configHandlers: GatewayRequestHandlers = {
         ? Math.max(0, Math.floor(restartDelayMsRaw))
         : undefined;
 
+    const changedPaths = diffConfigPaths(snapshot.config, validated.config);
+    const reloadPlan = buildGatewayReloadPlan(changedPaths);
+
     const payload: RestartSentinelPayload = {
       kind: "config-apply",
       status: "ok",
@@ -327,10 +331,20 @@ export const configHandlers: GatewayRequestHandlers = {
     } catch {
       sentinelPath = null;
     }
-    const restart = scheduleGatewaySigusr1Restart({
-      delayMs: restartDelayMs,
-      reason: "config.patch",
-    });
+
+    const restart = reloadPlan.restartGateway
+      ? scheduleGatewaySigusr1Restart({
+          delayMs: restartDelayMs,
+          reason: "config.patch",
+        })
+      : {
+          ok: true,
+          skipped: true,
+          reason: "no-restart-needed",
+          noopPaths: reloadPlan.noopPaths,
+          hotReasons: reloadPlan.hotReasons,
+        };
+
     respond(
       true,
       {
@@ -338,6 +352,13 @@ export const configHandlers: GatewayRequestHandlers = {
         path: CONFIG_PATH,
         config: redactConfigObject(validated.config),
         restart,
+        reloadPlan: {
+          changedPaths: reloadPlan.changedPaths,
+          restartGateway: reloadPlan.restartGateway,
+          restartReasons: reloadPlan.restartReasons,
+          hotReasons: reloadPlan.hotReasons,
+          noopPaths: reloadPlan.noopPaths,
+        },
         sentinel: {
           path: sentinelPath,
           payload,
@@ -420,6 +441,9 @@ export const configHandlers: GatewayRequestHandlers = {
         ? Math.max(0, Math.floor(restartDelayMsRaw))
         : undefined;
 
+    const changedPaths = diffConfigPaths(snapshot.config, restoredApply);
+    const reloadPlan = buildGatewayReloadPlan(changedPaths);
+
     const payload: RestartSentinelPayload = {
       kind: "config-apply",
       status: "ok",
@@ -438,10 +462,20 @@ export const configHandlers: GatewayRequestHandlers = {
     } catch {
       sentinelPath = null;
     }
-    const restart = scheduleGatewaySigusr1Restart({
-      delayMs: restartDelayMs,
-      reason: "config.apply",
-    });
+
+    const restart = reloadPlan.restartGateway
+      ? scheduleGatewaySigusr1Restart({
+          delayMs: restartDelayMs,
+          reason: "config.apply",
+        })
+      : {
+          ok: true,
+          skipped: true,
+          reason: "no-restart-needed",
+          noopPaths: reloadPlan.noopPaths,
+          hotReasons: reloadPlan.hotReasons,
+        };
+
     respond(
       true,
       {
@@ -449,6 +483,13 @@ export const configHandlers: GatewayRequestHandlers = {
         path: CONFIG_PATH,
         config: redactConfigObject(restoredApply),
         restart,
+        reloadPlan: {
+          changedPaths: reloadPlan.changedPaths,
+          restartGateway: reloadPlan.restartGateway,
+          restartReasons: reloadPlan.restartReasons,
+          hotReasons: reloadPlan.hotReasons,
+          noopPaths: reloadPlan.noopPaths,
+        },
         sentinel: {
           path: sentinelPath,
           payload,
