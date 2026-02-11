@@ -10,7 +10,6 @@ import { registerBrowserExtensionCommands } from "./browser-cli-extension.js";
 import { registerBrowserInspectCommands } from "./browser-cli-inspect.js";
 import { registerBrowserManageCommands } from "./browser-cli-manage.js";
 import { registerBrowserStateCommands } from "./browser-cli-state.js";
-import { addGatewayClientOptions } from "./gateway-rpc.js";
 import { formatHelpExamples } from "./help-format.js";
 
 export function registerBrowserCli(program: Command) {
@@ -41,7 +40,11 @@ export function registerBrowserCli(program: Command) {
       defaultRuntime.exit(1);
     });
 
-  addGatewayClientOptions(browser);
+  browser
+    .option("--url <url>", "Gateway WebSocket URL (defaults to gateway.remote.url when configured)")
+    .option("--token <token>", "Gateway token (if required)")
+    .option("--timeout <ms>", "Timeout in ms", "30000")
+    .option("--expect-final", "Wait for final response (agent)", false);
 
   const parentOpts = (cmd: Command) => cmd.parent?.opts?.() as BrowserParentOpts;
 

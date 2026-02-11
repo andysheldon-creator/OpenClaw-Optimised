@@ -74,7 +74,7 @@ export async function runCli(argv: string[] = process.argv) {
     const { resolveCliChannelOptions } = await import("./channel-options.js");
     provideChannelOptions(resolveCliChannelOptions);
     const { registerProgramCommands } = await import("./program/command-registry.js");
-    registerProgramCommands(program, ctx, parseArgv);
+    await registerProgramCommands(program, ctx, parseArgv);
   }
 
   const shouldSkipPluginRegistration =

@@ -1,6 +1,5 @@
 import type { Command } from "commander";
 import type { ProgramContext } from "./context.js";
-import { registerBrowserCli } from "../browser-cli.js";
 import { registerConfigCli } from "../config-cli.js";
 import { registerMemoryCli } from "../memory-cli.js";
 import { registerAgentCommands } from "./register.agent.js";
@@ -20,7 +19,7 @@ type CommandRegisterParams = {
 
 type CommandRegistration = {
   id: string;
-  register: (params: CommandRegisterParams) => void;
+  register: (params: CommandRegisterParams) => void | Promise<void>;
 };
 
 const commandRegistry: CommandRegistration[] = [
@@ -67,16 +66,19 @@ const commandRegistry: CommandRegistration[] = [
   },
   {
     id: "browser",
-    register: ({ program }) => registerBrowserCli(program),
+    register: async ({ program }) => {
+      const { registerBrowserCli } = await import("../browser-cli.js");
+      registerBrowserCli(program);
+    },
   },
 ];
 
-export function registerProgramCommands(
+export async function registerProgramCommands(
   program: Command,
   ctx: ProgramContext,
   argv: string[] = process.argv,
 ) {
   for (const entry of commandRegistry) {
-    entry.register({ program, ctx, argv });
+    await entry.register({ program, ctx, argv });
   }
 }

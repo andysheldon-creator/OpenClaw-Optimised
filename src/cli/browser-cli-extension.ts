@@ -4,7 +4,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { movePathToTrash } from "../browser/trash.js";
 import { STATE_DIR } from "../config/paths.js";
-import { copyToClipboard } from "../infra/clipboard.js";
 import { formatDocsLink } from "../terminal/links.js";
 import { theme } from "../terminal/theme.js";
 import { shortenHomePath } from "../utils.js";
@@ -92,6 +91,7 @@ export function registerBrowserExtensionCommands(
       }
       const displayPath = shortenHomePath(installed.path);
       defaultRuntime.log(displayPath);
+      const { copyToClipboard } = await import("../infra/clipboard.js");
       const copied = await copyToClipboard(installed.path).catch(() => false);
       defaultRuntime.error(
         info(
@@ -133,6 +133,7 @@ export function registerBrowserExtensionCommands(
       }
       const displayPath = shortenHomePath(dir);
       defaultRuntime.log(displayPath);
+      const { copyToClipboard } = await import("../infra/clipboard.js");
       const copied = await copyToClipboard(dir).catch(() => false);
       if (copied) {
         defaultRuntime.error(info("Copied to clipboard."));
