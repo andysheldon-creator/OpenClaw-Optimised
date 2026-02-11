@@ -264,7 +264,7 @@ describe("discoverAuthStorage", () => {
     expect(authStorage.get("google")).toEqual({ type: "api_key", key: "gtoken" });
   });
 
-  it("creates auth.json with 0o600 permissions", () => {
+  it.runIf(process.platform !== "win32")("creates auth.json with 0o600 permissions", () => {
     mockEnsureAuthProfileStore.mockReturnValue({
       version: 1,
       profiles: {
