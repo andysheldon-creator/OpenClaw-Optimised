@@ -21,7 +21,7 @@ for (let _i = 2; _i < process.argv.length; _i++) {
     _versionFlag = true;
     break;
   }
-  if (!_a.startsWith("-")) {
+  if (_a === "--" || !_a.startsWith("-")) {
     break;
   }
   if (_a === "--profile") {

@@ -74,7 +74,7 @@ export function configureProgramHelp(program: Command, ctx: ProgramContext) {
       isVersionRequest = true;
       break;
     }
-    if (!arg.startsWith("-")) {
+    if (arg === "--" || !arg.startsWith("-")) {
       break;
     }
     if (arg === "--profile") {
