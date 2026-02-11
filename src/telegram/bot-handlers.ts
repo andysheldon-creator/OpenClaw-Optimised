@@ -234,19 +234,23 @@ export const registerTelegramHandlers = ({
       const captionMsg = entry.messages.find((m) => m.msg.caption || m.msg.text);
       const primaryEntry = captionMsg ?? entry.messages[0];
 
-      // Media groups only occur in groups. Check if any message in the album mentions the bot.
+      // Apply ignoreMediaTypes filtering. Use group defaults only for group/supergroup chats.
+      const albumChatType = primaryEntry?.msg.chat.type;
+      const isGroupAlbum = albumChatType === "group" || albumChatType === "supergroup";
       const groupBotUsername = primaryEntry?.ctx.me?.username?.toLowerCase();
-      const albumHasMention = groupBotUsername
-        ? entry.messages.some(({ msg: m }) => hasBotMention(m, groupBotUsername))
-        : false;
-      const groupIgnoreList = telegramCfg.ignoreMediaTypes ?? GROUP_DEFAULT_IGNORE_MEDIA_TYPES;
+      const albumHasMention =
+        isGroupAlbum && groupBotUsername
+          ? entry.messages.some(({ msg: m }) => hasBotMention(m, groupBotUsername))
+          : false;
+      const albumIgnoreList =
+        telegramCfg.ignoreMediaTypes ?? (isGroupAlbum ? GROUP_DEFAULT_IGNORE_MEDIA_TYPES : []);
 
       const allMedia: TelegramMediaRef[] = [];
       for (const { ctx } of entry.messages) {
         const groupMsg = ctx.message;
-        if (groupMsg && !albumHasMention && groupIgnoreList.length) {
+        if (groupMsg && !albumHasMention && albumIgnoreList.length) {
           const mediaType = resolveTelegramMediaType(groupMsg);
-          if (mediaType && (groupIgnoreList as readonly string[]).includes(mediaType)) {
+          if (mediaType && albumIgnoreList.includes(mediaType)) {
             continue;
           }
         }
@@ -924,7 +928,7 @@ export const registerTelegramHandlers = ({
       const isIgnoredMediaType =
         detectedMediaType != null &&
         !mentionedInGroup &&
-        (effectiveIgnoreList as readonly string[]).includes(detectedMediaType);
+        effectiveIgnoreList.includes(detectedMediaType);
 
       if (isIgnoredMediaType) {
         const hasTextContent = Boolean((msg.text ?? msg.caption ?? "").trim());
