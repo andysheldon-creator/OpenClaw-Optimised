@@ -315,8 +315,11 @@ export type PluginHookName =
 export type PluginHookAgentContext = {
   agentId?: string;
   sessionKey?: string;
+  sessionId?: string;
   workspaceDir?: string;
   messageProvider?: string;
+  hostId?: string;
+  gatewayInstanceId?: string;
 };
 
 // before_agent_start hook
@@ -336,6 +339,8 @@ export type PluginHookAgentEndEvent = {
   success: boolean;
   error?: string;
   durationMs?: number;
+  systemPrompt?: string;
+  runId?: string;
 };
 
 // Compaction hooks
