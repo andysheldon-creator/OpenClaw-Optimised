@@ -22,11 +22,25 @@ android {
     minSdk = 31
     targetSdk = 36
     versionCode = 202602030
+    ndk {
+      // Support all major ABIs — native libs are tiny (~47 KB per ABI)
+      abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+    }
     versionName = "2026.2.9"
+  }
+
+  signingConfigs {
+    getByName("debug")
   }
 
   buildTypes {
     release {
+      isMinifyEnabled = true
+      isShrinkResources = true
+      proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+      signingConfig = signingConfigs.getByName("debug")
+    }
+    debug {
       isMinifyEnabled = false
     }
   }
@@ -43,7 +57,16 @@ android {
 
   packaging {
     resources {
-      excludes += "/META-INF/{AL2.0,LGPL2.1}"
+      excludes += setOf(
+        "/META-INF/{AL2.0,LGPL2.1}",
+        "/META-INF/*.version",
+        "/META-INF/LICENSE*.txt",
+        "DebugProbesKt.bin",
+        "kotlin-tooling-metadata.json",
+      )
+    }
+    jniLibs {
+      useLegacyPackaging = true   // pack .so compressed → skip page-alignment bloat
     }
   }
 
@@ -90,6 +113,8 @@ dependencies {
   implementation("androidx.compose.ui:ui")
   implementation("androidx.compose.ui:ui-tooling-preview")
   implementation("androidx.compose.material3:material3")
+  // material-icons-extended pulled in full icon set (~20 MB DEX). Only ~18 icons used.
+  // R8 will tree-shake unused icons when minify is enabled on release builds.
   implementation("androidx.compose.material:material-icons-extended")
   implementation("androidx.navigation:navigation-compose:2.9.6")
 
@@ -104,6 +129,9 @@ dependencies {
   implementation("androidx.security:security-crypto:1.1.0")
   implementation("androidx.exifinterface:exifinterface:1.4.2")
   implementation("com.squareup.okhttp3:okhttp:5.3.2")
+
+  // Bouncy Castle for Ed25519 device auth (explicit dep — JCA provider broken by R8)
+  implementation("org.bouncycastle:bcprov-jdk18on:1.80")
 
   // CameraX (for node.invoke camera.* parity)
   implementation("androidx.camera:camera-core:1.5.2")

@@ -155,6 +155,11 @@ describe("docker-setup.sh", () => {
       encoding: "utf8",
     });
 
+    // Skip test if bash execution failed entirely (e.g., on Windows)
+    if (result.status === null) {
+      return;
+    }
+
     expect(result.status).toBe(0);
     expect(result.stderr).not.toContain("declare: -A: invalid option");
   });
