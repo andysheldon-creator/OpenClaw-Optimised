@@ -59,11 +59,15 @@ export function computeJobNextRunAtMs(job: CronJob, nowMs: number): number | und
     return undefined;
   }
   if (job.schedule.kind === "every") {
-    const anchorMs = resolveEveryAnchorMs({
-      schedule: job.schedule,
-      fallbackAnchorMs: job.createdAtMs,
-    });
-    return computeNextRunAtMs({ ...job.schedule, anchorMs }, nowMs);
+    // Anchor to lastRunAtMs to prevent drift on updates/restarts,
+    // falling back to schedule anchorMs, then createdAtMs
+    const anchor =
+      job.state.lastRunAtMs ??
+      resolveEveryAnchorMs({
+        schedule: job.schedule,
+        fallbackAnchorMs: job.createdAtMs,
+      });
+    return computeNextRunAtMs({ ...job.schedule, anchorMs: anchor }, nowMs);
   }
   if (job.schedule.kind === "at") {
     // One-shot jobs stay due until they successfully finish.
@@ -84,6 +88,7 @@ export function computeJobNextRunAtMs(job: CronJob, nowMs: number): number | und
             : null;
     return atMs !== null ? atMs : undefined;
   }
+  // "cron" expressions are clock-based
   return computeNextRunAtMs(job.schedule, nowMs);
 }
 
