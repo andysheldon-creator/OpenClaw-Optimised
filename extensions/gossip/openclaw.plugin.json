@@ -1,0 +1,9 @@
+{
+  "id": "gossip",
+  "channels": ["gossip"],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}
