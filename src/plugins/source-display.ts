@@ -27,6 +27,10 @@ function tryRelative(root: string, filePath: string): string | null {
   return rel.replaceAll("\\", "/");
 }
 
+function normalizePathDisplay(value: string): string {
+  return value.replaceAll("\\", "/");
+}
+
 export function resolvePluginSourceRoots(params: { workspaceDir?: string }): PluginSourceRoots {
   const stock = resolveBundledPluginsDir();
   const global = path.join(resolveConfigDir(), "extensions");
@@ -45,19 +49,19 @@ export function formatPluginSourceForTable(
   if (plugin.origin === "bundled" && roots.stock) {
     const rel = tryRelative(roots.stock, raw);
     if (rel) {
-      return { value: `stock:${rel}`, rootKey: "stock" };
+      return { value: `stock:${normalizePathDisplay(rel)}`, rootKey: "stock" };
     }
   }
   if (plugin.origin === "workspace" && roots.workspace) {
     const rel = tryRelative(roots.workspace, raw);
     if (rel) {
-      return { value: `workspace:${rel}`, rootKey: "workspace" };
+      return { value: `workspace:${normalizePathDisplay(rel)}`, rootKey: "workspace" };
     }
   }
   if (plugin.origin === "global" && roots.global) {
     const rel = tryRelative(roots.global, raw);
     if (rel) {
-      return { value: `global:${rel}`, rootKey: "global" };
+      return { value: `global:${normalizePathDisplay(rel)}`, rootKey: "global" };
     }
   }
 
