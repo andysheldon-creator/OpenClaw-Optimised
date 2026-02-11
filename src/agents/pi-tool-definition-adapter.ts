@@ -79,7 +79,7 @@ function splitToolExecuteArgs(args: ToolExecuteArgsAny): {
 }
 
 export function toToolDefinitions(tools: AnyAgentTool[]): ToolDefinition[] {
-  return tools.map((tool) => {
+  return tools.map((tool): ToolDefinition => {
     const name = tool.name || "tool";
     const normalizedName = normalizeToolName(name);
     return {
@@ -114,7 +114,7 @@ export function toToolDefinitions(tools: AnyAgentTool[]): ToolDefinition[] {
           });
         }
       },
-    } satisfies ToolDefinition;
+    };
   });
 }
 
@@ -125,7 +125,7 @@ export function toClientToolDefinitions(
   onClientToolCall?: (toolName: string, params: Record<string, unknown>) => void,
   hookContext?: { agentId?: string; sessionKey?: string },
 ): ToolDefinition[] {
-  return tools.map((tool) => {
+  return tools.map((tool): ToolDefinition => {
     const func = tool.function;
     return {
       name: func.name,
@@ -157,6 +157,6 @@ export function toClientToolDefinitions(
           message: "Tool execution delegated to client",
         });
       },
-    } satisfies ToolDefinition;
+    };
   });
 }
