@@ -47,9 +47,13 @@ describe("pi-tools.policy", () => {
       expect(isToolAllowedByPolicyName("exec", policy, "rm -rf /")).toBe(false);
     });
 
-    it("denies exec when no command is provided but scoped pattern exists", () => {
+    it("allows exec through at tool list build time when scoped pattern exists (no command)", () => {
+      // When building the tool list, exec should pass through so it appears in the list.
+      // The actual command validation happens at execution time.
       const policy = { allow: ["exec:gog calendar*"] };
-      expect(isToolAllowedByPolicyName("exec", policy)).toBe(false);
+      expect(isToolAllowedByPolicyName("exec", policy)).toBe(true);
+      // But when command is provided, it should be validated
+      expect(isToolAllowedByPolicyName("exec", policy, "rm -rf /")).toBe(false);
     });
 
     it("allows exec with exact command match", () => {

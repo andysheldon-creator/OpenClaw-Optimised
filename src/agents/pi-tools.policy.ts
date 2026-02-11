@@ -123,8 +123,14 @@ function makeToolPolicyMatcher(policy: SandboxToolPolicy, execCommand?: string) 
       return true;
     }
 
-    // For exec tool with scoped patterns, require command match
+    // For exec tool with scoped patterns:
+    // - If execCommand is provided (execution time): require command match
+    // - If execCommand is undefined (tool list build time): allow through for later validation
     if (normalized === "exec" && hasExecScoping) {
+      if (execCommand === undefined) {
+        // At tool list build time, include exec so execution-time check can validate
+        return true;
+      }
       return matchesScopedExec(execCommand, policy.allow);
     }
 
