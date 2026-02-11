@@ -45,7 +45,7 @@ const entries: SubCliEntry[] = [
     description: "Gateway control",
     register: async (program) => {
       const mod = await import("../gateway-cli.js");
-      mod.registerGatewayCli(program);
+      await mod.registerGatewayCli(program);
     },
   },
   {
@@ -93,7 +93,7 @@ const entries: SubCliEntry[] = [
     description: "Node commands",
     register: async (program) => {
       const mod = await import("../nodes-cli.js");
-      mod.registerNodesCli(program);
+      await mod.registerNodesCli(program);
     },
   },
   {
@@ -133,7 +133,7 @@ const entries: SubCliEntry[] = [
     description: "Cron scheduler",
     register: async (program) => {
       const mod = await import("../cron-cli.js");
-      mod.registerCronCli(program);
+      await mod.registerCronCli(program);
     },
   },
   {

@@ -1,13 +1,19 @@
 import type { Command } from "commander";
-import {
-  CONFIGURE_WIZARD_SECTIONS,
-  configureCommand,
-  configureCommandWithSections,
-} from "../../commands/configure.js";
-import { defaultRuntime } from "../../runtime.js";
 import { formatDocsLink } from "../../terminal/links.js";
 import { theme } from "../../terminal/theme.js";
-import { runCommandWithRuntime } from "../cli-utils.js";
+
+// Inlined from configure.shared.ts to avoid pulling in @clack/prompts for --help text.
+// The canonical list lives in commands/configure.shared.ts; keep in sync.
+const CONFIGURE_WIZARD_SECTIONS = [
+  "workspace",
+  "model",
+  "web",
+  "gateway",
+  "daemon",
+  "channels",
+  "skills",
+  "health",
+] as const;
 
 export function registerConfigureCommand(program: Command) {
   program
@@ -25,6 +31,10 @@ export function registerConfigureCommand(program: Command) {
       [] as string[],
     )
     .action(async (opts) => {
+      const { defaultRuntime } = await import("../../runtime.js");
+      const { runCommandWithRuntime } = await import("../cli-utils.js");
+      const { configureCommand, configureCommandWithSections } =
+        await import("../../commands/configure.js");
       await runCommandWithRuntime(defaultRuntime, async () => {
         const sections: string[] = Array.isArray(opts.section)
           ? opts.section

@@ -2,12 +2,7 @@ import type { Command } from "commander";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { loadConfig } from "../config/config.js";
-import { pickPrimaryTailnetIPv4, pickPrimaryTailnetIPv6 } from "../infra/tailnet.js";
-import { getWideAreaZonePath, resolveWideAreaDiscoveryDomain } from "../infra/widearea-dns.js";
-import { defaultRuntime } from "../runtime.js";
 import { formatDocsLink } from "../terminal/links.js";
-import { renderTable } from "../terminal/table.js";
 import { theme } from "../terminal/theme.js";
 
 type RunOpts = { allowFailure?: boolean; inherit?: boolean };
@@ -120,6 +115,14 @@ export function registerDnsCli(program: Command) {
       false,
     )
     .action(async (opts) => {
+      const { loadConfig } = await import("../config/config.js");
+      const { pickPrimaryTailnetIPv4, pickPrimaryTailnetIPv6 } =
+        await import("../infra/tailnet.js");
+      const { getWideAreaZonePath, resolveWideAreaDiscoveryDomain } =
+        await import("../infra/widearea-dns.js");
+      const { defaultRuntime } = await import("../runtime.js");
+      const { renderTable } = await import("../terminal/table.js");
+
       const cfg = loadConfig();
       const tailnetIPv4 = pickPrimaryTailnetIPv4();
       const tailnetIPv6 = pickPrimaryTailnetIPv6();

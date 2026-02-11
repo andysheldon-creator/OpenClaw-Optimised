@@ -1,67 +1,29 @@
 import type { Command } from "commander";
-import { confirm, isCancel, select, spinner } from "@clack/prompts";
-import { spawnSync } from "node:child_process";
-import fs from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
-import {
-  checkShellCompletionStatus,
-  ensureCompletionCacheExists,
-} from "../commands/doctor-completion.js";
-import { doctorCommand } from "../commands/doctor.js";
-import {
-  formatUpdateAvailableHint,
-  formatUpdateOneLiner,
-  resolveUpdateAvailability,
-} from "../commands/status.update.js";
-import { readConfigFileSnapshot, writeConfigFile } from "../config/config.js";
-import { resolveStateDir } from "../config/paths.js";
-import { formatDurationPrecise } from "../infra/format-time/format-duration.ts";
-import { resolveOpenClawPackageRoot } from "../infra/openclaw-root.js";
-import { trimLogTail } from "../infra/restart-sentinel.js";
-import { parseSemver } from "../infra/runtime-guard.js";
-import {
-  channelToNpmTag,
-  DEFAULT_GIT_CHANNEL,
-  DEFAULT_PACKAGE_CHANNEL,
-  formatUpdateChannelLabel,
-  normalizeUpdateChannel,
-  resolveEffectiveUpdateChannel,
-} from "../infra/update-channels.js";
-import {
-  checkUpdateStatus,
-  compareSemverStrings,
-  fetchNpmTagVersion,
-  resolveNpmChannelTag,
-} from "../infra/update-check.js";
-import {
-  detectGlobalInstallManagerByPresence,
-  detectGlobalInstallManagerForRoot,
-  cleanupGlobalRenameDirs,
-  globalInstallArgs,
-  resolveGlobalPackageRoot,
-  type GlobalInstallManager,
-} from "../infra/update-global.js";
-import {
-  runGatewayUpdate,
-  type UpdateRunResult,
-  type UpdateStepInfo,
-  type UpdateStepResult,
-  type UpdateStepProgress,
-} from "../infra/update-runner.js";
-import { syncPluginsForUpdateChannel, updateNpmInstalledPlugins } from "../plugins/update.js";
-import { runCommandWithTimeout } from "../process/exec.js";
-import { defaultRuntime } from "../runtime.js";
+import type { UpdateRunResult } from "../infra/update-runner.js";
 import { formatDocsLink } from "../terminal/links.js";
-import { stylePromptHint, stylePromptMessage } from "../terminal/prompt-style.js";
-import { renderTable } from "../terminal/table.js";
 import { theme } from "../terminal/theme.js";
-import { pathExists } from "../utils.js";
-import { replaceCliName, resolveCliName } from "./cli-name.js";
-import { formatCliCommand } from "./command-format.js";
-import { installCompletion } from "./completion-cli.js";
-import { runDaemonRestart } from "./daemon-cli.js";
 import { formatHelpExamples } from "./help-format.js";
+import {
+  DEFAULT_PACKAGE_NAME,
+  createUpdateProgress,
+  ensureGitCheckout,
+  formatGitStatusLine,
+  isGitCheckout,
+  normalizeTag,
+  pickUpdateQuip,
+  printResult,
+  readPackageName,
+  readPackageVersion,
+  resolveGitInstallDir,
+  resolveGlobalManager,
+  resolveNodeRunner,
+  resolveTargetVersion,
+  runUpdateStep,
+  tryInstallShellCompletion,
+  tryWriteCompletionCache,
+  isEmptyDir,
+} from "./update-cli-helpers.js";
 
 export type UpdateCommandOptions = {
   json?: boolean;
@@ -79,363 +41,17 @@ export type UpdateWizardOptions = {
   timeout?: string;
 };
 
-const STEP_LABELS: Record<string, string> = {
-  "clean check": "Working directory is clean",
-  "upstream check": "Upstream branch exists",
-  "git fetch": "Fetching latest changes",
-  "git rebase": "Rebasing onto target commit",
-  "git rev-parse @{upstream}": "Resolving upstream commit",
-  "git rev-list": "Enumerating candidate commits",
-  "git clone": "Cloning git checkout",
-  "preflight worktree": "Preparing preflight worktree",
-  "preflight cleanup": "Cleaning preflight worktree",
-  "deps install": "Installing dependencies",
-  build: "Building",
-  "ui:build": "Building UI assets",
-  "ui:build (post-doctor repair)": "Restoring missing UI assets",
-  "ui assets verify": "Validating UI assets",
-  "openclaw doctor entry": "Checking doctor entrypoint",
-  "openclaw doctor": "Running doctor checks",
-  "git rev-parse HEAD (after)": "Verifying update",
-  "global update": "Updating via package manager",
-  "global install": "Installing global package",
-};
-
-const UPDATE_QUIPS = [
-  "Leveled up! New skills unlocked. You're welcome.",
-  "Fresh code, same lobster. Miss me?",
-  "Back and better. Did you even notice I was gone?",
-  "Update complete. I learned some new tricks while I was out.",
-  "Upgraded! Now with 23% more sass.",
-  "I've evolved. Try to keep up.",
-  "New version, who dis? Oh right, still me but shinier.",
-  "Patched, polished, and ready to pinch. Let's go.",
-  "The lobster has molted. Harder shell, sharper claws.",
-  "Update done! Check the changelog or just trust me, it's good.",
-  "Reborn from the boiling waters of npm. Stronger now.",
-  "I went away and came back smarter. You should try it sometime.",
-  "Update complete. The bugs feared me, so they left.",
-  "New version installed. Old version sends its regards.",
-  "Firmware fresh. Brain wrinkles: increased.",
-  "I've seen things you wouldn't believe. Anyway, I'm updated.",
-  "Back online. The changelog is long but our friendship is longer.",
-  "Upgraded! Peter fixed stuff. Blame him if it breaks.",
-  "Molting complete. Please don't look at my soft shell phase.",
-  "Version bump! Same chaos energy, fewer crashes (probably).",
-];
-
-const MAX_LOG_CHARS = 8000;
-const DEFAULT_PACKAGE_NAME = "openclaw";
-const CORE_PACKAGE_NAMES = new Set([DEFAULT_PACKAGE_NAME]);
-const CLI_NAME = resolveCliName();
-const OPENCLAW_REPO_URL = "https://github.com/openclaw/openclaw.git";
-
-function normalizeTag(value?: string | null): string | null {
-  if (!value) {
-    return null;
-  }
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return null;
-  }
-  if (trimmed.startsWith("openclaw@")) {
-    return trimmed.slice("openclaw@".length);
-  }
-  if (trimmed.startsWith(`${DEFAULT_PACKAGE_NAME}@`)) {
-    return trimmed.slice(`${DEFAULT_PACKAGE_NAME}@`.length);
-  }
-  return trimmed;
-}
-
-function pickUpdateQuip(): string {
-  return UPDATE_QUIPS[Math.floor(Math.random() * UPDATE_QUIPS.length)] ?? "Update complete.";
-}
-
-function normalizeVersionTag(tag: string): string | null {
-  const trimmed = tag.trim();
-  if (!trimmed) {
-    return null;
-  }
-  const cleaned = trimmed.startsWith("v") ? trimmed.slice(1) : trimmed;
-  return parseSemver(cleaned) ? cleaned : null;
-}
-
-async function readPackageVersion(root: string): Promise<string | null> {
-  try {
-    const raw = await fs.readFile(path.join(root, "package.json"), "utf-8");
-    const parsed = JSON.parse(raw) as { version?: string };
-    return typeof parsed.version === "string" ? parsed.version : null;
-  } catch {
-    return null;
-  }
-}
-
-async function resolveTargetVersion(tag: string, timeoutMs?: number): Promise<string | null> {
-  const direct = normalizeVersionTag(tag);
-  if (direct) {
-    return direct;
-  }
-  const res = await fetchNpmTagVersion({ tag, timeoutMs });
-  return res.version ?? null;
-}
-
-async function isGitCheckout(root: string): Promise<boolean> {
-  try {
-    await fs.stat(path.join(root, ".git"));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function readPackageName(root: string): Promise<string | null> {
-  try {
-    const raw = await fs.readFile(path.join(root, "package.json"), "utf-8");
-    const parsed = JSON.parse(raw) as { name?: string };
-    const name = parsed?.name?.trim();
-    return name ? name : null;
-  } catch {
-    return null;
-  }
-}
-
-async function isCorePackage(root: string): Promise<boolean> {
-  const name = await readPackageName(root);
-  return Boolean(name && CORE_PACKAGE_NAMES.has(name));
-}
-
-async function tryWriteCompletionCache(root: string, jsonMode: boolean): Promise<void> {
-  const binPath = path.join(root, "openclaw.mjs");
-  if (!(await pathExists(binPath))) {
-    return;
-  }
-  const result = spawnSync(resolveNodeRunner(), [binPath, "completion", "--write-state"], {
-    cwd: root,
-    env: process.env,
-    encoding: "utf-8",
-  });
-  if (result.error) {
-    if (!jsonMode) {
-      defaultRuntime.log(theme.warn(`Completion cache update failed: ${String(result.error)}`));
-    }
-    return;
-  }
-  if (result.status !== 0 && !jsonMode) {
-    const stderr = (result.stderr ?? "").toString().trim();
-    const detail = stderr ? ` (${stderr})` : "";
-    defaultRuntime.log(theme.warn(`Completion cache update failed${detail}.`));
-  }
-}
-
-/** Check if shell completion is installed and prompt user to install if not. */
-async function tryInstallShellCompletion(opts: {
-  jsonMode: boolean;
-  skipPrompt: boolean;
-}): Promise<void> {
-  if (opts.jsonMode || !process.stdin.isTTY) {
-    return;
-  }
-
-  const status = await checkShellCompletionStatus(CLI_NAME);
-
-  // Profile uses slow dynamic pattern - upgrade to cached version
-  if (status.usesSlowPattern) {
-    defaultRuntime.log(theme.muted("Upgrading shell completion to cached version..."));
-    // Ensure cache exists first
-    const cacheGenerated = await ensureCompletionCacheExists(CLI_NAME);
-    if (cacheGenerated) {
-      await installCompletion(status.shell, true, CLI_NAME);
-    }
-    return;
-  }
-
-  // Profile has completion but no cache - auto-fix silently
-  if (status.profileInstalled && !status.cacheExists) {
-    defaultRuntime.log(theme.muted("Regenerating shell completion cache..."));
-    await ensureCompletionCacheExists(CLI_NAME);
-    return;
-  }
-
-  // No completion at all - prompt to install
-  if (!status.profileInstalled) {
-    defaultRuntime.log("");
-    defaultRuntime.log(theme.heading("Shell completion"));
-
-    const shouldInstall = await confirm({
-      message: stylePromptMessage(`Enable ${status.shell} shell completion for ${CLI_NAME}?`),
-      initialValue: true,
-    });
-
-    if (isCancel(shouldInstall) || !shouldInstall) {
-      if (!opts.skipPrompt) {
-        defaultRuntime.log(
-          theme.muted(
-            `Skipped. Run \`${replaceCliName(formatCliCommand("openclaw completion --install"), CLI_NAME)}\` later to enable.`,
-          ),
-        );
-      }
-      return;
-    }
-
-    // Generate cache first (required for fast shell startup)
-    const cacheGenerated = await ensureCompletionCacheExists(CLI_NAME);
-    if (!cacheGenerated) {
-      defaultRuntime.log(theme.warn("Failed to generate completion cache."));
-      return;
-    }
-
-    await installCompletion(status.shell, opts.skipPrompt, CLI_NAME);
-  }
-}
-
-async function isEmptyDir(targetPath: string): Promise<boolean> {
-  try {
-    const entries = await fs.readdir(targetPath);
-    return entries.length === 0;
-  } catch {
-    return false;
-  }
-}
-
-function resolveGitInstallDir(): string {
-  const override = process.env.OPENCLAW_GIT_DIR?.trim();
-  if (override) {
-    return path.resolve(override);
-  }
-  return resolveDefaultGitDir();
-}
-
-function resolveDefaultGitDir(): string {
-  return resolveStateDir(process.env, os.homedir);
-}
-
-function resolveNodeRunner(): string {
-  const base = path.basename(process.execPath).toLowerCase();
-  if (base === "node" || base === "node.exe") {
-    return process.execPath;
-  }
-  return "node";
-}
-
-async function runUpdateStep(params: {
-  name: string;
-  argv: string[];
-  cwd?: string;
-  timeoutMs: number;
-  progress?: UpdateStepProgress;
-}): Promise<UpdateStepResult> {
-  const command = params.argv.join(" ");
-  params.progress?.onStepStart?.({
-    name: params.name,
-    command,
-    index: 0,
-    total: 0,
-  });
-  const started = Date.now();
-  const res = await runCommandWithTimeout(params.argv, {
-    cwd: params.cwd,
-    timeoutMs: params.timeoutMs,
-  });
-  const durationMs = Date.now() - started;
-  const stderrTail = trimLogTail(res.stderr, MAX_LOG_CHARS);
-  params.progress?.onStepComplete?.({
-    name: params.name,
-    command,
-    index: 0,
-    total: 0,
-    durationMs,
-    exitCode: res.code,
-    stderrTail,
-  });
-  return {
-    name: params.name,
-    command,
-    cwd: params.cwd ?? process.cwd(),
-    durationMs,
-    exitCode: res.code,
-    stdoutTail: trimLogTail(res.stdout, MAX_LOG_CHARS),
-    stderrTail,
-  };
-}
-
-async function ensureGitCheckout(params: {
-  dir: string;
-  timeoutMs: number;
-  progress?: UpdateStepProgress;
-}): Promise<UpdateStepResult | null> {
-  const dirExists = await pathExists(params.dir);
-  if (!dirExists) {
-    return await runUpdateStep({
-      name: "git clone",
-      argv: ["git", "clone", OPENCLAW_REPO_URL, params.dir],
-      timeoutMs: params.timeoutMs,
-      progress: params.progress,
-    });
-  }
-
-  if (!(await isGitCheckout(params.dir))) {
-    const empty = await isEmptyDir(params.dir);
-    if (!empty) {
-      throw new Error(
-        `OPENCLAW_GIT_DIR points at a non-git directory: ${params.dir}. Set OPENCLAW_GIT_DIR to an empty folder or an openclaw checkout.`,
-      );
-    }
-    return await runUpdateStep({
-      name: "git clone",
-      argv: ["git", "clone", OPENCLAW_REPO_URL, params.dir],
-      cwd: params.dir,
-      timeoutMs: params.timeoutMs,
-      progress: params.progress,
-    });
-  }
-
-  if (!(await isCorePackage(params.dir))) {
-    throw new Error(`OPENCLAW_GIT_DIR does not look like a core checkout: ${params.dir}.`);
-  }
-
-  return null;
-}
-
-async function resolveGlobalManager(params: {
-  root: string;
-  installKind: "git" | "package" | "unknown";
-  timeoutMs: number;
-}): Promise<GlobalInstallManager> {
-  const runCommand = async (argv: string[], options: { timeoutMs: number }) => {
-    const res = await runCommandWithTimeout(argv, options);
-    return { stdout: res.stdout, stderr: res.stderr, code: res.code };
-  };
-  if (params.installKind === "package") {
-    const detected = await detectGlobalInstallManagerForRoot(
-      runCommand,
-      params.root,
-      params.timeoutMs,
-    );
-    if (detected) {
-      return detected;
-    }
-  }
-  const byPresence = await detectGlobalInstallManagerByPresence(runCommand, params.timeoutMs);
-  return byPresence ?? "npm";
-}
-
-function formatGitStatusLine(params: {
-  branch: string | null;
-  tag: string | null;
-  sha: string | null;
-}): string {
-  const shortSha = params.sha ? params.sha.slice(0, 8) : null;
-  const branch = params.branch && params.branch !== "HEAD" ? params.branch : null;
-  const tag = params.tag;
-  const parts = [
-    branch ?? (tag ? "detached" : "git"),
-    tag ? `tag ${tag}` : null,
-    shortSha ? `@ ${shortSha}` : null,
-  ].filter(Boolean);
-  return parts.join(" · ");
-}
-
 export async function updateStatusCommand(opts: UpdateStatusOptions): Promise<void> {
+  const { defaultRuntime } = await import("../runtime.js");
+  const { readConfigFileSnapshot } = await import("../config/config.js");
+  const { resolveOpenClawPackageRoot } = await import("../infra/openclaw-root.js");
+  const { checkUpdateStatus } = await import("../infra/update-check.js");
+  const { normalizeUpdateChannel, resolveEffectiveUpdateChannel, formatUpdateChannelLabel } =
+    await import("../infra/update-channels.js");
+  const { formatUpdateAvailableHint, formatUpdateOneLiner, resolveUpdateAvailability } =
+    await import("../commands/status.update.js");
+  const { renderTable } = await import("../terminal/table.js");
+
   const timeoutMs = opts.timeout ? Number.parseInt(opts.timeout, 10) * 1000 : undefined;
   if (timeoutMs !== undefined && (Number.isNaN(timeoutMs) || timeoutMs <= 0)) {
     defaultRuntime.error("--timeout must be a positive integer (seconds)");
@@ -515,7 +131,9 @@ export async function updateStatusCommand(opts: UpdateStatusOptions): Promise<vo
     ...(gitLabel ? [{ Item: "Git", Value: gitLabel }] : []),
     {
       Item: "Update",
-      Value: updateAvailability.available ? theme.warn(`available · ${updateLine}`) : updateLine,
+      Value: updateAvailability.available
+        ? theme.warn(`available \u00B7 ${updateLine}`)
+        : updateLine,
     },
   ];
 
@@ -538,140 +156,47 @@ export async function updateStatusCommand(opts: UpdateStatusOptions): Promise<vo
   }
 }
 
-function getStepLabel(step: UpdateStepInfo): string {
-  return STEP_LABELS[step.name] ?? step.name;
-}
-
-type ProgressController = {
-  progress: UpdateStepProgress;
-  stop: () => void;
-};
-
-function createUpdateProgress(enabled: boolean): ProgressController {
-  if (!enabled) {
-    return {
-      progress: {},
-      stop: () => {},
-    };
-  }
-
-  let currentSpinner: ReturnType<typeof spinner> | null = null;
-
-  const progress: UpdateStepProgress = {
-    onStepStart: (step) => {
-      currentSpinner = spinner();
-      currentSpinner.start(theme.accent(getStepLabel(step)));
-    },
-    onStepComplete: (step) => {
-      if (!currentSpinner) {
-        return;
-      }
-
-      const label = getStepLabel(step);
-      const duration = theme.muted(`(${formatDurationPrecise(step.durationMs)})`);
-      const icon = step.exitCode === 0 ? theme.success("\u2713") : theme.error("\u2717");
-
-      currentSpinner.stop(`${icon} ${label} ${duration}`);
-      currentSpinner = null;
-
-      if (step.exitCode !== 0 && step.stderrTail) {
-        const lines = step.stderrTail.split("\n").slice(-10);
-        for (const line of lines) {
-          if (line.trim()) {
-            defaultRuntime.log(`    ${theme.error(line)}`);
-          }
-        }
-      }
-    },
-  };
-
-  return {
-    progress,
-    stop: () => {
-      if (currentSpinner) {
-        currentSpinner.stop();
-        currentSpinner = null;
-      }
-    },
-  };
-}
-
-function formatStepStatus(exitCode: number | null): string {
-  if (exitCode === 0) {
-    return theme.success("\u2713");
-  }
-  if (exitCode === null) {
-    return theme.warn("?");
-  }
-  return theme.error("\u2717");
-}
-
-const selectStyled = <T>(params: Parameters<typeof select<T>>[0]) =>
-  select({
-    ...params,
-    message: stylePromptMessage(params.message),
-    options: params.options.map((opt) =>
-      opt.hint === undefined ? opt : { ...opt, hint: stylePromptHint(opt.hint) },
-    ),
-  });
-
-type PrintResultOptions = UpdateCommandOptions & {
-  hideSteps?: boolean;
-};
-
-function printResult(result: UpdateRunResult, opts: PrintResultOptions) {
-  if (opts.json) {
-    defaultRuntime.log(JSON.stringify(result, null, 2));
-    return;
-  }
-
-  const statusColor =
-    result.status === "ok" ? theme.success : result.status === "skipped" ? theme.warn : theme.error;
-
-  defaultRuntime.log("");
-  defaultRuntime.log(
-    `${theme.heading("Update Result:")} ${statusColor(result.status.toUpperCase())}`,
-  );
-  if (result.root) {
-    defaultRuntime.log(`  Root: ${theme.muted(result.root)}`);
-  }
-  if (result.reason) {
-    defaultRuntime.log(`  Reason: ${theme.muted(result.reason)}`);
-  }
-
-  if (result.before?.version || result.before?.sha) {
-    const before = result.before.version ?? result.before.sha?.slice(0, 8) ?? "";
-    defaultRuntime.log(`  Before: ${theme.muted(before)}`);
-  }
-  if (result.after?.version || result.after?.sha) {
-    const after = result.after.version ?? result.after.sha?.slice(0, 8) ?? "";
-    defaultRuntime.log(`  After: ${theme.muted(after)}`);
-  }
-
-  if (!opts.hideSteps && result.steps.length > 0) {
-    defaultRuntime.log("");
-    defaultRuntime.log(theme.heading("Steps:"));
-    for (const step of result.steps) {
-      const status = formatStepStatus(step.exitCode);
-      const duration = theme.muted(`(${formatDurationPrecise(step.durationMs)})`);
-      defaultRuntime.log(`  ${status} ${step.name} ${duration}`);
-
-      if (step.exitCode !== 0 && step.stderrTail) {
-        const lines = step.stderrTail.split("\n").slice(0, 5);
-        for (const line of lines) {
-          if (line.trim()) {
-            defaultRuntime.log(`      ${theme.error(line)}`);
-          }
-        }
-      }
-    }
-  }
-
-  defaultRuntime.log("");
-  defaultRuntime.log(`Total time: ${theme.muted(formatDurationPrecise(result.durationMs))}`);
-}
-
 export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
+  const clackPrompts = await import("@clack/prompts");
+  const childProcess = await import("node:child_process");
+  const fsModule = (await import("node:fs/promises")).default;
+  const { defaultRuntime } = await import("../runtime.js");
+  const { readConfigFileSnapshot, writeConfigFile } = await import("../config/config.js");
+  const { resolveStateDir } = await import("../config/paths.js");
+  const { resolveOpenClawPackageRoot } = await import("../infra/openclaw-root.js");
+  const { parseSemver } = await import("../infra/runtime-guard.js");
+  const { trimLogTail } = await import("../infra/restart-sentinel.js");
+  const { formatDurationPrecise } = await import("../infra/format-time/format-duration.ts");
+  const { channelToNpmTag, DEFAULT_GIT_CHANNEL, DEFAULT_PACKAGE_CHANNEL, normalizeUpdateChannel } =
+    await import("../infra/update-channels.js");
+  const { checkUpdateStatus, compareSemverStrings, fetchNpmTagVersion, resolveNpmChannelTag } =
+    await import("../infra/update-check.js");
+  const {
+    detectGlobalInstallManagerByPresence,
+    detectGlobalInstallManagerForRoot,
+    cleanupGlobalRenameDirs,
+    globalInstallArgs,
+    resolveGlobalPackageRoot,
+  } = await import("../infra/update-global.js");
+  const { runGatewayUpdate } = await import("../infra/update-runner.js");
+  const { syncPluginsForUpdateChannel, updateNpmInstalledPlugins } =
+    await import("../plugins/update.js");
+  const { runCommandWithTimeout } = await import("../process/exec.js");
+  const { stylePromptMessage } = await import("../terminal/prompt-style.js");
+  const { pathExists } = await import("../utils.js");
+  const { replaceCliName, resolveCliName } = await import("./cli-name.js");
+  const { formatCliCommand } = await import("./command-format.js");
+  const { installCompletion } = await import("./completion-cli.js");
+  const { runDaemonRestart } = await import("./daemon-cli.js");
+  const { checkShellCompletionStatus, ensureCompletionCacheExists } =
+    await import("../commands/doctor-completion.js");
+  const { doctorCommand } = await import("../commands/doctor.js");
+
+  const CLI_NAME = resolveCliName();
+
+  const stepDeps = { runCommandWithTimeout, trimLogTail };
+  const fsDeps = { fsModule, pathExists, runCommandWithTimeout, trimLogTail };
+
   process.noDeprecation = true;
   process.env.NODE_NO_WARNINGS = "1";
   const timeoutMs = opts.timeout ? Number.parseInt(opts.timeout, 10) * 1000 : undefined;
@@ -727,10 +252,10 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
   const explicitTag = normalizeTag(opts.tag);
   let tag = explicitTag ?? channelToNpmTag(channel);
   if (updateInstallKind !== "git") {
-    const currentVersion = switchToPackage ? null : await readPackageVersion(root);
+    const currentVersion = switchToPackage ? null : await readPackageVersion(root, fsModule);
     let fallbackToLatest = false;
     const targetVersion = explicitTag
-      ? await resolveTargetVersion(tag, timeoutMs)
+      ? await resolveTargetVersion(tag, fetchNpmTagVersion, parseSemver, timeoutMs)
       : await resolveNpmChannelTag({ channel, timeoutMs }).then((resolved) => {
           tag = resolved.tag;
           fallbackToLatest = channel === "beta" && resolved.tag === "latest";
@@ -757,11 +282,11 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
 
       const targetLabel = targetVersion ?? `${tag} (unknown)`;
       const message = `Downgrading from ${currentVersion} to ${targetLabel} can break configuration. Continue?`;
-      const ok = await confirm({
+      const ok = await clackPrompts.confirm({
         message: stylePromptMessage(message),
         initialValue: false,
       });
-      if (isCancel(ok) || !ok) {
+      if (clackPrompts.isCancel(ok) || !ok) {
         if (!opts.json) {
           defaultRuntime.log(theme.muted("Update cancelled."));
         }
@@ -797,7 +322,13 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
     defaultRuntime.log("");
   }
 
-  const { progress, stop } = createUpdateProgress(showProgress);
+  const { progress, stop } = createUpdateProgress(showProgress, {
+    spinner: clackPrompts.spinner,
+    defaultRuntime,
+    formatDurationPrecise,
+  });
+
+  const printDeps = { defaultRuntime, formatDurationPrecise };
 
   const startedAt = Date.now();
   let result: UpdateRunResult;
@@ -807,6 +338,11 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
       root,
       installKind,
       timeoutMs: timeoutMs ?? 20 * 60_000,
+      deps: {
+        runCommandWithTimeout,
+        detectGlobalInstallManagerForRoot,
+        detectGlobalInstallManagerByPresence,
+      },
     });
     const runCommand = async (argv: string[], options: { timeoutMs: number }) => {
       const res = await runCommandWithTimeout(argv, options);
@@ -814,9 +350,10 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
     };
     const pkgRoot = await resolveGlobalPackageRoot(manager, runCommand, timeoutMs ?? 20 * 60_000);
     const packageName =
-      (pkgRoot ? await readPackageName(pkgRoot) : await readPackageName(root)) ??
-      DEFAULT_PACKAGE_NAME;
-    const beforeVersion = pkgRoot ? await readPackageVersion(pkgRoot) : null;
+      (pkgRoot
+        ? await readPackageName(pkgRoot, fsModule)
+        : await readPackageName(root, fsModule)) ?? DEFAULT_PACKAGE_NAME;
+    const beforeVersion = pkgRoot ? await readPackageVersion(pkgRoot, fsModule) : null;
     if (pkgRoot) {
       await cleanupGlobalRenameDirs({
         globalRoot: path.dirname(pkgRoot),
@@ -828,11 +365,12 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
       argv: globalInstallArgs(manager, `${packageName}@${tag}`),
       timeoutMs: timeoutMs ?? 20 * 60_000,
       progress,
+      deps: stepDeps,
     });
     const steps = [updateStep];
     let afterVersion = beforeVersion;
     if (pkgRoot) {
-      afterVersion = await readPackageVersion(pkgRoot);
+      afterVersion = await readPackageVersion(pkgRoot, fsModule);
       const entryPath = path.join(pkgRoot, "dist", "entry.js");
       if (await pathExists(entryPath)) {
         const doctorStep = await runUpdateStep({
@@ -840,6 +378,7 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
           argv: [resolveNodeRunner(), entryPath, "doctor", "--non-interactive"],
           timeoutMs: timeoutMs ?? 20 * 60_000,
           progress,
+          deps: stepDeps,
         });
         steps.push(doctorStep);
       }
@@ -856,12 +395,13 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
       durationMs: Date.now() - startedAt,
     };
   } else {
-    const updateRoot = switchToGit ? resolveGitInstallDir() : root;
+    const updateRoot = switchToGit ? resolveGitInstallDir(resolveStateDir) : root;
     const cloneStep = switchToGit
       ? await ensureGitCheckout({
           dir: updateRoot,
           timeoutMs: timeoutMs ?? 20 * 60_000,
           progress,
+          deps: fsDeps,
         })
       : null;
     if (cloneStep && cloneStep.exitCode !== 0) {
@@ -874,7 +414,7 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
         durationMs: Date.now() - startedAt,
       };
       stop();
-      printResult(result, { ...opts, hideSteps: showProgress });
+      printResult(result, { ...opts, hideSteps: showProgress }, printDeps);
       defaultRuntime.exit(1);
       return;
     }
@@ -892,6 +432,11 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
         root,
         installKind,
         timeoutMs: timeoutMs ?? 20 * 60_000,
+        deps: {
+          runCommandWithTimeout,
+          detectGlobalInstallManagerForRoot,
+          detectGlobalInstallManagerByPresence,
+        },
       });
       const installStep = await runUpdateStep({
         name: "global install",
@@ -899,6 +444,7 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
         cwd: updateRoot,
         timeoutMs: timeoutMs ?? 20 * 60_000,
         progress,
+        deps: stepDeps,
       });
       steps.push(installStep);
       const failedStep = [installStep].find((step) => step.exitCode !== 0);
@@ -919,7 +465,7 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
 
   stop();
 
-  printResult(result, { ...opts, hideSteps: showProgress });
+  printResult(result, { ...opts, hideSteps: showProgress }, printDeps);
 
   if (result.status === "error") {
     defaultRuntime.exit(1);
@@ -1039,12 +585,30 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
     defaultRuntime.log(theme.warn("Skipping plugin updates: config is invalid."));
   }
 
-  await tryWriteCompletionCache(root, Boolean(opts.json));
+  await tryWriteCompletionCache(root, Boolean(opts.json), {
+    spawnSync: childProcess.spawnSync,
+    defaultRuntime,
+    pathExists,
+    resolveNodeRunner,
+    CLI_NAME,
+  });
 
   // Offer to install shell completion if not already installed
   await tryInstallShellCompletion({
     jsonMode: Boolean(opts.json),
     skipPrompt: Boolean(opts.yes),
+    deps: {
+      confirm: clackPrompts.confirm,
+      isCancel: clackPrompts.isCancel,
+      defaultRuntime,
+      checkShellCompletionStatus,
+      ensureCompletionCacheExists,
+      installCompletion,
+      stylePromptMessage,
+      replaceCliName,
+      formatCliCommand,
+      CLI_NAME,
+    },
   });
 
   // Restart service if requested
@@ -1103,6 +667,27 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
 }
 
 export async function updateWizardCommand(opts: UpdateWizardOptions = {}): Promise<void> {
+  const clackPrompts = await import("@clack/prompts");
+  const fsModule = (await import("node:fs/promises")).default;
+  const { defaultRuntime } = await import("../runtime.js");
+  const { readConfigFileSnapshot } = await import("../config/config.js");
+  const { resolveStateDir } = await import("../config/paths.js");
+  const { resolveOpenClawPackageRoot } = await import("../infra/openclaw-root.js");
+  const { normalizeUpdateChannel, resolveEffectiveUpdateChannel, formatUpdateChannelLabel } =
+    await import("../infra/update-channels.js");
+  const { checkUpdateStatus } = await import("../infra/update-check.js");
+  const { stylePromptMessage, stylePromptHint } = await import("../terminal/prompt-style.js");
+  const { pathExists } = await import("../utils.js");
+
+  const selectStyled = <T>(params: Parameters<typeof clackPrompts.select<T>>[0]) =>
+    clackPrompts.select({
+      ...params,
+      message: stylePromptMessage(params.message),
+      options: params.options.map((opt) =>
+        opt.hint === undefined ? opt : { ...opt, hint: stylePromptHint(opt.hint) },
+      ),
+    });
+
   if (!process.stdin.isTTY) {
     defaultRuntime.error(
       "Update wizard requires a TTY. Use `openclaw update --channel <stable|beta|dev>` instead.",
@@ -1179,7 +764,7 @@ export async function updateWizardCommand(opts: UpdateWizardOptions = {}): Promi
     initialValue: "keep",
   });
 
-  if (isCancel(pickedChannel)) {
+  if (clackPrompts.isCancel(pickedChannel)) {
     defaultRuntime.log(theme.muted("Update cancelled."));
     defaultRuntime.exit(0);
     return;
@@ -1188,12 +773,12 @@ export async function updateWizardCommand(opts: UpdateWizardOptions = {}): Promi
   const requestedChannel = pickedChannel === "keep" ? null : pickedChannel;
 
   if (requestedChannel === "dev" && updateStatus.installKind !== "git") {
-    const gitDir = resolveGitInstallDir();
-    const hasGit = await isGitCheckout(gitDir);
+    const gitDir = resolveGitInstallDir(resolveStateDir);
+    const hasGit = await isGitCheckout(gitDir, fsModule);
     if (!hasGit) {
       const dirExists = await pathExists(gitDir);
       if (dirExists) {
-        const empty = await isEmptyDir(gitDir);
+        const empty = await isEmptyDir(gitDir, fsModule);
         if (!empty) {
           defaultRuntime.error(
             `OPENCLAW_GIT_DIR points at a non-git directory: ${gitDir}. Set OPENCLAW_GIT_DIR to an empty folder or an openclaw checkout.`,
@@ -1202,13 +787,13 @@ export async function updateWizardCommand(opts: UpdateWizardOptions = {}): Promi
           return;
         }
       }
-      const ok = await confirm({
+      const ok = await clackPrompts.confirm({
         message: stylePromptMessage(
           `Create a git checkout at ${gitDir}? (override via OPENCLAW_GIT_DIR)`,
         ),
         initialValue: true,
       });
-      if (isCancel(ok) || !ok) {
+      if (clackPrompts.isCancel(ok) || !ok) {
         defaultRuntime.log(theme.muted("Update cancelled."));
         defaultRuntime.exit(0);
         return;
@@ -1216,11 +801,11 @@ export async function updateWizardCommand(opts: UpdateWizardOptions = {}): Promi
     }
   }
 
-  const restart = await confirm({
+  const restart = await clackPrompts.confirm({
     message: stylePromptMessage("Restart the gateway service after update?"),
     initialValue: true,
   });
-  if (isCancel(restart)) {
+  if (clackPrompts.isCancel(restart)) {
     defaultRuntime.log(theme.muted("Update cancelled."));
     defaultRuntime.exit(0);
     return;
@@ -1299,6 +884,7 @@ ${theme.muted("Docs:")} ${formatDocsLink("/cli/update", "docs.openclaw.ai/cli/up
           yes: Boolean(opts.yes),
         });
       } catch (err) {
+        const { defaultRuntime } = await import("../runtime.js");
         defaultRuntime.error(String(err));
         defaultRuntime.exit(1);
       }
@@ -1318,6 +904,7 @@ ${theme.muted("Docs:")} ${formatDocsLink("/cli/update", "docs.openclaw.ai/cli/up
           timeout: opts.timeout as string | undefined,
         });
       } catch (err) {
+        const { defaultRuntime } = await import("../runtime.js");
         defaultRuntime.error(String(err));
         defaultRuntime.exit(1);
       }
@@ -1348,6 +935,7 @@ ${theme.muted("Docs:")} ${formatDocsLink("/cli/update", "docs.openclaw.ai/cli/up
           timeout: opts.timeout as string | undefined,
         });
       } catch (err) {
+        const { defaultRuntime } = await import("../runtime.js");
         defaultRuntime.error(String(err));
         defaultRuntime.exit(1);
       }

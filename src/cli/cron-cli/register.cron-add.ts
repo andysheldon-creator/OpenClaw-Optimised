@@ -1,18 +1,8 @@
 import type { Command } from "commander";
 import type { CronJob } from "../../cron/types.js";
 import type { GatewayRpcOpts } from "../gateway-rpc.js";
-import { danger } from "../../globals.js";
-import { sanitizeAgentId } from "../../routing/session-key.js";
-import { defaultRuntime } from "../../runtime.js";
 import { addGatewayClientOptions, callGatewayFromCli } from "../gateway-rpc.js";
-import { parsePositiveIntOrUndefined } from "../program/helpers.js";
-import {
-  getCronChannelOptions,
-  parseAt,
-  parseDurationMs,
-  printCronList,
-  warnIfCronSchedulerDisabled,
-} from "./shared.js";
+import { getCronChannelOptions, parseAt, parseDurationMs } from "./shared.js";
 
 export function registerCronStatusCommand(cron: Command) {
   addGatewayClientOptions(
@@ -21,6 +11,8 @@ export function registerCronStatusCommand(cron: Command) {
       .description("Show cron scheduler status")
       .option("--json", "Output JSON", false)
       .action(async (opts) => {
+        const { danger } = await import("../../globals.js");
+        const { defaultRuntime } = await import("../../runtime.js");
         try {
           const res = await callGatewayFromCli("cron.status", opts, {});
           defaultRuntime.log(JSON.stringify(res, null, 2));
@@ -40,6 +32,9 @@ export function registerCronListCommand(cron: Command) {
       .option("--all", "Include disabled jobs", false)
       .option("--json", "Output JSON", false)
       .action(async (opts) => {
+        const { danger } = await import("../../globals.js");
+        const { defaultRuntime } = await import("../../runtime.js");
+        const { printCronList } = await import("./shared.js");
         try {
           const res = await callGatewayFromCli("cron.list", opts, {
             includeDisabled: Boolean(opts.all),
@@ -92,6 +87,11 @@ export function registerCronAddCommand(cron: Command) {
       .option("--best-effort-deliver", "Do not fail the job if delivery fails", false)
       .option("--json", "Output JSON", false)
       .action(async (opts: GatewayRpcOpts & Record<string, unknown>, cmd?: Command) => {
+        const { danger } = await import("../../globals.js");
+        const { sanitizeAgentId } = await import("../../routing/session-key.js");
+        const { defaultRuntime } = await import("../../runtime.js");
+        const { parsePositiveIntOrUndefined } = await import("../program/helpers.js");
+        const { warnIfCronSchedulerDisabled } = await import("./shared.js");
         try {
           const schedule = (() => {
             const at = typeof opts.at === "string" ? opts.at : "";

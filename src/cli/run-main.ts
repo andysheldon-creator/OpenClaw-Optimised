@@ -2,16 +2,12 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-import { loadDotEnv } from "../infra/dotenv.js";
-import { normalizeEnv } from "../infra/env.js";
 import { formatUncaughtError } from "../infra/errors.js";
 import { isMainModule } from "../infra/is-main.js";
 import { ensureOpenClawCliOnPath } from "../infra/path-env.js";
 import { assertSupportedRuntime } from "../infra/runtime-guard.js";
 import { installUnhandledRejectionHandler } from "../infra/unhandled-rejections.js";
-import { enableConsoleCapture } from "../logging.js";
-import { getPrimaryCommand, hasHelpOrVersion } from "./argv.js";
-import { tryRouteCli } from "./route.js";
+import { getCommandPath, getPrimaryCommand, hasHelpOrVersion } from "./argv.js";
 
 export function rewriteUpdateFlagArgv(argv: string[]): string[] {
   const index = argv.indexOf("--update");
@@ -26,22 +22,28 @@ export function rewriteUpdateFlagArgv(argv: string[]): string[] {
 
 export async function runCli(argv: string[] = process.argv) {
   const normalizedArgv = stripWindowsNodeExec(argv);
-  loadDotEnv({ quiet: true });
-  normalizeEnv();
+  if (!hasHelpOrVersion(normalizedArgv)) {
+    const { loadDotEnv } = await import("../infra/dotenv.js");
+    loadDotEnv({ quiet: true });
+    // Normalize ZAI env alias (inlined to avoid importing env.ts which pulls in tslog)
+    if (!process.env.ZAI_API_KEY?.trim() && process.env.Z_AI_API_KEY?.trim()) {
+      process.env.ZAI_API_KEY = process.env.Z_AI_API_KEY;
+    }
+  }
   ensureOpenClawCliOnPath();
 
   // Enforce the minimum supported runtime before doing any work.
   assertSupportedRuntime();
 
-  if (await tryRouteCli(normalizedArgv)) {
-    return;
+  if (!hasHelpOrVersion(normalizedArgv)) {
+    const { tryRouteCli } = await import("./route.js");
+    if (await tryRouteCli(normalizedArgv)) {
+      return;
+    }
   }
 
-  // Capture all console output into structured logs while keeping stdout/stderr behavior.
-  enableConsoleCapture();
-
-  const { buildProgram } = await import("./program.js");
-  const program = buildProgram();
+  const { buildProgramShell } = await import("./program/build-program-shell.js");
+  const { program, ctx, provideChannelOptions } = buildProgramShell();
 
   // Global error handlers to prevent silent crashes from unhandled rejections/exceptions.
   // These log the error and exit gracefully instead of crashing without trace.
@@ -53,19 +55,61 @@ export async function runCli(argv: string[] = process.argv) {
   });
 
   const parseArgv = rewriteUpdateFlagArgv(normalizedArgv);
-  // Register the primary subcommand if one exists (for lazy-loading)
+  // Try to register only the specific command needed instead of all 11 groups.
+  // Falls back to full registration for unknown commands.
   const primary = getPrimaryCommand(parseArgv);
-  if (primary) {
-    const { registerSubCliByName } = await import("./program/register.subclis.js");
-    await registerSubCliByName(program, primary);
+
+  // For bare `help` / `--help` / `-h`, register lightweight stubs (name +
+  // description only) instead of loading the full command tree (27 MB).
+  // For `help <subcommand>`, lazy-load just that one command.
+  const wantsHelpOnly = primary === "help" || (!primary && hasHelpOrVersion(parseArgv));
+
+  let commandRegistered = false;
+  if (primary === "help") {
+    const helpTarget = getCommandPath(parseArgv, 2)[1];
+    if (helpTarget) {
+      // `openclaw help agent` — register just that command
+      const { registerCoreCommandByName } = await import("./program/register.core-lazy.js");
+      commandRegistered = await registerCoreCommandByName(program, ctx, helpTarget, parseArgv);
+      if (!commandRegistered) {
+        const { registerSubCliByName } = await import("./program/register.subclis.js");
+        commandRegistered = await registerSubCliByName(program, helpTarget);
+      }
+    }
+  } else if (primary) {
+    const { registerCoreCommandByName } = await import("./program/register.core-lazy.js");
+    commandRegistered = await registerCoreCommandByName(program, ctx, primary, parseArgv);
+
+    if (!commandRegistered) {
+      const { registerSubCliByName } = await import("./program/register.subclis.js");
+      commandRegistered = await registerSubCliByName(program, primary);
+    }
   }
 
-  const shouldSkipPluginRegistration = !primary && hasHelpOrVersion(parseArgv);
+  if (!commandRegistered) {
+    if (wantsHelpOnly) {
+      // Stub registration: just command names + descriptions for the help view.
+      const { registerStubCommands } = await import("./program/command-stubs.js");
+      registerStubCommands(program);
+    } else {
+      const { resolveCliChannelOptions } = await import("./channel-options.js");
+      provideChannelOptions(resolveCliChannelOptions);
+      const { registerProgramCommands } = await import("./program/command-registry.js");
+      await registerProgramCommands(program, ctx, parseArgv);
+    }
+  }
+
+  const shouldSkipPluginRegistration = wantsHelpOnly || (primary != null && commandRegistered);
   if (!shouldSkipPluginRegistration) {
     // Register plugin CLI commands before parsing
     const { registerPluginCliCommands } = await import("../plugins/cli.js");
     const { loadConfig } = await import("../config/config.js");
     registerPluginCliCommands(program, loadConfig());
+  }
+
+  if (!hasHelpOrVersion(parseArgv) && primary !== "help") {
+    const { enableConsoleCapture } = await import("../logging.js");
+    enableConsoleCapture();
   }
 
   await program.parseAsync(parseArgv);

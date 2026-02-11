@@ -1,21 +1,6 @@
 import type { Command } from "commander";
-import { loadNodeHostConfig } from "../../node-host/config.js";
-import { runNodeHost } from "../../node-host/runner.js";
 import { formatDocsLink } from "../../terminal/links.js";
 import { theme } from "../../terminal/theme.js";
-import { parsePort } from "../daemon-cli/shared.js";
-import {
-  runNodeDaemonInstall,
-  runNodeDaemonRestart,
-  runNodeDaemonStatus,
-  runNodeDaemonStop,
-  runNodeDaemonUninstall,
-} from "./daemon.js";
-
-function parsePortWithFallback(value: unknown, fallback: number): number {
-  const parsed = parsePort(value);
-  return parsed ?? fallback;
-}
 
 export function registerNodeCli(program: Command) {
   const node = program
@@ -37,6 +22,13 @@ export function registerNodeCli(program: Command) {
     .option("--node-id <id>", "Override node id (clears pairing token)")
     .option("--display-name <name>", "Override node display name")
     .action(async (opts) => {
+      const { loadNodeHostConfig } = await import("../../node-host/config.js");
+      const { runNodeHost } = await import("../../node-host/runner.js");
+      const { parsePort } = await import("../daemon-cli/shared.js");
+      const parsePortWithFallback = (value: unknown, fallback: number): number => {
+        const parsed = parsePort(value);
+        return parsed ?? fallback;
+      };
       const existing = await loadNodeHostConfig();
       const host =
         (opts.host as string | undefined)?.trim() || existing?.gateway?.host || "127.0.0.1";
@@ -56,6 +48,7 @@ export function registerNodeCli(program: Command) {
     .description("Show node host status")
     .option("--json", "Output JSON", false)
     .action(async (opts) => {
+      const { runNodeDaemonStatus } = await import("./daemon.js");
       await runNodeDaemonStatus(opts);
     });
 
@@ -72,6 +65,7 @@ export function registerNodeCli(program: Command) {
     .option("--force", "Reinstall/overwrite if already installed", false)
     .option("--json", "Output JSON", false)
     .action(async (opts) => {
+      const { runNodeDaemonInstall } = await import("./daemon.js");
       await runNodeDaemonInstall(opts);
     });
 
@@ -80,6 +74,7 @@ export function registerNodeCli(program: Command) {
     .description("Uninstall the node host service (launchd/systemd/schtasks)")
     .option("--json", "Output JSON", false)
     .action(async (opts) => {
+      const { runNodeDaemonUninstall } = await import("./daemon.js");
       await runNodeDaemonUninstall(opts);
     });
 
@@ -88,6 +83,7 @@ export function registerNodeCli(program: Command) {
     .description("Stop the node host service (launchd/systemd/schtasks)")
     .option("--json", "Output JSON", false)
     .action(async (opts) => {
+      const { runNodeDaemonStop } = await import("./daemon.js");
       await runNodeDaemonStop(opts);
     });
 
@@ -96,6 +92,7 @@ export function registerNodeCli(program: Command) {
     .description("Restart the node host service (launchd/systemd/schtasks)")
     .option("--json", "Output JSON", false)
     .action(async (opts) => {
+      const { runNodeDaemonRestart } = await import("./daemon.js");
       await runNodeDaemonRestart(opts);
     });
 }

@@ -1,7 +1,4 @@
 import type { Command } from "commander";
-import { sandboxExplainCommand } from "../commands/sandbox-explain.js";
-import { sandboxListCommand, sandboxRecreateCommand } from "../commands/sandbox.js";
-import { defaultRuntime } from "../runtime.js";
 import { formatDocsLink } from "../terminal/links.js";
 import { theme } from "../terminal/theme.js";
 import { formatHelpExamples } from "./help-format.js";
@@ -41,19 +38,6 @@ const SANDBOX_EXAMPLES = {
   ],
 } as const;
 
-function createRunner(
-  commandFn: (opts: CommandOptions, runtime: typeof defaultRuntime) => Promise<void>,
-) {
-  return async (opts: CommandOptions) => {
-    try {
-      await commandFn(opts, defaultRuntime);
-    } catch (err) {
-      defaultRuntime.error(String(err));
-      defaultRuntime.exit(1);
-    }
-  };
-}
-
 // --- Registration ---
 
 export function registerSandboxCli(program: Command) {
@@ -91,17 +75,23 @@ export function registerSandboxCli(program: Command) {
           "- Idle time (time since last use)",
         )}\n${theme.muted("- Associated session/agent ID")}`,
     )
-    .action(
-      createRunner((opts) =>
-        sandboxListCommand(
+    .action(async (opts: CommandOptions) => {
+      const { sandboxListCommand } = await import("../commands/sandbox.js");
+      const { defaultRuntime } = await import("../runtime.js");
+
+      try {
+        await sandboxListCommand(
           {
             browser: Boolean(opts.browser),
             json: Boolean(opts.json),
           },
           defaultRuntime,
-        ),
-      ),
-    );
+        );
+      } catch (err) {
+        defaultRuntime.error(String(err));
+        defaultRuntime.exit(1);
+      }
+    });
 
   // --- Recreate Command ---
 
@@ -132,9 +122,12 @@ export function registerSandboxCli(program: Command) {
           "  --browser      Only affect browser containers (not regular sandbox)",
         )}\n${theme.muted("  --force        Skip confirmation prompt")}`,
     )
-    .action(
-      createRunner((opts) =>
-        sandboxRecreateCommand(
+    .action(async (opts: CommandOptions) => {
+      const { sandboxRecreateCommand } = await import("../commands/sandbox.js");
+      const { defaultRuntime } = await import("../runtime.js");
+
+      try {
+        await sandboxRecreateCommand(
           {
             all: Boolean(opts.all),
             session: opts.session as string | undefined,
@@ -143,9 +136,12 @@ export function registerSandboxCli(program: Command) {
             force: Boolean(opts.force),
           },
           defaultRuntime,
-        ),
-      ),
-    );
+        );
+      } catch (err) {
+        defaultRuntime.error(String(err));
+        defaultRuntime.exit(1);
+      }
+    });
 
   // --- Explain Command ---
 
@@ -159,16 +155,22 @@ export function registerSandboxCli(program: Command) {
       "after",
       () => `\n${theme.heading("Examples:")}\n${formatHelpExamples(SANDBOX_EXAMPLES.explain)}\n`,
     )
-    .action(
-      createRunner((opts) =>
-        sandboxExplainCommand(
+    .action(async (opts: CommandOptions) => {
+      const { sandboxExplainCommand } = await import("../commands/sandbox-explain.js");
+      const { defaultRuntime } = await import("../runtime.js");
+
+      try {
+        await sandboxExplainCommand(
           {
             session: opts.session as string | undefined,
             agent: opts.agent as string | undefined,
             json: Boolean(opts.json),
           },
           defaultRuntime,
-        ),
-      ),
-    );
+        );
+      } catch (err) {
+        defaultRuntime.error(String(err));
+        defaultRuntime.exit(1);
+      }
+    });
 }

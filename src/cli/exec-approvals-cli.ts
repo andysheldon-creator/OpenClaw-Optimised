@@ -1,21 +1,10 @@
 import type { Command } from "commander";
-import JSON5 from "json5";
 import fs from "node:fs/promises";
+import type { ExecApprovalsAgent, ExecApprovalsFile } from "../infra/exec-approvals.js";
 import type { NodesRpcOpts } from "./nodes-cli/types.js";
-import {
-  readExecApprovalsSnapshot,
-  saveExecApprovals,
-  type ExecApprovalsAgent,
-  type ExecApprovalsFile,
-} from "../infra/exec-approvals.js";
-import { formatTimeAgo } from "../infra/format-time/format-relative.ts";
-import { defaultRuntime } from "../runtime.js";
 import { formatDocsLink } from "../terminal/links.js";
-import { renderTable } from "../terminal/table.js";
 import { isRich, theme } from "../terminal/theme.js";
-import { describeUnknownError } from "./gateway-cli/shared.js";
-import { callGatewayFromCli } from "./gateway-rpc.js";
-import { nodesCallOpts, resolveNodeId } from "./nodes-cli/rpc.js";
+import { nodesCallOpts } from "./nodes-cli/rpc.js";
 
 type ExecApprovalsSnapshot = {
   path: string;
@@ -48,6 +37,7 @@ async function resolveTargetNodeId(opts: ExecApprovalsCliOpts): Promise<string |
   if (!raw) {
     return null;
   }
+  const { resolveNodeId } = await import("./nodes-cli/rpc.js");
   return await resolveNodeId(opts as NodesRpcOpts, raw);
 }
 
@@ -55,13 +45,15 @@ async function loadSnapshot(
   opts: ExecApprovalsCliOpts,
   nodeId: string | null,
 ): Promise<ExecApprovalsSnapshot> {
+  const { callGatewayFromCli } = await import("./gateway-rpc.js");
   const method = nodeId ? "exec.approvals.node.get" : "exec.approvals.get";
   const params = nodeId ? { nodeId } : {};
   const snapshot = (await callGatewayFromCli(method, opts, params)) as ExecApprovalsSnapshot;
   return snapshot;
 }
 
-function loadSnapshotLocal(): ExecApprovalsSnapshot {
+async function loadSnapshotLocal(): Promise<ExecApprovalsSnapshot> {
+  const { readExecApprovalsSnapshot } = await import("../infra/exec-approvals.js");
   const snapshot = readExecApprovalsSnapshot();
   return {
     path: snapshot.path,
@@ -71,9 +63,10 @@ function loadSnapshotLocal(): ExecApprovalsSnapshot {
   };
 }
 
-function saveSnapshotLocal(file: ExecApprovalsFile): ExecApprovalsSnapshot {
+async function saveSnapshotLocal(file: ExecApprovalsFile): Promise<ExecApprovalsSnapshot> {
+  const { saveExecApprovals } = await import("../infra/exec-approvals.js");
   saveExecApprovals(file);
-  return loadSnapshotLocal();
+  return await loadSnapshotLocal();
 }
 
 async function loadSnapshotTarget(opts: ExecApprovalsCliOpts): Promise<{
@@ -82,19 +75,23 @@ async function loadSnapshotTarget(opts: ExecApprovalsCliOpts): Promise<{
   source: "gateway" | "node" | "local";
 }> {
   if (!opts.gateway && !opts.node) {
-    return { snapshot: loadSnapshotLocal(), nodeId: null, source: "local" };
+    return { snapshot: await loadSnapshotLocal(), nodeId: null, source: "local" };
   }
   const nodeId = await resolveTargetNodeId(opts);
   const snapshot = await loadSnapshot(opts, nodeId);
   return { snapshot, nodeId, source: nodeId ? "node" : "gateway" };
 }
 
-function formatCliError(err: unknown): string {
+async function formatCliError(err: unknown): Promise<string> {
+  const { describeUnknownError } = await import("./gateway-cli/shared.js");
   const msg = describeUnknownError(err);
   return msg.includes("\n") ? msg.split("\n")[0] : msg;
 }
 
-function renderApprovalsSnapshot(snapshot: ExecApprovalsSnapshot, targetLabel: string) {
+async function renderApprovalsSnapshot(snapshot: ExecApprovalsSnapshot, targetLabel: string) {
+  const { defaultRuntime } = await import("../runtime.js");
+  const { renderTable } = await import("../terminal/table.js");
+  const { formatTimeAgo } = await import("../infra/format-time/format-relative.ts");
   const rich = isRich();
   const heading = (text: string) => (rich ? theme.heading(text) : text);
   const muted = (text: string) => (rich ? theme.muted(text) : text);
@@ -183,6 +180,7 @@ async function saveSnapshot(
   file: ExecApprovalsFile,
   baseHash: string,
 ): Promise<ExecApprovalsSnapshot> {
+  const { callGatewayFromCli } = await import("./gateway-rpc.js");
   const method = nodeId ? "exec.approvals.node.set" : "exec.approvals.set";
   const params = nodeId ? { nodeId, file, baseHash } : { file, baseHash };
   const snapshot = (await callGatewayFromCli(method, opts, params)) as ExecApprovalsSnapshot;
@@ -238,6 +236,7 @@ export function registerExecApprovalsCli(program: Command) {
     .option("--gateway", "Force gateway approvals", false)
     .action(async (opts: ExecApprovalsCliOpts) => {
       try {
+        const { defaultRuntime } = await import("../runtime.js");
         const { snapshot, nodeId, source } = await loadSnapshotTarget(opts);
         if (opts.json) {
           defaultRuntime.log(JSON.stringify(snapshot));
@@ -250,9 +249,10 @@ export function registerExecApprovalsCli(program: Command) {
           defaultRuntime.log("");
         }
         const targetLabel = source === "local" ? "local" : nodeId ? `node:${nodeId}` : "gateway";
-        renderApprovalsSnapshot(snapshot, targetLabel);
+        await renderApprovalsSnapshot(snapshot, targetLabel);
       } catch (err) {
-        defaultRuntime.error(formatCliError(err));
+        const { defaultRuntime } = await import("../runtime.js");
+        defaultRuntime.error(await formatCliError(err));
         defaultRuntime.exit(1);
       }
     });
@@ -267,6 +267,7 @@ export function registerExecApprovalsCli(program: Command) {
     .option("--stdin", "Read JSON from stdin", false)
     .action(async (opts: ExecApprovalsCliOpts) => {
       try {
+        const { defaultRuntime } = await import("../runtime.js");
         if (!opts.file && !opts.stdin) {
           defaultRuntime.error("Provide --file or --stdin.");
           defaultRuntime.exit(1);
@@ -290,6 +291,7 @@ export function registerExecApprovalsCli(program: Command) {
         const raw = opts.stdin ? await readStdin() : await fs.readFile(String(opts.file), "utf8");
         let file: ExecApprovalsFile;
         try {
+          const JSON5 = (await import("json5")).default;
           file = JSON5.parse(raw);
         } catch (err) {
           defaultRuntime.error(`Failed to parse approvals JSON: ${String(err)}`);
@@ -299,16 +301,17 @@ export function registerExecApprovalsCli(program: Command) {
         file.version = 1;
         const next =
           source === "local"
-            ? saveSnapshotLocal(file)
+            ? await saveSnapshotLocal(file)
             : await saveSnapshot(opts, nodeId, file, snapshot.hash);
         if (opts.json) {
           defaultRuntime.log(JSON.stringify(next));
           return;
         }
         defaultRuntime.log(theme.muted(`Target: ${targetLabel}`));
-        renderApprovalsSnapshot(next, targetLabel);
+        await renderApprovalsSnapshot(next, targetLabel);
       } catch (err) {
-        defaultRuntime.error(formatCliError(err));
+        const { defaultRuntime } = await import("../runtime.js");
+        defaultRuntime.error(await formatCliError(err));
         defaultRuntime.exit(1);
       }
     });
@@ -343,6 +346,7 @@ export function registerExecApprovalsCli(program: Command) {
     .option("--agent <id>", 'Agent id (defaults to "*")')
     .action(async (pattern: string, opts: ExecApprovalsCliOpts) => {
       try {
+        const { defaultRuntime } = await import("../runtime.js");
         const trimmed = pattern.trim();
         if (!trimmed) {
           defaultRuntime.error("Pattern required.");
@@ -373,16 +377,17 @@ export function registerExecApprovalsCli(program: Command) {
         file.agents = { ...file.agents, [agentKey]: agent };
         const next =
           source === "local"
-            ? saveSnapshotLocal(file)
+            ? await saveSnapshotLocal(file)
             : await saveSnapshot(opts, nodeId, file, snapshot.hash);
         if (opts.json) {
           defaultRuntime.log(JSON.stringify(next));
           return;
         }
         defaultRuntime.log(theme.muted(`Target: ${targetLabel}`));
-        renderApprovalsSnapshot(next, targetLabel);
+        await renderApprovalsSnapshot(next, targetLabel);
       } catch (err) {
-        defaultRuntime.error(formatCliError(err));
+        const { defaultRuntime } = await import("../runtime.js");
+        defaultRuntime.error(await formatCliError(err));
         defaultRuntime.exit(1);
       }
     });
@@ -396,6 +401,7 @@ export function registerExecApprovalsCli(program: Command) {
     .option("--agent <id>", 'Agent id (defaults to "*")')
     .action(async (pattern: string, opts: ExecApprovalsCliOpts) => {
       try {
+        const { defaultRuntime } = await import("../runtime.js");
         const trimmed = pattern.trim();
         if (!trimmed) {
           defaultRuntime.error("Pattern required.");
@@ -438,16 +444,17 @@ export function registerExecApprovalsCli(program: Command) {
         }
         const next =
           source === "local"
-            ? saveSnapshotLocal(file)
+            ? await saveSnapshotLocal(file)
             : await saveSnapshot(opts, nodeId, file, snapshot.hash);
         if (opts.json) {
           defaultRuntime.log(JSON.stringify(next));
           return;
         }
         defaultRuntime.log(theme.muted(`Target: ${targetLabel}`));
-        renderApprovalsSnapshot(next, targetLabel);
+        await renderApprovalsSnapshot(next, targetLabel);
       } catch (err) {
-        defaultRuntime.error(formatCliError(err));
+        const { defaultRuntime } = await import("../runtime.js");
+        defaultRuntime.error(await formatCliError(err));
         defaultRuntime.exit(1);
       }
     });

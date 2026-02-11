@@ -1,12 +1,6 @@
 import type { Command } from "commander";
-import JSON5 from "json5";
-import { readConfigFileSnapshot, writeConfigFile } from "../config/config.js";
-import { danger, info } from "../globals.js";
-import { defaultRuntime } from "../runtime.js";
 import { formatDocsLink } from "../terminal/links.js";
 import { theme } from "../terminal/theme.js";
-import { shortenHomePath } from "../utils.js";
-import { formatCliCommand } from "./command-format.js";
 
 type PathSegment = string;
 
@@ -66,8 +60,9 @@ function parsePath(raw: string): PathSegment[] {
   return parts.map((part) => part.trim()).filter(Boolean);
 }
 
-function parseValue(raw: string, opts: { json?: boolean }): unknown {
+async function parseValue(raw: string, opts: { json?: boolean }): Promise<unknown> {
   const trimmed = raw.trim();
+  const JSON5 = (await import("json5")).default;
   if (opts.json) {
     try {
       return JSON5.parse(trimmed);
@@ -202,10 +197,14 @@ function unsetAtPath(root: Record<string, unknown>, path: PathSegment[]): boolea
 }
 
 async function loadValidConfig() {
+  const { readConfigFileSnapshot } = await import("../config/config.js");
+  const { defaultRuntime } = await import("../runtime.js");
   const snapshot = await readConfigFileSnapshot();
   if (snapshot.valid) {
     return snapshot;
   }
+  const { shortenHomePath } = await import("../utils.js");
+  const { formatCliCommand } = await import("./command-format.js");
   defaultRuntime.error(`Config invalid at ${shortenHomePath(snapshot.path)}.`);
   for (const issue of snapshot.issues) {
     defaultRuntime.error(`- ${issue.path || "<root>"}: ${issue.message}`);
@@ -231,6 +230,7 @@ export function registerConfigCli(program: Command) {
       [] as string[],
     )
     .action(async (opts) => {
+      const { defaultRuntime } = await import("../runtime.js");
       const { CONFIGURE_WIZARD_SECTIONS, configureCommand, configureCommandWithSections } =
         await import("../commands/configure.js");
       const sections: string[] = Array.isArray(opts.section)
@@ -261,6 +261,8 @@ export function registerConfigCli(program: Command) {
     .argument("<path>", "Config path (dot or bracket notation)")
     .option("--json", "Output JSON", false)
     .action(async (path: string, opts) => {
+      const { defaultRuntime } = await import("../runtime.js");
+      const { danger } = await import("../globals.js");
       try {
         const parsedPath = parsePath(path);
         if (parsedPath.length === 0) {
@@ -299,12 +301,15 @@ export function registerConfigCli(program: Command) {
     .argument("<value>", "Value (JSON5 or raw string)")
     .option("--json", "Parse value as JSON5 (required)", false)
     .action(async (path: string, value: string, opts) => {
+      const { defaultRuntime } = await import("../runtime.js");
+      const { danger, info } = await import("../globals.js");
+      const { writeConfigFile } = await import("../config/config.js");
       try {
         const parsedPath = parsePath(path);
         if (parsedPath.length === 0) {
           throw new Error("Path is empty.");
         }
-        const parsedValue = parseValue(value, opts);
+        const parsedValue = await parseValue(value, opts);
         const snapshot = await loadValidConfig();
         const next = snapshot.config as Record<string, unknown>;
         setAtPath(next, parsedPath, parsedValue);
@@ -321,6 +326,9 @@ export function registerConfigCli(program: Command) {
     .description("Remove a config value by dot path")
     .argument("<path>", "Config path (dot or bracket notation)")
     .action(async (path: string) => {
+      const { defaultRuntime } = await import("../runtime.js");
+      const { danger, info } = await import("../globals.js");
+      const { writeConfigFile } = await import("../config/config.js");
       try {
         const parsedPath = parsePath(path);
         if (parsedPath.length === 0) {

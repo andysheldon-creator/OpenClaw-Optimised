@@ -1,18 +1,9 @@
 import type { Command } from "commander";
+import type { PairingChannel } from "../pairing/pairing-store.js";
 import { normalizeChannelId } from "../channels/plugins/index.js";
-import { listPairingChannels, notifyPairingApproved } from "../channels/plugins/pairing.js";
-import { loadConfig } from "../config/config.js";
-import { resolvePairingIdLabel } from "../pairing/pairing-labels.js";
-import {
-  approveChannelPairingCode,
-  listChannelPairingRequests,
-  type PairingChannel,
-} from "../pairing/pairing-store.js";
-import { defaultRuntime } from "../runtime.js";
+import { listPairingChannels } from "../channels/plugins/pairing.js";
 import { formatDocsLink } from "../terminal/links.js";
-import { renderTable } from "../terminal/table.js";
 import { theme } from "../terminal/theme.js";
-import { formatCliCommand } from "./command-format.js";
 
 /** Parse channel, allowing extension channels not in core registry. */
 function parseChannel(raw: unknown, channels: PairingChannel[]): PairingChannel {
@@ -44,11 +35,6 @@ function parseChannel(raw: unknown, channels: PairingChannel[]): PairingChannel 
   throw new Error(`Invalid channel: ${value}`);
 }
 
-async function notifyApproved(channel: PairingChannel, id: string) {
-  const cfg = loadConfig();
-  await notifyPairingApproved({ channelId: channel, id, cfg });
-}
-
 export function registerPairingCli(program: Command) {
   const channels = listPairingChannels();
   const pairing = program
@@ -67,6 +53,10 @@ export function registerPairingCli(program: Command) {
     .argument("[channel]", `Channel (${channels.join(", ")})`)
     .option("--json", "Print JSON", false)
     .action(async (channelArg, opts) => {
+      const { listChannelPairingRequests } = await import("../pairing/pairing-store.js");
+      const { resolvePairingIdLabel } = await import("../pairing/pairing-labels.js");
+      const { defaultRuntime } = await import("../runtime.js");
+      const { renderTable } = await import("../terminal/table.js");
       const channelRaw = opts.channel ?? channelArg;
       if (!channelRaw) {
         throw new Error(
@@ -115,6 +105,11 @@ export function registerPairingCli(program: Command) {
     .argument("[code]", "Pairing code (when channel is passed as the 1st arg)")
     .option("--notify", "Notify the requester on the same channel", false)
     .action(async (codeOrChannel, code, opts) => {
+      const { approveChannelPairingCode } = await import("../pairing/pairing-store.js");
+      const { notifyPairingApproved } = await import("../channels/plugins/pairing.js");
+      const { loadConfig } = await import("../config/config.js");
+      const { defaultRuntime } = await import("../runtime.js");
+      const { formatCliCommand } = await import("./command-format.js");
       const channelRaw = opts.channel ?? codeOrChannel;
       const resolvedCode = opts.channel ? codeOrChannel : code;
       if (!opts.channel && !code) {
@@ -143,7 +138,8 @@ export function registerPairingCli(program: Command) {
       if (!opts.notify) {
         return;
       }
-      await notifyApproved(channel, approved.id).catch((err) => {
+      const cfg = loadConfig();
+      await notifyPairingApproved({ channelId: channel, id: approved.id, cfg }).catch((err) => {
         defaultRuntime.log(theme.warn(`Failed to notify requester: ${String(err)}`));
       });
     });

@@ -1,12 +1,5 @@
 import type { Command } from "commander";
-import { resolveChannelDefaultAccountId } from "../channels/plugins/helpers.js";
-import { getChannelPlugin } from "../channels/plugins/index.js";
-import { loadConfig } from "../config/config.js";
-import { danger } from "../globals.js";
-import { resolveMessageChannelSelection } from "../infra/outbound/channel-selection.js";
-import { defaultRuntime } from "../runtime.js";
 import { formatDocsLink } from "../terminal/links.js";
-import { renderTable } from "../terminal/table.js";
 import { theme } from "../terminal/theme.js";
 
 function parseLimit(value: unknown): number | null {
@@ -37,6 +30,25 @@ function buildRows(entries: Array<{ id: string; name?: string | undefined }>) {
   }));
 }
 
+async function resolve(opts: { channel?: string; account?: string }) {
+  const { resolveChannelDefaultAccountId } = await import("../channels/plugins/helpers.js");
+  const { getChannelPlugin } = await import("../channels/plugins/index.js");
+  const { loadConfig } = await import("../config/config.js");
+  const { resolveMessageChannelSelection } = await import("../infra/outbound/channel-selection.js");
+  const cfg = loadConfig();
+  const selection = await resolveMessageChannelSelection({
+    cfg,
+    channel: opts.channel ?? null,
+  });
+  const channelId = selection.channel;
+  const plugin = getChannelPlugin(channelId);
+  if (!plugin) {
+    throw new Error(`Unsupported channel: ${String(channelId)}`);
+  }
+  const accountId = opts.account?.trim() || resolveChannelDefaultAccountId({ plugin, cfg });
+  return { cfg, channelId, accountId, plugin };
+}
+
 export function registerDirectoryCli(program: Command) {
   const directory = program
     .command("directory")
@@ -59,23 +71,11 @@ export function registerDirectoryCli(program: Command) {
       .option("--account <id>", "Account id (accountId)")
       .option("--json", "Output JSON", false);
 
-  const resolve = async (opts: { channel?: string; account?: string }) => {
-    const cfg = loadConfig();
-    const selection = await resolveMessageChannelSelection({
-      cfg,
-      channel: opts.channel ?? null,
-    });
-    const channelId = selection.channel;
-    const plugin = getChannelPlugin(channelId);
-    if (!plugin) {
-      throw new Error(`Unsupported channel: ${String(channelId)}`);
-    }
-    const accountId = opts.account?.trim() || resolveChannelDefaultAccountId({ plugin, cfg });
-    return { cfg, channelId, accountId, plugin };
-  };
-
   withChannel(directory.command("self").description("Show the current account user")).action(
     async (opts) => {
+      const { danger } = await import("../globals.js");
+      const { defaultRuntime } = await import("../runtime.js");
+      const { renderTable } = await import("../terminal/table.js");
       try {
         const { cfg, channelId, accountId, plugin } = await resolve({
           channel: opts.channel as string | undefined,
@@ -118,6 +118,9 @@ export function registerDirectoryCli(program: Command) {
     .option("--query <text>", "Optional search query")
     .option("--limit <n>", "Limit results")
     .action(async (opts) => {
+      const { danger } = await import("../globals.js");
+      const { defaultRuntime } = await import("../runtime.js");
+      const { renderTable } = await import("../terminal/table.js");
       try {
         const { cfg, channelId, accountId, plugin } = await resolve({
           channel: opts.channel as string | undefined,
@@ -165,6 +168,9 @@ export function registerDirectoryCli(program: Command) {
     .option("--query <text>", "Optional search query")
     .option("--limit <n>", "Limit results")
     .action(async (opts) => {
+      const { danger } = await import("../globals.js");
+      const { defaultRuntime } = await import("../runtime.js");
+      const { renderTable } = await import("../terminal/table.js");
       try {
         const { cfg, channelId, accountId, plugin } = await resolve({
           channel: opts.channel as string | undefined,
@@ -215,6 +221,9 @@ export function registerDirectoryCli(program: Command) {
   )
     .option("--limit <n>", "Limit results")
     .action(async (opts) => {
+      const { danger } = await import("../globals.js");
+      const { defaultRuntime } = await import("../runtime.js");
+      const { renderTable } = await import("../terminal/table.js");
       try {
         const { cfg, channelId, accountId, plugin } = await resolve({
           channel: opts.channel as string | undefined,

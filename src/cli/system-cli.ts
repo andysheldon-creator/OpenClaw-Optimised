@@ -1,7 +1,5 @@
 import type { Command } from "commander";
 import type { GatewayRpcOpts } from "./gateway-rpc.js";
-import { danger } from "../globals.js";
-import { defaultRuntime } from "../runtime.js";
 import { formatDocsLink } from "../terminal/links.js";
 import { theme } from "../terminal/theme.js";
 import { addGatewayClientOptions, callGatewayFromCli } from "./gateway-rpc.js";
@@ -37,6 +35,8 @@ export function registerSystemCli(program: Command) {
       .option("--mode <mode>", "Wake mode (now|next-heartbeat)", "next-heartbeat")
       .option("--json", "Output JSON", false),
   ).action(async (opts: SystemEventOpts) => {
+    const { danger } = await import("../globals.js");
+    const { defaultRuntime } = await import("../runtime.js");
     try {
       const text = typeof opts.text === "string" ? opts.text.trim() : "";
       if (!text) {
@@ -63,6 +63,8 @@ export function registerSystemCli(program: Command) {
       .description("Show the last heartbeat event")
       .option("--json", "Output JSON", false),
   ).action(async (opts: GatewayRpcOpts & { json?: boolean }) => {
+    const { danger } = await import("../globals.js");
+    const { defaultRuntime } = await import("../runtime.js");
     try {
       const result = await callGatewayFromCli("last-heartbeat", opts, undefined, {
         expectFinal: false,
@@ -80,6 +82,8 @@ export function registerSystemCli(program: Command) {
       .description("Enable heartbeats")
       .option("--json", "Output JSON", false),
   ).action(async (opts: GatewayRpcOpts & { json?: boolean }) => {
+    const { danger } = await import("../globals.js");
+    const { defaultRuntime } = await import("../runtime.js");
     try {
       const result = await callGatewayFromCli(
         "set-heartbeats",
@@ -100,6 +104,8 @@ export function registerSystemCli(program: Command) {
       .description("Disable heartbeats")
       .option("--json", "Output JSON", false),
   ).action(async (opts: GatewayRpcOpts & { json?: boolean }) => {
+    const { danger } = await import("../globals.js");
+    const { defaultRuntime } = await import("../runtime.js");
     try {
       const result = await callGatewayFromCli(
         "set-heartbeats",
@@ -120,6 +126,8 @@ export function registerSystemCli(program: Command) {
       .description("List system presence entries")
       .option("--json", "Output JSON", false),
   ).action(async (opts: GatewayRpcOpts & { json?: boolean }) => {
+    const { danger } = await import("../globals.js");
+    const { defaultRuntime } = await import("../runtime.js");
     try {
       const result = await callGatewayFromCli("system-presence", opts, undefined, {
         expectFinal: false,

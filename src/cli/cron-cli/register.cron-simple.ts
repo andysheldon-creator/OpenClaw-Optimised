@@ -1,8 +1,5 @@
 import type { Command } from "commander";
-import { danger } from "../../globals.js";
-import { defaultRuntime } from "../../runtime.js";
 import { addGatewayClientOptions, callGatewayFromCli } from "../gateway-rpc.js";
-import { warnIfCronSchedulerDisabled } from "./shared.js";
 
 export function registerCronSimpleCommands(cron: Command) {
   addGatewayClientOptions(
@@ -14,6 +11,8 @@ export function registerCronSimpleCommands(cron: Command) {
       .argument("<id>", "Job id")
       .option("--json", "Output JSON", false)
       .action(async (id, opts) => {
+        const { danger } = await import("../../globals.js");
+        const { defaultRuntime } = await import("../../runtime.js");
         try {
           const res = await callGatewayFromCli("cron.remove", opts, { id });
           defaultRuntime.log(JSON.stringify(res, null, 2));
@@ -30,6 +29,9 @@ export function registerCronSimpleCommands(cron: Command) {
       .description("Enable a cron job")
       .argument("<id>", "Job id")
       .action(async (id, opts) => {
+        const { danger } = await import("../../globals.js");
+        const { defaultRuntime } = await import("../../runtime.js");
+        const { warnIfCronSchedulerDisabled } = await import("./shared.js");
         try {
           const res = await callGatewayFromCli("cron.update", opts, {
             id,
@@ -50,6 +52,9 @@ export function registerCronSimpleCommands(cron: Command) {
       .description("Disable a cron job")
       .argument("<id>", "Job id")
       .action(async (id, opts) => {
+        const { danger } = await import("../../globals.js");
+        const { defaultRuntime } = await import("../../runtime.js");
+        const { warnIfCronSchedulerDisabled } = await import("./shared.js");
         try {
           const res = await callGatewayFromCli("cron.update", opts, {
             id,
@@ -71,6 +76,8 @@ export function registerCronSimpleCommands(cron: Command) {
       .requiredOption("--id <id>", "Job id")
       .option("--limit <n>", "Max entries (default 50)", "50")
       .action(async (opts) => {
+        const { danger } = await import("../../globals.js");
+        const { defaultRuntime } = await import("../../runtime.js");
         try {
           const limitRaw = Number.parseInt(String(opts.limit ?? "50"), 10);
           const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? limitRaw : 50;
@@ -94,6 +101,8 @@ export function registerCronSimpleCommands(cron: Command) {
       .argument("<id>", "Job id")
       .option("--due", "Run only when due (default behavior in older versions)", false)
       .action(async (id, opts) => {
+        const { danger } = await import("../../globals.js");
+        const { defaultRuntime } = await import("../../runtime.js");
         try {
           const res = await callGatewayFromCli("cron.run", opts, {
             id,

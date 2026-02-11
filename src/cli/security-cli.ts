@@ -1,12 +1,6 @@
 import type { Command } from "commander";
-import { loadConfig } from "../config/config.js";
-import { defaultRuntime } from "../runtime.js";
-import { runSecurityAudit } from "../security/audit.js";
-import { fixSecurityFootguns } from "../security/fix.js";
 import { formatDocsLink } from "../terminal/links.js";
 import { isRich, theme } from "../terminal/theme.js";
-import { shortenHomeInString, shortenHomePath } from "../utils.js";
-import { formatCliCommand } from "./command-format.js";
 
 type SecurityAuditOptions = {
   json?: boolean;
@@ -43,6 +37,13 @@ export function registerSecurityCli(program: Command) {
     .option("--fix", "Apply safe fixes (tighten defaults + chmod state/config)", false)
     .option("--json", "Print JSON", false)
     .action(async (opts: SecurityAuditOptions) => {
+      const { fixSecurityFootguns } = await import("../security/fix.js");
+      const { loadConfig } = await import("../config/config.js");
+      const { runSecurityAudit } = await import("../security/audit.js");
+      const { defaultRuntime } = await import("../runtime.js");
+      const { shortenHomeInString, shortenHomePath } = await import("../utils.js");
+      const { formatCliCommand } = await import("./command-format.js");
+
       const fixResult = opts.fix ? await fixSecurityFootguns().catch((_err) => null) : null;
 
       const cfg = loadConfig();

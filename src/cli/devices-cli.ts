@@ -1,11 +1,5 @@
 import type { Command } from "commander";
-import { callGateway } from "../gateway/call.js";
-import { formatTimeAgo } from "../infra/format-time/format-relative.ts";
-import { defaultRuntime } from "../runtime.js";
-import { renderTable } from "../terminal/table.js";
 import { theme } from "../terminal/theme.js";
-import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/message-channel.js";
-import { withProgress } from "./progress.js";
 
 type DevicesRpcOpts = {
   url?: string;
@@ -58,8 +52,12 @@ const devicesCallOpts = (cmd: Command, defaults?: { timeoutMs?: number }) =>
     .option("--timeout <ms>", "Timeout in ms", String(defaults?.timeoutMs ?? 10_000))
     .option("--json", "Output JSON", false);
 
-const callGatewayCli = async (method: string, opts: DevicesRpcOpts, params?: unknown) =>
-  withProgress(
+async function callGatewayCli(method: string, opts: DevicesRpcOpts, params?: unknown) {
+  const { callGateway } = await import("../gateway/call.js");
+  const { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } =
+    await import("../utils/message-channel.js");
+  const { withProgress } = await import("./progress.js");
+  return withProgress(
     {
       label: `Devices ${method}`,
       indeterminate: true,
@@ -77,6 +75,7 @@ const callGatewayCli = async (method: string, opts: DevicesRpcOpts, params?: unk
         mode: GATEWAY_CLIENT_MODES.CLI,
       }),
   );
+}
 
 function parseDevicePairingList(value: unknown): DevicePairingList {
   const obj = typeof value === "object" && value !== null ? (value as Record<string, unknown>) : {};
@@ -104,6 +103,9 @@ export function registerDevicesCli(program: Command) {
       .command("list")
       .description("List pending and paired devices")
       .action(async (opts: DevicesRpcOpts) => {
+        const { formatTimeAgo } = await import("../infra/format-time/format-relative.ts");
+        const { defaultRuntime } = await import("../runtime.js");
+        const { renderTable } = await import("../terminal/table.js");
         const result = await callGatewayCli("device.pair.list", opts, {});
         const list = parseDevicePairingList(result);
         if (opts.json) {
@@ -174,6 +176,7 @@ export function registerDevicesCli(program: Command) {
       .description("Approve a pending device pairing request")
       .argument("<requestId>", "Pending request id")
       .action(async (requestId: string, opts: DevicesRpcOpts) => {
+        const { defaultRuntime } = await import("../runtime.js");
         const result = await callGatewayCli("device.pair.approve", opts, { requestId });
         if (opts.json) {
           defaultRuntime.log(JSON.stringify(result, null, 2));
@@ -190,6 +193,7 @@ export function registerDevicesCli(program: Command) {
       .description("Reject a pending device pairing request")
       .argument("<requestId>", "Pending request id")
       .action(async (requestId: string, opts: DevicesRpcOpts) => {
+        const { defaultRuntime } = await import("../runtime.js");
         const result = await callGatewayCli("device.pair.reject", opts, { requestId });
         if (opts.json) {
           defaultRuntime.log(JSON.stringify(result, null, 2));
@@ -208,6 +212,7 @@ export function registerDevicesCli(program: Command) {
       .requiredOption("--role <role>", "Role name")
       .option("--scope <scope...>", "Scopes to attach to the token (repeatable)")
       .action(async (opts: DevicesRpcOpts) => {
+        const { defaultRuntime } = await import("../runtime.js");
         const deviceId = String(opts.device ?? "").trim();
         const role = String(opts.role ?? "").trim();
         if (!deviceId || !role) {
@@ -231,6 +236,7 @@ export function registerDevicesCli(program: Command) {
       .requiredOption("--device <id>", "Device id")
       .requiredOption("--role <role>", "Role name")
       .action(async (opts: DevicesRpcOpts) => {
+        const { defaultRuntime } = await import("../runtime.js");
         const deviceId = String(opts.device ?? "").trim();
         const role = String(opts.role ?? "").trim();
         if (!deviceId || !role) {
