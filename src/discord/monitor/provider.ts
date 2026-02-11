@@ -644,11 +644,32 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
   // Timeout to detect zombie connections where HELLO is never received.
   const HELLO_TIMEOUT_MS = 30000;
   let helloTimeoutId: ReturnType<typeof setTimeout> | undefined;
+  const RESUME_FAIL_THRESHOLD = 5;
+  let resumeFailCount = 0;
   const onGatewayDebug = (msg: unknown) => {
     const message = String(msg);
+
+    // Track resume failures and escalate after threshold
+    if (message.includes("Attempting resume with backoff")) {
+      resumeFailCount++;
+      if (resumeFailCount >= RESUME_FAIL_THRESHOLD && gateway) {
+        runtime.log?.(danger(`resume failed ${resumeFailCount} times, forcing fresh identify`));
+        gateway.options.reconnect = { maxAttempts: 0 };
+        gateway.disconnect();
+        gateway.options.reconnect = { maxAttempts: Number.POSITIVE_INFINITY };
+        gateway.connect(false);
+        resumeFailCount = 0;
+        return;
+      }
+    }
+
     if (!message.includes("WebSocket connection opened")) {
       return;
     }
+
+    // Successful connection opened — reset resume failure counter
+    resumeFailCount = 0;
+
     if (helloTimeoutId) {
       clearTimeout(helloTimeoutId);
     }
