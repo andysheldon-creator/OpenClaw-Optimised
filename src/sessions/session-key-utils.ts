@@ -81,3 +81,8 @@ export function resolveThreadParentSessionKey(
   const parent = raw.slice(0, idx).trim();
   return parent ? parent : null;
 }
+
+export function normalizeSessionKey(sessionKey: string | undefined | null): string | undefined {
+  const raw = (sessionKey ?? "").trim();
+  return raw ? raw.toLowerCase() : undefined;
+}

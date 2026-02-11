@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../../config/config.js";
+import type { PluginHookRunner } from "../../plugins/hook-types.js";
 import { signalOutbound } from "../../channels/plugins/outbound/signal.js";
 import { telegramOutbound } from "../../channels/plugins/outbound/telegram.js";
 import { whatsappOutbound } from "../../channels/plugins/outbound/whatsapp.js";
+import * as hookRunnerGlobal from "../../plugins/hook-runner-global.js";
 import { setActivePluginRegistry } from "../../plugins/runtime.js";
 import { markdownToSignalTextChunks } from "../../signal/format.js";
 import {
@@ -146,6 +148,121 @@ describe("deliverOutboundPayloads", () => {
     });
   });
 
+  it("sends all rewritten Signal chunk content within the configured limit", async () => {
+    const sendSignal = vi.fn().mockResolvedValue({ messageId: "s1", timestamp: 123 });
+    const runMessageSending = vi.fn().mockResolvedValue({ content: "abcdefgh" });
+    const getGlobalHookRunnerSpy = vi
+      .spyOn(hookRunnerGlobal, "getGlobalHookRunner")
+      .mockReturnValue({
+        hasHooks: (name: string) => name === "message_sending",
+        runMessageSending,
+      } as unknown as PluginHookRunner);
+    const cfg: OpenClawConfig = {
+      channels: { signal: { textChunkLimit: 4 } },
+    };
+    const expectedChunks = markdownToSignalTextChunks("abcdefgh", 4);
+
+    const results = await deliverOutboundPayloads({
+      cfg,
+      channel: "signal",
+      to: "+1555",
+      payloads: [{ text: "a" }],
+      deps: { sendSignal },
+    });
+
+    expect(runMessageSending).toHaveBeenCalledTimes(1);
+    expect(sendSignal).toHaveBeenCalledTimes(expectedChunks.length);
+    expectedChunks.forEach((chunk, index) => {
+      expect(sendSignal).toHaveBeenNthCalledWith(
+        index + 1,
+        "+1555",
+        chunk.text,
+        expect.objectContaining({
+          accountId: undefined,
+          textMode: "plain",
+          textStyles: chunk.styles,
+        }),
+      );
+    });
+    expect(results).toHaveLength(expectedChunks.length);
+
+    getGlobalHookRunnerSpy.mockRestore();
+  });
+
+  it("reports failed Signal chunk sends with the exact chunk content", async () => {
+    const sendSignal = vi.fn().mockRejectedValue(new Error("signal down"));
+    const runMessageSending = vi.fn().mockResolvedValue({ content: "AB" });
+    const runMessageSent = vi.fn().mockResolvedValue(undefined);
+    const getGlobalHookRunnerSpy = vi
+      .spyOn(hookRunnerGlobal, "getGlobalHookRunner")
+      .mockReturnValue({
+        hasHooks: (name: string) => name === "message_sending" || name === "message_sent",
+        runMessageSending,
+        runMessageSent,
+      } as unknown as PluginHookRunner);
+
+    await deliverOutboundPayloads({
+      cfg: { channels: { signal: { textChunkLimit: 2 } } },
+      channel: "signal",
+      to: "+1555",
+      payloads: [{ text: "abcd" }],
+      deps: { sendSignal },
+      bestEffort: true,
+    });
+
+    expect(runMessageSending).toHaveBeenCalledTimes(1);
+    expect(sendSignal).toHaveBeenCalledTimes(1);
+    expect(runMessageSent).toHaveBeenCalledTimes(1);
+    expect(runMessageSent).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        content: "AB",
+        success: false,
+        error: "signal down",
+      }),
+      expect.any(Object),
+    );
+
+    getGlobalHookRunnerSpy.mockRestore();
+  });
+
+  it("reports failed text chunk sends with exact rewritten chunk content", async () => {
+    const sendWhatsApp = vi.fn().mockRejectedValue(new Error("wa down"));
+    const runMessageSending = vi.fn().mockResolvedValue({ content: "AB" });
+    const runMessageSent = vi.fn().mockResolvedValue(undefined);
+    const getGlobalHookRunnerSpy = vi
+      .spyOn(hookRunnerGlobal, "getGlobalHookRunner")
+      .mockReturnValue({
+        hasHooks: (name: string) => name === "message_sending" || name === "message_sent",
+        runMessageSending,
+        runMessageSent,
+      } as unknown as PluginHookRunner);
+
+    await deliverOutboundPayloads({
+      cfg: { channels: { whatsapp: { textChunkLimit: 2 } } },
+      channel: "whatsapp",
+      to: "+1555",
+      payloads: [{ text: "abcd" }],
+      deps: { sendWhatsApp },
+      bestEffort: true,
+    });
+
+    expect(runMessageSending).toHaveBeenCalledTimes(1);
+    expect(sendWhatsApp).toHaveBeenCalledTimes(1);
+    expect(runMessageSent).toHaveBeenCalledTimes(1);
+    expect(runMessageSent).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        content: "AB",
+        success: false,
+        error: "wa down",
+      }),
+      expect.any(Object),
+    );
+
+    getGlobalHookRunnerSpy.mockRestore();
+  });
+
   it("chunks WhatsApp text and returns all results", async () => {
     const sendWhatsApp = vi
       .fn()
@@ -165,6 +282,69 @@ describe("deliverOutboundPayloads", () => {
 
     expect(sendWhatsApp).toHaveBeenCalledTimes(2);
     expect(results.map((r) => r.messageId)).toEqual(["w1", "w2"]);
+  });
+
+  it("runs message_sending per text chunk and honors cancel", async () => {
+    const sendWhatsApp = vi.fn().mockResolvedValue({ messageId: "w1", toJid: "jid" });
+    const runMessageSending = vi
+      .fn()
+      .mockResolvedValueOnce({ content: "AB" })
+      .mockResolvedValueOnce({ cancel: true });
+    const runMessageSent = vi.fn().mockResolvedValue(undefined);
+    const getGlobalHookRunnerSpy = vi
+      .spyOn(hookRunnerGlobal, "getGlobalHookRunner")
+      .mockReturnValue({
+        hasHooks: (name: string) => name === "message_sending" || name === "message_sent",
+        runMessageSending,
+        runMessageSent,
+      } as unknown as PluginHookRunner);
+    const cfg: OpenClawConfig = {
+      channels: { whatsapp: { textChunkLimit: 2 } },
+    };
+
+    const results = await deliverOutboundPayloads({
+      cfg,
+      channel: "whatsapp",
+      to: "+1555",
+      payloads: [{ text: "abcd" }],
+      deps: { sendWhatsApp },
+    });
+
+    expect(runMessageSending).toHaveBeenCalledTimes(2);
+    expect(runMessageSending).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ content: "ab" }),
+      expect.any(Object),
+    );
+    expect(runMessageSending).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ content: "cd" }),
+      expect.any(Object),
+    );
+    expect(sendWhatsApp).toHaveBeenCalledTimes(1);
+    expect(sendWhatsApp).toHaveBeenCalledWith(
+      "+1555",
+      "AB",
+      expect.objectContaining({ verbose: false }),
+    );
+    expect(runMessageSent).toHaveBeenCalledTimes(2);
+    expect(runMessageSent).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ content: "AB", success: true }),
+      expect.any(Object),
+    );
+    expect(runMessageSent).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        content: "cd",
+        success: false,
+        error: "canceled by message_sending hook",
+      }),
+      expect.any(Object),
+    );
+    expect(results).toHaveLength(1);
+
+    getGlobalHookRunnerSpy.mockRestore();
   });
 
   it("respects newline chunk mode for WhatsApp", async () => {
@@ -329,6 +509,43 @@ describe("deliverOutboundPayloads", () => {
       expect.any(Error),
       expect.objectContaining({ text: "hi", mediaUrls: ["https://x.test/a.jpg"] }),
     );
+  });
+
+  it("keeps message_sent content non-empty for multi-media success and failure", async () => {
+    const sendWhatsApp = vi
+      .fn()
+      .mockResolvedValueOnce({ messageId: "w1", toJid: "jid" })
+      .mockRejectedValueOnce(new Error("boom"));
+    const runMessageSent = vi.fn().mockResolvedValue(undefined);
+    const getGlobalHookRunnerSpy = vi
+      .spyOn(hookRunnerGlobal, "getGlobalHookRunner")
+      .mockReturnValue({
+        hasHooks: (name: string) => name === "message_sent",
+        runMessageSent,
+      } as unknown as PluginHookRunner);
+
+    await deliverOutboundPayloads({
+      cfg: {},
+      channel: "whatsapp",
+      to: "+1555",
+      payloads: [{ text: "caption", mediaUrls: ["https://x.test/a.jpg", "https://x.test/b.jpg"] }],
+      deps: { sendWhatsApp },
+      bestEffort: true,
+    });
+
+    expect(runMessageSent).toHaveBeenCalledTimes(2);
+    expect(runMessageSent).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ content: "caption", success: true }),
+      expect.any(Object),
+    );
+    expect(runMessageSent).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ content: "caption", success: false, error: "boom" }),
+      expect.any(Object),
+    );
+
+    getGlobalHookRunnerSpy.mockRestore();
   });
 
   it("mirrors delivered output when mirror options are provided", async () => {

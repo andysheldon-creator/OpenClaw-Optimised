@@ -12,6 +12,7 @@ import {
   logSessionStateChange,
 } from "../../logging/diagnostic.js";
 import { getGlobalHookRunner } from "../../plugins/hook-runner-global.js";
+import { normalizeSessionKey } from "../../sessions/session-key-utils.js";
 import { maybeApplyTtsToPayload, normalizeTtsAutoMode, resolveTtsConfig } from "../../tts/tts.js";
 import { getReplyFromConfig } from "../reply.js";
 import { formatAbortReplyText, tryFastAbortFromMessage } from "./abort.js";
@@ -63,11 +64,15 @@ const resolveSessionTtsAuto = (
   if (!sessionKey) {
     return undefined;
   }
+  const normalizedSessionKey = normalizeSessionKey(sessionKey);
+  if (!normalizedSessionKey) {
+    return undefined;
+  }
   const agentId = resolveSessionAgentId({ sessionKey, config: cfg });
   const storePath = resolveStorePath(cfg.session?.store, { agentId });
   try {
     const store = loadSessionStore(storePath);
-    const entry = store[sessionKey.toLowerCase()] ?? store[sessionKey];
+    const entry = store[normalizedSessionKey];
     return normalizeTtsAutoMode(entry?.ttsAuto);
   } catch {
     return undefined;
@@ -190,6 +195,7 @@ export async function dispatchReplyFromConfig(params: {
           channelId,
           accountId: ctx.AccountId,
           conversationId,
+          sessionKey: ctx.SessionKey,
         },
       )
       .catch((err) => {
@@ -291,7 +297,6 @@ export async function dispatchReplyFromConfig(params: {
     // TTS audio separately from the accumulated block content.
     let accumulatedBlockText = "";
     let blockCount = 0;
-
     const shouldSendToolSummaries = ctx.ChatType !== "group" && ctx.CommandSource !== "native";
 
     const replyResult = await (params.replyResolver ?? getReplyFromConfig)(

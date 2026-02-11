@@ -21,6 +21,8 @@ import {
   appendAssistantMessageToSessionTranscript,
   resolveMirroredTranscriptText,
 } from "../../config/sessions.js";
+import { createSubsystemLogger } from "../../logging/subsystem.js";
+import { getGlobalHookRunner } from "../../plugins/hook-runner-global.js";
 import { markdownToSignalTextChunks, type SignalTextStyleRange } from "../../signal/format.js";
 import { sendMessageSignal } from "../../signal/send.js";
 import { throwIfAborted } from "./abort.js";
@@ -171,11 +173,20 @@ function createPluginHandler(params: {
   };
 }
 
+const log = createSubsystemLogger("infra/outbound");
+const MESSAGE_SENT_HOOK_HANDLED = Symbol("messageSentHookHandled");
+
+function normalizeUnknownError(err: unknown): Error {
+  return err instanceof Error ? err : new Error(String(err));
+}
+
 export async function deliverOutboundPayloads(params: {
   cfg: OpenClawConfig;
   channel: Exclude<OutboundChannel, "none">;
   to: string;
   accountId?: string;
+  sessionKey?: string;
+  sessionId?: string;
   payloads: ReplyPayload[];
   replyToId?: string | null;
   threadId?: string | number | null;
@@ -227,11 +238,98 @@ export async function deliverOutboundPayloads(params: {
         accountId,
       })
     : undefined;
+  const hookRunner = getGlobalHookRunner();
+  const canMessageSendHook = hookRunner?.hasHooks("message_sending");
+  const canMessageSentHook = hookRunner?.hasHooks("message_sent");
+  const messageHookContext = {
+    channelId: channel,
+    accountId,
+    conversationId: to,
+    sessionKey: params.sessionKey,
+    sessionId: params.sessionId,
+  };
+
+  const runMessageSendingHook = async (content: string) => {
+    if (!hookRunner || !canMessageSendHook) {
+      return { content };
+    }
+    // TODO(hooks): Message hooks are unparented when sessionKey is unavailable.
+    let result: { cancel?: boolean; content?: string } | undefined;
+    try {
+      result = await hookRunner.runMessageSending(
+        {
+          to,
+          content,
+          metadata: {
+            channel,
+            accountId,
+            threadId: params.threadId ?? null,
+          },
+        },
+        messageHookContext,
+      );
+    } catch (err) {
+      log.warn(
+        `message_sending hook failed: channel=${channel} to=${to} error=${err instanceof Error ? err.message : String(err)}`,
+      );
+      return { content };
+    }
+    if (result?.cancel) {
+      return { content, canceled: true };
+    }
+    if (typeof result?.content === "string") {
+      return { content: result.content };
+    }
+    return { content };
+  };
+
+  const runMessageSentHook = async (content: string, success: boolean, error?: string) => {
+    if (!hookRunner || !canMessageSentHook) {
+      return;
+    }
+    try {
+      await hookRunner.runMessageSent(
+        {
+          to,
+          content,
+          success,
+          error,
+        },
+        messageHookContext,
+      );
+    } catch (err) {
+      log.warn(
+        `message_sent hook failed: channel=${channel} to=${to} error=${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  };
 
   const sendTextChunks = async (text: string) => {
+    const sendTextChunk = async (chunk: string) => {
+      throwIfAborted(abortSignal);
+      const hookResult = await runMessageSendingHook(chunk);
+      if (hookResult.canceled) {
+        await runMessageSentHook(chunk, false, "canceled by message_sending hook");
+        return;
+      }
+      try {
+        results.push(await handler.sendText(hookResult.content));
+        await runMessageSentHook(hookResult.content, true);
+      } catch (err) {
+        const normalizedErr = normalizeUnknownError(err);
+        await runMessageSentHook(hookResult.content, false, normalizedErr.message);
+        (
+          normalizedErr as Error & {
+            [MESSAGE_SENT_HOOK_HANDLED]?: boolean;
+          }
+        )[MESSAGE_SENT_HOOK_HANDLED] = true;
+        throw normalizedErr;
+      }
+    };
+
     throwIfAborted(abortSignal);
     if (!handler.chunker || textLimit === undefined) {
-      results.push(await handler.sendText(text));
+      await sendTextChunk(text);
       return;
     }
     if (chunkMode === "newline") {
@@ -250,16 +348,14 @@ export async function deliverOutboundPayloads(params: {
           chunks.push(blockChunk);
         }
         for (const chunk of chunks) {
-          throwIfAborted(abortSignal);
-          results.push(await handler.sendText(chunk));
+          await sendTextChunk(chunk);
         }
       }
       return;
     }
     const chunks = handler.chunker(text, textLimit);
     for (const chunk of chunks) {
-      throwIfAborted(abortSignal);
-      results.push(await handler.sendText(chunk));
+      await sendTextChunk(chunk);
     }
   };
 
@@ -276,7 +372,7 @@ export async function deliverOutboundPayloads(params: {
     };
   };
 
-  const sendSignalTextChunks = async (text: string) => {
+  const sendSignalTextChunks = async (text: string, onAttempt?: (content: string) => void) => {
     throwIfAborted(abortSignal);
     let signalChunks =
       textLimit === undefined
@@ -289,7 +385,40 @@ export async function deliverOutboundPayloads(params: {
     }
     for (const chunk of signalChunks) {
       throwIfAborted(abortSignal);
-      results.push(await sendSignalText(chunk.text, chunk.styles));
+      const hookResult = await runMessageSendingHook(chunk.text);
+      if (hookResult.canceled) {
+        await runMessageSentHook(chunk.text, false, "canceled by message_sending hook");
+        continue;
+      }
+      const rewrittenChunks =
+        hookResult.content === chunk.text
+          ? [chunk]
+          : textLimit === undefined
+            ? markdownToSignalTextChunks(hookResult.content, Number.POSITIVE_INFINITY, {
+                tableMode: signalTableMode,
+              })
+            : markdownToSignalTextChunks(hookResult.content, textLimit, {
+                tableMode: signalTableMode,
+              });
+      if (rewrittenChunks.length === 0 && hookResult.content) {
+        rewrittenChunks.push({ text: hookResult.content, styles: [] });
+      }
+      for (const rewrittenChunk of rewrittenChunks) {
+        onAttempt?.(rewrittenChunk.text);
+        try {
+          results.push(await sendSignalText(rewrittenChunk.text, rewrittenChunk.styles));
+          await runMessageSentHook(rewrittenChunk.text, true);
+        } catch (err) {
+          const normalizedErr = normalizeUnknownError(err);
+          await runMessageSentHook(rewrittenChunk.text, false, normalizedErr.message);
+          (
+            normalizedErr as Error & {
+              [MESSAGE_SENT_HOOK_HANDLED]?: boolean;
+            }
+          )[MESSAGE_SENT_HOOK_HANDLED] = true;
+          throw normalizedErr;
+        }
+      }
     }
   };
 
@@ -319,38 +448,73 @@ export async function deliverOutboundPayloads(params: {
       mediaUrls: payload.mediaUrls ?? (payload.mediaUrl ? [payload.mediaUrl] : []),
       channelData: payload.channelData,
     };
+    let attemptedSendContent = payloadSummary.text;
     try {
       throwIfAborted(abortSignal);
       params.onPayload?.(payloadSummary);
       if (handler.sendPayload && payload.channelData) {
-        results.push(await handler.sendPayload(payload));
+        const hookResult = await runMessageSendingHook(payloadSummary.text);
+        if (hookResult.canceled) {
+          await runMessageSentHook(payloadSummary.text, false, "canceled by message_sending hook");
+          continue;
+        }
+        payloadSummary.text = hookResult.content;
+        payload.text = hookResult.content;
+        attemptedSendContent = payloadSummary.text;
+        const result = await handler.sendPayload(payload);
+        results.push(result);
+        await runMessageSentHook(payloadSummary.text, true);
         continue;
       }
       if (payloadSummary.mediaUrls.length === 0) {
         if (isSignalChannel) {
-          await sendSignalTextChunks(payloadSummary.text);
+          await sendSignalTextChunks(payloadSummary.text, (content) => {
+            attemptedSendContent = content;
+          });
         } else {
           await sendTextChunks(payloadSummary.text);
         }
         continue;
       }
 
+      const hookResult = await runMessageSendingHook(payloadSummary.text);
+      if (hookResult.canceled) {
+        await runMessageSentHook(payloadSummary.text, false, "canceled by message_sending hook");
+        continue;
+      }
+      payloadSummary.text = hookResult.content;
+      payload.text = hookResult.content;
+      attemptedSendContent = payloadSummary.text;
       let first = true;
       for (const url of payloadSummary.mediaUrls) {
         throwIfAborted(abortSignal);
         const caption = first ? payloadSummary.text : "";
+        const messageSentContent = caption || payloadSummary.text || url;
+        attemptedSendContent = messageSentContent;
         first = false;
         if (isSignalChannel) {
           results.push(await sendSignalMedia(caption, url));
+          await runMessageSentHook(messageSentContent, true);
         } else {
           results.push(await handler.sendMedia(caption, url));
+          await runMessageSentHook(messageSentContent, true);
         }
       }
     } catch (err) {
-      if (!params.bestEffort) {
-        throw err;
+      const normalizedErr = normalizeUnknownError(err);
+      const handledInNestedSend =
+        (
+          normalizedErr as Error & {
+            [MESSAGE_SENT_HOOK_HANDLED]?: boolean;
+          }
+        )[MESSAGE_SENT_HOOK_HANDLED] === true;
+      if (!handledInNestedSend) {
+        await runMessageSentHook(attemptedSendContent, false, normalizedErr.message);
       }
-      params.onError?.(err, payloadSummary);
+      if (!params.bestEffort) {
+        throw normalizedErr;
+      }
+      params.onError?.(normalizedErr, payloadSummary);
     }
   }
   if (params.mirror && results.length > 0) {
