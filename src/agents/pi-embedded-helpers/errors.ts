@@ -59,9 +59,13 @@ export function isCompactionFailureError(errorMessage?: string): boolean {
   if (!hasCompactionTerm) {
     return false;
   }
-  // For compaction failures, also accept "context overflow" without colon
-  // since the error message itself describes a compaction/summarization failure
-  return isContextOverflowError(errorMessage) || lower.includes("context overflow");
+  // Treat any likely overflow shape as a compaction failure when compaction terms are present.
+  // Providers often vary wording (e.g. "context window exceeded") across APIs.
+  if (isLikelyContextOverflowError(errorMessage)) {
+    return true;
+  }
+  // Keep explicit fallback for bare "context overflow" strings.
+  return lower.includes("context overflow");
 }
 
 const ERROR_PAYLOAD_PREFIX_RE =
