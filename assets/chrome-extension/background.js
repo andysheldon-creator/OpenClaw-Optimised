@@ -178,7 +178,6 @@ async function runAutoReconnectPass() {
 
   try {
     const candidate = reconnectCandidate
-    if (!candidate) return
 
     const tabId = candidate.tabId
 
