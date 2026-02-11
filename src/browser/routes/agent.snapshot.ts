@@ -294,10 +294,25 @@ export function registerBrowserAgentSnapshotRoutes(
       }
 
       const snap =
-        profileCtx.profile.driver === "extension" || !tab.wsUrl
+        profileCtx.profile.driver === "extension"
           ? (() => {
-              // Extension relay doesn't expose per-page WS URLs; run AX snapshot via Playwright CDP session.
-              // Also covers cases where wsUrl is missing/unusable.
+              // Extension relay blocks Playwright's browser-level CDP attach in some flows
+              // (Target.attachToBrowserTarget => Not allowed). Prefer direct relay CDP first,
+              // then fall back to Playwright only if relay CDP fails.
+              if (tab.wsUrl) {
+                return snapshotAria({ wsUrl: tab.wsUrl, limit }).catch(() =>
+                  requirePwAi(res, "aria snapshot").then(async (pw) => {
+                    if (!pw) {
+                      return null;
+                    }
+                    return await pw.snapshotAriaViaPlaywright({
+                      cdpUrl: profileCtx.profile.cdpUrl,
+                      targetId: tab.targetId,
+                      limit,
+                    });
+                  }),
+                );
+              }
               return requirePwAi(res, "aria snapshot").then(async (pw) => {
                 if (!pw) {
                   return null;
@@ -309,7 +324,20 @@ export function registerBrowserAgentSnapshotRoutes(
                 });
               });
             })()
-          : snapshotAria({ wsUrl: tab.wsUrl ?? "", limit });
+          : !tab.wsUrl
+            ? (() => {
+                return requirePwAi(res, "aria snapshot").then(async (pw) => {
+                  if (!pw) {
+                    return null;
+                  }
+                  return await pw.snapshotAriaViaPlaywright({
+                    cdpUrl: profileCtx.profile.cdpUrl,
+                    targetId: tab.targetId,
+                    limit,
+                  });
+                });
+              })()
+            : snapshotAria({ wsUrl: tab.wsUrl, limit });
 
       const resolved = await Promise.resolve(snap);
       if (!resolved) {

@@ -9,12 +9,14 @@ describe("pw-session getPageForTargetId", () => {
     const browserOn = vi.fn();
     const browserClose = vi.fn(async () => {});
 
+    const newCDPSession = vi.fn(async () => {
+      throw new Error("Not allowed");
+    });
+
     const context = {
       pages: () => [],
       on: contextOn,
-      newCDPSession: vi.fn(async () => {
-        throw new Error("Not allowed");
-      }),
+      newCDPSession,
     } as unknown as import("playwright-core").BrowserContext;
 
     const page = {
@@ -47,6 +49,7 @@ describe("pw-session getPageForTargetId", () => {
       targetId: "NOT_A_TAB",
     });
     expect(resolved).toBe(page);
+    expect(newCDPSession).not.toHaveBeenCalled();
 
     await mod.closePlaywrightBrowserConnection();
     expect(browserClose).toHaveBeenCalled();

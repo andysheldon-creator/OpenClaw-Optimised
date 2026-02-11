@@ -379,6 +379,47 @@ async function pageTargetId(page: Page): Promise<string | null> {
   }
 }
 
+function cdpBaseHttpUrl(cdpUrl: string): string {
+  return cdpUrl
+    .replace(/\/+$/, "")
+    .replace(/^ws:/, "http:")
+    .replace(/\/cdp$/, "");
+}
+
+async function fetchJsonListTargets(cdpUrl: string): Promise<JsonListTarget[]> {
+  const listUrl = `${cdpBaseHttpUrl(cdpUrl)}/json/list`;
+  const response = await fetch(listUrl, { headers: getHeadersWithAuth(listUrl) });
+  if (!response.ok) {
+    return [];
+  }
+  const targets = (await response.json()) as Array<{
+    id?: string;
+    url?: string;
+    title?: string;
+    type?: string;
+  }>;
+  return targets
+    .map((t) => ({
+      id: String(t.id ?? "").trim(),
+      url: String(t.url ?? ""),
+      title: typeof t.title === "string" ? t.title : "",
+      type: typeof t.type === "string" ? t.type : "page",
+    }))
+    .filter((t) => t.id && (t.type || "page") === "page");
+}
+
+function mapPageByTargetOrder(
+  pages: Page[],
+  targets: JsonListTarget[],
+  targetId: string,
+): Page | null {
+  const idx = targets.findIndex((t) => t.id === targetId);
+  if (idx < 0 || idx >= pages.length) {
+    return null;
+  }
+  return pages[idx] ?? null;
+}
+
 async function findPageByTargetId(
   browser: Browser,
   targetId: string,
@@ -393,39 +434,31 @@ async function findPageByTargetId(
     }
   }
   // If CDP sessions fail (e.g., extension relay blocks Target.attachToBrowserTarget),
-  // fall back to URL-based matching using the /json/list endpoint
+  // fall back to /json/list metadata and ordering.
   if (cdpUrl) {
     try {
-      const baseUrl = cdpUrl
-        .replace(/\/+$/, "")
-        .replace(/^ws:/, "http:")
-        .replace(/\/cdp$/, "");
-      const listUrl = `${baseUrl}/json/list`;
-      const response = await fetch(listUrl, { headers: getHeadersWithAuth(listUrl) });
-      if (response.ok) {
-        const targets = (await response.json()) as Array<{
-          id: string;
-          url: string;
-          title?: string;
-        }>;
-        const target = targets.find((t) => t.id === targetId);
-        if (target) {
-          // Try to find a page with matching URL
-          const urlMatch = pages.filter((p) => p.url() === target.url);
-          if (urlMatch.length === 1) {
-            return urlMatch[0];
-          }
-          // If multiple URL matches, use index-based matching as fallback
-          // This works when Playwright and the relay enumerate tabs in the same order
-          if (urlMatch.length > 1) {
-            const sameUrlTargets = targets.filter((t) => t.url === target.url);
-            if (sameUrlTargets.length === urlMatch.length) {
-              const idx = sameUrlTargets.findIndex((t) => t.id === targetId);
-              if (idx >= 0 && idx < urlMatch.length) {
-                return urlMatch[idx];
-              }
+      const targets = await fetchJsonListTargets(cdpUrl);
+      const target = targets.find((t) => t.id === targetId);
+      if (target) {
+        const byUrl = pages.filter((p) => p.url() === target.url);
+        if (byUrl.length === 1) {
+          return byUrl[0];
+        }
+        if (byUrl.length > 1 && target.title) {
+          const byUrlAndTitle: Page[] = [];
+          for (const p of byUrl) {
+            const title = await p.title().catch(() => "");
+            if (title === target.title) {
+              byUrlAndTitle.push(p);
             }
           }
+          if (byUrlAndTitle.length === 1) {
+            return byUrlAndTitle[0];
+          }
+        }
+        const ordered = mapPageByTargetOrder(pages, targets, targetId);
+        if (ordered) {
+          return ordered;
         }
       }
     } catch {
@@ -448,14 +481,16 @@ export async function getPageForTargetId(opts: {
   if (!opts.targetId) {
     return first;
   }
+
+  // Hot path for extension relay profiles: when Playwright exposes a single Page,
+  // avoid any CDP target-attachment probes (newCDPSession -> Target.attachToBrowserTarget)
+  // and use that page directly.
+  if (pages.length === 1) {
+    return first;
+  }
+
   const found = await findPageByTargetId(browser, opts.targetId, opts.cdpUrl);
   if (!found) {
-    // Extension relays can block CDP attachment APIs (e.g. Target.attachToBrowserTarget),
-    // which prevents us from resolving a page's targetId via newCDPSession(). If Playwright
-    // only exposes a single Page, use it as a best-effort fallback.
-    if (pages.length === 1) {
-      return first;
-    }
     throw new Error("tab not found");
   }
   return found;
@@ -541,6 +576,28 @@ export async function listPagesViaPlaywright(opts: { cdpUrl: string }): Promise<
       });
     }
   }
+
+  if (results.length > 0 || pages.length === 0) {
+    return results;
+  }
+
+  // CDP target attachment can be blocked by relays. Fall back to /json/list target order.
+  const targets = await fetchJsonListTargets(opts.cdpUrl).catch(() => [] as JsonListTarget[]);
+  const max = Math.min(targets.length, pages.length);
+  for (let i = 0; i < max; i += 1) {
+    const page = pages[i];
+    const target = targets[i];
+    if (!target || !page) {
+      continue;
+    }
+    results.push({
+      targetId: target.id,
+      title: await page.title().catch(() => target.title ?? ""),
+      url: page.url() || target.url,
+      type: "page",
+    });
+  }
+
   return results;
 }
 
@@ -559,6 +616,8 @@ export async function createPageViaPlaywright(opts: { cdpUrl: string; url: strin
   const context = browser.contexts()[0] ?? (await browser.newContext());
   ensureContextState(context);
 
+  const beforeTargets = await fetchJsonListTargets(opts.cdpUrl).catch(() => [] as JsonListTarget[]);
+
   const page = await context.newPage();
   ensurePageState(page);
 
@@ -571,7 +630,25 @@ export async function createPageViaPlaywright(opts: { cdpUrl: string; url: strin
   }
 
   // Get the targetId for this page
-  const tid = await pageTargetId(page).catch(() => null);
+  let tid = await pageTargetId(page).catch(() => null);
+  if (!tid) {
+    const afterTargets = await fetchJsonListTargets(opts.cdpUrl).catch(
+      () => [] as JsonListTarget[],
+    );
+    const beforeIds = new Set(beforeTargets.map((t) => t.id));
+    const created = afterTargets.find((t) => !beforeIds.has(t.id));
+    tid = created?.id ?? null;
+
+    if (!tid) {
+      // Last fallback: assume enumeration order aligns between Playwright pages and /json/list.
+      const pages = await getAllPages(browser);
+      const idx = pages.findIndex((p) => p === page);
+      if (idx >= 0 && idx < afterTargets.length) {
+        tid = afterTargets[idx]?.id ?? null;
+      }
+    }
+  }
+
   if (!tid) {
     throw new Error("Failed to get targetId for new page");
   }
