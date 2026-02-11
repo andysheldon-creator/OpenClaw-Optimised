@@ -11,6 +11,7 @@ const {
   resolveGrokModel,
   resolveGrokInlineCitations,
   extractGrokContent,
+  extractGrokCitations,
 } = __testing;
 
 describe("web_search perplexity baseUrl defaults", () => {
@@ -161,5 +162,54 @@ describe("web_search grok response parsing", () => {
     expect(extractGrokContent({ output_text: "hello from output_text" })).toBe(
       "hello from output_text",
     );
+  });
+
+  it("extracts citations from nested annotations (#13439)", () => {
+    expect(
+      extractGrokCitations({
+        output: [
+          {
+            content: [
+              {
+                text: "some text",
+                annotations: [
+                  { type: "url_citation", url: "https://example.com" },
+                  { type: "url_citation", url: "https://example.org" },
+                ],
+              },
+            ],
+          },
+        ],
+        citations: [],
+      }),
+    ).toEqual(["https://example.com", "https://example.org"]);
+  });
+
+  it("falls back to top-level citations when no annotations", () => {
+    expect(
+      extractGrokCitations({
+        citations: ["https://fallback.com"],
+      }),
+    ).toEqual(["https://fallback.com"]);
+  });
+
+  it("filters non-url_citation annotations", () => {
+    expect(
+      extractGrokCitations({
+        output: [
+          {
+            content: [
+              {
+                text: "text",
+                annotations: [
+                  { type: "url_citation", url: "https://keep.com" },
+                  { type: "file_citation" },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    ).toEqual(["https://keep.com"]);
   });
 });
