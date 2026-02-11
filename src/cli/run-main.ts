@@ -7,7 +7,7 @@ import { isMainModule } from "../infra/is-main.js";
 import { ensureOpenClawCliOnPath } from "../infra/path-env.js";
 import { assertSupportedRuntime } from "../infra/runtime-guard.js";
 import { installUnhandledRejectionHandler } from "../infra/unhandled-rejections.js";
-import { getPrimaryCommand, hasHelpOrVersion } from "./argv.js";
+import { getCommandPath, getPrimaryCommand, hasHelpOrVersion } from "./argv.js";
 
 export function rewriteUpdateFlagArgv(argv: string[]): string[] {
   const index = argv.indexOf("--update");
@@ -56,11 +56,27 @@ export async function runCli(argv: string[] = process.argv) {
 
   const parseArgv = rewriteUpdateFlagArgv(normalizedArgv);
   // Try to register only the specific command needed instead of all 11 groups.
-  // Falls back to full registration for unknown commands or bare `openclaw --help`.
+  // Falls back to full registration for unknown commands.
   const primary = getPrimaryCommand(parseArgv);
 
+  // For bare `help` / `--help` / `-h`, register lightweight stubs (name +
+  // description only) instead of loading the full command tree (27 MB).
+  // For `help <subcommand>`, lazy-load just that one command.
+  const wantsHelpOnly = primary === "help" || (!primary && hasHelpOrVersion(parseArgv));
+
   let commandRegistered = false;
-  if (primary && primary !== "help") {
+  if (primary === "help") {
+    const helpTarget = getCommandPath(parseArgv, 2)[1];
+    if (helpTarget) {
+      // `openclaw help agent` — register just that command
+      const { registerCoreCommandByName } = await import("./program/register.core-lazy.js");
+      commandRegistered = await registerCoreCommandByName(program, ctx, helpTarget, parseArgv);
+      if (!commandRegistered) {
+        const { registerSubCliByName } = await import("./program/register.subclis.js");
+        commandRegistered = await registerSubCliByName(program, helpTarget);
+      }
+    }
+  } else if (primary) {
     const { registerCoreCommandByName } = await import("./program/register.core-lazy.js");
     commandRegistered = await registerCoreCommandByName(program, ctx, primary, parseArgv);
 
@@ -71,16 +87,19 @@ export async function runCli(argv: string[] = process.argv) {
   }
 
   if (!commandRegistered) {
-    const { resolveCliChannelOptions } = await import("./channel-options.js");
-    provideChannelOptions(resolveCliChannelOptions);
-    const { registerProgramCommands } = await import("./program/command-registry.js");
-    await registerProgramCommands(program, ctx, parseArgv);
+    if (wantsHelpOnly) {
+      // Stub registration: just command names + descriptions for the help view.
+      const { registerStubCommands } = await import("./program/command-stubs.js");
+      registerStubCommands(program);
+    } else {
+      const { resolveCliChannelOptions } = await import("./channel-options.js");
+      provideChannelOptions(resolveCliChannelOptions);
+      const { registerProgramCommands } = await import("./program/command-registry.js");
+      await registerProgramCommands(program, ctx, parseArgv);
+    }
   }
 
-  const shouldSkipPluginRegistration =
-    (!primary && hasHelpOrVersion(parseArgv)) ||
-    (primary != null && commandRegistered) ||
-    primary === "help";
+  const shouldSkipPluginRegistration = wantsHelpOnly || (primary != null && commandRegistered);
   if (!shouldSkipPluginRegistration) {
     // Register plugin CLI commands before parsing
     const { registerPluginCliCommands } = await import("../plugins/cli.js");
