@@ -663,6 +663,7 @@ export function listSessionsFromStore(params: {
         outputTokens: entry?.outputTokens,
         totalTokens: total,
         responseUsage: entry?.responseUsage,
+        authProfile: entry?.authProfileOverride ?? null,
         modelProvider,
         model,
         contextTokens: entry?.contextTokens,
