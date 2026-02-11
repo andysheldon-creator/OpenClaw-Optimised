@@ -231,7 +231,7 @@ export function extractAssistantText(msg: AssistantMessage): string {
       (block) =>
         block != null &&
         typeof block === "object" &&
-        (block as Record<string, unknown>).type === "toolCall",
+        (block as unknown as Record<string, unknown>).type === "toolCall",
     );
     if (!hasToolCalls) {
       const thinkingText = msg.content
@@ -239,8 +239,8 @@ export function extractAssistantText(msg: AssistantMessage): string {
           (block): block is { type: "thinking"; thinking: string } =>
             block != null &&
             typeof block === "object" &&
-            (block as Record<string, unknown>).type === "thinking" &&
-            typeof (block as Record<string, unknown>).thinking === "string",
+            (block as unknown as Record<string, unknown>).type === "thinking" &&
+            typeof (block as unknown as Record<string, unknown>).thinking === "string",
         )
         .map((block) => block.thinking.trim())
         .filter(Boolean)
