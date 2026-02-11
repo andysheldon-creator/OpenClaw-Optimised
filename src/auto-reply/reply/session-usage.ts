@@ -1,5 +1,7 @@
 import { setCliSessionId } from "../../agents/cli-session.js";
+import { isCliProvider } from "../../agents/model-selection.js";
 import {
+  deriveCliContextTokens,
   deriveSessionTotalTokens,
   hasNonzeroUsage,
   type NormalizedUsage,
@@ -28,7 +30,8 @@ export async function persistSessionUsageUpdate(params: {
   }
 
   const label = params.logLabel ? `${params.logLabel} ` : "";
-  if (hasNonzeroUsage(params.usage)) {
+  const hasUsage = hasNonzeroUsage(params.usage);
+  if (hasUsage) {
     try {
       await updateSessionStoreEntry({
         storePath,
@@ -37,14 +40,18 @@ export async function persistSessionUsageUpdate(params: {
           const input = params.usage?.input ?? 0;
           const output = params.usage?.output ?? 0;
           const resolvedContextTokens = params.contextTokensUsed ?? entry.contextTokens;
+          // For CLI providers, use the full context for this turn (cacheRead + cacheWrite + input)
+          const isCli = isCliProvider(params.providerUsed ?? "", undefined);
+          const newTotalTokens = isCli
+            ? (deriveCliContextTokens(params.usage) ?? input)
+            : (deriveSessionTotalTokens({
+                usage: params.usage,
+                contextTokens: resolvedContextTokens,
+              }) ?? input);
           const patch: Partial<SessionEntry> = {
             inputTokens: input,
             outputTokens: output,
-            totalTokens:
-              deriveSessionTotalTokens({
-                usage: params.usage,
-                contextTokens: resolvedContextTokens,
-              }) ?? input,
+            totalTokens: newTotalTokens,
             modelProvider: params.providerUsed ?? entry.modelProvider,
             model: params.modelUsed ?? entry.model,
             contextTokens: resolvedContextTokens,

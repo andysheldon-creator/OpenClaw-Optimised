@@ -7,15 +7,21 @@ import type { ElevatedLevel, ReasoningLevel, ThinkLevel, VerboseLevel } from "./
 import { lookupContextTokens } from "../agents/context.js";
 import { DEFAULT_CONTEXT_TOKENS, DEFAULT_MODEL, DEFAULT_PROVIDER } from "../agents/defaults.js";
 import { resolveModelAuthMode } from "../agents/model-auth.js";
-import { resolveConfiguredModelRef } from "../agents/model-selection.js";
+import { isCliProvider, resolveConfiguredModelRef } from "../agents/model-selection.js";
 import { resolveSandboxRuntimeStatus } from "../agents/sandbox.js";
-import { derivePromptTokens, normalizeUsage, type UsageLike } from "../agents/usage.js";
+import {
+  deriveCliContextTokens,
+  derivePromptTokens,
+  normalizeUsage,
+  type UsageLike,
+} from "../agents/usage.js";
 import {
   resolveMainSessionKey,
   resolveSessionFilePath,
   type SessionEntry,
   type SessionScope,
 } from "../config/sessions.js";
+import { logVerbose } from "../globals.js";
 import { formatTimeAgo } from "../infra/format-time/format-relative.ts";
 import { resolveCommitHash } from "../infra/git-commit.js";
 import { listPluginCommands } from "../plugins/commands.js";
@@ -165,6 +171,7 @@ const formatQueueDetails = (queue?: QueueStatus) => {
 const readUsageFromSessionLog = (
   sessionId?: string,
   sessionEntry?: SessionEntry,
+  provider?: string,
 ):
   | {
       input: number;
@@ -176,20 +183,25 @@ const readUsageFromSessionLog = (
   | undefined => {
   // Transcripts are stored at the session file path (fallback: ~/.openclaw/sessions/<SessionId>.jsonl)
   if (!sessionId) {
+    logVerbose(`[status/readUsageFromSessionLog] no sessionId, returning undefined`);
     return undefined;
   }
   const logPath = resolveSessionFilePath(sessionId, sessionEntry);
+  logVerbose(`[status/readUsageFromSessionLog] reading transcript: ${logPath}`);
   if (!fs.existsSync(logPath)) {
+    logVerbose(`[status/readUsageFromSessionLog] transcript file not found`);
     return undefined;
   }
 
   try {
     const lines = fs.readFileSync(logPath, "utf-8").split(/\n+/);
+    logVerbose(`[status/readUsageFromSessionLog] transcript has ${lines.length} lines`);
     let input = 0;
     let output = 0;
     let promptTokens = 0;
     let model: string | undefined;
     let lastUsage: ReturnType<typeof normalizeUsage> | undefined;
+    let usageEntriesFound = 0;
 
     for (const line of lines) {
       if (!line.trim()) {
@@ -207,6 +219,12 @@ const readUsageFromSessionLog = (
         const usageRaw = parsed.message?.usage ?? parsed.usage;
         const usage = normalizeUsage(usageRaw);
         if (usage) {
+          usageEntriesFound++;
+          logVerbose(
+            `[status/readUsageFromSessionLog] entry #${usageEntriesFound}: ` +
+              `input=${usage.input} output=${usage.output} cacheRead=${usage.cacheRead} ` +
+              `cacheWrite=${usage.cacheWrite} total=${usage.total}`,
+          );
           lastUsage = usage;
         }
         model = parsed.message?.model ?? parsed.model ?? model;
@@ -215,13 +233,22 @@ const readUsageFromSessionLog = (
       }
     }
 
+    logVerbose(`[status/readUsageFromSessionLog] found ${usageEntriesFound} usage entries`);
     if (!lastUsage) {
+      logVerbose(`[status/readUsageFromSessionLog] no lastUsage found, returning undefined`);
       return undefined;
     }
     input = lastUsage.input ?? 0;
     output = lastUsage.output ?? 0;
-    promptTokens = derivePromptTokens(lastUsage) ?? lastUsage.total ?? input + output;
+    // For CLI providers, use full context for this turn (cacheRead + cacheWrite + input)
+    const isCli = isCliProvider(provider ?? "", undefined);
+    promptTokens = isCli
+      ? (deriveCliContextTokens(lastUsage) ?? lastUsage.total ?? input + output)
+      : (derivePromptTokens(lastUsage) ?? lastUsage.total ?? input + output);
     const total = lastUsage.total ?? promptTokens + output;
+    logVerbose(
+      `[status/readUsageFromSessionLog] lastUsage: input=${lastUsage.input} output=${lastUsage.output} cacheRead=${lastUsage.cacheRead} cacheWrite=${lastUsage.cacheWrite} total=${lastUsage.total} → derived promptTokens=${promptTokens} total=${total}`,
+    );
     if (promptTokens === 0 && total === 0) {
       return undefined;
     }
@@ -333,9 +360,12 @@ export function buildStatusMessage(args: StatusArgs): string {
   // Prefer prompt-size tokens from the session transcript when it looks larger
   // (cached prompt tokens are often missing from agent meta/store).
   if (args.includeTranscriptUsage) {
-    const logUsage = readUsageFromSessionLog(entry?.sessionId, entry);
+    const logUsage = readUsageFromSessionLog(entry?.sessionId, entry, provider);
     if (logUsage) {
       const candidate = logUsage.promptTokens || logUsage.total;
+      logVerbose(
+        `[status] transcript: promptTokens=${logUsage.promptTokens} total=${logUsage.total} candidate=${candidate} currentTotal=${totalTokens} willReplace=${!totalTokens || totalTokens === 0 || candidate > totalTokens}`,
+      );
       if (!totalTokens || totalTokens === 0 || candidate > totalTokens) {
         totalTokens = candidate;
       }

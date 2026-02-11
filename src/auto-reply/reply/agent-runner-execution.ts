@@ -24,6 +24,10 @@ import {
   type SessionEntry,
   updateSessionStore,
 } from "../../config/sessions.js";
+import {
+  appendAssistantMessageToTranscript,
+  appendMessageToTranscript,
+} from "../../gateway/session-utils.fs.js";
 import { logVerbose } from "../../globals.js";
 import { emitAgentEvent, registerAgentRunContext } from "../../infra/agent-events.js";
 import { defaultRuntime } from "../../runtime.js";
@@ -173,6 +177,21 @@ export async function runAgentTurnWithFallback(params: {
                 startedAt,
               },
             });
+            // CLI backends bypass SessionManager, so persist user message to transcript
+            // directly to ensure it's available on TUI reload.
+            const userPersistResult = appendMessageToTranscript({
+              message: params.commandBody,
+              role: "user",
+              sessionId: params.followupRun.run.sessionId,
+              sessionFile: params.followupRun.run.sessionFile,
+              storePath: params.storePath,
+              createIfMissing: true,
+            });
+            if (!userPersistResult.ok) {
+              logVerbose(
+                `CLI transcript: failed to persist user message: ${userPersistResult.error}`,
+              );
+            }
             const cliSessionId = getCliSessionId(params.getActiveSessionEntry(), provider);
             return (async () => {
               let lifecycleTerminalEmitted = false;
@@ -200,12 +219,34 @@ export async function runAgentTurnWithFallback(params: {
                 // emit one with the final text so server-chat can populate its buffer
                 // and send the response to TUI/WebSocket clients.
                 const cliText = result.payloads?.[0]?.text?.trim();
-                if (cliText) {
-                  emitAgentEvent({
-                    runId,
-                    stream: "assistant",
-                    data: { text: cliText },
-                  });
+                // Always emit assistant event (even if empty) so lifecycle tracking is consistent
+                emitAgentEvent({
+                  runId,
+                  stream: "assistant",
+                  data: { text: cliText || "" },
+                });
+                // CLI backends bypass SessionManager, so persist response to transcript
+                // directly to ensure it's available on TUI reload.
+                // Record even empty responses to maintain message turn consistency.
+                const usageForTranscript = result.meta.agentMeta?.usage;
+                logVerbose(
+                  `[agent-runner-execution] CLI transcript persist: usage=${JSON.stringify(usageForTranscript)} ` +
+                    `provider=${provider} model=${model}`,
+                );
+                const assistantPersistResult = appendAssistantMessageToTranscript({
+                  message: cliText || "",
+                  sessionId: params.followupRun.run.sessionId,
+                  sessionFile: params.followupRun.run.sessionFile,
+                  storePath: params.storePath,
+                  createIfMissing: true,
+                  provider,
+                  model,
+                  usage: usageForTranscript,
+                });
+                if (!assistantPersistResult.ok) {
+                  logVerbose(
+                    `CLI transcript: failed to persist assistant message: ${assistantPersistResult.error}`,
+                  );
                 }
 
                 emitAgentEvent({
@@ -221,6 +262,22 @@ export async function runAgentTurnWithFallback(params: {
 
                 return result;
               } catch (err) {
+                const errorMessage = err instanceof Error ? err.message : String(err);
+                // Persist error as assistant response to avoid orphaned user message
+                const errorPersistResult = appendAssistantMessageToTranscript({
+                  message: `[CLI error: ${errorMessage}]`,
+                  sessionId: params.followupRun.run.sessionId,
+                  sessionFile: params.followupRun.run.sessionFile,
+                  storePath: params.storePath,
+                  createIfMissing: true,
+                  provider,
+                  model,
+                });
+                if (!errorPersistResult.ok) {
+                  logVerbose(
+                    `CLI transcript: failed to persist error message: ${errorPersistResult.error}`,
+                  );
+                }
                 emitAgentEvent({
                   runId,
                   stream: "lifecycle",
@@ -228,7 +285,7 @@ export async function runAgentTurnWithFallback(params: {
                     phase: "error",
                     startedAt,
                     endedAt: Date.now(),
-                    error: String(err),
+                    error: errorMessage,
                   },
                 });
                 lifecycleTerminalEmitted = true;
@@ -421,13 +478,12 @@ export async function runAgentTurnWithFallback(params: {
                   // Use pipeline if available (block streaming enabled), otherwise send directly
                   if (params.blockStreamingEnabled && params.blockReplyPipeline) {
                     params.blockReplyPipeline.enqueue(blockPayload);
-                  } else if (params.blockStreamingEnabled) {
-                    // Send directly when flushing before tool execution (no pipeline but streaming enabled).
+                  } else {
+                    // Send directly when flushing before tool execution (no streaming).
                     // Track sent key to avoid duplicate in final payloads.
                     directlySentBlockKeys.add(createBlockReplyPayloadKey(blockPayload));
                     await params.opts?.onBlockReply?.(blockPayload);
                   }
-                  // When streaming is disabled entirely, blocks are accumulated in final text instead.
                 }
               : undefined,
             onBlockReplyFlush:

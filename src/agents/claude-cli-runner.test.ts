@@ -3,6 +3,7 @@ import { sleep } from "../utils.js";
 import { runClaudeCliAgent } from "./claude-cli-runner.js";
 
 const runCommandWithTimeoutMock = vi.fn();
+const runCliWithStreamingMock = vi.fn();
 
 function createDeferred<T>() {
   let resolve: (value: T) => void;
@@ -32,18 +33,23 @@ vi.mock("../process/exec.js", () => ({
   runCommandWithTimeout: (...args: unknown[]) => runCommandWithTimeoutMock(...args),
 }));
 
+vi.mock("./cli-runner/streaming.js", () => ({
+  runCliWithStreaming: (...args: unknown[]) => runCliWithStreamingMock(...args),
+  mapCliStreamEvent: () => null,
+}));
+
 describe("runClaudeCliAgent", () => {
   beforeEach(() => {
     runCommandWithTimeoutMock.mockReset();
+    runCliWithStreamingMock.mockReset();
   });
 
   it("starts a new session with --session-id when none is provided", async () => {
-    runCommandWithTimeoutMock.mockResolvedValueOnce({
-      stdout: JSON.stringify({ message: "ok", session_id: "sid-1" }),
-      stderr: "",
-      code: 0,
-      signal: null,
-      killed: false,
+    // Claude CLI now uses streaming by default
+    runCliWithStreamingMock.mockResolvedValueOnce({
+      text: "ok",
+      sessionId: "sid-1",
+      events: [],
     });
 
     await runClaudeCliAgent({
@@ -56,20 +62,17 @@ describe("runClaudeCliAgent", () => {
       runId: "run-1",
     });
 
-    expect(runCommandWithTimeoutMock).toHaveBeenCalledTimes(1);
-    const argv = runCommandWithTimeoutMock.mock.calls[0]?.[0] as string[];
-    expect(argv).toContain("claude");
-    expect(argv).toContain("--session-id");
-    expect(argv).toContain("hi");
+    expect(runCliWithStreamingMock).toHaveBeenCalledTimes(1);
+    const callArgs = runCliWithStreamingMock.mock.calls[0]?.[0] as { args: string[] };
+    expect(callArgs.args).toContain("--session-id");
   });
 
   it("uses --resume when a claude session id is provided", async () => {
-    runCommandWithTimeoutMock.mockResolvedValueOnce({
-      stdout: JSON.stringify({ message: "ok", session_id: "sid-2" }),
-      stderr: "",
-      code: 0,
-      signal: null,
-      killed: false,
+    // Claude CLI now uses streaming by default
+    runCliWithStreamingMock.mockResolvedValueOnce({
+      text: "ok",
+      sessionId: "sid-2",
+      events: [],
     });
 
     await runClaudeCliAgent({
@@ -83,30 +86,18 @@ describe("runClaudeCliAgent", () => {
       claudeSessionId: "c9d7b831-1c31-4d22-80b9-1e50ca207d4b",
     });
 
-    expect(runCommandWithTimeoutMock).toHaveBeenCalledTimes(1);
-    const argv = runCommandWithTimeoutMock.mock.calls[0]?.[0] as string[];
-    expect(argv).toContain("--resume");
-    expect(argv).toContain("c9d7b831-1c31-4d22-80b9-1e50ca207d4b");
-    expect(argv).toContain("hi");
+    expect(runCliWithStreamingMock).toHaveBeenCalledTimes(1);
+    const callArgs = runCliWithStreamingMock.mock.calls[0]?.[0] as { args: string[] };
+    expect(callArgs.args).toContain("--resume");
+    expect(callArgs.args).toContain("c9d7b831-1c31-4d22-80b9-1e50ca207d4b");
   });
 
   it("serializes concurrent claude-cli runs", async () => {
-    const firstDeferred = createDeferred<{
-      stdout: string;
-      stderr: string;
-      code: number | null;
-      signal: NodeJS.Signals | null;
-      killed: boolean;
-    }>();
-    const secondDeferred = createDeferred<{
-      stdout: string;
-      stderr: string;
-      code: number | null;
-      signal: NodeJS.Signals | null;
-      killed: boolean;
-    }>();
+    type StreamResult = { text: string; sessionId: string; events: unknown[] };
+    const firstDeferred = createDeferred<StreamResult>();
+    const secondDeferred = createDeferred<StreamResult>();
 
-    runCommandWithTimeoutMock
+    runCliWithStreamingMock
       .mockImplementationOnce(() => firstDeferred.promise)
       .mockImplementationOnce(() => secondDeferred.promise);
 
@@ -130,25 +121,13 @@ describe("runClaudeCliAgent", () => {
       runId: "run-2",
     });
 
-    await waitForCalls(runCommandWithTimeoutMock, 1);
+    await waitForCalls(runCliWithStreamingMock, 1);
 
-    firstDeferred.resolve({
-      stdout: JSON.stringify({ message: "ok", session_id: "sid-1" }),
-      stderr: "",
-      code: 0,
-      signal: null,
-      killed: false,
-    });
+    firstDeferred.resolve({ text: "ok", sessionId: "sid-1", events: [] });
 
-    await waitForCalls(runCommandWithTimeoutMock, 2);
+    await waitForCalls(runCliWithStreamingMock, 2);
 
-    secondDeferred.resolve({
-      stdout: JSON.stringify({ message: "ok", session_id: "sid-2" }),
-      stderr: "",
-      code: 0,
-      signal: null,
-      killed: false,
-    });
+    secondDeferred.resolve({ text: "ok", sessionId: "sid-2", events: [] });
 
     await Promise.all([firstRun, secondRun]);
   });

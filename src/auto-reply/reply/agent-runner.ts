@@ -18,6 +18,7 @@ import {
   updateSessionStore,
   updateSessionStoreEntry,
 } from "../../config/sessions.js";
+import { logVerbose } from "../../globals.js";
 import { emitDiagnosticEvent, isDiagnosticsEnabled } from "../../infra/diagnostic-events.js";
 import { defaultRuntime } from "../../runtime.js";
 import { estimateUsageCost, resolveModelCostConfig } from "../../utils/usage-format.js";
@@ -383,6 +384,12 @@ export async function runReplyAgent(params: {
       lookupContextTokens(modelUsed) ??
       activeSessionEntry?.contextTokens ??
       DEFAULT_CONTEXT_TOKENS;
+
+    logVerbose(
+      `[agent-runner] usage from runResult: input=${usage?.input} output=${usage?.output} ` +
+        `cacheRead=${usage?.cacheRead} cacheWrite=${usage?.cacheWrite} total=${usage?.total} ` +
+        `provider=${providerUsed} model=${modelUsed} cliSessionId=${cliSessionId}`,
+    );
 
     await persistSessionUsageUpdate({
       storePath,
