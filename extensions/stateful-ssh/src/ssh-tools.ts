@@ -94,6 +94,7 @@ Example usage:
         return {
           content: [{ type: "text" as const, text: `Failed to open SSH session: ${errorMessage}` }],
           isError: true,
+          details: {},
         };
       }
     },
@@ -149,6 +150,7 @@ export function createExecuteSSHCommandTool(api: OpenClawPluginApi) {
             },
           ],
           isError: true,
+          details: {},
         };
       }
     },
@@ -199,6 +201,7 @@ export function createCloseSSHSessionTool(api: OpenClawPluginApi) {
             },
           ],
           isError: true,
+          details: {},
         };
       }
     },
@@ -251,6 +254,7 @@ export function createListSSHSessionsTool(api: OpenClawPluginApi) {
             },
           ],
           isError: true,
+          details: {},
         };
       }
     },
