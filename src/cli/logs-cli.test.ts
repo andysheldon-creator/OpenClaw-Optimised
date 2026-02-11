@@ -54,6 +54,40 @@ describe("logs cli", () => {
     expect(stderrWrites.join("")).toContain("Log cursor reset");
   });
 
+  it("wires --local-time through CLI parsing and emits local timestamps", async () => {
+    callGatewayFromCli.mockResolvedValueOnce({
+      file: "/tmp/openclaw.log",
+      lines: [
+        JSON.stringify({
+          time: "2025-01-01T12:00:00.000Z",
+          _meta: { logLevelName: "INFO", name: JSON.stringify({ subsystem: "gateway" }) },
+          0: "line one",
+        }),
+      ],
+    });
+
+    const stdoutWrites: string[] = [];
+    const stdoutSpy = vi.spyOn(process.stdout, "write").mockImplementation((chunk: unknown) => {
+      stdoutWrites.push(String(chunk));
+      return true;
+    });
+
+    const { registerLogsCli } = await import("./logs-cli.js");
+    const program = new Command();
+    program.exitOverride();
+    registerLogsCli(program);
+
+    await program.parseAsync(["logs", "--local-time", "--plain"], { from: "user" });
+
+    stdoutSpy.mockRestore();
+
+    const output = stdoutWrites.join("");
+    expect(output).toContain("line one");
+    const timestamp = output.match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z?/u)?.[0];
+    expect(timestamp).toBeTruthy();
+    expect(timestamp?.endsWith("Z")).toBe(false);
+  });
+
   it("warns when the output pipe closes", async () => {
     callGatewayFromCli.mockResolvedValueOnce({
       file: "/tmp/openclaw.log",
