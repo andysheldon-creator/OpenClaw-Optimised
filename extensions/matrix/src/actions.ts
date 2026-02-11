@@ -10,23 +10,7 @@ import {
 import type { CoreConfig } from "./types.js";
 import { resolveMatrixAccount } from "./matrix/accounts.js";
 import { handleMatrixAction } from "./tool-actions.js";
-
-function readBooleanParam(params: Record<string, unknown>, key: string): boolean | undefined {
-  const raw = params[key];
-  if (typeof raw === "boolean") {
-    return raw;
-  }
-  if (typeof raw === "string") {
-    const trimmed = raw.trim().toLowerCase();
-    if (trimmed === "true") {
-      return true;
-    }
-    if (trimmed === "false") {
-      return false;
-    }
-  }
-  return undefined;
-}
+import { readBooleanParam } from "./utils.js";
 
 export const matrixMessageActions: ChannelMessageActionAdapter = {
   listActions: ({ cfg }) => {
