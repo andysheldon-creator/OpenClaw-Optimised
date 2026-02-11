@@ -44,15 +44,39 @@ function normalizeMode(value?: string): RedactSensitiveMode {
   return value === "off" ? "off" : DEFAULT_REDACT_MODE;
 }
 
-function parsePattern(raw: string): RegExp | null {
+function findLastUnescapedSlash(s: string): number {
+  for (let i = s.length - 1; i >= 0; i--) {
+    if (s[i] === "/") {
+      // Count preceding backslashes — odd means this slash is escaped
+      let backslashes = 0;
+      for (let j = i - 1; j >= 0 && s[j] === "\\"; j--) {
+        backslashes++;
+      }
+      if (backslashes % 2 === 0) {
+        return i;
+      }
+    }
+  }
+  return -1;
+}
+
+export function parsePattern(raw: string): RegExp | null {
   if (!raw.trim()) {
     return null;
   }
-  const match = raw.match(/^\/(.+)\/([gimsuy]*)$/);
   try {
-    if (match) {
-      const flags = match[2].includes("g") ? match[2] : `${match[2]}g`;
-      return new RegExp(match[1], flags);
+    // Check if it looks like a /pattern/flags string
+    if (raw.startsWith("/")) {
+      const lastSlash = findLastUnescapedSlash(raw.slice(1));
+      if (lastSlash >= 0) {
+        const splitPos = lastSlash + 1; // adjust for the slice(1)
+        const source = raw.slice(1, splitPos);
+        const flagStr = raw.slice(splitPos + 1);
+        if (/^[gimsuy]*$/.test(flagStr)) {
+          const flags = flagStr.includes("g") ? flagStr : `${flagStr}g`;
+          return new RegExp(source, flags);
+        }
+      }
     }
     return new RegExp(raw, "gi");
   } catch {
@@ -66,6 +90,10 @@ function resolvePatterns(value?: string[]): RegExp[] {
 }
 
 function maskToken(token: string): string {
+  // Already masked — don't re-mask (prevents instability across passes)
+  if (token.includes("…") || token === "***") {
+    return token;
+  }
   if (token.length < DEFAULT_REDACT_MIN_LENGTH) {
     return "***";
   }

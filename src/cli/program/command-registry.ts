@@ -2,6 +2,7 @@ import type { Command } from "commander";
 import type { ProgramContext } from "./context.js";
 import { agentsListCommand } from "../../commands/agents.js";
 import { healthCommand } from "../../commands/health.js";
+import { sessionsScrubCommand } from "../../commands/sessions-scrub.js";
 import { sessionsCommand } from "../../commands/sessions.js";
 import { statusCommand } from "../../commands/status.js";
 import { defaultRuntime } from "../../runtime.js";
@@ -70,7 +71,9 @@ const routeStatus: RouteSpec = {
 };
 
 const routeSessions: RouteSpec = {
-  match: (path) => path[0] === "sessions",
+  match: (path) =>
+    path[0] === "sessions" &&
+    (path[1] === undefined || path[1] === "list" || path[1].startsWith("-")),
   run: async (argv) => {
     const json = hasFlag(argv, "--json");
     const store = getFlagValue(argv, "--store");
@@ -82,6 +85,33 @@ const routeSessions: RouteSpec = {
       return false;
     }
     await sessionsCommand({ json, store, active }, defaultRuntime);
+    return true;
+  },
+};
+
+const routeSessionsScrub: RouteSpec = {
+  match: (path) => path[0] === "sessions" && path[1] === "scrub",
+  run: async (argv) => {
+    const dryRun = hasFlag(argv, "--dry-run");
+    const verbose = hasFlag(argv, "--verbose");
+    const noBackup = hasFlag(argv, "--no-backup");
+    const concurrencyIdx = argv.indexOf("--concurrency");
+    let concurrency: number | undefined;
+    if (concurrencyIdx >= 0) {
+      const raw = argv[concurrencyIdx + 1];
+      const parsed = raw ? parseInt(raw, 10) : NaN;
+      if (isNaN(parsed) || parsed < 1) {
+        defaultRuntime.error("--concurrency requires a positive integer value");
+        return true;
+      }
+      concurrency = parsed;
+    }
+    await sessionsScrubCommand(defaultRuntime, {
+      dryRun,
+      verbose,
+      noBackup,
+      concurrency,
+    });
     return true;
   },
 };
@@ -155,7 +185,7 @@ export const commandRegistry: CommandRegistration[] = [
   {
     id: "status-health-sessions",
     register: ({ program }) => registerStatusHealthSessionsCommands(program),
-    routes: [routeHealth, routeStatus, routeSessions],
+    routes: [routeHealth, routeStatus, routeSessions, routeSessionsScrub],
   },
   {
     id: "browser",

@@ -7,6 +7,64 @@ import { resolveRequiredHomeDir } from "../infra/home-dir.js";
 import { extractToolCallNames, hasToolCall } from "../utils/transcript-tools.js";
 import { stripEnvelope } from "./chat-sanitize.js";
 
+/**
+ * Find all session transcript files (.jsonl) in the agents directory.
+ * Used by both sessions-scrub and doctor-sessions-secrets commands.
+ */
+export async function findSessionFiles(stateDir: string): Promise<string[]> {
+  const files: string[] = [];
+  const seen = new Set<string>();
+
+  const addFromDir = async (dir: string) => {
+    if (!fs.existsSync(dir)) {
+      return;
+    }
+    try {
+      const entries = await fs.promises.readdir(dir);
+      for (const file of entries) {
+        if (file.endsWith(".jsonl")) {
+          const fullPath = path.join(dir, file);
+          const resolved = path.resolve(fullPath);
+          if (!seen.has(resolved)) {
+            seen.add(resolved);
+            files.push(fullPath);
+          }
+        }
+      }
+    } catch {
+      // Silently skip if we can't read the directory
+    }
+  };
+
+  // Current layout: ${stateDir}/agents/*/sessions/*.jsonl
+  const agentsDir = path.join(stateDir, "agents");
+  if (fs.existsSync(agentsDir)) {
+    try {
+      const agentDirs = await fs.promises.readdir(agentsDir, { withFileTypes: true });
+      for (const agentDir of agentDirs) {
+        if (!agentDir.isDirectory()) {
+          continue;
+        }
+        await addFromDir(path.join(agentsDir, agentDir.name, "sessions"));
+      }
+    } catch {
+      // Silently skip if we can't read the directory
+    }
+  }
+
+  // Legacy layout: ${stateDir}/sessions/*.jsonl (pre-agent-scoped storage)
+  await addFromDir(path.join(stateDir, "sessions"));
+
+  // Also scan ~/.openclaw/sessions/ if stateDir is non-default, so legacy
+  // transcripts are found regardless of the configured state directory.
+  const legacyDir = path.join(os.homedir(), ".openclaw", "sessions");
+  if (legacyDir !== path.join(stateDir, "sessions")) {
+    await addFromDir(legacyDir);
+  }
+
+  return files;
+}
+
 export function readSessionMessages(
   sessionId: string,
   storePath: string | undefined,
