@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { formatLogTimestamp } from "./logs-cli.js";
 
 const callGatewayFromCli = vi.fn();
 
@@ -81,5 +82,50 @@ describe("logs cli", () => {
     stderrSpy.mockRestore();
 
     expect(stderrWrites.join("")).toContain("output stdout closed");
+  });
+
+  describe("formatLogTimestamp", () => {
+    it("formats UTC timestamp in plain mode by default", () => {
+      const result = formatLogTimestamp("2025-01-01T12:00:00.000Z");
+      expect(result).toBe("2025-01-01T12:00:00.000Z");
+    });
+
+    it("formats UTC timestamp in pretty mode", () => {
+      const result = formatLogTimestamp("2025-01-01T12:00:00.000Z", "pretty");
+      expect(result).toBe("12:00:00");
+    });
+
+    it("formats local time in plain mode when localTime is true", () => {
+      const utcTime = "2025-01-01T12:00:00.000Z";
+      const result = formatLogTimestamp(utcTime, "plain", true);
+      // Should be local time without 'Z' suffix
+      expect(result).not.toContain("Z");
+      expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+      // The exact time depends on timezone, but should be different from UTC
+      expect(result).not.toBe(utcTime);
+    });
+
+    it("formats local time in pretty mode when localTime is true", () => {
+      const utcTime = "2025-01-01T12:00:00.000Z";
+      const result = formatLogTimestamp(utcTime, "pretty", true);
+      // Should be HH:MM:SS format
+      expect(result).toMatch(/^\d{2}:\d{2}:\d{2}$/);
+      // Should be different from UTC time (12:00:00) if not in UTC timezone
+      const tzOffset = new Date(utcTime).getTimezoneOffset();
+      if (tzOffset !== 0) {
+        expect(result).not.toBe("12:00:00");
+      }
+    });
+
+    it("handles empty or invalid timestamps", () => {
+      expect(formatLogTimestamp(undefined)).toBe("");
+      expect(formatLogTimestamp("")).toBe("");
+      expect(formatLogTimestamp("invalid-date")).toBe("invalid-date");
+    });
+
+    it("preserves original value for invalid dates", () => {
+      const result = formatLogTimestamp("not-a-date");
+      expect(result).toBe("not-a-date");
+    });
   });
 });

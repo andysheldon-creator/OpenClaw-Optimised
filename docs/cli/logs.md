@@ -21,4 +21,6 @@ openclaw logs
 openclaw logs --follow
 openclaw logs --json
 openclaw logs --limit 500
+openclaw logs --localTime
+openclaw logs --follow --localTime
 ```
