@@ -138,6 +138,21 @@ describe("removePluginFromConfig", () => {
     expect(actions.memorySlot).toBe(false);
   });
 
+  it("cleans up empty slots object", () => {
+    const config: OpenClawConfig = {
+      plugins: {
+        entries: {
+          "my-plugin": { enabled: true },
+        },
+        slots: {},
+      },
+    };
+
+    const { config: result } = removePluginFromConfig(config, "my-plugin");
+
+    expect(result.plugins).toBeUndefined();
+  });
+
   it("handles plugin that only exists in entries", () => {
     const config: OpenClawConfig = {
       plugins: {

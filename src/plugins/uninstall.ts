@@ -118,6 +118,9 @@ export function removePluginFromConfig(
     };
     actions.memorySlot = true;
   }
+  if (slots && Object.keys(slots).length === 0) {
+    slots = undefined;
+  }
 
   const newPlugins = {
     ...pluginsConfig,
@@ -141,6 +144,9 @@ export function removePluginFromConfig(
   }
   if (cleanedPlugins.load === undefined) {
     delete cleanedPlugins.load;
+  }
+  if (cleanedPlugins.slots === undefined) {
+    delete cleanedPlugins.slots;
   }
 
   const config: OpenClawConfig = {
