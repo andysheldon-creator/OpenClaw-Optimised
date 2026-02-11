@@ -241,7 +241,8 @@ export { clamp, escapeRegExp, normalizeE164, safeParseJson, sleep } from "../uti
 export { stripAnsi } from "../terminal/ansi.js";
 export { missingTargetError } from "../infra/outbound/target-errors.js";
 export { registerLogTransport } from "../logging/logger.js";
-export type { LogTransport, LogTransportRecord } from "../logging/logger.js";
+export type { LogTransportRecord } from "../logging/logger.js";
+export type { LogTransport } from "../logging/state.js";
 export {
   emitDiagnosticEvent,
   isDiagnosticsEnabled,
