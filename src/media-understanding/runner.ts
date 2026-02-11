@@ -318,6 +318,17 @@ async function resolveLocalWhisperEntry(): Promise<MediaUnderstandingModelConfig
   };
 }
 
+async function resolveParakeetEntry(): Promise<MediaUnderstandingModelConfig | null> {
+  if (!(await hasBinary("parakeet-mlx"))) {
+    return null;
+  }
+  return {
+    type: "cli",
+    command: "parakeet-mlx",
+    args: ["{{MediaPath}}", "--output-format", "txt", "--output-dir", "{{OutputDir}}"],
+  };
+}
+
 async function resolveSherpaOnnxEntry(): Promise<MediaUnderstandingModelConfig | null> {
   if (!(await hasBinary("sherpa-onnx-offline"))) {
     return null;
@@ -356,6 +367,10 @@ async function resolveSherpaOnnxEntry(): Promise<MediaUnderstandingModelConfig |
 }
 
 async function resolveLocalAudioEntry(): Promise<MediaUnderstandingModelConfig | null> {
+  const parakeet = await resolveParakeetEntry();
+  if (parakeet) {
+    return parakeet;
+  }
   const sherpa = await resolveSherpaOnnxEntry();
   if (sherpa) {
     return sherpa;
@@ -639,6 +654,16 @@ function resolveWhisperCppOutputPath(args: string[]): string | null {
   return `${outputBase}.txt`;
 }
 
+function resolveParakeetOutputPath(args: string[], mediaPath: string): string | null {
+  const outputFormat = findArgValue(args, ["--output-format"]);
+  const outputDir = findArgValue(args, ["--output-dir"]);
+  if (!outputDir || outputFormat !== "txt") {
+    return null;
+  }
+  const base = path.parse(mediaPath).name;
+  return path.join(outputDir, `${base}.txt`);
+}
+
 async function resolveCliOutput(params: {
   command: string;
   args: string[];
@@ -651,7 +676,9 @@ async function resolveCliOutput(params: {
       ? resolveWhisperCppOutputPath(params.args)
       : commandId === "whisper"
         ? resolveWhisperOutputPath(params.args, params.mediaPath)
-        : null;
+        : commandId === "parakeet-mlx"
+          ? resolveParakeetOutputPath(params.args, params.mediaPath)
+          : null;
   if (fileOutput && (await fileExists(fileOutput))) {
     try {
       const content = await fs.readFile(fileOutput, "utf8");
