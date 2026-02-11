@@ -162,7 +162,11 @@ Once paired, the gateway can issue a **device token** and return it in the `hell
 {
   "type": "hello-ok",
   "protocol": 1,
-  "server": { "version": "…", "connId": "…" },
+  "server": {
+    "version": "…",
+    "connId": "…",
+    "identity": { "kind": "fork", "mode": "auto", "source": "default" },
+  },
   "features": { "methods": [], "events": [] },
   "snapshot": {
     /* … */

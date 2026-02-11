@@ -176,7 +176,7 @@ See also: [Presence](/concepts/presence) for how presence is produced/deduped an
 
 ## Connection snapshot
 
-- `hello-ok` includes a `snapshot` with `presence`, `health`, `stateVersion`, and `uptimeMs` plus `policy {maxPayload,maxBufferedBytes,tickIntervalMs}` so clients can render immediately without extra requests.
+- `hello-ok` includes a `snapshot` with `presence`, `health`, `stateVersion`, and `uptimeMs`, `policy {maxPayload,maxBufferedBytes,tickIntervalMs}`, and `server.identity {kind,mode,source}` so clients can render immediately and distinguish upstream vs fork instances.
 - `health`/`system-presence` remain available for manual refresh, but are not required at connect time.
 
 ## Error codes (res.error shape)

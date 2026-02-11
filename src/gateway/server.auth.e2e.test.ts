@@ -54,14 +54,22 @@ describe("gateway server auth/connect", () => {
   describe("default auth (token)", () => {
     let server: Awaited<ReturnType<typeof startGatewayServer>>;
     let port: number;
+    let prevIdentityMode: string | undefined;
 
     beforeAll(async () => {
+      prevIdentityMode = process.env.OPENCLAW_GATEWAY_IDENTITY_MODE;
+      delete process.env.OPENCLAW_GATEWAY_IDENTITY_MODE;
       port = await getFreePort();
       server = await startGatewayServer(port);
     });
 
     afterAll(async () => {
       await server.close();
+      if (prevIdentityMode === undefined) {
+        delete process.env.OPENCLAW_GATEWAY_IDENTITY_MODE;
+      } else {
+        process.env.OPENCLAW_GATEWAY_IDENTITY_MODE = prevIdentityMode;
+      }
     });
 
     test("closes silent handshakes after timeout", { timeout: 60_000 }, async () => {
@@ -92,12 +100,85 @@ describe("gateway server auth/connect", () => {
         | {
             type?: unknown;
             snapshot?: { configPath?: string; stateDir?: string };
+            server?: {
+              identity?: {
+                kind?: string;
+                mode?: string;
+                source?: string;
+              };
+            };
           }
         | undefined;
       expect(payload?.type).toBe("hello-ok");
       expect(payload?.snapshot?.configPath).toBe(CONFIG_PATH);
       expect(payload?.snapshot?.stateDir).toBe(STATE_DIR);
+      expect(payload?.server?.identity).toEqual({
+        kind: "fork",
+        mode: "auto",
+        source: "default",
+      });
 
+      ws.close();
+    });
+
+    test("hello-ok identity honors env override", async () => {
+      process.env.OPENCLAW_GATEWAY_IDENTITY_MODE = "upstream";
+      try {
+        const ws = await openWs(port);
+        const res = await connectReq(ws);
+        expect(res.ok).toBe(true);
+        const payload = res.payload as
+          | {
+              server?: {
+                identity?: {
+                  kind?: string;
+                  mode?: string;
+                  source?: string;
+                };
+              };
+            }
+          | undefined;
+        expect(payload?.server?.identity).toEqual({
+          kind: "upstream",
+          mode: "upstream",
+          source: "env",
+        });
+        ws.close();
+      } finally {
+        delete process.env.OPENCLAW_GATEWAY_IDENTITY_MODE;
+      }
+    });
+
+    test("hello-ok identity honors config override", async () => {
+      const { writeConfigFile } = await import("../config/config.js");
+      await writeConfigFile({
+        gateway: {
+          identity: {
+            mode: "upstream",
+          },
+        },
+        // oxlint-disable-next-line typescript/no-explicit-any
+      } as any);
+
+      const ws = await openWs(port);
+      const res = await connectReq(ws);
+      expect(res.ok).toBe(true);
+      const payload = res.payload as
+        | {
+            server?: {
+              identity?: {
+                kind?: string;
+                mode?: string;
+                source?: string;
+              };
+            };
+          }
+        | undefined;
+      expect(payload?.server?.identity).toEqual({
+        kind: "upstream",
+        mode: "upstream",
+        source: "config",
+      });
       ws.close();
     });
 

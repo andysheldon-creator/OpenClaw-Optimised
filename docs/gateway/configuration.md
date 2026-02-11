@@ -3027,6 +3027,24 @@ Auth and Tailscale:
 - `gateway.tailscale.mode: "funnel"` exposes the dashboard publicly; requires auth.
 - `gateway.tailscale.resetOnExit` resets Serve/Funnel config on shutdown.
 
+Gateway identity metadata:
+
+- `gateway.identity.mode` controls the identity emitted in `hello-ok.server.identity`.
+  - `auto` (default): report the build default (`fork` in this distribution)
+  - `upstream`: force `upstream` identity (compatibility testing)
+  - `fork`: force `fork` identity
+- `OPENCLAW_GATEWAY_IDENTITY_MODE` can override config at runtime (`auto|upstream|fork`).
+
+```json5
+{
+  gateway: {
+    identity: {
+      mode: "auto", // auto | upstream | fork
+    },
+  },
+}
+```
+
 Remote client defaults (CLI):
 
 - `gateway.remote.url` sets the default Gateway WebSocket URL for CLI calls when `gateway.mode = "remote"`.
