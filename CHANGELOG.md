@@ -14,6 +14,7 @@ Docs: https://docs.openclaw.ai
 - Plugins: device pairing + phone control plugins (Telegram `/pair`, iOS/Android node controls). (#11755) Thanks @mbelinky.
 - Tools: add Grok (xAI) as a `web_search` provider. (#12419) Thanks @tmchow.
 - Tools: add Tavily as a `web_search` provider with configurable search depth. (#13171) Thanks @a-anand-91119.
+- Configure: multi-provider web search in configure wizard; select Brave, Perplexity, Grok, or Tavily and enter per-provider API keys. Normalize Brave key to `tools.web.search.brave.apiKey` with legacy migration. (#13171) Thanks @a-anand-91119.
 - Gateway: add agent management RPC methods for the web UI (`agents.create`, `agents.update`, `agents.delete`). (#11045) Thanks @advaitpaliwal.
 - Gateway: stream thinking events to WS clients and broadcast tool events independent of verbose level. (#10568) Thanks @nk1tz.
 - Web UI: show a Compaction divider in chat history. (#11341) Thanks @Takhoffman.
