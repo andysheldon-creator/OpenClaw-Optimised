@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../config/config.js";
 import { telegramPlugin } from "../../extensions/telegram/src/channel.js";
 import { setTelegramRuntime } from "../../extensions/telegram/src/runtime.js";
@@ -17,6 +17,47 @@ import { runHeartbeatOnce } from "./heartbeat-runner.js";
 // Avoid pulling optional runtime deps during isolated runs.
 vi.mock("jiti", () => ({ createJiti: () => () => ({}) }));
 
+type SeedSessionInput = {
+  lastChannel: string;
+  lastTo: string;
+  updatedAt?: number;
+};
+
+async function withHeartbeatFixture(
+  run: (ctx: {
+    tmpDir: string;
+    storePath: string;
+    seedSession: (sessionKey: string, input: SeedSessionInput) => Promise<void>;
+  }) => Promise<void>,
+) {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-hb-model-"));
+  const storePath = path.join(tmpDir, "sessions.json");
+
+  const seedSession = async (sessionKey: string, input: SeedSessionInput) => {
+    await fs.writeFile(
+      storePath,
+      JSON.stringify(
+        {
+          [sessionKey]: {
+            sessionId: "sid",
+            updatedAt: input.updatedAt ?? Date.now(),
+            lastChannel: input.lastChannel,
+            lastTo: input.lastTo,
+          },
+        },
+        null,
+        2,
+      ),
+    );
+  };
+
+  try {
+    await run({ tmpDir, storePath, seedSession });
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+}
+
 beforeEach(() => {
   const runtime = createPluginRuntime();
   setTelegramRuntime(runtime);
@@ -29,12 +70,13 @@ beforeEach(() => {
   );
 });
 
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 describe("runHeartbeatOnce – heartbeat model override", () => {
   it("passes heartbeatModelOverride from defaults heartbeat config", async () => {
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-hb-model-"));
-    const storePath = path.join(tmpDir, "sessions.json");
-    const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
-    try {
+    await withHeartbeatFixture(async ({ tmpDir, storePath, seedSession }) => {
       const cfg: OpenClawConfig = {
         agents: {
           defaults: {
@@ -50,23 +92,9 @@ describe("runHeartbeatOnce – heartbeat model override", () => {
         session: { store: storePath },
       };
       const sessionKey = resolveMainSessionKey(cfg);
+      await seedSession(sessionKey, { lastChannel: "whatsapp", lastTo: "+1555" });
 
-      await fs.writeFile(
-        storePath,
-        JSON.stringify(
-          {
-            [sessionKey]: {
-              sessionId: "sid",
-              updatedAt: Date.now(),
-              lastChannel: "whatsapp",
-              lastTo: "+1555",
-            },
-          },
-          null,
-          2,
-        ),
-      );
-
+      const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
       replySpy.mockResolvedValue({ text: "HEARTBEAT_OK" });
 
       await runHeartbeatOnce({
@@ -85,17 +113,11 @@ describe("runHeartbeatOnce – heartbeat model override", () => {
         }),
         cfg,
       );
-    } finally {
-      replySpy.mockRestore();
-      await fs.rm(tmpDir, { recursive: true, force: true });
-    }
+    });
   });
 
   it("passes per-agent heartbeat model override (merged with defaults)", async () => {
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-hb-model-"));
-    const storePath = path.join(tmpDir, "sessions.json");
-    const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
-    try {
+    await withHeartbeatFixture(async ({ storePath, seedSession }) => {
       const cfg: OpenClawConfig = {
         agents: {
           defaults: {
@@ -120,23 +142,9 @@ describe("runHeartbeatOnce – heartbeat model override", () => {
         session: { store: storePath },
       };
       const sessionKey = resolveAgentMainSessionKey({ cfg, agentId: "ops" });
+      await seedSession(sessionKey, { lastChannel: "whatsapp", lastTo: "+1555" });
 
-      await fs.writeFile(
-        storePath,
-        JSON.stringify(
-          {
-            [sessionKey]: {
-              sessionId: "sid",
-              updatedAt: Date.now(),
-              lastChannel: "whatsapp",
-              lastTo: "+1555",
-            },
-          },
-          null,
-          2,
-        ),
-      );
-
+      const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
       replySpy.mockResolvedValue({ text: "HEARTBEAT_OK" });
 
       await runHeartbeatOnce({
@@ -148,7 +156,6 @@ describe("runHeartbeatOnce – heartbeat model override", () => {
         },
       });
 
-      // Per-agent model should override the defaults model.
       expect(replySpy).toHaveBeenCalledWith(
         expect.any(Object),
         expect.objectContaining({
@@ -157,17 +164,11 @@ describe("runHeartbeatOnce – heartbeat model override", () => {
         }),
         cfg,
       );
-    } finally {
-      replySpy.mockRestore();
-      await fs.rm(tmpDir, { recursive: true, force: true });
-    }
+    });
   });
 
   it("does not pass heartbeatModelOverride when no heartbeat model is configured", async () => {
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-hb-model-"));
-    const storePath = path.join(tmpDir, "sessions.json");
-    const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
-    try {
+    await withHeartbeatFixture(async ({ tmpDir, storePath, seedSession }) => {
       const cfg: OpenClawConfig = {
         agents: {
           defaults: {
@@ -182,23 +183,9 @@ describe("runHeartbeatOnce – heartbeat model override", () => {
         session: { store: storePath },
       };
       const sessionKey = resolveMainSessionKey(cfg);
+      await seedSession(sessionKey, { lastChannel: "whatsapp", lastTo: "+1555" });
 
-      await fs.writeFile(
-        storePath,
-        JSON.stringify(
-          {
-            [sessionKey]: {
-              sessionId: "sid",
-              updatedAt: Date.now(),
-              lastChannel: "whatsapp",
-              lastTo: "+1555",
-            },
-          },
-          null,
-          2,
-        ),
-      );
-
+      const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
       replySpy.mockResolvedValue({ text: "HEARTBEAT_OK" });
 
       await runHeartbeatOnce({
@@ -213,17 +200,11 @@ describe("runHeartbeatOnce – heartbeat model override", () => {
       const replyOpts = replySpy.mock.calls[0]?.[1];
       expect(replyOpts).toStrictEqual({ isHeartbeat: true });
       expect(replyOpts).not.toHaveProperty("heartbeatModelOverride");
-    } finally {
-      replySpy.mockRestore();
-      await fs.rm(tmpDir, { recursive: true, force: true });
-    }
+    });
   });
 
   it("trims heartbeat model override before passing it downstream", async () => {
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-hb-model-"));
-    const storePath = path.join(tmpDir, "sessions.json");
-    const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
-    try {
+    await withHeartbeatFixture(async ({ tmpDir, storePath, seedSession }) => {
       const cfg: OpenClawConfig = {
         agents: {
           defaults: {
@@ -239,23 +220,9 @@ describe("runHeartbeatOnce – heartbeat model override", () => {
         session: { store: storePath },
       };
       const sessionKey = resolveMainSessionKey(cfg);
+      await seedSession(sessionKey, { lastChannel: "whatsapp", lastTo: "+1555" });
 
-      await fs.writeFile(
-        storePath,
-        JSON.stringify(
-          {
-            [sessionKey]: {
-              sessionId: "sid",
-              updatedAt: Date.now(),
-              lastChannel: "whatsapp",
-              lastTo: "+1555",
-            },
-          },
-          null,
-          2,
-        ),
-      );
-
+      const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
       replySpy.mockResolvedValue({ text: "HEARTBEAT_OK" });
 
       await runHeartbeatOnce({
@@ -274,9 +241,6 @@ describe("runHeartbeatOnce – heartbeat model override", () => {
         }),
         cfg,
       );
-    } finally {
-      replySpy.mockRestore();
-      await fs.rm(tmpDir, { recursive: true, force: true });
-    }
+    });
   });
 });
