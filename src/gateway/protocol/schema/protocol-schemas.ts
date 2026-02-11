@@ -255,4 +255,4 @@ export const ProtocolSchemas: Record<string, TSchema> = {
   ShutdownEvent: ShutdownEventSchema,
 };
 
-export const PROTOCOL_VERSION = 3 as const;
+export { PROTOCOL_VERSION } from "../version.js";
