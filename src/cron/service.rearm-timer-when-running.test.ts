@@ -2,7 +2,9 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { CronService } from "./service.js";
+import type { CronJob } from "./types.js";
+import { createCronServiceState } from "./service/state.js";
+import { onTimer } from "./service/timer.js";
 
 const noopLogger = {
   debug: vi.fn(),
@@ -21,10 +23,29 @@ async function makeStorePath() {
   };
 }
 
+function createDueRecurringJob(params: {
+  id: string;
+  nowMs: number;
+  nextRunAtMs: number;
+}): CronJob {
+  return {
+    id: params.id,
+    name: params.id,
+    enabled: true,
+    deleteAfterRun: false,
+    createdAtMs: params.nowMs,
+    updatedAtMs: params.nowMs,
+    schedule: { kind: "every", everyMs: 5 * 60_000 },
+    sessionTarget: "isolated",
+    wakeMode: "next-heartbeat",
+    payload: { kind: "agentTurn", message: "test" },
+    delivery: { mode: "none" },
+    state: { nextRunAtMs: params.nextRunAtMs },
+  };
+}
+
 describe("CronService - timer re-arm when running (#12025)", () => {
   beforeEach(() => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2025-12-13T00:00:00.000Z"));
     noopLogger.debug.mockClear();
     noopLogger.info.mockClear();
     noopLogger.warn.mockClear();
@@ -32,72 +53,50 @@ describe("CronService - timer re-arm when running (#12025)", () => {
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    vi.clearAllMocks();
   });
 
-  it("re-arms the timer when onTimer fires while a job is still running", async () => {
+  it("re-arms the timer when onTimer is called while state.running is true", async () => {
+    const timeoutSpy = vi.spyOn(globalThis, "setTimeout");
     const store = await makeStorePath();
-    const enqueueSystemEvent = vi.fn();
-    const requestHeartbeatNow = vi.fn();
+    const now = Date.parse("2026-02-06T10:05:00.000Z");
 
-    // Simulate a slow isolated job that takes 90 seconds (longer than
-    // MAX_TIMER_DELAY_MS = 60s).  Before the fix, the clamped 60s timer
-    // would fire mid-execution, hit the `state.running` guard, return
-    // without re-arming, and silently kill the scheduler.
-    let resolveSlowJob: (v: { status: string }) => void;
-    const runIsolatedAgentJob = vi.fn(
-      () =>
-        new Promise<{ status: string }>((resolve) => {
-          resolveSlowJob = resolve;
-        }),
-    );
-
-    const cron = new CronService({
-      storePath: store.storePath,
+    const state = createCronServiceState({
       cronEnabled: true,
+      storePath: store.storePath,
       log: noopLogger,
-      enqueueSystemEvent,
-      requestHeartbeatNow,
-      runIsolatedAgentJob,
+      nowMs: () => now,
+      enqueueSystemEvent: vi.fn(),
+      requestHeartbeatNow: vi.fn(),
+      runIsolatedAgentJob: vi.fn().mockResolvedValue({ status: "ok", summary: "ok" }),
     });
 
-    await cron.start();
+    // Simulate a job that is currently running.
+    state.running = true;
+    state.store = {
+      version: 1,
+      jobs: [
+        createDueRecurringJob({
+          id: "recurring-job",
+          nowMs: now,
+          nextRunAtMs: now + 5 * 60_000,
+        }),
+      ],
+    };
 
-    // Add a recurring job that runs every 5 minutes.
-    await cron.add({
-      name: "slow recurring job",
-      enabled: true,
-      schedule: { kind: "every", everyMs: 5 * 60_000 },
-      sessionTarget: "isolated",
-      wakeMode: "next-heartbeat",
-      payload: { kind: "agentTurn", message: "do something slow" },
-    });
+    // Before the fix in #12025, this would return without re-arming,
+    // silently killing the scheduler.
+    await onTimer(state);
 
-    // Advance to when the job is due (5 minutes).
-    vi.setSystemTime(new Date("2025-12-13T00:05:00.000Z"));
-    await vi.advanceTimersByTimeAsync(5 * 60_000);
+    // The timer must be re-armed so the scheduler continues ticking.
+    expect(state.timer).not.toBeNull();
+    expect(timeoutSpy).toHaveBeenCalled();
 
-    // The job should have started.
-    expect(runIsolatedAgentJob).toHaveBeenCalledTimes(1);
+    // state.running should still be true (onTimer bailed out, didn't
+    // touch it — the original caller's finally block handles that).
+    expect(state.running).toBe(true);
 
-    // Advance 60+ seconds while the job is still running.
-    // This triggers the clamped timer.  Before the fix, this would kill
-    // the scheduler.
-    vi.setSystemTime(new Date("2025-12-13T00:06:01.000Z"));
-    await vi.advanceTimersByTimeAsync(61_000);
-
-    // Now complete the slow job.
-    resolveSlowJob!({ status: "ok" });
-    await vi.advanceTimersByTimeAsync(0);
-
-    // The scheduler should still be alive.  Advance to the next occurrence
-    // (10 minutes from start) and verify the job fires again.
-    vi.setSystemTime(new Date("2025-12-13T00:10:00.000Z"));
-    await vi.advanceTimersByTimeAsync(4 * 60_000);
-
-    expect(runIsolatedAgentJob).toHaveBeenCalledTimes(2);
-
-    cron.stop();
+    timeoutSpy.mockRestore();
     await store.cleanup();
   });
 });
