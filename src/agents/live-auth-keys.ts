@@ -90,7 +90,11 @@ export function isAnthropicBillingError(message: string): boolean {
   if (lower.includes("billing") && lower.includes("disabled")) {
     return true;
   }
-  if (lower.includes("402")) {
+  if (
+    /(?:status|code|http|error)\s*[:=]?\s*402\b|(?:got|returned|received|a)\s+(?:a\s+)?402\b|^\s*402\s+payment/i.test(
+      lower,
+    )
+  ) {
     return true;
   }
   return false;

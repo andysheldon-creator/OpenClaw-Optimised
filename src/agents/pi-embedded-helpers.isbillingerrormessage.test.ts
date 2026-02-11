@@ -35,6 +35,9 @@ describe("isBillingErrorMessage", () => {
       "Room 402 is available",
       "Error code 403 was returned, not 402-related",
       "The building at 402 Main Street",
+      "processed 402 records",
+      "402 items found in the database",
+      "port 402 is open",
     ];
     for (const sample of falsePositives) {
       expect(isBillingErrorMessage(sample)).toBe(false);
@@ -47,6 +50,9 @@ describe("isBillingErrorMessage", () => {
       "error code 402",
       "http 402",
       "status=402 payment required",
+      "got a 402 from the API",
+      "returned 402",
+      "received a 402 response",
     ];
     for (const sample of realErrors) {
       expect(isBillingErrorMessage(sample)).toBe(true);
