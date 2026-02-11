@@ -107,7 +107,7 @@ describe("noteSessionSecretsWarnings", () => {
     await noteSessionSecretsWarnings();
 
     const noteCall = mockNote.mock.calls[0][0];
-    expect(noteCall).toContain("unredacted secret(s) across 2 of 4");
+    expect(noteCall).toContain("unredacted secrets in 2 of 4");
     expect(noteCall).toContain("50%"); // 2/4 = 50%
     expect(noteCall).toContain("openclaw sessions scrub");
     expect(noteCall).toContain("--dry-run");
@@ -159,7 +159,7 @@ describe("noteSessionSecretsWarnings", () => {
     expect(mockReadFile).toHaveBeenCalledTimes(200);
 
     const noteCall = mockNote.mock.calls[0][0];
-    expect(noteCall).toContain("unredacted secret(s) across 50 of 200");
+    expect(noteCall).toContain("unredacted secrets in 50 of 200");
     expect(noteCall).toContain("(deterministic sample)");
     expect(noteCall).toContain("25%"); // 50/200 = 25%
     expect(noteCall).toContain("openclaw sessions scrub");
@@ -197,7 +197,7 @@ describe("noteSessionSecretsWarnings", () => {
     await noteSessionSecretsWarnings();
 
     const noteCall = mockNote.mock.calls[0][0];
-    expect(noteCall).toContain("unredacted secret(s) across 1 of 1");
+    expect(noteCall).toContain("unredacted secrets in 1 of 1");
     expect(noteCall).toContain("100%");
   });
 });

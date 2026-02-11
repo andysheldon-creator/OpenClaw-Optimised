@@ -30,6 +30,9 @@ async function scanFileForSecrets(
       );
       if (matches) {
         count += matches.filter((m) => m.length > 0).length;
+        // Early termination: we know this file has secrets, no need to check
+        // remaining patterns. Exact count isn't critical for diagnostics.
+        break;
       }
     }
     return { matchCount: count };
@@ -55,7 +58,6 @@ export async function noteSessionSecretsWarnings(_cfg?: OpenClawConfig): Promise
 
   const patterns = compilePatterns(getDefaultRedactPatterns());
   let filesWithSecrets = 0;
-  let totalSecrets = 0;
   let readErrors = 0;
 
   // Scan all files if <=200, otherwise deterministically sample 200 (sorted, first N) to avoid long delays
@@ -68,7 +70,6 @@ export async function noteSessionSecretsWarnings(_cfg?: OpenClawConfig): Promise
       readErrors++;
     } else if (result.matchCount > 0) {
       filesWithSecrets++;
-      totalSecrets += result.matchCount;
     }
   }
 
@@ -84,7 +85,7 @@ export async function noteSessionSecretsWarnings(_cfg?: OpenClawConfig): Promise
     const percentage = Math.round((filesWithSecrets / sampleSize) * 100);
     const sampledNote = files.length > 200 ? " (deterministic sample)" : "";
     warnings.push(
-      `- Found ${totalSecrets} unredacted secret(s) across ${filesWithSecrets} of ${sampleSize} session files scanned${sampledNote} (~${percentage}%).`,
+      `- Found unredacted secrets in ${filesWithSecrets} of ${sampleSize} session files scanned${sampledNote} (~${percentage}%).`,
     );
     warnings.push(
       `  Session transcripts may contain API keys, tokens, or passwords from tool calls.`,
