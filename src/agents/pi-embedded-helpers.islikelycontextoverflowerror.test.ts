@@ -31,4 +31,14 @@ describe("isLikelyContextOverflowError", () => {
       expect(isLikelyContextOverflowError(sample)).toBe(false);
     }
   });
+
+  it("excludes rate limit errors", () => {
+    const samples = [
+      "This request would exceed your account's rate limit",
+      "429 Too Many Requests: request exceeds rate limit",
+    ];
+    for (const sample of samples) {
+      expect(isLikelyContextOverflowError(sample)).toBe(false);
+    }
+  });
 });
