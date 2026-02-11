@@ -396,6 +396,7 @@ export const OpenClawSchema = z
             token: z.string().optional(),
             password: z.string().optional(),
             allowTailscale: z.boolean().optional(),
+            skipDevicePairingForTrustedProxy: z.boolean().optional(),
           })
           .strict()
           .optional(),
