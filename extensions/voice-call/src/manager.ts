@@ -861,15 +861,20 @@ export class CallManager {
     // Only keep non-terminal calls
     for (const [callId, call] of callMap) {
       if (!TerminalStates.has(call.state)) {
-        this.activeCalls.set(callId, call);
-        // Populate providerCallId mapping for lookups
-        if (call.providerCallId) {
-          this.providerCallIdMap.set(call.providerCallId, callId);
-        }
-        // Populate processed event IDs
-        for (const eventId of call.processedEventIds) {
-          this.processedEventIds.add(eventId);
-        }
+        // Mark stale non-terminal calls as ended (cleanup from previous crash/restart)
+        console.warn(`[voice-call] Cleaning up stale call from previous session: ${callId}`);
+        const updatedCall: CallRecord = {
+          ...call,
+          state: "error", // Use valid terminal state (was "ended" which is invalid)
+          endReason: "system-cleanup",
+          endedAt: Date.now(),
+        };
+        // Persist the cleanup state so it doesn't look active in logs
+        this.persistCallRecord(updatedCall);
+      } else {
+        // For terminal calls, we don't need to load them into memory as active,
+        // but we might want them for history? No, loadActiveCalls is only for *active* state recovery.
+        // If we want history, we read the file on demand.
       }
     }
   }

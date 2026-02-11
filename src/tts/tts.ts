@@ -1345,21 +1345,17 @@ export async function textToSpeechTelephony(params: {
   }
 
   const userProvider = getTtsProvider(config, prefsPath);
-  const providers = resolveTtsProviderOrder(userProvider);
+  // Edge TTS is unsupported for telephony (no raw audio output), so exclude it
+  const providers = resolveTtsProviderOrder(userProvider).filter((p) => p !== "edge");
 
-  let lastError: string | undefined;
+  const errors: string[] = [];
 
   for (const provider of providers) {
     const providerStart = Date.now();
     try {
-      if (provider === "edge") {
-        lastError = "edge: unsupported for telephony";
-        continue;
-      }
-
       const apiKey = resolveTtsApiKey(config, provider);
       if (!apiKey) {
-        lastError = `No API key for ${provider}`;
+        errors.push(`${provider}: no API key`);
         continue;
       }
 
@@ -1410,16 +1406,16 @@ export async function textToSpeechTelephony(params: {
     } catch (err) {
       const error = err as Error;
       if (error.name === "AbortError") {
-        lastError = `${provider}: request timed out`;
+        errors.push(`${provider}: request timed out`);
       } else {
-        lastError = `${provider}: ${error.message}`;
+        errors.push(`${provider}: ${error.message}`);
       }
     }
   }
 
   return {
     success: false,
-    error: `TTS conversion failed: ${lastError || "no providers available"}`,
+    error: `TTS conversion failed: ${errors.length > 0 ? errors.join("; ") : "no providers available"}`,
   };
 }
 

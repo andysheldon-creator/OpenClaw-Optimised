@@ -101,7 +101,7 @@
     },
     "tts.provider": {
       "label": "TTS Provider Override",
-      "help": "Deep-merges with messages.tts (Edge is ignored for calls).",
+      "help": "Used for voice-call TTS only (does not read or merge messages.tts). Edge is ignored for calls.",
       "advanced": true
     },
     "tts.openai.model": {
@@ -322,7 +322,7 @@
           },
           "sttProvider": {
             "type": "string",
-            "enum": ["openai-realtime"]
+            "enum": ["openai-realtime", "elevenlabs-scribe"]
           },
           "openaiApiKey": {
             "type": "string"
@@ -340,6 +340,12 @@
             "maximum": 1
           },
           "streamPath": {
+            "type": "string"
+          },
+          "elevenlabsApiKey": {
+            "type": "string"
+          },
+          "elevenlabsLanguageCode": {
             "type": "string"
           }
         }
