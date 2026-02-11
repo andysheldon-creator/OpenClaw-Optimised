@@ -60,7 +60,7 @@ export async function runCli(argv: string[] = process.argv) {
   const primary = getPrimaryCommand(parseArgv);
 
   let commandRegistered = false;
-  if (primary) {
+  if (primary && primary !== "help") {
     const { registerCoreCommandByName } = await import("./program/register.core-lazy.js");
     commandRegistered = await registerCoreCommandByName(program, ctx, primary, parseArgv);
 
@@ -78,7 +78,9 @@ export async function runCli(argv: string[] = process.argv) {
   }
 
   const shouldSkipPluginRegistration =
-    (!primary && hasHelpOrVersion(parseArgv)) || (primary != null && commandRegistered);
+    (!primary && hasHelpOrVersion(parseArgv)) ||
+    (primary != null && commandRegistered) ||
+    primary === "help";
   if (!shouldSkipPluginRegistration) {
     // Register plugin CLI commands before parsing
     const { registerPluginCliCommands } = await import("../plugins/cli.js");
@@ -86,7 +88,7 @@ export async function runCli(argv: string[] = process.argv) {
     registerPluginCliCommands(program, loadConfig());
   }
 
-  if (!hasHelpOrVersion(parseArgv)) {
+  if (!hasHelpOrVersion(parseArgv) && primary !== "help") {
     const { enableConsoleCapture } = await import("../logging.js");
     enableConsoleCapture();
   }
