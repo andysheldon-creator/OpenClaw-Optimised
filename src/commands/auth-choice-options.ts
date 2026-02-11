@@ -16,6 +16,7 @@ export type AuthChoiceGroupId =
   | "ai-gateway"
   | "cloudflare-ai-gateway"
   | "moonshot"
+  | "stepfun"
   | "zai"
   | "xiaomi"
   | "opencode-zen"
@@ -64,6 +65,12 @@ const AUTH_CHOICE_GROUP_DEFS: {
     label: "Moonshot AI (Kimi K2.5)",
     hint: "Kimi K2.5 + Kimi Coding",
     choices: ["moonshot-api-key", "moonshot-api-key-cn", "kimi-code-api-key"],
+  },
+  {
+    value: "stepfun",
+    label: "StepFun (Step 3.5 Flash)",
+    hint: "API key",
+    choices: ["stepfun-api-key"],
   },
   {
     value: "google",
@@ -202,6 +209,10 @@ export function buildAuthChoiceOptions(params: {
   options.push({
     value: "kimi-code-api-key",
     label: "Kimi Code API key (subscription)",
+  });
+  options.push({
+    value: "stepfun-api-key",
+    label: "StepFun API key",
   });
   options.push({ value: "synthetic-api-key", label: "Synthetic API key" });
   options.push({

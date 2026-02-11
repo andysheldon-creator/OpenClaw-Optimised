@@ -17,6 +17,7 @@ export type AuthChoice =
   | "moonshot-api-key"
   | "moonshot-api-key-cn"
   | "kimi-code-api-key"
+  | "stepfun-api-key"
   | "synthetic-api-key"
   | "venice-api-key"
   | "together-api-key"
@@ -95,6 +96,7 @@ export type OnboardOptions = {
   cloudflareAiGatewayApiKey?: string;
   moonshotApiKey?: string;
   kimiCodeApiKey?: string;
+  stepfunApiKey?: string;
   geminiApiKey?: string;
   zaiApiKey?: string;
   xiaomiApiKey?: string;
