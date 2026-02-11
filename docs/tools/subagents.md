@@ -206,6 +206,12 @@ By default, sub-agents can only spawn under their own agent id. To allow an agen
 }
 ```
 
+<Note>
+`allowAgents` is **per-agent only** and belongs under `agents.list[].subagents`.
+
+`agents.defaults.subagents` supports defaults like `model`, `thinking`, `maxConcurrent`, and `archiveAfterMinutes`, but **does not** accept `allowAgents`.
+</Note>
+
 <Tip>
 Use the `agents_list` tool to discover which agent ids are currently allowed for `sessions_spawn`.
 </Tip>

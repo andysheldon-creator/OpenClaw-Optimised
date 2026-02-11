@@ -156,6 +156,7 @@ Parameters:
 Allowlist:
 
 - `agents.list[].subagents.allowAgents`: list of agent ids allowed via `agentId` (`["*"]` to allow any). Default: only the requester agent.
+- `allowAgents` is per-agent and is **not supported** under `agents.defaults.subagents`.
 
 Discovery:
 
