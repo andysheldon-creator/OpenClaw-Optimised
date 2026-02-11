@@ -193,7 +193,7 @@ describe("web auto-reply", () => {
     await cleanup();
     resetLoadConfigMock();
   });
-  it("ignores JID mentions in self-chat mode (group chats)", async () => {
+  it("detects JID mentions in self-chat mode when sender is not owner", async () => {
     const sendMedia = vi.fn();
     const reply = vi.fn().mockResolvedValue(undefined);
     const sendComposing = vi.fn();
@@ -227,7 +227,7 @@ describe("web auto-reply", () => {
     await monitorWebChannel(false, listenerFactory, false, resolver);
     expect(capturedOnMessage).toBeDefined();
 
-    // WhatsApp @mention of the owner should NOT trigger the bot in self-chat mode.
+    // WhatsApp @mention from another user (Alice) should trigger the bot even in self-chat mode.
     await capturedOnMessage?.({
       body: "@owner ping",
       from: "123@g.us",
@@ -246,7 +246,7 @@ describe("web auto-reply", () => {
       sendMedia,
     });
 
-    expect(resolver).not.toHaveBeenCalled();
+    expect(resolver).toHaveBeenCalledTimes(1);
 
     // Text-based mentionPatterns still work (user can type "openclaw" explicitly).
     await capturedOnMessage?.({
@@ -266,7 +266,7 @@ describe("web auto-reply", () => {
       sendMedia,
     });
 
-    expect(resolver).toHaveBeenCalledTimes(1);
+    expect(resolver).toHaveBeenCalledTimes(2);
 
     resetLoadConfigMock();
   });

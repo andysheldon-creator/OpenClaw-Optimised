@@ -52,4 +52,73 @@ describe("isBotMentionedFromTargets", () => {
     const targets = resolveMentionTargets(msg);
     expect(isBotMentionedFromTargets(msg, mentionCfg, targets)).toBe(true);
   });
+
+  describe("self-chat mode", () => {
+    const selfChatMentionCfg = {
+      mentionRegexes: [/\bopenclaw\b/i],
+      allowFrom: ["+15551234567"],
+    };
+
+    it("blocks owner's messages with auto-included JID (prevents false positives)", () => {
+      const msg = makeMsg({
+        body: "Hello everyone",
+        mentionedJids: ["15551234567@s.whatsapp.net"],
+        selfE164: "+15551234567",
+        selfJid: "15551234567@s.whatsapp.net",
+        senderE164: "+15551234567",
+      });
+      const targets = resolveMentionTargets(msg);
+      expect(isBotMentionedFromTargets(msg, selfChatMentionCfg, targets)).toBe(false);
+    });
+
+    it("triggers when non-owner @mentions the bot", () => {
+      const msg = makeMsg({
+        body: "@bot please help",
+        mentionedJids: ["15551234567@s.whatsapp.net"],
+        selfE164: "+15551234567",
+        selfJid: "15551234567@s.whatsapp.net",
+        senderE164: "+19998887777",
+      });
+      const targets = resolveMentionTargets(msg);
+      expect(isBotMentionedFromTargets(msg, selfChatMentionCfg, targets)).toBe(true);
+    });
+
+    it("blocks text patterns when JID mentions present (no fallback in self-chat)", () => {
+      const msg = makeMsg({
+        body: "openclaw help",
+        mentionedJids: ["19998887777@s.whatsapp.net"],
+        selfE164: "+15551234567",
+        selfJid: "15551234567@s.whatsapp.net",
+        senderE164: "+19998887777",
+      });
+      const targets = resolveMentionTargets(msg);
+      expect(isBotMentionedFromTargets(msg, selfChatMentionCfg, targets)).toBe(false);
+    });
+
+    it("blocks owner's messages when senderE164 is missing but senderJid matches (fallback)", () => {
+      const msg = makeMsg({
+        body: "Hello team",
+        mentionedJids: ["15551234567@s.whatsapp.net"],
+        selfE164: "+15551234567",
+        selfJid: "15551234567@s.whatsapp.net",
+        senderJid: "15551234567@s.whatsapp.net",
+        // senderE164 is intentionally undefined (edge case)
+      });
+      const targets = resolveMentionTargets(msg);
+      expect(isBotMentionedFromTargets(msg, selfChatMentionCfg, targets)).toBe(false);
+    });
+
+    it("triggers when non-owner mentions bot and senderE164 is missing (uses senderJid)", () => {
+      const msg = makeMsg({
+        body: "@bot help",
+        mentionedJids: ["15551234567@s.whatsapp.net"],
+        selfE164: "+15551234567",
+        selfJid: "15551234567@s.whatsapp.net",
+        senderJid: "19998887777@s.whatsapp.net",
+        // senderE164 is intentionally undefined (edge case)
+      });
+      const targets = resolveMentionTargets(msg);
+      expect(isBotMentionedFromTargets(msg, selfChatMentionCfg, targets)).toBe(true);
+    });
+  });
 });
