@@ -23,20 +23,20 @@ android {
     targetSdk = 36
     versionCode = 202602030
     ndk {
-      abiFilters += "arm64-v8a"
+      // Support all major ABIs — native libs are tiny (~47 KB per ABI)
+      abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
     }
     versionName = "2026.2.9"
   }
 
   buildTypes {
     release {
-      isMinifyEnabled = false
-    }
-    debug {
       isMinifyEnabled = true
       isShrinkResources = true
-      // Use proguard-android.txt (NOT -optimize) to preserve Log calls for debugging
-      proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
+      proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+    }
+    debug {
+      isMinifyEnabled = false
     }
   }
 
@@ -52,7 +52,13 @@ android {
 
   packaging {
     resources {
-      excludes += "/META-INF/{AL2.0,LGPL2.1}"
+      excludes += setOf(
+        "/META-INF/{AL2.0,LGPL2.1}",
+        "/META-INF/*.version",
+        "/META-INF/LICENSE*.txt",
+        "DebugProbesKt.bin",
+        "kotlin-tooling-metadata.json",
+      )
     }
     jniLibs {
       useLegacyPackaging = true   // pack .so compressed → skip page-alignment bloat
@@ -102,6 +108,8 @@ dependencies {
   implementation("androidx.compose.ui:ui")
   implementation("androidx.compose.ui:ui-tooling-preview")
   implementation("androidx.compose.material3:material3")
+  // material-icons-extended pulled in full icon set (~20 MB DEX). Only ~18 icons used.
+  // R8 will tree-shake unused icons when minify is enabled on release builds.
   implementation("androidx.compose.material:material-icons-extended")
   implementation("androidx.navigation:navigation-compose:2.9.6")
 
