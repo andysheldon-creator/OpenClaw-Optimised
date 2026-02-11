@@ -14,7 +14,7 @@ export type HookMappingConfig = {
   action?: "wake" | "agent";
   wakeMode?: "now" | "next-heartbeat";
   name?: string;
-  /** Route this hook to a specific agent (must exist in agents.list). */
+  /** Route this hook to a specific agent (unknown ids fall back to the default agent). */
   agentId?: string;
   sessionKey?: string;
   messageTemplate?: string;
@@ -117,6 +117,11 @@ export type HooksConfig = {
   enabled?: boolean;
   path?: string;
   token?: string;
+  /**
+   * Restrict explicit hook `agentId` routing to these agent ids.
+   * Omit or include `*` to allow any agent.
+   */
+  allowedAgentIds?: string[];
   maxBodyBytes?: number;
   presets?: string[];
   transformsDir?: string;
