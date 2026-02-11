@@ -5,6 +5,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CronJob } from "./types.js";
 import { CronService } from "./service.js";
+import { recomputeNextRuns } from "./service/jobs.js";
 import { createCronServiceState, type CronEvent } from "./service/state.js";
 import { onTimer } from "./service/timer.js";
 
@@ -340,6 +341,95 @@ describe("Cron issue regressions", () => {
     expect(secondDone?.state.lastRunAtMs).toBe(dueAt + 50);
     expect(secondDone?.state.lastDurationMs).toBe(20);
     expect(startedAtEvents).toEqual([dueAt, dueAt + 50]);
+
+    await store.cleanup();
+  });
+
+  it("status/list does not advance overdue recurring job nextRunAtMs (#12851)", async () => {
+    const store = await makeStorePath();
+    const now = Date.parse("2026-02-06T10:05:00.000Z");
+    const overdueNextRun = now - 60_000; // 1 minute overdue
+
+    const state = createCronServiceState({
+      cronEnabled: true,
+      storePath: store.storePath,
+      log: noopLogger,
+      nowMs: () => now,
+      enqueueSystemEvent: vi.fn(),
+      requestHeartbeatNow: vi.fn(),
+      runIsolatedAgentJob: vi.fn().mockResolvedValue({ status: "ok", summary: "ok" }),
+    });
+
+    state.store = {
+      version: 1,
+      jobs: [
+        {
+          id: "overdue-recurring",
+          name: "overdue-recurring",
+          enabled: true,
+          deleteAfterRun: false,
+          createdAtMs: now - 120_000,
+          updatedAtMs: now - 120_000,
+          schedule: { kind: "every", everyMs: 60_000, anchorMs: now - 120_000 },
+          sessionTarget: "main",
+          wakeMode: "next-heartbeat",
+          payload: { kind: "systemEvent", text: "tick" },
+          delivery: { mode: "none" },
+          state: { nextRunAtMs: overdueNextRun },
+        },
+      ],
+    };
+
+    // Simulate what status()/list() does: call recomputeNextRuns
+    recomputeNextRuns(state);
+
+    // The overdue nextRunAtMs should NOT have been advanced
+    const job = state.store.jobs[0];
+    expect(job.state.nextRunAtMs).toBe(overdueNextRun);
+
+    await store.cleanup();
+  });
+
+  it("executed recurring job IS advanced by recomputeNextRuns (#12851 control)", async () => {
+    const store = await makeStorePath();
+    const now = Date.parse("2026-02-06T10:05:00.000Z");
+    const overdueNextRun = now - 60_000;
+
+    const state = createCronServiceState({
+      cronEnabled: true,
+      storePath: store.storePath,
+      log: noopLogger,
+      nowMs: () => now,
+      enqueueSystemEvent: vi.fn(),
+      requestHeartbeatNow: vi.fn(),
+      runIsolatedAgentJob: vi.fn().mockResolvedValue({ status: "ok", summary: "ok" }),
+    });
+
+    state.store = {
+      version: 1,
+      jobs: [
+        {
+          id: "executed-recurring",
+          name: "executed-recurring",
+          enabled: true,
+          deleteAfterRun: false,
+          createdAtMs: now - 120_000,
+          updatedAtMs: now - 120_000,
+          schedule: { kind: "every", everyMs: 60_000, anchorMs: now - 120_000 },
+          sessionTarget: "main",
+          wakeMode: "next-heartbeat",
+          payload: { kind: "systemEvent", text: "tick" },
+          delivery: { mode: "none" },
+          state: { nextRunAtMs: overdueNextRun, lastRunAtMs: overdueNextRun },
+        },
+      ],
+    };
+
+    recomputeNextRuns(state);
+
+    // Recurring job that WAS executed at its slot should be advanced to next run
+    const job = state.store.jobs[0];
+    expect(job.state.nextRunAtMs).toBeGreaterThan(overdueNextRun);
 
     await store.cleanup();
   });

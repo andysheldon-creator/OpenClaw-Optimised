@@ -124,6 +124,15 @@ export function recomputeNextRuns(state: CronServiceState): boolean {
     const nextRun = job.state.nextRunAtMs;
     const isDueOrMissing = nextRun === undefined || now >= nextRun;
     if (isDueOrMissing) {
+      // Guard: don't advance recurring jobs that were never executed at this slot.
+      // Leave them for runMissedJobs() to handle on the next tick.
+      if (typeof nextRun === "number" && now >= nextRun) {
+        const wasExecuted =
+          typeof job.state.lastRunAtMs === "number" && job.state.lastRunAtMs >= nextRun;
+        if (!wasExecuted && job.schedule.kind !== "at") {
+          continue;
+        }
+      }
       const newNext = computeJobNextRunAtMs(job, now);
       if (job.state.nextRunAtMs !== newNext) {
         job.state.nextRunAtMs = newNext;
