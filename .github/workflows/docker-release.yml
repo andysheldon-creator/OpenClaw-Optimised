@@ -18,8 +18,9 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  # Build amd64 image
+  # Build amd64 image (only push from upstream to avoid GHCR permission_denied on forks)
   build-amd64:
+    if: github.repository == 'openclaw/openclaw'
     runs-on: ubuntu-latest
     permissions:
       packages: write
@@ -67,8 +68,9 @@ jobs:
           provenance: false
           push: true
 
-  # Build arm64 image
+  # Build arm64 image (only push from upstream to avoid GHCR permission_denied on forks)
   build-arm64:
+    if: github.repository == 'openclaw/openclaw'
     runs-on: ubuntu-24.04-arm
     permissions:
       packages: write
@@ -116,8 +118,9 @@ jobs:
           provenance: false
           push: true
 
-  # Create multi-platform manifest
+  # Create multi-platform manifest (only from upstream)
   create-manifest:
+    if: github.repository == 'openclaw/openclaw'
     runs-on: ubuntu-latest
     permissions:
       packages: write

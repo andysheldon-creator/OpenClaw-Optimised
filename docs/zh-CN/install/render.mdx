@@ -9,161 +9,132 @@ x-i18n:
   workflow: 15
 ---
 
-使用基础设施即代码方式在 Render 上部署 OpenClaw。内置的 `render.yaml` Blueprint 以声明式方式定义了你的整个技术栈——服务、磁盘、环境变量，让你只需一键即可完成部署，并将基础设施与代码一同进行版本管理。
+使用官方 [render-examples/openclaw-render](https://github.com/render-examples/openclaw-render) 模板和 Render Blueprint 在 Render 上部署 OpenClaw。部署包含带令牌认证的代理和持久化磁盘。**此流程的权威说明见 [Render 官方文档](https://render.com/docs/deploy-openclaw)。**
 
 ## 前提条件
 
-- 一个 [Render 账户](https://render.com)（提供免费套餐）
-- 来自你首选[模型提供商](/providers)的 API 密钥
+- [Render 账户](https://dashboard.render.com/register)（注册免费）
+- **在 Render 账户中添加付款方式** — OpenClaw 模板使用 **Standard** 实例类型（支持 OpenClaw 的最小实例）。Render 对付费实例要求账户中有付款方式；仅按实际使用量计费。详见 [Render 账单](https://dashboard.render.com/billing) 与 [免费部署](https://render.com/docs/free) 中关于免费与付费资源的说明。
+- 至少一个[模型提供商](/concepts/model-providers)的 API 密钥（如 Anthropic、OpenAI），在创建 Blueprint 时填写
 
-## 使用 Render Blueprint 部署
+## 你将部署什么
+
+单个 Render [Web 服务](https://render.com/docs/web-services)，包含：
+
+- **OpenClaw 网关** — 核心 AI 助手运行时
+- **代理服务** — 带令牌认证与健康检查的轻量 Go 封装
+- **持久化磁盘** — 在多次部署间保留配置、会话和工作区
+
+实例类型：**Standard**。详见 [Render 定价](https://render.com/pricing#services)。
+
+## 快速检查清单
+
+1. [注册 Render](https://dashboard.render.com/register)，若系统提示则添加付款方式。
+2. 使用 [openclaw-render 模板](https://github.com/render-examples/openclaw-render) 创建仓库（**Use this template** → **Create a new repository**）。
+3. 在 [Render 控制台](https://dashboard.render.com/) 点击 **New** → **Blueprint**，连接该仓库，设置 AI 提供商环境变量，然后 **Deploy Blueprint**。
+4. 服务就绪后，打开其 `onrender.com` URL，将服务 **Environment** 中的 `OPENCLAW_GATEWAY_TOKEN` 粘贴到网关令牌对话框中，点击 **Continue** 进入控制面板。
+
+## 1. 注册 Render
+
+[注册 Render](https://dashboard.render.com/register)。创建付费资源（如本 Standard 实例 Blueprint）时，Render 可能会要求添加付款方式；参见 [Render 免费与付费使用说明](https://render.com/docs/free)。
+
+## 2. 复制示例模板
+
+1. 在 GitHub 上打开 [render-examples/openclaw-render 模板](https://github.com/render-examples/openclaw-render)。
+2. 点击 **Use this template** → **Create a new repository**（右上角）。
+3. 设置新仓库选项后点击 **Create repository**。
+
+## 3. 创建 Render Blueprint
+
+新仓库中的 `render.yaml` 定义了 OpenClaw Web 服务及所需环境变量。
+
+1. 在 [Render 控制台](https://dashboard.render.com/) 点击 **New** → **Blueprint**。
+2. 若尚未连接，请先连接 GitHub 账户。
+3. 在 **Connect a repository** 下为你在步骤 2 创建的仓库点击 **Connect**。
+4. 填写 **Blueprint Name** 并确认 **Branch**。
+5. 为你打算使用的 AI 提供商填写环境变量（API 密钥）。
+6. 查看 Blueprint 费用后点击 **Deploy Blueprint**。Render 执行首次同步并创建 Web 服务。
+
+## 4. 访问控制面板
+
+1. 部署完成后，在 Render 控制台打开该 Web 服务，顶部可见其 `onrender.com` URL。
+2. 访问该 URL，会弹出**网关令牌**输入框。
+3. 在控制台打开该服务的 **Environment** 页面，复制 `OPENCLAW_GATEWAY_TOKEN`（在 Blueprint 首次同步时已生成）。
+4. **网关令牌为敏感凭证**，请勿泄露。若泄露请在 **Environment** 页面更换。
+5. 将令牌粘贴到**网关令牌**输入框并点击 **Continue**，即可跳转到 OpenClaw 控制面板。
+
+连接渠道、自定义助手和使用技能请参阅 [OpenClaw 文档](https://docs.openclaw.ai/)。
+
+## 你将获得
+
+- 托管的 OpenClaw 网关与控制面板
+- 通过代理的令牌保护访问（本模板无 `/setup` 向导）
+- 持久化磁盘，配置、凭证和工作区在重新部署后保留
+- Render 控制台中的健康检查与日志
+
+## 备选：从主仓库部署
+
+可从主仓库 [openclaw/openclaw](https://github.com/openclaw/openclaw) 及其内置 `render.yaml` 部署：
 
 <a
   href="https://render.com/deploy?repo=https://github.com/openclaw/openclaw"
   target="_blank"
   rel="noreferrer"
 >
-  部署到 Render
+  部署到 Render（openclaw/openclaw）
 </a>
 
-点击此链接将会：
+系统会提示输入网关令牌（也可在部署后在 **Environment** 中设置）。控制面板：`https://<service-name>.onrender.com/openclaw`。
 
-1. 根据本仓库根目录下的 `render.yaml` Blueprint 创建一个新的 Render 服务。
-2. 提示你设置 `SETUP_PASSWORD`
-3. 构建 Docker 镜像并部署
+## 备选：带安装程序的封装
 
-部署完成后，你的服务 URL 格式为 `https://<service-name>.onrender.com`。
+社区封装可提供 `/install` 安装向导、带 WebSocket 的反向代理控制面板以及导出/导入备份。参见生态文档。
 
 ## 了解 Blueprint
 
-Render Blueprint 是定义基础设施的 YAML 文件。本仓库中的 `render.yaml` 配置了运行 OpenClaw 所需的一切：
+模板（或主仓库）中的 `render.yaml` 定义 Web 服务、磁盘与环境变量。常用 Blueprint 功能：
 
-```yaml
-services:
-  - type: web
-    name: openclaw
-    runtime: docker
-    plan: starter
-    healthCheckPath: /health
-    envVars:
-      - key: PORT
-        value: "8080"
-      - key: SETUP_PASSWORD
-        sync: false # prompts during deploy
-      - key: OPENCLAW_STATE_DIR
-        value: /data/.openclaw
-      - key: OPENCLAW_WORKSPACE_DIR
-        value: /data/workspace
-      - key: OPENCLAW_GATEWAY_TOKEN
-        generateValue: true # auto-generates a secure token
-    disk:
-      name: openclaw-data
-      mountPath: /data
-      sizeGB: 1
-```
-
-使用的关键 Blueprint 功能：
-
-| 功能                  | 用途                                     |
-| --------------------- | ---------------------------------------- |
-| `runtime: docker`     | 从仓库的 Dockerfile 进行构建             |
-| `healthCheckPath`     | Render 监控 `/health` 并重启不健康的实例 |
-| `sync: false`         | 在部署时提示输入值（用于密钥）           |
-| `generateValue: true` | 自动生成加密安全的值                     |
-| `disk`                | 持久化存储，在重新部署后数据仍然保留     |
+| 功能                  | 用途                                   |
+| --------------------- | -------------------------------------- |
+| `runtime: docker`     | 从仓库 Dockerfile 构建                 |
+| `healthCheckPath`     | Render 监控 `/health` 并重启不健康实例 |
+| `sync: false`         | 部署时提示输入密钥                     |
+| `generateValue: true` | 自动生成安全值（如网关令牌）           |
+| `disk`                | 持久化存储，跨重新部署保留             |
 
 ## 选择套餐
 
-| 套餐      | 休眠机制           | 磁盘   | 适用场景         |
-| --------- | ------------------ | ------ | ---------------- |
-| Free      | 空闲 15 分钟后休眠 | 不可用 | 测试、演示       |
-| Starter   | 永不休眠           | 1GB+   | 个人使用、小团队 |
-| Standard+ | 永不休眠           | 1GB+   | 生产环境、多渠道 |
+| 套餐      | 休眠机制           | 磁盘   | 适用场景                   |
+| --------- | ------------------ | ------ | -------------------------- |
+| Free      | 空闲 15 分钟后休眠 | 不可用 | 测试（无磁盘，配置可重置） |
+| Starter   | 永不休眠           | 1GB+   | 个人、小团队               |
+| Standard+ | 永不休眠           | 1GB+   | 生产、多渠道               |
 
-Blueprint 默认使用 `starter`。如需使用免费套餐，请在你 fork 的 `render.yaml` 中将 `plan: free`（但请注意：没有持久化磁盘意味着每次部署后配置都会重置）。
+官方模板使用 **Standard**。使用 Free 需在 fork 中修改 plan（无持久化磁盘）。
 
-## 部署完成后
+## Render 控制台
 
-### 完成设置向导
+- **日志** — **Dashboard** → 你的服务 → **Logs**（构建、部署、运行时）。
+- **Shell** — **Dashboard** → 你的服务 → **Shell**；磁盘挂载于 `/data`。
+- **环境变量** — 在 **Environment** 中修改（如 API 密钥），修改会触发重新部署。
 
-1. 访问 `https://<your-service>.onrender.com/setup`
-2. 输入你的 `SETUP_PASSWORD`
-3. 选择模型提供商并粘贴你的 API 密钥
-4. 可选配置消息渠道（Telegram、Discord、Slack）
-5. 点击 **Run setup**
-
-### 访问控制面板
-
-Web 管理面板位于 `https://<your-service>.onrender.com/openclaw`。
-
-## Render 仪表盘功能
-
-### 日志
-
-在 **Dashboard → 你的服务 → Logs** 中查看实时日志。可按以下类型筛选：
-
-- 构建日志（Docker 镜像创建）
-- 部署日志（服务启动）
-- 运行时日志（应用输出）
-
-### Shell 访问
-
-如需调试，可通过 **Dashboard → 你的服务 → Shell** 打开 shell 会话。持久化磁盘挂载在 `/data`。
-
-### 环境变量
-
-在 **Dashboard → 你的服务 → Environment** 中修改变量。更改会触发自动重新部署。
-
-### 自动部署
-
-如果你使用的是原始 OpenClaw 仓库，Render 不会自动部署你的 OpenClaw。要更新它，请在仪表盘中手动执行 Blueprint 同步。
+支持的提供商与变量名见 [模型提供商](/concepts/model-providers)。
 
 ## 自定义域名
 
-1. 前往 **Dashboard → 你的服务 → Settings → Custom Domains**
-2. 添加你的域名
-3. 按照指引配置 DNS（CNAME 指向 `*.onrender.com`）
-4. Render 会自动配置 TLS 证书
+**Dashboard** → 你的服务 → **Settings** → **Custom Domains**：添加域名并配置 DNS（CNAME 指向 `*.onrender.com`），Render 将配置 TLS。
 
 ## 扩展
 
-Render 支持水平和垂直扩展：
-
-- **垂直扩展**：更改套餐以获取更多 CPU/内存
-- **水平扩展**：增加实例数量（Standard 套餐及以上）
-
-对于 OpenClaw，垂直扩展通常就足够了。水平扩展需要粘性会话或外部状态管理。
+垂直：更换套餐以获得更多 CPU/内存。水平：增加实例数（Standard+）；OpenClaw 通常只需垂直扩展。
 
 ## 备份与迁移
 
-随时导出你的配置和工作区：
-
-```
-https://<your-service>.onrender.com/setup/export
-```
-
-这将下载一个可移植的备份文件，你可以在任何 OpenClaw 主机上恢复。
+若部署提供 setup/export 端点：`https://<your-service>.onrender.com/setup/export`。否则通过 Shell 或自有流程备份磁盘（如 `/data/.openclaw`）。
 
 ## 故障排除
 
-### 服务无法启动
-
-在 Render 仪表盘中检查部署日志。常见问题：
-
-- 缺少 `SETUP_PASSWORD` — Blueprint 会提示输入此值，但请确认已设置
-- 端口不匹配 — 确保 `PORT=8080` 与 Dockerfile 暴露的端口一致
-
-### 冷启动缓慢（免费套餐）
-
-免费套餐的服务在 15 分钟无活动后会休眠。休眠后的首次请求需要几秒钟等待容器启动。升级到 Starter 套餐可实现始终在线。
-
-### 重新部署后数据丢失
-
-这发生在免费套餐上（无持久化磁盘）。升级到付费套餐，或通过 `/setup/export` 定期导出你的配置。
-
-### 健康检查失败
-
-Render 期望在 30 秒内从 `/health` 获得 200 响应。如果构建成功但部署失败，可能是服务启动耗时过长。请检查：
-
-- 构建日志中是否有错误
-- 容器是否能通过 `docker build && docker run` 在本地正常运行
+- **服务无法启动** — 查看部署日志。确认在 **Environment** 中设置了 `OPENCLAW_GATEWAY_TOKEN`，且 `PORT=8080` 与应用一致。
+- **冷启动慢** — 免费套餐 15 分钟无活动后休眠，首次请求可能需约一分钟。欲常驻请使用 Starter 或 Standard。
+- **重新部署后数据丢失** — 免费套餐无持久化磁盘。请使用付费套餐，或在支持时从 `/setup/export` 导出配置。
+- **健康检查失败** — 若设置了 `healthCheckPath: /health`，应用须在超时内返回 200。检查启动脚本是否写入配置并用该令牌启动网关。
