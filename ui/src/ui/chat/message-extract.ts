@@ -1,6 +1,8 @@
 import { stripThinkingTags } from "../format.ts";
 
 const ENVELOPE_PREFIX = /^\[([^\]]+)\]\s*/;
+const INBOUND_METADATA_BLOCK =
+  /^(?:Conversation info|Sender|Forwarded message context) \(untrusted metadata\):\n```json\n[\s\S]*?\n```\n*/;
 const ENVELOPE_CHANNELS = [
   "WebChat",
   "WhatsApp",
@@ -41,13 +43,24 @@ export function stripEnvelope(text: string): string {
   return text.slice(match[0].length);
 }
 
+function stripInboundMetadata(text: string): string {
+  let remaining = stripEnvelope(text);
+  while (INBOUND_METADATA_BLOCK.test(remaining)) {
+    remaining = remaining.replace(INBOUND_METADATA_BLOCK, "");
+  }
+  return remaining.trimStart();
+}
+
+function processDisplayText(role: string, text: string): string {
+  return role === "assistant" ? stripThinkingTags(text) : stripInboundMetadata(text);
+}
+
 export function extractText(message: unknown): string | null {
   const m = message as Record<string, unknown>;
   const role = typeof m.role === "string" ? m.role : "";
   const content = m.content;
   if (typeof content === "string") {
-    const processed = role === "assistant" ? stripThinkingTags(content) : stripEnvelope(content);
-    return processed;
+    return processDisplayText(role, content);
   }
   if (Array.isArray(content)) {
     const parts = content
@@ -61,13 +74,11 @@ export function extractText(message: unknown): string | null {
       .filter((v): v is string => typeof v === "string");
     if (parts.length > 0) {
       const joined = parts.join("\n");
-      const processed = role === "assistant" ? stripThinkingTags(joined) : stripEnvelope(joined);
-      return processed;
+      return processDisplayText(role, joined);
     }
   }
   if (typeof m.text === "string") {
-    const processed = role === "assistant" ? stripThinkingTags(m.text) : stripEnvelope(m.text);
-    return processed;
+    return processDisplayText(role, m.text);
   }
   return null;
 }
