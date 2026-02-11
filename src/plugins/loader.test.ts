@@ -480,4 +480,49 @@ describe("loadOpenClawPlugins", () => {
     expect(loaded?.origin).toBe("config");
     expect(overridden?.origin).toBe("bundled");
   });
+
+  it("surfaces actionable hints for missing bundled plugin dependencies", () => {
+    const bundledDir = makeTempDir();
+    const pluginDir = path.join(bundledDir, "missing-deps");
+    fs.mkdirSync(pluginDir, { recursive: true });
+
+    fs.writeFileSync(
+      path.join(pluginDir, "package.json"),
+      JSON.stringify({
+        name: "@openclaw/missing-deps",
+        version: "1.0.0",
+        openclaw: {
+          extensions: ["./index.ts"],
+          install: { npmSpec: "@openclaw/missing-deps" },
+        },
+      }),
+      "utf-8",
+    );
+
+    writePlugin({
+      id: "missing-deps",
+      body: `import "definitely-not-installed";\nexport default { id: "missing-deps", register() {} };`,
+      dir: pluginDir,
+      filename: "index.ts",
+    });
+
+    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = bundledDir;
+
+    const registry = loadOpenClawPlugins({
+      cache: false,
+      config: {
+        plugins: {
+          allow: ["missing-deps"],
+          entries: {
+            "missing-deps": { enabled: true },
+          },
+        },
+      },
+    });
+
+    const plugin = registry.plugins.find((entry) => entry.id === "missing-deps");
+    expect(plugin?.status).toBe("error");
+    expect(plugin?.error).toContain('Missing dependency "definitely-not-installed"');
+    expect(plugin?.error).toContain("openclaw plugins install @openclaw/missing-deps");
+  });
 });

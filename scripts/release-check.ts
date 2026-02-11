@@ -15,6 +15,7 @@ const requiredPathGroups = [
   "dist/build-info.json",
 ];
 const forbiddenPrefixes = ["dist/OpenClaw.app/"];
+const forbiddenSubstrings = ["node_modules/", ".pnpm/"];
 
 type PackageJson = {
   name?: string;
@@ -90,8 +91,10 @@ function main() {
       return paths.has(group) ? [] : [group];
     })
     .toSorted();
-  const forbidden = [...paths].filter((path) =>
-    forbiddenPrefixes.some((prefix) => path.startsWith(prefix)),
+  const forbidden = [...paths].filter(
+    (path) =>
+      forbiddenPrefixes.some((prefix) => path.startsWith(prefix)) ||
+      forbiddenSubstrings.some((substring) => path.includes(substring)),
   );
 
   if (missing.length > 0 || forbidden.length > 0) {

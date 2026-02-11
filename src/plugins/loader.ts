@@ -19,7 +19,7 @@ import {
   resolveMemorySlotDecision,
   type NormalizedPluginsConfig,
 } from "./config-state.js";
-import { discoverOpenClawPlugins } from "./discovery.js";
+import { discoverOpenClawPlugins, type PluginCandidate } from "./discovery.js";
 import { initializeGlobalHookRunner } from "./hook-runner-global.js";
 import { loadPluginManifestRegistry } from "./manifest-registry.js";
 import { createPluginRegistry, type PluginRecord, type PluginRegistry } from "./registry.js";
@@ -41,6 +41,61 @@ export type PluginLoadOptions = {
 const registryCache = new Map<string, PluginRegistry>();
 
 const defaultLogger = () => createSubsystemLogger("plugins");
+
+function extractMissingDependency(err: unknown): string | null {
+  const message =
+    err && typeof err === "object" && "message" in err && typeof err.message === "string"
+      ? err.message
+      : typeof err === "string"
+        ? err
+        : null;
+  if (!message) {
+    return null;
+  }
+
+  const patterns = [
+    /Cannot find module ['"]([^'"]+)['"]/,
+    /Cannot find package ['"]([^'"]+)['"]/,
+    /Cannot find package ['"]([^'"]+)['"] imported from /,
+  ];
+  for (const pattern of patterns) {
+    const match = message.match(pattern);
+    const missing = match?.[1]?.trim();
+    if (missing) {
+      return missing;
+    }
+  }
+
+  return null;
+}
+
+function formatPluginLoadError(params: {
+  pluginId: string;
+  candidate: PluginCandidate;
+  err: unknown;
+}): string {
+  const base = String(params.err);
+  const missing = extractMissingDependency(params.err);
+  if (!missing) {
+    return base;
+  }
+
+  const npmSpec =
+    params.candidate.packageManifest?.install?.npmSpec?.trim() ||
+    params.candidate.packageName?.trim() ||
+    "";
+
+  const hints: string[] = [];
+  if (npmSpec && params.candidate.origin === "bundled") {
+    hints.push(`install: openclaw plugins install ${npmSpec}`);
+  }
+  if (params.candidate.origin === "bundled") {
+    hints.push("if you installed with --omit=optional / --no-optional, reinstall without it");
+  }
+
+  const suffix = hints.length > 0 ? ` (hint: ${hints.join("; ")})` : "";
+  return `Missing dependency "${missing}" while loading plugin "${params.pluginId}": ${base}${suffix}`;
+}
 
 const resolvePluginSdkAlias = (): string | null => {
   try {
@@ -296,15 +351,16 @@ export function loadOpenClawPlugins(options: PluginLoadOptions = {}): PluginRegi
       mod = jiti(candidate.source) as OpenClawPluginModule;
     } catch (err) {
       logger.error(`[plugins] ${record.id} failed to load from ${record.source}: ${String(err)}`);
+      const message = formatPluginLoadError({ pluginId: record.id, candidate, err });
       record.status = "error";
-      record.error = String(err);
+      record.error = message;
       registry.plugins.push(record);
       seenIds.set(pluginId, candidate.origin);
       registry.diagnostics.push({
         level: "error",
         pluginId: record.id,
         source: record.source,
-        message: `failed to load plugin: ${String(err)}`,
+        message: `failed to load plugin: ${message}`,
       });
       continue;
     }
