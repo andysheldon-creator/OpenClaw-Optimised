@@ -28,4 +28,10 @@ describe("signal target normalization", () => {
     expect(looksLikeSignalTargetId("uuid:")).toBe(false);
     expect(looksLikeSignalTargetId("uuid:not-a-uuid")).toBe(false);
   });
+
+  it("does not lowercase base64 Signal group IDs (case-sensitive)", () => {
+    // Synthetic base64-ish group id (Signal group IDs are case-sensitive)
+    const mixedCase = "group:AbCdEfGhIjKlMnOpQrStUvWxYz0123+/AbCdEfGhIjK=";
+    expect(normalizeSignalMessagingTarget(mixedCase)).toBe(mixedCase);
+  });
 });
