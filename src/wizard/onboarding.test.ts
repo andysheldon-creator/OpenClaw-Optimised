@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { RuntimeEnv } from "../runtime.js";
 import type { WizardPrompter } from "./prompts.js";
 import { DEFAULT_BOOTSTRAP_FILENAME } from "../agents/workspace.js";
@@ -74,6 +74,8 @@ vi.mock("../tui/tui.js", () => ({
 }));
 
 describe("runOnboardingWizard", () => {
+  beforeEach(() => vi.clearAllMocks());
+
   it("exits when config is invalid", async () => {
     readConfigFileSnapshot.mockResolvedValueOnce({
       path: "/tmp/.openclaw/openclaw.json",
@@ -283,6 +285,149 @@ describe("runOnboardingWizard", () => {
     );
 
     await fs.rm(workspaceDir, { recursive: true, force: true });
+  });
+
+  it("validates workspace before writing config or setting up channels", async () => {
+    const eaccesError = Object.assign(
+      new Error("EACCES: permission denied, mkdir '/root/workspace'"),
+      { code: "EACCES" },
+    );
+    ensureWorkspaceAndSessions.mockRejectedValueOnce(eaccesError);
+
+    const prompter: WizardPrompter = {
+      intro: vi.fn(async () => {}),
+      outro: vi.fn(async () => {}),
+      note: vi.fn(async () => {}),
+      select: vi.fn(async () => "quickstart"),
+      multiselect: vi.fn(async () => []),
+      text: vi.fn(async () => ""),
+      confirm: vi.fn(async () => false),
+      progress: vi.fn(() => ({ update: vi.fn(), stop: vi.fn() })),
+    };
+
+    const runtime: RuntimeEnv = {
+      log: vi.fn(),
+      error: vi.fn(),
+      exit: vi.fn((code: number) => {
+        throw new Error(`exit:${code}`);
+      }),
+    };
+
+    await expect(
+      runOnboardingWizard(
+        {
+          acceptRisk: true,
+          flow: "quickstart",
+          workspace: "/root/workspace",
+          authChoice: "skip",
+          installDaemon: false,
+          skipProviders: true,
+          skipSkills: true,
+          skipHealth: true,
+          skipUi: true,
+        },
+        runtime,
+        prompter,
+      ),
+    ).rejects.toThrow("exit:1");
+
+    expect(writeConfigFile).not.toHaveBeenCalled();
+    expect(setupChannels).not.toHaveBeenCalled();
+  });
+
+  it("shows workspace error message when directory is not writable", async () => {
+    const eaccesError = Object.assign(
+      new Error("EACCES: permission denied, mkdir '/root/workspace'"),
+      { code: "EACCES" },
+    );
+    ensureWorkspaceAndSessions.mockRejectedValueOnce(eaccesError);
+
+    const prompter: WizardPrompter = {
+      intro: vi.fn(async () => {}),
+      outro: vi.fn(async () => {}),
+      note: vi.fn(async () => {}),
+      select: vi.fn(async () => "quickstart"),
+      multiselect: vi.fn(async () => []),
+      text: vi.fn(async () => ""),
+      confirm: vi.fn(async () => false),
+      progress: vi.fn(() => ({ update: vi.fn(), stop: vi.fn() })),
+    };
+
+    const runtime: RuntimeEnv = {
+      log: vi.fn(),
+      error: vi.fn(),
+      exit: vi.fn((code: number) => {
+        throw new Error(`exit:${code}`);
+      }),
+    };
+
+    await expect(
+      runOnboardingWizard(
+        {
+          acceptRisk: true,
+          flow: "quickstart",
+          workspace: "/root/workspace",
+          authChoice: "skip",
+          installDaemon: false,
+          skipProviders: true,
+          skipSkills: true,
+          skipHealth: true,
+          skipUi: true,
+        },
+        runtime,
+        prompter,
+      ),
+    ).rejects.toThrow("exit:1");
+
+    const outroCalls = (prompter.outro as ReturnType<typeof vi.fn>).mock.calls;
+    expect(outroCalls.length).toBe(1);
+    expect(outroCalls[0][0]).toMatch(/workspace/i);
+  });
+
+  it("re-throws non-permission workspace errors", async () => {
+    const enoentError = Object.assign(new Error("ENOENT: no such file or directory"), {
+      code: "ENOENT",
+    });
+    ensureWorkspaceAndSessions.mockRejectedValueOnce(enoentError);
+
+    const prompter: WizardPrompter = {
+      intro: vi.fn(async () => {}),
+      outro: vi.fn(async () => {}),
+      note: vi.fn(async () => {}),
+      select: vi.fn(async () => "quickstart"),
+      multiselect: vi.fn(async () => []),
+      text: vi.fn(async () => ""),
+      confirm: vi.fn(async () => false),
+      progress: vi.fn(() => ({ update: vi.fn(), stop: vi.fn() })),
+    };
+
+    const runtime: RuntimeEnv = {
+      log: vi.fn(),
+      error: vi.fn(),
+      exit: vi.fn((code: number) => {
+        throw new Error(`exit:${code}`);
+      }),
+    };
+
+    await expect(
+      runOnboardingWizard(
+        {
+          acceptRisk: true,
+          flow: "quickstart",
+          workspace: "/tmp/nonexistent/deep/path",
+          authChoice: "skip",
+          installDaemon: false,
+          skipProviders: true,
+          skipSkills: true,
+          skipHealth: true,
+          skipUi: true,
+        },
+        runtime,
+        prompter,
+      ),
+    ).rejects.toThrow("ENOENT");
+
+    expect(prompter.outro).not.toHaveBeenCalled();
   });
 
   it("shows the web search hint at the end of onboarding", async () => {
