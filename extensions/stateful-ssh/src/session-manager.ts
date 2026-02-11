@@ -354,7 +354,16 @@ export class SSHSessionManager {
     session.buffer = "";
 
     return new Promise((resolve, reject) => {
+      let checkInterval: NodeJS.Timeout | undefined;
+
+      const cleanup = () => {
+        if (checkInterval) clearInterval(checkInterval);
+        clearTimeout(timeout);
+        session.shell.removeListener("data", dataHandler);
+      };
+
       const timeout = setTimeout(() => {
+        cleanup();
         reject(new Error("Command execution timeout"));
       }, this.commandTimeoutMs);
 
@@ -369,11 +378,9 @@ export class SSHSessionManager {
       session.shell.write(`${command}\n`);
 
       // Wait for prompt to appear again
-      const checkInterval = setInterval(() => {
+      checkInterval = setInterval(() => {
         if (session.promptPattern.test(session.buffer)) {
-          clearInterval(checkInterval);
-          clearTimeout(timeout);
-          session.shell.removeListener("data", dataHandler);
+          cleanup();
 
           // Clean up the output
           let output = session.buffer;
