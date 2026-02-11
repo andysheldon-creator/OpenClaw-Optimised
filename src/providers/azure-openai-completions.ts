@@ -66,9 +66,13 @@ function clampReasoning(effort: string | undefined): string | undefined {
 
 function hasToolHistory(messages: Array<{ role: string; content: unknown }>): boolean {
   for (const msg of messages) {
-    if (msg.role === "toolResult") return true;
+    if (msg.role === "toolResult") {
+      return true;
+    }
     if (msg.role === "assistant" && Array.isArray(msg.content)) {
-      if (msg.content.some((b: Record<string, unknown>) => b.type === "toolCall")) return true;
+      if (msg.content.some((b: Record<string, unknown>) => b.type === "toolCall")) {
+        return true;
+      }
     }
   }
   return false;
@@ -87,7 +91,9 @@ function convertTools(tools: Array<Record<string, unknown>>): unknown[] {
 }
 
 function mapStopReason(reason: string | null): string {
-  if (reason === null) return "stop";
+  if (reason === null) {
+    return "stop";
+  }
   switch (reason) {
     case "stop":
       return "stop";
@@ -188,7 +194,7 @@ function buildParams(model: any, context: any, options: any): any {
 export const streamAzureOpenAICompletions = (model: any, context: any, options?: any) => {
   const stream = createAssistantMessageEventStream();
 
-  (async () => {
+  void (async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const output: any = {
       role: "assistant",
@@ -216,6 +222,7 @@ export const streamAzureOpenAICompletions = (model: any, context: any, options?:
 
       const openaiStream = (await client.chat.completions.create(params, {
         signal: options?.signal,
+        // oxlint-disable-next-line no-explicit-any -- Azure streaming chunks need dynamic property access
       })) as unknown as AsyncIterable<Record<string, any>>;
 
       stream.push({ type: "start", partial: output });
@@ -227,7 +234,9 @@ export const streamAzureOpenAICompletions = (model: any, context: any, options?:
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const finishCurrentBlock = (block: any) => {
-        if (!block) return;
+        if (!block) {
+          return;
+        }
         if (block.type === "text") {
           stream.push({
             type: "text_end",
@@ -272,7 +281,9 @@ export const streamAzureOpenAICompletions = (model: any, context: any, options?:
         }
 
         const choice = chunk.choices[0];
-        if (!choice) continue;
+        if (!choice) {
+          continue;
+        }
 
         if (choice.finish_reason) {
           output.stopReason = mapStopReason(choice.finish_reason);
@@ -361,8 +372,12 @@ export const streamAzureOpenAICompletions = (model: any, context: any, options?:
                 });
               }
               if (currentBlock.type === "toolCall") {
-                if (toolCall.id) currentBlock.id = toolCall.id;
-                if (toolCall.function?.name) currentBlock.name = toolCall.function.name;
+                if (toolCall.id) {
+                  currentBlock.id = toolCall.id;
+                }
+                if (toolCall.function?.name) {
+                  currentBlock.name = toolCall.function.name;
+                }
                 let toolDelta = "";
                 if (toolCall.function?.arguments) {
                   toolDelta = toolCall.function.arguments;
@@ -386,7 +401,7 @@ export const streamAzureOpenAICompletions = (model: any, context: any, options?:
               if (detail.type === "reasoning.encrypted" && detail.id && detail.data) {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const matchingToolCall = output.content.find(
-                  (b: any) => b.type === "toolCall" && b.id === detail.id,
+                  (b: Record<string, unknown>) => b.type === "toolCall" && b.id === detail.id,
                 );
                 if (matchingToolCall) {
                   matchingToolCall.thoughtSignature = JSON.stringify(detail);
@@ -409,7 +424,9 @@ export const streamAzureOpenAICompletions = (model: any, context: any, options?:
       stream.push({ type: "done", reason: output.stopReason, message: output });
       stream.end();
     } catch (error) {
-      for (const block of output.content) delete block.index;
+      for (const block of output.content) {
+        delete block.index;
+      }
       output.stopReason = options?.signal?.aborted ? "aborted" : "error";
       output.errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
       stream.push({ type: "error", reason: output.stopReason, error: output });
