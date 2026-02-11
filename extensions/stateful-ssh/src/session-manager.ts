@@ -48,6 +48,119 @@ export class SSHSessionManager {
   }
 
   /**
+   * Parses ~/.ssh/config to find the IdentityFile for a given host.
+   * Supports Host patterns and HostName directives.
+   */
+  private async findKeyFromSSHConfig(host: string): Promise<string | null> {
+    const sshConfigPath = `${homedir()}/.ssh/config`;
+
+    try {
+      const configContent = await readFile(sshConfigPath, "utf-8");
+      const lines = configContent.split("\n");
+
+      let currentHost: string | null = null;
+      let currentHostName: string | null = null;
+      let identityFile: string | null = null;
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+
+        // Skip comments and empty lines
+        if (trimmed.startsWith("#") || trimmed === "") {
+          continue;
+        }
+
+        // Parse "Host" directive
+        const hostMatch = trimmed.match(/^Host\s+(.+)$/i);
+        if (hostMatch) {
+          // Check if previous host matched and had an IdentityFile
+          if (currentHost && identityFile && this.matchesHost(host, currentHost, currentHostName)) {
+            return await this.expandAndReadKey(identityFile);
+          }
+
+          // Start new host block
+          currentHost = hostMatch[1].trim();
+          currentHostName = null;
+          identityFile = null;
+          continue;
+        }
+
+        // Parse "HostName" directive
+        const hostNameMatch = trimmed.match(/^HostName\s+(.+)$/i);
+        if (hostNameMatch && currentHost) {
+          currentHostName = hostNameMatch[1].trim();
+          continue;
+        }
+
+        // Parse "IdentityFile" directive
+        const identityMatch = trimmed.match(/^IdentityFile\s+(.+)$/i);
+        if (identityMatch && currentHost) {
+          identityFile = identityMatch[1].trim();
+          continue;
+        }
+      }
+
+      // Check last host block
+      if (currentHost && identityFile && this.matchesHost(host, currentHost, currentHostName)) {
+        return await this.expandAndReadKey(identityFile);
+      }
+
+      console.log(`[SSH] No matching host found in ${sshConfigPath} for ${host}`);
+      return null;
+    } catch (error) {
+      // Config file doesn't exist or not readable
+      console.log(`[SSH] Could not read ${sshConfigPath}: ${error instanceof Error ? error.message : "unknown error"}`);
+      return null;
+    }
+  }
+
+  /**
+   * Checks if the given host matches a Host pattern or HostName.
+   */
+  private matchesHost(targetHost: string, hostPattern: string, hostName: string | null): boolean {
+    // Direct match with Host pattern
+    if (targetHost === hostPattern) {
+      return true;
+    }
+
+    // Match with HostName if specified
+    if (hostName && targetHost === hostName) {
+      return true;
+    }
+
+    // Support wildcard patterns (simple implementation)
+    if (hostPattern.includes("*")) {
+      const regex = new RegExp("^" + hostPattern.replace(/\*/g, ".*") + "$");
+      if (regex.test(targetHost)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Expands path variables and reads the key file.
+   */
+  private async expandAndReadKey(keyPath: string): Promise<string | null> {
+    // Expand ~ to home directory
+    let expandedPath = keyPath.replace(/^~/, homedir());
+
+    // Expand $HOME or ${HOME}
+    expandedPath = expandedPath.replace(/\$HOME|\$\{HOME\}/g, homedir());
+
+    try {
+      await access(expandedPath, constants.R_OK);
+      const keyContent = await readFile(expandedPath, "utf-8");
+      console.log(`[SSH] Found SSH key from config: ${expandedPath}`);
+      return keyContent;
+    } catch (error) {
+      console.log(`[SSH] Could not read key file ${expandedPath}: ${error instanceof Error ? error.message : "unknown error"}`);
+      return null;
+    }
+  }
+
+  /**
    * Searches for default SSH private keys in the standard locations.
    * Mimics SSH client behavior by checking common key filenames.
    */
@@ -92,14 +205,23 @@ export class SSHSessionManager {
 
     // Auto-detect SSH key if no authentication method provided
     if (!config.password && !config.privateKey) {
-      console.log("[SSH] No authentication provided, searching for default SSH key...");
-      const defaultKey = await this.findDefaultPrivateKey();
-      if (defaultKey) {
-        config.privateKey = defaultKey;
+      console.log(`[SSH] No authentication provided, searching for SSH key for host: ${config.host}`);
+
+      // 1. First, try to find key from ~/.ssh/config
+      let detectedKey = await this.findKeyFromSSHConfig(config.host);
+
+      // 2. If not found in config, fall back to standard key locations
+      if (!detectedKey) {
+        console.log("[SSH] No match in SSH config, trying default key locations...");
+        detectedKey = await this.findDefaultPrivateKey();
+      }
+
+      if (detectedKey) {
+        config.privateKey = detectedKey;
         console.log("[SSH] Using automatically detected SSH key");
       } else {
         throw new Error(
-          "No authentication method provided. Either provide a password, privateKey, or ensure a default SSH key exists in ~/.ssh/"
+          `No authentication method provided for ${config.host}. Either provide a password, privateKey, or configure the host in ~/.ssh/config, or ensure a default SSH key exists in ~/.ssh/`
         );
       }
     }
