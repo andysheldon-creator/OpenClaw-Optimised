@@ -413,6 +413,15 @@ export type PluginHookAfterToolCallEvent = {
   durationMs?: number;
 };
 
+export type PluginHookAfterToolCallResult = {
+  /** Replace the tool result with this value. LLM will see this instead of original. */
+  result?: unknown;
+  /** Block the tool result entirely. Replaces result with a warning message. */
+  block?: boolean;
+  /** Reason for blocking (included in the replacement message). */
+  blockReason?: string;
+};
+
 // tool_result_persist hook
 export type PluginHookToolResultPersistContext = {
   agentId?: string;
@@ -505,7 +514,7 @@ export type PluginHookHandlerMap = {
   after_tool_call: (
     event: PluginHookAfterToolCallEvent,
     ctx: PluginHookToolContext,
-  ) => Promise<void> | void;
+  ) => Promise<PluginHookAfterToolCallResult | void> | PluginHookAfterToolCallResult | void;
   tool_result_persist: (
     event: PluginHookToolResultPersistEvent,
     ctx: PluginHookToolResultPersistContext,
