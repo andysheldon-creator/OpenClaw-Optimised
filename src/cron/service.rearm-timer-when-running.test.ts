@@ -88,9 +88,14 @@ describe("CronService - timer re-arm when running (#12025)", () => {
     // silently killing the scheduler.
     await onTimer(state);
 
-    // The timer must be re-armed so the scheduler continues ticking.
+    // The timer must be re-armed so the scheduler continues ticking,
+    // with a fixed 60s delay to avoid hot-looping.
     expect(state.timer).not.toBeNull();
     expect(timeoutSpy).toHaveBeenCalled();
+    const delays = timeoutSpy.mock.calls
+      .map(([, delay]) => delay)
+      .filter((d): d is number => typeof d === "number");
+    expect(delays).toContain(60_000);
 
     // state.running should still be true (onTimer bailed out, didn't
     // touch it — the original caller's finally block handles that).

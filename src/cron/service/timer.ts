@@ -163,8 +163,19 @@ export async function onTimer(state: CronServiceState) {
     // exceeding MAX_TIMER_DELAY_MS) causes the clamped 60 s timer to fire
     // while `running` is true.  The early return then leaves no timer set,
     // silently killing the scheduler until the next gateway restart.
+    //
+    // We use MAX_TIMER_DELAY_MS as a fixed re-check interval to avoid a
+    // zero-delay hot-loop when past-due jobs are waiting for the current
+    // execution to finish.
     // See: https://github.com/openclaw/openclaw/issues/12025
-    armTimer(state);
+    if (state.timer) clearTimeout(state.timer);
+    state.timer = setTimeout(async () => {
+      try {
+        await onTimer(state);
+      } catch (err) {
+        state.deps.log.error({ err: String(err) }, "cron: timer tick failed");
+      }
+    }, MAX_TIMER_DELAY_MS);
     return;
   }
   state.running = true;

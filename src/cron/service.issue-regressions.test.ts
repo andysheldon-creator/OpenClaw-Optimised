@@ -234,15 +234,14 @@ describe("Cron issue regressions", () => {
     await onTimer(state);
 
     // The timer should be re-armed (not null) so the scheduler stays alive,
-    // but the delay must be > 0 to avoid a hot-loop.  armTimer() clamps to
-    // MAX_TIMER_DELAY_MS (60s) when the job is past-due, preventing a
-    // zero-delay spin.  See #12025.
+    // with a fixed MAX_TIMER_DELAY_MS (60s) delay to avoid a hot-loop when
+    // past-due jobs are waiting.  See #12025.
     expect(timeoutSpy).toHaveBeenCalled();
     expect(state.timer).not.toBeNull();
     const delays = timeoutSpy.mock.calls
       .map(([, delay]) => delay)
       .filter((d): d is number => typeof d === "number");
-    expect(delays.every((d) => d > 0)).toBe(true);
+    expect(delays).toContain(60_000);
     timeoutSpy.mockRestore();
     await store.cleanup();
   });
