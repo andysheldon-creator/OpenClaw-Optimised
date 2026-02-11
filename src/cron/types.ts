@@ -35,6 +35,8 @@ export type CronPayload =
       channel?: CronMessageChannel;
       to?: string;
       bestEffortDeliver?: boolean;
+      /** Optional JSON Schema for structured output. */
+      responseSchema?: Record<string, unknown>;
     };
 
 export type CronPayloadPatch =
@@ -50,6 +52,7 @@ export type CronPayloadPatch =
       channel?: CronMessageChannel;
       to?: string;
       bestEffortDeliver?: boolean;
+      responseSchema?: Record<string, unknown>;
     };
 
 export type CronJobState = {
