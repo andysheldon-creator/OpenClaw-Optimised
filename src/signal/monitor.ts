@@ -2,9 +2,12 @@ import type { ReplyPayload } from "../auto-reply/types.js";
 import type { OpenClawConfig } from "../config/config.js";
 import type { SignalReactionNotificationMode } from "../config/types.js";
 import type { RuntimeEnv } from "../runtime.js";
+import { resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { chunkTextWithMode, resolveChunkMode, resolveTextChunkLimit } from "../auto-reply/chunk.js";
+import { createPersistentHistoryMap } from "../auto-reply/reply/history-persistence.js";
 import { DEFAULT_GROUP_HISTORY_LIMIT, type HistoryEntry } from "../auto-reply/reply/history.js";
 import { loadConfig } from "../config/config.js";
+import { resolveChannelHistoriesPath } from "../config/sessions/paths.js";
 import { waitForTransportReady } from "../infra/transport-ready.js";
 import { saveMediaBuffer } from "../media/store.js";
 import { normalizeE164 } from "../utils.js";
@@ -285,7 +288,9 @@ export async function monitorSignalProvider(opts: MonitorSignalOpts = {}): Promi
       cfg.messages?.groupChat?.historyLimit ??
       DEFAULT_GROUP_HISTORY_LIMIT,
   );
-  const groupHistories = new Map<string, HistoryEntry[]>();
+  const groupHistories = createPersistentHistoryMap<HistoryEntry>(
+    resolveChannelHistoriesPath("signal", accountInfo.accountId, resolveDefaultAgentId(cfg)),
+  );
   const textLimit = resolveTextChunkLimit(cfg, "signal", accountInfo.accountId);
   const chunkMode = resolveChunkMode(cfg, "signal", accountInfo.accountId);
   const baseUrl = opts.baseUrl?.trim() || accountInfo.baseUrl;

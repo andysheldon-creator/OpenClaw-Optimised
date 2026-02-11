@@ -9,6 +9,7 @@ import type { TelegramContext } from "./bot/types.js";
 import { resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { resolveTextChunkLimit } from "../auto-reply/chunk.js";
 import { isControlCommandMessage } from "../auto-reply/command-detection.js";
+import { createPersistentHistoryMap } from "../auto-reply/reply/history-persistence.js";
 import { DEFAULT_GROUP_HISTORY_LIMIT, type HistoryEntry } from "../auto-reply/reply/history.js";
 import {
   isNativeCommandsExplicitlyDisabled,
@@ -20,7 +21,11 @@ import {
   resolveChannelGroupPolicy,
   resolveChannelGroupRequireMention,
 } from "../config/group-policy.js";
-import { loadSessionStore, resolveStorePath } from "../config/sessions.js";
+import {
+  loadSessionStore,
+  resolveChannelHistoriesPath,
+  resolveStorePath,
+} from "../config/sessions.js";
 import { danger, logVerbose, shouldLogVerbose } from "../globals.js";
 import { formatUncaughtError } from "../infra/errors.js";
 import { enqueueSystemEvent } from "../infra/system-events.js";
@@ -229,7 +234,9 @@ export function createTelegramBot(opts: TelegramBotOptions) {
       cfg.messages?.groupChat?.historyLimit ??
       DEFAULT_GROUP_HISTORY_LIMIT,
   );
-  const groupHistories = new Map<string, HistoryEntry[]>();
+  const groupHistories = createPersistentHistoryMap<HistoryEntry>(
+    resolveChannelHistoriesPath("telegram", account.accountId, resolveDefaultAgentId(cfg)),
+  );
   const textLimit = resolveTextChunkLimit(cfg, "telegram", account.accountId);
   const dmPolicy = telegramCfg.dmPolicy ?? "pairing";
   const allowFrom = opts.allowFrom ?? telegramCfg.allowFrom;

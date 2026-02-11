@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import type { IMessagePayload, MonitorIMessageOpts } from "./types.js";
+import { resolveDefaultAgentId } from "../../agents/agent-scope.js";
 import { resolveHumanDelayConfig } from "../../agents/identity.js";
 import { resolveTextChunkLimit } from "../../auto-reply/chunk.js";
 import { hasControlCommand } from "../../auto-reply/command-detection.js";
@@ -13,6 +14,7 @@ import {
   createInboundDebouncer,
   resolveInboundDebounceMs,
 } from "../../auto-reply/inbound-debounce.js";
+import { createPersistentHistoryMap } from "../../auto-reply/reply/history-persistence.js";
 import {
   buildPendingHistoryContextFromMap,
   clearHistoryEntriesIfEnabled,
@@ -32,7 +34,11 @@ import {
   resolveChannelGroupPolicy,
   resolveChannelGroupRequireMention,
 } from "../../config/group-policy.js";
-import { readSessionUpdatedAt, resolveStorePath } from "../../config/sessions.js";
+import {
+  readSessionUpdatedAt,
+  resolveChannelHistoriesPath,
+  resolveStorePath,
+} from "../../config/sessions.js";
 import { danger, logVerbose, shouldLogVerbose } from "../../globals.js";
 import { waitForTransportReady } from "../../infra/transport-ready.js";
 import { mediaKindFromMime } from "../../media/constants.js";
@@ -170,7 +176,9 @@ export async function monitorIMessageProvider(opts: MonitorIMessageOpts = {}): P
       cfg.messages?.groupChat?.historyLimit ??
       DEFAULT_GROUP_HISTORY_LIMIT,
   );
-  const groupHistories = new Map<string, HistoryEntry[]>();
+  const groupHistories = createPersistentHistoryMap<HistoryEntry>(
+    resolveChannelHistoriesPath("imessage", accountInfo.accountId, resolveDefaultAgentId(cfg)),
+  );
   const sentMessageCache = new SentMessageCache();
   const textLimit = resolveTextChunkLimit(cfg, "imessage", accountInfo.accountId);
   const allowFrom = normalizeAllowList(opts.allowFrom ?? imessageCfg.allowFrom);
