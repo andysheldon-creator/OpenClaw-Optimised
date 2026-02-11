@@ -42,6 +42,33 @@ async function getRelayPort() {
   return n
 }
 
+function sanitizeHost(raw) {
+  let h = raw.trim()
+  // Strip any scheme prefix (http://, https://, ws://)
+  h = h.replace(/^(?:https?|wss?):\/\//, '')
+  // Strip trailing path/slash
+  h = h.replace(/\/.*$/, '')
+  // Strip port if user accidentally included it
+  if (h.startsWith('[')) {
+    // IPv6 with brackets — strip port after ]
+    h = h.replace(/\]:\d+$/, ']')
+  } else if ((h.match(/:/g) || []).length === 1) {
+    // IPv4/hostname with single colon = has port
+    h = h.replace(/:\d+$/, '')
+  }
+  return h || '127.0.0.1'
+}
+
+async function getRelayHost() {
+  const stored = await chrome.storage.local.get(['relayHost'])
+  const raw = (stored.relayHost || '').trim()
+  if (!raw) return '127.0.0.1'
+  const host = sanitizeHost(raw)
+  // Wrap bare IPv6 in brackets for URL templates
+  if (host.includes(':') && !host.startsWith('[')) return `[${host}]`
+  return host
+}
+
 function setBadge(tabId, kind) {
   const cfg = BADGE[kind]
   void chrome.action.setBadgeText({ tabId, text: cfg.text })
@@ -55,8 +82,9 @@ async function ensureRelayConnection() {
 
   relayConnectPromise = (async () => {
     const port = await getRelayPort()
-    const httpBase = `http://127.0.0.1:${port}`
-    const wsUrl = `ws://127.0.0.1:${port}/extension`
+    const host = await getRelayHost()
+    const httpBase = `http://${host}:${port}`
+    const wsUrl = `ws://${host}:${port}/extension`
 
     // Fast preflight: is the relay server up?
     try {
