@@ -118,11 +118,21 @@ export function recomputeNextRuns(state: CronServiceState): boolean {
       job.state.runningAtMs = undefined;
       changed = true;
     }
-    // Only recompute if nextRunAtMs is missing or already past-due.
-    // Preserving a still-future nextRunAtMs avoids accidentally advancing
-    // a job that hasn't fired yet (e.g. during restart recovery).
     const nextRun = job.state.nextRunAtMs;
-    const isDueOrMissing = nextRun === undefined || now >= nextRun;
+    let isDueOrMissing: boolean;
+
+    if (job.schedule.kind === "every") {
+      // For "every" schedules, always validate the nextRunAtMs is correct
+      // based on the anchor and interval. This ensures proper recovery
+      // after restart even if the timing drifted during downtime.
+      isDueOrMissing = true;
+    } else {
+      // For cron and at schedules, only recompute if missing or past-due.
+      // Preserving a still-future nextRunAtMs avoids accidentally advancing
+      // a job that hasn't fired yet (e.g. during restart recovery).
+      isDueOrMissing = nextRun === undefined || now >= nextRun;
+    }
+
     if (isDueOrMissing) {
       const newNext = computeJobNextRunAtMs(job, now);
       if (job.state.nextRunAtMs !== newNext) {

@@ -14,10 +14,15 @@ import { ensureLoaded, persist, warnIfDisabled } from "./store.js";
 import { armTimer, emit, executeJob, runMissedJobs, stopTimer, wake } from "./timer.js";
 
 export async function start(state: CronServiceState) {
-  await locked(state, async () => {
+  // Bug fix #13036: Don't hold the lock during runMissedJobs (which executes jobs).
+  // This was causing job state updates to not persist properly, leading to
+  // "every" schedules not re-arming correctly after restart.
+
+  // Phase 1: Load store and clear stale markers under the lock.
+  const shouldRunMissed = await locked(state, async () => {
     if (!state.deps.cronEnabled) {
       state.deps.log.info({ enabled: false }, "cron: disabled");
-      return;
+      return false;
     }
     await ensureLoaded(state, { skipRecompute: true });
     const jobs = state.store?.jobs ?? [];
@@ -30,7 +35,19 @@ export async function start(state: CronServiceState) {
         job.state.runningAtMs = undefined;
       }
     }
-    await runMissedJobs(state);
+    await persist(state);
+    return true;
+  });
+
+  if (!shouldRunMissed) {
+    return;
+  }
+
+  // Phase 2: Run missed jobs outside the lock (runMissedJobs manages its own locking).
+  await runMissedJobs(state);
+
+  // Phase 3: Recompute and arm timer under the lock.
+  await locked(state, async () => {
     recomputeNextRuns(state);
     await persist(state);
     armTimer(state);
