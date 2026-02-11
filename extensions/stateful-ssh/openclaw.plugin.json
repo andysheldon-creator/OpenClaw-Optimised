@@ -1,0 +1,24 @@
+{
+  "id": "stateful-ssh",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "maxSessions": {
+        "type": "number",
+        "description": "Maximum number of concurrent SSH sessions",
+        "default": 5
+      },
+      "sessionTimeoutMs": {
+        "type": "number",
+        "description": "Timeout for idle sessions in milliseconds",
+        "default": 600000
+      },
+      "commandTimeoutMs": {
+        "type": "number",
+        "description": "Timeout for individual commands in milliseconds",
+        "default": 30000
+      }
+    }
+  }
+}
