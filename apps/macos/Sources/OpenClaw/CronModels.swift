@@ -22,7 +22,9 @@ enum CronDeliveryMode: String, CaseIterable, Identifiable, Codable {
     case none
     case announce
 
-    var id: String { self.rawValue }
+    var id: String {
+        self.rawValue
+    }
 }
 
 struct CronDelivery: Codable, Equatable {
@@ -102,11 +104,11 @@ enum CronSchedule: Codable, Equatable {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty { return nil }
         if let date = makeIsoFormatter(withFractional: true).date(from: trimmed) { return date }
-        return makeIsoFormatter(withFractional: false).date(from: trimmed)
+        return self.makeIsoFormatter(withFractional: false).date(from: trimmed)
     }
 
     static func formatIsoDate(_ date: Date) -> String {
-        makeIsoFormatter(withFractional: false).string(from: date)
+        self.makeIsoFormatter(withFractional: false).string(from: date)
     }
 
     private static func makeIsoFormatter(withFractional: Bool) -> ISO8601DateFormatter {

@@ -47,7 +47,9 @@ struct CronJobEditor: View {
     @State var payloadKind: PayloadKind = .systemEvent
     @State var systemEventText: String = ""
     @State var agentMessage: String = ""
-    enum DeliveryChoice: String, CaseIterable, Identifiable { case announce, none; var id: String { rawValue } }
+    enum DeliveryChoice: String, CaseIterable, Identifiable { case announce, none; var id: String {
+        rawValue
+    } }
     @State var deliveryMode: DeliveryChoice = .announce
     @State var channel: String = "last"
     @State var to: String = ""
@@ -248,7 +250,6 @@ struct CronJobEditor: View {
                             }
                         }
                     }
-
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, 2)
