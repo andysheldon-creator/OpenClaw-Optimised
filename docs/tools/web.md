@@ -46,7 +46,7 @@ Set the provider in config:
   tools: {
     web: {
       search: {
-        provider: "brave", // or "perplexity", "nimble"
+        provider: "brave", // or "perplexity", "grok", "nimble"
       },
     },
   },
