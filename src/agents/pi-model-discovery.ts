@@ -72,6 +72,9 @@ function convertProfileToSdkCredential(
       return { type: "api_key", key: profile.token };
     }
     case "oauth": {
+      if (!profile.access && !profile.refresh) {
+        return null;
+      }
       const cred: Record<string, unknown> = {
         type: "oauth",
         access: profile.access,
