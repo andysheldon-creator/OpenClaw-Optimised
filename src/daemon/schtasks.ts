@@ -397,7 +397,24 @@ export async function readScheduledTaskRuntime(
   }
   const parsed = parseSchtasksQuery(res.stdout || "");
   const statusRaw = parsed.status?.toLowerCase();
-  const status = statusRaw === "running" ? "running" : statusRaw ? "stopped" : "unknown";
+  // Windows localizes schtasks status text — "Running" in English,
+  // "Wird ausgeführt" in German, etc. Check known translations and
+  // common patterns. Result code 0x41301 also indicates running. (#14169)
+  const runningPatterns = [
+    "running", // English
+    "wird ausgeführt", // German
+    "en cours", // French
+    "en ejecución", // Spanish
+    "in esecuzione", // Italian
+    "実行中", // Japanese
+    "正在运行", // Chinese
+    "실행 중", // Korean
+    "выполняется", // Russian
+  ];
+  const isRunning =
+    (statusRaw && runningPatterns.some((p) => statusRaw.includes(p))) ||
+    parsed.lastRunResult === "0x41301";
+  const status = isRunning ? "running" : statusRaw ? "stopped" : "unknown";
   return {
     status,
     state: parsed.status,
