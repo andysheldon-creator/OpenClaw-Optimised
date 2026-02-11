@@ -258,10 +258,8 @@ export const streamAzureOpenAICompletions = (model: any, context: any, options?:
       for await (const chunk of openaiStream) {
         if (chunk.usage) {
           const cachedTokens = chunk.usage.prompt_tokens_details?.cached_tokens || 0;
-          const reasoningTokens =
-            chunk.usage.completion_tokens_details?.reasoning_tokens || 0;
           const inputTokens = (chunk.usage.prompt_tokens || 0) - cachedTokens;
-          const outputTokens = (chunk.usage.completion_tokens || 0) + reasoningTokens;
+          const outputTokens = chunk.usage.completion_tokens || 0;
           output.usage = {
             input: inputTokens,
             output: outputTokens,
