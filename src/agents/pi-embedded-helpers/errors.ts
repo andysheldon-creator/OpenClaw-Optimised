@@ -691,6 +691,10 @@ export function classifyFailoverReason(raw: string): FailoverReason | null {
   if (isImageSizeError(raw)) {
     return null;
   }
+  if (isTransientHttpError(raw)) {
+    // Treat transient 5xx provider failures as retryable transport issues.
+    return "timeout";
+  }
   if (isRateLimitErrorMessage(raw)) {
     return "rate_limit";
   }
