@@ -347,17 +347,17 @@ The Gateway watches `~/.openclaw/openclaw.json` and applies changes automaticall
 
 ### What hot-applies vs what needs a restart
 
-Most fields hot-apply without downtime:
+Most fields hot-apply without downtime. In `hybrid` mode, restart-required changes are handled automatically.
 
-- **Channels** — `web`, `telegram`, `discord`, `signal`, `imessage`, `slack`
-- **Agent & models** — `agent`, `models`, `routing`
-- **Automation** — `hooks`, `cron`, `heartbeat`
-- **Sessions & messages** — `session`, `messages`
-- **Tools & UI** — `browser`, `skills`, `ui`, `talk`, `logging`
-
-<Warning>
-These fields **require a Gateway restart**: `gateway` (port, bind, auth, tailscale), `discovery`, `canvasHost`, `plugins`. In `hybrid` mode this happens automatically.
-</Warning>
+| Category            | Fields                                                      | Restart needed? |
+| ------------------- | ----------------------------------------------------------- | --------------- |
+| Channels            | `web`, `telegram`, `discord`, `signal`, `imessage`, `slack` | No              |
+| Agent & models      | `agent`, `models`, `routing`                                | No              |
+| Automation          | `hooks`, `cron`, `heartbeat`                                | No              |
+| Sessions & messages | `session`, `messages`                                       | No              |
+| Tools & UI          | `browser`, `skills`, `ui`, `talk`, `logging`                | No              |
+| Gateway server      | `gateway` (port, bind, auth, tailscale)                     | **Yes**         |
+| Infrastructure      | `discovery`, `canvasHost`, `plugins`                        | **Yes**         |
 
 ## Config RPC (programmatic updates)
 
