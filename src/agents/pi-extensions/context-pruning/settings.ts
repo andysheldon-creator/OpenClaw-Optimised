@@ -11,6 +11,7 @@ export type ContextPruningConfig = {
   /** TTL to consider cache expired (duration string, default unit: minutes). */
   ttl?: string;
   keepLastAssistants?: number;
+  forcePruneRatio?: number;
   softTrimRatio?: number;
   hardClearRatio?: number;
   minPrunableToolChars?: number;
@@ -30,6 +31,7 @@ export type EffectiveContextPruningSettings = {
   mode: Exclude<ContextPruningMode, "off">;
   ttlMs: number;
   keepLastAssistants: number;
+  forcePruneRatio?: number;
   softTrimRatio: number;
   hardClearRatio: number;
   minPrunableToolChars: number;
@@ -86,6 +88,9 @@ export function computeEffectiveSettings(raw: unknown): EffectiveContextPruningS
 
   if (typeof cfg.keepLastAssistants === "number" && Number.isFinite(cfg.keepLastAssistants)) {
     s.keepLastAssistants = Math.max(0, Math.floor(cfg.keepLastAssistants));
+  }
+  if (typeof cfg.forcePruneRatio === "number" && Number.isFinite(cfg.forcePruneRatio)) {
+    s.forcePruneRatio = Math.min(1, Math.max(0, cfg.forcePruneRatio));
   }
   if (typeof cfg.softTrimRatio === "number" && Number.isFinite(cfg.softTrimRatio)) {
     s.softTrimRatio = Math.min(1, Math.max(0, cfg.softTrimRatio));
