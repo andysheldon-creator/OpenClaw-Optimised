@@ -10,18 +10,29 @@
 
 ## 🧪 Testing Methods
 
-### Method 1: Via Telegram Bot
+### Method 1: Via Telegram Bot (Auto Key Detection - Recommended!)
 
 1. Open Telegram and message `@RaspClawThomas_bot`
 2. Ask the bot to use SSH tools:
 
 ```
-Hey, please test the new SSH tools.
+Hey, please test the SSH tools.
+Connect to 192.168.2.134 as user 'pi', run 'pwd' and 'whoami', then close the connection.
+```
+
+**✨ NEW**: No password or key needed! The plugin automatically detects and uses SSH keys from `~/.ssh/` (like a normal SSH client).
+
+**⚠️ Important**: Do NOT use "localhost" - the bot runs inside a Docker container, so localhost refers to the container, not the Raspberry Pi host. Always use the actual IP address (192.168.2.134) or hostname.
+
+### Method 1b: With Password (Legacy)
+
+If you want to test password authentication:
+
+```
+Hey, please test the SSH tools.
 Connect to 192.168.2.134 as user 'pi' with password 'power123',
 run 'pwd' and 'whoami', then close the connection.
 ```
-
-**⚠️ Important**: Do NOT use "localhost" - the bot runs inside a Docker container, so localhost refers to the container, not the Raspberry Pi host. Always use the actual IP address (192.168.2.134) or hostname.
 
 ### Method 2: Via WhatsApp
 
@@ -233,8 +244,15 @@ docker compose -f ~/moltbot/docker-compose.yml restart openclaw-gateway
   - **Deployed**: Yes, container restarted
 - ✅ **VERIFIED (11:20 CET)**: Tools are now visible to bot! `open_ssh_session` found and called successfully
   - Initial test with "localhost" failed (expected - Docker networking)
-  - Testing now with actual IP: 192.168.2.134
-- ⏳ Awaiting successful connection test with correct IP
+  - Testing with actual IP: 192.168.2.134 ✅ WORKS!
+- ✅ **SSH KEY AUTH (11:25 CET)**: Dedicated bot SSH key generated and mounted
+  - Key: `/home/node/.ssh/bot_key` (Ed25519)
+  - Password-free authentication working
+- ✅ **AUTO KEY DETECTION (11:40 CET)**: Plugin now auto-detects SSH keys!
+  - No password or key content needed in commands
+  - Mimics standard SSH client behavior
+  - Searches `~/.ssh/` automatically (bot_key, id_ed25519, id_rsa, etc.)
+  - **Usage**: Just say "Connect to 192.168.2.134 as user 'pi'" - that's it!
 
 ## 📝 Notes
 
