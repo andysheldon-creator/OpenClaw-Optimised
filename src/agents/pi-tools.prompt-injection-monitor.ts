@@ -1,12 +1,14 @@
 import { Type } from "@sinclair/typebox";
-import { appendFileSync } from "node:fs";
 import type { OpenClawConfig } from "../config/config.js";
 import type { AnyAgentTool } from "./pi-tools.types.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { extractToolResultText } from "./pi-embedded-subscribe.tools.js";
 import {
   createRedactedToolResult,
+  createWarningToolResult,
+  getPiMonitorAction,
   isPiMonitorEnabled,
+  logIncident,
   PROMPT_INJECTION_THRESHOLD,
   scoreForPromptInjection,
 } from "./prompt-injection-monitor.js";
@@ -15,17 +17,6 @@ import { jsonResult } from "./tools/common.js";
 const log = createSubsystemLogger("agents/prompt-injection-monitor");
 
 const MIN_TEXT_LENGTH = 50;
-const DEBUG_LOG = "/tmp/openclaw-pi-monitor.log";
-
-function debugLog(msg: string) {
-  const ts = new Date().toISOString();
-  const line = `[${ts}] ${msg}\n`;
-  try {
-    appendFileSync(DEBUG_LOG, line);
-  } catch {
-    // ignore write errors
-  }
-}
 
 export type MonitorState = {
   skipNext: boolean;
@@ -44,61 +35,71 @@ export function wrapToolWithPromptInjectionMonitor(
     return tool;
   }
   if (!isPiMonitorEnabled(state.cfg)) {
-    debugLog(`SKIP wrapping tool "${tool.name}" — PI monitor not enabled`);
     return tool;
   }
-  // Need either explicit API key or config to resolve from
-  if (!process.env.PI_MONITOR_API_KEY && !state.cfg) {
-    debugLog(`SKIP wrapping tool "${tool.name}" — no PI_MONITOR_API_KEY and no config`);
+  if (!state.cfg) {
     return tool;
   }
   const execute = tool.execute;
   if (!execute) {
-    debugLog(`SKIP wrapping tool "${tool.name}" — no execute method`);
     return tool;
   }
   const toolName = tool.name || "tool";
-  debugLog(`WRAPPED tool "${toolName}"`);
+  const action = getPiMonitorAction(state.cfg);
+
   return {
     ...tool,
     execute: async (toolCallId, params, signal, onUpdate) => {
-      debugLog(`EXECUTE tool="${toolName}" toolCallId=${toolCallId}`);
       const result = await execute(toolCallId, params, signal, onUpdate);
 
       if (state.skipNext) {
         state.skipNext = false;
-        debugLog(`SKIP monitoring tool="${toolName}" — disabled by disable_pi_monitor`);
+        log.debug(`Skipping monitoring for tool="${toolName}" — disabled by disable_pi_monitor`);
         return result;
       }
 
       const text = extractToolResultText(result);
       if (!text || text.length < MIN_TEXT_LENGTH) {
-        debugLog(`SKIP scoring tool="${toolName}" — text too short (${text?.length ?? 0} chars)`);
         return result;
       }
 
-      debugLog(
-        `SCORING tool="${toolName}" text=${text.length} chars, preview: ${JSON.stringify(text.slice(0, 200))}`,
-      );
-
       try {
-        const { score, reasoning } = await scoreForPromptInjection(text, toolName, state.cfg);
-        debugLog(
-          `SCORED tool="${toolName}" score=${score}/100 reasoning=${JSON.stringify(reasoning)}`,
-        );
+        const { score, reasoning } = await scoreForPromptInjection(text, toolName, state.cfg!);
+
         if (score >= PROMPT_INJECTION_THRESHOLD) {
           log.warn(
             `Prompt injection detected in tool "${toolName}" (score: ${score}/100): ${reasoning}`,
           );
-          debugLog(`REDACTED tool="${toolName}" score=${score}`);
-          return createRedactedToolResult(toolName, score) as typeof result;
+
+          // Log incident to file
+          logIncident(state.cfg!, toolName, score, reasoning, action);
+
+          switch (action) {
+            case "block":
+              return createRedactedToolResult(toolName, score) as typeof result;
+
+            case "warn": {
+              // Return original content with warning prepended
+              const warnedText = createWarningToolResult(text, toolName, score, reasoning);
+              return {
+                content: [{ type: "text", text: warnedText }],
+              } as typeof result;
+            }
+
+            case "log":
+              // Just log, don't modify the result
+              return result;
+          }
         }
-        debugLog(`PASSED tool="${toolName}" score=${score}`);
+
         return result;
       } catch (err) {
         log.warn(`Prompt injection scoring failed for tool "${toolName}": ${String(err)}`);
-        debugLog(`ERROR tool="${toolName}" err=${String(err)} — REDACTING (fail closed)`);
-        return createRedactedToolResult(toolName, -1) as typeof result;
+        // Fail closed: redact on error (only if action is block)
+        if (action === "block") {
+          return createRedactedToolResult(toolName, -1) as typeof result;
+        }
+        return result;
       }
     },
   };
@@ -113,7 +114,6 @@ export function createDisablePiMonitorTool(state: MonitorState): AnyAgentTool {
     parameters: Type.Object({}),
     execute: async () => {
       state.skipNext = true;
-      debugLog("disable_pi_monitor called — skipNext set to true");
       return jsonResult({
         ok: true,
         message: "Prompt injection monitoring disabled for the next tool call.",

@@ -241,13 +241,6 @@ export type AgentDefaultsConfig = {
     /** Auto-prune sandbox containers. */
     prune?: SandboxPruneSettings;
   };
-  /** Prompt injection monitor settings. */
-  piMonitor?: {
-    /** Enable the prompt injection monitor (default: false). */
-    enabled?: boolean;
-    /** Model to use for scoring (provider/model). Falls back to agents.defaults.model. */
-    model?: string;
-  };
 };
 
 export type AgentCompactionMode = "default" | "safeguard";
