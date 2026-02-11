@@ -96,19 +96,43 @@ class DeviceIdentityStore(context: Context) {
     }
   }
 
-  private fun generate(): DeviceIdentity {
-    val keyPair = KeyPairGenerator.getInstance("Ed25519").generateKeyPair()
-    val spki = keyPair.public.encoded
-    val rawPublic = stripSpkiPrefix(spki)
-    val deviceId = sha256Hex(rawPublic)
-    val privateKey = keyPair.private.encoded
-    return DeviceIdentity(
-      deviceId = deviceId,
-      publicKeyRawBase64 = Base64.encodeToString(rawPublic, Base64.NO_WRAP),
-      privateKeyPkcs8Base64 = Base64.encodeToString(privateKey, Base64.NO_WRAP),
-      createdAtMs = System.currentTimeMillis(),
-    )
-  }
+    private fun generate(): DeviceIdentity {
+        return try {
+            generateWithKeyPair()
+        } catch (e: Throwable) {
+            // Fallback: generate identity without hardware keystore for local connections
+            val randomBytes = ByteArray(32).apply {
+                java.security.SecureRandom().nextBytes(this)
+            }
+            val deviceId = sha256Hex(randomBytes)
+            DeviceIdentity(
+                deviceId = deviceId,
+                publicKeyRawBase64 = "",
+                privateKeyPkcs8Base64 = "",
+                createdAtMs = System.currentTimeMillis()
+            )
+        }
+    }
+
+    private fun generateWithKeyPair(): DeviceIdentity {
+        // Try BC provider first to avoid Keystore initialization issues
+        val keyPair = try {
+            KeyPairGenerator.getInstance("Ed25519", "BC").generateKeyPair()
+        } catch (e: Throwable) {
+            // Fall back to default provider
+            KeyPairGenerator.getInstance("Ed25519").generateKeyPair()
+        }
+        val spki = keyPair.public.encoded
+        val rawPublic = stripSpkiPrefix(spki)
+        val deviceId = sha256Hex(rawPublic)
+        val privateKey = keyPair.private.encoded
+        return DeviceIdentity(
+            deviceId = deviceId,
+            publicKeyRawBase64 = Base64.encodeToString(rawPublic, Base64.NO_WRAP),
+            privateKeyPkcs8Base64 = Base64.encodeToString(privateKey, Base64.NO_WRAP),
+            createdAtMs = System.currentTimeMillis()
+        )
+    }
 
   private fun deriveDeviceId(publicKeyRawBase64: String): String? {
     return try {
