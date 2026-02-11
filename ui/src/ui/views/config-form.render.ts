@@ -22,6 +22,13 @@ let sortedRootEntriesCache: {
   uiHints: ConfigUiHints;
   entries: Array<[string, JsonSchema]>;
 } | null = null;
+let sortedRootEntriesCache:
+  | {
+      properties: Record<string, JsonSchema>;
+      uiHints: ConfigUiHints;
+      entries: Array<[string, JsonSchema]>;
+    }
+  | null = null;
 
 function getSortedRootEntries(
   properties: Record<string, JsonSchema>,
@@ -612,6 +619,8 @@ export function renderConfigForm(props: ConfigFormProps) {
   const visibleEntries = progressiveEnabled
     ? filteredEntries.slice(0, renderLimit)
     : filteredEntries;
+  const renderLimit = progressiveEnabled ? Math.max(1, Math.floor(props.renderLimit ?? 0)) : filteredEntries.length;
+  const visibleEntries = progressiveEnabled ? filteredEntries.slice(0, renderLimit) : filteredEntries;
   const remainingEntries = filteredEntries.length - visibleEntries.length;
 
   return html`
@@ -709,6 +718,10 @@ export function renderConfigForm(props: ConfigFormProps) {
             section${remainingEntries === 1 ? "" : "s"}...
           </div>
         `
+            <div class="config-progressive-hint">
+              Loading ${remainingEntries} more section${remainingEntries === 1 ? "" : "s"}...
+            </div>
+          `
         : nothing
     }
   `;
