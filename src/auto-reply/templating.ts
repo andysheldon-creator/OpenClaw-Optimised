@@ -69,6 +69,12 @@ export type MsgContext = {
   ForwardedFromMessageId?: number;
   ForwardedDate?: number;
   ThreadStarterBody?: string;
+  /** Thread message history loaded via Slack API for thread context injection. */
+  ThreadHistory?: Array<{
+    sender: string;
+    body: string;
+    timestamp?: number;
+  }>;
   ThreadLabel?: string;
   MediaPath?: string;
   MediaUrl?: string;

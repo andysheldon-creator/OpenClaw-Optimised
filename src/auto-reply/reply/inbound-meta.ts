@@ -27,7 +27,10 @@ export function buildInboundMetaSystemPrompt(ctx: TemplateContext): string {
       was_mentioned: ctx.WasMentioned === true ? true : undefined,
       has_reply_context: Boolean(ctx.ReplyToBody),
       has_forwarded_context: Boolean(ctx.ForwardedFrom),
-      has_thread_starter: Boolean(safeTrim(ctx.ThreadStarterBody)),
+      has_thread_history: Array.isArray(ctx.ThreadHistory) && ctx.ThreadHistory.length > 0,
+      has_thread_starter:
+        !(Array.isArray(ctx.ThreadHistory) && ctx.ThreadHistory.length > 0) &&
+        Boolean(safeTrim(ctx.ThreadStarterBody)),
       history_count: Array.isArray(ctx.InboundHistory) ? ctx.InboundHistory.length : 0,
     },
   };
@@ -93,7 +96,24 @@ export function buildInboundUserContextPrefix(ctx: TemplateContext): string {
     );
   }
 
-  if (safeTrim(ctx.ThreadStarterBody)) {
+  if (Array.isArray(ctx.ThreadHistory) && ctx.ThreadHistory.length > 0) {
+    blocks.push(
+      [
+        "Thread history (untrusted, for context):",
+        "```json",
+        JSON.stringify(
+          ctx.ThreadHistory.map((entry) => ({
+            sender: entry.sender,
+            timestamp_ms: entry.timestamp,
+            body: entry.body,
+          })),
+          null,
+          2,
+        ),
+        "```",
+      ].join("\n"),
+    );
+  } else if (safeTrim(ctx.ThreadStarterBody)) {
     blocks.push(
       [
         "Thread starter (untrusted, for context):",

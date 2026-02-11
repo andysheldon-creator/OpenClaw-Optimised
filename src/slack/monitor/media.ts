@@ -163,6 +163,94 @@ export async function resolveSlackMedia(params: {
   return null;
 }
 
+export type SlackThreadHistoryEntry = {
+  text: string;
+  userId?: string;
+  ts?: string;
+};
+
+/**
+ * Fetches thread history via conversations.replies API.
+ * Returns messages in chronological order, excluding the specified message.
+ * Uses a fetch-and-slice strategy: fetches up to fetchLimit messages and
+ * returns the last `limit` entries to prioritize recent context.
+ */
+export async function resolveSlackThreadHistory(params: {
+  channelId: string;
+  threadTs: string;
+  client: SlackWebClient;
+  limit: number;
+  excludeTs?: string;
+}): Promise<SlackThreadHistoryEntry[]> {
+  if (params.limit <= 0) {
+    return [];
+  }
+  try {
+    // Fetch more than needed to get the latest messages (API returns oldest-first).
+    const fetchLimit = Math.min(params.limit * 2, 200);
+    const response = (await params.client.conversations.replies({
+      channel: params.channelId,
+      ts: params.threadTs,
+      limit: fetchLimit,
+      inclusive: true,
+    })) as {
+      messages?: Array<{ text?: string; user?: string; ts?: string }>;
+    };
+    const messages = response?.messages ?? [];
+    const filtered = messages.filter(
+      (m) => m.ts !== params.excludeTs && (m.text ?? "").trim(),
+    );
+    // Take the last `limit` entries to prioritize recent context.
+    const sliced =
+      filtered.length > params.limit ? filtered.slice(-params.limit) : filtered;
+    return sliced.map((m) => ({
+      text: (m.text ?? "").trim(),
+      userId: m.user,
+      ts: m.ts,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Fetches channel history (messages before a given timestamp) via conversations.history API.
+ * Used for inheritParent to load channel context before a thread started.
+ * Returns messages in chronological order (oldest first).
+ */
+export async function resolveSlackChannelHistory(params: {
+  channelId: string;
+  client: SlackWebClient;
+  limit: number;
+  before: string;
+}): Promise<SlackThreadHistoryEntry[]> {
+  if (params.limit <= 0) {
+    return [];
+  }
+  try {
+    const response = (await params.client.conversations.history({
+      channel: params.channelId,
+      latest: params.before,
+      limit: params.limit,
+      inclusive: false,
+    })) as {
+      messages?: Array<{ text?: string; user?: string; ts?: string }>;
+    };
+    const messages = response?.messages ?? [];
+    // conversations.history returns newest-first; reverse to chronological order.
+    return messages
+      .filter((m) => (m.text ?? "").trim())
+      .reverse()
+      .map((m) => ({
+        text: (m.text ?? "").trim(),
+        userId: m.user,
+        ts: m.ts,
+      }));
+  } catch {
+    return [];
+  }
+}
+
 export type SlackThreadStarter = {
   text: string;
   userId?: string;

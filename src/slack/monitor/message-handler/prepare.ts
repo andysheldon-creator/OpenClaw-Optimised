@@ -43,7 +43,12 @@ import { resolveSlackAllowListMatch, resolveSlackUserAllowed } from "../allow-li
 import { resolveSlackEffectiveAllowFrom } from "../auth.js";
 import { resolveSlackChannelConfig } from "../channel-config.js";
 import { normalizeSlackChannelType, type SlackMonitorContext } from "../context.js";
-import { resolveSlackMedia, resolveSlackThreadStarter } from "../media.js";
+import {
+  resolveSlackChannelHistory,
+  resolveSlackMedia,
+  resolveSlackThreadHistory,
+  resolveSlackThreadStarter,
+} from "../media.js";
 
 export async function prepareSlackMessage(params: {
   ctx: SlackMonitorContext;
@@ -196,14 +201,25 @@ export async function prepareSlackMessage(params: {
   const threadContext = resolveSlackThreadContext({ message, replyToMode: ctx.replyToMode });
   const threadTs = threadContext.incomingThreadTs;
   const isThreadReply = threadContext.isThreadReply;
+
+  // Proactive thread session: when replyToMode="all" and this is a new (non-thread) message,
+  // the bot WILL create a thread for its reply. Use thread session key from the start
+  // so that subsequent replies in the thread find the existing session.
+  const willCreateThread = !isThreadReply && ctx.replyToMode === "all";
+  const effectiveThreadId = isThreadReply
+    ? threadTs
+    : willCreateThread
+      ? threadContext.messageTs
+      : undefined;
   const threadKeys = resolveThreadSessionKeys({
     baseSessionKey,
-    threadId: isThreadReply ? threadTs : undefined,
-    parentSessionKey: isThreadReply && ctx.threadInheritParent ? baseSessionKey : undefined,
+    threadId: effectiveThreadId,
+    parentSessionKey: effectiveThreadId && ctx.threadInheritParent ? baseSessionKey : undefined,
   });
   const sessionKey = threadKeys.sessionKey;
+  const isEffectiveThread = isThreadReply || willCreateThread;
   const historyKey =
-    isThreadReply && ctx.threadHistoryScope === "thread" ? sessionKey : message.channel;
+    isEffectiveThread && ctx.threadHistoryScope === "thread" ? sessionKey : message.channel;
 
   const mentionRegexes = buildMentionRegexes(cfg, route.agentId);
   const hasAnyMention = /<@[^>]+>/.test(message.text ?? "");
@@ -485,6 +501,103 @@ export async function prepareSlackMessage(params: {
     }
   }
 
+  // --- Thread History Loading (unified budget) ---
+  // When joining an existing thread for the first time, load thread history
+  // to give the agent context about the conversation so far.
+  let threadHistory: Array<{ sender: string; body: string; timestamp?: number }> | undefined;
+
+  if (isThreadReply && threadTs && ctx.historyLimit > 0) {
+    const threadSessionUpdatedAt = readSessionUpdatedAt({ storePath, sessionKey });
+    const isNewThreadSession = threadSessionUpdatedAt === undefined;
+
+    if (isNewThreadSession) {
+      const budget = ctx.historyLimit;
+      const rawThreadHistory = await resolveSlackThreadHistory({
+        channelId: message.channel,
+        threadTs,
+        client: ctx.app.client,
+        limit: budget,
+        excludeTs: message.ts,
+      });
+
+      if (rawThreadHistory.length > 0) {
+        // Resolve sender names for thread messages.
+        const userNameCache = new Map<string, string>();
+        const resolvedHistory: Array<{ sender: string; body: string; timestamp?: number }> = [];
+        for (const entry of rawThreadHistory) {
+          let senderLabel = entry.userId ?? "unknown";
+          if (entry.userId) {
+            const cached = userNameCache.get(entry.userId);
+            if (cached) {
+              senderLabel = cached;
+            } else {
+              try {
+                const resolved = await ctx.resolveUserName(entry.userId);
+                const name = resolved?.name ?? entry.userId;
+                userNameCache.set(entry.userId, name);
+                senderLabel = name;
+              } catch {
+                userNameCache.set(entry.userId, entry.userId);
+              }
+            }
+          }
+          resolvedHistory.push({
+            sender: senderLabel,
+            body: entry.text,
+            timestamp: entry.ts ? Math.round(Number(entry.ts) * 1000) : undefined,
+          });
+        }
+
+        // Unified budget: thread gets priority, channel fills remainder.
+        let channelHistoryEntries: typeof resolvedHistory = [];
+        if (ctx.threadInheritParent) {
+          const remaining = budget - resolvedHistory.length;
+          if (remaining > 0) {
+            const rawChannelHistory = await resolveSlackChannelHistory({
+              channelId: message.channel,
+              client: ctx.app.client,
+              limit: remaining,
+              before: threadTs,
+            });
+            for (const entry of rawChannelHistory) {
+              let chSenderLabel = entry.userId ?? "unknown";
+              if (entry.userId) {
+                const cached = userNameCache.get(entry.userId);
+                if (cached) {
+                  chSenderLabel = cached;
+                } else {
+                  try {
+                    const resolved = await ctx.resolveUserName(entry.userId);
+                    const name = resolved?.name ?? entry.userId;
+                    userNameCache.set(entry.userId, name);
+                    chSenderLabel = name;
+                  } catch {
+                    userNameCache.set(entry.userId, entry.userId);
+                  }
+                }
+              }
+              channelHistoryEntries.push({
+                sender: chSenderLabel,
+                body: entry.text,
+                timestamp: entry.ts ? Math.round(Number(entry.ts) * 1000) : undefined,
+              });
+            }
+          }
+        }
+
+        // Assemble: [channel (oldest)] → [thread (chronological)]
+        threadHistory = [...channelHistoryEntries, ...resolvedHistory];
+      }
+
+      if (shouldLogVerbose()) {
+        logVerbose(
+          `slack inbound: loaded thread history channel=${message.channel} thread=${threadTs} ` +
+            `entries=${threadHistory?.length ?? 0} budget=${budget}`,
+        );
+      }
+    }
+  }
+
   // Use thread starter media if current message has none
   const effectiveMedia = media ?? threadStarterMedia;
 
@@ -522,6 +635,7 @@ export async function prepareSlackMessage(params: {
     MessageThreadId: threadContext.messageThreadId,
     ParentSessionKey: threadKeys.parentSessionKey,
     ThreadStarterBody: threadStarterBody,
+    ThreadHistory: threadHistory,
     ThreadLabel: threadLabel,
     Timestamp: message.ts ? Math.round(Number(message.ts) * 1000) : undefined,
     WasMentioned: isRoomish ? effectiveWasMentioned : undefined,
