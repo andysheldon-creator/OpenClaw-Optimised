@@ -434,6 +434,10 @@ async function buildOllamaProvider(configuredBaseUrl?: string): Promise<Provider
     baseUrl: configuredBaseUrl ?? OLLAMA_BASE_URL,
     api: "openai-completions",
     models,
+    // Ollama's streaming implementation doesn't properly emit tool_calls deltas.
+    // Use non-streaming requests when tools are present.
+    // See: https://github.com/ollama/ollama/issues/9632
+    streamToolCalls: false,
   };
 }
 
