@@ -25,6 +25,7 @@ import ai.openclaw.android.node.LocationCaptureManager
 import ai.openclaw.android.BuildConfig
 import ai.openclaw.android.node.CanvasController
 import ai.openclaw.android.node.ScreenRecordManager
+import ai.openclaw.android.node.SignificantLocationMonitor
 import ai.openclaw.android.node.SmsManager
 import ai.openclaw.android.protocol.OpenClawCapability
 import ai.openclaw.android.protocol.OpenClawCameraCommand
@@ -197,6 +198,7 @@ class NodeRuntime(context: Context) {
         nodeStatusText = "Connected"
         updateStatus()
         maybeNavigateToA2uiOnConnect()
+        startSignificantLocationMonitoring()
       },
       onDisconnected = { message ->
         nodeConnected = false
@@ -569,32 +571,19 @@ class NodeRuntime(context: Context) {
     nodeSession.connect(endpoint, token, password, buildNodeConnectOptions(), tls)
   }
 
-  private fun hasRecordAudioPermission(): Boolean {
-    return (
-      ContextCompat.checkSelfPermission(appContext, Manifest.permission.RECORD_AUDIO) ==
-        PackageManager.PERMISSION_GRANTED
-      )
-  }
+  private fun hasPermission(permission: String): Boolean =
+    ContextCompat.checkSelfPermission(appContext, permission) == PackageManager.PERMISSION_GRANTED
 
-  private fun hasFineLocationPermission(): Boolean {
-    return (
-      ContextCompat.checkSelfPermission(appContext, Manifest.permission.ACCESS_FINE_LOCATION) ==
-        PackageManager.PERMISSION_GRANTED
-      )
-  }
+  private fun hasRecordAudioPermission() = hasPermission(Manifest.permission.RECORD_AUDIO)
+  private fun hasFineLocationPermission() = hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+  private fun hasCoarseLocationPermission() = hasPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
+  private fun hasBackgroundLocationPermission() = hasPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
 
-  private fun hasCoarseLocationPermission(): Boolean {
-    return (
-      ContextCompat.checkSelfPermission(appContext, Manifest.permission.ACCESS_COARSE_LOCATION) ==
-        PackageManager.PERMISSION_GRANTED
-      )
-  }
-
-  private fun hasBackgroundLocationPermission(): Boolean {
-    return (
-      ContextCompat.checkSelfPermission(appContext, Manifest.permission.ACCESS_BACKGROUND_LOCATION) ==
-        PackageManager.PERMISSION_GRANTED
-      )
+  private fun startSignificantLocationMonitoring() {
+    SignificantLocationMonitor.startIfNeeded(
+      scope, location, locationMode,
+      ::hasFineLocationPermission, ::hasCoarseLocationPermission,
+    ) { event, payloadJson -> nodeSession.sendNodeEvent(event, payloadJson) }
   }
 
   fun connectManual() {
