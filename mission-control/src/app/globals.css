@@ -1,0 +1,454 @@
+/* Mission Control - OpenClaw Theme */
+:root {
+  /* OpenClaw Color Palette */
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #12121a;
+  --bg-tertiary: #1a1a25;
+  --bg-card: #151520;
+
+  --accent-blue: #4f46e5;
+  --accent-purple: #7c3aed;
+  --accent-cyan: #06b6d4;
+  --accent-pink: #ec4899;
+
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+
+  --border-color: #27273a;
+  --border-hover: #3f3f5a;
+
+  /* Status Colors */
+  --status-pending: #6366f1;
+  --status-running: #f59e0b;
+  --status-review: #f97316;
+  --status-revising: #ec4899;
+  --status-done: #10b981;
+  --status-failed: #ef4444;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  min-height: 100vh;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-hover);
+}
+
+/* Gradient accents */
+.gradient-text {
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.glow-blue {
+  box-shadow: 0 0 20px rgba(79, 70, 229, 0.3);
+}
+
+.glow-purple {
+  box-shadow: 0 0 20px rgba(124, 58, 237, 0.3);
+}
+
+/* Mission Control Layout */
+.mc-container {
+  padding: 24px;
+  background: var(--bg-primary);
+  min-height: 100vh;
+  color: var(--text-primary);
+}
+
+.mc-header {
+  margin-bottom: 24px;
+}
+
+.mc-title {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+/* Form */
+.mc-form {
+  margin-bottom: 24px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.mc-input {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 14px;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.mc-input:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+}
+
+.mc-input-wide {
+  flex: 2;
+  min-width: 200px;
+}
+
+/* Buttons */
+.mc-btn {
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mc-btn:hover {
+  transform: translateY(-1px);
+}
+
+.mc-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.mc-btn-primary {
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+  color: white;
+}
+
+.mc-btn-primary:hover {
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+}
+
+.mc-btn-secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.mc-btn-secondary:hover {
+  background: var(--border-color);
+}
+
+.mc-btn-accent {
+  background: var(--accent-blue);
+  color: white;
+}
+
+.mc-btn-warn {
+  background: var(--accent-cyan);
+  color: var(--bg-primary);
+}
+
+.mc-btn-danger {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--status-failed);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.mc-btn-danger:hover {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: var(--status-failed);
+}
+
+.mc-btn-link {
+  background: var(--accent-purple);
+  color: white;
+  text-decoration: none;
+}
+
+.mc-btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 6px;
+}
+
+.mc-btn-clear {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.mc-btn-clear:hover {
+  color: var(--text-primary);
+}
+
+/* Loading */
+.mc-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-secondary);
+  padding: 40px;
+}
+
+.mc-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--border-color);
+  border-top-color: var(--accent-blue);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Kanban Board */
+.mc-board {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 16px;
+  overflow-x: auto;
+}
+
+@media (max-width: 1400px) {
+  .mc-board {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .mc-board {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .mc-board {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Columns */
+.mc-column {
+  background: var(--bg-secondary);
+  border-radius: 14px;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  min-height: 200px;
+}
+
+.mc-column-header {
+  margin: 0 0 14px 0;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mc-count {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+}
+
+.mc-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Cards */
+.mc-card {
+  background: var(--bg-card);
+  border-radius: 10px;
+  padding: 14px;
+  border: 1px solid var(--border-color);
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.mc-card:hover {
+  border-color: var(--border-hover);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.mc-card-title {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 6px;
+  color: var(--text-primary);
+}
+
+.mc-card-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+
+.mc-card-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.mc-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mc-card-result {
+  font-size: 11px;
+  color: var(--status-done);
+  margin-top: 10px;
+  padding: 6px 10px;
+  background: rgba(16, 185, 129, 0.1);
+  border-radius: 6px;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+/* Badges */
+.mc-badge {
+  font-size: 11px;
+  color: var(--accent-cyan);
+  padding: 4px 8px;
+  background: rgba(6, 182, 212, 0.1);
+  border-radius: 4px;
+  border: 1px solid rgba(6, 182, 212, 0.2);
+}
+
+/* Logs Panel */
+.mc-logs {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 420px;
+  max-height: 240px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 16px;
+  overflow: auto;
+  z-index: 1000;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+}
+
+.mc-logs-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.mc-logs-content {
+  font-size: 12px;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+}
+
+.mc-log-line {
+  margin-bottom: 6px;
+  padding: 4px 0;
+  color: var(--text-secondary);
+}
+
+.mc-log-line.success {
+  color: var(--status-done);
+}
+
+.mc-log-line.error {
+  color: var(--status-failed);
+}
+
+/* Modal */
+.mc-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+}
+
+.mc-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 24px;
+  min-width: 400px;
+  max-width: 90vw;
+  z-index: 1001;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.mc-modal-title {
+  margin: 0 0 20px 0;
+  font-size: 1.25rem;
+}
+
+.mc-modal-content {
+  margin-bottom: 20px;
+}
+
+.mc-modal-content p {
+  margin: 10px 0;
+  color: var(--text-secondary);
+}
+
+.mc-modal-content strong {
+  color: var(--text-primary);
+}

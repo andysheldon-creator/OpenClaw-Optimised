@@ -1,0 +1,27 @@
+{
+  "name": "rift-mission-control",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev -p 3000",
+    "start": "next start -p 3000",
+    "test": "tsx test/mission-control.test.ts",
+    "test:integration": "tsx test/mission-control.test.ts"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "next": "15.1.6",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.10.7",
+    "@types/react": "^19.0.7",
+    "@types/ws": "^8.5.13",
+    "tsx": "^4.21.0",
+    "typescript": "^5.7.3"
+  }
+}

@@ -29,6 +29,7 @@ import type {
   NostrProfile,
 } from "./types.ts";
 import type { NostrProfileFormState } from "./views/channels.nostr-profile-form.ts";
+import type { MissionControlFormState, MissionControlTask } from "./views/mission-control.ts";
 import {
   handleChannelConfigReload as handleChannelConfigReloadInternal,
   handleChannelConfigSave as handleChannelConfigSaveInternal,
@@ -78,6 +79,14 @@ import {
 } from "./app-tool-stream.ts";
 import { resolveInjectedAssistantIdentity } from "./assistant-identity.ts";
 import { loadAssistantIdentity as loadAssistantIdentityInternal } from "./controllers/assistant-identity.ts";
+import {
+  DEFAULT_MC_FORM,
+  loadMissionControlTasks,
+  createMissionControlTask,
+  updateMissionControlTaskStatus,
+  deleteMissionControlTask,
+  spawnAgentForTask,
+} from "./controllers/mission-control.ts";
 import { loadSettings, type UiSettings } from "./storage.ts";
 import { type ChatAttachment, type ChatQueueItem, type CronFormState } from "./ui-types.ts";
 
@@ -290,6 +299,27 @@ export class OpenClawApp extends LitElement {
   @state() cronRuns: CronRunLogEntry[] = [];
   @state() cronBusy = false;
 
+  @state() missionControlLoading = false;
+  @state() missionControlTasks: MissionControlTask[] = [];
+  @state() missionControlError: string | null = null;
+  @state() missionControlForm: MissionControlFormState = { ...DEFAULT_MC_FORM };
+  @state() missionControlDeleteConfirmId: string | null = null;
+  @state() missionControlAgentSpawnBusy = false;
+  private missionControlRefreshInterval: number | null = null;
+
+  // Mission Control state
+  @state() mcLoading = false;
+  @state() mcTasks: import("./views/mission-control.js").MissionControlTask[] = [];
+  @state() mcError: string | null = null;
+  @state() mcForm: import("./views/mission-control.js").MissionControlFormState = {
+    title: "",
+    description: "",
+    priority: "0",
+    tags: "",
+  };
+  @state() mcDeleteConfirmId: string | null = null;
+  @state() mcAgentSpawnBusy = false;
+
   @state() skillsLoading = false;
   @state() skillsReport: SkillStatusReport | null = null;
   @state() skillsError: string | null = null;
@@ -355,6 +385,11 @@ export class OpenClawApp extends LitElement {
 
   protected firstUpdated() {
     handleFirstUpdated(this as unknown as Parameters<typeof handleFirstUpdated>[0]);
+    // If starting on Mission Control tab, start refresh and load tasks
+    if (this.tab === "mission-control") {
+      this.startMissionControlRefresh();
+      void this.loadMissionControlTasks();
+    }
   }
 
   disconnectedCallback() {
@@ -364,6 +399,16 @@ export class OpenClawApp extends LitElement {
 
   protected updated(changed: Map<PropertyKey, unknown>) {
     handleUpdated(this as unknown as Parameters<typeof handleUpdated>[0], changed);
+    // Handle Mission Control tab visibility changes
+    if (changed.has("tab")) {
+      const oldTab = changed.get("tab") as string;
+      if (this.tab === "mission-control" && oldTab !== "mission-control") {
+        this.startMissionControlRefresh();
+        void this.loadMissionControlTasks();
+      } else if (this.tab !== "mission-control" && oldTab === "mission-control") {
+        this.stopMissionControlRefresh();
+      }
+    }
   }
 
   connect() {
@@ -530,6 +575,88 @@ export class OpenClawApp extends LitElement {
 
   handleGatewayUrlCancel() {
     this.pendingGatewayUrl = null;
+  }
+
+  async loadMissionControlTasks() {
+    await loadMissionControlTasks({
+      client: this.client,
+      connected: this.connected,
+      mcLoading: this.missionControlLoading,
+      mcTasks: this.missionControlTasks,
+      mcError: this.missionControlError,
+      mcForm: this.missionControlForm,
+      mcDeleteConfirmId: this.missionControlDeleteConfirmId,
+      mcAgentSpawnBusy: this.missionControlAgentSpawnBusy,
+    });
+    // Sync back state from controller (it mutates the passed object)
+    this.missionControlLoading = false;
+  }
+
+  async createMissionControlTask() {
+    await createMissionControlTask({
+      client: this.client,
+      connected: this.connected,
+      mcLoading: this.missionControlLoading,
+      mcTasks: this.missionControlTasks,
+      mcError: this.missionControlError,
+      mcForm: this.missionControlForm,
+      mcDeleteConfirmId: this.missionControlDeleteConfirmId,
+      mcAgentSpawnBusy: this.missionControlAgentSpawnBusy,
+    });
+    // Reset form after creation
+    this.missionControlForm = { ...DEFAULT_MC_FORM };
+  }
+
+  async deleteMissionControlTask(taskId: string) {
+    await deleteMissionControlTask(
+      {
+        client: this.client,
+        connected: this.connected,
+        mcLoading: this.missionControlLoading,
+        mcTasks: this.missionControlTasks,
+        mcError: this.missionControlError,
+        mcForm: this.missionControlForm,
+        mcDeleteConfirmId: this.missionControlDeleteConfirmId,
+        mcAgentSpawnBusy: this.missionControlAgentSpawnBusy,
+      },
+      taskId,
+    );
+    this.missionControlDeleteConfirmId = null;
+  }
+
+  async spawnAgentForTask(taskId: string, agentId?: string) {
+    await spawnAgentForTask(
+      {
+        client: this.client,
+        connected: this.connected,
+        mcLoading: this.missionControlLoading,
+        mcTasks: this.missionControlTasks,
+        mcError: this.missionControlError,
+        mcForm: this.missionControlForm,
+        mcDeleteConfirmId: this.missionControlDeleteConfirmId,
+        mcAgentSpawnBusy: this.missionControlAgentSpawnBusy,
+      },
+      taskId,
+      agentId,
+    );
+  }
+
+  startMissionControlRefresh() {
+    if (this.missionControlRefreshInterval) {
+      window.clearInterval(this.missionControlRefreshInterval);
+    }
+    this.missionControlRefreshInterval = window.setInterval(() => {
+      if (this.tab === "mission-control" && this.connected) {
+        void this.loadMissionControlTasks();
+      }
+    }, 5000);
+  }
+
+  stopMissionControlRefresh() {
+    if (this.missionControlRefreshInterval) {
+      window.clearInterval(this.missionControlRefreshInterval);
+      this.missionControlRefreshInterval = null;
+    }
   }
 
   // Sidebar handlers for tool output viewing

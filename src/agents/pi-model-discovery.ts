@@ -1,7 +1,8 @@
 import { AuthStorage, ModelRegistry } from "@mariozechner/pi-coding-agent";
 import path from "node:path";
 
-export { AuthStorage, ModelRegistry } from "@mariozechner/pi-coding-agent";
+// Re-export classes explicitly to avoid __exportAll bundler issues
+export { AuthStorage, ModelRegistry };
 
 // Compatibility helpers for pi-coding-agent 0.50+ (discover* helpers removed).
 export function discoverAuthStorage(agentDir: string): AuthStorage {

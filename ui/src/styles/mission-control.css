@@ -1,0 +1,355 @@
+/* ===========================================
+   Mission Control - Kanban Board
+   =========================================== */
+
+.mc-container {
+  display: grid;
+  gap: 16px;
+}
+
+.mc-header-card {
+  animation: rise 0.35s var(--ease-out) backwards;
+}
+
+.mc-create-card {
+  animation: rise 0.35s var(--ease-out) 0.05s backwards;
+}
+
+.mc-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  animation: rise 0.35s var(--ease-out) 0.1s backwards;
+}
+
+@media (min-width: 1400px) {
+  .mc-board {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+@media (min-width: 1100px) and (max-width: 1399px) {
+  .mc-board {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1099px) {
+  .mc-board {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.mc-column {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  min-height: 400px;
+  max-height: 70vh;
+}
+
+.mc-column-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 2px solid var(--border);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.mc-column-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-strong);
+}
+
+.mc-column-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--secondary);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  min-width: 24px;
+  text-align: center;
+}
+
+.mc-column-content {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.mc-task-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  transition:
+    border-color var(--duration-fast) ease,
+    box-shadow var(--duration-fast) ease,
+    transform var(--duration-fast) ease;
+  position: relative;
+}
+
+.mc-task-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.mc-task-card.task-status-pending {
+  border-left: 3px solid var(--muted);
+}
+
+.mc-task-card.task-status-running {
+  border-left: 3px solid var(--info);
+}
+
+.mc-task-card.task-status-review {
+  border-left: 3px solid var(--warning);
+}
+
+.mc-task-card.task-status-revising {
+  border-left: 3px solid var(--accent);
+}
+
+.mc-task-card.task-status-done {
+  border-left: 3px solid var(--success);
+}
+
+.mc-task-card.task-status-failed {
+  border-left: 3px solid var(--danger);
+}
+
+.mc-task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.mc-task-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-strong);
+  flex: 1;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.mc-task-delete-btn {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  cursor: pointer;
+  transition:
+    color var(--duration-fast) ease,
+    background var(--duration-fast) ease;
+  flex-shrink: 0;
+}
+
+.mc-task-delete-btn:hover {
+  color: var(--danger);
+  background: var(--danger-subtle);
+}
+
+.mc-task-delete-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.mc-task-description {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.5;
+  margin-bottom: 10px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.mc-task-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.mc-tag {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+  background: var(--secondary);
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+}
+
+.mc-task-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+  font-size: 12px;
+}
+
+.mc-task-time {
+  color: var(--muted);
+}
+
+.mc-task-priority {
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-subtle);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.mc-task-fail-count,
+.mc-task-revision-count {
+  font-size: 11px;
+}
+
+.mc-task-agent {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  padding: 6px 10px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+}
+
+.mc-task-agent-label {
+  color: var(--muted);
+}
+
+.mc-task-agent-id {
+  color: var(--text-strong);
+  font-weight: 500;
+}
+
+.mc-task-session-link {
+  margin-left: auto;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-sm);
+  transition: background var(--duration-fast) ease;
+}
+
+.mc-task-session-link:hover {
+  background: var(--accent-subtle);
+}
+
+.mc-task-session-link svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.mc-task-result {
+  font-size: 12px;
+  color: var(--success);
+  background: var(--success-subtle);
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  margin-bottom: 10px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.mc-task-error {
+  font-size: 12px;
+  color: var(--danger);
+  background: var(--danger-subtle);
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  margin-bottom: 10px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.mc-task-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.mc-task-actions .btn {
+  flex: 1 1 auto;
+  min-width: fit-content;
+}
+
+.mc-delete-confirm {
+  position: absolute;
+  inset: 0;
+  background: var(--card);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px;
+  animation: fade-in 0.15s var(--ease-out);
+  border: 1px solid var(--danger);
+  box-shadow: var(--shadow-md);
+}
+
+.mc-delete-confirm span {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-strong);
+  margin-right: auto;
+}
+
+.mc-delete-confirm .btn {
+  flex: 0 0 auto;
+}
+
+/* Scrollbar styling for columns */
+.mc-column-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.mc-column-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.mc-column-content::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: var(--radius-full);
+}
+
+.mc-column-content::-webkit-scrollbar-thumb:hover {
+  background: var(--border-strong);
+}

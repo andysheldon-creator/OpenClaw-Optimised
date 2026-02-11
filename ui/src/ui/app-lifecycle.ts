@@ -32,6 +32,9 @@ type LifecycleHost = {
   logsEntries: unknown[];
   popStateHandler: () => void;
   topbarObserver: ResizeObserver | null;
+  startMissionControlRefresh: () => void;
+  stopMissionControlRefresh: () => void;
+  loadMissionControlTasks: () => Promise<void>;
 };
 
 export function handleConnected(host: LifecycleHost) {

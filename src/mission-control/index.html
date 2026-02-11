@@ -1,0 +1,273 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Mission Control</title>
+    <style>
+      body {
+        font-family: Inter, system-ui, sans-serif;
+        background: #0b1020;
+        color: #e6ebff;
+        margin: 20px;
+      }
+      h2 {
+        margin-top: 0;
+      }
+      .row {
+        display: flex;
+        gap: 20px;
+      }
+      .card {
+        background: #141b33;
+        border: 1px solid #2a355f;
+        border-radius: 12px;
+        padding: 14px;
+        flex: 1;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      th,
+      td {
+        border-bottom: 1px solid #243058;
+        padding: 8px;
+        text-align: left;
+      }
+      tr:hover {
+        background: #1a2344;
+      }
+      .pill {
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 12px;
+        display: inline-block;
+      }
+      .done {
+        background: #124d2f;
+        color: #68d391;
+      }
+      .running {
+        background: #4f3b0d;
+        color: #f6e05e;
+      }
+      .queued {
+        background: #22345a;
+        color: #9bb0ea;
+      }
+      .failed {
+        background: #5b1c2a;
+        color: #f56565;
+      }
+      .pending {
+        background: #2d3748;
+        color: #a0aec0;
+      }
+      .muted {
+        color: #9bb0ea;
+        font-size: 12px;
+      }
+      .controls {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      button,
+      select,
+      input {
+        background: #1d2850;
+        color: #e6ebff;
+        border: 1px solid #34457e;
+        border-radius: 8px;
+        padding: 6px 8px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #2a3a6f;
+      }
+      .status-bar {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 15px;
+        font-size: 13px;
+      }
+      .status-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+      .dot.online {
+        background: #48bb78;
+      }
+      .dot.offline {
+        background: #f56565;
+      }
+      a {
+        color: #63b3ed;
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>🎯 Mission Control</h2>
+    <div class="status-bar">
+      <div class="status-item">
+        <span class="dot online" id="statusDot"></span> <span id="statusText">Connected</span>
+      </div>
+      <div class="status-item muted" id="lastUpdate">Updating...</div>
+    </div>
+
+    <div class="row" style="margin-top: 12px">
+      <div class="card" style="flex: 2">
+        <div class="muted" style="margin-bottom: 10px">Active jobs with emotional tracking</div>
+        <table id="jobsTable">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="jobsBody">
+            <tr>
+              <td colspan="4" class="muted">Loading...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card" style="flex: 1">
+        <div class="muted" style="margin-bottom: 10px">Quick Actions</div>
+        <div class="controls">
+          <button onclick="createTestJob()">+ Test Job</button>
+          <button onclick="refreshJobs()">↻ Refresh</button>
+          <button onclick="location.reload()">⟳ Reload UI</button>
+        </div>
+        <div style="margin-top: 20px">
+          <div class="muted">API Endpoints:</div>
+          <div style="font-size: 12px; margin-top: 5px">
+            <div>
+              • <a href="/api/mission-control/tasks" target="_blank">/api/mission-control/tasks</a>
+            </div>
+            <div>• <a href="/api/jobs" target="_blank">/api/jobs (legacy)</a></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const API_BASE = "/api/mission-control";
+
+      function fmtDate(ts) {
+        if (!ts) return "-";
+        return new Date(ts).toLocaleString();
+      }
+
+      function getStatusClass(status) {
+        const map = {
+          done: "done",
+          success: "done",
+          running: "running",
+          queued: "queued",
+          pending: "pending",
+          failed: "failed",
+        };
+        return map[status?.toLowerCase()] || "pending";
+      }
+
+      async function fetchJobs() {
+        try {
+          // Try the mission control API first
+          const res = await fetch(`${API_BASE}/tasks`);
+          if (res.ok) {
+            const data = await res.json();
+            return data.tasks || [];
+          }
+        } catch (e) {}
+
+        // Fallback to legacy jobs API
+        try {
+          const res = await fetch("/api/jobs");
+          if (res.ok) {
+            return await res.json();
+          }
+        } catch (e) {}
+
+        return [];
+      }
+
+      async function refreshJobs() {
+        document.getElementById("statusDot").className = "dot online";
+        document.getElementById("statusText").textContent = "Updating...";
+
+        const jobs = await fetchJobs();
+        const tbody = document.getElementById("jobsBody");
+
+        if (jobs.length === 0) {
+          tbody.innerHTML =
+            '<tr><td colspan="4" class="muted">No jobs found. Create one with the Quick Actions.</td></tr>';
+        } else {
+          tbody.innerHTML = jobs
+            .map(
+              (j) => `
+      <tr>
+        <td>${j.title || j.id?.slice(0, 8) || "Untitled"}</td>
+        <td><span class="pill ${getStatusClass(j.status)}">${j.status || "pending"}</span></td>
+        <td class="muted">${fmtDate(j.created_at)}</td>
+        <td>
+          <button onclick="viewJob('${j.id}')">View</button>
+        </td>
+      </tr>
+    `,
+            )
+            .join("");
+        }
+
+        document.getElementById("lastUpdate").textContent =
+          `Last update: ${new Date().toLocaleTimeString()}`;
+        document.getElementById("statusText").textContent = "Connected";
+      }
+
+      async function createTestJob() {
+        const title = prompt("Job title:", "Test Job " + new Date().toLocaleTimeString());
+        if (!title) return;
+
+        try {
+          const res = await fetch(`${API_BASE}/tasks`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title, description: "Created from Mission Control UI" }),
+          });
+          if (res.ok) {
+            setTimeout(refreshJobs, 500);
+          } else {
+            alert("Failed to create job: " + res.status);
+          }
+        } catch (e) {
+          alert("Error: " + e.message);
+        }
+      }
+
+      function viewJob(id) {
+        alert("Job ID: " + id + "\n\nFull job view coming soon!");
+      }
+
+      // Auto-refresh every 15 seconds
+      refreshJobs();
+      setInterval(refreshJobs, 15000);
+    </script>
+  </body>
+</html>

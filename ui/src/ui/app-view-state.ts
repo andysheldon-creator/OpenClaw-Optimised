@@ -33,6 +33,7 @@ import type {
 } from "./types.ts";
 import type { ChatAttachment, ChatQueueItem, CronFormState } from "./ui-types.ts";
 import type { NostrProfileFormState } from "./views/channels.nostr-profile-form.ts";
+import type { MissionControlFormState, MissionControlTask } from "./views/mission-control.ts";
 import type { SessionLogEntry } from "./views/usage.ts";
 
 export type AppViewState = {
@@ -190,6 +191,12 @@ export type AppViewState = {
   cronRunsJobId: string | null;
   cronRuns: CronRunLogEntry[];
   cronBusy: boolean;
+  missionControlLoading: boolean;
+  missionControlTasks: MissionControlTask[];
+  missionControlError: string | null;
+  missionControlForm: MissionControlFormState;
+  missionControlDeleteConfirmId: string | null;
+  missionControlAgentSpawnBusy: boolean;
   skillsLoading: boolean;
   skillsReport: SkillStatusReport | null;
   skillsError: string | null;
@@ -282,4 +289,8 @@ export type AppViewState = {
   handleOpenSidebar: (content: string) => void;
   handleCloseSidebar: () => void;
   handleSplitRatioChange: (ratio: number) => void;
+  loadMissionControlTasks: () => Promise<void>;
+  createMissionControlTask: () => Promise<void>;
+  deleteMissionControlTask: (taskId: string) => Promise<void>;
+  spawnAgentForTask: (taskId: string, agentId?: string) => Promise<void>;
 };
