@@ -337,9 +337,9 @@ async function findManifestFiles(dirPath: string, maxFiles: number): Promise<str
       break;
     }
 
-    let entries: Awaited<ReturnType<typeof fs.readdir>>;
+    let dirEntries: string[];
     try {
-      entries = await fs.readdir(currentDir, { withFileTypes: true });
+      dirEntries = await fs.readdir(currentDir);
     } catch (err) {
       if (hasErrnoCode(err, "ENOENT") || hasErrnoCode(err, "EACCES")) {
         continue;
@@ -347,18 +347,28 @@ async function findManifestFiles(dirPath: string, maxFiles: number): Promise<str
       throw err;
     }
 
-    for (const entry of entries) {
+    for (const name of dirEntries) {
       if (files.length >= maxFiles) {
         break;
       }
-      if (entry.name.startsWith(".") || entry.name === "node_modules") {
+      if (name.startsWith(".") || name === "node_modules") {
         continue;
       }
 
-      const fullPath = path.join(currentDir, entry.name);
-      if (entry.isDirectory()) {
+      const fullPath = path.join(currentDir, name);
+      let stat: Awaited<ReturnType<typeof fs.stat>> | null = null;
+      try {
+        stat = await fs.stat(fullPath);
+      } catch (err) {
+        if (hasErrnoCode(err, "ENOENT")) {
+          continue;
+        }
+        throw err;
+      }
+
+      if (stat?.isDirectory()) {
         stack.push(fullPath);
-      } else if (isManifestFile(entry.name)) {
+      } else if (stat?.isFile() && isManifestFile(name)) {
         files.push(fullPath);
       }
     }
