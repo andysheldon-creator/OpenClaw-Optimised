@@ -13,6 +13,7 @@ import type { EmbeddedPiCompactResult } from "./types.js";
 import { resolveHeartbeatPrompt } from "../../auto-reply/heartbeat.js";
 import { resolveChannelCapabilities } from "../../config/channel-capabilities.js";
 import { getMachineDisplayName } from "../../infra/machine-name.js";
+import { getGlobalHookRunner } from "../../plugins/hook-runner-global.js";
 import { type enqueueCommand, enqueueCommandInLane } from "../../process/command-queue.js";
 import { isSubagentSessionKey } from "../../routing/session-key.js";
 import { resolveSignalReactionLevel } from "../../signal/reaction-level.js";
@@ -433,9 +434,34 @@ export async function compactEmbeddedPiSessionDirect(
           validated,
           getDmHistoryLimitFromSessionKey(params.sessionKey, params.config),
         );
+        // Capture full message history BEFORE limiting — plugins need the complete conversation
+        const preCompactionMessages = [...session.messages];
         if (limited.length > 0) {
           session.agent.replaceMessages(limited);
         }
+        // Run before_compaction hooks (fire-and-forget)
+        const hookRunner = getGlobalHookRunner();
+        const hookCtx = {
+          agentId: params.sessionKey?.split(":")[0] ?? "main",
+          sessionKey: params.sessionKey,
+          sessionId: params.sessionId,
+          workspaceDir: params.workspaceDir,
+          messageProvider: params.messageChannel ?? params.messageProvider,
+        };
+        if (hookRunner?.hasHooks("before_compaction")) {
+          try {
+            await hookRunner.runBeforeCompaction(
+              {
+                messageCount: preCompactionMessages.length,
+                messages: preCompactionMessages,
+              },
+              hookCtx,
+            );
+          } catch (hookErr: unknown) {
+            log.warn(`before_compaction hook failed: ${String(hookErr)}`);
+          }
+        }
+
         const result = await session.compact(params.customInstructions);
         // Estimate tokens after compaction by summing token estimates for remaining messages
         let tokensAfter: number | undefined;
@@ -452,6 +478,22 @@ export async function compactEmbeddedPiSessionDirect(
           // If estimation fails, leave tokensAfter undefined
           tokensAfter = undefined;
         }
+        // Run after_compaction hooks (fire-and-forget)
+        if (hookRunner?.hasHooks("after_compaction")) {
+          hookRunner
+            .runAfterCompaction(
+              {
+                messageCount: session.messages.length,
+                tokenCount: tokensAfter,
+                compactedCount: limited.length - session.messages.length,
+              },
+              hookCtx,
+            )
+            .catch((hookErr) => {
+              log.warn(`after_compaction hook failed: ${hookErr}`);
+            });
+        }
+
         return {
           ok: true,
           compacted: true,

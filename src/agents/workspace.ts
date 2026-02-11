@@ -303,3 +303,48 @@ export function filterBootstrapFilesForSession(
   }
   return files.filter((file) => SUBAGENT_BOOTSTRAP_ALLOWLIST.has(file.name));
 }
+
+export async function loadExtraBootstrapFiles(
+  dir: string,
+  extraPatterns: string[],
+): Promise<WorkspaceBootstrapFile[]> {
+  if (!extraPatterns.length) {
+    return [];
+  }
+  const resolvedDir = resolveUserPath(dir);
+
+  // Resolve glob patterns into concrete file paths
+  const resolvedPaths = new Set<string>();
+  for (const pattern of extraPatterns) {
+    if (pattern.includes("*") || pattern.includes("?") || pattern.includes("{")) {
+      try {
+        const matches = fs.glob(pattern, { cwd: resolvedDir });
+        for await (const m of matches) {
+          resolvedPaths.add(m);
+        }
+      } catch {
+        // glob not available or pattern error — fall back to literal
+        resolvedPaths.add(pattern);
+      }
+    } else {
+      resolvedPaths.add(pattern);
+    }
+  }
+
+  const result: WorkspaceBootstrapFile[] = [];
+  for (const relPath of resolvedPaths) {
+    const filePath = path.join(resolvedDir, relPath);
+    try {
+      const content = await fs.readFile(filePath, "utf-8");
+      result.push({
+        name: relPath as WorkspaceBootstrapFileName,
+        path: filePath,
+        content,
+        missing: false,
+      });
+    } catch {
+      // Silently skip missing extra files
+    }
+  }
+  return result;
+}

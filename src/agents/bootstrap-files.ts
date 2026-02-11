@@ -4,6 +4,7 @@ import { applyBootstrapHookOverrides } from "./bootstrap-hooks.js";
 import { buildBootstrapContextFiles, resolveBootstrapMaxChars } from "./pi-embedded-helpers.js";
 import {
   filterBootstrapFilesForSession,
+  loadExtraBootstrapFiles,
   loadWorkspaceBootstrapFiles,
   type WorkspaceBootstrapFile,
 } from "./workspace.js";
@@ -30,6 +31,14 @@ export async function resolveBootstrapFilesForRun(params: {
     await loadWorkspaceBootstrapFiles(params.workspaceDir),
     sessionKey,
   );
+
+  // Load extra bootstrap files from config (project-level TOOLS.md, AGENTS.md, etc.)
+  const extraPaths = params.config?.agents?.defaults?.extraBootstrapFiles ?? [];
+  if (extraPaths.length) {
+    const extras = await loadExtraBootstrapFiles(params.workspaceDir, extraPaths);
+    bootstrapFiles.push(...extras);
+  }
+
   return applyBootstrapHookOverrides({
     files: bootstrapFiles,
     workspaceDir: params.workspaceDir,
