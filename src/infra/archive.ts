@@ -2,6 +2,9 @@ import JSZip from "jszip";
 import fs from "node:fs/promises";
 import path from "node:path";
 import * as tar from "tar";
+import { isPathWithinBase } from "./paths.js";
+
+export { isPathWithinBase };
 
 export type ArchiveKind = "tar" | "zip";
 
@@ -77,18 +80,20 @@ async function extractZip(params: { archivePath: string; destDir: string }): Pro
   for (const entry of entries) {
     const entryPath = entry.name.replaceAll("\\", "/");
     if (!entryPath || entryPath.endsWith("/")) {
-      const dirPath = path.resolve(params.destDir, entryPath);
-      if (!dirPath.startsWith(params.destDir)) {
+      // Validate directory path doesn't escape destination
+      if (!isPathWithinBase(params.destDir, entryPath)) {
         throw new Error(`zip entry escapes destination: ${entry.name}`);
       }
+      const dirPath = path.resolve(params.destDir, entryPath);
       await fs.mkdir(dirPath, { recursive: true });
       continue;
     }
 
-    const outPath = path.resolve(params.destDir, entryPath);
-    if (!outPath.startsWith(params.destDir)) {
+    // Validate file path doesn't escape destination (prevents ../../ attacks)
+    if (!isPathWithinBase(params.destDir, entryPath)) {
       throw new Error(`zip entry escapes destination: ${entry.name}`);
     }
+    const outPath = path.resolve(params.destDir, entryPath);
     await fs.mkdir(path.dirname(outPath), { recursive: true });
     const data = await entry.async("nodebuffer");
     await fs.writeFile(outPath, data);
@@ -108,11 +113,36 @@ export async function extractArchive(params: {
 
   const label = kind === "zip" ? "extract zip" : "extract tar";
   if (kind === "tar") {
+    // Store validation error to throw after extraction attempt
+    let validationError: Error | null = null;
+
     await withTimeout(
-      tar.x({ file: params.archivePath, cwd: params.destDir }),
+      tar.x({
+        file: params.archivePath,
+        cwd: params.destDir,
+        // Security: validate tar entries don't escape destination directory
+        filter: (entryPath: string) => {
+          const normalizedEntry = entryPath.replaceAll("\\", "/");
+          // Allow standard tar root entries like "." or "./".
+          if (normalizedEntry === "." || normalizedEntry === "./" || normalizedEntry === "") {
+            return true;
+          }
+          if (!isPathWithinBase(params.destDir, normalizedEntry)) {
+            // Store error instead of throwing to avoid unhandled rejection
+            validationError = new Error(`tar entry escapes destination: ${entryPath}`);
+            return false; // Reject this entry
+          }
+          return true;
+        },
+      }),
       params.timeoutMs,
       label,
     );
+
+    // Throw validation error after extraction completes
+    if (validationError) {
+      throw validationError;
+    }
     return;
   }
 
