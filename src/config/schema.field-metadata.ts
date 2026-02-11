@@ -1,5 +1,3 @@
-import type { ConfigUiHints } from "./schema.types.js";
-
 export const GROUP_LABELS: Record<string, string> = {
   wizard: "Wizard",
   update: "Update",
@@ -737,38 +735,4 @@ export const SENSITIVE_PATTERNS = [/token/i, /password/i, /secret/i, /api.?key/i
 
 export function isSensitivePath(path: string): boolean {
   return SENSITIVE_PATTERNS.some((pattern) => pattern.test(path));
-}
-
-export function buildBaseHints(): ConfigUiHints {
-  const hints: ConfigUiHints = {};
-  for (const [group, label] of Object.entries(GROUP_LABELS)) {
-    hints[group] = {
-      label,
-      group: label,
-      order: GROUP_ORDER[group],
-    };
-  }
-  for (const [path, label] of Object.entries(FIELD_LABELS)) {
-    const current = hints[path];
-    hints[path] = current ? { ...current, label } : { label };
-  }
-  for (const [path, help] of Object.entries(FIELD_HELP)) {
-    const current = hints[path];
-    hints[path] = current ? { ...current, help } : { help };
-  }
-  for (const [path, placeholder] of Object.entries(FIELD_PLACEHOLDERS)) {
-    const current = hints[path];
-    hints[path] = current ? { ...current, placeholder } : { placeholder };
-  }
-  return hints;
-}
-
-export function applySensitiveHints(hints: ConfigUiHints): ConfigUiHints {
-  const next = { ...hints };
-  for (const key of Object.keys(next)) {
-    if (isSensitivePath(key)) {
-      next[key] = { ...next[key], sensitive: true };
-    }
-  }
-  return next;
 }
