@@ -541,6 +541,7 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
 
   const logger = createSubsystemLogger("discord/monitor");
   const guildHistories = new Map<string, HistoryEntry[]>();
+  const chimeInCounters = new Map<string, number>();
   let botUserId: string | undefined;
 
   if (nativeDisabledExplicit) {
@@ -566,6 +567,7 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
     runtime,
     botUserId,
     guildHistories,
+    chimeInCounters,
     historyLimit,
     mediaMaxBytes,
     textLimit,
