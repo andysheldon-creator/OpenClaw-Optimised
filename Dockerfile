@@ -2,7 +2,7 @@ FROM node:22-bookworm
 
 # Install Bun (required for build scripts)
 # Pin to a specific version for reproducible builds (see: #9479)
-ARG BUN_VERSION=1.2.4
+ARG BUN_VERSION=1.3.9
 RUN curl -fsSL https://github.com/oven-sh/bun/releases/download/bun-v${BUN_VERSION}/bun-linux-$(uname -m | sed 's/x86_64/x64/;s/aarch64/aarch64/').zip -o /tmp/bun.zip \
     && unzip -q /tmp/bun.zip -d /tmp/bun \
     && mv /tmp/bun/bun-*/bun /usr/local/bin/bun \
