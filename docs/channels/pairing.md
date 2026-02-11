@@ -38,6 +38,23 @@ openclaw pairing approve telegram <CODE>
 
 Supported channels: `telegram`, `whatsapp`, `signal`, `imessage`, `discord`, `slack`.
 
+### Switching to allowlist after pairing
+
+Once you've approved a sender via pairing, you can switch to `dmPolicy: "allowlist"` for a faster startup experience (no pairing step for known users). Copy the numeric user ID from `openclaw pairing list <channel>` into `allowFrom`:
+
+```json5
+{
+  channels: {
+    telegram: {
+      dmPolicy: "allowlist",
+      allowFrom: ["1580140515"], // numeric ID — more reliable than usernames
+    },
+  },
+}
+```
+
+> **Tip:** Always prefer numeric user IDs over usernames in `allowFrom`. Usernames can be changed by the user at any time, which would silently break access. Numeric IDs are permanent.
+
 ### Where the state lives
 
 Stored under `~/.openclaw/credentials/`:
