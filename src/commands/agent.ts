@@ -521,6 +521,7 @@ export async function agentCommand(
       sessionEntry,
       result,
       payloads,
+      workspaceDir,
     });
   } finally {
     clearAgentRunContext(runId);
