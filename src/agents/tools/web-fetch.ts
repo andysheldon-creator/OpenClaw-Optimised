@@ -250,7 +250,10 @@ function wrapWebFetchContent(
   let truncated = truncateText(value, maxInner);
   let wrappedText = includeWarning
     ? wrapWebContent(truncated.text, "web_fetch")
-    : wrapExternalContent(truncated.text, { source: "web_fetch", includeWarning: false });
+    : wrapExternalContent(truncated.text, {
+        source: "web_fetch",
+        includeWarning: false,
+      });
 
   if (wrappedText.length > maxChars) {
     const excess = wrappedText.length - maxChars;
@@ -258,7 +261,10 @@ function wrapWebFetchContent(
     truncated = truncateText(value, adjustedMaxInner);
     wrappedText = includeWarning
       ? wrapWebContent(truncated.text, "web_fetch")
-      : wrapExternalContent(truncated.text, { source: "web_fetch", includeWarning: false });
+      : wrapExternalContent(truncated.text, {
+          source: "web_fetch",
+          includeWarning: false,
+        });
   }
 
   return {
@@ -273,7 +279,10 @@ function wrapWebFetchField(value: string | undefined): string | undefined {
   if (!value) {
     return value;
   }
-  return wrapExternalContent(value, { source: "web_fetch", includeWarning: false });
+  return wrapExternalContent(value, {
+    source: "web_fetch",
+    includeWarning: false,
+  });
 }
 
 function normalizeContentType(value: string | null | undefined): string | undefined {
@@ -423,47 +432,9 @@ async function runWebFetch(params: {
       throw error;
     }
     if (params.firecrawlEnabled && params.firecrawlApiKey) {
-      const firecrawl = await fetchFirecrawlContent({
-        url: finalUrl,
-        extractMode: params.extractMode,
-        apiKey: params.firecrawlApiKey,
-        baseUrl: params.firecrawlBaseUrl,
-        onlyMainContent: params.firecrawlOnlyMainContent,
-        maxAgeMs: params.firecrawlMaxAgeMs,
-        proxy: params.firecrawlProxy,
-        storeInCache: params.firecrawlStoreInCache,
-        timeoutSeconds: params.firecrawlTimeoutSeconds,
-      });
-      const wrapped = wrapWebFetchContent(firecrawl.text, params.maxChars);
-      const wrappedTitle = firecrawl.title ? wrapWebFetchField(firecrawl.title) : undefined;
-      const payload = {
-        url: params.url, // Keep raw for tool chaining
-        finalUrl: firecrawl.finalUrl || finalUrl, // Keep raw
-        status: firecrawl.status ?? 200,
-        contentType: "text/markdown", // Protocol metadata, don't wrap
-        title: wrappedTitle,
-        extractMode: params.extractMode,
-        extractor: "firecrawl",
-        truncated: wrapped.truncated,
-        length: wrapped.wrappedLength,
-        rawLength: wrapped.rawLength, // Actual content length, not wrapped
-        wrappedLength: wrapped.wrappedLength,
-        fetchedAt: new Date().toISOString(),
-        tookMs: Date.now() - start,
-        text: wrapped.text,
-        warning: wrapWebFetchField(firecrawl.warning),
-      };
-      writeCache(FETCH_CACHE, cacheKey, payload, params.cacheTtlMs);
-      return payload;
-    }
-    throw error;
-  }
-
-  try {
-    if (!res.ok) {
-      if (params.firecrawlEnabled && params.firecrawlApiKey) {
+      try {
         const firecrawl = await fetchFirecrawlContent({
-          url: params.url,
+          url: finalUrl,
           extractMode: params.extractMode,
           apiKey: params.firecrawlApiKey,
           baseUrl: params.firecrawlBaseUrl,
@@ -478,7 +449,7 @@ async function runWebFetch(params: {
         const payload = {
           url: params.url, // Keep raw for tool chaining
           finalUrl: firecrawl.finalUrl || finalUrl, // Keep raw
-          status: firecrawl.status ?? res.status,
+          status: firecrawl.status ?? 200,
           contentType: "text/markdown", // Protocol metadata, don't wrap
           title: wrappedTitle,
           extractMode: params.extractMode,
@@ -494,6 +465,52 @@ async function runWebFetch(params: {
         };
         writeCache(FETCH_CACHE, cacheKey, payload, params.cacheTtlMs);
         return payload;
+      } catch {
+        // Firecrawl fallback also failed; fall through to throw the original error.
+      }
+    }
+    throw error;
+  }
+
+  try {
+    if (!res.ok) {
+      if (params.firecrawlEnabled && params.firecrawlApiKey) {
+        try {
+          const firecrawl = await fetchFirecrawlContent({
+            url: params.url,
+            extractMode: params.extractMode,
+            apiKey: params.firecrawlApiKey,
+            baseUrl: params.firecrawlBaseUrl,
+            onlyMainContent: params.firecrawlOnlyMainContent,
+            maxAgeMs: params.firecrawlMaxAgeMs,
+            proxy: params.firecrawlProxy,
+            storeInCache: params.firecrawlStoreInCache,
+            timeoutSeconds: params.firecrawlTimeoutSeconds,
+          });
+          const wrapped = wrapWebFetchContent(firecrawl.text, params.maxChars);
+          const wrappedTitle = firecrawl.title ? wrapWebFetchField(firecrawl.title) : undefined;
+          const payload = {
+            url: params.url, // Keep raw for tool chaining
+            finalUrl: firecrawl.finalUrl || finalUrl, // Keep raw
+            status: firecrawl.status ?? res.status,
+            contentType: "text/markdown", // Protocol metadata, don't wrap
+            title: wrappedTitle,
+            extractMode: params.extractMode,
+            extractor: "firecrawl",
+            truncated: wrapped.truncated,
+            length: wrapped.wrappedLength,
+            rawLength: wrapped.rawLength, // Actual content length, not wrapped
+            wrappedLength: wrapped.wrappedLength,
+            fetchedAt: new Date().toISOString(),
+            tookMs: Date.now() - start,
+            text: wrapped.text,
+            warning: wrapWebFetchField(firecrawl.warning),
+          };
+          writeCache(FETCH_CACHE, cacheKey, payload, params.cacheTtlMs);
+          return payload;
+        } catch {
+          // Firecrawl fallback also failed; fall through to return the HTTP error.
+        }
       }
       const rawDetail = await readResponseText(res);
       const detail = formatWebFetchErrorDetail({
@@ -524,7 +541,10 @@ async function runWebFetch(params: {
           title = readable.title;
           extractor = "readability";
         } else {
-          const firecrawl = await tryFirecrawlFallback({ ...params, url: finalUrl });
+          const firecrawl = await tryFirecrawlFallback({
+            ...params,
+            url: finalUrl,
+          });
           if (firecrawl) {
             text = firecrawl.text;
             title = firecrawl.title;
@@ -638,7 +658,10 @@ export function createWebFetchTool(options?: {
   const readabilityEnabled = resolveFetchReadabilityEnabled(fetch);
   const firecrawl = resolveFirecrawlConfig(fetch);
   const firecrawlApiKey = resolveFirecrawlApiKey(firecrawl);
-  const firecrawlEnabled = resolveFirecrawlEnabled({ firecrawl, apiKey: firecrawlApiKey });
+  const firecrawlEnabled = resolveFirecrawlEnabled({
+    firecrawl,
+    apiKey: firecrawlApiKey,
+  });
   const firecrawlBaseUrl = resolveFirecrawlBaseUrl(firecrawl);
   const firecrawlOnlyMainContent = resolveFirecrawlOnlyMainContent(firecrawl);
   const firecrawlMaxAgeMs = resolveFirecrawlMaxAgeMsOrDefault(firecrawl);
