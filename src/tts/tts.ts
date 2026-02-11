@@ -32,6 +32,7 @@ import {
 import { resolveModel } from "../agents/pi-embedded-runner/model.js";
 import { normalizeChannelId } from "../channels/plugins/index.js";
 import { logVerbose } from "../globals.js";
+import { stripMarkdown } from "../line/markdown-to-line.js";
 import { isVoiceCompatibleAudio } from "../media/audio.js";
 import { CONFIG_DIR, resolveUserPath } from "../utils.js";
 
@@ -1492,13 +1493,11 @@ export async function maybeApplyTtsToPayload(params: {
 
   if (textForAudio.length > maxLength) {
     if (!isSummarizationEnabled(prefsPath)) {
-      // Truncate text when summarization is disabled
       logVerbose(
         `TTS: truncating long text (${textForAudio.length} > ${maxLength}), summarization disabled.`,
       );
       textForAudio = `${textForAudio.slice(0, maxLength - 3)}...`;
     } else {
-      // Summarize text when enabled
       try {
         const summary = await summarizeText({
           text: textForAudio,
@@ -1523,6 +1522,7 @@ export async function maybeApplyTtsToPayload(params: {
     }
   }
 
+  textForAudio = stripMarkdown(textForAudio); // strip markdown for TTS (### → "hashtag" etc.)
   const ttsStart = Date.now();
   const result = await textToSpeech({
     text: textForAudio,
