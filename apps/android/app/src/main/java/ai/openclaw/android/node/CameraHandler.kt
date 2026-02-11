@@ -92,8 +92,12 @@ class CameraHandler(
         withContext(Dispatchers.IO) {
           val ep = connectedEndpoint()
           val gatewayHost = if (ep != null) {
-            val scheme = if (ep.tlsEnabled || ep.port == 443) "https" else "http"
-            if (ep.port == 443 || ep.port == 80) "$scheme://${ep.host}" else "$scheme://${ep.host}:${ep.port}"
+            val isHttps = ep.tlsEnabled || ep.port == 443
+            if (!isHttps) {
+              clipLog("refusing to upload over plain HTTP — bearer token would be exposed; falling back to base64")
+              throw Exception("HTTPS required for upload (bearer token protection)")
+            }
+            if (ep.port == 443) "https://${ep.host}" else "https://${ep.host}:${ep.port}"
           } else {
             clipLog("error: no gateway endpoint connected, cannot upload")
             throw Exception("no gateway endpoint connected")

@@ -47,8 +47,10 @@ class ConnectionManager(
       if (smsAvailable()) {
         add(OpenClawSmsCommand.Send.rawValue)
       }
-      add("debug.logs")
-      add("debug.ed25519")
+      if (BuildConfig.DEBUG) {
+        add("debug.logs")
+        add("debug.ed25519")
+      }
       add("app.update")
     }
 

@@ -1,6 +1,7 @@
 package ai.openclaw.android.node
 
 import android.content.Context
+import ai.openclaw.android.BuildConfig
 import ai.openclaw.android.gateway.DeviceIdentityStore
 import ai.openclaw.android.gateway.GatewaySession
 import kotlinx.serialization.json.JsonPrimitive
@@ -11,6 +12,9 @@ class DebugHandler(
 ) {
 
   fun handleEd25519(): GatewaySession.InvokeResult {
+    if (!BuildConfig.DEBUG) {
+      return GatewaySession.InvokeResult.error(code = "UNAVAILABLE", message = "debug commands are disabled in release builds")
+    }
     // Self-test Ed25519 signing and return diagnostic info
     try {
       val identity = identityStore.loadOrCreate()
@@ -65,6 +69,9 @@ class DebugHandler(
   }
 
   fun handleLogs(): GatewaySession.InvokeResult {
+    if (!BuildConfig.DEBUG) {
+      return GatewaySession.InvokeResult.error(code = "UNAVAILABLE", message = "debug commands are disabled in release builds")
+    }
     val pid = android.os.Process.myPid()
     val rt = Runtime.getRuntime()
     val info = "v6 pid=$pid thread=${Thread.currentThread().name} free=${rt.freeMemory()/1024}K total=${rt.totalMemory()/1024}K max=${rt.maxMemory()/1024}K uptime=${android.os.SystemClock.elapsedRealtime()/1000}s sdk=${android.os.Build.VERSION.SDK_INT} device=${android.os.Build.MODEL}\n"
