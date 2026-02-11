@@ -245,4 +245,6 @@ export type GatewayConfig = {
    * `x-real-ip`) to determine the client IP for local pairing and HTTP checks.
    */
   trustedProxies?: string[];
+  /** Maximum WebSocket message payload size in bytes. Default: 10MB. */
+  wsMaxPayload?: number;
 };

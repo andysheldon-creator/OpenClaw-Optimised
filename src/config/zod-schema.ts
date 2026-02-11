@@ -510,6 +510,7 @@ export const OpenClawSchema = z
           })
           .strict()
           .optional(),
+        wsMaxPayload: z.number().int().positive().optional(),
       })
       .strict()
       .optional(),

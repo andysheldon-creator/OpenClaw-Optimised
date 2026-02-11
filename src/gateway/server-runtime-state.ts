@@ -20,7 +20,7 @@ import {
   createChatRunState,
   createToolEventRecipientRegistry,
 } from "./server-chat.js";
-import { MAX_PAYLOAD_BYTES } from "./server-constants.js";
+import { getMaxPayloadBytes } from "./server-constants.js";
 import { attachGatewayUpgradeHandler, createGatewayHttpServer } from "./server-http.js";
 import { createGatewayHooksRequestHandler } from "./server/hooks.js";
 import { listenGatewayHttpServer } from "./server/http-listen.js";
@@ -165,7 +165,7 @@ export async function createGatewayRuntimeState(params: {
 
   const wss = new WebSocketServer({
     noServer: true,
-    maxPayload: MAX_PAYLOAD_BYTES,
+    maxPayload: getMaxPayloadBytes(),
   });
   for (const server of httpServers) {
     attachGatewayUpgradeHandler({
