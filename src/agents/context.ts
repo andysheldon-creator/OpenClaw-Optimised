@@ -1,7 +1,7 @@
 // Lazy-load pi-coding-agent model metadata so we can infer context windows when
 // the agent reports a model id. This includes custom models.json entries.
 
-import { loadConfig } from "../config/config.js";
+import { readConfigFileSnapshot } from "../config/config.js";
 import { resolveOpenClawAgentDir } from "./agent-paths.js";
 import { ensureOpenClawModelsJson } from "./models-config.js";
 
@@ -11,8 +11,8 @@ const MODEL_CACHE = new Map<string, number>();
 const loadPromise = (async () => {
   try {
     const { discoverAuthStorage, discoverModels } = await import("./pi-model-discovery.js");
-    const cfg = loadConfig();
-    await ensureOpenClawModelsJson(cfg);
+    const snapshot = await readConfigFileSnapshot();
+    await ensureOpenClawModelsJson(snapshot.config);
     const agentDir = resolveOpenClawAgentDir();
     const authStorage = discoverAuthStorage(agentDir);
     const modelRegistry = discoverModels(authStorage, agentDir);
