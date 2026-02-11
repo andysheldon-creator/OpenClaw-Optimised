@@ -25,6 +25,31 @@ const loadPromise = (async () => {
         MODEL_CACHE.set(m.id, m.contextWindow);
       }
     }
+    // Merge user-configured contextWindow overrides from openclaw.json
+    // These take precedence over pi-sdk discovered values
+    const providers = cfg.models?.providers;
+    if (providers && typeof providers === "object") {
+      for (const [providerKey, providerCfg] of Object.entries(providers)) {
+        const providerModels = (providerCfg as Record<string, unknown>)?.models;
+        if (!Array.isArray(providerModels)) {
+          continue;
+        }
+        for (const modelCfg of providerModels) {
+          const modelId = modelCfg?.id;
+          const contextWindow = modelCfg?.contextWindow;
+          if (
+            typeof modelId === "string" &&
+            typeof contextWindow === "number" &&
+            contextWindow > 0
+          ) {
+            // Store under both plain model ID (used by lookupContextTokens callers)
+            // and provider/modelId format for complete coverage
+            MODEL_CACHE.set(modelId, contextWindow);
+            MODEL_CACHE.set(`${providerKey}/${modelId}`, contextWindow);
+          }
+        }
+      }
+    }
   } catch {
     // If pi-ai isn't available, leave cache empty; lookup will fall back.
   }
