@@ -55,6 +55,13 @@ export type WhatsAppConfig = {
    * - "allowlist": only allow group messages from senders in groupAllowFrom/allowFrom
    */
   groupPolicy?: GroupPolicy;
+  /**
+   * Whether to auto-reply to inbound messages on this channel (default: true).
+   * Set to `false` to make the channel receive-only: messages are delivered to
+   * the agent session but replies are not sent back automatically.
+   * Explicit sends via the message tool are not affected.
+   */
+  autoReply?: boolean;
   /** Max group messages to keep as history context (0 disables). */
   historyLimit?: number;
   /** Max DM turns to keep as history context. */
@@ -128,6 +135,8 @@ export type WhatsAppAccountConfig = {
   allowFrom?: string[];
   groupAllowFrom?: string[];
   groupPolicy?: GroupPolicy;
+  /** Whether to auto-reply to inbound messages for this account (default: true). */
+  autoReply?: boolean;
   /** Max group messages to keep as history context (0 disables). */
   historyLimit?: number;
   /** Max DM turns to keep as history context. */

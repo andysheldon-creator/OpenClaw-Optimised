@@ -2,7 +2,9 @@ import type { AnyMessageContent, proto, WAMessage } from "@whiskeysockets/bailey
 import { DisconnectReason, isJidGroup } from "@whiskeysockets/baileys";
 import type { WebInboundMessage, WebListenerCloseReason } from "./types.js";
 import { createInboundDebouncer } from "../../auto-reply/inbound-debounce.js";
+import { resolveAutoReplyEnabled } from "../../channels/auto-reply-config.js";
 import { formatLocationText } from "../../channels/location.js";
+import { loadConfig } from "../../config/config.js";
 import { logVerbose, shouldLogVerbose } from "../../globals.js";
 import { recordChannelActivity } from "../../infra/channel-activity.js";
 import { getChildLogger } from "../../logging/logger.js";
@@ -330,6 +332,13 @@ export async function monitorWebInbox(options: {
         mediaPath,
         mediaType,
         mediaFileName,
+        suppressAutoReply: resolveAutoReplyEnabled({
+          cfg: loadConfig(),
+          channel: "whatsapp",
+          accountId: access.resolvedAccountId,
+        })
+          ? undefined
+          : true,
       };
       try {
         const task = Promise.resolve(debouncer.enqueue(inboundMessage));

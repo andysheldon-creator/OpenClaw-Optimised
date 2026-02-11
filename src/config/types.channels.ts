@@ -22,6 +22,8 @@ export type ChannelDefaultsConfig = {
   groupPolicy?: GroupPolicy;
   /** Default heartbeat visibility for all channels. */
   heartbeat?: ChannelHeartbeatVisibilityConfig;
+  /** Whether channels auto-reply to inbound messages (default: true). */
+  autoReply?: boolean;
 };
 
 /**

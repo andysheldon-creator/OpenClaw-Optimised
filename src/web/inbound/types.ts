@@ -40,4 +40,6 @@ export type WebInboundMessage = {
   mediaFileName?: string;
   mediaUrl?: string;
   wasMentioned?: boolean;
+  /** When true, auto-reply delivery is suppressed (channel autoReply: false). */
+  suppressAutoReply?: boolean;
 };

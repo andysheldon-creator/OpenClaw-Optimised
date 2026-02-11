@@ -359,6 +359,15 @@ export async function processMessage(params: {
         }
       },
       deliver: async (payload: ReplyPayload, info) => {
+        // When suppressAutoReply is set (channel autoReply: false), skip outbound delivery
+        // but keep the LLM call so the message stays in session context for cross-channel use
+        // (e.g., Telegram primary + WhatsApp receive-only).
+        if (params.msg.suppressAutoReply === true) {
+          logVerbose(
+            `Suppressed auto-reply to ${params.msg.from ?? conversationId} (channel autoReply: false)`,
+          );
+          return;
+        }
         await deliverWebReply({
           replyResult: payload,
           msg: params.msg,
@@ -404,7 +413,7 @@ export async function processMessage(params: {
           `Failed sending web ${label} to ${params.msg.from ?? conversationId}: ${formatError(err)}`,
         );
       },
-      onReplyStart: params.msg.sendComposing,
+      onReplyStart: params.msg.suppressAutoReply === true ? undefined : params.msg.sendComposing,
     },
     replyOptions: {
       disableBlockStreaming:
