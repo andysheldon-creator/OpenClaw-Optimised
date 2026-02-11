@@ -336,8 +336,8 @@ export type ToolsConfig = {
     search?: {
       /** Enable web search tool (default: true when API key is present). */
       enabled?: boolean;
-      /** Search provider ("brave", "perplexity", or "grok"). */
-      provider?: "brave" | "perplexity" | "grok";
+      /** Search provider ("brave", "perplexity", "tavily", or "grok"). */
+      provider?: "brave" | "perplexity" | "tavily" | "grok";
       /** Brave Search API key (optional; defaults to BRAVE_API_KEY env var). */
       apiKey?: string;
       /** Default search results count (1-10). */
@@ -354,6 +354,11 @@ export type ToolsConfig = {
         baseUrl?: string;
         /** Model to use (defaults to "perplexity/sonar-pro"). */
         model?: string;
+      };
+      /** Tavily-specific configuration (used when provider="tavily"). */
+      tavily?: {
+        /** API key for Tavily (defaults to TAVILY_API_KEY env var). */
+        apiKey?: string;
       };
       /** Grok-specific configuration (used when provider="grok"). */
       grok?: {
