@@ -1,4 +1,3 @@
-import { completeSimple, type TextContent } from "@mariozechner/pi-ai";
 import { EdgeTTS } from "node-edge-tts";
 import {
   existsSync,
@@ -22,18 +21,12 @@ import type {
   TtsProvider,
   TtsModelOverrideConfig,
 } from "../config/types.tts.js";
-import { getApiKeyForModel, requireApiKey } from "../agents/model-auth.js";
-import {
-  buildModelAliasIndex,
-  resolveDefaultModelForAgent,
-  resolveModelRefFromString,
-  type ModelRef,
-} from "../agents/model-selection.js";
-import { resolveModel } from "../agents/pi-embedded-runner/model.js";
 import { normalizeChannelId } from "../channels/plugins/index.js";
 import { logVerbose } from "../globals.js";
 import { isVoiceCompatibleAudio } from "../media/audio.js";
 import { CONFIG_DIR, resolveUserPath } from "../utils.js";
+import { ensureCompatibleVoiceFormat } from "./compat.js";
+import { summarizeText } from "./summarize.js";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_TTS_MAX_LENGTH = 1500;
@@ -868,124 +861,6 @@ function isValidOpenAIVoice(voice: string): voice is OpenAiTtsVoice {
   return OPENAI_TTS_VOICES.includes(voice as OpenAiTtsVoice);
 }
 
-type SummarizeResult = {
-  summary: string;
-  latencyMs: number;
-  inputLength: number;
-  outputLength: number;
-};
-
-type SummaryModelSelection = {
-  ref: ModelRef;
-  source: "summaryModel" | "default";
-};
-
-function resolveSummaryModelRef(
-  cfg: OpenClawConfig,
-  config: ResolvedTtsConfig,
-): SummaryModelSelection {
-  const defaultRef = resolveDefaultModelForAgent({ cfg });
-  const override = config.summaryModel?.trim();
-  if (!override) {
-    return { ref: defaultRef, source: "default" };
-  }
-
-  const aliasIndex = buildModelAliasIndex({ cfg, defaultProvider: defaultRef.provider });
-  const resolved = resolveModelRefFromString({
-    raw: override,
-    defaultProvider: defaultRef.provider,
-    aliasIndex,
-  });
-  if (!resolved) {
-    return { ref: defaultRef, source: "default" };
-  }
-  return { ref: resolved.ref, source: "summaryModel" };
-}
-
-function isTextContentBlock(block: { type: string }): block is TextContent {
-  return block.type === "text";
-}
-
-async function summarizeText(params: {
-  text: string;
-  targetLength: number;
-  cfg: OpenClawConfig;
-  config: ResolvedTtsConfig;
-  timeoutMs: number;
-}): Promise<SummarizeResult> {
-  const { text, targetLength, cfg, config, timeoutMs } = params;
-  if (targetLength < 100 || targetLength > 10_000) {
-    throw new Error(`Invalid targetLength: ${targetLength}`);
-  }
-
-  const startTime = Date.now();
-  const { ref } = resolveSummaryModelRef(cfg, config);
-  const resolved = resolveModel(ref.provider, ref.model, undefined, cfg);
-  if (!resolved.model) {
-    throw new Error(resolved.error ?? `Unknown summary model: ${ref.provider}/${ref.model}`);
-  }
-  const apiKey = requireApiKey(
-    await getApiKeyForModel({ model: resolved.model, cfg }),
-    ref.provider,
-  );
-
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), timeoutMs);
-
-    try {
-      const res = await completeSimple(
-        resolved.model,
-        {
-          messages: [
-            {
-              role: "user",
-              content:
-                `You are an assistant that summarizes texts concisely while keeping the most important information. ` +
-                `Summarize the text to approximately ${targetLength} characters. Maintain the original tone and style. ` +
-                `Reply only with the summary, without additional explanations.\n\n` +
-                `<text_to_summarize>\n${text}\n</text_to_summarize>`,
-              timestamp: Date.now(),
-            },
-          ],
-        },
-        {
-          apiKey,
-          maxTokens: Math.ceil(targetLength / 2),
-          temperature: 0.3,
-          signal: controller.signal,
-        },
-      );
-
-      const summary = res.content
-        .filter(isTextContentBlock)
-        .map((block) => block.text.trim())
-        .filter(Boolean)
-        .join(" ")
-        .trim();
-
-      if (!summary) {
-        throw new Error("No summary returned");
-      }
-
-      return {
-        summary,
-        latencyMs: Date.now() - startTime,
-        inputLength: text.length,
-        outputLength: summary.length,
-      };
-    } finally {
-      clearTimeout(timeout);
-    }
-  } catch (err) {
-    const error = err as Error;
-    if (error.name === "AbortError") {
-      throw new Error("Summarization timed out", { cause: err });
-    }
-    throw err;
-  }
-}
-
 function scheduleCleanup(tempDir: string, delayMs: number = TEMP_FILE_CLEANUP_DELAY_MS): void {
   const timer = setTimeout(() => {
     try {
@@ -1243,15 +1118,23 @@ export async function textToSpeech(params: {
         }
 
         scheduleCleanup(tempDir);
-        const voiceCompatible = isVoiceCompatibleAudio({ fileName: edgeResult.audioPath });
+
+        const { audioPath, isNative } = ensureCompatibleVoiceFormat({
+          audioPath: edgeResult.audioPath,
+          channel: params.channel,
+          channelId,
+          cfg: params.cfg,
+        });
+
+        const voiceCompatible = isVoiceCompatibleAudio({ fileName: audioPath });
 
         return {
           success: true,
-          audioPath: edgeResult.audioPath,
+          audioPath,
           latencyMs: Date.now() - providerStart,
           provider,
           outputFormat: edgeResult.outputFormat,
-          voiceCompatible,
+          voiceCompatible: isNative ? true : voiceCompatible,
         };
       }
 
@@ -1301,9 +1184,16 @@ export async function textToSpeech(params: {
       const latencyMs = Date.now() - providerStart;
 
       const tempDir = mkdtempSync(path.join(tmpdir(), "tts-"));
-      const audioPath = path.join(tempDir, `voice-${Date.now()}${output.extension}`);
-      writeFileSync(audioPath, audioBuffer);
+      const initialAudioPath = path.join(tempDir, `voice-${Date.now()}${output.extension}`);
+      writeFileSync(initialAudioPath, audioBuffer);
       scheduleCleanup(tempDir);
+
+      const { audioPath, isNative } = ensureCompatibleVoiceFormat({
+        audioPath: initialAudioPath,
+        channel: params.channel,
+        channelId,
+        cfg: params.cfg,
+      });
 
       return {
         success: true,
@@ -1311,7 +1201,7 @@ export async function textToSpeech(params: {
         latencyMs,
         provider,
         outputFormat: provider === "openai" ? output.openai : output.elevenlabs,
-        voiceCompatible: output.voiceCompatible,
+        voiceCompatible: isNative ? true : output.voiceCompatible,
       };
     } catch (err) {
       const error = err as Error;
@@ -1542,12 +1432,17 @@ export async function maybeApplyTtsToPayload(params: {
       latencyMs: result.latencyMs,
     };
 
-    const channelId = resolveChannelId(params.channel);
-    const shouldVoice = channelId === "telegram" && result.voiceCompatible === true;
+    const { audioPath, isNative } = ensureCompatibleVoiceFormat({
+      audioPath: result.audioPath,
+      channel: params.channel,
+      channelId: resolveChannelId(params.channel),
+      cfg: params.cfg,
+    });
+
     const finalPayload = {
       ...nextPayload,
-      mediaUrl: result.audioPath,
-      audioAsVoice: shouldVoice || params.payload.audioAsVoice,
+      mediaUrl: audioPath,
+      audioAsVoice: isNative || params.payload.audioAsVoice,
     };
     return finalPayload;
   }
