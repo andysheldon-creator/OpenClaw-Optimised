@@ -12,8 +12,6 @@ import {
   summarizeInStages,
 } from "../compaction.js";
 import { getCompactionSafeguardRuntime } from "./compaction-safeguard-runtime.js";
-const FALLBACK_SUMMARY =
-  "Summary unavailable due to context limits. Older messages were truncated.";
 const TURN_PREFIX_INSTRUCTIONS =
   "This summary covers the prefix of a split turn. Focus on the original request," +
   " early progress, and any details needed to understand the retained suffix.";
@@ -168,30 +166,21 @@ export default function compactionSafeguardExtension(api: ExtensionAPI): void {
       ...preparation.turnPrefixMessages,
     ]);
     const toolFailureSection = formatToolFailuresSection(toolFailures);
-    const fallbackSummary = `${FALLBACK_SUMMARY}${toolFailureSection}${fileOpsSummary}`;
 
     const model = ctx.model;
     if (!model) {
-      return {
-        compaction: {
-          summary: fallbackSummary,
-          firstKeptEntryId: preparation.firstKeptEntryId,
-          tokensBefore: preparation.tokensBefore,
-          details: { readFiles, modifiedFiles },
-        },
-      };
+      console.warn(
+        "Compaction safeguard: no model available; cancelling compaction to preserve history.",
+      );
+      return { cancel: true };
     }
 
     const apiKey = await ctx.modelRegistry.getApiKey(model);
     if (!apiKey) {
-      return {
-        compaction: {
-          summary: fallbackSummary,
-          firstKeptEntryId: preparation.firstKeptEntryId,
-          tokensBefore: preparation.tokensBefore,
-          details: { readFiles, modifiedFiles },
-        },
-      };
+      console.warn(
+        "Compaction safeguard: no API key available; cancelling compaction to preserve history.",
+      );
+      return { cancel: true };
     }
 
     try {
@@ -319,18 +308,11 @@ export default function compactionSafeguardExtension(api: ExtensionAPI): void {
       };
     } catch (error) {
       console.warn(
-        `Compaction summarization failed; truncating history: ${
+        `Compaction summarization failed; cancelling compaction to preserve history: ${
           error instanceof Error ? error.message : String(error)
         }`,
       );
-      return {
-        compaction: {
-          summary: fallbackSummary,
-          firstKeptEntryId: preparation.firstKeptEntryId,
-          tokensBefore: preparation.tokensBefore,
-          details: { readFiles, modifiedFiles },
-        },
-      };
+      return { cancel: true };
     }
   });
 }
