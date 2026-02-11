@@ -395,6 +395,65 @@ function maybeNotifyOnExit(session: ProcessSession, status: "completed" | "faile
   requestHeartbeatNow({ reason: `exec:${session.id}:exit` });
 }
 
+/**
+ * Inject agent/session context as environment variables.
+ *
+ * Security note: These environment variables are visible to all subprocesses
+ * spawned by the exec command. They should not contain sensitive credentials.
+ *
+ * Handles edge cases:
+ * - Empty/missing agentId → OPENCLAW_AGENT_ID not set
+ * - Empty/missing sessionKey → OPENCLAW_SESSION_KEY not set
+ * - Malformed sessionKey → gracefully skip parsing, no crash
+ * - Non-agent session format → gracefully skip, no vars injected
+ */
+function injectAgentContext(
+  env: Record<string, string>,
+  context: {
+    agentId?: string;
+    sessionKey?: string;
+  },
+) {
+  // Handle agentId
+  const agentId = context.agentId?.trim();
+  if (agentId) {
+    env.OPENCLAW_AGENT_ID = agentId;
+  }
+
+  // Handle sessionKey
+  const sessionKey = context.sessionKey?.trim();
+  if (!sessionKey) {
+    return;
+  }
+
+  env.OPENCLAW_SESSION_KEY = sessionKey;
+
+  // Parse session key to extract label and kind
+  // Session key format: "agent:agentId:rest" where rest is "main", "subagent:xxx", etc.
+  // If parsing fails or format is wrong, skip gracefully (no crash).
+  try {
+    const parsed = parseAgentSessionKey(sessionKey);
+    if (!parsed) {
+      // Not an agent session key format; skip label/kind injection
+      return;
+    }
+
+    const rest = parsed.rest?.trim() || "main";
+    const isSubagent = rest.toLowerCase().startsWith("subagent:");
+
+    if (isSubagent) {
+      env.OPENCLAW_SESSION_LABEL = rest; // e.g., "subagent:xxx"
+      env.OPENCLAW_SESSION_KIND = "subagent";
+    } else {
+      env.OPENCLAW_SESSION_LABEL = rest; // e.g., "main" or custom label
+      env.OPENCLAW_SESSION_KIND = rest === "main" ? "main" : "custom";
+    }
+  } catch {
+    // Parsing failed; skip label/kind injection but keep session key set
+    return;
+  }
+}
+
 function createApprovalSlug(id: string) {
   return id.slice(0, APPROVAL_SLUG_LENGTH);
 }
@@ -997,6 +1056,13 @@ export function createExecTool(
       }
       applyPathPrepend(env, defaultPathPrepend);
 
+      // Always inject agent context as environment variables
+      // (see injectAgentContext for security notes)
+      injectAgentContext(env, {
+        agentId,
+        sessionKey: defaults?.sessionKey,
+      });
+
       if (host === "node") {
         const approvals = resolveExecApprovals(agentId, { security, ask });
         const hostSecurity = minSecurity(security, approvals.agent.security);
@@ -1040,11 +1106,16 @@ export function createExecTool(
         }
         const argv = buildNodeShellCommand(params.command, nodeInfo?.platform);
 
-        const nodeEnv = params.env ? { ...params.env } : undefined;
+        // Start with params.env or create empty object to ensure agent context is injected
+        const nodeEnv = params.env ? { ...params.env } : {};
 
-        if (nodeEnv) {
-          applyPathPrepend(nodeEnv, defaultPathPrepend, { requireExisting: true });
-        }
+        applyPathPrepend(nodeEnv, defaultPathPrepend, { requireExisting: true });
+
+        // Always inject agent context for node-hosted commands
+        injectAgentContext(nodeEnv, {
+          agentId,
+          sessionKey: defaults?.sessionKey,
+        });
         const baseAllowlistEval = evaluateShellAllowlist({
           command: params.command,
           allowlist: [],
