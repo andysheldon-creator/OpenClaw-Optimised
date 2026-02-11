@@ -107,6 +107,7 @@ export function derivePromptTokens(usage?: {
 export function deriveSessionTotalTokens(params: {
   usage?: {
     input?: number;
+    output?: number;
     total?: number;
     cacheRead?: number;
     cacheWrite?: number;
@@ -117,13 +118,23 @@ export function deriveSessionTotalTokens(params: {
   if (!usage) {
     return undefined;
   }
-  const input = usage.input ?? 0;
+
+  // Prefer prompt-token accounting (input + cache read/write) when available.
+  // Keep completion/output tokens separate for callers that track them explicitly.
   const promptTokens = derivePromptTokens({
     input: usage.input,
     cacheRead: usage.cacheRead,
     cacheWrite: usage.cacheWrite,
   });
-  let total = promptTokens ?? usage.total ?? input;
+
+  const usageTotal =
+    typeof usage.total === "number" && Number.isFinite(usage.total) && usage.total > 0
+      ? usage.total
+      : undefined;
+  const input = usage.input ?? 0;
+
+  let total = promptTokens ?? usageTotal ?? input;
+
   if (!(total > 0)) {
     return undefined;
   }
