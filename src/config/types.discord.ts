@@ -120,6 +120,8 @@ export type DiscordAccountConfig = {
   token?: string;
   /** Allow bot-authored messages to trigger replies (default: false). */
   allowBots?: boolean;
+  /** Optional allowlist for command authorization (falls back to allowFrom). */
+  commandAllowFrom?: Array<string | number>;
   /**
    * Controls how guild channel messages are handled:
    * - "open": guild channels bypass allowlists; mention-gating applies

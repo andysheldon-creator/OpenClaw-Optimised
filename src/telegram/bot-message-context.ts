@@ -98,6 +98,7 @@ export type BuildTelegramMessageContextParams = {
   dmPolicy: DmPolicy;
   allowFrom?: Array<string | number>;
   groupAllowFrom?: Array<string | number>;
+  commandAllowFrom?: Array<string | number>;
   ackReactionScope: "off" | "group-mentions" | "group-all" | "direct" | "all";
   logger: TelegramLogger;
   resolveGroupActivation: ResolveGroupActivation;
@@ -138,6 +139,7 @@ export const buildTelegramMessageContext = async ({
   dmPolicy,
   allowFrom,
   groupAllowFrom,
+  commandAllowFrom,
   ackReactionScope,
   logger,
   resolveGroupActivation,
@@ -328,9 +330,20 @@ export const buildTelegramMessageContext = async ({
   const hasControlCommandInMessage = hasControlCommand(msg.text ?? msg.caption ?? "", cfg, {
     botUsername,
   });
+  const commandOverride =
+    isGroup && commandAllowFrom?.length
+      ? isSenderAllowed({
+          allow: normalizeAllowFromWithStore({ allowFrom: commandAllowFrom, storeAllowFrom: [] }),
+          senderId,
+          senderUsername,
+        })
+      : isGroup
+        ? isSenderAllowed({ allow: effectiveDmAllow, senderId, senderUsername })
+        : undefined;
   const commandGate = resolveControlCommandGate({
     useAccessGroups,
     authorizers: [{ configured: allowForCommands.hasEntries, allowed: senderAllowedForCommands }],
+    commandOverride,
     allowTextCommands: true,
     hasControlCommand: hasControlCommandInMessage,
   });
