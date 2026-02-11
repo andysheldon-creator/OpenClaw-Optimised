@@ -740,13 +740,21 @@ export async function runEmbeddedPiAgent(
                 timedOut || assistantFailoverReason === "timeout"
                   ? "timeout"
                   : (assistantFailoverReason ?? "unknown");
-              await markAuthProfileFailure({
-                store: authStore,
-                profileId: lastProfileId,
-                reason,
-                cfg: params.config,
-                agentDir: params.agentDir,
-              });
+              // Skip cooldown for timeouts: when there is only one auth profile,
+              // marking it as failed on timeout puts ALL models into cooldown and
+              // silently drops subsequent messages.  Timeouts are typically caused
+              // by slow API responses, not abuse — penalizing the single profile
+              // makes the situation worse.  Non-timeout failures (rate_limit,
+              // billing, auth) still trigger the normal cooldown path.
+              if (reason !== "timeout") {
+                await markAuthProfileFailure({
+                  store: authStore,
+                  profileId: lastProfileId,
+                  reason,
+                  cfg: params.config,
+                  agentDir: params.agentDir,
+                });
+              }
               if (timedOut && !isProbeSession) {
                 log.warn(
                   `Profile ${lastProfileId} timed out (possible rate limit). Trying next account...`,

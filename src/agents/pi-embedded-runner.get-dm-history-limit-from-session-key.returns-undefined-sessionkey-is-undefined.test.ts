@@ -99,11 +99,11 @@ const _readSessionMessages = async (sessionFile: string) => {
 };
 
 describe("getDmHistoryLimitFromSessionKey", () => {
-  it("returns undefined when sessionKey is undefined", () => {
-    expect(getDmHistoryLimitFromSessionKey(undefined, {})).toBeUndefined();
+  it("returns global default (20) when sessionKey is undefined", () => {
+    expect(getDmHistoryLimitFromSessionKey(undefined, {})).toBe(20);
   });
-  it("returns undefined when config is undefined", () => {
-    expect(getDmHistoryLimitFromSessionKey("telegram:dm:123", undefined)).toBeUndefined();
+  it("returns global default (20) when config is undefined", () => {
+    expect(getDmHistoryLimitFromSessionKey("telegram:dm:123", undefined)).toBe(20);
   });
   it("returns dmHistoryLimit for telegram provider", () => {
     const config = {
@@ -143,25 +143,25 @@ describe("getDmHistoryLimitFromSessionKey", () => {
       9,
     );
   });
-  it("returns undefined for non-dm session kinds", () => {
+  it("returns global default (20) for non-dm session kinds", () => {
     const config = {
       channels: {
         telegram: { dmHistoryLimit: 15 },
         slack: { dmHistoryLimit: 10 },
       },
     } as OpenClawConfig;
-    expect(getDmHistoryLimitFromSessionKey("agent:beta:slack:channel:c1", config)).toBeUndefined();
-    expect(getDmHistoryLimitFromSessionKey("telegram:slash:123", config)).toBeUndefined();
+    expect(getDmHistoryLimitFromSessionKey("agent:beta:slack:channel:c1", config)).toBe(20);
+    expect(getDmHistoryLimitFromSessionKey("telegram:slash:123", config)).toBe(20);
   });
-  it("returns undefined for unknown provider", () => {
+  it("returns global default (20) for unknown provider", () => {
     const config = {
       channels: { telegram: { dmHistoryLimit: 15 } },
     } as OpenClawConfig;
-    expect(getDmHistoryLimitFromSessionKey("unknown:dm:123", config)).toBeUndefined();
+    expect(getDmHistoryLimitFromSessionKey("unknown:dm:123", config)).toBe(20);
   });
-  it("returns undefined when provider config has no dmHistoryLimit", () => {
+  it("returns global default (20) when provider config has no dmHistoryLimit", () => {
     const config = { channels: { telegram: {} } } as OpenClawConfig;
-    expect(getDmHistoryLimitFromSessionKey("telegram:dm:123", config)).toBeUndefined();
+    expect(getDmHistoryLimitFromSessionKey("telegram:dm:123", config)).toBe(20);
   });
   it("handles all supported providers", () => {
     const providers = [

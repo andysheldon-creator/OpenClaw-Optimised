@@ -319,6 +319,15 @@ export const DiscordAccountSchema = z
       })
       .strict()
       .optional(),
+    gatewayReconnect: z
+      .object({
+        maxAttempts: z.number().int().min(0).optional(),
+        baseDelayMs: z.number().int().positive().optional(),
+        maxDelayMs: z.number().int().positive().optional(),
+        livenessTimeoutMs: z.number().int().min(0).optional(),
+      })
+      .strict()
+      .optional(),
     pluralkit: z
       .object({
         enabled: z.boolean().optional(),

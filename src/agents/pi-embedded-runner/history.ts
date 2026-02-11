@@ -39,12 +39,22 @@ export function limitHistoryTurns(
  * Extract provider + user ID from a session key and look up dmHistoryLimit.
  * Supports per-DM overrides and provider defaults.
  */
+/**
+ * Global fallback history limit applied when no channel-specific limit is found.
+ * This prevents unbounded context growth for webchat and other sessions that
+ * don't have a dedicated channel config with dmHistoryLimit.
+ */
+const DEFAULT_GLOBAL_HISTORY_LIMIT = 20;
+
 export function getDmHistoryLimitFromSessionKey(
   sessionKey: string | undefined,
   config: OpenClawConfig | undefined,
 ): number | undefined {
-  if (!sessionKey || !config) {
-    return undefined;
+  if (!config) {
+    return DEFAULT_GLOBAL_HISTORY_LIMIT;
+  }
+  if (!sessionKey) {
+    return resolveGlobalHistoryLimit(config);
   }
 
   const parts = sessionKey.split(":").filter(Boolean);
@@ -52,7 +62,7 @@ export function getDmHistoryLimitFromSessionKey(
 
   const provider = providerParts[0]?.toLowerCase();
   if (!provider) {
-    return undefined;
+    return resolveGlobalHistoryLimit(config);
   }
 
   const kind = providerParts[1]?.toLowerCase();
@@ -60,7 +70,7 @@ export function getDmHistoryLimitFromSessionKey(
   const userId = stripThreadSuffix(userIdRaw);
   // Accept both "direct" (new) and "dm" (legacy) for backward compat
   if (kind !== "direct" && kind !== "dm") {
-    return undefined;
+    return resolveGlobalHistoryLimit(config);
   }
 
   const getLimit = (
@@ -95,5 +105,14 @@ export function getDmHistoryLimitFromSessionKey(
     return entry as { dmHistoryLimit?: number; dms?: Record<string, { historyLimit?: number }> };
   };
 
-  return getLimit(resolveProviderConfig(config, provider));
+  return getLimit(resolveProviderConfig(config, provider)) ?? resolveGlobalHistoryLimit(config);
+}
+
+function resolveGlobalHistoryLimit(config: OpenClawConfig | undefined): number {
+  const agentLimit = (config?.agents?.defaults as { dmHistoryLimit?: number } | undefined)
+    ?.dmHistoryLimit;
+  if (typeof agentLimit === "number" && agentLimit > 0) {
+    return agentLimit;
+  }
+  return DEFAULT_GLOBAL_HISTORY_LIMIT;
 }

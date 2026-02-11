@@ -830,12 +830,38 @@ export async function runEmbeddedAttempt(
         }
 
         try {
-          await waitForCompactionRetry();
+          // Compaction-specific timeout: if compaction doesn't finish within 60 seconds,
+          // give up waiting and proceed. This prevents the session from staying stuck in
+          // active=true when compaction hangs, which would block all subsequent messages.
+          // The run's main timeout (params.timeoutMs, default 600s) is too generous for this.
+          const COMPACTION_WAIT_TIMEOUT_MS = 60_000;
+          const compactionPromise = waitForCompactionRetry();
+          const compactionTimeout = new Promise<void>((_resolve, reject) => {
+            const timer = setTimeout(() => {
+              const err = new Error(
+                `compaction wait timed out after ${COMPACTION_WAIT_TIMEOUT_MS}ms`,
+              );
+              err.name = "CompactionTimeoutError";
+              reject(err);
+            }, COMPACTION_WAIT_TIMEOUT_MS);
+            // If the compaction finishes or abort fires first, clear the timer.
+            void compactionPromise.then(
+              () => clearTimeout(timer),
+              () => clearTimeout(timer),
+            );
+          });
+          await abortable(Promise.race([compactionPromise, compactionTimeout]));
         } catch (err) {
           if (isRunnerAbortError(err)) {
             if (!promptError) {
               promptError = err;
             }
+          } else if (err instanceof Error && err.name === "CompactionTimeoutError") {
+            log.warn(
+              `embedded run compaction wait timed out: runId=${params.runId} sessionId=${params.sessionId}`,
+            );
+            // Don't treat this as a fatal error — the run completed, just compaction is slow.
+            // The session will be released in the finally block.
           } else {
             throw err;
           }
