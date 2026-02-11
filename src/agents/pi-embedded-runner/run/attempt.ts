@@ -595,7 +595,8 @@ export async function runEmbeddedAttempt(
         } else {
           runAbortController.abort(reason);
         }
-        void activeSession.abort();
+        // Catch AbortError from in-flight requests - expected during timeout aborts
+        activeSession.abort().catch(() => {});
       };
       const abortable = <T>(promise: Promise<T>): Promise<T> => {
         const signal = runAbortController.signal;
@@ -812,6 +813,18 @@ export async function runEmbeddedAttempt(
               provider: params.provider,
               modelId: params.modelId,
             });
+          }
+
+          // Diagnostic: log context sizes before prompt to help debug early overflow errors.
+          {
+            const msgCount = activeSession.messages.length;
+            const systemLen = systemPromptText?.length ?? 0;
+            const promptLen = effectivePrompt.length;
+            log.info(
+              `[context-diag] pre-prompt: sessionKey=${params.sessionKey ?? params.sessionId} ` +
+                `messages=${msgCount} systemPromptChars=${systemLen} promptChars=${promptLen} ` +
+                `provider=${params.provider}/${params.modelId} sessionFile=${params.sessionFile}`,
+            );
           }
 
           // Only pass images option if there are actually images to pass

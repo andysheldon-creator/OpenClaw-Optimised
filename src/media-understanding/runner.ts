@@ -4,6 +4,39 @@ import os from "node:os";
 import path from "node:path";
 import type { MsgContext } from "../auto-reply/templating.js";
 import type { OpenClawConfig } from "../config/config.js";
+import { requireApiKey, resolveApiKeyForProvider } from "../agents/model-auth.js";
+import { applyTemplate } from "../auto-reply/templating.js";
+import { logVerbose, shouldLogVerbose } from "../globals.js";
+import { runExec } from "../process/exec.js";
+
+/**
+ * Legacy placeholder aliases for CLI args.
+ * Maps intuitive single-brace placeholders to standard double-brace format.
+ */
+const LEGACY_PLACEHOLDER_MAP: Record<string, string> = {
+  "{file}": "{{MediaPath}}",
+  "{input}": "{{MediaPath}}",
+  "{media}": "{{MediaPath}}",
+  "{output}": "{{OutputDir}}",
+  "{output_dir}": "{{OutputDir}}",
+  "{output_base}": "{{OutputBase}}",
+  "{prompt}": "{{Prompt}}",
+  "{media_dir}": "{{MediaDir}}",
+};
+
+/**
+ * Normalize legacy single-brace placeholders to standard double-brace format.
+ * Supports case-insensitive matching for convenience.
+ */
+function normalizePlaceholders(value: string): string {
+  let result = value;
+  for (const [legacy, standard] of Object.entries(LEGACY_PLACEHOLDER_MAP)) {
+    // Case-insensitive replacement
+    const pattern = new RegExp(legacy.replace(/[{}]/g, "\\$&"), "gi");
+    result = result.replace(pattern, standard);
+  }
+  return result;
+}
 import type {
   MediaUnderstandingConfig,
   MediaUnderstandingModelConfig,
@@ -16,15 +49,11 @@ import type {
   MediaUnderstandingOutput,
   MediaUnderstandingProvider,
 } from "./types.js";
-import { requireApiKey, resolveApiKeyForProvider } from "../agents/model-auth.js";
 import {
   findModelInCatalog,
   loadModelCatalog,
   modelSupportsVision,
 } from "../agents/model-catalog.js";
-import { applyTemplate } from "../auto-reply/templating.js";
-import { logVerbose, shouldLogVerbose } from "../globals.js";
-import { runExec } from "../process/exec.js";
 import { MediaAttachmentCache, normalizeAttachments, selectAttachments } from "./attachments.js";
 import {
   AUTO_AUDIO_KEY_PROVIDERS,
@@ -34,6 +63,7 @@ import {
   DEFAULT_AUDIO_MODELS,
   DEFAULT_IMAGE_MODELS,
   DEFAULT_TIMEOUT_SECONDS,
+  MIN_AUDIO_FILE_BYTES,
 } from "./defaults.js";
 import { isMediaUnderstandingSkipError, MediaUnderstandingSkipError } from "./errors.js";
 import { describeImageWithModel } from "./providers/image.js";
@@ -894,6 +924,12 @@ async function runProviderEntry(params: {
       maxBytes,
       timeoutMs,
     });
+    if (media.size < MIN_AUDIO_FILE_BYTES) {
+      throw new MediaUnderstandingSkipError(
+        "tooSmall",
+        `Audio attachment ${params.attachmentIndex + 1} is too small (${media.size} bytes, minimum ${MIN_AUDIO_FILE_BYTES})`,
+      );
+    }
     const auth = await resolveApiKeyForProvider({
       provider: providerId,
       cfg,
@@ -1016,6 +1052,15 @@ async function runCliEntry(params: {
     maxBytes,
     timeoutMs,
   });
+  if (capability === "audio") {
+    const stat = await fs.stat(pathResult.path);
+    if (stat.size < MIN_AUDIO_FILE_BYTES) {
+      throw new MediaUnderstandingSkipError(
+        "tooSmall",
+        `Audio attachment ${params.attachmentIndex + 1} is too small (${stat.size} bytes, minimum ${MIN_AUDIO_FILE_BYTES})`,
+      );
+    }
+  }
   const outputDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-media-cli-"));
   const mediaPath = pathResult.path;
   const outputBase = path.join(outputDir, path.parse(mediaPath).name);
@@ -1030,7 +1075,7 @@ async function runCliEntry(params: {
     MaxChars: maxChars,
   };
   const argv = [command, ...args].map((part, index) =>
-    index === 0 ? part : applyTemplate(part, templCtx),
+    index === 0 ? part : applyTemplate(normalizePlaceholders(part), templCtx),
   );
   try {
     if (shouldLogVerbose()) {
