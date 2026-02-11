@@ -74,8 +74,37 @@ const QWEN_PORTAL_DEFAULT_COST = {
   cacheWrite: 0,
 };
 
-const OLLAMA_BASE_URL = "http://127.0.0.1:11434/v1";
-const OLLAMA_API_BASE_URL = "http://127.0.0.1:11434";
+// Ollama URLs - can be overridden via OLLAMA_HOST environment variable
+// Supports cross-machine setups (e.g., OLLAMA_HOST=http://192.168.1.100:11434)
+// Handles various OLLAMA_HOST formats: host:port, http://host:port, http://host:port/path
+function normalizeOllamaHost(): string {
+  const envHost = process.env.OLLAMA_HOST;
+  if (!envHost) {
+    return "http://127.0.0.1:11434";
+  }
+
+  // Add http:// if no scheme provided (e.g., "host:port" -> "http://host:port")
+  const withScheme = envHost.includes("://") ? envHost : `http://${envHost}`;
+
+  try {
+    const url = new URL(withScheme);
+    // Return only protocol + host (ignore any path component)
+    return `${url.protocol}//${url.host}`;
+  } catch {
+    // If URL parsing fails, fall back to localhost
+    console.warn(`Invalid OLLAMA_HOST format: ${envHost}, using localhost`);
+    return "http://127.0.0.1:11434";
+  }
+}
+
+function getOllamaBaseUrl(): string {
+  return `${normalizeOllamaHost()}/v1`;
+}
+
+function getOllamaApiBaseUrl(): string {
+  return normalizeOllamaHost();
+}
+
 const OLLAMA_DEFAULT_CONTEXT_WINDOW = 128000;
 const OLLAMA_DEFAULT_MAX_TOKENS = 8192;
 const OLLAMA_DEFAULT_COST = {
@@ -116,17 +145,18 @@ async function discoverOllamaModels(): Promise<ModelDefinitionConfig[]> {
   if (process.env.VITEST || process.env.NODE_ENV === "test") {
     return [];
   }
+  const ollamaApiBase = getOllamaApiBaseUrl();
   try {
-    const response = await fetch(`${OLLAMA_API_BASE_URL}/api/tags`, {
+    const response = await fetch(`${ollamaApiBase}/api/tags`, {
       signal: AbortSignal.timeout(5000),
     });
     if (!response.ok) {
-      console.warn(`Failed to discover Ollama models: ${response.status}`);
+      console.warn(`Failed to discover Ollama models from ${ollamaApiBase}: ${response.status}`);
       return [];
     }
     const data = (await response.json()) as OllamaTagsResponse;
     if (!data.models || data.models.length === 0) {
-      console.warn("No Ollama models found on local instance");
+      console.warn(`No Ollama models found at ${ollamaApiBase}`);
       return [];
     }
     return data.models.map((model) => {
@@ -149,7 +179,7 @@ async function discoverOllamaModels(): Promise<ModelDefinitionConfig[]> {
       };
     });
   } catch (error) {
-    console.warn(`Failed to discover Ollama models: ${String(error)}`);
+    console.warn(`Failed to discover Ollama models from ${ollamaApiBase}: ${String(error)}`);
     return [];
   }
 }
@@ -413,7 +443,7 @@ async function buildVeniceProvider(): Promise<ProviderConfig> {
 async function buildOllamaProvider(): Promise<ProviderConfig> {
   const models = await discoverOllamaModels();
   return {
-    baseUrl: OLLAMA_BASE_URL,
+    baseUrl: getOllamaBaseUrl(),
     api: "openai-completions",
     models,
   };
