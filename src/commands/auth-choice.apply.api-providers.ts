@@ -87,7 +87,6 @@ export async function applyAuthChoiceApiProviders(
       "Model configured",
     );
   };
-
   let authChoice = params.authChoice;
   if (
     authChoice === "apiKey" &&
@@ -128,7 +127,6 @@ export async function applyAuthChoiceApiProviders(
       authChoice = "qianfan-api-key";
     }
   }
-
   if (authChoice === "openrouter-api-key") {
     const store = ensureAuthProfileStore(params.agentDir, {
       allowKeychainPrompt: false,
@@ -207,72 +205,8 @@ export async function applyAuthChoiceApiProviders(
     return { config: nextConfig, agentModelOverride };
   }
 
-  if (authChoice === "litellm-api-key") {
-    const store = ensureAuthProfileStore(params.agentDir, { allowKeychainPrompt: false });
-    const profileOrder = resolveAuthProfileOrder({ cfg: nextConfig, store, provider: "litellm" });
-    const existingProfileId = profileOrder.find((profileId) => Boolean(store.profiles[profileId]));
-    const existingCred = existingProfileId ? store.profiles[existingProfileId] : undefined;
-    let profileId = "litellm:default";
-    let hasCredential = false;
-
-    if (existingProfileId && existingCred?.type === "api_key") {
-      profileId = existingProfileId;
-      hasCredential = true;
-    }
-    if (!hasCredential && params.opts?.token && params.opts?.tokenProvider === "litellm") {
-      await setLitellmApiKey(normalizeApiKeyInput(params.opts.token), params.agentDir);
-      hasCredential = true;
-    }
-    if (!hasCredential) {
-      await params.prompter.note(
-        "LiteLLM provides a unified API to 100+ LLM providers.\nGet your API key from your LiteLLM proxy or https://litellm.ai\nDefault proxy runs on http://localhost:4000",
-        "LiteLLM",
-      );
-      const envKey = resolveEnvApiKey("litellm");
-      if (envKey) {
-        const useExisting = await params.prompter.confirm({
-          message: `Use existing LITELLM_API_KEY (${envKey.source}, ${formatApiKeyPreview(envKey.apiKey)})?`,
-          initialValue: true,
-        });
-        if (useExisting) {
-          await setLitellmApiKey(envKey.apiKey, params.agentDir);
-          hasCredential = true;
-        }
-      }
-      if (!hasCredential) {
-        const key = await params.prompter.text({
-          message: "Enter LiteLLM API key",
-          validate: validateApiKeyInput,
-        });
-        await setLitellmApiKey(normalizeApiKeyInput(String(key)), params.agentDir);
-        hasCredential = true;
-      }
-    }
-    if (hasCredential) {
-      nextConfig = applyAuthProfileConfig(nextConfig, {
-        profileId,
-        provider: "litellm",
-        mode: "api_key",
-      });
-    }
-    const applied = await applyDefaultModelChoice({
-      config: nextConfig,
-      setDefaultModel: params.setDefaultModel,
-      defaultModel: LITELLM_DEFAULT_MODEL_REF,
-      applyDefaultConfig: applyLitellmConfig,
-      applyProviderConfig: applyLitellmProviderConfig,
-      noteDefault: LITELLM_DEFAULT_MODEL_REF,
-      noteAgentModel,
-      prompter: params.prompter,
-    });
-    nextConfig = applied.config;
-    agentModelOverride = applied.agentModelOverride ?? agentModelOverride;
-    return { config: nextConfig, agentModelOverride };
-  }
-
   if (authChoice === "ai-gateway-api-key") {
     let hasCredential = false;
-
     if (
       !hasCredential &&
       params.opts?.token &&
@@ -321,7 +255,6 @@ export async function applyAuthChoiceApiProviders(
     }
     return { config: nextConfig, agentModelOverride };
   }
-
   if (authChoice === "cloudflare-ai-gateway-api-key") {
     let hasCredential = false;
     let accountId = params.opts?.cloudflareAiGatewayAccountId?.trim() ?? "";
@@ -420,10 +353,8 @@ export async function applyAuthChoiceApiProviders(
     }
     return { config: nextConfig, agentModelOverride };
   }
-
   if (authChoice === "moonshot-api-key") {
     let hasCredential = false;
-
     if (!hasCredential && params.opts?.token && params.opts?.tokenProvider === "moonshot") {
       await setMoonshotApiKey(normalizeApiKeyInput(params.opts.token), params.agentDir);
       hasCredential = true;
@@ -467,10 +398,8 @@ export async function applyAuthChoiceApiProviders(
     }
     return { config: nextConfig, agentModelOverride };
   }
-
   if (authChoice === "moonshot-api-key-cn") {
     let hasCredential = false;
-
     if (!hasCredential && params.opts?.token && params.opts?.tokenProvider === "moonshot") {
       await setMoonshotApiKey(normalizeApiKeyInput(params.opts.token), params.agentDir);
       hasCredential = true;
@@ -575,10 +504,8 @@ export async function applyAuthChoiceApiProviders(
     }
     return { config: nextConfig, agentModelOverride };
   }
-
   if (authChoice === "gemini-api-key") {
     let hasCredential = false;
-
     if (!hasCredential && params.opts?.token && params.opts?.tokenProvider === "google") {
       await setGeminiApiKey(normalizeApiKeyInput(params.opts.token), params.agentDir);
       hasCredential = true;
@@ -622,7 +549,6 @@ export async function applyAuthChoiceApiProviders(
     }
     return { config: nextConfig, agentModelOverride };
   }
-
   if (authChoice === "zai-api-key") {
     let hasCredential = false;
 
@@ -1069,7 +995,7 @@ export async function applyAuthChoiceApiProviders(
         noteDefault: DIGITALOCEAN_GRADIENT_DEFAULT_MODEL_REF,
         noteAgentModel,
         prompter: params.prompter,
-      }).then(applied => applied.config);
+      }).then((applied) => applied.config);
     }
 
     return { config: nextConfig, agentModelOverride };

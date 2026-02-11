@@ -141,9 +141,7 @@ const DIGITALOCEAN_GRADIENT_MODEL_CATALOG = {
 
 type DigitalOceanGradientCatalogId = keyof typeof DIGITALOCEAN_GRADIENT_MODEL_CATALOG;
 
-export function buildDigitalOceanGradientModelDefinition(
-  modelId?: string,
-): ModelDefinitionConfig {
+export function buildDigitalOceanGradientModelDefinition(modelId?: string): ModelDefinitionConfig {
   const id = modelId ?? DIGITALOCEAN_GRADIENT_DEFAULT_MODEL_ID;
   const catalog = DIGITALOCEAN_GRADIENT_MODEL_CATALOG[id as DigitalOceanGradientCatalogId];
   return {

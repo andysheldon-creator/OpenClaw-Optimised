@@ -865,12 +865,13 @@ export function applyDigitalOceanGradientProviderConfig(cfg: OpenClawConfig): Op
   const existingProvider = providers.digitalocean;
   const existingModels = Array.isArray(existingProvider?.models) ? existingProvider.models : [];
   const defaultModels = buildDigitalOceanGradientModels();
-  
+
   // Merge existing models with default models, avoiding duplicates
   const existingModelIds = new Set(existingModels.map((m) => m.id));
   const newModels = defaultModels.filter((m) => !existingModelIds.has(m.id));
-  const mergedModels = existingModels.length > 0 ? [...existingModels, ...newModels] : defaultModels;
-  
+  const mergedModels =
+    existingModels.length > 0 ? [...existingModels, ...newModels] : defaultModels;
+
   const { apiKey: existingApiKey, ...existingProviderRest } = (existingProvider ?? {}) as Record<
     string,
     unknown
