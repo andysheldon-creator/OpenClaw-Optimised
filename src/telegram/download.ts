@@ -13,10 +13,15 @@ export async function getTelegramFile(
   fileId: string,
   timeoutMs = 30_000,
 ): Promise<TelegramFileInfo> {
-  const res = await fetch(
-    `https://api.telegram.org/bot${token}/getFile?file_id=${encodeURIComponent(fileId)}`,
-    { signal: AbortSignal.timeout(timeoutMs) },
-  );
+  let res: Response;
+  try {
+    res = await fetch(
+      `https://api.telegram.org/bot${token}/getFile?file_id=${encodeURIComponent(fileId)}`,
+      { signal: AbortSignal.timeout(timeoutMs) },
+    );
+  } catch (err) {
+    throw new Error(`getFile fetch failed for file_id ${fileId}: ${String(err)}`, { cause: err });
+  }
   if (!res.ok) {
     throw new Error(`getFile failed: ${res.status} ${res.statusText}`);
   }
@@ -37,7 +42,14 @@ export async function downloadTelegramFile(
     throw new Error("file_path missing");
   }
   const url = `https://api.telegram.org/file/bot${token}/${info.file_path}`;
-  const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+  let res: Response;
+  try {
+    res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+  } catch (err) {
+    throw new Error(`Failed to download telegram file from ${info.file_path}: ${String(err)}`, {
+      cause: err,
+    });
+  }
   if (!res.ok || !res.body) {
     throw new Error(`Failed to download telegram file: HTTP ${res.status}`);
   }

@@ -138,6 +138,14 @@ export function isRecoverableTelegramNetworkError(
       return true;
     }
 
+    // MediaFetchError with code "fetch_failed" indicates a network-level failure
+    // during media download (e.g., TypeError: fetch failed from undici).
+    // This check is unconditional — media fetch network failures are always
+    // recoverable regardless of context, since the underlying cause is transient.
+    if (name === "MediaFetchError" && code === "FETCH_FAILED") {
+      return true;
+    }
+
     if (allowMessageMatch) {
       const message = formatErrorMessage(candidate).toLowerCase();
       if (message && RECOVERABLE_MESSAGE_SNIPPETS.some((snippet) => message.includes(snippet))) {
