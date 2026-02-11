@@ -115,6 +115,7 @@ export async function runDaemonInstall(opts: DaemonInstallOptions) {
       programArguments,
       workingDirectory,
       environment,
+      watchdog: true,
     });
   } catch (err) {
     fail(`Gateway install failed: ${String(err)}`);

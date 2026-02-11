@@ -34,6 +34,11 @@ import { getMachineDisplayName } from "../infra/machine-name.js";
 import { ensureOpenClawCliOnPath } from "../infra/path-env.js";
 import { setGatewaySigusr1RestartPolicy } from "../infra/restart.js";
 import {
+  sdNotifyExtendTimeout,
+  sdNotifyReady,
+  startWatchdogHeartbeat,
+} from "../infra/sd-notify.js";
+import {
   primeRemoteSkillsCache,
   refreshRemoteBinsForConnectedNodes,
   setSkillsRemoteRegistry,
@@ -286,6 +291,9 @@ export async function startGatewayServer(
       cwd: process.cwd(),
     });
     if (!resolvedRoot) {
+      // Asset build can take several minutes on source installs; extend the
+      // systemd startup timeout so we aren't killed before READY=1 is sent.
+      sdNotifyExtendTimeout(600);
       const ensureResult = await ensureControlUiAssetsBuilt(gatewayRuntime);
       if (!ensureResult.ok && ensureResult.message) {
         log.warn(`gateway: ${ensureResult.message}`);
@@ -545,6 +553,13 @@ export async function startGatewayServer(
     logTailscale,
   });
 
+  // Signal readiness before sidecar startup — the HTTP/WS server is already
+  // listening and can accept connections.  Sidecars (plugins, browser control)
+  // may block for an extended period (e.g. Gmail watcher ≤120 s) which can
+  // exceed systemd's default TimeoutStartSec and cause restart loops.
+  sdNotifyReady();
+  const stopWatchdog = startWatchdogHeartbeat();
+
   let browserControl: Awaited<ReturnType<typeof startBrowserControlServerIfEnabled>> = null;
   ({ browserControl, pluginServices } = await startGatewaySidecars({
     cfg: cfgAtStart,
@@ -620,6 +635,7 @@ export async function startGatewayServer(
     wss,
     httpServer,
     httpServers,
+    stopWatchdog,
   });
 
   return {
