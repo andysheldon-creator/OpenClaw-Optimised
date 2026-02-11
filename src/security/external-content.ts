@@ -82,49 +82,118 @@ const EXTERNAL_SOURCE_LABELS: Record<ExternalContentSource, string> = {
   unknown: "External",
 };
 
-const FULLWIDTH_ASCII_OFFSET = 0xfee0;
-const FULLWIDTH_LEFT_ANGLE = 0xff1c;
-const FULLWIDTH_RIGHT_ANGLE = 0xff1e;
+const MARKER_IGNORED_CHARS = new Set(["\u200B", "\u200C", "\u200D", "\uFEFF", "\u00AD"]);
+const MARKER_STRIP_PATTERN = /[\p{Cf}\p{M}]/u;
+const MARKER_LETTER_WILDCARD = "\uE000";
+const MARKER_OPEN_DELIMITER_WILDCARD = "\uE001";
+const MARKER_CLOSE_DELIMITER_WILDCARD = "\uE002";
+const MARKER_SEPARATOR_WILDCARD = "\uE003";
+const MARKER_NON_ASCII_LETTER_PATTERN = /\p{L}/u;
+const MARKER_OPEN_DELIMITER_PATTERN = /[\p{Ps}\p{Pi}]/u;
+const MARKER_CLOSE_DELIMITER_PATTERN = /[\p{Pe}\p{Pf}]/u;
+const MARKER_SEPARATOR_PATTERN = /[\p{Pc}\u02CD\u2017]/u;
 
-function foldMarkerChar(char: string): string {
-  const code = char.charCodeAt(0);
-  if (code >= 0xff21 && code <= 0xff3a) {
-    return String.fromCharCode(code - FULLWIDTH_ASCII_OFFSET);
+function buildMarkerRegex(marker: string): RegExp {
+  let pattern = "";
+  for (const char of marker) {
+    if (char >= "A" && char <= "Z") {
+      pattern += `[${char}${MARKER_LETTER_WILDCARD}]`;
+      continue;
+    }
+    if (char === "<") {
+      pattern += `[<${MARKER_OPEN_DELIMITER_WILDCARD}]`;
+      continue;
+    }
+    if (char === ">") {
+      pattern += `[>${MARKER_CLOSE_DELIMITER_WILDCARD}]`;
+      continue;
+    }
+    if (char === "_") {
+      pattern += `[_${MARKER_SEPARATOR_WILDCARD}]`;
+      continue;
+    }
+    pattern += char.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
-  if (code >= 0xff41 && code <= 0xff5a) {
-    return String.fromCharCode(code - FULLWIDTH_ASCII_OFFSET);
+  return new RegExp(pattern, "gu");
+}
+
+const MARKER_REPLACEMENTS: Array<{ regex: RegExp; value: string }> = [
+  { regex: buildMarkerRegex(EXTERNAL_CONTENT_START), value: "[[MARKER_SANITIZED]]" },
+  { regex: buildMarkerRegex(EXTERNAL_CONTENT_END), value: "[[END_MARKER_SANITIZED]]" },
+];
+
+function foldMarkerSkeletonChar(char: string): string {
+  if (char >= "a" && char <= "z") {
+    return char.toUpperCase();
   }
-  if (code === FULLWIDTH_LEFT_ANGLE) {
-    return "<";
+  if ((char >= "A" && char <= "Z") || char === "_" || char === "<" || char === ">") {
+    return char;
   }
-  if (code === FULLWIDTH_RIGHT_ANGLE) {
-    return ">";
+  if (MARKER_SEPARATOR_PATTERN.test(char)) {
+    return MARKER_SEPARATOR_WILDCARD;
+  }
+  if (MARKER_NON_ASCII_LETTER_PATTERN.test(char)) {
+    return MARKER_LETTER_WILDCARD;
+  }
+  if (MARKER_OPEN_DELIMITER_PATTERN.test(char)) {
+    return MARKER_OPEN_DELIMITER_WILDCARD;
+  }
+  if (MARKER_CLOSE_DELIMITER_PATTERN.test(char)) {
+    return MARKER_CLOSE_DELIMITER_WILDCARD;
   }
   return char;
 }
 
-function foldMarkerText(input: string): string {
-  return input.replace(/[\uFF21-\uFF3A\uFF41-\uFF5A\uFF1C\uFF1E]/g, (char) => foldMarkerChar(char));
+function foldMarkerText(input: string): { text: string; starts: number[]; ends: number[] } {
+  let text = "";
+  const starts: number[] = [];
+  const ends: number[] = [];
+
+  let offset = 0;
+  for (const rawChar of input) {
+    const sourceStart = offset;
+    offset += rawChar.length;
+
+    for (const normalizedChar of rawChar.normalize("NFKD")) {
+      if (MARKER_IGNORED_CHARS.has(normalizedChar) || MARKER_STRIP_PATTERN.test(normalizedChar)) {
+        continue;
+      }
+
+      const skeleton = foldMarkerSkeletonChar(normalizedChar.normalize("NFKC"));
+      text += skeleton;
+      for (let i = 0; i < skeleton.length; i++) {
+        starts.push(sourceStart);
+        ends.push(offset);
+      }
+    }
+  }
+
+  return { text, starts, ends };
 }
 
 function replaceMarkers(content: string): string {
   const folded = foldMarkerText(content);
-  if (!/external_untrusted_content/i.test(folded)) {
+  if (
+    !/(external_untrusted_content|end_external_untrusted_content|[\uE000\uE001\uE002\uE003])/iu.test(
+      folded.text,
+    )
+  ) {
     return content;
   }
   const replacements: Array<{ start: number; end: number; value: string }> = [];
-  const patterns: Array<{ regex: RegExp; value: string }> = [
-    { regex: /<<<EXTERNAL_UNTRUSTED_CONTENT>>>/gi, value: "[[MARKER_SANITIZED]]" },
-    { regex: /<<<END_EXTERNAL_UNTRUSTED_CONTENT>>>/gi, value: "[[END_MARKER_SANITIZED]]" },
-  ];
-
-  for (const pattern of patterns) {
+  for (const pattern of MARKER_REPLACEMENTS) {
     pattern.regex.lastIndex = 0;
     let match: RegExpExecArray | null;
-    while ((match = pattern.regex.exec(folded)) !== null) {
+    while ((match = pattern.regex.exec(folded.text)) !== null) {
+      const start = folded.starts[match.index];
+      const endIndex = match.index + match[0].length - 1;
+      const end = folded.ends[endIndex];
+      if (start === undefined || end === undefined) {
+        continue;
+      }
       replacements.push({
-        start: match.index,
-        end: match.index + match[0].length,
+        start,
+        end,
         value: pattern.value,
       });
     }
