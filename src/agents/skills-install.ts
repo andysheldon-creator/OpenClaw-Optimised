@@ -252,6 +252,107 @@ async function downloadFile(
   }
 }
 
+/** Check whether an archive entry path would escape the target directory. */
+export function entryEscapesTarget(entryPath: string, targetDir: string): boolean {
+  // Normalize backslashes: some zip implementations use `\` as separator even on POSIX
+  const normalized = entryPath.replaceAll("\\", "/");
+  const resolved = path.resolve(targetDir, normalized);
+  const resolvedTarget = path.resolve(targetDir);
+  return resolved !== resolvedTarget && !resolved.startsWith(resolvedTarget + path.sep);
+}
+
+/**
+ * Parse a `tar tvf` line and return the symlink target if the entry is a symlink.
+ * Symlink lines start with 'l' and contain ' -> <target>'.
+ */
+export function parseTarSymlinkTarget(line: string): string | undefined {
+  if (!line.startsWith("l")) {
+    return undefined;
+  }
+  const arrowIndex = line.indexOf(" -> ");
+  if (arrowIndex === -1) {
+    return undefined;
+  }
+  return line.slice(arrowIndex + 4);
+}
+
+/**
+ * List archive entries and reject any that would write outside targetDir.
+ * Checks both path traversal (CWE-22 / Zip Slip) and symlink-based
+ * directory escapes where a symlink points outside the target and subsequent
+ * entries traverse through it.
+ */
+async function validateArchiveEntries(params: {
+  archivePath: string;
+  archiveType: string;
+  targetDir: string;
+  timeoutMs: number;
+}): Promise<{ ok: boolean; error?: string }> {
+  const { archivePath, archiveType, targetDir, timeoutMs } = params;
+
+  if (archiveType === "zip") {
+    if (!hasBinary("unzip")) {
+      return { ok: true };
+    }
+    // unzip has built-in path traversal protection since 2002, but symlinks
+    // are the real risk. Use verbose zipinfo mode to detect symlink entries.
+    const listResult = await runCommandWithTimeout(["unzip", "-Z", archivePath], { timeoutMs });
+    if (listResult.code !== 0) {
+      return { ok: false, error: "failed to list archive contents" };
+    }
+    // Reject archives containing symlinks - symlink targets are stored as
+    // file content in ZIP so we cannot pre-validate them safely.
+    const lines = listResult.stdout.split("\n").filter(Boolean);
+    for (const line of lines) {
+      if (line.startsWith("l")) {
+        return { ok: false, error: "archive contains symlinks (potential traversal vector)" };
+      }
+    }
+    return { ok: true };
+  }
+
+  // tar has no built-in traversal protection, check both paths and symlinks.
+  if (!hasBinary("tar")) {
+    return { ok: true };
+  }
+
+  const resolvedTarget = path.resolve(targetDir);
+
+  // Krok 1: tar tf zwraca czyste nazwy plikow (po jednej na linie).
+  // Bezpieczne parsowanie nawet gdy nazwa zawiera spacje.
+  const tfResult = await runCommandWithTimeout(["tar", "tf", archivePath], { timeoutMs });
+  if (tfResult.code !== 0) {
+    return { ok: false, error: "failed to list archive contents" };
+  }
+  for (const entryName of tfResult.stdout.split("\n").filter(Boolean)) {
+    if (entryEscapesTarget(entryName, targetDir)) {
+      return { ok: false, error: `archive entry escapes target directory: ${entryName}` };
+    }
+  }
+
+  // Krok 2: tar tvf tylko do detekcji symlinkow (linie zaczynajace sie od 'l')
+  const tvfResult = await runCommandWithTimeout(["tar", "tvf", archivePath], { timeoutMs });
+  if (tvfResult.code === 0) {
+    for (const line of tvfResult.stdout.split("\n").filter(Boolean)) {
+      const symlinkTarget = parseTarSymlinkTarget(line);
+      if (symlinkTarget) {
+        const normalizedTarget = symlinkTarget.replaceAll("\\", "/");
+        const resolvedLink = path.resolve(targetDir, normalizedTarget);
+        if (
+          resolvedLink !== resolvedTarget &&
+          !resolvedLink.startsWith(resolvedTarget + path.sep)
+        ) {
+          return {
+            ok: false,
+            error: `archive contains symlink escaping target: ${symlinkTarget}`,
+          };
+        }
+      }
+    }
+  }
+  return { ok: true };
+}
+
 async function extractArchive(params: {
   archivePath: string;
   archiveType: string;
@@ -260,18 +361,31 @@ async function extractArchive(params: {
   timeoutMs: number;
 }): Promise<{ stdout: string; stderr: string; code: number | null }> {
   const { archivePath, archiveType, targetDir, stripComponents, timeoutMs } = params;
+
+  const validation = await validateArchiveEntries({
+    archivePath,
+    archiveType,
+    targetDir,
+    timeoutMs,
+  });
+  if (!validation.ok) {
+    return { stdout: "", stderr: validation.error ?? "archive validation failed", code: null };
+  }
+
   if (archiveType === "zip") {
     if (!hasBinary("unzip")) {
       return { stdout: "", stderr: "unzip not found on PATH", code: null };
     }
-    const argv = ["unzip", "-q", archivePath, "-d", targetDir];
+    // -n: never overwrite existing files (defense-in-depth against traversal)
+    const argv = ["unzip", "-q", "-n", archivePath, "-d", targetDir];
     return await runCommandWithTimeout(argv, { timeoutMs });
   }
 
   if (!hasBinary("tar")) {
     return { stdout: "", stderr: "tar not found on PATH", code: null };
   }
-  const argv = ["tar", "xf", archivePath, "-C", targetDir];
+  // -k: keep existing files, don't overwrite (defense-in-depth against traversal)
+  const argv = ["tar", "xf", archivePath, "-k", "-C", targetDir];
   if (typeof stripComponents === "number" && Number.isFinite(stripComponents)) {
     argv.push("--strip-components", String(Math.max(0, Math.floor(stripComponents))));
   }
