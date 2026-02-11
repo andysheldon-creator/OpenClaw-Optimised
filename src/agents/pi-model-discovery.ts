@@ -5,6 +5,7 @@ import type { OpenClawConfig } from "../config/config.js";
 import type { AuthProfileCredential, AuthProfileStore } from "./auth-profiles/types.js";
 import { resolveAuthProfileOrder } from "./auth-profiles/order.js";
 import { ensureAuthProfileStore } from "./auth-profiles/store.js";
+import { normalizeProviderId } from "./model-selection.js";
 
 export { AuthStorage, ModelRegistry } from "@mariozechner/pi-coding-agent";
 
@@ -21,11 +22,11 @@ function syncAuthJsonFromProfiles(agentDir: string, cfg?: OpenClawConfig): void 
   const store: AuthProfileStore = ensureAuthProfileStore(agentDir);
   const flat: Record<string, unknown> = {};
 
-  // Collect unique providers from all profiles.
+  // Collect unique normalized providers from all profiles.
   const providers = new Set<string>();
   for (const profile of Object.values(store.profiles)) {
     if (profile.provider) {
-      providers.add(profile.provider);
+      providers.add(normalizeProviderId(profile.provider));
     }
   }
 
@@ -46,13 +47,11 @@ function syncAuthJsonFromProfiles(agentDir: string, cfg?: OpenClawConfig): void 
     }
   }
 
-  if (Object.keys(flat).length === 0) {
-    return;
-  }
-
   const authJsonPath = path.join(agentDir, "auth.json");
-  fs.writeFileSync(authJsonPath, JSON.stringify(flat, null, 2), "utf-8");
-  fs.chmodSync(authJsonPath, 0o600);
+
+  // Always write auth.json to keep it in sync with auth-profiles.
+  // Writing "{}" when no profiles exist ensures stale credentials are cleared.
+  fs.writeFileSync(authJsonPath, JSON.stringify(flat, null, 2), { encoding: "utf-8", mode: 0o600 });
 }
 
 function convertProfileToSdkCredential(

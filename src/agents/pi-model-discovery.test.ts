@@ -283,17 +283,21 @@ describe("discoverAuthStorage", () => {
     expect(stat.mode & 0o777).toBe(0o600);
   });
 
-  it("does not write auth.json when no profiles exist", () => {
+  it("writes empty auth.json when no profiles exist (clears stale credentials)", () => {
+    // Write a stale auth.json with leftover credentials
+    const authJsonPath = path.join(tempDir, "auth.json");
+    fs.writeFileSync(authJsonPath, JSON.stringify({ openai: { type: "api_key", key: "stale" } }));
+
     mockEnsureAuthProfileStore.mockReturnValue({
       version: 1,
       profiles: {},
     });
 
-    discoverAuthStorage(tempDir);
-    const authJsonPath = path.join(tempDir, "auth.json");
-    // AuthStorage constructor may create the file if it doesn't exist,
-    // but our sync function should not write an empty object
-    // The SDK AuthStorage reads whatever is on disk; if we don't write, it gets {}
-    expect(authJsonPath).toBeDefined(); // no crash
+    const authStorage = discoverAuthStorage(tempDir);
+    // Stale credentials should be cleared
+    expect(authStorage.has("openai")).toBe(false);
+    // auth.json should contain empty object
+    const content = JSON.parse(fs.readFileSync(authJsonPath, "utf-8"));
+    expect(content).toEqual({});
   });
 });
