@@ -111,13 +111,14 @@ interface OllamaTagsResponse {
   models: OllamaModel[];
 }
 
-async function discoverOllamaModels(): Promise<ModelDefinitionConfig[]> {
+async function discoverOllamaModels(baseUrl?: string): Promise<ModelDefinitionConfig[]> {
   // Skip Ollama discovery in test environments
   if (process.env.VITEST || process.env.NODE_ENV === "test") {
     return [];
   }
+  const apiBaseUrl = baseUrl ?? OLLAMA_API_BASE_URL;
   try {
-    const response = await fetch(`${OLLAMA_API_BASE_URL}/api/tags`, {
+    const response = await fetch(`${apiBaseUrl}/api/tags`, {
       signal: AbortSignal.timeout(5000),
     });
     if (!response.ok) {
@@ -126,7 +127,7 @@ async function discoverOllamaModels(): Promise<ModelDefinitionConfig[]> {
     }
     const data = (await response.json()) as OllamaTagsResponse;
     if (!data.models || data.models.length === 0) {
-      console.warn("No Ollama models found on local instance");
+      console.warn("No Ollama models found on configured instance");
       return [];
     }
     return data.models.map((model) => {
@@ -410,10 +411,14 @@ async function buildVeniceProvider(): Promise<ProviderConfig> {
   };
 }
 
-async function buildOllamaProvider(): Promise<ProviderConfig> {
-  const models = await discoverOllamaModels();
+async function buildOllamaProvider(configuredBaseUrl?: string): Promise<ProviderConfig> {
+  // configuredBaseUrl might be the /v1 endpoint or the root API endpoint
+  // Normalize to get both forms
+  const baseUrl = configuredBaseUrl ?? OLLAMA_BASE_URL;
+  const apiBaseUrl = baseUrl.replace(/\/v1\/?$/, "");
+  const models = await discoverOllamaModels(apiBaseUrl);
   return {
-    baseUrl: OLLAMA_BASE_URL,
+    baseUrl,
     api: "openai-completions",
     models,
   };
@@ -456,6 +461,7 @@ export function buildQianfanProvider(): ProviderConfig {
 
 export async function resolveImplicitProviders(params: {
   agentDir: string;
+  config?: OpenClawConfig;
 }): Promise<ModelsConfig["providers"]> {
   const providers: Record<string, ProviderConfig> = {};
   const authStore = ensureAuthProfileStore(params.agentDir, {
@@ -546,7 +552,10 @@ export async function resolveImplicitProviders(params: {
     resolveEnvApiKeyVarName("ollama") ??
     resolveApiKeyFromProfiles({ provider: "ollama", store: authStore });
   if (ollamaKey) {
-    providers.ollama = { ...(await buildOllamaProvider()), apiKey: ollamaKey };
+    // Use configured baseUrl if available, otherwise fall back to default
+    const ollamaConfig = params.config?.models?.providers?.ollama;
+    const configuredBaseUrl = ollamaConfig?.baseUrl;
+    providers.ollama = { ...(await buildOllamaProvider(configuredBaseUrl)), apiKey: ollamaKey };
   }
 
   const togetherKey =
