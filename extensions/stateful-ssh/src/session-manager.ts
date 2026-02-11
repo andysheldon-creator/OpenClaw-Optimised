@@ -141,9 +141,10 @@ export class SSHSessionManager {
         return true;
       }
 
-      // Support wildcard patterns (simple implementation)
+      // Support wildcard patterns (escape regex metacharacters, then expand *)
       if (pattern.includes("*")) {
-        const regex = new RegExp("^" + pattern.replace(/\*/g, ".*") + "$");
+        const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\\\*/g, ".*");
+        const regex = new RegExp("^" + escaped + "$");
         if (regex.test(targetHost)) {
           return true;
         }
