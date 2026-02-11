@@ -80,6 +80,28 @@ describe("removePluginFromConfig", () => {
     expect(actions.loadPath).toBe(true);
   });
 
+  it("cleans up load when removing the only linked path", () => {
+    const config: OpenClawConfig = {
+      plugins: {
+        installs: {
+          "my-plugin": {
+            source: "path",
+            sourcePath: "/path/to/plugin",
+            installPath: "/path/to/plugin",
+          },
+        },
+        load: {
+          paths: ["/path/to/plugin"],
+        },
+      },
+    };
+
+    const { config: result, actions } = removePluginFromConfig(config, "my-plugin");
+
+    expect(result.plugins?.load).toBeUndefined();
+    expect(actions.loadPath).toBe(true);
+  });
+
   it("clears memory slot when uninstalling active memory plugin", () => {
     const config: OpenClawConfig = {
       plugins: {

@@ -3,7 +3,7 @@ import path from "node:path";
 import type { OpenClawConfig } from "../config/config.js";
 import type { PluginInstallRecord } from "../config/types.plugins.js";
 import { resolvePluginInstallDir } from "./install.js";
-import { defaultSlotIdForKey, type PluginSlotKey } from "./slots.js";
+import { defaultSlotIdForKey } from "./slots.js";
 
 export type UninstallActions = {
   entry: boolean;
@@ -98,14 +98,13 @@ export function removePluginFromConfig(
   }
 
   // Remove linked path from load.paths (for source === "path" plugins)
-  let loadPaths = pluginsConfig.load?.paths;
+  let load = pluginsConfig.load;
   if (installRecord?.source === "path" && installRecord.sourcePath) {
     const sourcePath = installRecord.sourcePath;
+    const loadPaths = load?.paths;
     if (Array.isArray(loadPaths) && loadPaths.includes(sourcePath)) {
-      loadPaths = loadPaths.filter((p) => p !== sourcePath);
-      if (loadPaths.length === 0) {
-        loadPaths = undefined;
-      }
+      const nextLoadPaths = loadPaths.filter((p) => p !== sourcePath);
+      load = nextLoadPaths.length > 0 ? { ...load, paths: nextLoadPaths } : undefined;
       actions.loadPath = true;
     }
   }
@@ -115,23 +114,17 @@ export function removePluginFromConfig(
   if (slots?.memory === pluginId) {
     slots = {
       ...slots,
-      memory: defaultSlotIdForKey("memory" as PluginSlotKey),
+      memory: defaultSlotIdForKey("memory"),
     };
     actions.memorySlot = true;
   }
-
-  // Build new config with cleaned up plugins section
-  const load =
-    loadPaths !== undefined ? { ...pluginsConfig.load, paths: loadPaths } : pluginsConfig.load;
-  const loadWithoutEmptyPaths =
-    load && !load.paths && Object.keys(load).length === 0 ? undefined : load;
 
   const newPlugins = {
     ...pluginsConfig,
     entries,
     installs,
     allow,
-    load: loadWithoutEmptyPaths,
+    load,
     slots,
   };
 

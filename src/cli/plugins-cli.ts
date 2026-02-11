@@ -1,7 +1,9 @@
 import type { Command } from "commander";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import type { OpenClawConfig } from "../config/config.js";
+import { resolveStateDir } from "../config/paths.js";
 import type { PluginRecord } from "../plugins/registry.js";
 import { loadConfig, writeConfigFile } from "../config/config.js";
 import { resolveArchiveKind } from "../infra/archive.js";
@@ -35,6 +37,7 @@ export type PluginUpdateOptions = {
 };
 
 export type PluginUninstallOptions = {
+  keepFiles?: boolean;
   keepConfig?: boolean;
   force?: boolean;
   dryRun?: boolean;
@@ -344,12 +347,19 @@ export function registerPluginsCli(program: Command) {
     .command("uninstall")
     .description("Uninstall a plugin")
     .argument("<id>", "Plugin id")
-    .option("--keep-config", "Keep installed files on disk", false)
+    .option("--keep-files", "Keep installed files on disk", false)
+    .option("--keep-config", "Deprecated alias for --keep-files", false)
     .option("--force", "Skip confirmation prompt", false)
     .option("--dry-run", "Show what would be removed without making changes", false)
     .action(async (id: string, opts: PluginUninstallOptions) => {
       const cfg = loadConfig();
       const report = buildPluginStatusReport({ config: cfg });
+      const extensionsDir = path.join(resolveStateDir(process.env, os.homedir), "extensions");
+      const keepFiles = Boolean(opts.keepFiles || opts.keepConfig);
+
+      if (opts.keepConfig) {
+        defaultRuntime.log(theme.warn("`--keep-config` is deprecated, use `--keep-files`."));
+      }
 
       // Find plugin by id or name
       const plugin = report.plugins.find((p) => p.id === id || p.name === id);
@@ -394,11 +404,12 @@ export function registerPluginsCli(program: Command) {
       if (cfg.plugins?.slots?.memory === pluginId) {
         preview.push(`memory slot (will reset to "memory-core")`);
       }
-      const deleteTarget = !opts.keepConfig
+      const deleteTarget = !keepFiles
         ? resolveUninstallDirectoryTarget({
             pluginId,
             hasInstall,
             installRecord: install,
+            extensionsDir,
           })
         : null;
       if (deleteTarget) {
@@ -409,7 +420,7 @@ export function registerPluginsCli(program: Command) {
       defaultRuntime.log(
         `Plugin: ${theme.command(pluginName)}${pluginName !== pluginId ? theme.muted(` (${pluginId})`) : ""}`,
       );
-      defaultRuntime.log(`Will remove: ${preview.join(", ")}`);
+      defaultRuntime.log(`Will remove: ${preview.length > 0 ? preview.join(", ") : "(nothing)"}`);
 
       if (opts.dryRun) {
         defaultRuntime.log(theme.muted("Dry run, no changes made."));
@@ -427,7 +438,8 @@ export function registerPluginsCli(program: Command) {
       const result = await uninstallPlugin({
         config: cfg,
         pluginId,
-        deleteFiles: !opts.keepConfig,
+        deleteFiles: !keepFiles,
+        extensionsDir,
       });
 
       if (!result.ok) {
@@ -457,7 +469,9 @@ export function registerPluginsCli(program: Command) {
         removed.push("directory");
       }
 
-      defaultRuntime.log(`Uninstalled plugin "${pluginId}". Removed: ${removed.join(", ")}.`);
+      defaultRuntime.log(
+        `Uninstalled plugin "${pluginId}". Removed: ${removed.length > 0 ? removed.join(", ") : "nothing"}.`,
+      );
       defaultRuntime.log("Restart the gateway to apply changes.");
     });
 
