@@ -567,6 +567,8 @@ export async function setupChannels(
     await refreshStatus(channel);
   };
 
+  let lastChannelChoice: ChannelChoice | null = null;
+
   const handleChannelChoice = async (channel: ChannelChoice) => {
     const { catalogById } = getChannelEntries();
     const catalogEntry = catalogById.get(channel);
@@ -602,9 +604,11 @@ export async function setupChannels(
     const configured = status?.configured ?? false;
     if (configured) {
       await handleConfiguredChannel(channel, label);
+      lastChannelChoice = channel; // Remember the last configured channel
       return;
     }
     await configureChannel(channel);
+    lastChannelChoice = channel; // Remember the last configured channel
   };
 
   if (options?.quickstartDefaults) {
@@ -626,9 +630,10 @@ export async function setupChannels(
     }
   } else {
     const doneValue = "__done__" as const;
-    const initialValue = options?.initialSelection?.[0] ?? quickstartDefault;
     while (true) {
       const { entries } = getChannelEntries();
+      // Use the last configured channel as the initial value, falling back to initialSelection or quickstartDefault
+      const initialValue = lastChannelChoice ?? options?.initialSelection?.[0] ?? quickstartDefault;
       const choice = (await prompter.select({
         message: "Select a channel",
         options: [
