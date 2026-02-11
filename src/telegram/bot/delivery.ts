@@ -1,3 +1,4 @@
+import type { MessageEntity } from "@grammyjs/types";
 import { type Bot, GrammyError, InputFile } from "grammy";
 import type { ReplyPayload } from "../../auto-reply/types.js";
 import type { ReplyToMode } from "../../config/config.js";
@@ -102,31 +103,52 @@ export async function deliverReplies(params: {
         ? [reply.mediaUrl]
         : [];
     const telegramData = reply.channelData?.telegram as
-      | { buttons?: Array<Array<{ text: string; callback_data: string }>> }
+      | {
+          buttons?: Array<Array<{ text: string; callback_data: string }>>;
+          entities?: MessageEntity[];
+        }
       | undefined;
     const replyMarkup = buildInlineKeyboard(telegramData?.buttons);
+    const telegramEntities = telegramData?.entities;
     if (mediaList.length === 0) {
-      const chunks = chunkText(reply.text || "");
-      for (let i = 0; i < chunks.length; i += 1) {
-        const chunk = chunks[i];
-        if (!chunk) {
-          continue;
-        }
-        // Only attach buttons to the first chunk.
-        const shouldAttachButtons = i === 0 && replyMarkup;
-        await sendTelegramText(bot, chatId, chunk.html, runtime, {
+      // When entities are provided, send raw text with entities (no HTML chunking).
+      if (telegramEntities?.length) {
+        await sendTelegramText(bot, chatId, reply.text || "", runtime, {
           replyToMessageId:
             replyToId && (replyToMode === "all" || !hasReplied) ? replyToId : undefined,
           replyQuoteText,
           thread,
-          textMode: "html",
-          plainText: chunk.text,
           linkPreview,
-          replyMarkup: shouldAttachButtons ? replyMarkup : undefined,
+          replyMarkup: replyMarkup ?? undefined,
+          entities: telegramEntities,
         });
         markDelivered();
         if (replyToId && !hasReplied) {
           hasReplied = true;
+        }
+      } else {
+        const chunks = chunkText(reply.text || "");
+        for (let i = 0; i < chunks.length; i += 1) {
+          const chunk = chunks[i];
+          if (!chunk) {
+            continue;
+          }
+          // Only attach buttons to the first chunk.
+          const shouldAttachButtons = i === 0 && replyMarkup;
+          await sendTelegramText(bot, chatId, chunk.html, runtime, {
+            replyToMessageId:
+              replyToId && (replyToMode === "all" || !hasReplied) ? replyToId : undefined,
+            replyQuoteText,
+            thread,
+            textMode: "html",
+            plainText: chunk.text,
+            linkPreview,
+            replyMarkup: shouldAttachButtons ? replyMarkup : undefined,
+          });
+          markDelivered();
+          if (replyToId && !hasReplied) {
+            hasReplied = true;
+          }
         }
       }
       continue;
@@ -504,6 +526,7 @@ async function sendTelegramText(
     plainText?: string;
     linkPreview?: boolean;
     replyMarkup?: ReturnType<typeof buildInlineKeyboard>;
+    entities?: MessageEntity[];
   },
 ): Promise<number | undefined> {
   const baseParams = buildTelegramSendParams({
@@ -513,6 +536,23 @@ async function sendTelegramText(
   // Add link_preview_options when link preview is disabled.
   const linkPreviewEnabled = opts?.linkPreview ?? true;
   const linkPreviewOptions = linkPreviewEnabled ? undefined : { is_disabled: true };
+
+  // When entities are provided, send with entities instead of parse_mode.
+  if (opts?.entities?.length) {
+    const res = await withTelegramApiErrorLogging({
+      operation: "sendMessage",
+      runtime,
+      fn: () =>
+        bot.api.sendMessage(chatId, text, {
+          entities: opts.entities,
+          ...(linkPreviewOptions ? { link_preview_options: linkPreviewOptions } : {}),
+          ...(opts?.replyMarkup ? { reply_markup: opts.replyMarkup } : {}),
+          ...baseParams,
+        }),
+    });
+    return res.message_id;
+  }
+
   const textMode = opts?.textMode ?? "markdown";
   const htmlText = textMode === "html" ? text : markdownToTelegramHtml(text);
   try {

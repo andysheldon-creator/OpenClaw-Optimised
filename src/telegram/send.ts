@@ -1,6 +1,7 @@
 import type {
   InlineKeyboardButton,
   InlineKeyboardMarkup,
+  MessageEntity,
   ReactionType,
   ReactionTypeEmoji,
 } from "@grammyjs/types";
@@ -54,6 +55,8 @@ type TelegramSendOpts = {
   messageThreadId?: number;
   /** Inline keyboard buttons (reply markup). */
   buttons?: Array<Array<{ text: string; callback_data: string }>>;
+  /** Message entities for entity-based formatting (sent without parse_mode). */
+  entities?: MessageEntity[];
 };
 
 type TelegramSendResult = {
@@ -339,12 +342,30 @@ export async function sendMessageTelegram(
     fallbackText?: string,
   ) => {
     return await sendWithThreadFallback(params, "message", async (effectiveParams, label) => {
-      const htmlText = renderHtmlText(rawText);
       const baseParams = effectiveParams ? { ...effectiveParams } : {};
       if (linkPreviewOptions) {
         baseParams.link_preview_options = linkPreviewOptions;
       }
       const hasBaseParams = Object.keys(baseParams).length > 0;
+
+      // When entities are provided, send with entities instead of parse_mode.
+      if (opts.entities?.length) {
+        const sendParams = {
+          entities: opts.entities,
+          ...baseParams,
+          ...(opts.silent === true ? { disable_notification: true } : {}),
+        };
+        const res = await requestWithDiag(
+          () =>
+            api.sendMessage(chatId, rawText, sendParams as Parameters<typeof api.sendMessage>[2]),
+          label,
+        ).catch((err) => {
+          throw wrapChatNotFound(err);
+        });
+        return res;
+      }
+
+      const htmlText = renderHtmlText(rawText);
       const sendParams = {
         parse_mode: "HTML" as const,
         ...baseParams,
