@@ -547,7 +547,12 @@ export class CallManager {
     }
     this.processedEventIds.add(event.id);
 
-    let call = this.findCall(event.callId);
+    // Telnyx can omit client_state (internal callId) on later events (notably call.transcription).
+    // If callId is empty, fall back to providerCallId mapping.
+    let call = event.callId ? this.findCall(event.callId) : undefined;
+    if (!call && event.providerCallId) {
+      call = this.getCallByProviderCallId(event.providerCallId);
+    }
 
     // Handle inbound calls - create record if it doesn't exist
     if (!call && event.direction === "inbound" && event.providerCallId) {
@@ -607,6 +612,8 @@ export class CallManager {
         // Best-effort: speak initial message (for inbound greetings and outbound
         // conversation mode) once the call is answered.
         this.maybeSpeakInitialMessageOnAnswered(call);
+        // Telnyx: auto-enable transcription for two-way conversation mode.
+        this.maybeStartListeningOnAnswered(call);
         break;
 
       case "call.active":
@@ -618,9 +625,15 @@ export class CallManager {
         break;
 
       case "call.speech":
-        if (event.isFinal) {
-          this.addTranscriptEntry(call, "user", event.transcript);
-          this.resolveTranscriptWaiter(call.callId, event.transcript);
+        // Telnyx often emits incremental transcripts with inconsistent `isFinal`;
+        // for two-way conversations, accept partials so waits can resolve.
+        {
+          const text = (event.transcript || "").trim();
+          const acceptPartial = this.provider?.name === "telnyx";
+          if (text && (event.isFinal || acceptPartial)) {
+            this.addTranscriptEntry(call, "user", text);
+            this.resolveTranscriptWaiter(call.callId, text);
+          }
         }
         this.transitionState(call, "listening");
         break;
@@ -693,6 +706,40 @@ export class CallManager {
     }
 
     void this.speakInitialMessage(call.providerCallId);
+  }
+
+  /**
+   * Telnyx: auto-enable transcription when a call is answered (conversation mode).
+   * This makes outbound calls truly two-way without requiring an explicit continueCall.
+   */
+  private maybeStartListeningOnAnswered(call: CallRecord): void {
+    const mode = (call.metadata?.mode as CallMode) ?? "conversation";
+
+    if (mode !== "conversation") {
+      return;
+    }
+
+    if (!this.provider || !call.providerCallId) {
+      return;
+    }
+
+    // Only enable this behavior for Telnyx (other providers may manage media/recording differently).
+    if (this.provider.name !== "telnyx") {
+      return;
+    }
+
+    // Fire-and-forget: if it fails, the call can still proceed (bot can speak).
+    void this.provider
+      .startListening({ callId: call.callId, providerCallId: call.providerCallId })
+      .catch((err) => {
+        console.warn(
+          `[voice-call] Telnyx startListening failed for call ${call.callId}:`,
+          err instanceof Error ? err.message : err,
+        );
+      });
+
+    this.transitionState(call, "listening");
+    this.persistCallRecord(call);
   }
 
   /**

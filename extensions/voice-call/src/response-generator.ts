@@ -4,6 +4,8 @@
  */
 
 import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
 import type { VoiceCallConfig } from "./config.js";
 import { loadCoreAgentDeps, type CoreConfig } from "./core-bridge.js";
 
@@ -56,18 +58,93 @@ export async function generateVoiceResponse(
   }
   const cfg = coreConfig;
 
+  const configuredAgentId = voiceConfig.responseAgentId?.trim();
+  let agentId = configuredAgentId || "voice";
+  const sessionKeyPrefix = voiceConfig.responseSessionKeyPrefix?.trim() || "voice";
+
   // Build voice-specific session key based on phone number
   const normalizedPhone = from.replace(/\D/g, "");
-  const sessionKey = `voice:${normalizedPhone}`;
-  const agentId = "main";
+  const buildSessionKey = (id: string): string =>
+    id === "main"
+      ? `${sessionKeyPrefix}:${normalizedPhone}`
+      : `${sessionKeyPrefix}:${id}:${normalizedPhone}`;
+  let sessionKey = buildSessionKey(agentId);
 
   // Resolve paths
-  const storePath = deps.resolveStorePath(cfg.session?.store, { agentId });
-  const agentDir = deps.resolveAgentDir(cfg, agentId);
-  const workspaceDir = deps.resolveAgentWorkspaceDir(cfg, agentId);
+  const resolvePaths = (id: string) => ({
+    storePath: deps.resolveStorePath(cfg.session?.store, { agentId: id }),
+    agentDir: deps.resolveAgentDir(cfg, id),
+    workspaceDir: deps.resolveAgentWorkspaceDir(cfg, id),
+  });
+
+  let { storePath, agentDir, workspaceDir } = resolvePaths(agentId);
 
   // Ensure workspace exists
   await deps.ensureAgentWorkspace({ dir: workspaceDir });
+
+  // Ensure a dedicated voice agent exists by default. On failure, fall back to main.
+  const ensureVoiceAgent = (dir: string): boolean => {
+    const agentsFile = path.join(dir, "AGENTS.md");
+    const identityFile = path.join(dir, "IDENTITY.md");
+    try {
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      if (!fs.existsSync(agentsFile)) {
+        fs.writeFileSync(
+          agentsFile,
+          [
+            "# AGENTS.md",
+            "",
+            "You are the OpenClaw voice agent for phone calls.",
+            "",
+            "Rules:",
+            "- Always produce a short, spoken reply (prefer exactly 1 sentence).",
+            "- Never output the tokens HEARTBEAT_OK or NO_REPLY.",
+            "- Do not use markdown or code blocks.",
+            "- If unsure, ask a brief clarifying question.",
+            "",
+            "You can use tools when helpful.",
+            "",
+          ].join("\n"),
+          "utf8",
+        );
+      }
+      if (!fs.existsSync(identityFile)) {
+        fs.writeFileSync(
+          identityFile,
+          [
+            "# IDENTITY.md",
+            "",
+            "- Name: OpenClaw Voice Assistant",
+            "- Vibe: concise, friendly, conversational, one-sentence replies",
+            "",
+          ].join("\n"),
+          "utf8",
+        );
+      }
+      return true;
+    } catch (err) {
+      console.warn(
+        `[voice-call] Failed to initialize voice agent config at ${dir}:`,
+        err instanceof Error ? err.message : err,
+      );
+      return false;
+    }
+  };
+
+  if (agentId === "voice") {
+    const ok = ensureVoiceAgent(agentDir);
+    if (!ok) {
+      console.warn("[voice-call] Falling back to main agent for voice responses");
+      agentId = "main";
+      sessionKey = buildSessionKey(agentId);
+      ({ storePath, agentDir, workspaceDir } = resolvePaths(agentId));
+      await deps.ensureAgentWorkspace({ dir: workspaceDir });
+    }
+  }
+
+  console.log(`[voice-call] Using response agent "${agentId}" for voice responses`);
 
   // Load or create session entry
   const sessionStore = deps.loadSessionStore(storePath);
@@ -99,12 +176,13 @@ export async function generateVoiceResponse(
 
   // Resolve agent identity for personalized prompt
   const identity = deps.resolveAgentIdentity(cfg, agentId);
-  const agentName = identity?.name?.trim() || "assistant";
+  const agentName =
+    identity?.name?.trim() || (agentId === "voice" ? "voice assistant" : "assistant");
 
   // Build system prompt with conversation history
   const basePrompt =
     voiceConfig.responseSystemPrompt ??
-    `You are ${agentName}, a helpful voice assistant on a phone call. Keep responses brief and conversational (1-2 sentences max). Be natural and friendly. The caller's phone number is ${from}. You have access to tools - use them when helpful.`;
+    `You are ${agentName}, a helpful voice assistant on a phone call. Always respond with a short spoken reply (1-2 sentences). Never output the tokens HEARTBEAT_OK or NO_REPLY. Do not use markdown or code blocks. If unsure, ask a brief clarifying question. The caller's phone number is ${from}. You have access to tools - use them when helpful.`;
 
   let extraSystemPrompt = basePrompt;
   if (transcript.length > 0) {
@@ -117,6 +195,7 @@ export async function generateVoiceResponse(
   // Resolve timeout
   const timeoutMs = voiceConfig.responseTimeoutMs ?? deps.resolveAgentTimeoutMs({ cfg });
   const runId = `voice:${callId}:${Date.now()}`;
+  const lane = agentId === "main" ? "voice" : `voice:${agentId}`;
 
   try {
     const result = await deps.runEmbeddedPiAgent({
@@ -133,21 +212,51 @@ export async function generateVoiceResponse(
       verboseLevel: "off",
       timeoutMs,
       runId,
-      lane: "voice",
+      lane,
       extraSystemPrompt,
       agentDir,
     });
 
     // Extract text from payloads
+    const heartbeatTokens = ["HEARTBEAT_OK", "NO_REPLY"];
+    let sawSentinel = false;
+    const stripHeartbeatTokens = (value: string): string => {
+      let output = value;
+      for (const token of heartbeatTokens) {
+        const pattern = new RegExp(`\\b${token}\\b`, "g");
+        if (pattern.test(output)) {
+          sawSentinel = true;
+        }
+        output = output.replace(pattern, "");
+      }
+      return output.replace(/\s+/g, " ").trim();
+    };
+
     const texts = (result.payloads ?? [])
       .filter((p) => p.text && !p.isError)
       .map((p) => p.text?.trim())
       .filter(Boolean);
 
-    const text = texts.join(" ") || null;
+    let text =
+      texts
+        .map((value) => stripHeartbeatTokens(value))
+        .filter(Boolean)
+        .join(" ") || null;
+
+    // Guardrail: never speak heartbeat/silent sentinels out loud.
+    if (text) {
+      text = stripHeartbeatTokens(text);
+      if (!text) {
+        text = null;
+      }
+    }
 
     if (!text && result.meta?.aborted) {
       return { text: null, error: "Response generation was aborted" };
+    }
+
+    if (!text && sawSentinel) {
+      return { text: null };
     }
 
     return { text };

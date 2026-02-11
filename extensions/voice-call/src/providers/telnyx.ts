@@ -15,6 +15,13 @@ import type {
 } from "../types.js";
 import type { VoiceCallProvider } from "./base.js";
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return null;
+  }
+  return value as Record<string, unknown>;
+}
+
 /**
  * Telnyx Voice API provider implementation.
  *
@@ -179,8 +186,11 @@ export class TelnyxProvider implements VoiceCallProvider {
         callId = data.payload.client_state;
       }
     }
+    // IMPORTANT: Telnyx often omits client_state on later events (notably call.transcription).
+    // If we fall back to call_control_id as callId, it won't match OpenClaw's internal callId.
+    // So: only use decoded client_state as callId; otherwise leave callId empty and rely on providerCallId mapping.
     if (!callId) {
-      callId = data.payload?.call_control_id || "";
+      callId = "";
     }
 
     const baseEvent = {
@@ -210,14 +220,36 @@ export class TelnyxProvider implements VoiceCallProvider {
           text: data.payload?.text || "",
         };
 
-      case "call.transcription":
+      case "call.transcription": {
+        // Telnyx docs show: payload.transcription_data = { transcript, is_final, confidence }
+        // In practice, field names can vary; be defensive.
+        const payload = asRecord(data.payload) ?? {};
+        const td = asRecord(payload.transcription_data);
+
+        const transcriptCandidate =
+          td?.transcript ?? td?.text ?? td?.transcription ?? payload.transcription;
+        const transcript = typeof transcriptCandidate === "string" ? transcriptCandidate : "";
+
+        const rawConfidence = td?.confidence ?? payload.confidence;
+        const confidence =
+          typeof rawConfidence === "number"
+            ? rawConfidence
+            : typeof rawConfidence === "string"
+              ? Number.parseFloat(rawConfidence)
+              : undefined;
+
+        // If is_final is missing, keep it false; the webhook layer debounces and scores partials.
+        const rawIsFinal = td?.is_final ?? payload.is_final;
+        const isFinal = typeof rawIsFinal === "boolean" ? rawIsFinal : false;
+
         return {
           ...baseEvent,
           type: "call.speech",
-          transcript: data.payload?.transcription || "",
-          isFinal: data.payload?.is_final ?? true,
-          confidence: data.payload?.confidence,
+          transcript: typeof transcript === "string" ? transcript : "",
+          isFinal,
+          confidence: Number.isFinite(confidence) ? confidence : undefined,
         };
+      }
 
       case "call.hangup":
         return {
