@@ -62,7 +62,7 @@ class DebugHandler(
         results.add("Signature.Ed25519: FAILED - ${e.javaClass.simpleName}: ${e.message}")
       }
 
-      return GatewaySession.InvokeResult.ok("""{"diagnostics":"${results.joinToString("\\n").replace("\"", "\\\"")}"}""""")
+      return GatewaySession.InvokeResult.ok("""{"diagnostics":"${results.joinToString("\\n").replace("\"", "\\\"")}"}"""")
     } catch (e: Throwable) {
       return GatewaySession.InvokeResult.error(code = "ED25519_TEST_FAILED", message = "${e.javaClass.simpleName}: ${e.message}\n${e.stackTraceToString().take(500)}")
     }
