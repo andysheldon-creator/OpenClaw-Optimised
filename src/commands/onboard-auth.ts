@@ -76,7 +76,6 @@ export {
   ZAI_DEFAULT_MODEL_REF,
   TOGETHER_DEFAULT_MODEL_REF,
   XAI_DEFAULT_MODEL_REF,
-  DIGITALOCEAN_GRADIENT_DEFAULT_MODEL_REF,
 } from "./onboard-auth.credentials.js";
 export {
   buildMinimaxApiModelDefinition,

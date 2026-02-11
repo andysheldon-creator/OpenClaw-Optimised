@@ -41,7 +41,6 @@ import {
 import {
   buildMoonshotModelDefinition,
   buildXaiModelDefinition,
-  buildDigitalOceanGradientModelDefinition,
   buildDigitalOceanGradientModels,
   QIANFAN_BASE_URL,
   QIANFAN_DEFAULT_MODEL_REF,
@@ -53,7 +52,6 @@ import {
   XAI_BASE_URL,
   XAI_DEFAULT_MODEL_ID,
   DIGITALOCEAN_GRADIENT_BASE_URL,
-  DIGITALOCEAN_GRADIENT_DEFAULT_MODEL_ID,
 } from "./onboard-auth.models.js";
 
 export function applyZaiConfig(cfg: OpenClawConfig): OpenClawConfig {
