@@ -649,6 +649,7 @@ export async function monitorIMessageProvider(opts: MonitorIMessageOpts = {}): P
         onModelSelected,
       },
     });
+
     if (!queuedFinal) {
       if (isGroup && historyKey) {
         clearHistoryEntriesIfEnabled({

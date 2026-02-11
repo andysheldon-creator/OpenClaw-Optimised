@@ -271,7 +271,7 @@ describe("gateway config.patch", () => {
       const parsed = JSON.parse(raw) as {
         payload?: { kind?: string; stats?: { mode?: string } };
       };
-      expect(parsed.payload?.kind).toBe("config-apply");
+      expect(parsed.payload?.kind).toBe("config-patch");
       expect(parsed.payload?.stats?.mode).toBe("config.patch");
     } catch {
       expect(patchRes.ok).toBe(true);
