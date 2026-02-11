@@ -49,6 +49,7 @@ export {
   OPENROUTER_DEFAULT_MODEL_REF,
   setAnthropicApiKey,
   setCloudflareAiGatewayConfig,
+  setOpenAIApiKey,
   setQianfanApiKey,
   setGeminiApiKey,
   setKimiCodingApiKey,

@@ -10,7 +10,7 @@ import {
 import { applyDefaultModelChoice } from "./auth-choice.default-model.js";
 import { isRemoteEnvironment } from "./oauth-env.js";
 import { createVpsAwareOAuthHandlers } from "./oauth-flow.js";
-import { applyAuthProfileConfig, writeOAuthCredentials } from "./onboard-auth.js";
+import { applyAuthProfileConfig, setOpenAIApiKey, writeOAuthCredentials } from "./onboard-auth.js";
 import { openUrl } from "./onboard-helpers.js";
 import {
   applyOpenAICodexModelDefault,
@@ -50,6 +50,8 @@ export async function applyAuthChoiceOpenAI(
         initialValue: true,
       });
       if (useExisting) {
+        // Persist in auth-profiles.json so sub-agents and the gateway can resolve it
+        setOpenAIApiKey(envKey.apiKey, params.agentDir);
         const result = upsertSharedEnvVar({
           key: "OPENAI_API_KEY",
           value: envKey.apiKey,
@@ -61,6 +63,11 @@ export async function applyAuthChoiceOpenAI(
           `Copied OPENAI_API_KEY to ${result.path} for launchd compatibility.`,
           "OpenAI API key",
         );
+        nextConfig = applyAuthProfileConfig(nextConfig, {
+          profileId: "openai:default",
+          provider: "openai",
+          mode: "api_key",
+        });
         const applied = await applyDefaultModelChoice({
           config: nextConfig,
           setDefaultModel: params.setDefaultModel,
@@ -88,6 +95,8 @@ export async function applyAuthChoiceOpenAI(
     }
 
     const trimmed = normalizeApiKeyInput(String(key));
+    // Persist in auth-profiles.json so sub-agents and the gateway can resolve it
+    setOpenAIApiKey(trimmed, params.agentDir);
     const result = upsertSharedEnvVar({
       key: "OPENAI_API_KEY",
       value: trimmed,
@@ -97,6 +106,11 @@ export async function applyAuthChoiceOpenAI(
       `Saved OPENAI_API_KEY to ${result.path} for launchd compatibility.`,
       "OpenAI API key",
     );
+    nextConfig = applyAuthProfileConfig(nextConfig, {
+      profileId: "openai:default",
+      provider: "openai",
+      mode: "api_key",
+    });
     const applied = await applyDefaultModelChoice({
       config: nextConfig,
       setDefaultModel: params.setDefaultModel,
