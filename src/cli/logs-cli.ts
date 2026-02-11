@@ -1,12 +1,7 @@
 import type { Command } from "commander";
 import { setTimeout as delay } from "node:timers/promises";
-import { buildGatewayConnectionDetails } from "../gateway/call.js";
-import { parseLogLine } from "../logging/parse-log-line.js";
 import { formatDocsLink } from "../terminal/links.js";
-import { clearActiveProgressLine } from "../terminal/progress-line.js";
-import { createSafeStreamWriter } from "../terminal/stream-writer.js";
 import { colorize, isRich, theme } from "../terminal/theme.js";
-import { formatCliCommand } from "./command-format.js";
 import { addGatewayClientOptions, callGatewayFromCli } from "./gateway-rpc.js";
 
 type LogsTailPayload = {
@@ -73,114 +68,6 @@ function formatLogTimestamp(value?: string, mode: "pretty" | "plain" = "plain") 
   return parsed.toISOString();
 }
 
-function formatLogLine(
-  raw: string,
-  opts: {
-    pretty: boolean;
-    rich: boolean;
-  },
-): string {
-  const parsed = parseLogLine(raw);
-  if (!parsed) {
-    return raw;
-  }
-  const label = parsed.subsystem ?? parsed.module ?? "";
-  const time = formatLogTimestamp(parsed.time, opts.pretty ? "pretty" : "plain");
-  const level = parsed.level ?? "";
-  const levelLabel = level.padEnd(5).trim();
-  const message = parsed.message || parsed.raw;
-
-  if (!opts.pretty) {
-    return [time, level, label, message].filter(Boolean).join(" ").trim();
-  }
-
-  const timeLabel = colorize(opts.rich, theme.muted, time);
-  const labelValue = colorize(opts.rich, theme.accent, label);
-  const levelValue =
-    level === "error" || level === "fatal"
-      ? colorize(opts.rich, theme.error, levelLabel)
-      : level === "warn"
-        ? colorize(opts.rich, theme.warn, levelLabel)
-        : level === "debug" || level === "trace"
-          ? colorize(opts.rich, theme.muted, levelLabel)
-          : colorize(opts.rich, theme.info, levelLabel);
-  const messageValue =
-    level === "error" || level === "fatal"
-      ? colorize(opts.rich, theme.error, message)
-      : level === "warn"
-        ? colorize(opts.rich, theme.warn, message)
-        : level === "debug" || level === "trace"
-          ? colorize(opts.rich, theme.muted, message)
-          : colorize(opts.rich, theme.info, message);
-
-  const head = [timeLabel, levelValue, labelValue].filter(Boolean).join(" ");
-  return [head, messageValue].filter(Boolean).join(" ").trim();
-}
-
-function createLogWriters() {
-  const writer = createSafeStreamWriter({
-    beforeWrite: () => clearActiveProgressLine(),
-    onBrokenPipe: (err, stream) => {
-      const code = err.code ?? "EPIPE";
-      const target = stream === process.stdout ? "stdout" : "stderr";
-      const message = `openclaw logs: output ${target} closed (${code}). Stopping tail.`;
-      try {
-        clearActiveProgressLine();
-        process.stderr.write(`${message}\n`);
-      } catch {
-        // ignore secondary failures while reporting the broken pipe
-      }
-    },
-  });
-
-  return {
-    logLine: (text: string) => writer.writeLine(process.stdout, text),
-    errorLine: (text: string) => writer.writeLine(process.stderr, text),
-    emitJsonLine: (payload: Record<string, unknown>, toStdErr = false) =>
-      writer.write(toStdErr ? process.stderr : process.stdout, `${JSON.stringify(payload)}\n`),
-  };
-}
-
-function emitGatewayError(
-  err: unknown,
-  opts: LogsCliOptions,
-  mode: "json" | "text",
-  rich: boolean,
-  emitJsonLine: (payload: Record<string, unknown>, toStdErr?: boolean) => boolean,
-  errorLine: (text: string) => boolean,
-) {
-  const details = buildGatewayConnectionDetails({ url: opts.url });
-  const message = "Gateway not reachable. Is it running and accessible?";
-  const hint = `Hint: run \`${formatCliCommand("openclaw doctor")}\`.`;
-  const errorText = err instanceof Error ? err.message : String(err);
-
-  if (mode === "json") {
-    if (
-      !emitJsonLine(
-        {
-          type: "error",
-          message,
-          error: errorText,
-          details,
-          hint,
-        },
-        true,
-      )
-    ) {
-      return;
-    }
-    return;
-  }
-
-  if (!errorLine(colorize(rich, theme.error, message))) {
-    return;
-  }
-  if (!errorLine(details.message)) {
-    return;
-  }
-  errorLine(colorize(rich, theme.muted, hint));
-}
-
 export function registerLogsCli(program: Command) {
   const logs = program
     .command("logs")
@@ -201,6 +88,120 @@ export function registerLogsCli(program: Command) {
   addGatewayClientOptions(logs);
 
   logs.action(async (opts: LogsCliOptions) => {
+    const { parseLogLine } = await import("../logging/parse-log-line.js");
+    const { buildGatewayConnectionDetails } = await import("../gateway/call.js");
+    const { clearActiveProgressLine } = await import("../terminal/progress-line.js");
+    const { createSafeStreamWriter } = await import("../terminal/stream-writer.js");
+    const { formatCliCommand } = await import("./command-format.js");
+
+    function formatLogLine(
+      raw: string,
+      fmtOpts: {
+        pretty: boolean;
+        rich: boolean;
+      },
+    ): string {
+      const parsed = parseLogLine(raw);
+      if (!parsed) {
+        return raw;
+      }
+      const label = parsed.subsystem ?? parsed.module ?? "";
+      const time = formatLogTimestamp(parsed.time, fmtOpts.pretty ? "pretty" : "plain");
+      const level = parsed.level ?? "";
+      const levelLabel = level.padEnd(5).trim();
+      const message = parsed.message || parsed.raw;
+
+      if (!fmtOpts.pretty) {
+        return [time, level, label, message].filter(Boolean).join(" ").trim();
+      }
+
+      const timeLabel = colorize(fmtOpts.rich, theme.muted, time);
+      const labelValue = colorize(fmtOpts.rich, theme.accent, label);
+      const levelValue =
+        level === "error" || level === "fatal"
+          ? colorize(fmtOpts.rich, theme.error, levelLabel)
+          : level === "warn"
+            ? colorize(fmtOpts.rich, theme.warn, levelLabel)
+            : level === "debug" || level === "trace"
+              ? colorize(fmtOpts.rich, theme.muted, levelLabel)
+              : colorize(fmtOpts.rich, theme.info, levelLabel);
+      const messageValue =
+        level === "error" || level === "fatal"
+          ? colorize(fmtOpts.rich, theme.error, message)
+          : level === "warn"
+            ? colorize(fmtOpts.rich, theme.warn, message)
+            : level === "debug" || level === "trace"
+              ? colorize(fmtOpts.rich, theme.muted, message)
+              : colorize(fmtOpts.rich, theme.info, message);
+
+      const head = [timeLabel, levelValue, labelValue].filter(Boolean).join(" ");
+      return [head, messageValue].filter(Boolean).join(" ").trim();
+    }
+
+    function createLogWriters() {
+      const writer = createSafeStreamWriter({
+        beforeWrite: () => clearActiveProgressLine(),
+        onBrokenPipe: (err, stream) => {
+          const code = err.code ?? "EPIPE";
+          const target = stream === process.stdout ? "stdout" : "stderr";
+          const message = `openclaw logs: output ${target} closed (${code}). Stopping tail.`;
+          try {
+            clearActiveProgressLine();
+            process.stderr.write(`${message}\n`);
+          } catch {
+            // ignore secondary failures while reporting the broken pipe
+          }
+        },
+      });
+
+      return {
+        logLine: (text: string) => writer.writeLine(process.stdout, text),
+        errorLine: (text: string) => writer.writeLine(process.stderr, text),
+        emitJsonLine: (payload: Record<string, unknown>, toStdErr = false) =>
+          writer.write(toStdErr ? process.stderr : process.stdout, `${JSON.stringify(payload)}\n`),
+      };
+    }
+
+    function emitGatewayError(
+      err: unknown,
+      errOpts: LogsCliOptions,
+      mode: "json" | "text",
+      rich: boolean,
+      emitJsonLine: (payload: Record<string, unknown>, toStdErr?: boolean) => boolean,
+      errorLine: (text: string) => boolean,
+    ) {
+      const details = buildGatewayConnectionDetails({ url: errOpts.url });
+      const message = "Gateway not reachable. Is it running and accessible?";
+      const hint = `Hint: run \`${formatCliCommand("openclaw doctor")}\`.`;
+      const errorText = err instanceof Error ? err.message : String(err);
+
+      if (mode === "json") {
+        if (
+          !emitJsonLine(
+            {
+              type: "error",
+              message,
+              error: errorText,
+              details,
+              hint,
+            },
+            true,
+          )
+        ) {
+          return;
+        }
+        return;
+      }
+
+      if (!errorLine(colorize(rich, theme.error, message))) {
+        return;
+      }
+      if (!errorLine(details.message)) {
+        return;
+      }
+      errorLine(colorize(rich, theme.muted, hint));
+    }
+
     const { logLine, errorLine, emitJsonLine } = createLogWriters();
     const interval = parsePositiveInt(opts.interval, 1000);
     let cursor: number | undefined;

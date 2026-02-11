@@ -1,7 +1,4 @@
 import type { Command } from "commander";
-import { runAcpClientInteractive } from "../acp/client.js";
-import { serveAcpGateway } from "../acp/server.js";
-import { defaultRuntime } from "../runtime.js";
 import { formatDocsLink } from "../terminal/links.js";
 import { theme } from "../terminal/theme.js";
 
@@ -22,7 +19,9 @@ export function registerAcpCli(program: Command) {
       "after",
       () => `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/acp", "docs.openclaw.ai/cli/acp")}\n`,
     )
-    .action((opts) => {
+    .action(async (opts) => {
+      const { serveAcpGateway } = await import("../acp/server.js");
+      const { defaultRuntime } = await import("../runtime.js");
       try {
         serveAcpGateway({
           gatewayUrl: opts.url as string | undefined,
@@ -50,6 +49,8 @@ export function registerAcpCli(program: Command) {
     .option("--server-verbose", "Enable verbose logging on the ACP server", false)
     .option("--verbose, -v", "Verbose client logging", false)
     .action(async (opts) => {
+      const { runAcpClientInteractive } = await import("../acp/client.js");
+      const { defaultRuntime } = await import("../runtime.js");
       try {
         await runAcpClientInteractive({
           cwd: opts.cwd as string | undefined,

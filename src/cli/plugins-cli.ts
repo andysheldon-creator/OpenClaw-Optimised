@@ -1,21 +1,9 @@
 import type { Command } from "commander";
-import fs from "node:fs";
 import path from "node:path";
 import type { OpenClawConfig } from "../config/config.js";
 import type { PluginRecord } from "../plugins/registry.js";
-import { loadConfig, writeConfigFile } from "../config/config.js";
-import { resolveArchiveKind } from "../infra/archive.js";
-import { installPluginFromNpmSpec, installPluginFromPath } from "../plugins/install.js";
-import { recordPluginInstall } from "../plugins/installs.js";
-import { applyExclusiveSlotSelection } from "../plugins/slots.js";
-import { resolvePluginSourceRoots, formatPluginSourceForTable } from "../plugins/source-display.js";
-import { buildPluginStatusReport } from "../plugins/status.js";
-import { updateNpmInstalledPlugins } from "../plugins/update.js";
-import { defaultRuntime } from "../runtime.js";
 import { formatDocsLink } from "../terminal/links.js";
-import { renderTable } from "../terminal/table.js";
 import { theme } from "../terminal/theme.js";
-import { resolveUserPath, shortenHomeInString, shortenHomePath } from "../utils.js";
 
 export type PluginsListOptions = {
   json?: boolean;
@@ -32,7 +20,11 @@ export type PluginUpdateOptions = {
   dryRun?: boolean;
 };
 
-function formatPluginLine(plugin: PluginRecord, verbose = false): string {
+function formatPluginLine(
+  plugin: PluginRecord,
+  verbose = false,
+  shortenHomeInString: (s: string) => string,
+): string {
   const status =
     plugin.status === "loaded"
       ? theme.success("loaded")
@@ -73,9 +65,15 @@ function formatPluginLine(plugin: PluginRecord, verbose = false): string {
 function applySlotSelectionForPlugin(
   config: OpenClawConfig,
   pluginId: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  buildPluginStatusReport: (...args: any[]) => any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  applyExclusiveSlotSelection: (...args: any[]) => any,
 ): { config: OpenClawConfig; warnings: string[] } {
   const report = buildPluginStatusReport({ config });
-  const plugin = report.plugins.find((entry) => entry.id === pluginId);
+  const plugin = report.plugins.find(
+    (entry: { id: string; kind: string }) => entry.id === pluginId,
+  );
   if (!plugin) {
     return { config, warnings: [] };
   }
@@ -88,12 +86,12 @@ function applySlotSelectionForPlugin(
   return { config: result.config, warnings: result.warnings };
 }
 
-function logSlotWarnings(warnings: string[]) {
+function logSlotWarnings(warnings: string[], runtime: { log: (msg: string) => void }) {
   if (warnings.length === 0) {
     return;
   }
   for (const warning of warnings) {
-    defaultRuntime.log(theme.warn(warning));
+    runtime.log(theme.warn(warning));
   }
 }
 
@@ -113,7 +111,14 @@ export function registerPluginsCli(program: Command) {
     .option("--json", "Print JSON")
     .option("--enabled", "Only show enabled plugins", false)
     .option("--verbose", "Show detailed entries", false)
-    .action((opts: PluginsListOptions) => {
+    .action(async (opts: PluginsListOptions) => {
+      const { defaultRuntime } = await import("../runtime.js");
+      const { buildPluginStatusReport } = await import("../plugins/status.js");
+      const { resolvePluginSourceRoots, formatPluginSourceForTable } =
+        await import("../plugins/source-display.js");
+      const { renderTable } = await import("../terminal/table.js");
+      const { shortenHomeInString } = await import("../utils.js");
+
       const report = buildPluginStatusReport();
       const list = opts.enabled
         ? report.plugins.filter((p) => p.status === "loaded")
@@ -199,7 +204,7 @@ export function registerPluginsCli(program: Command) {
 
       const lines: string[] = [];
       for (const plugin of list) {
-        lines.push(formatPluginLine(plugin, true));
+        lines.push(formatPluginLine(plugin, true, shortenHomeInString));
         lines.push("");
       }
       defaultRuntime.log(lines.join("\n").trim());
@@ -210,7 +215,12 @@ export function registerPluginsCli(program: Command) {
     .description("Show plugin details")
     .argument("<id>", "Plugin id")
     .option("--json", "Print JSON")
-    .action((id: string, opts: PluginInfoOptions) => {
+    .action(async (id: string, opts: PluginInfoOptions) => {
+      const { defaultRuntime } = await import("../runtime.js");
+      const { buildPluginStatusReport } = await import("../plugins/status.js");
+      const { loadConfig } = await import("../config/config.js");
+      const { shortenHomeInString, shortenHomePath } = await import("../utils.js");
+
       const report = buildPluginStatusReport();
       const plugin = report.plugins.find((p) => p.id === id || p.name === id);
       if (!plugin) {
@@ -288,6 +298,11 @@ export function registerPluginsCli(program: Command) {
     .description("Enable a plugin in config")
     .argument("<id>", "Plugin id")
     .action(async (id: string) => {
+      const { defaultRuntime } = await import("../runtime.js");
+      const { loadConfig, writeConfigFile } = await import("../config/config.js");
+      const { buildPluginStatusReport } = await import("../plugins/status.js");
+      const { applyExclusiveSlotSelection } = await import("../plugins/slots.js");
+
       const cfg = loadConfig();
       let next: OpenClawConfig = {
         ...cfg,
@@ -302,10 +317,15 @@ export function registerPluginsCli(program: Command) {
           },
         },
       };
-      const slotResult = applySlotSelectionForPlugin(next, id);
+      const slotResult = applySlotSelectionForPlugin(
+        next,
+        id,
+        buildPluginStatusReport,
+        applyExclusiveSlotSelection,
+      );
       next = slotResult.config;
       await writeConfigFile(next);
-      logSlotWarnings(slotResult.warnings);
+      logSlotWarnings(slotResult.warnings, defaultRuntime);
       defaultRuntime.log(`Enabled plugin "${id}". Restart the gateway to apply.`);
     });
 
@@ -314,6 +334,9 @@ export function registerPluginsCli(program: Command) {
     .description("Disable a plugin in config")
     .argument("<id>", "Plugin id")
     .action(async (id: string) => {
+      const { defaultRuntime } = await import("../runtime.js");
+      const { loadConfig, writeConfigFile } = await import("../config/config.js");
+
       const cfg = loadConfig();
       const next = {
         ...cfg,
@@ -338,6 +361,17 @@ export function registerPluginsCli(program: Command) {
     .argument("<path-or-spec>", "Path (.ts/.js/.zip/.tgz/.tar.gz) or an npm package spec")
     .option("-l, --link", "Link a local path instead of copying", false)
     .action(async (raw: string, opts: { link?: boolean }) => {
+      const fs = await import("node:fs");
+      const { defaultRuntime } = await import("../runtime.js");
+      const { loadConfig, writeConfigFile } = await import("../config/config.js");
+      const { resolveArchiveKind } = await import("../infra/archive.js");
+      const { installPluginFromNpmSpec, installPluginFromPath } =
+        await import("../plugins/install.js");
+      const { recordPluginInstall } = await import("../plugins/installs.js");
+      const { buildPluginStatusReport } = await import("../plugins/status.js");
+      const { applyExclusiveSlotSelection } = await import("../plugins/slots.js");
+      const { resolveUserPath, shortenHomePath } = await import("../utils.js");
+
       const resolved = resolveUserPath(raw);
       const cfg = loadConfig();
 
@@ -375,10 +409,15 @@ export function registerPluginsCli(program: Command) {
             installPath: resolved,
             version: probe.version,
           });
-          const slotResult = applySlotSelectionForPlugin(next, probe.pluginId);
+          const slotResult = applySlotSelectionForPlugin(
+            next,
+            probe.pluginId,
+            buildPluginStatusReport,
+            applyExclusiveSlotSelection,
+          );
           next = slotResult.config;
           await writeConfigFile(next);
-          logSlotWarnings(slotResult.warnings);
+          logSlotWarnings(slotResult.warnings, defaultRuntime);
           defaultRuntime.log(`Linked plugin path: ${shortenHomePath(resolved)}`);
           defaultRuntime.log(`Restart the gateway to load plugins.`);
           return;
@@ -417,10 +456,15 @@ export function registerPluginsCli(program: Command) {
           installPath: result.targetDir,
           version: result.version,
         });
-        const slotResult = applySlotSelectionForPlugin(next, result.pluginId);
+        const slotResult = applySlotSelectionForPlugin(
+          next,
+          result.pluginId,
+          buildPluginStatusReport,
+          applyExclusiveSlotSelection,
+        );
         next = slotResult.config;
         await writeConfigFile(next);
-        logSlotWarnings(slotResult.warnings);
+        logSlotWarnings(slotResult.warnings, defaultRuntime);
         defaultRuntime.log(`Installed plugin: ${result.pluginId}`);
         defaultRuntime.log(`Restart the gateway to load plugins.`);
         return;
@@ -480,10 +524,15 @@ export function registerPluginsCli(program: Command) {
         installPath: result.targetDir,
         version: result.version,
       });
-      const slotResult = applySlotSelectionForPlugin(next, result.pluginId);
+      const slotResult = applySlotSelectionForPlugin(
+        next,
+        result.pluginId,
+        buildPluginStatusReport,
+        applyExclusiveSlotSelection,
+      );
       next = slotResult.config;
       await writeConfigFile(next);
-      logSlotWarnings(slotResult.warnings);
+      logSlotWarnings(slotResult.warnings, defaultRuntime);
       defaultRuntime.log(`Installed plugin: ${result.pluginId}`);
       defaultRuntime.log(`Restart the gateway to load plugins.`);
     });
@@ -495,6 +544,10 @@ export function registerPluginsCli(program: Command) {
     .option("--all", "Update all tracked plugins", false)
     .option("--dry-run", "Show what would change without writing", false)
     .action(async (id: string | undefined, opts: PluginUpdateOptions) => {
+      const { defaultRuntime } = await import("../runtime.js");
+      const { loadConfig, writeConfigFile } = await import("../config/config.js");
+      const { updateNpmInstalledPlugins } = await import("../plugins/update.js");
+
       const cfg = loadConfig();
       const installs = cfg.plugins?.installs ?? {};
       const targets = opts.all ? Object.keys(installs) : id ? [id] : [];
@@ -539,7 +592,10 @@ export function registerPluginsCli(program: Command) {
   plugins
     .command("doctor")
     .description("Report plugin load issues")
-    .action(() => {
+    .action(async () => {
+      const { defaultRuntime } = await import("../runtime.js");
+      const { buildPluginStatusReport } = await import("../plugins/status.js");
+
       const report = buildPluginStatusReport();
       const errors = report.plugins.filter((p) => p.status === "error");
       const diags = report.diagnostics.filter((d) => d.level === "error");

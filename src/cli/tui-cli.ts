@@ -1,8 +1,6 @@
 import type { Command } from "commander";
-import { defaultRuntime } from "../runtime.js";
 import { formatDocsLink } from "../terminal/links.js";
 import { theme } from "../terminal/theme.js";
-import { runTui } from "../tui/tui.js";
 import { parseTimeoutMs } from "./parse-timeout.js";
 
 export function registerTuiCli(program: Command) {
@@ -24,6 +22,8 @@ export function registerTuiCli(program: Command) {
     )
     .action(async (opts) => {
       try {
+        const { defaultRuntime } = await import("../runtime.js");
+        const { runTui } = await import("../tui/tui.js");
         const timeoutMs = parseTimeoutMs(opts.timeoutMs);
         if (opts.timeoutMs !== undefined && timeoutMs === undefined) {
           defaultRuntime.error(
@@ -43,6 +43,7 @@ export function registerTuiCli(program: Command) {
           historyLimit: Number.isNaN(historyLimit) ? undefined : historyLimit,
         });
       } catch (err) {
+        const { defaultRuntime } = await import("../runtime.js");
         defaultRuntime.error(String(err));
         defaultRuntime.exit(1);
       }

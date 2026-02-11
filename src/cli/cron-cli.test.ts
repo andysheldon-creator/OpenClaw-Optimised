@@ -34,7 +34,7 @@ describe("cron cli", () => {
     const { registerCronCli } = await import("./cron-cli.js");
     const program = new Command();
     program.exitOverride();
-    registerCronCli(program);
+    await registerCronCli(program);
 
     await program.parseAsync(
       [
@@ -71,7 +71,7 @@ describe("cron cli", () => {
     const { registerCronCli } = await import("./cron-cli.js");
     const program = new Command();
     program.exitOverride();
-    registerCronCli(program);
+    await registerCronCli(program);
 
     await program.parseAsync(
       [
@@ -101,7 +101,7 @@ describe("cron cli", () => {
     const { registerCronCli } = await import("./cron-cli.js");
     const program = new Command();
     program.exitOverride();
-    registerCronCli(program);
+    await registerCronCli(program);
 
     await program.parseAsync(
       ["cron", "add", "--name", "Main reminder", "--cron", "* * * * *", "--system-event", "hi"],
@@ -132,7 +132,7 @@ describe("cron cli", () => {
     const { registerCronCli } = await import("./cron-cli.js");
     const program = new Command();
     program.exitOverride();
-    registerCronCli(program);
+    await registerCronCli(program);
 
     await program.parseAsync(
       [
@@ -162,7 +162,7 @@ describe("cron cli", () => {
     const { registerCronCli } = await import("./cron-cli.js");
     const program = new Command();
     program.exitOverride();
-    registerCronCli(program);
+    await registerCronCli(program);
 
     await program.parseAsync(
       [
@@ -193,7 +193,7 @@ describe("cron cli", () => {
     const { registerCronCli } = await import("./cron-cli.js");
     const program = new Command();
     program.exitOverride();
-    registerCronCli(program);
+    await registerCronCli(program);
 
     await program.parseAsync(
       ["cron", "edit", "job-1", "--message", "hello", "--model", "   ", "--thinking", "  "],
@@ -215,7 +215,7 @@ describe("cron cli", () => {
     const { registerCronCli } = await import("./cron-cli.js");
     const program = new Command();
     program.exitOverride();
-    registerCronCli(program);
+    await registerCronCli(program);
 
     await program.parseAsync(
       [
@@ -247,7 +247,7 @@ describe("cron cli", () => {
     const { registerCronCli } = await import("./cron-cli.js");
     const program = new Command();
     program.exitOverride();
-    registerCronCli(program);
+    await registerCronCli(program);
 
     await program.parseAsync(["cron", "edit", "job-1", "--agent", " Ops ", "--message", "hello"], {
       from: "user",
@@ -272,7 +272,7 @@ describe("cron cli", () => {
     const { registerCronCli } = await import("./cron-cli.js");
     const program = new Command();
     program.exitOverride();
-    registerCronCli(program);
+    await registerCronCli(program);
 
     await program.parseAsync(["cron", "edit", "job-1", "--model", "opus", "--thinking", "low"], {
       from: "user",
@@ -294,7 +294,7 @@ describe("cron cli", () => {
     const { registerCronCli } = await import("./cron-cli.js");
     const program = new Command();
     program.exitOverride();
-    registerCronCli(program);
+    await registerCronCli(program);
 
     await program.parseAsync(
       ["cron", "edit", "job-1", "--deliver", "--channel", "telegram", "--to", "19098680"],
@@ -322,7 +322,7 @@ describe("cron cli", () => {
     const { registerCronCli } = await import("./cron-cli.js");
     const program = new Command();
     program.exitOverride();
-    registerCronCli(program);
+    await registerCronCli(program);
 
     await program.parseAsync(["cron", "edit", "job-1", "--no-deliver"], { from: "user" });
 
@@ -341,7 +341,7 @@ describe("cron cli", () => {
     const { registerCronCli } = await import("./cron-cli.js");
     const program = new Command();
     program.exitOverride();
-    registerCronCli(program);
+    await registerCronCli(program);
 
     // Update message without delivery flags - should NOT include undefined delivery fields
     await program.parseAsync(["cron", "edit", "job-1", "--message", "Updated message"], {
@@ -379,7 +379,7 @@ describe("cron cli", () => {
     const { registerCronCli } = await import("./cron-cli.js");
     const program = new Command();
     program.exitOverride();
-    registerCronCli(program);
+    await registerCronCli(program);
 
     // Update message AND delivery - should include both
     await program.parseAsync(
@@ -419,7 +419,7 @@ describe("cron cli", () => {
     const { registerCronCli } = await import("./cron-cli.js");
     const program = new Command();
     program.exitOverride();
-    registerCronCli(program);
+    await registerCronCli(program);
 
     await program.parseAsync(
       ["cron", "edit", "job-1", "--message", "Updated message", "--best-effort-deliver"],
@@ -445,7 +445,7 @@ describe("cron cli", () => {
     const { registerCronCli } = await import("./cron-cli.js");
     const program = new Command();
     program.exitOverride();
-    registerCronCli(program);
+    await registerCronCli(program);
 
     await program.parseAsync(
       ["cron", "edit", "job-1", "--message", "Updated message", "--no-best-effort-deliver"],

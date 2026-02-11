@@ -46,7 +46,7 @@ export function isYes() {
   return globalYes;
 }
 
-export const success = theme.success;
-export const warn = theme.warn;
-export const info = theme.info;
-export const danger = theme.error;
+export const success = (...args: Parameters<typeof theme.success>) => theme.success(...args);
+export const warn = (...args: Parameters<typeof theme.warn>) => theme.warn(...args);
+export const info = (...args: Parameters<typeof theme.info>) => theme.info(...args);
+export const danger = (...args: Parameters<typeof theme.error>) => theme.error(...args);

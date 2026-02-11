@@ -1,15 +1,6 @@
 import type { Command } from "commander";
 import { formatDocsLink } from "../../terminal/links.js";
 import { theme } from "../../terminal/theme.js";
-import { createDefaultDeps } from "../deps.js";
-import {
-  runDaemonInstall,
-  runDaemonRestart,
-  runDaemonStart,
-  runDaemonStatus,
-  runDaemonStop,
-  runDaemonUninstall,
-} from "./runners.js";
 
 export function registerDaemonCli(program: Command) {
   const daemon = program
@@ -32,6 +23,7 @@ export function registerDaemonCli(program: Command) {
     .option("--deep", "Scan system-level services", false)
     .option("--json", "Output JSON", false)
     .action(async (opts) => {
+      const { runDaemonStatus } = await import("./runners.js");
       await runDaemonStatus({
         rpc: opts,
         probe: Boolean(opts.probe),
@@ -49,6 +41,7 @@ export function registerDaemonCli(program: Command) {
     .option("--force", "Reinstall/overwrite if already installed", false)
     .option("--json", "Output JSON", false)
     .action(async (opts) => {
+      const { runDaemonInstall } = await import("./runners.js");
       await runDaemonInstall(opts);
     });
 
@@ -57,6 +50,7 @@ export function registerDaemonCli(program: Command) {
     .description("Uninstall the Gateway service (launchd/systemd/schtasks)")
     .option("--json", "Output JSON", false)
     .action(async (opts) => {
+      const { runDaemonUninstall } = await import("./runners.js");
       await runDaemonUninstall(opts);
     });
 
@@ -65,6 +59,7 @@ export function registerDaemonCli(program: Command) {
     .description("Start the Gateway service (launchd/systemd/schtasks)")
     .option("--json", "Output JSON", false)
     .action(async (opts) => {
+      const { runDaemonStart } = await import("./runners.js");
       await runDaemonStart(opts);
     });
 
@@ -73,6 +68,7 @@ export function registerDaemonCli(program: Command) {
     .description("Stop the Gateway service (launchd/systemd/schtasks)")
     .option("--json", "Output JSON", false)
     .action(async (opts) => {
+      const { runDaemonStop } = await import("./runners.js");
       await runDaemonStop(opts);
     });
 
@@ -81,9 +77,7 @@ export function registerDaemonCli(program: Command) {
     .description("Restart the Gateway service (launchd/systemd/schtasks)")
     .option("--json", "Output JSON", false)
     .action(async (opts) => {
+      const { runDaemonRestart } = await import("./runners.js");
       await runDaemonRestart(opts);
     });
-
-  // Build default deps (parity with other commands).
-  void createDefaultDeps();
 }

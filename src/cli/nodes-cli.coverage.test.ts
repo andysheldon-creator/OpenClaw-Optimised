@@ -83,7 +83,7 @@ describe("nodes-cli coverage", () => {
     const { registerNodesCli } = await import("./nodes-cli.js");
     const program = new Command();
     program.exitOverride();
-    registerNodesCli(program);
+    await registerNodesCli(program);
 
     await program.parseAsync(["nodes", "status"], { from: "user" });
 
@@ -101,7 +101,7 @@ describe("nodes-cli coverage", () => {
     const { registerNodesCli } = await import("./nodes-cli.js");
     const program = new Command();
     program.exitOverride();
-    registerNodesCli(program);
+    await registerNodesCli(program);
 
     await program.parseAsync(
       [
@@ -151,7 +151,7 @@ describe("nodes-cli coverage", () => {
     const { registerNodesCli } = await import("./nodes-cli.js");
     const program = new Command();
     program.exitOverride();
-    registerNodesCli(program);
+    await registerNodesCli(program);
 
     await program.parseAsync(
       ["nodes", "run", "--agent", "main", "--node", "mac-1", "--raw", "echo hi"],
@@ -180,7 +180,7 @@ describe("nodes-cli coverage", () => {
     const { registerNodesCli } = await import("./nodes-cli.js");
     const program = new Command();
     program.exitOverride();
-    registerNodesCli(program);
+    await registerNodesCli(program);
 
     await program.parseAsync(
       [
@@ -219,7 +219,7 @@ describe("nodes-cli coverage", () => {
     const { registerNodesCli } = await import("./nodes-cli.js");
     const program = new Command();
     program.exitOverride();
-    registerNodesCli(program);
+    await registerNodesCli(program);
 
     await program.parseAsync(
       [

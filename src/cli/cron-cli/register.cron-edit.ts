@@ -1,14 +1,6 @@
 import type { Command } from "commander";
-import { danger } from "../../globals.js";
-import { sanitizeAgentId } from "../../routing/session-key.js";
-import { defaultRuntime } from "../../runtime.js";
 import { addGatewayClientOptions, callGatewayFromCli } from "../gateway-rpc.js";
-import {
-  getCronChannelOptions,
-  parseAt,
-  parseDurationMs,
-  warnIfCronSchedulerDisabled,
-} from "./shared.js";
+import { getCronChannelOptions, parseAt, parseDurationMs } from "./shared.js";
 
 const assignIf = (
   target: Record<string, unknown>,
@@ -57,6 +49,10 @@ export function registerCronEditCommand(cron: Command) {
       .option("--best-effort-deliver", "Do not fail job if delivery fails")
       .option("--no-best-effort-deliver", "Fail job when delivery fails")
       .action(async (id, opts) => {
+        const { danger } = await import("../../globals.js");
+        const { sanitizeAgentId } = await import("../../routing/session-key.js");
+        const { defaultRuntime } = await import("../../runtime.js");
+        const { warnIfCronSchedulerDisabled } = await import("./shared.js");
         try {
           if (opts.session === "main" && opts.message) {
             throw new Error(

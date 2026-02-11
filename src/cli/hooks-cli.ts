@@ -1,30 +1,12 @@
 import type { Command } from "commander";
-import fs from "node:fs";
-import fsp from "node:fs/promises";
 import path from "node:path";
 import type { OpenClawConfig } from "../config/config.js";
+import type { HookStatusEntry, HookStatusReport } from "../hooks/hooks-status.js";
 import type { HookEntry } from "../hooks/types.js";
-import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
-import { loadConfig, writeConfigFile } from "../config/io.js";
-import {
-  buildWorkspaceHookStatus,
-  type HookStatusEntry,
-  type HookStatusReport,
-} from "../hooks/hooks-status.js";
-import {
-  installHooksFromNpmSpec,
-  installHooksFromPath,
-  resolveHookInstallDir,
-} from "../hooks/install.js";
-import { recordHookInstall } from "../hooks/installs.js";
-import { loadWorkspaceHookEntries } from "../hooks/workspace.js";
-import { resolveArchiveKind } from "../infra/archive.js";
-import { buildPluginStatusReport } from "../plugins/status.js";
-import { defaultRuntime } from "../runtime.js";
 import { formatDocsLink } from "../terminal/links.js";
 import { renderTable } from "../terminal/table.js";
 import { theme } from "../terminal/theme.js";
-import { resolveUserPath, shortenHomePath } from "../utils.js";
+import { shortenHomePath } from "../utils.js";
 import { formatCliCommand } from "./command-format.js";
 
 export type HooksListOptions = {
@@ -57,27 +39,18 @@ function mergeHookEntries(pluginEntries: HookEntry[], workspaceEntries: HookEntr
   return Array.from(merged.values());
 }
 
-function buildHooksReport(config: OpenClawConfig): HookStatusReport {
-  const workspaceDir = resolveAgentWorkspaceDir(config, resolveDefaultAgentId(config));
-  const workspaceEntries = loadWorkspaceHookEntries(workspaceDir, { config });
-  const pluginReport = buildPluginStatusReport({ config, workspaceDir });
-  const pluginEntries = pluginReport.hooks.map((hook) => hook.entry);
-  const entries = mergeHookEntries(pluginEntries, workspaceEntries);
-  return buildWorkspaceHookStatus(workspaceDir, { config, entries });
-}
-
 function formatHookStatus(hook: HookStatusEntry): string {
   if (hook.eligible) {
-    return theme.success("✓ ready");
+    return theme.success("\u2713 ready");
   }
   if (hook.disabled) {
-    return theme.warn("⏸ disabled");
+    return theme.warn("\u23F8 disabled");
   }
-  return theme.error("✗ missing");
+  return theme.error("\u2717 missing");
 }
 
 function formatHookName(hook: HookStatusEntry): string {
-  const emoji = hook.emoji ?? "🔗";
+  const emoji = hook.emoji ?? "\uD83D\uDD17";
   return `${emoji} ${theme.command(hook.name)}`;
 }
 
@@ -106,16 +79,6 @@ function formatHookMissingSummary(hook: HookStatusEntry): string {
     missing.push(`os: ${hook.missing.os.join(", ")}`);
   }
   return missing.join("; ");
-}
-
-async function readInstalledPackageVersion(dir: string): Promise<string | undefined> {
-  try {
-    const raw = await fsp.readFile(path.join(dir, "package.json"), "utf-8");
-    const parsed = JSON.parse(raw) as { version?: unknown };
-    return typeof parsed.version === "string" ? parsed.version : undefined;
-  } catch {
-    return undefined;
-  }
 }
 
 /**
@@ -211,12 +174,12 @@ export function formatHookInfo(
   }
 
   const lines: string[] = [];
-  const emoji = hook.emoji ?? "🔗";
+  const emoji = hook.emoji ?? "\uD83D\uDD17";
   const status = hook.eligible
-    ? theme.success("✓ Ready")
+    ? theme.success("\u2713 Ready")
     : hook.disabled
-      ? theme.warn("⏸ Disabled")
-      : theme.error("✗ Missing requirements");
+      ? theme.warn("\u23F8 Disabled")
+      : theme.error("\u2717 Missing requirements");
 
   lines.push(`${emoji} ${theme.heading(hook.name)} ${status}`);
   lines.push("");
@@ -256,35 +219,37 @@ export function formatHookInfo(
     if (hook.requirements.bins.length > 0) {
       const binsStatus = hook.requirements.bins.map((bin) => {
         const missing = hook.missing.bins.includes(bin);
-        return missing ? theme.error(`✗ ${bin}`) : theme.success(`✓ ${bin}`);
+        return missing ? theme.error(`\u2717 ${bin}`) : theme.success(`\u2713 ${bin}`);
       });
       lines.push(`${theme.muted("  Binaries:")} ${binsStatus.join(", ")}`);
     }
     if (hook.requirements.anyBins.length > 0) {
       const anyBinsStatus =
         hook.missing.anyBins.length > 0
-          ? theme.error(`✗ (any of: ${hook.requirements.anyBins.join(", ")})`)
-          : theme.success(`✓ (any of: ${hook.requirements.anyBins.join(", ")})`);
+          ? theme.error(`\u2717 (any of: ${hook.requirements.anyBins.join(", ")})`)
+          : theme.success(`\u2713 (any of: ${hook.requirements.anyBins.join(", ")})`);
       lines.push(`${theme.muted("  Any binary:")} ${anyBinsStatus}`);
     }
     if (hook.requirements.env.length > 0) {
       const envStatus = hook.requirements.env.map((env) => {
         const missing = hook.missing.env.includes(env);
-        return missing ? theme.error(`✗ ${env}`) : theme.success(`✓ ${env}`);
+        return missing ? theme.error(`\u2717 ${env}`) : theme.success(`\u2713 ${env}`);
       });
       lines.push(`${theme.muted("  Environment:")} ${envStatus.join(", ")}`);
     }
     if (hook.requirements.config.length > 0) {
       const configStatus = hook.configChecks.map((check) => {
-        return check.satisfied ? theme.success(`✓ ${check.path}`) : theme.error(`✗ ${check.path}`);
+        return check.satisfied
+          ? theme.success(`\u2713 ${check.path}`)
+          : theme.error(`\u2717 ${check.path}`);
       });
       lines.push(`${theme.muted("  Config:")} ${configStatus.join(", ")}`);
     }
     if (hook.requirements.os.length > 0) {
       const osStatus =
         hook.missing.os.length > 0
-          ? theme.error(`✗ (${hook.requirements.os.join(", ")})`)
-          : theme.success(`✓ (${hook.requirements.os.join(", ")})`);
+          ? theme.error(`\u2717 (${hook.requirements.os.join(", ")})`)
+          : theme.success(`\u2713 (${hook.requirements.os.join(", ")})`);
       lines.push(`${theme.muted("  OS:")} ${osStatus}`);
     }
   }
@@ -350,7 +315,7 @@ export function formatHooksCheck(report: HookStatusReport, opts: HooksCheckOptio
       if (hook.missing.os.length > 0) {
         reasons.push(`os: ${hook.missing.os.join(", ")}`);
       }
-      lines.push(`  ${hook.emoji ?? "🔗"} ${hook.name} - ${reasons.join("; ")}`);
+      lines.push(`  ${hook.emoji ?? "\uD83D\uDD17"} ${hook.name} - ${reasons.join("; ")}`);
     }
   }
 
@@ -358,8 +323,21 @@ export function formatHooksCheck(report: HookStatusReport, opts: HooksCheckOptio
 }
 
 export async function enableHook(hookName: string): Promise<void> {
+  const { defaultRuntime } = await import("../runtime.js");
+  const { loadConfig, writeConfigFile } = await import("../config/io.js");
+  const { resolveAgentWorkspaceDir, resolveDefaultAgentId } =
+    await import("../agents/agent-scope.js");
+  const { buildWorkspaceHookStatus } = await import("../hooks/hooks-status.js");
+  const { loadWorkspaceHookEntries } = await import("../hooks/workspace.js");
+  const { buildPluginStatusReport } = await import("../plugins/status.js");
+
   const config = loadConfig();
-  const report = buildHooksReport(config);
+  const workspaceDir = resolveAgentWorkspaceDir(config, resolveDefaultAgentId(config));
+  const workspaceEntries = loadWorkspaceHookEntries(workspaceDir, { config });
+  const pluginReport = buildPluginStatusReport({ config, workspaceDir });
+  const pluginEntries = pluginReport.hooks.map((hook) => hook.entry);
+  const entries = mergeHookEntries(pluginEntries, workspaceEntries);
+  const report = buildWorkspaceHookStatus(workspaceDir, { config, entries });
   const hook = report.hooks.find((h) => h.name === hookName);
 
   if (!hook) {
@@ -377,8 +355,8 @@ export async function enableHook(hookName: string): Promise<void> {
   }
 
   // Update config
-  const entries = { ...config.hooks?.internal?.entries };
-  entries[hookName] = { ...entries[hookName], enabled: true };
+  const configEntries = { ...config.hooks?.internal?.entries };
+  configEntries[hookName] = { ...configEntries[hookName], enabled: true };
 
   const nextConfig = {
     ...config,
@@ -387,20 +365,33 @@ export async function enableHook(hookName: string): Promise<void> {
       internal: {
         ...config.hooks?.internal,
         enabled: true,
-        entries,
+        entries: configEntries,
       },
     },
   };
 
   await writeConfigFile(nextConfig);
   defaultRuntime.log(
-    `${theme.success("✓")} Enabled hook: ${hook.emoji ?? "🔗"} ${theme.command(hookName)}`,
+    `${theme.success("\u2713")} Enabled hook: ${hook.emoji ?? "\uD83D\uDD17"} ${theme.command(hookName)}`,
   );
 }
 
 export async function disableHook(hookName: string): Promise<void> {
+  const { defaultRuntime } = await import("../runtime.js");
+  const { loadConfig, writeConfigFile } = await import("../config/io.js");
+  const { resolveAgentWorkspaceDir, resolveDefaultAgentId } =
+    await import("../agents/agent-scope.js");
+  const { buildWorkspaceHookStatus } = await import("../hooks/hooks-status.js");
+  const { loadWorkspaceHookEntries } = await import("../hooks/workspace.js");
+  const { buildPluginStatusReport } = await import("../plugins/status.js");
+
   const config = loadConfig();
-  const report = buildHooksReport(config);
+  const workspaceDir = resolveAgentWorkspaceDir(config, resolveDefaultAgentId(config));
+  const workspaceEntries = loadWorkspaceHookEntries(workspaceDir, { config });
+  const pluginReport = buildPluginStatusReport({ config, workspaceDir });
+  const pluginEntries = pluginReport.hooks.map((hook) => hook.entry);
+  const entries = mergeHookEntries(pluginEntries, workspaceEntries);
+  const report = buildWorkspaceHookStatus(workspaceDir, { config, entries });
   const hook = report.hooks.find((h) => h.name === hookName);
 
   if (!hook) {
@@ -414,8 +405,8 @@ export async function disableHook(hookName: string): Promise<void> {
   }
 
   // Update config
-  const entries = { ...config.hooks?.internal?.entries };
-  entries[hookName] = { ...entries[hookName], enabled: false };
+  const configEntries = { ...config.hooks?.internal?.entries };
+  configEntries[hookName] = { ...configEntries[hookName], enabled: false };
 
   const nextConfig = {
     ...config,
@@ -423,14 +414,14 @@ export async function disableHook(hookName: string): Promise<void> {
       ...config.hooks,
       internal: {
         ...config.hooks?.internal,
-        entries,
+        entries: configEntries,
       },
     },
   };
 
   await writeConfigFile(nextConfig);
   defaultRuntime.log(
-    `${theme.warn("⏸")} Disabled hook: ${hook.emoji ?? "🔗"} ${theme.command(hookName)}`,
+    `${theme.warn("\u23F8")} Disabled hook: ${hook.emoji ?? "\uD83D\uDD17"} ${theme.command(hookName)}`,
   );
 }
 
@@ -452,10 +443,24 @@ export function registerHooksCli(program: Command): void {
     .option("-v, --verbose", "Show more details including missing requirements", false)
     .action(async (opts) => {
       try {
+        const { defaultRuntime } = await import("../runtime.js");
+        const { loadConfig } = await import("../config/io.js");
+        const { resolveAgentWorkspaceDir, resolveDefaultAgentId } =
+          await import("../agents/agent-scope.js");
+        const { buildWorkspaceHookStatus } = await import("../hooks/hooks-status.js");
+        const { loadWorkspaceHookEntries } = await import("../hooks/workspace.js");
+        const { buildPluginStatusReport } = await import("../plugins/status.js");
+
         const config = loadConfig();
-        const report = buildHooksReport(config);
+        const workspaceDir = resolveAgentWorkspaceDir(config, resolveDefaultAgentId(config));
+        const workspaceEntries = loadWorkspaceHookEntries(workspaceDir, { config });
+        const pluginReport = buildPluginStatusReport({ config, workspaceDir });
+        const pluginEntries = pluginReport.hooks.map((hook) => hook.entry);
+        const entries = mergeHookEntries(pluginEntries, workspaceEntries);
+        const report = buildWorkspaceHookStatus(workspaceDir, { config, entries });
         defaultRuntime.log(formatHooksList(report, opts));
       } catch (err) {
+        const { defaultRuntime } = await import("../runtime.js");
         defaultRuntime.error(
           `${theme.error("Error:")} ${err instanceof Error ? err.message : String(err)}`,
         );
@@ -469,10 +474,24 @@ export function registerHooksCli(program: Command): void {
     .option("--json", "Output as JSON", false)
     .action(async (name, opts) => {
       try {
+        const { defaultRuntime } = await import("../runtime.js");
+        const { loadConfig } = await import("../config/io.js");
+        const { resolveAgentWorkspaceDir, resolveDefaultAgentId } =
+          await import("../agents/agent-scope.js");
+        const { buildWorkspaceHookStatus } = await import("../hooks/hooks-status.js");
+        const { loadWorkspaceHookEntries } = await import("../hooks/workspace.js");
+        const { buildPluginStatusReport } = await import("../plugins/status.js");
+
         const config = loadConfig();
-        const report = buildHooksReport(config);
+        const workspaceDir = resolveAgentWorkspaceDir(config, resolveDefaultAgentId(config));
+        const workspaceEntries = loadWorkspaceHookEntries(workspaceDir, { config });
+        const pluginReport = buildPluginStatusReport({ config, workspaceDir });
+        const pluginEntries = pluginReport.hooks.map((hook) => hook.entry);
+        const entries = mergeHookEntries(pluginEntries, workspaceEntries);
+        const report = buildWorkspaceHookStatus(workspaceDir, { config, entries });
         defaultRuntime.log(formatHookInfo(report, name, opts));
       } catch (err) {
+        const { defaultRuntime } = await import("../runtime.js");
         defaultRuntime.error(
           `${theme.error("Error:")} ${err instanceof Error ? err.message : String(err)}`,
         );
@@ -486,10 +505,24 @@ export function registerHooksCli(program: Command): void {
     .option("--json", "Output as JSON", false)
     .action(async (opts) => {
       try {
+        const { defaultRuntime } = await import("../runtime.js");
+        const { loadConfig } = await import("../config/io.js");
+        const { resolveAgentWorkspaceDir, resolveDefaultAgentId } =
+          await import("../agents/agent-scope.js");
+        const { buildWorkspaceHookStatus } = await import("../hooks/hooks-status.js");
+        const { loadWorkspaceHookEntries } = await import("../hooks/workspace.js");
+        const { buildPluginStatusReport } = await import("../plugins/status.js");
+
         const config = loadConfig();
-        const report = buildHooksReport(config);
+        const workspaceDir = resolveAgentWorkspaceDir(config, resolveDefaultAgentId(config));
+        const workspaceEntries = loadWorkspaceHookEntries(workspaceDir, { config });
+        const pluginReport = buildPluginStatusReport({ config, workspaceDir });
+        const pluginEntries = pluginReport.hooks.map((hook) => hook.entry);
+        const entries = mergeHookEntries(pluginEntries, workspaceEntries);
+        const report = buildWorkspaceHookStatus(workspaceDir, { config, entries });
         defaultRuntime.log(formatHooksCheck(report, opts));
       } catch (err) {
+        const { defaultRuntime } = await import("../runtime.js");
         defaultRuntime.error(
           `${theme.error("Error:")} ${err instanceof Error ? err.message : String(err)}`,
         );
@@ -504,6 +537,7 @@ export function registerHooksCli(program: Command): void {
       try {
         await enableHook(name);
       } catch (err) {
+        const { defaultRuntime } = await import("../runtime.js");
         defaultRuntime.error(
           `${theme.error("Error:")} ${err instanceof Error ? err.message : String(err)}`,
         );
@@ -518,6 +552,7 @@ export function registerHooksCli(program: Command): void {
       try {
         await disableHook(name);
       } catch (err) {
+        const { defaultRuntime } = await import("../runtime.js");
         defaultRuntime.error(
           `${theme.error("Error:")} ${err instanceof Error ? err.message : String(err)}`,
         );
@@ -531,6 +566,14 @@ export function registerHooksCli(program: Command): void {
     .argument("<path-or-spec>", "Path to a hook pack or npm package spec")
     .option("-l, --link", "Link a local path instead of copying", false)
     .action(async (raw: string, opts: { link?: boolean }) => {
+      const fs = await import("node:fs");
+      const { defaultRuntime } = await import("../runtime.js");
+      const { loadConfig, writeConfigFile } = await import("../config/io.js");
+      const { installHooksFromNpmSpec, installHooksFromPath } = await import("../hooks/install.js");
+      const { recordHookInstall } = await import("../hooks/installs.js");
+      const { resolveArchiveKind } = await import("../infra/archive.js");
+      const { resolveUserPath } = await import("../utils.js");
+
       const resolved = resolveUserPath(raw);
       const cfg = loadConfig();
 
@@ -744,6 +787,23 @@ export function registerHooksCli(program: Command): void {
     .option("--all", "Update all tracked hooks", false)
     .option("--dry-run", "Show what would change without writing", false)
     .action(async (id: string | undefined, opts: HooksUpdateOptions) => {
+      const fsp = await import("node:fs/promises");
+      const { defaultRuntime } = await import("../runtime.js");
+      const { loadConfig, writeConfigFile } = await import("../config/io.js");
+      const { installHooksFromNpmSpec, resolveHookInstallDir } =
+        await import("../hooks/install.js");
+      const { recordHookInstall } = await import("../hooks/installs.js");
+
+      async function readInstalledPackageVersion(dir: string): Promise<string | undefined> {
+        try {
+          const raw = await fsp.readFile(path.join(dir, "package.json"), "utf-8");
+          const parsed = JSON.parse(raw) as { version?: unknown };
+          return typeof parsed.version === "string" ? parsed.version : undefined;
+        } catch {
+          return undefined;
+        }
+      }
+
       const cfg = loadConfig();
       const installs = cfg.hooks?.internal?.installs ?? {};
       const targets = opts.all ? Object.keys(installs) : id ? [id] : [];
@@ -801,7 +861,7 @@ export function registerHooksCli(program: Command): void {
           if (currentVersion && probe.version && currentVersion === probe.version) {
             defaultRuntime.log(`${hookId} is up to date (${currentLabel}).`);
           } else {
-            defaultRuntime.log(`Would update ${hookId}: ${currentLabel} → ${nextVersion}.`);
+            defaultRuntime.log(`Would update ${hookId}: ${currentLabel} \u2192 ${nextVersion}.`);
           }
           continue;
         }
@@ -836,7 +896,7 @@ export function registerHooksCli(program: Command): void {
         if (currentVersion && nextVersion && currentVersion === nextVersion) {
           defaultRuntime.log(`${hookId} already at ${currentLabel}.`);
         } else {
-          defaultRuntime.log(`Updated ${hookId}: ${currentLabel} → ${nextLabel}.`);
+          defaultRuntime.log(`Updated ${hookId}: ${currentLabel} \u2192 ${nextLabel}.`);
         }
       }
 
@@ -848,10 +908,24 @@ export function registerHooksCli(program: Command): void {
 
   hooks.action(async () => {
     try {
+      const { defaultRuntime } = await import("../runtime.js");
+      const { loadConfig } = await import("../config/io.js");
+      const { resolveAgentWorkspaceDir, resolveDefaultAgentId } =
+        await import("../agents/agent-scope.js");
+      const { buildWorkspaceHookStatus } = await import("../hooks/hooks-status.js");
+      const { loadWorkspaceHookEntries } = await import("../hooks/workspace.js");
+      const { buildPluginStatusReport } = await import("../plugins/status.js");
+
       const config = loadConfig();
-      const report = buildHooksReport(config);
+      const workspaceDir = resolveAgentWorkspaceDir(config, resolveDefaultAgentId(config));
+      const workspaceEntries = loadWorkspaceHookEntries(workspaceDir, { config });
+      const pluginReport = buildPluginStatusReport({ config, workspaceDir });
+      const pluginEntries = pluginReport.hooks.map((hook) => hook.entry);
+      const entries = mergeHookEntries(pluginEntries, workspaceEntries);
+      const report = buildWorkspaceHookStatus(workspaceDir, { config, entries });
       defaultRuntime.log(formatHooksList(report, {}));
     } catch (err) {
+      const { defaultRuntime } = await import("../runtime.js");
       defaultRuntime.error(
         `${theme.error("Error:")} ${err instanceof Error ? err.message : String(err)}`,
       );

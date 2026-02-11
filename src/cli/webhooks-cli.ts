@@ -1,11 +1,5 @@
 import type { Command } from "commander";
-import { danger } from "../globals.js";
-import {
-  type GmailRunOptions,
-  type GmailSetupOptions,
-  runGmailService,
-  runGmailSetup,
-} from "../hooks/gmail-ops.js";
+import type { GmailRunOptions, GmailSetupOptions } from "../hooks/gmail-ops.js";
 import {
   DEFAULT_GMAIL_LABEL,
   DEFAULT_GMAIL_MAX_BYTES,
@@ -16,7 +10,6 @@ import {
   DEFAULT_GMAIL_SUBSCRIPTION,
   DEFAULT_GMAIL_TOPIC,
 } from "../hooks/gmail.js";
-import { defaultRuntime } from "../runtime.js";
 import { formatDocsLink } from "../terminal/links.js";
 import { theme } from "../terminal/theme.js";
 
@@ -63,9 +56,12 @@ export function registerWebhooksCli(program: Command) {
     .option("--json", "Output JSON summary", false)
     .action(async (opts) => {
       try {
+        const { runGmailSetup } = await import("../hooks/gmail-ops.js");
         const parsed = parseGmailSetupOptions(opts);
         await runGmailSetup(parsed);
       } catch (err) {
+        const { defaultRuntime } = await import("../runtime.js");
+        const { danger } = await import("../globals.js");
         defaultRuntime.error(danger(String(err)));
         defaultRuntime.exit(1);
       }
@@ -95,9 +91,12 @@ export function registerWebhooksCli(program: Command) {
     )
     .action(async (opts) => {
       try {
+        const { runGmailService } = await import("../hooks/gmail-ops.js");
         const parsed = parseGmailRunOptions(opts);
         await runGmailService(parsed);
       } catch (err) {
+        const { defaultRuntime } = await import("../runtime.js");
+        const { danger } = await import("../globals.js");
         defaultRuntime.error(danger(String(err)));
         defaultRuntime.exit(1);
       }
