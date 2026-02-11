@@ -1,6 +1,5 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { hasErrnoCode } from "../infra/errors.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -51,6 +50,16 @@ const DEFAULT_MAX_FILE_BYTES = 1024 * 1024;
 
 export function isScannable(filePath: string): boolean {
   return SCANNABLE_EXTENSIONS.has(path.extname(filePath).toLowerCase());
+}
+
+function isErrno(err: unknown, code: string): boolean {
+  if (!err || typeof err !== "object") {
+    return false;
+  }
+  if (!("code" in err)) {
+    return false;
+  }
+  return (err as { code?: unknown }).code === code;
 }
 
 // ---------------------------------------------------------------------------
@@ -318,7 +327,7 @@ async function resolveForcedFiles(params: {
     try {
       st = await fs.stat(includePath);
     } catch (err) {
-      if (hasErrnoCode(err, "ENOENT")) {
+      if (isErrno(err, "ENOENT")) {
         continue;
       }
       throw err;
@@ -365,7 +374,7 @@ async function readScannableSource(filePath: string, maxFileBytes: number): Prom
   try {
     st = await fs.stat(filePath);
   } catch (err) {
-    if (hasErrnoCode(err, "ENOENT")) {
+    if (isErrno(err, "ENOENT")) {
       return null;
     }
     throw err;
@@ -376,7 +385,7 @@ async function readScannableSource(filePath: string, maxFileBytes: number): Prom
   try {
     return await fs.readFile(filePath, "utf-8");
   } catch (err) {
-    if (hasErrnoCode(err, "ENOENT")) {
+    if (isErrno(err, "ENOENT")) {
       return null;
     }
     throw err;

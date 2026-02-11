@@ -4,7 +4,6 @@ import type {
   OpenClawConfig,
   DmPolicy,
   WizardPrompter,
-  MSTeamsTeamConfig,
 } from "openclaw/plugin-sdk";
 import {
   addWildcardAllowFrom,
@@ -185,7 +184,7 @@ function setMSTeamsTeamsAllowlist(
       msteams: {
         ...cfg.channels?.msteams,
         enabled: true,
-        teams: teams as Record<string, MSTeamsTeamConfig>,
+        teams,
       },
     },
   };

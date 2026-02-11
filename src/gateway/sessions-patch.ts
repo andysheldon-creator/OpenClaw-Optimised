@@ -124,7 +124,6 @@ export async function applySessionsPatchToStore(params: {
   if ("thinkingLevel" in patch) {
     const raw = patch.thinkingLevel;
     if (raw === null) {
-      // Clear the override and fall back to model default
       delete next.thinkingLevel;
     } else if (raw !== undefined) {
       const normalized = normalizeThinkLevel(String(raw));
@@ -135,7 +134,11 @@ export async function applySessionsPatchToStore(params: {
           `invalid thinkingLevel (use ${formatThinkingLevels(hintProvider, hintModel, "|")})`,
         );
       }
-      next.thinkingLevel = normalized;
+      if (normalized === "off") {
+        delete next.thinkingLevel;
+      } else {
+        next.thinkingLevel = normalized;
+      }
     }
   }
 

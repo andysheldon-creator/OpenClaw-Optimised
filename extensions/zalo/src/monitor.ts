@@ -515,7 +515,7 @@ async function processMessageWithPipeline(params: {
     channel: "zalo",
     accountId: account.accountId,
     peer: {
-      kind: isGroup ? "group" : "direct",
+      kind: isGroup ? "group" : "dm",
       id: chatId,
     },
   });
@@ -549,7 +549,6 @@ async function processMessageWithPipeline(params: {
 
   const ctxPayload = core.channel.reply.finalizeInboundContext({
     Body: body,
-    BodyForAgent: rawBody,
     RawBody: rawBody,
     CommandBody: rawBody,
     From: isGroup ? `zalo:group:${chatId}` : `zalo:${senderId}`,

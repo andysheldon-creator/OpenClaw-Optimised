@@ -28,7 +28,6 @@ import {
   type GatewayClientName,
 } from "../../utils/message-channel.js";
 import { loadWebMedia } from "../../web/media.js";
-import { throwIfAborted } from "./abort.js";
 import {
   listConfiguredMessageChannels,
   resolveMessageChannelSelection,
@@ -719,6 +718,14 @@ async function handleBroadcastAction(
     payload: { results },
     dryRun: Boolean(input.dryRun),
   };
+}
+
+function throwIfAborted(abortSignal?: AbortSignal): void {
+  if (abortSignal?.aborted) {
+    const err = new Error("Message send aborted");
+    err.name = "AbortError";
+    throw err;
+  }
 }
 
 async function handleSendAction(ctx: ResolvedActionContext): Promise<MessageActionRunResult> {

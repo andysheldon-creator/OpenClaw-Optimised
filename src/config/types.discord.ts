@@ -95,13 +95,6 @@ export type DiscordExecApprovalConfig = {
   agentFilter?: string[];
   /** Only forward approvals matching these session key patterns (substring or regex). */
   sessionFilter?: string[];
-  /** Delete approval DMs after approval, denial, or timeout. Default: false. */
-  cleanupAfterResolve?: boolean;
-};
-
-export type DiscordAgentComponentsConfig = {
-  /** Enable agent-controlled interactive components (buttons, select menus). Default: true. */
-  enabled?: boolean;
 };
 
 export type DiscordAccountConfig = {
@@ -160,8 +153,6 @@ export type DiscordAccountConfig = {
   heartbeat?: ChannelHeartbeatVisibilityConfig;
   /** Exec approval forwarding configuration. */
   execApprovals?: DiscordExecApprovalConfig;
-  /** Agent-controlled interactive components (buttons, select menus). */
-  agentComponents?: DiscordAgentComponentsConfig;
   /** Privileged Gateway Intents (must also be enabled in Discord Developer Portal). */
   intents?: DiscordIntentsConfig;
   /** PluralKit identity resolution for proxied messages. */

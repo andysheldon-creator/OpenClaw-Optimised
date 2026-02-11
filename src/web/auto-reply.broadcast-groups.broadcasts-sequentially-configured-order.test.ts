@@ -224,8 +224,7 @@ describe("broadcast groups", () => {
       };
       expect(payload.Body).toContain("Chat messages since your last reply");
       expect(payload.Body).toContain("Alice (+111): hello group");
-      // Message id hints are not included in prompts anymore.
-      expect(payload.Body).not.toContain("[message_id:");
+      expect(payload.Body).toContain("[message_id: g1]");
       expect(payload.Body).toContain("@bot ping");
       expect(payload.SenderName).toBe("Bob");
       expect(payload.SenderE164).toBe("+222");

@@ -166,6 +166,7 @@ export async function deliverReplies(params: {
         ...(shouldAttachButtonsToMedia ? { reply_markup: replyMarkup } : {}),
         ...buildTelegramSendParams({
           replyToMessageId,
+          replyQuoteText,
           thread,
         }),
       };
@@ -479,11 +480,20 @@ async function sendTelegramVoiceFallbackText(opts: {
 function buildTelegramSendParams(opts?: {
   replyToMessageId?: number;
   thread?: TelegramThreadSpec | null;
+  replyQuoteText?: string;
 }): Record<string, unknown> {
   const threadParams = buildTelegramThreadParams(opts?.thread);
   const params: Record<string, unknown> = {};
+  const quoteText = opts?.replyQuoteText?.trim();
   if (opts?.replyToMessageId) {
-    params.reply_to_message_id = opts.replyToMessageId;
+    if (quoteText) {
+      params.reply_parameters = {
+        message_id: Math.trunc(opts.replyToMessageId),
+        quote: quoteText,
+      };
+    } else {
+      params.reply_to_message_id = opts.replyToMessageId;
+    }
   }
   if (threadParams) {
     params.message_thread_id = threadParams.message_thread_id;
@@ -508,6 +518,7 @@ async function sendTelegramText(
 ): Promise<number | undefined> {
   const baseParams = buildTelegramSendParams({
     replyToMessageId: opts?.replyToMessageId,
+    replyQuoteText: opts?.replyQuoteText,
     thread: opts?.thread,
   });
   // Add link_preview_options when link preview is disabled.

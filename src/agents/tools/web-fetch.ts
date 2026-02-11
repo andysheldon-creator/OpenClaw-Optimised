@@ -4,7 +4,6 @@ import type { AnyAgentTool } from "./common.js";
 import { fetchWithSsrFGuard } from "../../infra/net/fetch-guard.js";
 import { SsrFBlockedError } from "../../infra/net/ssrf.js";
 import { wrapExternalContent, wrapWebContent } from "../../security/external-content.js";
-import { normalizeSecretInput } from "../../utils/normalize-secret-input.js";
 import { stringEnum } from "../schema/typebox.js";
 import { jsonResult, readNumberParam, readStringParam } from "./common.js";
 import {
@@ -121,9 +120,9 @@ function resolveFirecrawlConfig(fetch?: WebFetchConfig): FirecrawlFetchConfig {
 function resolveFirecrawlApiKey(firecrawl?: FirecrawlFetchConfig): string | undefined {
   const fromConfig =
     firecrawl && "apiKey" in firecrawl && typeof firecrawl.apiKey === "string"
-      ? normalizeSecretInput(firecrawl.apiKey)
+      ? firecrawl.apiKey.trim()
       : "";
-  const fromEnv = normalizeSecretInput(process.env.FIRECRAWL_API_KEY);
+  const fromEnv = (process.env.FIRECRAWL_API_KEY ?? "").trim();
   return fromConfig || fromEnv || undefined;
 }
 

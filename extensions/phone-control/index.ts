@@ -92,8 +92,7 @@ function resolveStatePath(stateDir: string): string {
 async function readArmState(statePath: string): Promise<ArmStateFile | null> {
   try {
     const raw = await fs.readFile(statePath, "utf8");
-    // Type as unknown record first to allow property access during validation
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const parsed = JSON.parse(raw) as Partial<ArmStateFile>;
     if (parsed.version !== 1 && parsed.version !== 2) {
       return null;
     }
@@ -107,11 +106,11 @@ async function readArmState(statePath: string): Promise<ArmStateFile | null> {
     if (parsed.version === 1) {
       if (
         !Array.isArray(parsed.removedFromDeny) ||
-        !parsed.removedFromDeny.every((v: unknown) => typeof v === "string")
+        !parsed.removedFromDeny.every((v) => typeof v === "string")
       ) {
         return null;
       }
-      return parsed as unknown as ArmStateFile;
+      return parsed as ArmStateFile;
     }
 
     const group = typeof parsed.group === "string" ? parsed.group : "";
@@ -120,23 +119,23 @@ async function readArmState(statePath: string): Promise<ArmStateFile | null> {
     }
     if (
       !Array.isArray(parsed.armedCommands) ||
-      !parsed.armedCommands.every((v: unknown) => typeof v === "string")
+      !parsed.armedCommands.every((v) => typeof v === "string")
     ) {
       return null;
     }
     if (
       !Array.isArray(parsed.addedToAllow) ||
-      !parsed.addedToAllow.every((v: unknown) => typeof v === "string")
+      !parsed.addedToAllow.every((v) => typeof v === "string")
     ) {
       return null;
     }
     if (
       !Array.isArray(parsed.removedFromDeny) ||
-      !parsed.removedFromDeny.every((v: unknown) => typeof v === "string")
+      !parsed.removedFromDeny.every((v) => typeof v === "string")
     ) {
       return null;
     }
-    return parsed as unknown as ArmStateFile;
+    return parsed as ArmStateFile;
   } catch {
     return null;
   }

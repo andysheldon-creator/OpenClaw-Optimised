@@ -356,8 +356,13 @@ export function attachGatewayWsMessageHandler(params: {
           close(1008, "invalid role");
           return;
         }
-        // Default-deny: scopes must be explicit. Empty/missing scopes means no permissions.
-        const scopes = Array.isArray(connectParams.scopes) ? connectParams.scopes : [];
+        const requestedScopes = Array.isArray(connectParams.scopes) ? connectParams.scopes : [];
+        const scopes =
+          requestedScopes.length > 0
+            ? requestedScopes
+            : role === "operator"
+              ? ["operator.admin"]
+              : [];
         connectParams.role = role;
         connectParams.scopes = scopes;
 
@@ -581,7 +586,7 @@ export function attachGatewayWsMessageHandler(params: {
             clientId: connectParams.client.id,
             clientMode: connectParams.client.mode,
             role,
-            scopes,
+            scopes: requestedScopes,
             signedAtMs: signedAt,
             token: connectParams.auth?.token ?? null,
             nonce: providedNonce || undefined,
@@ -595,7 +600,7 @@ export function attachGatewayWsMessageHandler(params: {
               clientId: connectParams.client.id,
               clientMode: connectParams.client.mode,
               role,
-              scopes,
+              scopes: requestedScopes,
               signedAtMs: signedAt,
               token: connectParams.auth?.token ?? null,
               version: "v1",

@@ -15,7 +15,7 @@ function errorResponse(error: string) {
   return {
     content: [
       {
-        type: "text" as const,
+        type: "text",
         text: JSON.stringify({ ok: false, error }),
       },
     ],
@@ -120,12 +120,11 @@ export const twitchMessageActions: ChannelMessageActionAdapter = {
    *   accountId: "default",
    * });
    */
-  handleAction: async (ctx: ChannelMessageActionContext) => {
+  handleAction: async (
+    ctx: ChannelMessageActionContext,
+  ): Promise<{ content: Array<{ type: string; text: string }> } | null> => {
     if (ctx.action !== "send") {
-      return {
-        content: [{ type: "text" as const, text: "Unsupported action" }],
-        details: { ok: false, error: "Unsupported action" },
-      };
+      return null;
     }
 
     const message = readStringParam(ctx.params, "message", { required: true });
@@ -160,7 +159,7 @@ export const twitchMessageActions: ChannelMessageActionAdapter = {
       return {
         content: [
           {
-            type: "text" as const,
+            type: "text",
             text: JSON.stringify(result),
           },
         ],

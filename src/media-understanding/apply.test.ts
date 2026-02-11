@@ -178,7 +178,7 @@ describe("applyMediaUnderstanding", () => {
       Body: "<media:audio>",
       MediaUrl: "https://example.com/note.ogg",
       MediaType: "audio/ogg",
-      ChatType: "direct",
+      ChatType: "dm",
     };
     const cfg: OpenClawConfig = {
       tools: {

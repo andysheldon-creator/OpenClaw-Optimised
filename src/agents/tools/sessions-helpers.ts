@@ -389,10 +389,5 @@ export function extractAssistantText(message: unknown): string | undefined {
     }
   }
   const joined = chunks.join("").trim();
-  const stopReason = (message as { stopReason?: unknown }).stopReason;
-  const errorMessage = (message as { errorMessage?: unknown }).errorMessage;
-  const errorContext =
-    stopReason === "error" || (typeof errorMessage === "string" && Boolean(errorMessage.trim()));
-
-  return joined ? sanitizeUserFacingText(joined, { errorContext }) : undefined;
+  return joined ? sanitizeUserFacingText(joined) : undefined;
 }

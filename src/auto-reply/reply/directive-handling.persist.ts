@@ -82,7 +82,11 @@ export async function persistInlineDirectives(params: {
     let updated = false;
 
     if (directives.hasThinkDirective && directives.thinkLevel) {
-      sessionEntry.thinkingLevel = directives.thinkLevel;
+      if (directives.thinkLevel === "off") {
+        delete sessionEntry.thinkingLevel;
+      } else {
+        sessionEntry.thinkingLevel = directives.thinkLevel;
+      }
       updated = true;
     }
     if (directives.hasVerboseDirective && directives.verboseLevel) {

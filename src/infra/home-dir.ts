@@ -1,5 +1,4 @@
 import os from "node:os";
-import path from "node:path";
 
 function normalize(value: string | undefined): string | undefined {
   const trimmed = value?.trim();
@@ -10,11 +9,6 @@ export function resolveEffectiveHomeDir(
   env: NodeJS.ProcessEnv = process.env,
   homedir: () => string = os.homedir,
 ): string | undefined {
-  const raw = resolveRawHomeDir(env, homedir);
-  return raw ? path.resolve(raw) : undefined;
-}
-
-function resolveRawHomeDir(env: NodeJS.ProcessEnv, homedir: () => string): string | undefined {
   const explicitHome = normalize(env.OPENCLAW_HOME);
   if (explicitHome) {
     if (explicitHome === "~" || explicitHome.startsWith("~/") || explicitHome.startsWith("~\\")) {
@@ -53,7 +47,7 @@ export function resolveRequiredHomeDir(
   env: NodeJS.ProcessEnv = process.env,
   homedir: () => string = os.homedir,
 ): string {
-  return resolveEffectiveHomeDir(env, homedir) ?? path.resolve(process.cwd());
+  return resolveEffectiveHomeDir(env, homedir) ?? process.cwd();
 }
 
 export function expandHomePrefix(

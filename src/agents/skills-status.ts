@@ -111,13 +111,6 @@ function normalizeInstallOptions(
   entry: SkillEntry,
   prefs: SkillsInstallPreferences,
 ): SkillInstallOption[] {
-  // If the skill is explicitly OS-scoped, don't surface install actions on unsupported platforms.
-  // (Installers run locally; remote OS eligibility is handled separately.)
-  const requiredOs = entry.metadata?.os ?? [];
-  if (requiredOs.length > 0 && !requiredOs.includes(process.platform)) {
-    return [];
-  }
-
   const install = entry.metadata?.install ?? [];
   if (install.length === 0) {
     return [];

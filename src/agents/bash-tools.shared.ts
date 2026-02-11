@@ -146,10 +146,7 @@ function safeCwd() {
   }
 }
 
-/**
- * Clamp a number within min/max bounds, using defaultValue if undefined or NaN.
- */
-export function clampWithDefault(
+export function clampNumber(
   value: number | undefined,
   defaultValue: number,
   min: number,

@@ -107,10 +107,7 @@ describe("queue followups", () => {
         p.includes("[Queued messages while agent was busy]"),
       );
       expect(queuedPrompt).toBeTruthy();
-      // Message id hints are no longer exposed to the model prompt.
-      expect(queuedPrompt).toContain("Queued #1");
-      expect(queuedPrompt).toContain("first");
-      expect(queuedPrompt).not.toContain("[message_id:");
+      expect(queuedPrompt).toContain("[message_id: m-1]");
     });
   });
 

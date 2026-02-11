@@ -84,7 +84,7 @@ describe("agent event handler", () => {
     resetAgentRunContextForTest();
   });
 
-  it("broadcasts tool events to WS recipients even when verbose is off, but skips node send", () => {
+  it("suppresses tool events when verbose is off", () => {
     const broadcast = vi.fn();
     const broadcastToConnIds = vi.fn();
     const nodeSendToSession = vi.fn();
@@ -114,11 +114,7 @@ describe("agent event handler", () => {
       data: { phase: "start", name: "read", toolCallId: "t2" },
     });
 
-    // Tool events always broadcast to registered WS recipients
-    expect(broadcastToConnIds).toHaveBeenCalledTimes(1);
-    // But node/channel subscribers should NOT receive when verbose is off
-    const nodeToolCalls = nodeSendToSession.mock.calls.filter(([, event]) => event === "agent");
-    expect(nodeToolCalls).toHaveLength(0);
+    expect(broadcastToConnIds).not.toHaveBeenCalled();
     resetAgentRunContextForTest();
   });
 

@@ -13,7 +13,7 @@ import type { OutboundSendDeps } from "../src/infra/outbound/deliver.js";
 import { installProcessWarningFilter } from "../src/infra/warning-filter.js";
 import { setActivePluginRegistry } from "../src/plugins/runtime.js";
 import { createTestRegistry } from "../src/test-utils/channel-plugins.js";
-import { withIsolatedTestHome } from "./test-env.js";
+import { withIsolatedTestHome } from "./test-env";
 
 installProcessWarningFilter();
 
@@ -46,8 +46,7 @@ const createStubOutbound = (
   sendText: async ({ deps, to, text }) => {
     const send = pickSendFn(id, deps);
     if (send) {
-      // oxlint-disable-next-line typescript/no-explicit-any
-      const result = await send(to, text, { verbose: false } as any);
+      const result = await send(to, text, {});
       return { channel: id, ...result };
     }
     return { channel: id, messageId: "test" };
@@ -55,8 +54,7 @@ const createStubOutbound = (
   sendMedia: async ({ deps, to, text, mediaUrl }) => {
     const send = pickSendFn(id, deps);
     if (send) {
-      // oxlint-disable-next-line typescript/no-explicit-any
-      const result = await send(to, text, { verbose: false, mediaUrl } as any);
+      const result = await send(to, text, { mediaUrl });
       return { channel: id, ...result };
     }
     return { channel: id, messageId: "test" };
@@ -92,14 +90,14 @@ const createStubPlugin = (params: {
       const ids = accounts ? Object.keys(accounts).filter(Boolean) : [];
       return ids.length > 0 ? ids : ["default"];
     },
-    resolveAccount: (cfg: OpenClawConfig, accountId?: string | null) => {
+    resolveAccount: (cfg: OpenClawConfig, accountId: string) => {
       const channels = cfg.channels as Record<string, unknown> | undefined;
       const entry = channels?.[params.id];
       if (!entry || typeof entry !== "object") {
         return {};
       }
       const accounts = (entry as { accounts?: Record<string, unknown> }).accounts;
-      const match = accountId ? accounts?.[accountId] : undefined;
+      const match = accounts?.[accountId];
       return (match && typeof match === "object") || typeof match === "string" ? match : entry;
     },
     isConfigured: async (_account, cfg: OpenClawConfig) => {

@@ -1,7 +1,6 @@
 import type { Llama, LlamaEmbeddingContext, LlamaModel } from "node-llama-cpp";
 import fsSync from "node:fs";
 import type { OpenClawConfig } from "../config/config.js";
-import { formatErrorMessage } from "../infra/errors.js";
 import { resolveUserPath } from "../utils.js";
 import { createGeminiEmbeddingProvider, type GeminiEmbeddingClient } from "./embeddings-gemini.js";
 import { createOpenAiEmbeddingProvider, type OpenAiEmbeddingClient } from "./embeddings-openai.js";
@@ -24,7 +23,6 @@ export type { VoyageEmbeddingClient } from "./embeddings-voyage.js";
 export type EmbeddingProvider = {
   id: string;
   model: string;
-  maxInputTokens?: number;
   embedQuery: (text: string) => Promise<number[]>;
   embedBatch: (texts: string[]) => Promise<number[][]>;
 };
@@ -75,7 +73,7 @@ function canAutoSelectLocal(options: EmbeddingProviderOptions): boolean {
 }
 
 function isMissingApiKeyError(err: unknown): boolean {
-  const message = formatErrorMessage(err);
+  const message = formatError(err);
   return message.includes("No API key found for provider");
 }
 
@@ -151,7 +149,7 @@ export async function createEmbeddingProvider(
   };
 
   const formatPrimaryError = (err: unknown, provider: "openai" | "local" | "gemini" | "voyage") =>
-    provider === "local" ? formatLocalSetupError(err) : formatErrorMessage(err);
+    provider === "local" ? formatLocalSetupError(err) : formatError(err);
 
   if (requestedProvider === "auto") {
     const missingKeyErrors: string[] = [];
@@ -204,13 +202,20 @@ export async function createEmbeddingProvider(
       } catch (fallbackErr) {
         // oxlint-disable-next-line preserve-caught-error
         throw new Error(
-          `${reason}\n\nFallback to ${fallback} failed: ${formatErrorMessage(fallbackErr)}`,
+          `${reason}\n\nFallback to ${fallback} failed: ${formatError(fallbackErr)}`,
           { cause: fallbackErr },
         );
       }
     }
     throw new Error(reason, { cause: primaryErr });
   }
+}
+
+function formatError(err: unknown): string {
+  if (err instanceof Error) {
+    return err.message;
+  }
+  return String(err);
 }
 
 function isNodeLlamaCppMissing(err: unknown): boolean {
@@ -225,7 +230,7 @@ function isNodeLlamaCppMissing(err: unknown): boolean {
 }
 
 function formatLocalSetupError(err: unknown): string {
-  const detail = formatErrorMessage(err);
+  const detail = formatError(err);
   const missing = isNodeLlamaCppMissing(err);
   return [
     "Local embeddings unavailable.",

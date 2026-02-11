@@ -48,8 +48,8 @@ function normalizeRoute(p) {
 }
 
 /** @param {string} text */
-function stripInlineCode(text) {
-  return text.replace(/`[^`]+`/g, "");
+function stripCodeFences(text) {
+  return text.replace(/```[\s\S]*?```/g, "");
 }
 
 const docsConfig = JSON.parse(fs.readFileSync(DOCS_JSON_PATH, "utf8"));
@@ -68,14 +68,13 @@ const routes = new Set();
 
 for (const abs of markdownFiles) {
   const rel = normalizeSlashes(path.relative(DOCS_DIR, abs));
-  const text = fs.readFileSync(abs, "utf8");
   const slug = rel.replace(/\.(md|mdx)$/i, "");
-  const route = normalizeRoute(slug);
-  routes.add(route);
+  routes.add(normalizeRoute(slug));
   if (slug.endsWith("/index")) {
     routes.add(normalizeRoute(slug.slice(0, -"/index".length)));
   }
 
+  const text = fs.readFileSync(abs, "utf8");
   if (!text.startsWith("---")) {
     continue;
   }
@@ -115,108 +114,83 @@ function resolveRoute(route) {
 
 const markdownLinkRegex = /!?\[[^\]]*\]\(([^)]+)\)/g;
 
-/** @type {{file: string; line: number; link: string; reason: string}[]} */
+/** @type {{file: string; link: string; reason: string}[]} */
 const broken = [];
 let checked = 0;
 
 for (const abs of markdownFiles) {
   const rel = normalizeSlashes(path.relative(DOCS_DIR, abs));
   const baseDir = normalizeSlashes(path.dirname(rel));
-  const rawText = fs.readFileSync(abs, "utf8");
-  const lines = rawText.split("\n");
+  const text = stripCodeFences(fs.readFileSync(abs, "utf8"));
 
-  // Track if we're inside a code fence
-  let inCodeFence = false;
-
-  for (let lineNum = 0; lineNum < lines.length; lineNum++) {
-    let line = lines[lineNum];
-
-    // Toggle code fence state
-    if (line.trim().startsWith("```")) {
-      inCodeFence = !inCodeFence;
+  for (const match of text.matchAll(markdownLinkRegex)) {
+    const raw = match[1]?.trim();
+    if (!raw) {
       continue;
     }
-    if (inCodeFence) {
+    if (/^(https?:|mailto:|tel:|data:|#)/i.test(raw)) {
       continue;
     }
 
-    // Strip inline code to avoid false positives
-    line = stripInlineCode(line);
+    const clean = raw.split("#")[0].split("?")[0];
+    if (!clean) {
+      continue;
+    }
+    checked++;
 
-    for (const match of line.matchAll(markdownLinkRegex)) {
-      const raw = match[1]?.trim();
-      if (!raw) {
-        continue;
-      }
-      // Skip external links, mailto, tel, data, and same-page anchors
-      if (/^(https?:|mailto:|tel:|data:|#)/i.test(raw)) {
-        continue;
-      }
-
-      const [pathPart] = raw.split("#");
-      const clean = pathPart.split("?")[0];
-      if (!clean) {
-        // Same-page anchor only (already skipped above)
-        continue;
-      }
-      checked++;
-
-      if (clean.startsWith("/")) {
-        const route = normalizeRoute(clean);
-        const resolvedRoute = resolveRoute(route);
-        if (!resolvedRoute.ok) {
-          const staticRel = route.replace(/^\//, "");
-          if (!relAllFiles.has(staticRel)) {
-            broken.push({
-              file: rel,
-              line: lineNum + 1,
-              link: raw,
-              reason: `route/file not found (terminal: ${resolvedRoute.terminal})`,
-            });
-            continue;
-          }
-        }
-        // Skip anchor validation - Mintlify generates anchors from MDX components,
-        // accordions, and config schemas that we can't reliably extract from markdown.
+    if (clean.startsWith("/")) {
+      const route = normalizeRoute(clean);
+      const resolvedRoute = resolveRoute(route);
+      if (resolvedRoute.ok) {
         continue;
       }
 
-      // Relative placeholder strings used in code examples (for example "url")
-      // are intentionally skipped.
-      if (!clean.startsWith(".") && !clean.includes("/")) {
+      const staticRel = route.replace(/^\//, "");
+      if (relAllFiles.has(staticRel)) {
         continue;
       }
 
-      const normalizedRel = normalizeSlashes(path.normalize(path.join(baseDir, clean)));
+      broken.push({
+        file: rel,
+        link: raw,
+        reason: `route/file not found (terminal: ${resolvedRoute.terminal})`,
+      });
+      continue;
+    }
 
-      if (/\.[a-zA-Z0-9]+$/.test(normalizedRel)) {
-        if (!relAllFiles.has(normalizedRel)) {
-          broken.push({
-            file: rel,
-            line: lineNum + 1,
-            link: raw,
-            reason: "relative file not found",
-          });
-        }
-        continue;
-      }
+    // Relative placeholder strings used in code examples (for example "url")
+    // are intentionally skipped.
+    if (!clean.startsWith(".") && !clean.includes("/")) {
+      continue;
+    }
 
-      const candidates = [
-        normalizedRel,
-        `${normalizedRel}.md`,
-        `${normalizedRel}.mdx`,
-        `${normalizedRel}/index.md`,
-        `${normalizedRel}/index.mdx`,
-      ];
+    const normalizedRel = normalizeSlashes(path.normalize(path.join(baseDir, clean)));
 
-      if (!candidates.some((candidate) => relAllFiles.has(candidate))) {
+    if (/\.[a-zA-Z0-9]+$/.test(normalizedRel)) {
+      if (!relAllFiles.has(normalizedRel)) {
         broken.push({
           file: rel,
-          line: lineNum + 1,
           link: raw,
-          reason: "relative doc target not found",
+          reason: "relative file not found",
         });
       }
+      continue;
+    }
+
+    const candidates = [
+      normalizedRel,
+      `${normalizedRel}.md`,
+      `${normalizedRel}.mdx`,
+      `${normalizedRel}/index.md`,
+      `${normalizedRel}/index.mdx`,
+    ];
+
+    if (!candidates.some((candidate) => relAllFiles.has(candidate))) {
+      broken.push({
+        file: rel,
+        link: raw,
+        reason: "relative doc target not found",
+      });
     }
   }
 }
@@ -225,7 +199,7 @@ console.log(`checked_internal_links=${checked}`);
 console.log(`broken_links=${broken.length}`);
 
 for (const item of broken) {
-  console.log(`${item.file}:${item.line} :: ${item.link} :: ${item.reason}`);
+  console.log(`${item.file} :: ${item.link} :: ${item.reason}`);
 }
 
 if (broken.length > 0) {

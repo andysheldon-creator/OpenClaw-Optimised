@@ -40,11 +40,6 @@ jobs:
                   "Please use [our support server](https://discord.gg/clawd) and ask in #help or #users-helping-users to resolve this, or follow the stuck FAQ at https://docs.openclaw.ai/help/faq#im-stuck-whats-the-fastest-way-to-get-unstuck.",
               },
               {
-                label: "r: testflight",
-                close: true,
-                message: "Not available, build from source.",
-              },
-              {
                 label: "r: third-party-extension",
                 close: true,
                 message:
@@ -65,36 +60,10 @@ jobs:
               const title = issue.title ?? "";
               const body = issue.body ?? "";
               const haystack = `${title}\n${body}`.toLowerCase();
-              const hasMoltbookLabel = (issue.labels ?? []).some((label) =>
+              const hasLabel = (issue.labels ?? []).some((label) =>
                 typeof label === "string" ? label === "r: moltbook" : label?.name === "r: moltbook",
               );
-              const hasTestflightLabel = (issue.labels ?? []).some((label) =>
-                typeof label === "string"
-                  ? label === "r: testflight"
-                  : label?.name === "r: testflight",
-              );
-              const hasSecurityLabel = (issue.labels ?? []).some((label) =>
-                typeof label === "string" ? label === "security" : label?.name === "security",
-              );
-              if (title.toLowerCase().includes("security") && !hasSecurityLabel) {
-                await github.rest.issues.addLabels({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: issue.number,
-                  labels: ["security"],
-                });
-                return;
-              }
-              if (title.toLowerCase().includes("testflight") && !hasTestflightLabel) {
-                await github.rest.issues.addLabels({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: issue.number,
-                  labels: ["r: testflight"],
-                });
-                return;
-              }
-              if (haystack.includes("moltbook") && !hasMoltbookLabel) {
+              if (haystack.includes("moltbook") && !hasLabel) {
                 await github.rest.issues.addLabels({
                   owner: context.repo.owner,
                   repo: context.repo.repo,

@@ -128,8 +128,7 @@ function pickLanIPv4(): string | null {
     }
     for (const entry of entries) {
       const family = entry?.family;
-      // Check for IPv4 (string "IPv4" on Node 18+, number 4 on older)
-      const isIpv4 = family === "IPv4" || String(family) === "4";
+      const isIpv4 = family === "IPv4" || family === 4;
       if (!entry || entry.internal || !isIpv4) {
         continue;
       }
@@ -153,8 +152,7 @@ function pickTailnetIPv4(): string | null {
     }
     for (const entry of entries) {
       const family = entry?.family;
-      // Check for IPv4 (string "IPv4" on Node 18+, number 4 on older)
-      const isIpv4 = family === "IPv4" || String(family) === "4";
+      const isIpv4 = family === "IPv4" || family === 4;
       if (!entry || entry.internal || !isIpv4) {
         continue;
       }

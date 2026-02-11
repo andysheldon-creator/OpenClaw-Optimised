@@ -7,6 +7,7 @@ import { hasControlCommand } from "../../../auto-reply/command-detection.js";
 import { shouldHandleTextCommands } from "../../../auto-reply/commands-registry.js";
 import {
   formatInboundEnvelope,
+  formatThreadStarterEnvelope,
   resolveEnvelopeFormatOptions,
 } from "../../../auto-reply/envelope.js";
 import {
@@ -42,7 +43,6 @@ import { resolveSlackThreadContext } from "../../threading.js";
 import { resolveSlackAllowListMatch, resolveSlackUserAllowed } from "../allow-list.js";
 import { resolveSlackEffectiveAllowFrom } from "../auth.js";
 import { resolveSlackChannelConfig } from "../channel-config.js";
-import { stripSlackMentionsForCommandDetection } from "../commands.js";
 import { normalizeSlackChannelType, type SlackMonitorContext } from "../context.js";
 import { resolveSlackMedia, resolveSlackThreadStarter } from "../media.js";
 
@@ -188,7 +188,7 @@ export async function prepareSlackMessage(params: {
     accountId: account.accountId,
     teamId: ctx.teamId || undefined,
     peer: {
-      kind: isDirectMessage ? "direct" : isRoom ? "channel" : "group",
+      kind: isDirectMessage ? "dm" : isRoom ? "channel" : "group",
       id: isDirectMessage ? (message.user ?? "unknown") : message.channel,
     },
   });
@@ -250,9 +250,7 @@ export async function prepareSlackMessage(params: {
     cfg,
     surface: "slack",
   });
-  // Strip Slack mentions (<@U123>) before command detection so "@Labrador /new" is recognized
-  const textForCommandDetection = stripSlackMentionsForCommandDetection(message.text ?? "");
-  const hasControlCommandInMessage = hasControlCommand(textForCommandDetection, cfg);
+  const hasControlCommandInMessage = hasControlCommand(message.text ?? "", cfg);
 
   const ownerAuthorized = resolveSlackAllowListMatch({
     allowList: allowFromLower,
@@ -466,8 +464,16 @@ export async function prepareSlackMessage(params: {
       client: ctx.app.client,
     });
     if (starter?.text) {
-      // Keep thread starter as raw text; metadata is provided out-of-band in the system prompt.
-      threadStarterBody = starter.text;
+      const starterUser = starter.userId ? await ctx.resolveUserName(starter.userId) : null;
+      const starterName = starterUser?.name ?? starter.userId ?? "Unknown";
+      const starterWithId = `${starter.text}\n[slack message id: ${starter.ts ?? threadTs} channel: ${message.channel}]`;
+      threadStarterBody = formatThreadStarterEnvelope({
+        channel: "Slack",
+        author: starterName,
+        timestamp: starter.ts ? Math.round(Number(starter.ts) * 1000) : undefined,
+        body: starterWithId,
+        envelope: envelopeOptions,
+      });
       const snippet = starter.text.replace(/\s+/g, " ").slice(0, 80);
       threadLabel = `Slack thread ${roomLabel}${snippet ? `: ${snippet}` : ""}`;
       // If current message has no files but thread starter does, fetch starter's files
@@ -491,19 +497,8 @@ export async function prepareSlackMessage(params: {
   // Use thread starter media if current message has none
   const effectiveMedia = media ?? threadStarterMedia;
 
-  const inboundHistory =
-    isRoomish && ctx.historyLimit > 0
-      ? (ctx.channelHistories.get(historyKey) ?? []).map((entry) => ({
-          sender: entry.sender,
-          body: entry.body,
-          timestamp: entry.timestamp,
-        }))
-      : undefined;
-
   const ctxPayload = finalizeInboundContext({
     Body: combinedBody,
-    BodyForAgent: rawBody,
-    InboundHistory: inboundHistory,
     RawBody: rawBody,
     CommandBody: rawBody,
     From: slackFrom,

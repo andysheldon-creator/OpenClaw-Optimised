@@ -70,12 +70,9 @@ async function resolveDirectRoomId(client: MatrixClient, userId: string): Promis
 
   // 1) Fast path: use account data (m.direct) for *this* logged-in user (the bot).
   try {
-    const directContent = (await client.getAccountData(EventType.Direct)) as Record<
-      string,
-      string[] | undefined
-    >;
+    const directContent = await client.getAccountData(EventType.Direct);
     const list = Array.isArray(directContent?.[trimmed]) ? directContent[trimmed] : [];
-    if (list && list.length > 0) {
+    if (list.length > 0) {
       setDirectRoomCached(trimmed, list[0]);
       return list[0];
     }

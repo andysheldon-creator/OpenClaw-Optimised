@@ -1,5 +1,4 @@
 import type { ReplyPayload } from "../../auto-reply/types.js";
-import { appendCronStyleCurrentTimeLine } from "../../agents/current-time.js";
 import {
   DEFAULT_HEARTBEAT_ACK_MAX_CHARS,
   resolveHeartbeatPrompt,
@@ -160,11 +159,7 @@ export async function runWebHeartbeatOnce(opts: {
 
     const replyResult = await replyResolver(
       {
-        Body: appendCronStyleCurrentTimeLine(
-          resolveHeartbeatPrompt(cfg.agents?.defaults?.heartbeat?.prompt),
-          cfg,
-          Date.now(),
-        ),
+        Body: resolveHeartbeatPrompt(cfg.agents?.defaults?.heartbeat?.prompt),
         From: to,
         To: to,
         MessageSid: sessionId ?? sessionSnapshot.entry?.sessionId,

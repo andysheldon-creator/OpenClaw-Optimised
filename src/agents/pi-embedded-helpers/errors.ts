@@ -24,7 +24,7 @@ export function isContextOverflowError(errorMessage?: string): boolean {
     lower.includes("prompt is too long") ||
     lower.includes("exceeds model context window") ||
     (hasRequestSizeExceeds && hasContextWindow) ||
-    lower.includes("context overflow:") ||
+    lower.includes("context overflow") ||
     (lower.includes("413") && lower.includes("too large"))
   );
 }
@@ -50,18 +50,16 @@ export function isCompactionFailureError(errorMessage?: string): boolean {
   if (!errorMessage) {
     return false;
   }
+  if (!isContextOverflowError(errorMessage)) {
+    return false;
+  }
   const lower = errorMessage.toLowerCase();
-  const hasCompactionTerm =
+  return (
     lower.includes("summarization failed") ||
     lower.includes("auto-compaction") ||
     lower.includes("compaction failed") ||
-    lower.includes("compaction");
-  if (!hasCompactionTerm) {
-    return false;
-  }
-  // For compaction failures, also accept "context overflow" without colon
-  // since the error message itself describes a compaction/summarization failure
-  return isContextOverflowError(errorMessage) || lower.includes("context overflow");
+    lower.includes("compaction")
+  );
 }
 
 const ERROR_PAYLOAD_PREFIX_RE =
@@ -354,7 +352,7 @@ export function formatAssistantErrorText(
   if (isContextOverflowError(raw)) {
     return (
       "Context overflow: prompt too large for the model. " +
-      "Try /reset (or /new) to start a fresh session, or use a larger-context model."
+      "Try again with less input or a larger-context model."
     );
   }
 
@@ -402,51 +400,46 @@ export function formatAssistantErrorText(
   return raw.length > 600 ? `${raw.slice(0, 600)}…` : raw;
 }
 
-export function sanitizeUserFacingText(text: string, opts?: { errorContext?: boolean }): string {
+export function sanitizeUserFacingText(text: string): string {
   if (!text) {
     return text;
   }
-  const errorContext = opts?.errorContext ?? false;
   const stripped = stripFinalTagsFromText(text);
   const trimmed = stripped.trim();
   if (!trimmed) {
     return stripped;
   }
 
-  // Only apply error-pattern rewrites when the caller knows this text is an error payload.
-  // Otherwise we risk swallowing legitimate assistant text that merely *mentions* these errors.
-  if (errorContext) {
-    if (/incorrect role information|roles must alternate/i.test(trimmed)) {
-      return (
-        "Message ordering conflict - please try again. " +
-        "If this persists, use /new to start a fresh session."
-      );
-    }
+  if (/incorrect role information|roles must alternate/i.test(trimmed)) {
+    return (
+      "Message ordering conflict - please try again. " +
+      "If this persists, use /new to start a fresh session."
+    );
+  }
 
-    if (shouldRewriteContextOverflowText(trimmed)) {
-      return (
-        "Context overflow: prompt too large for the model. " +
-        "Try /reset (or /new) to start a fresh session, or use a larger-context model."
-      );
-    }
+  if (shouldRewriteContextOverflowText(trimmed)) {
+    return (
+      "Context overflow: prompt too large for the model. " +
+      "Try again with less input or a larger-context model."
+    );
+  }
 
-    if (isBillingErrorMessage(trimmed)) {
-      return BILLING_ERROR_USER_MESSAGE;
-    }
+  if (isBillingErrorMessage(trimmed)) {
+    return BILLING_ERROR_USER_MESSAGE;
+  }
 
-    if (isRawApiErrorPayload(trimmed) || isLikelyHttpErrorText(trimmed)) {
-      return formatRawAssistantErrorForUi(trimmed);
-    }
+  if (isRawApiErrorPayload(trimmed) || isLikelyHttpErrorText(trimmed)) {
+    return formatRawAssistantErrorForUi(trimmed);
+  }
 
-    if (ERROR_PREFIX_RE.test(trimmed)) {
-      if (isOverloadedErrorMessage(trimmed) || isRateLimitErrorMessage(trimmed)) {
-        return "The AI service is temporarily overloaded. Please try again in a moment.";
-      }
-      if (isTimeoutErrorMessage(trimmed)) {
-        return "LLM request timed out.";
-      }
-      return formatRawAssistantErrorForUi(trimmed);
+  if (ERROR_PREFIX_RE.test(trimmed)) {
+    if (isOverloadedErrorMessage(trimmed) || isRateLimitErrorMessage(trimmed)) {
+      return "The AI service is temporarily overloaded. Please try again in a moment.";
     }
+    if (isTimeoutErrorMessage(trimmed)) {
+      return "LLM request timed out.";
+    }
+    return formatRawAssistantErrorForUi(trimmed);
   }
 
   return collapseConsecutiveDuplicateBlocks(stripped);
@@ -478,7 +471,6 @@ const ERROR_PATTERNS = {
     "insufficient credits",
     "credit balance",
     "plans & billing",
-    "insufficient balance",
   ],
   auth: [
     /invalid[_ ]?api[_ ]?key/,
@@ -539,8 +531,16 @@ export function isBillingErrorMessage(raw: string): boolean {
   if (!value) {
     return false;
   }
-
-  return matchesErrorPatterns(value, ERROR_PATTERNS.billing);
+  if (matchesErrorPatterns(value, ERROR_PATTERNS.billing)) {
+    return true;
+  }
+  return (
+    value.includes("billing") &&
+    (value.includes("upgrade") ||
+      value.includes("credits") ||
+      value.includes("payment") ||
+      value.includes("plan"))
+  );
 }
 
 export function isMissingToolCallInputError(raw: string): boolean {

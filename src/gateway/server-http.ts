@@ -28,16 +28,13 @@ import {
 import { applyHookMappings } from "./hooks-mapping.js";
 import {
   extractHookToken,
-  getHookAgentPolicyError,
   getHookChannelError,
   type HookMessageChannel,
   type HooksConfigResolved,
-  isHookAgentAllowed,
   normalizeAgentPayload,
   normalizeHookHeaders,
   normalizeWakePayload,
   readJsonBody,
-  resolveHookTargetAgentId,
   resolveHookChannel,
   resolveHookDeliver,
 } from "./hooks.js";
@@ -55,7 +52,6 @@ type HookDispatchers = {
   dispatchAgentHook: (value: {
     message: string;
     name: string;
-    agentId?: string;
     wakeMode: "now" | "next-heartbeat";
     sessionKey: string;
     deliver: boolean;
@@ -211,14 +207,7 @@ export function createHooksRequestHandler(
         sendJson(res, 400, { ok: false, error: normalized.error });
         return true;
       }
-      if (!isHookAgentAllowed(hooksConfig, normalized.value.agentId)) {
-        sendJson(res, 400, { ok: false, error: getHookAgentPolicyError() });
-        return true;
-      }
-      const runId = dispatchAgentHook({
-        ...normalized.value,
-        agentId: resolveHookTargetAgentId(hooksConfig, normalized.value.agentId),
-      });
+      const runId = dispatchAgentHook(normalized.value);
       sendJson(res, 202, { ok: true, runId });
       return true;
     }
@@ -254,14 +243,9 @@ export function createHooksRequestHandler(
             sendJson(res, 400, { ok: false, error: getHookChannelError() });
             return true;
           }
-          if (!isHookAgentAllowed(hooksConfig, mapped.action.agentId)) {
-            sendJson(res, 400, { ok: false, error: getHookAgentPolicyError() });
-            return true;
-          }
           const runId = dispatchAgentHook({
             message: mapped.action.message,
             name: mapped.action.name ?? "Hook",
-            agentId: resolveHookTargetAgentId(hooksConfig, mapped.action.agentId),
             wakeMode: mapped.action.wakeMode,
             sessionKey: mapped.action.sessionKey ?? "",
             deliver: resolveHookDeliver(mapped.action.deliver),

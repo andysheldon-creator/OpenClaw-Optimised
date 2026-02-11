@@ -10,13 +10,16 @@ import type { CliBackendConfig } from "../../config/types.js";
 import type { EmbeddedContextFile } from "../pi-embedded-helpers.js";
 import { runExec } from "../../process/exec.js";
 import { buildTtsSystemPromptHint } from "../../tts/tts.js";
-import { escapeRegExp, isRecord } from "../../utils.js";
 import { resolveDefaultModelForAgent } from "../model-selection.js";
 import { detectRuntimeShell } from "../shell-utils.js";
 import { buildSystemPromptParams } from "../system-prompt-params.js";
 import { buildAgentSystemPrompt } from "../system-prompt.js";
 
 const CLI_RUN_QUEUE = new Map<string, Promise<unknown>>();
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
 export async function cleanupResumeProcesses(
   backend: CliBackendConfig,
@@ -40,7 +43,7 @@ export async function cleanupResumeProcesses(
   const resumeTokens = resumeArgs.map((arg) => arg.replaceAll("{sessionId}", sessionId));
   const pattern = [commandToken, ...resumeTokens]
     .filter(Boolean)
-    .map((token) => escapeRegExp(token))
+    .map((token) => escapeRegex(token))
     .join(".*");
   if (!pattern) {
     return;
@@ -92,9 +95,9 @@ function buildSessionMatchers(backend: CliBackendConfig): RegExp[] {
 
 function tokenToRegex(token: string): string {
   if (!token.includes("{sessionId}")) {
-    return escapeRegExp(token);
+    return escapeRegex(token);
   }
-  const parts = token.split("{sessionId}").map((part) => escapeRegExp(part));
+  const parts = token.split("{sessionId}").map((part) => escapeRegex(part));
   return parts.join("\\S+");
 }
 
@@ -278,6 +281,10 @@ function toUsage(raw: Record<string, unknown>): CliUsage | undefined {
     return undefined;
   }
   return { input, output, cacheRead, cacheWrite, total };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
 function collectText(value: unknown): string {

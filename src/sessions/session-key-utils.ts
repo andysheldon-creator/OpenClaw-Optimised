@@ -25,14 +25,6 @@ export function parseAgentSessionKey(
   return { agentId, rest };
 }
 
-export function isCronRunSessionKey(sessionKey: string | undefined | null): boolean {
-  const parsed = parseAgentSessionKey(sessionKey);
-  if (!parsed) {
-    return false;
-  }
-  return /^cron:[^:]+:run:[^:]+$/.test(parsed.rest);
-}
-
 export function isSubagentSessionKey(sessionKey: string | undefined | null): boolean {
   const raw = (sessionKey ?? "").trim();
   if (!raw) {

@@ -15,7 +15,7 @@ export async function runInteractiveOnboarding(
     await runOnboardingWizard(opts, runtime, prompter);
   } catch (err) {
     if (err instanceof WizardCancelledError) {
-      runtime.exit(1);
+      runtime.exit(0);
       return;
     }
     throw err;

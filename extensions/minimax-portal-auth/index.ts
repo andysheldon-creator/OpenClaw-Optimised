@@ -1,9 +1,4 @@
-import {
-  emptyPluginConfigSchema,
-  type OpenClawPluginApi,
-  type ProviderAuthContext,
-  type ProviderAuthResult,
-} from "openclaw/plugin-sdk";
+import { emptyPluginConfigSchema } from "openclaw/plugin-sdk";
 import { loginMiniMaxPortalOAuth, type MiniMaxRegion } from "./oauth.js";
 
 const PROVIDER_ID = "minimax-portal";
@@ -43,7 +38,8 @@ function createOAuthHandler(region: MiniMaxRegion) {
   const defaultBaseUrl = getDefaultBaseUrl(region);
   const regionLabel = region === "cn" ? "CN" : "Global";
 
-  return async (ctx: ProviderAuthContext): Promise<ProviderAuthResult> => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return async (ctx: any) => {
     const progress = ctx.prompter.progress(`Starting MiniMax OAuth (${regionLabel})…`);
     try {
       const result = await loginMiniMaxPortalOAuth({
@@ -130,7 +126,7 @@ const minimaxPortalPlugin = {
   name: "MiniMax OAuth",
   description: "OAuth flow for MiniMax models",
   configSchema: emptyPluginConfigSchema(),
-  register(api: OpenClawPluginApi) {
+  register(api) {
     api.registerProvider({
       id: PROVIDER_ID,
       label: PROVIDER_LABEL,

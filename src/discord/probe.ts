@@ -1,5 +1,4 @@
 import { resolveFetch } from "../infra/fetch.js";
-import { fetchWithTimeout } from "../utils/fetch-timeout.js";
 import { normalizeDiscordToken } from "./token.js";
 
 const DISCORD_API_BASE = "https://discord.com/api/v10";
@@ -71,9 +70,11 @@ export async function fetchDiscordApplicationSummary(
   try {
     const res = await fetchWithTimeout(
       `${DISCORD_API_BASE}/oauth2/applications/@me`,
-      { headers: { Authorization: `Bot ${normalized}` } },
       timeoutMs,
-      getResolvedFetch(fetcher),
+      fetcher,
+      {
+        Authorization: `Bot ${normalized}`,
+      },
     );
     if (!res.ok) {
       return undefined;
@@ -92,12 +93,23 @@ export async function fetchDiscordApplicationSummary(
   }
 }
 
-function getResolvedFetch(fetcher: typeof fetch): typeof fetch {
+async function fetchWithTimeout(
+  url: string,
+  timeoutMs: number,
+  fetcher: typeof fetch,
+  headers?: HeadersInit,
+): Promise<Response> {
   const fetchImpl = resolveFetch(fetcher);
   if (!fetchImpl) {
     throw new Error("fetch is not available");
   }
-  return fetchImpl;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetchImpl(url, { signal: controller.signal, headers });
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export async function probeDiscord(
@@ -123,12 +135,9 @@ export async function probeDiscord(
     };
   }
   try {
-    const res = await fetchWithTimeout(
-      `${DISCORD_API_BASE}/users/@me`,
-      { headers: { Authorization: `Bot ${normalized}` } },
-      timeoutMs,
-      getResolvedFetch(fetcher),
-    );
+    const res = await fetchWithTimeout(`${DISCORD_API_BASE}/users/@me`, timeoutMs, fetcher, {
+      Authorization: `Bot ${normalized}`,
+    });
     if (!res.ok) {
       result.status = res.status;
       result.error = `getMe failed (${res.status})`;
@@ -167,9 +176,11 @@ export async function fetchDiscordApplicationId(
   try {
     const res = await fetchWithTimeout(
       `${DISCORD_API_BASE}/oauth2/applications/@me`,
-      { headers: { Authorization: `Bot ${normalized}` } },
       timeoutMs,
-      getResolvedFetch(fetcher),
+      fetcher,
+      {
+        Authorization: `Bot ${normalized}`,
+      },
     );
     if (!res.ok) {
       return undefined;

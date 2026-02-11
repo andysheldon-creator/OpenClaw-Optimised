@@ -43,7 +43,7 @@ import {
   buildDockerExecArgs,
   buildSandboxEnv,
   chunkString,
-  clampWithDefault,
+  clampNumber,
   coerceEnv,
   killSession,
   readEnvInt,
@@ -105,13 +105,13 @@ function validateHostEnv(env: Record<string, string>): void {
     }
   }
 }
-const DEFAULT_MAX_OUTPUT = clampWithDefault(
+const DEFAULT_MAX_OUTPUT = clampNumber(
   readEnvInt("PI_BASH_MAX_OUTPUT_CHARS"),
   200_000,
   1_000,
   200_000,
 );
-const DEFAULT_PENDING_MAX_OUTPUT = clampWithDefault(
+const DEFAULT_PENDING_MAX_OUTPUT = clampNumber(
   readEnvInt("OPENCLAW_BASH_PENDING_MAX_OUTPUT_CHARS"),
   200_000,
   1_000,
@@ -801,7 +801,7 @@ export function createExecTool(
   defaults?: ExecToolDefaults,
   // oxlint-disable-next-line typescript/no-explicit-any
 ): AgentTool<any, ExecToolDetails> {
-  const defaultBackgroundMs = clampWithDefault(
+  const defaultBackgroundMs = clampNumber(
     defaults?.backgroundMs ?? readEnvInt("PI_BASH_YIELD_MS"),
     10_000,
     10,
@@ -860,12 +860,7 @@ export function createExecTool(
       const yieldWindow = allowBackground
         ? backgroundRequested
           ? 0
-          : clampWithDefault(
-              params.yieldMs ?? defaultBackgroundMs,
-              defaultBackgroundMs,
-              10,
-              120_000,
-            )
+          : clampNumber(params.yieldMs ?? defaultBackgroundMs, defaultBackgroundMs, 10, 120_000)
         : null;
       const elevatedDefaults = defaults?.elevated;
       const elevatedAllowed = Boolean(elevatedDefaults?.enabled && elevatedDefaults.allowed);

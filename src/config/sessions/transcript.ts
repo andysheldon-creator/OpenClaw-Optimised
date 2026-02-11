@@ -134,16 +134,12 @@ export async function appendAssistantMessageToSessionTranscript(params: {
   });
 
   if (!entry.sessionFile || entry.sessionFile !== sessionFile) {
-    await updateSessionStore(
-      storePath,
-      (current) => {
-        current[sessionKey] = {
-          ...entry,
-          sessionFile,
-        };
-      },
-      { activeSessionKey: sessionKey },
-    );
+    await updateSessionStore(storePath, (current) => {
+      current[sessionKey] = {
+        ...entry,
+        sessionFile,
+      };
+    });
   }
 
   emitSessionTranscriptUpdate(sessionFile);

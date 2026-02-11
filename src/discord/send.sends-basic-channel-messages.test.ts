@@ -1,4 +1,4 @@
-import { ChannelType, PermissionFlagsBits, Routes } from "discord-api-types/v10";
+import { PermissionFlagsBits, Routes } from "discord-api-types/v10";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   deleteMessageDiscord,
@@ -58,9 +58,7 @@ describe("sendMessageDiscord", () => {
   });
 
   it("sends basic channel messages", async () => {
-    const { rest, postMock, getMock } = makeRest();
-    // Channel type lookup returns a normal text channel (not a forum).
-    getMock.mockResolvedValueOnce({ type: ChannelType.GuildText });
+    const { rest, postMock } = makeRest();
     postMock.mockResolvedValue({
       id: "msg1",
       channel_id: "789",
@@ -74,89 +72,6 @@ describe("sendMessageDiscord", () => {
       Routes.channelMessages("789"),
       expect.objectContaining({ body: { content: "hello world" } }),
     );
-  });
-
-  it("auto-creates a forum thread when target is a Forum channel", async () => {
-    const { rest, postMock, getMock } = makeRest();
-    // Channel type lookup returns a Forum channel.
-    getMock.mockResolvedValueOnce({ type: ChannelType.GuildForum });
-    postMock.mockResolvedValue({
-      id: "thread1",
-      message: { id: "starter1", channel_id: "thread1" },
-    });
-    const res = await sendMessageDiscord("channel:forum1", "Discussion topic\nBody of the post", {
-      rest,
-      token: "t",
-    });
-    expect(res).toEqual({ messageId: "starter1", channelId: "thread1" });
-    // Should POST to threads route, not channelMessages.
-    expect(postMock).toHaveBeenCalledWith(
-      Routes.threads("forum1"),
-      expect.objectContaining({
-        body: {
-          name: "Discussion topic",
-          message: { content: "Discussion topic\nBody of the post" },
-        },
-      }),
-    );
-  });
-
-  it("posts media as a follow-up message in forum channels", async () => {
-    const { rest, postMock, getMock } = makeRest();
-    getMock.mockResolvedValueOnce({ type: ChannelType.GuildForum });
-    postMock
-      .mockResolvedValueOnce({
-        id: "thread1",
-        message: { id: "starter1", channel_id: "thread1" },
-      })
-      .mockResolvedValueOnce({ id: "media1", channel_id: "thread1" });
-    const res = await sendMessageDiscord("channel:forum1", "Topic", {
-      rest,
-      token: "t",
-      mediaUrl: "file:///tmp/photo.jpg",
-    });
-    expect(res).toEqual({ messageId: "starter1", channelId: "thread1" });
-    expect(postMock).toHaveBeenNthCalledWith(
-      1,
-      Routes.threads("forum1"),
-      expect.objectContaining({
-        body: {
-          name: "Topic",
-          message: { content: "Topic" },
-        },
-      }),
-    );
-    expect(postMock).toHaveBeenNthCalledWith(
-      2,
-      Routes.channelMessages("thread1"),
-      expect.objectContaining({
-        body: expect.objectContaining({
-          files: [expect.objectContaining({ name: "photo.jpg" })],
-        }),
-      }),
-    );
-  });
-
-  it("chunks long forum posts into follow-up messages", async () => {
-    const { rest, postMock, getMock } = makeRest();
-    getMock.mockResolvedValueOnce({ type: ChannelType.GuildForum });
-    postMock
-      .mockResolvedValueOnce({
-        id: "thread1",
-        message: { id: "starter1", channel_id: "thread1" },
-      })
-      .mockResolvedValueOnce({ id: "msg2", channel_id: "thread1" });
-    const longText = "a".repeat(2001);
-    await sendMessageDiscord("channel:forum1", longText, {
-      rest,
-      token: "t",
-    });
-    const firstBody = postMock.mock.calls[0]?.[1]?.body as {
-      message?: { content?: string };
-    };
-    const secondBody = postMock.mock.calls[1]?.[1]?.body as { content?: string };
-    expect(firstBody?.message?.content).toHaveLength(2000);
-    expect(secondBody?.content).toBe("a");
   });
 
   it("starts DM when recipient is a user", async () => {
@@ -203,7 +118,6 @@ describe("sendMessageDiscord", () => {
     });
     postMock.mockRejectedValueOnce(apiError);
     getMock
-      .mockResolvedValueOnce({ type: ChannelType.GuildText })
       .mockResolvedValueOnce({
         id: "789",
         guild_id: "guild1",

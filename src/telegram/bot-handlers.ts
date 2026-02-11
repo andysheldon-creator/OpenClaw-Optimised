@@ -163,7 +163,7 @@ export const registerTelegramHandlers = ({
       channel: "telegram",
       accountId,
       peer: {
-        kind: params.isGroup ? "group" : "direct",
+        kind: params.isGroup ? "group" : "dm",
         id: peerId,
       },
       parentPeer,

@@ -387,7 +387,7 @@ export async function monitorIMessageProvider(opts: MonitorIMessageOpts = {}): P
       channel: "imessage",
       accountId: accountInfo.accountId,
       peer: {
-        kind: isGroup ? "group" : "direct",
+        kind: isGroup ? "group" : "dm",
         id: isGroup ? String(chatId ?? "unknown") : normalizeIMessageHandle(sender),
       },
     });
@@ -549,18 +549,8 @@ export async function monitorIMessageProvider(opts: MonitorIMessageOpts = {}): P
     }
 
     const imessageTo = (isGroup ? chatTarget : undefined) || `imessage:${sender}`;
-    const inboundHistory =
-      isGroup && historyKey && historyLimit > 0
-        ? (groupHistories.get(historyKey) ?? []).map((entry) => ({
-            sender: entry.sender,
-            body: entry.body,
-            timestamp: entry.timestamp,
-          }))
-        : undefined;
     const ctxPayload = finalizeInboundContext({
       Body: combinedBody,
-      BodyForAgent: bodyText,
-      InboundHistory: inboundHistory,
       RawBody: bodyText,
       CommandBody: bodyText,
       From: isGroup ? `imessage:group:${chatId ?? "unknown"}` : `imessage:${sender}`,

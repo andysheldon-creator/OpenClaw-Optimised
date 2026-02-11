@@ -1,4 +1,3 @@
-import type { MSTeamsConfig } from "openclaw/plugin-sdk";
 import { GRAPH_ROOT } from "./attachments/shared.js";
 import { loadMSTeamsSdkWithAuth } from "./sdk.js";
 import { resolveMSTeamsCredentials } from "./token.js";
@@ -156,7 +155,7 @@ async function fetchGraphJson<T>(params: {
 
 async function resolveGraphToken(cfg: unknown): Promise<string> {
   const creds = resolveMSTeamsCredentials(
-    (cfg as { channels?: { msteams?: unknown } })?.channels?.msteams as MSTeamsConfig | undefined,
+    (cfg as { channels?: { msteams?: unknown } })?.channels?.msteams,
   );
   if (!creds) {
     throw new Error("MS Teams credentials missing");

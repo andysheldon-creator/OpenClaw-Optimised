@@ -1,5 +1,4 @@
 ---
-title: "Default AGENTS.md"
 summary: "Default OpenClaw agent instructions and skills roster for the personal assistant setup"
 read_when:
   - Starting a new OpenClaw agent session

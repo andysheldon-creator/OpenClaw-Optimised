@@ -8,7 +8,6 @@ import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { GatewayClient } from "../src/gateway/client.js";
 import { loadOrCreateDeviceIdentity } from "../src/infra/device-identity.js";
-import { sleep } from "../src/utils.js";
 import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../src/utils/message-channel.js";
 
 type GatewayInstance = {
@@ -32,6 +31,8 @@ type HealthPayload = { ok?: boolean };
 
 const GATEWAY_START_TIMEOUT_MS = 45_000;
 const E2E_TIMEOUT_MS = 120_000;
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const getFreePort = async () => {
   const srv = net.createServer();

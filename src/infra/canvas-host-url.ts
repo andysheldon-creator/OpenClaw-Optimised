@@ -1,5 +1,3 @@
-import { isLoopbackHost } from "../gateway/net.js";
-
 type HostSource = string | null | undefined;
 
 type CanvasHostUrlParams = {
@@ -9,6 +7,23 @@ type CanvasHostUrlParams = {
   forwardedProto?: HostSource | HostSource[];
   localAddress?: HostSource;
   scheme?: "http" | "https";
+};
+
+const isLoopbackHost = (value: string) => {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) {
+    return false;
+  }
+  if (normalized === "localhost") {
+    return true;
+  }
+  if (normalized === "::1") {
+    return true;
+  }
+  if (normalized === "0.0.0.0" || normalized === "::") {
+    return true;
+  }
+  return normalized.startsWith("127.");
 };
 
 const normalizeHost = (value: HostSource, rejectLoopback: boolean) => {

@@ -11,6 +11,7 @@ import {
 } from "../../agents/model-selection.js";
 import { updateSessionStore } from "../../config/sessions.js";
 import { applyModelOverrideToSessionEntry } from "../../sessions/model-overrides.js";
+import { formatInboundBodyWithSenderMeta } from "./inbound-sender-meta.js";
 import { resolveModelDirectiveSelection, type ModelDirectiveSelection } from "./model-selection.js";
 
 type ResetModelResult = {
@@ -183,7 +184,10 @@ export async function applyResetModelOverride(params: {
   }
 
   const cleanedBody = tokens.slice(consumed).join(" ").trim();
-  params.sessionCtx.BodyStripped = cleanedBody;
+  params.sessionCtx.BodyStripped = formatInboundBodyWithSenderMeta({
+    ctx: params.ctx,
+    body: cleanedBody,
+  });
   params.sessionCtx.BodyForCommands = cleanedBody;
 
   applySelectionToSession({

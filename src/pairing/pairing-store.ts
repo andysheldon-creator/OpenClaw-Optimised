@@ -7,7 +7,6 @@ import type { ChannelId, ChannelPairingAdapter } from "../channels/plugins/types
 import { getPairingAdapter } from "../channels/plugins/pairing.js";
 import { resolveOAuthDir, resolveStateDir } from "../config/paths.js";
 import { resolveRequiredHomeDir } from "../infra/home-dir.js";
-import { safeParseJson } from "../utils.js";
 
 const PAIRING_CODE_LENGTH = 8;
 const PAIRING_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -71,6 +70,14 @@ function resolveAllowFromPath(
   env: NodeJS.ProcessEnv = process.env,
 ): string {
   return path.join(resolveCredentialsDir(env), `${safeChannelKey(channel)}-allowFrom.json`);
+}
+
+function safeParseJson<T>(raw: string): T | null {
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
 }
 
 async function readJsonFile<T>(

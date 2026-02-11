@@ -226,35 +226,31 @@ export type TelegramReplyTarget = {
 
 export function describeReplyTarget(msg: Message): TelegramReplyTarget | null {
   const reply = msg.reply_to_message;
-  const externalReply = (msg as Message & { external_reply?: Message }).external_reply;
-  const quoteText =
-    msg.quote?.text ??
-    (externalReply as (Message & { quote?: { text?: string } }) | undefined)?.quote?.text;
+  const quote = msg.quote;
   let body = "";
   let kind: TelegramReplyTarget["kind"] = "reply";
 
-  if (typeof quoteText === "string") {
-    body = quoteText.trim();
+  if (quote?.text) {
+    body = quote.text.trim();
     if (body) {
       kind = "quote";
     }
   }
 
-  const replyLike = reply ?? externalReply;
-  if (!body && replyLike) {
-    const replyBody = (replyLike.text ?? replyLike.caption ?? "").trim();
+  if (!body && reply) {
+    const replyBody = (reply.text ?? reply.caption ?? "").trim();
     body = replyBody;
     if (!body) {
-      if (replyLike.photo) {
+      if (reply.photo) {
         body = "<media:image>";
-      } else if (replyLike.video) {
+      } else if (reply.video) {
         body = "<media:video>";
-      } else if (replyLike.audio || replyLike.voice) {
+      } else if (reply.audio || reply.voice) {
         body = "<media:audio>";
-      } else if (replyLike.document) {
+      } else if (reply.document) {
         body = "<media:document>";
       } else {
-        const locationData = extractTelegramLocation(replyLike);
+        const locationData = extractTelegramLocation(reply);
         if (locationData) {
           body = formatLocationText(locationData);
         }
@@ -264,11 +260,11 @@ export function describeReplyTarget(msg: Message): TelegramReplyTarget | null {
   if (!body) {
     return null;
   }
-  const sender = replyLike ? buildSenderName(replyLike) : undefined;
+  const sender = reply ? buildSenderName(reply) : undefined;
   const senderLabel = sender ?? "unknown sender";
 
   return {
-    id: replyLike?.message_id ? String(replyLike.message_id) : undefined,
+    id: reply?.message_id ? String(reply.message_id) : undefined,
     sender: senderLabel,
     body,
     kind,

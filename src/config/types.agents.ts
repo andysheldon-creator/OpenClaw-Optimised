@@ -1,4 +1,3 @@
-import type { ChatType } from "../channels/chat-type.js";
 import type { AgentDefaultsConfig } from "./types.agent-defaults.js";
 import type { HumanDelayConfig, IdentityConfig } from "./types.base.js";
 import type { GroupChatConfig } from "./types.messages.js";
@@ -75,7 +74,7 @@ export type AgentBinding = {
   match: {
     channel: string;
     accountId?: string;
-    peer?: { kind: ChatType; id: string };
+    peer?: { kind: "dm" | "group" | "channel"; id: string };
     guildId?: string;
     teamId?: string;
   };

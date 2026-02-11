@@ -68,9 +68,7 @@ export async function fetchChannelHistory(
     runtime?.log?.(`[tlon] Extracted ${messages.length} messages from history`);
     return messages;
   } catch (error) {
-    runtime?.log?.(
-      `[tlon] Error fetching channel history: ${(error as { message?: string })?.message ?? String(error)}`,
-    );
+    runtime?.log?.(`[tlon] Error fetching channel history: ${error?.message ?? String(error)}`);
     return [];
   }
 }

@@ -9,11 +9,6 @@ export type OpenAiEmbeddingClient = {
 
 export const DEFAULT_OPENAI_EMBEDDING_MODEL = "text-embedding-3-small";
 const DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1";
-const OPENAI_MAX_INPUT_TOKENS: Record<string, number> = {
-  "text-embedding-3-small": 8192,
-  "text-embedding-3-large": 8192,
-  "text-embedding-ada-002": 8191,
-};
 
 export function normalizeOpenAiModel(model: string): string {
   const trimmed = model.trim();
@@ -56,7 +51,6 @@ export async function createOpenAiEmbeddingProvider(
     provider: {
       id: "openai",
       model: client.model,
-      maxInputTokens: OPENAI_MAX_INPUT_TOKENS[client.model],
       embedQuery: async (text) => {
         const [vec] = await embed([text]);
         return vec ?? [];

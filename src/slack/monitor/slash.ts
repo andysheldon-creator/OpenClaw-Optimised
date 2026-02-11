@@ -373,7 +373,7 @@ export function registerSlackMonitorSlashCommands(params: {
         accountId: account.accountId,
         teamId: ctx.teamId || undefined,
         peer: {
-          kind: isDirectMessage ? "direct" : isRoom ? "channel" : "group",
+          kind: isDirectMessage ? "dm" : isRoom ? "channel" : "group",
           id: isDirectMessage ? command.user_id : command.channel_id,
         },
       });
@@ -393,7 +393,6 @@ export function registerSlackMonitorSlashCommands(params: {
 
       const ctxPayload = finalizeInboundContext({
         Body: prompt,
-        BodyForAgent: prompt,
         RawBody: prompt,
         CommandBody: prompt,
         CommandArgs: commandArgs,

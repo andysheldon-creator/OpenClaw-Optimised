@@ -290,11 +290,7 @@ export async function startGatewayServer(port: number, opts?: GatewayServerOptio
   return await mod.startGatewayServer(port, resolvedOpts);
 }
 
-export async function startServerWithClient(
-  token?: string,
-  opts?: GatewayServerOptions & { wsHeaders?: Record<string, string> },
-) {
-  const { wsHeaders, ...gatewayOpts } = opts ?? {};
+export async function startServerWithClient(token?: string, opts?: GatewayServerOptions) {
   let port = await getFreePort();
   const prev = process.env.OPENCLAW_GATEWAY_TOKEN;
   if (typeof token === "string") {
@@ -314,7 +310,7 @@ export async function startServerWithClient(
   let server: Awaited<ReturnType<typeof startGatewayServer>> | null = null;
   for (let attempt = 0; attempt < 10; attempt++) {
     try {
-      server = await startGatewayServer(port, gatewayOpts);
+      server = await startGatewayServer(port, opts);
       break;
     } catch (err) {
       const code = (err as { cause?: { code?: string } }).cause?.code;
@@ -328,10 +324,7 @@ export async function startServerWithClient(
     throw new Error("failed to start gateway server after retries");
   }
 
-  const ws = new WebSocket(
-    `ws://127.0.0.1:${port}`,
-    wsHeaders ? { headers: wsHeaders } : undefined,
-  );
+  const ws = new WebSocket(`ws://127.0.0.1:${port}`);
   await new Promise<void>((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error("timeout waiting for ws open")), 10_000);
     const cleanup = () => {
@@ -422,11 +415,7 @@ export async function connectReq(
         : process.env.OPENCLAW_GATEWAY_PASSWORD;
   const token = opts?.token ?? defaultToken;
   const password = opts?.password ?? defaultPassword;
-  const requestedScopes = Array.isArray(opts?.scopes)
-    ? opts.scopes
-    : role === "operator"
-      ? ["operator.admin"]
-      : [];
+  const requestedScopes = Array.isArray(opts?.scopes) ? opts?.scopes : [];
   const device = (() => {
     if (opts?.device === null) {
       return undefined;
@@ -466,7 +455,7 @@ export async function connectReq(
         commands: opts?.commands ?? [],
         permissions: opts?.permissions ?? undefined,
         role,
-        scopes: requestedScopes,
+        scopes: opts?.scopes,
         auth:
           token || password
             ? {

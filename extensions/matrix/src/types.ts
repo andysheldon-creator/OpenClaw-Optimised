@@ -1,5 +1,4 @@
-import type { DmPolicy, GroupPolicy } from "openclaw/plugin-sdk";
-export type { DmPolicy, GroupPolicy };
+export type { DmPolicy, GroupPolicy } from "openclaw/plugin-sdk";
 
 export type ReplyToMode = "off" | "first" | "all";
 
@@ -93,19 +92,6 @@ export type MatrixConfig = {
 export type CoreConfig = {
   channels?: {
     matrix?: MatrixConfig;
-    defaults?: {
-      groupPolicy?: "open" | "allowlist" | "disabled";
-    };
-  };
-  commands?: {
-    useAccessGroups?: boolean;
-  };
-  session?: {
-    store?: string;
-  };
-  messages?: {
-    ackReaction?: string;
-    ackReactionScope?: "group-mentions" | "group-all" | "direct" | "all";
   };
   [key: string]: unknown;
 };
