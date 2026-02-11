@@ -19,6 +19,7 @@ import { normalizeAgentId } from "../../routing/session-key.js";
 import { defaultRuntime } from "../../runtime.js";
 import { resolveSendPolicy } from "../../sessions/send-policy.js";
 import {
+  mergeDeliveryContext,
   normalizeDeliveryContext,
   normalizeSessionDeliveryFields,
 } from "../../utils/delivery-context.js";
@@ -195,6 +196,25 @@ export const agentHandlers: GatewayRequestHandlers = {
         cfg,
         agentId,
       });
+
+    const explicitTo =
+      typeof request.replyTo === "string" && request.replyTo.trim()
+        ? request.replyTo.trim()
+        : typeof request.to === "string" && request.to.trim()
+          ? request.to.trim()
+          : undefined;
+    const explicitThreadId =
+      typeof request.threadId === "string" && request.threadId.trim()
+        ? request.threadId.trim()
+        : typeof request.threadId === "number"
+          ? request.threadId
+          : undefined;
+    const explicitChannel =
+      typeof request.replyChannel === "string" && request.replyChannel.trim()
+        ? normalizeMessageChannel(request.replyChannel)
+        : request.channel;
+    const explicitAccountId =
+      request.replyAccountId !== undefined ? request.replyAccountId : request.accountId;
     if (agentId && requestedSessionKeyRaw) {
       const sessionAgentId = resolveAgentIdFromSessionKey(requestedSessionKeyRaw);
       if (sessionAgentId !== agentId) {
@@ -240,33 +260,23 @@ export const agentHandlers: GatewayRequestHandlers = {
       resolvedGroupChannel = resolvedGroupChannel || inheritedGroup?.groupChannel;
       resolvedGroupSpace = resolvedGroupSpace || inheritedGroup?.groupSpace;
       const deliveryFields = normalizeSessionDeliveryFields(entry);
-      // Build explicit delivery context from request parameters (for cron/subagent announce).
-      // Only treat as explicit when a recipient is provided (not just channel), to avoid
-      // overwriting session routing from CLI calls that always include channel.
-      const explicitToRaw =
-        typeof request.replyTo === "string" && request.replyTo.trim()
-          ? request.replyTo.trim()
-          : typeof request.to === "string" && request.to.trim()
-            ? request.to.trim()
-            : undefined;
-      // Use the same effective channel/accountId as delivery routing
-      // (replyChannel/replyAccountId override base channel/accountId).
-      const explicitChannel =
-        typeof request.replyChannel === "string" && request.replyChannel.trim()
-          ? normalizeMessageChannel(request.replyChannel)
-          : request.channel;
-      const explicitAccountId =
-        request.replyAccountId !== undefined ? request.replyAccountId : request.accountId;
+      const hasExplicitRecipient =
+        explicitTo !== undefined ||
+        explicitAccountId !== undefined ||
+        explicitThreadId !== undefined;
 
-      const explicitDeliveryContext =
-        explicitToRaw !== undefined
-          ? normalizeDeliveryContext({
-              channel: explicitChannel,
-              to: explicitToRaw,
-              accountId: explicitAccountId,
-              threadId: request.threadId,
-            })
-          : undefined;
+      const explicitDeliveryContext = hasExplicitRecipient
+        ? normalizeDeliveryContext({
+            channel: explicitChannel,
+            to: explicitTo,
+            accountId: explicitAccountId,
+            threadId: explicitThreadId,
+          })
+        : undefined;
+
+      const mergedDeliveryContext = explicitDeliveryContext
+        ? mergeDeliveryContext(explicitDeliveryContext, deliveryFields.deliveryContext)
+        : deliveryFields.deliveryContext;
 
       const nextEntry: SessionEntry = {
         sessionId,
@@ -278,17 +288,12 @@ export const agentHandlers: GatewayRequestHandlers = {
         sendPolicy: entry?.sendPolicy,
         skillsSnapshot: entry?.skillsSnapshot,
         // Use explicit delivery context from request if provided (cron/subagent announce),
-        // otherwise fall back to session's stored delivery context
-        deliveryContext: explicitDeliveryContext ?? deliveryFields.deliveryContext,
-        lastChannel:
-          explicitDeliveryContext?.channel ?? deliveryFields.lastChannel ?? entry?.lastChannel,
-        lastTo: explicitDeliveryContext?.to ?? deliveryFields.lastTo ?? entry?.lastTo,
-        lastAccountId:
-          explicitDeliveryContext?.accountId ??
-          deliveryFields.lastAccountId ??
-          entry?.lastAccountId,
-        lastThreadId:
-          explicitDeliveryContext?.threadId ?? deliveryFields.lastThreadId ?? entry?.lastThreadId,
+        // merged with the session's stored delivery context to avoid clearing omitted fields.
+        deliveryContext: mergedDeliveryContext,
+        lastChannel: mergedDeliveryContext?.channel ?? entry?.lastChannel,
+        lastTo: mergedDeliveryContext?.to ?? entry?.lastTo,
+        lastAccountId: mergedDeliveryContext?.accountId ?? entry?.lastAccountId,
+        lastThreadId: mergedDeliveryContext?.threadId ?? entry?.lastThreadId,
         modelOverride: entry?.modelOverride,
         providerOverride: entry?.providerOverride,
         label: labelValue,
@@ -346,16 +351,6 @@ export const agentHandlers: GatewayRequestHandlers = {
     }
 
     const wantsDelivery = request.deliver === true;
-    const explicitTo =
-      typeof request.replyTo === "string" && request.replyTo.trim()
-        ? request.replyTo.trim()
-        : typeof request.to === "string" && request.to.trim()
-          ? request.to.trim()
-          : undefined;
-    const explicitThreadId =
-      typeof request.threadId === "string" && request.threadId.trim()
-        ? request.threadId.trim()
-        : undefined;
     const deliveryPlan = resolveAgentDeliveryPlan({
       sessionEntry,
       requestedChannel: request.replyChannel ?? request.channel,
