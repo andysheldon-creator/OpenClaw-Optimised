@@ -1,3 +1,4 @@
+import "../providers/azure-openai-completions.js";
 import type { OpenClawConfig } from "../config/config.js";
 import type { ModelDefinitionConfig } from "../config/types.models.js";
 import {
