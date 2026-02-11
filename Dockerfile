@@ -15,6 +15,7 @@ RUN curl -fsSL https://tailscale.com/install.sh | sh && \
     gosu \
     curl \
     nano \
+    gh \
     apt-transport-https \
     ca-certificates \
     gnupg && \
