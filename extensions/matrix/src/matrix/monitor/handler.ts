@@ -40,6 +40,7 @@ import { EventType, RelationType } from "./types.js";
 
 export type MatrixMonitorHandlerParams = {
   client: MatrixClient;
+  accountId?: string | null;
   core: PluginRuntime;
   cfg: CoreConfig;
   runtime: RuntimeEnv;
@@ -199,6 +200,17 @@ export function createMatrixRoomMessageHandler(params: MatrixMonitorHandlerParam
             roomConfigInfo.matchSource ?? "none"
           }`
         : "matchKey=none matchSource=none";
+
+      // Skip rooms assigned to a different account
+      if (isRoom && roomConfig?.accountId) {
+        const handlerAccount = params.accountId ?? "default";
+        if (roomConfig.accountId !== handlerAccount) {
+          logVerboseMessage(
+            `matrix: skip room=${roomId} (accountId=${roomConfig.accountId} != ${handlerAccount})`,
+          );
+          return;
+        }
+      }
 
       if (isRoom && roomConfig && !roomConfigInfo?.allowed) {
         logVerboseMessage(`matrix: room disabled room=${roomId} (${roomMatchMeta})`);
@@ -435,6 +447,7 @@ export function createMatrixRoomMessageHandler(params: MatrixMonitorHandlerParam
       const baseRoute = core.channel.routing.resolveAgentRoute({
         cfg,
         channel: "matrix",
+        accountId: params.accountId,
         peer: {
           kind: isDirectMessage ? "direct" : "channel",
           id: isDirectMessage ? senderId : roomId,
