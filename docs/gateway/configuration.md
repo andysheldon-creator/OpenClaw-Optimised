@@ -1952,6 +1952,7 @@ soft threshold below the compaction limit.
 Legacy defaults:
 
 - `memoryFlush.enabled`: `true`
+- `memoryFlush.onManualCompact`: `false` (when true, run a flush turn before manual `/compact`)
 - `memoryFlush.softThresholdTokens`: `4000`
 - `memoryFlush.prompt` / `memoryFlush.systemPrompt`: built-in defaults with `NO_REPLY`
 - Note: memory flush is skipped when the session workspace is read-only
@@ -1968,6 +1969,7 @@ Example (tuned):
         reserveTokensFloor: 24000,
         memoryFlush: {
           enabled: true,
+          onManualCompact: true,
           softThresholdTokens: 6000,
           systemPrompt: "Session nearing compaction. Store durable memories now.",
           prompt: "Write any lasting notes to memory/YYYY-MM-DD.md; reply with NO_REPLY if nothing to store.",
