@@ -291,7 +291,7 @@ async function detachTab(tabId, reason, opts = {}) {
 
   // NEW: If this was a navigation-triggered detach and auto-reattach is enabled,
   // schedule reattachment
-  if (shouldAutoReattach && (reason === 'target_closed' || reason === 'canceled_by_user' || !reason)) {
+  if (shouldAutoReattach && (reason === 'target_closed' || !reason)) {
     console.log(`[OpenClaw] Tab ${tabId} detached (${reason}), scheduling auto-reattach...`)
     setBadge(tabId, 'reattaching')
     void chrome.action.setTitle({
