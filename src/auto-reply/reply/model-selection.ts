@@ -271,6 +271,9 @@ export async function createModelSelectionState(params: {
   provider: string;
   model: string;
   hasModelDirective: boolean;
+  /** When true, the caller already resolved a heartbeat-specific model.
+   *  Skip session-stored model overrides so the heartbeat model takes effect. */
+  isHeartbeat?: boolean;
 }): Promise<ModelSelectionState> {
   const {
     cfg,
@@ -343,7 +346,13 @@ export async function createModelSelectionState(params: {
     sessionKey,
     parentSessionKey,
   });
-  if (storedOverride?.model) {
+  // Skip stored session model override for heartbeat runs: when the user
+  // configured heartbeat.model they explicitly want heartbeats to use a
+  // different (usually cheaper) model regardless of the session's /model
+  // override.  Without this, `/model gpt-5.1` in chat would also route
+  // heartbeats to gpt-5.1, defeating the cost-saving intent.
+  const skipStoredOverride = params.isHeartbeat === true;
+  if (storedOverride?.model && !skipStoredOverride) {
     const candidateProvider = storedOverride.provider || defaultProvider;
     const key = modelKey(candidateProvider, storedOverride.model);
     if (allowedModelKeys.size === 0 || allowedModelKeys.has(key)) {
