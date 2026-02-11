@@ -186,7 +186,10 @@ export function emitDiagnosticEvent(event: DiagnosticEventInput) {
     ts: Date.now(),
   } satisfies DiagnosticEventPayload;
   state.dispatchDepth += 1;
+  let listenerIndex = 0;
   for (const listener of state.listeners) {
+    listenerIndex += 1;
+    const listenerName = listener.name || `listener_${listenerIndex}`;
     try {
       listener(enriched);
     } catch (err) {
