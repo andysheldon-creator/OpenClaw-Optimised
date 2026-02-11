@@ -87,6 +87,7 @@ const ZAI_MODEL_CATALOG = {
   "glm-5": { name: "GLM-5", reasoning: false },
   "glm-4.7": { name: "GLM-4.7", reasoning: false },
   "glm-4.7-flash": { name: "GLM-4.7 Flash", reasoning: false },
+  "glm-4.7-flashx": { name: "GLM-4.7-Flashx", reasoning: false },
 } as const;
 
 type ZaiCatalogId = keyof typeof ZAI_MODEL_CATALOG;

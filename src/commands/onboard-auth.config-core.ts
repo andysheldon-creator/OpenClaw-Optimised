@@ -74,6 +74,7 @@ export function applyZaiProviderConfig(
     buildZaiModelDefinition({ id: "glm-5" }),
     buildZaiModelDefinition({ id: "glm-4.7" }),
     buildZaiModelDefinition({ id: "glm-4.7-flash" }),
+    buildZaiModelDefinition({ id: "glm-4.7-flashx" }),
   ];
 
   const mergedModels = [...existingModels];

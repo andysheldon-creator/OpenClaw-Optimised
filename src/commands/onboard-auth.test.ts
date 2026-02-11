@@ -317,6 +317,7 @@ describe("applyZaiConfig", () => {
     expect(ids).toContain("glm-5");
     expect(ids).toContain("glm-4.7");
     expect(ids).toContain("glm-4.7-flash");
+    expect(ids).toContain("glm-4.7-flashx");
   });
 
   it("sets correct primary model", () => {
@@ -328,6 +329,12 @@ describe("applyZaiConfig", () => {
     const cfg = applyZaiConfig({}, { endpoint: "coding-cn", modelId: "glm-4.7-flash" });
     expect(cfg.models?.providers?.zai?.baseUrl).toBe(ZAI_CODING_CN_BASE_URL);
     expect(cfg.agents?.defaults?.model?.primary).toBe("zai/glm-4.7-flash");
+  });
+
+  it("supports CN endpoint with glm-4.7-flashx", () => {
+    const cfg = applyZaiConfig({}, { endpoint: "coding-cn", modelId: "glm-4.7-flashx" });
+    expect(cfg.models?.providers?.zai?.baseUrl).toBe(ZAI_CODING_CN_BASE_URL);
+    expect(cfg.agents?.defaults?.model?.primary).toBe("zai/glm-4.7-flashx");
   });
 });
 
