@@ -199,6 +199,60 @@ describe("applyAuthChoice", () => {
     expect(parsed.profiles?.["synthetic:default"]?.key).toBe("sk-synthetic-test");
   });
 
+  it("prompts and writes Hugging Face API key when selecting huggingface-api-key", async () => {
+    tempStateDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-auth-"));
+    process.env.OPENCLAW_STATE_DIR = tempStateDir;
+    process.env.OPENCLAW_AGENT_DIR = path.join(tempStateDir, "agent");
+    process.env.PI_CODING_AGENT_DIR = process.env.OPENCLAW_AGENT_DIR;
+
+    const text = vi.fn().mockResolvedValue("hf-test-token");
+    const select: WizardPrompter["select"] = vi.fn(
+      async (params) => params.options[0]?.value as never,
+    );
+    const multiselect: WizardPrompter["multiselect"] = vi.fn(async () => []);
+    const prompter: WizardPrompter = {
+      intro: vi.fn(noopAsync),
+      outro: vi.fn(noopAsync),
+      note: vi.fn(noopAsync),
+      select,
+      multiselect,
+      text,
+      confirm: vi.fn(async () => false),
+      progress: vi.fn(() => ({ update: noop, stop: noop })),
+    };
+    const runtime: RuntimeEnv = {
+      log: vi.fn(),
+      error: vi.fn(),
+      exit: vi.fn((code: number) => {
+        throw new Error(`exit:${code}`);
+      }),
+    };
+
+    const result = await applyAuthChoice({
+      authChoice: "huggingface-api-key",
+      config: {},
+      prompter,
+      runtime,
+      setDefaultModel: true,
+    });
+
+    expect(text).toHaveBeenCalledWith(
+      expect.objectContaining({ message: expect.stringContaining("Hugging Face") }),
+    );
+    expect(result.config.auth?.profiles?.["huggingface:default"]).toMatchObject({
+      provider: "huggingface",
+      mode: "api_key",
+    });
+    expect(result.config.agents?.defaults?.model?.primary).toMatch(/^huggingface\/.+/);
+
+    const authProfilePath = authProfilePathFor(requireAgentDir());
+    const raw = await fs.readFile(authProfilePath, "utf8");
+    const parsed = JSON.parse(raw) as {
+      profiles?: Record<string, { key?: string }>;
+    };
+    expect(parsed.profiles?.["huggingface:default"]?.key).toBe("hf-test-token");
+  });
+
   it("does not override the global default model when selecting xai-api-key without setDefaultModel", async () => {
     tempStateDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-auth-"));
     process.env.OPENCLAW_STATE_DIR = tempStateDir;
