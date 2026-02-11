@@ -62,6 +62,71 @@ const debouncedLoadUsage = (state: UsageState) => {
   }
   usageDateDebounceTimeout = window.setTimeout(() => void loadUsage(state), 400);
 };
+
+let configWarmupRaf: number | null = null;
+const CONFIG_RENDER_START = 6;
+const CONFIG_RENDER_STEP = 6;
+const CONFIG_RENDER_MAX = 84;
+
+function cancelConfigWarmup() {
+  if (configWarmupRaf != null) {
+    if (typeof cancelAnimationFrame === "function") {
+      cancelAnimationFrame(configWarmupRaf);
+    } else {
+      clearTimeout(configWarmupRaf);
+    }
+    configWarmupRaf = null;
+  }
+}
+
+function shouldUseProgressiveConfigRender(state: AppViewState): boolean {
+  return (
+    state.tab === "config" &&
+    state.configFormMode === "form" &&
+    !state.configSchemaLoading &&
+    !state.configActiveSection &&
+    state.configSearchQuery.trim().length === 0
+  );
+}
+
+function warmConfigRender(state: AppViewState, reset = false) {
+  if (reset) {
+    state.configRenderLimit = CONFIG_RENDER_START;
+  }
+
+  if (!shouldUseProgressiveConfigRender(state)) {
+    cancelConfigWarmup();
+    state.configRenderLimit = CONFIG_RENDER_MAX;
+    return;
+  }
+
+  if (configWarmupRaf != null) {
+    return;
+  }
+
+  const tick = () => {
+    configWarmupRaf = null;
+    if (!shouldUseProgressiveConfigRender(state)) {
+      state.configRenderLimit = CONFIG_RENDER_MAX;
+      return;
+    }
+    const next = Math.min(CONFIG_RENDER_MAX, state.configRenderLimit + CONFIG_RENDER_STEP);
+    if (next !== state.configRenderLimit) {
+      state.configRenderLimit = next;
+    }
+    if (next < CONFIG_RENDER_MAX) {
+      configWarmupRaf =
+        typeof requestAnimationFrame === "function"
+          ? requestAnimationFrame(tick)
+          : window.setTimeout(tick, 16);
+    }
+  };
+
+  configWarmupRaf =
+    typeof requestAnimationFrame === "function"
+      ? requestAnimationFrame(tick)
+      : window.setTimeout(tick, 16);
+}
 import { renderAgents } from "./views/agents.ts";
 import { renderChannels } from "./views/channels.ts";
 import { renderChat } from "./views/chat.ts";
@@ -103,6 +168,7 @@ export function renderApp(state: AppViewState) {
   const cronNext = state.cronStatus?.nextWakeAtMs ?? null;
   const chatDisabledReason = state.connected ? null : "Disconnected from gateway.";
   const isChat = state.tab === "chat";
+  const isConfig = state.tab === "config";
   const chatFocus = isChat && (state.settings.chatFocusMode || state.onboarding);
   const showThinking = state.onboarding ? false : state.settings.chatShowThinking;
   const assistantAvatarUrl = resolveAssistantAvatarUrl(state);
@@ -115,6 +181,8 @@ export function renderApp(state: AppViewState) {
     state.agentsList?.defaultId ??
     state.agentsList?.agents?.[0]?.id ??
     null;
+
+  warmConfigRender(state);
 
   return html`
     <div class="shell ${isChat ? "shell--chat" : ""} ${chatFocus ? "shell--chat-focus" : ""} ${state.settings.navCollapsed ? "shell--nav-collapsed" : ""} ${state.onboarding ? "shell--onboarding" : ""}">
@@ -143,6 +211,43 @@ export function renderApp(state: AppViewState) {
           </div>
         </div>
         <div class="topbar-status">
+          ${
+            isConfig
+              ? html`
+                  <div class="topbar-meta topbar-meta--config">
+                    <div class="pill pill--sm">
+                      <span>Mode</span>
+                      <span class="mono">${state.configFormMode.toUpperCase()}</span>
+                    </div>
+                    <div class="pill pill--sm ${state.configFormDirty ? "pill--danger" : "pill--ok"}">
+                      <span>Draft</span>
+                      <span class="mono">${state.configFormDirty ? "Unsaved" : "Saved"}</span>
+                    </div>
+                    <div
+                      class="pill pill--sm ${
+                        state.configValid === true
+                          ? "pill--ok"
+                          : state.configValid === false
+                            ? "pill--danger"
+                            : ""
+                      }"
+                    >
+                      <span>Config</span>
+                      <span class="mono"
+                        >${
+                          state.configValid == null
+                            ? "Unknown"
+                            : state.configValid
+                              ? "Valid"
+                              : "Invalid"
+                        }</span
+                      >
+                    </div>
+                    ${state.lastError ? html`<div class="pill danger">${state.lastError}</div>` : nothing}
+                  </div>
+                `
+              : nothing
+          }
           <div class="pill">
             <span class="statusDot ${state.connected ? "ok" : ""}"></span>
             <span>Health</span>
@@ -196,17 +301,23 @@ export function renderApp(state: AppViewState) {
           </div>
         </div>
       </aside>
-      <main class="content ${isChat ? "content--chat" : ""}">
-        <section class="content-header">
-          <div>
-            ${state.tab === "usage" ? nothing : html`<div class="page-title">${titleForTab(state.tab)}</div>`}
-            ${state.tab === "usage" ? nothing : html`<div class="page-sub">${subtitleForTab(state.tab)}</div>`}
-          </div>
-          <div class="page-meta">
-            ${state.lastError ? html`<div class="pill danger">${state.lastError}</div>` : nothing}
-            ${isChat ? renderChatControls(state) : nothing}
-          </div>
-        </section>
+      <main class="content ${isChat ? "content--chat" : ""} ${isConfig ? "content--config" : ""}">
+        ${
+          isConfig
+            ? nothing
+            : html`
+                <section class="content-header">
+                  <div>
+                    ${state.tab === "usage" ? nothing : html`<div class="page-title">${titleForTab(state.tab)}</div>`}
+                    ${state.tab === "usage" ? nothing : html`<div class="page-sub">${subtitleForTab(state.tab)}</div>`}
+                  </div>
+                  <div class="page-meta">
+                    ${state.lastError ? html`<div class="pill danger">${state.lastError}</div>` : nothing}
+                    ${isChat ? renderChatControls(state) : nothing}
+                  </div>
+                </section>
+              `
+        }
 
         ${
           state.tab === "overview"
@@ -1149,20 +1260,32 @@ export function renderApp(state: AppViewState) {
                 formMode: state.configFormMode,
                 formValue: state.configForm,
                 originalValue: state.configFormOriginal,
+                formDirty: state.configFormDirty,
+                renderLimit: state.configRenderLimit,
                 searchQuery: state.configSearchQuery,
                 activeSection: state.configActiveSection,
                 activeSubsection: state.configActiveSubsection,
                 onRawChange: (next) => {
                   state.configRaw = next;
                 },
-                onFormModeChange: (mode) => (state.configFormMode = mode),
+                onFormModeChange: (mode) => {
+                  state.configFormMode = mode;
+                  warmConfigRender(state, true);
+                },
                 onFormPatch: (path, value) => updateConfigFormValue(state, path, value),
-                onSearchChange: (query) => (state.configSearchQuery = query),
+                onSearchChange: (query) => {
+                  state.configSearchQuery = query;
+                  warmConfigRender(state, true);
+                },
                 onSectionChange: (section) => {
                   state.configActiveSection = section;
-                  state.configActiveSubsection = null;
+                  state.configActiveSubsection = "__all__";
+                  warmConfigRender(state, true);
                 },
-                onSubsectionChange: (section) => (state.configActiveSubsection = section),
+                onSubsectionChange: (section) => {
+                  state.configActiveSubsection = section;
+                  warmConfigRender(state, true);
+                },
                 onReload: () => loadConfig(state),
                 onSave: () => saveConfig(state),
                 onApply: () => applyConfig(state),
