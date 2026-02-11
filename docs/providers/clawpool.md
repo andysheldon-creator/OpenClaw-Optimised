@@ -27,7 +27,7 @@ If you're spending $50+/mo on Claude API calls through OpenClaw, ClawPool can cu
 OpenClaw → ClawPool proxy → pooled Claude Max token → Anthropic
 ```
 
-ClawPool consumer keys use the `sk-ant-oat-` prefix, which OpenClaw's pi-ai library automatically detects as OAuth tokens. The correct Claude Code headers are sent automatically — no special configuration needed beyond adding the provider.
+ClawPool is configured as a custom Anthropic-compatible provider. OpenClaw sends requests to the ClawPool proxy, which handles authentication and routes them to Anthropic using pooled Claude Max tokens.
 
 ## Setup
 
@@ -92,9 +92,6 @@ openclaw models set clawpool/claude-opus-4-6
 ClawPool is a transparent proxy — any model available on the Anthropic API works. Use `clawpool/<model-id>` as the model reference (e.g. `clawpool/claude-opus-4-6`, `clawpool/claude-sonnet-4-5`).
 
 ## Troubleshooting
-
-**"This credential is only authorized for use with Claude Code"**
-- Your key must start with `sk-ant-oat-`. If it doesn't, contact ClawPool support for a new key.
 
 **Requests not routing to ClawPool**
 - Verify `baseUrl` is `https://proxy.clawpool.ai` (not `clawpool.ai`)
