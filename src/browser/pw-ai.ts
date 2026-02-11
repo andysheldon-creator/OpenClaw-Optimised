@@ -23,6 +23,7 @@ export {
   downloadViaPlaywright,
   dragViaPlaywright,
   emulateMediaViaPlaywright,
+  clearMediaEmulationOverrideViaPlaywright,
   evaluateViaPlaywright,
   fillFormViaPlaywright,
   getConsoleMessagesViaPlaywright,
