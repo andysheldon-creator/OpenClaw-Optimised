@@ -61,11 +61,18 @@ Add ClawPool as a custom provider in `~/.openclaw/openclaw.json`:
         baseUrl: "https://proxy.clawpool.ai",
         apiKey: "${CLAWPOOL_API_KEY}",
         api: "anthropic-messages",
+        models: [
+          { id: "claude-opus-4-6", name: "Claude Opus 4.6", reasoning: true, input: ["text", "image"], contextWindow: 200000, maxTokens: 32000 },
+          { id: "claude-sonnet-4-5", name: "Claude Sonnet 4.5", reasoning: true, input: ["text", "image"], contextWindow: 200000, maxTokens: 16384 },
+          { id: "claude-haiku-4-5", name: "Claude Haiku 4.5", input: ["text", "image"], contextWindow: 200000, maxTokens: 8192 },
+        ],
       },
     },
   },
 }
 ```
+
+> **Note:** The `models` array is required — OpenClaw validates that custom providers declare their available models.
 
 ### 4. Restart the gateway
 
