@@ -138,8 +138,7 @@ export function deriveSessionTotalTokens(params: {
   // cumulative.  Fall back to input + cacheWrite which approximates actual
   // context consumption without cumulative cache-read inflation.  (#13782)
   if (hasContextCap && promptTokens !== undefined && promptTokens > contextTokens) {
-    const deflated = input + cacheWrite;
-    total = deflated > 0 ? deflated : input || total;
+    total = input + cacheWrite;
   }
 
   if (!(total > 0)) {
