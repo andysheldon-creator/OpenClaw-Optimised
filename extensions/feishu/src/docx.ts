@@ -92,16 +92,9 @@ async function convertMarkdown(client: Lark.Client, markdown: string) {
   };
 }
 
-function sortBlocksByFirstLevel(
-  blocks: any[],
-  firstLevelIds: string[],
-): any[] {
-  if (!firstLevelIds || firstLevelIds.length === 0) {
-    return blocks;
-  }
-  const sorted = firstLevelIds
-    .map((id) => blocks.find((b) => b.block_id === id))
-    .filter(Boolean);
+function sortBlocksByFirstLevel(blocks: any[], firstLevelIds: string[]): any[] {
+  if (!firstLevelIds || firstLevelIds.length === 0) return blocks;
+  const sorted = firstLevelIds.map((id) => blocks.find((b) => b.block_id === id)).filter(Boolean);
   const sortedIds = new Set(firstLevelIds);
   const remaining = blocks.filter((b) => !sortedIds.has(b.block_id));
   return [...sorted, ...remaining];
