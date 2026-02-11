@@ -59,6 +59,7 @@ export interface ResolvedLineAccount {
   accountId: string;
   name?: string;
   enabled: boolean;
+  configured?: boolean;
   channelAccessToken: string;
   channelSecret: string;
   tokenSource: LineTokenSource;
