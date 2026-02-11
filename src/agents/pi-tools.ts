@@ -23,7 +23,6 @@ import {
 import { listChannelAgentTools } from "./channel-tools.js";
 import { createOpenClawTools } from "./openclaw-tools.js";
 import { wrapToolWithAbortSignal } from "./pi-tools.abort.js";
-import { wrapToolWithAgentShieldApproval } from "./pi-tools.agentshield.js";
 import { wrapToolWithBeforeToolCallHook } from "./pi-tools.before-tool-call.js";
 import {
   filterToolsByPolicy,
@@ -437,13 +436,7 @@ export function createOpenClawCodingTools(options?: {
   // Always normalize tool JSON Schemas before handing them to pi-agent/pi-ai.
   // Without this, some providers (notably OpenAI) will reject root-level union schemas.
   const normalized = subagentFiltered.map(normalizeToolParameters);
-  const withAgentShield = normalized.map((tool) =>
-    wrapToolWithAgentShieldApproval(tool, {
-      agentId,
-      sessionKey: options?.sessionKey,
-    }),
-  );
-  const withHooks = withAgentShield.map((tool) =>
+  const withHooks = normalized.map((tool) =>
     wrapToolWithBeforeToolCallHook(tool, {
       agentId,
       sessionKey: options?.sessionKey,
