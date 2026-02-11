@@ -2,7 +2,10 @@ import type { OpenClawConfig } from "../config/config.js";
 import type { AnyAgentTool } from "./pi-tools.types.js";
 import type { SandboxToolPolicy } from "./sandbox.js";
 import { getChannelDock } from "../channels/dock.js";
-import { resolveChannelGroupToolsPolicy } from "../config/group-policy.js";
+import {
+  resolveChannelDMToolsPolicy,
+  resolveChannelGroupToolsPolicy,
+} from "../config/group-policy.js";
 import { resolveThreadParentSessionKey } from "../sessions/session-key-utils.js";
 import { normalizeMessageChannel } from "../utils/message-channel.js";
 import { resolveAgentConfig, resolveAgentIdFromSessionKey } from "./agent-scope.js";
@@ -55,17 +58,82 @@ function matchesAny(name: string, patterns: CompiledPattern[]): boolean {
   return false;
 }
 
-function makeToolPolicyMatcher(policy: SandboxToolPolicy) {
+/**
+ * Check if an exec command matches a scoped pattern like "exec:gog calendar*"
+ */
+function matchesScopedExec(
+  execCommand: string | undefined,
+  patterns: string[] | undefined,
+): boolean {
+  if (!patterns) {
+    return false;
+  }
+  for (const pattern of patterns) {
+    if (!pattern.startsWith("exec:")) {
+      continue;
+    }
+    const commandPattern = pattern.slice(5); // Remove "exec:"
+    if (commandPattern === "*") {
+      return true;
+    }
+    if (!execCommand) {
+      continue;
+    }
+    if (commandPattern.endsWith("*")) {
+      const prefix = commandPattern.slice(0, -1);
+      if (execCommand.startsWith(prefix)) {
+        return true;
+      }
+    } else if (execCommand === commandPattern) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Check if any pattern in the list is a scoped exec pattern (including exec:*)
+ */
+function hasScopedExecPatterns(patterns: string[] | undefined): boolean {
+  if (!patterns) {
+    return false;
+  }
+  return patterns.some((p) => p.startsWith("exec:") && p.length > 5);
+}
+
+function makeToolPolicyMatcher(policy: SandboxToolPolicy, execCommand?: string) {
   const deny = compilePatterns(policy.deny);
   const allow = compilePatterns(policy.allow);
+  const hasExecScoping = hasScopedExecPatterns(policy.allow);
+
   return (name: string) => {
     const normalized = normalizeToolName(name);
+
+    // Check deny patterns first (including scoped exec deny)
     if (matchesAny(normalized, deny)) {
-      return false;
+      // But allow if there's a scoped exec pattern that matches
+      if (normalized === "exec" && execCommand && matchesScopedExec(execCommand, policy.allow)) {
+        // Scoped allow overrides general deny
+      } else {
+        return false;
+      }
     }
+
     if (allow.length === 0) {
       return true;
     }
+
+    // For exec tool with scoped patterns:
+    // - If execCommand is provided (execution time): require command match
+    // - If execCommand is undefined (tool list build time): allow through for later validation
+    if (normalized === "exec" && hasExecScoping) {
+      if (execCommand === undefined) {
+        // At tool list build time, include exec so execution-time check can validate
+        return true;
+      }
+      return matchesScopedExec(execCommand, policy.allow);
+    }
+
     if (matchesAny(normalized, allow)) {
       return true;
     }
@@ -105,11 +173,15 @@ export function resolveSubagentToolPolicy(cfg?: OpenClawConfig): SandboxToolPoli
   return { allow, deny };
 }
 
-export function isToolAllowedByPolicyName(name: string, policy?: SandboxToolPolicy): boolean {
+export function isToolAllowedByPolicyName(
+  name: string,
+  policy?: SandboxToolPolicy,
+  execCommand?: string,
+): boolean {
   if (!policy) {
     return true;
   }
-  return makeToolPolicyMatcher(policy)(name);
+  return makeToolPolicyMatcher(policy, execCommand)(name);
 }
 
 export function filterToolsByPolicy(tools: AnyAgentTool[], policy?: SandboxToolPolicy) {
@@ -159,10 +231,14 @@ function normalizeProviderKey(value: string): string {
   return value.trim().toLowerCase();
 }
 
-function resolveGroupContextFromSessionKey(sessionKey?: string | null): {
+type SessionChannelContext = {
   channel?: string;
-  groupId?: string;
-} {
+  accountId?: string;
+  kind?: "group" | "channel" | "direct" | "dm";
+  peerId?: string;
+};
+
+function resolveGroupContextFromSessionKey(sessionKey?: string | null): SessionChannelContext {
   const raw = (sessionKey ?? "").trim();
   if (!raw) {
     return {};
@@ -173,18 +249,43 @@ function resolveGroupContextFromSessionKey(sessionKey?: string | null): {
   if (body[0] === "subagent") {
     body = body.slice(1);
   }
+  const resolveKind = (value?: string): SessionChannelContext["kind"] => {
+    const normalized = value?.trim().toLowerCase();
+    if (
+      normalized === "group" ||
+      normalized === "channel" ||
+      normalized === "direct" ||
+      normalized === "dm"
+    ) {
+      return normalized;
+    }
+    return undefined;
+  };
   if (body.length < 3) {
     return {};
   }
-  const [channel, kind, ...rest] = body;
-  if (kind !== "group" && kind !== "channel") {
+  const channel = body[0]?.trim().toLowerCase();
+  if (!channel) {
     return {};
   }
-  const groupId = rest.join(":").trim();
-  if (!groupId) {
+  const directKind = resolveKind(body[1]);
+  if (directKind) {
+    const peerId = body.slice(2).join(":").trim();
+    if (!peerId) {
+      return {};
+    }
+    return { channel, kind: directKind, peerId };
+  }
+  const accountKind = resolveKind(body[2]);
+  if (!accountKind) {
     return {};
   }
-  return { channel: channel.trim().toLowerCase(), groupId };
+  const accountId = body[1]?.trim();
+  const peerId = body.slice(3).join(":").trim();
+  if (!peerId) {
+    return {};
+  }
+  return { channel, accountId, kind: accountKind, peerId };
 }
 
 function resolveProviderToolPolicy(params: {
@@ -291,14 +392,47 @@ export function resolveGroupToolPolicy(params: {
   }
   const sessionContext = resolveGroupContextFromSessionKey(params.sessionKey);
   const spawnedContext = resolveGroupContextFromSessionKey(params.spawnedBy);
-  const groupId = params.groupId ?? sessionContext.groupId ?? spawnedContext.groupId;
-  if (!groupId) {
-    return undefined;
-  }
+  const groupId =
+    params.groupId ??
+    (sessionContext.kind === "group" || sessionContext.kind === "channel"
+      ? sessionContext.peerId
+      : undefined) ??
+    (spawnedContext.kind === "group" || spawnedContext.kind === "channel"
+      ? spawnedContext.peerId
+      : undefined);
   const channelRaw = params.messageProvider ?? sessionContext.channel ?? spawnedContext.channel;
   const channel = normalizeMessageChannel(channelRaw);
   if (!channel) {
     return undefined;
+  }
+  const accountId = params.accountId ?? sessionContext.accountId ?? spawnedContext.accountId;
+  if (!groupId) {
+    const isDirectContext =
+      sessionContext.kind === "direct" ||
+      sessionContext.kind === "dm" ||
+      spawnedContext.kind === "direct" ||
+      spawnedContext.kind === "dm" ||
+      Boolean(params.senderId || params.senderName || params.senderUsername || params.senderE164);
+    if (!isDirectContext) {
+      return undefined;
+    }
+    const senderIdFromSession =
+      (sessionContext.kind === "direct" || sessionContext.kind === "dm"
+        ? sessionContext.peerId
+        : undefined) ??
+      (spawnedContext.kind === "direct" || spawnedContext.kind === "dm"
+        ? spawnedContext.peerId
+        : undefined);
+    const toolsConfig = resolveChannelDMToolsPolicy({
+      cfg: params.config,
+      channel,
+      accountId,
+      senderId: params.senderId ?? senderIdFromSession,
+      senderName: params.senderName,
+      senderUsername: params.senderUsername,
+      senderE164: params.senderE164,
+    });
+    return pickToolPolicy(toolsConfig);
   }
   let dock;
   try {
@@ -312,7 +446,7 @@ export function resolveGroupToolPolicy(params: {
       groupId,
       groupChannel: params.groupChannel,
       groupSpace: params.groupSpace,
-      accountId: params.accountId,
+      accountId,
       senderId: params.senderId,
       senderName: params.senderName,
       senderUsername: params.senderUsername,
@@ -322,7 +456,7 @@ export function resolveGroupToolPolicy(params: {
       cfg: params.config,
       channel,
       groupId,
-      accountId: params.accountId,
+      accountId,
       senderId: params.senderId,
       senderName: params.senderName,
       senderUsername: params.senderUsername,
@@ -334,6 +468,7 @@ export function resolveGroupToolPolicy(params: {
 export function isToolAllowedByPolicies(
   name: string,
   policies: Array<SandboxToolPolicy | undefined>,
+  execCommand?: string,
 ) {
-  return policies.every((policy) => isToolAllowedByPolicyName(name, policy));
+  return policies.every((policy) => isToolAllowedByPolicyName(name, policy, execCommand));
 }

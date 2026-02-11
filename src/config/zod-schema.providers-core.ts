@@ -4,7 +4,11 @@ import {
   normalizeTelegramCommandName,
   resolveTelegramCustomCommands,
 } from "./telegram-custom-commands.js";
-import { ToolPolicySchema } from "./zod-schema.agent-runtime.js";
+import {
+  ChannelVerifiedSchema,
+  ToolPolicyBySenderSchema,
+  ToolPolicySchema,
+} from "./zod-schema.agent-runtime.js";
 import { ChannelHeartbeatVisibilitySchema } from "./zod-schema.channels.js";
 import {
   BlockStreamingChunkSchema,
@@ -20,8 +24,6 @@ import {
   RetryConfigSchema,
   requireOpenAllowFrom,
 } from "./zod-schema.core.js";
-
-const ToolPolicyBySenderSchema = z.record(z.string(), ToolPolicySchema).optional();
 
 const TelegramInlineButtonsScopeSchema = z.enum(["off", "dm", "group", "all", "allowlist"]);
 
@@ -560,6 +562,7 @@ export const SignalAccountSchemaBase = z
   .object({
     name: z.string().optional(),
     capabilities: z.array(z.string()).optional(),
+    verified: ChannelVerifiedSchema,
     markdown: MarkdownConfigSchema,
     enabled: z.boolean().optional(),
     configWrites: z.boolean().optional(),
@@ -595,6 +598,7 @@ export const SignalAccountSchemaBase = z
       .strict()
       .optional(),
     reactionLevel: z.enum(["off", "ack", "minimal", "extensive"]).optional(),
+    toolsBySender: ToolPolicyBySenderSchema,
     heartbeat: ChannelHeartbeatVisibilitySchema,
     responsePrefix: z.string().optional(),
   })
@@ -721,6 +725,7 @@ export const IMessageAccountSchemaBase = z
   .object({
     name: z.string().optional(),
     capabilities: z.array(z.string()).optional(),
+    verified: ChannelVerifiedSchema,
     markdown: MarkdownConfigSchema,
     enabled: z.boolean().optional(),
     configWrites: z.boolean().optional(),
@@ -742,6 +747,7 @@ export const IMessageAccountSchemaBase = z
     chunkMode: z.enum(["length", "newline"]).optional(),
     blockStreaming: z.boolean().optional(),
     blockStreamingCoalesce: BlockStreamingCoalesceSchema.optional(),
+    toolsBySender: ToolPolicyBySenderSchema,
     groups: z
       .record(
         z.string(),
@@ -815,6 +821,7 @@ export const BlueBubblesAccountSchemaBase = z
   .object({
     name: z.string().optional(),
     capabilities: z.array(z.string()).optional(),
+    verified: ChannelVerifiedSchema,
     markdown: MarkdownConfigSchema,
     configWrites: z.boolean().optional(),
     enabled: z.boolean().optional(),
@@ -837,6 +844,7 @@ export const BlueBubblesAccountSchemaBase = z
     groups: z.record(z.string(), BlueBubblesGroupConfigSchema.optional()).optional(),
     heartbeat: ChannelHeartbeatVisibilitySchema,
     responsePrefix: z.string().optional(),
+    toolsBySender: ToolPolicyBySenderSchema,
   })
   .strict();
 

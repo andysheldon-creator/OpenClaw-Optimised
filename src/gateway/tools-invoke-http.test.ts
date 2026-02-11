@@ -264,6 +264,63 @@ describe("POST /tools/invoke", () => {
     await server.close();
   });
 
+  it("applies DM sender policies from toolsBySender headers", async () => {
+    testState.agentsConfig = {
+      list: [
+        {
+          id: "main",
+          tools: {
+            allow: ["agents_list"],
+          },
+        },
+      ],
+      // oxlint-disable-next-line typescript/no-explicit-any
+    } as any;
+
+    const { writeConfigFile } = await import("../config/config.js");
+    await writeConfigFile({
+      channels: {
+        whatsapp: {
+          toolsBySender: {
+            "+14155550101": { allow: ["agents_list"] },
+            "*": { deny: ["*"] },
+          },
+        },
+      },
+      // oxlint-disable-next-line typescript/no-explicit-any
+    } as any);
+
+    const port = await getFreePort();
+    const server = await startGatewayServer(port, { bind: "loopback" });
+    const token = resolveGatewayToken();
+
+    const blocked = await fetch(`http://127.0.0.1:${port}/tools/invoke`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${token}`,
+        "x-openclaw-message-channel": "whatsapp",
+        "x-openclaw-sender-e164": "+14155550199",
+      },
+      body: JSON.stringify({ tool: "agents_list", action: "json", args: {}, sessionKey: "main" }),
+    });
+    expect(blocked.status).toBe(404);
+
+    const allowed = await fetch(`http://127.0.0.1:${port}/tools/invoke`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${token}`,
+        "x-openclaw-message-channel": "whatsapp",
+        "x-openclaw-sender-e164": "+14155550101",
+      },
+      body: JSON.stringify({ tool: "agents_list", action: "json", args: {}, sessionKey: "main" }),
+    });
+    expect(allowed.status).toBe(200);
+
+    await server.close();
+  });
+
   it("respects tools.profile allowlist", async () => {
     testState.agentsConfig = {
       list: [
