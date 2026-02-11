@@ -148,6 +148,7 @@ type GrokSearchAnnotation = {
 type GrokSearchContent = {
   text?: string;
   annotations?: GrokSearchAnnotation[];
+
 };
 
 type PerplexitySearchResponse = {
