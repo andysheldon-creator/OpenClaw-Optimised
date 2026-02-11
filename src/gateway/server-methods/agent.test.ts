@@ -342,7 +342,7 @@ describe("gateway agent handler", () => {
         agentId: "main",
         sessionKey: "agent:main:main",
         idempotencyKey: "test-reply-overrides",
-        channel: "original-channel",
+        channel: "telegram",
         replyChannel: "discord",
         accountId: "original-account",
         replyAccountId: "reply-account",

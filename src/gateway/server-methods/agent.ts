@@ -263,7 +263,10 @@ export const agentHandlers: GatewayRequestHandlers = {
       const hasExplicitRecipient =
         explicitTo !== undefined ||
         explicitAccountId !== undefined ||
-        explicitThreadId !== undefined;
+        explicitThreadId !== undefined ||
+        request.replyChannel !== undefined ||
+        request.replyAccountId !== undefined ||
+        request.replyTo !== undefined;
 
       const explicitDeliveryContext = hasExplicitRecipient
         ? normalizeDeliveryContext({
