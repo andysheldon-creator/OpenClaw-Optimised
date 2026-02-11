@@ -370,6 +370,29 @@ describe("overflow compaction in run loop", () => {
     expect(result.meta.error).toBeUndefined();
   });
 
+  it("treats compaction timeout as failed compaction and returns overflow error", async () => {
+    const overflowError = new Error("request_too_large: Request size exceeds model context window");
+
+    mockedRunEmbeddedAttempt.mockResolvedValueOnce(
+      makeAttemptResult({ promptError: overflowError }),
+    );
+
+    // Compaction timeout → ok: false, compacted: false → treated as failed
+    mockedCompactDirect.mockResolvedValueOnce({
+      ok: false,
+      compacted: false,
+      reason: "compaction_timeout (120000ms)",
+    });
+
+    const result = await runEmbeddedPiAgent(baseParams);
+
+    expect(mockedCompactDirect).toHaveBeenCalledTimes(1);
+    expect(mockedRunEmbeddedAttempt).toHaveBeenCalledTimes(1);
+    expect(result.meta.error?.kind).toBe("context_overflow");
+    expect(result.payloads?.[0]?.isError).toBe(true);
+    expect(log.warn).toHaveBeenCalledWith(expect.stringContaining("auto-compaction failed"));
+  });
+
   it("does not attempt compaction for compaction_failure errors", async () => {
     const compactionFailureError = new Error(
       "request_too_large: summarization failed - Request size exceeds model context window",

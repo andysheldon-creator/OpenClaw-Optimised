@@ -30,6 +30,7 @@ import { formatUserTime, resolveUserTimeFormat, resolveUserTimezone } from "../d
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../defaults.js";
 import { resolveOpenClawDocsPath } from "../docs-path.js";
 import { getApiKeyForModel, resolveModelAuthMode } from "../model-auth.js";
+import { parseModelRef } from "../model-selection.js";
 import { ensureOpenClawModelsJson } from "../models-config.js";
 import {
   ensureSessionHeader,
@@ -122,9 +123,27 @@ export async function compactEmbeddedPiSessionDirect(
   const modelId = (params.model ?? DEFAULT_MODEL).trim() || DEFAULT_MODEL;
   const agentDir = params.agentDir ?? resolveOpenClawAgentDir();
   await ensureOpenClawModelsJson(params.config, agentDir);
+
+  // Override with compaction-specific model if configured and enabled
+  const compactionOverrideEnabled =
+    params.config?.agents?.defaults?.compaction?.overrideModel ?? false;
+  const compactionModelRef = compactionOverrideEnabled
+    ? params.config?.agents?.defaults?.compaction?.model?.trim()
+    : undefined;
+  let effectiveProvider = provider;
+  let effectiveModelId = modelId;
+  if (compactionModelRef) {
+    const parsed = parseModelRef(compactionModelRef, provider);
+    if (parsed) {
+      effectiveProvider = parsed.provider;
+      effectiveModelId = parsed.model;
+      log.info(`compaction: using override model ${effectiveProvider}/${effectiveModelId}`);
+    }
+  }
+
   const { model, error, authStorage, modelRegistry } = resolveModel(
-    provider,
-    modelId,
+    effectiveProvider,
+    effectiveModelId,
     agentDir,
     params.config,
   );
@@ -132,7 +151,7 @@ export async function compactEmbeddedPiSessionDirect(
     return {
       ok: false,
       compacted: false,
-      reason: error ?? `Unknown model: ${provider}/${modelId}`,
+      reason: error ?? `Unknown model: ${effectiveProvider}/${effectiveModelId}`,
     };
   }
   try {
@@ -236,11 +255,11 @@ export async function compactEmbeddedPiSessionDirect(
       config: params.config,
       abortSignal: runAbortController.signal,
       modelProvider: model.provider,
-      modelId,
+      modelId: effectiveModelId,
       modelAuthMode: resolveModelAuthMode(model.provider, params.config),
     });
-    const tools = sanitizeToolsForGoogle({ tools: toolsRaw, provider });
-    logToolSchemasForGoogle({ tools, provider });
+    const tools = sanitizeToolsForGoogle({ tools: toolsRaw, provider: effectiveProvider });
+    logToolSchemasForGoogle({ tools, provider: effectiveProvider });
     const machineName = await getMachineDisplayName();
     const runtimeChannel = normalizeMessageChannel(params.messageChannel ?? params.messageProvider);
     let runtimeCapabilities = runtimeChannel
@@ -308,14 +327,14 @@ export async function compactEmbeddedPiSessionDirect(
       os: `${os.type()} ${os.release()}`,
       arch: os.arch(),
       node: process.version,
-      model: `${provider}/${modelId}`,
+      model: `${effectiveProvider}/${effectiveModelId}`,
       shell: detectRuntimeShell(),
       channel: runtimeChannel,
       capabilities: runtimeCapabilities,
       channelActions,
     };
     const sandboxInfo = buildEmbeddedSandboxInfo(sandbox, params.bashElevated);
-    const reasoningTagHint = isReasoningTagProvider(provider);
+    const reasoningTagHint = isReasoningTagProvider(effectiveProvider);
     const userTimezone = resolveUserTimezone(params.config?.agents?.defaults?.userTimezone);
     const userTimeFormat = resolveUserTimeFormat(params.config?.agents?.defaults?.timeFormat);
     const userTime = formatUserTime(new Date(), userTimezone, userTimeFormat);
@@ -371,8 +390,8 @@ export async function compactEmbeddedPiSessionDirect(
       await prewarmSessionFile(params.sessionFile);
       const transcriptPolicy = resolveTranscriptPolicy({
         modelApi: model.api,
-        provider,
-        modelId,
+        provider: effectiveProvider,
+        modelId: effectiveModelId,
       });
       const sessionManager = guardSessionManager(SessionManager.open(params.sessionFile), {
         agentId: sessionAgentId,
@@ -389,8 +408,8 @@ export async function compactEmbeddedPiSessionDirect(
       buildEmbeddedExtensionPaths({
         cfg: params.config,
         sessionManager,
-        provider,
-        modelId,
+        provider: effectiveProvider,
+        modelId: effectiveModelId,
         model,
       });
 
@@ -399,12 +418,19 @@ export async function compactEmbeddedPiSessionDirect(
         sandboxEnabled: !!sandbox?.enabled,
       });
 
+      // Disable reasoning for compaction sessions. The SDK's generateSummary()
+      // hardcodes reasoning: "high" which triggers extended thinking on
+      // reasoning-capable models. Extended thinking adds significant latency
+      // and token cost (16K+ budget) to summarization with marginal quality
+      // benefit, and not all API-compatible providers support thinking params.
+      const compactionModel = model.reasoning ? { ...model, reasoning: false } : model;
+
       const { session } = await createAgentSession({
         cwd: resolvedWorkspace,
         agentDir,
         authStorage,
         modelRegistry,
-        model,
+        model: compactionModel,
         thinkingLevel: mapThinkingLevel(params.thinkLevel),
         tools: builtInTools,
         customTools,
@@ -417,8 +443,8 @@ export async function compactEmbeddedPiSessionDirect(
         const prior = await sanitizeSessionHistory({
           messages: session.messages,
           modelApi: model.api,
-          modelId,
-          provider,
+          modelId: effectiveModelId,
+          provider: effectiveProvider,
           sessionManager,
           sessionId: params.sessionId,
           policy: transcriptPolicy,
@@ -436,7 +462,52 @@ export async function compactEmbeddedPiSessionDirect(
         if (limited.length > 0) {
           session.agent.replaceMessages(limited);
         }
-        const result = await session.compact(params.customInstructions);
+        const compactionTimeoutMs =
+          params.config?.agents?.defaults?.compaction?.timeoutMs ?? 120_000;
+        const compactionStartMs = Date.now();
+
+        log.info(
+          `compaction: start sessionId=${params.sessionId} ` +
+            `model=${effectiveProvider}/${effectiveModelId} timeoutMs=${compactionTimeoutMs}`,
+        );
+
+        // Use Promise.race to enforce timeout: abortCompaction() is best-effort
+        // and may not cause session.compact() to reject, so we race against a
+        // hard timeout rejection to guarantee we never hang indefinitely.
+        const TIMEOUT_SENTINEL = Symbol("compaction_timeout");
+        const timeoutPromise = new Promise<typeof TIMEOUT_SENTINEL>((resolve) => {
+          const handle = setTimeout(() => {
+            resolve(TIMEOUT_SENTINEL);
+            session.abortCompaction();
+          }, compactionTimeoutMs);
+          handle.unref();
+        });
+
+        let result: Awaited<ReturnType<typeof session.compact>>;
+        const raceResult = await Promise.race([
+          session
+            .compact(params.customInstructions)
+            .then((r) => ({ ok: true as const, value: r }))
+            .catch((err) => ({ ok: false as const, error: err as unknown })),
+          timeoutPromise.then(() => ({ ok: false as const, timeout: true as const })),
+        ]);
+
+        if ("timeout" in raceResult) {
+          log.warn(
+            `compaction: timeout sessionId=${params.sessionId} ` +
+              `timeoutMs=${compactionTimeoutMs} elapsedMs=${Date.now() - compactionStartMs}`,
+          );
+          return {
+            ok: false,
+            compacted: false,
+            reason: `compaction_timeout (${compactionTimeoutMs}ms)`,
+          };
+        }
+        if (!raceResult.ok) {
+          throw raceResult.error;
+        }
+        result = raceResult.value;
+
         // Estimate tokens after compaction by summing token estimates for remaining messages
         let tokensAfter: number | undefined;
         try {
@@ -452,6 +523,14 @@ export async function compactEmbeddedPiSessionDirect(
           // If estimation fails, leave tokensAfter undefined
           tokensAfter = undefined;
         }
+
+        log.info(
+          `compaction: done sessionId=${params.sessionId} ` +
+            `model=${effectiveProvider}/${effectiveModelId} ` +
+            `tokensBefore=${result.tokensBefore} tokensAfter=${tokensAfter ?? "?"} ` +
+            `durationMs=${Date.now() - compactionStartMs}`,
+        );
+
         return {
           ok: true,
           compacted: true,
@@ -471,6 +550,10 @@ export async function compactEmbeddedPiSessionDirect(
       await sessionLock.release();
     }
   } catch (err) {
+    log.warn(
+      `compaction: error sessionId=${params.sessionId} ` +
+        `reason=${describeUnknownError(err).slice(0, 200)}`,
+    );
     return {
       ok: false,
       compacted: false,
