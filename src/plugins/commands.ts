@@ -248,8 +248,6 @@ export async function executePluginCommand(params: {
     isAuthorizedSender,
     commandBody,
     config,
-    chatId,
-    messageId,
   } = params;
 
   // Check authorization
