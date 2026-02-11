@@ -1,3 +1,5 @@
+import type { ReplyDispatchKind } from "../../../auto-reply/reply/reply-dispatcher.js";
+import type { ReplyPayload } from "../../../auto-reply/types.js";
 import type { PreparedSlackMessage } from "./types.js";
 import { resolveHumanDelayConfig } from "../../../agents/identity.js";
 import { dispatchInboundMessage } from "../../../auto-reply/dispatch.js";
@@ -10,6 +12,10 @@ import { createTypingCallbacks } from "../../../channels/typing.js";
 import { resolveStorePath, updateLastRoute } from "../../../config/sessions.js";
 import { danger, logVerbose, shouldLogVerbose } from "../../../globals.js";
 import { removeSlackReaction } from "../../actions.js";
+import { createSlackWebClient } from "../../client.js";
+import { markdownToSlackMrkdwn } from "../../format.js";
+import type { SlackStreamHandle } from "../../stream.js";
+import { startSlackStream } from "../../stream.js";
 import { resolveSlackThreadTargets } from "../../threading.js";
 import { createSlackReplyDeliveryPlan, deliverReplies } from "../replies.js";
 
@@ -55,14 +61,22 @@ export async function dispatchPreparedSlackMessage(prepared: PreparedSlackMessag
   });
 
   const typingTarget = statusThreadTs ? `${message.channel}/${statusThreadTs}` : message.channel;
+  /** Update the thread status indicator with a custom message. */
+  const updateStatus = async (status: string) => {
+    didSetStatus = true;
+    await ctx.setSlackThreadStatus({
+      channelId: message.channel,
+      threadTs: statusThreadTs,
+      status,
+    });
+  };
   const typingCallbacks = createTypingCallbacks({
     start: async () => {
-      didSetStatus = true;
-      await ctx.setSlackThreadStatus({
-        channelId: message.channel,
-        threadTs: statusThreadTs,
-        status: "is typing...",
-      });
+      await updateStatus("is typing...");
+      if (!sidebarSeenProcessing) {
+        sidebarSeenProcessing = true;
+        postSidebarActivity("Processing message...");
+      }
     },
     stop: async () => {
       if (!didSetStatus) {
@@ -102,22 +116,136 @@ export async function dispatchPreparedSlackMessage(prepared: PreparedSlackMessag
     accountId: route.accountId,
   });
 
+  // Slack native streaming: when enabled, block/final replies update a single
+  // live message via chat.startStream/appendStream/stopStream instead of
+  // posting separate messages.  Tool results still use normal delivery.
+  const slackStreamingEnabled = account.config.streaming === true;
+  // Wrapped in an object so TypeScript can track mutations across closures.
+  const streamState = { handle: null as SlackStreamHandle | null, failed: false };
+
+  // Post activity to the user's assistant sidebar (fire-and-forget).
+  const sidebarUserId = message.user;
+  let sidebarSeenProcessing = false;
+  const postSidebarActivity = (text: string) => {
+    if (sidebarUserId) {
+      void ctx.postToSidebar(sidebarUserId, text).catch(() => {});
+    }
+  };
+
+  const deliverNormal = async (payload: ReplyPayload) => {
+    const replyThreadTs = replyPlan.nextThreadTs();
+    await deliverReplies({
+      replies: [payload],
+      target: prepared.replyTarget,
+      token: ctx.botToken,
+      accountId: account.accountId,
+      runtime,
+      textLimit: ctx.textLimit,
+      replyThreadTs,
+    });
+    replyPlan.markSent();
+  };
+
+  const deliverStreaming = async (payload: ReplyPayload, kind: ReplyDispatchKind) => {
+    // Tool results are always sent as separate messages.
+    // Update status to reflect tool activity when delivering tool output.
+    if (kind === "tool") {
+      const toolText = payload.text?.trim();
+      if (toolText) {
+        const statusHint = extractToolStatusHint(toolText);
+        if (statusHint) {
+          void updateStatus(statusHint).catch(() => {});
+        }
+        // Always post tool activity to sidebar — full text if short, hint if available.
+        const sidebarText = statusHint ?? `Tool result (${toolText.length} chars)`;
+        postSidebarActivity(sidebarText);
+      }
+      await deliverNormal(payload);
+      return;
+    }
+    // Post block/final delivery activity to sidebar.
+    if (kind === "block") {
+      const len = payload.text?.length ?? 0;
+      if (len > 0) {
+        postSidebarActivity(`Streaming response... (${len} chars)`);
+      }
+    } else if (kind === "final") {
+      postSidebarActivity("Response complete.");
+    }
+    if (streamState.failed) {
+      await deliverNormal(payload);
+      return;
+    }
+
+    const text = payload.text?.trim();
+    if (!text) {
+      // Media-only or empty — can't stream, use normal path.
+      if (payload.mediaUrl || payload.mediaUrls?.length) {
+        await deliverNormal(payload);
+      }
+      return;
+    }
+
+    // Start stream on first non-tool delivery.
+    if (!streamState.handle) {
+      try {
+        // Slack's chat.startStream requires thread_ts.  If the reply plan
+        // doesn't give us one (e.g. replyToMode=off), fall back to the
+        // incoming message timestamp so a thread is created.
+        const replyThreadTs = replyPlan.nextThreadTs() ?? incomingThreadTs ?? messageTs;
+        const client = createSlackWebClient(ctx.botToken);
+        // Always use message.channel — it's the actual Slack channel/DM ID
+        // that the API requires.  prepared.replyTarget may contain a user ID
+        // prefix (user:UXXXX) which isn't a valid channel for the streaming API.
+        streamState.handle = await startSlackStream({
+          client,
+          channel: message.channel,
+          threadTs: replyThreadTs,
+        });
+        replyPlan.markSent();
+      } catch (err) {
+        logVerbose(`slack: stream start failed, falling back to normal delivery: ${String(err)}`);
+        streamState.failed = true;
+        await deliverNormal(payload);
+        return;
+      }
+    }
+
+    // Set the stream text.  Using `set` handles both cumulative and
+    // incremental block deliveries — it diffs against what was already
+    // sent and only streams the new portion.
+    try {
+      await streamState.handle.set(markdownToSlackMrkdwn(text));
+    } catch (err) {
+      logVerbose(`slack: stream append failed, falling back: ${String(err)}`);
+      streamState.failed = true;
+      // Stop the broken stream and deliver normally.
+      try {
+        await streamState.handle.stop();
+      } catch { /* ignore */ }
+      streamState.handle = null;
+      await deliverNormal(payload);
+    }
+  };
+
   const { dispatcher, replyOptions, markDispatchIdle } = createReplyDispatcherWithTyping({
     ...prefixOptions,
     humanDelay: resolveHumanDelayConfig(cfg, route.agentId),
-    deliver: async (payload) => {
-      const replyThreadTs = replyPlan.nextThreadTs();
-      await deliverReplies({
-        replies: [payload],
-        target: prepared.replyTarget,
-        token: ctx.botToken,
-        accountId: account.accountId,
-        runtime,
-        textLimit: ctx.textLimit,
-        replyThreadTs,
-      });
-      replyPlan.markSent();
-    },
+    deliver: slackStreamingEnabled
+      ? async (payload, info) => deliverStreaming(payload, info.kind)
+      : async (payload, info) => {
+          if (info.kind === "tool") {
+            const toolText = payload.text?.trim();
+            if (toolText) {
+              const statusHint = extractToolStatusHint(toolText);
+              const sidebarText = statusHint ?? `Tool result (${toolText.length} chars)`;
+              postSidebarActivity(sidebarText);
+            }
+          } else if (info.kind === "final") {
+            postSidebarActivity("Response complete.");
+          }
+          await deliverNormal(payload);
+        },
     onError: (err, info) => {
       runtime.error?.(danger(`slack ${info.kind} reply failed: ${String(err)}`));
       typingCallbacks.onIdle?.();
@@ -142,6 +270,16 @@ export async function dispatchPreparedSlackMessage(prepared: PreparedSlackMessag
     },
   });
   markDispatchIdle();
+
+  // Finalize the Slack stream if one is active.
+  if (streamState.handle) {
+    try {
+      await streamState.handle.stop();
+    } catch (err) {
+      logVerbose(`slack: stream stop failed: ${String(err)}`);
+    }
+    streamState.handle = null;
+  }
 
   const anyReplyDelivered = queuedFinal || (counts.block ?? 0) > 0 || (counts.final ?? 0) > 0;
 
@@ -194,4 +332,17 @@ export async function dispatchPreparedSlackMessage(prepared: PreparedSlackMessag
       limit: ctx.historyLimit,
     });
   }
+}
+
+// Tool result text often starts with a header like "Used **vault_read**" or
+// "Called obsidian_search".  Extract a short status hint from it.
+const TOOL_HEADER_RE = /^(?:Used|Called|Running|Calling|Searching|Reading)\s+\*{0,2}(\w[\w.-]*)\*{0,2}/i;
+
+function extractToolStatusHint(toolText: string): string | undefined {
+  const match = TOOL_HEADER_RE.exec(toolText);
+  if (!match?.[1]) {
+    return undefined;
+  }
+  const toolName = match[1].replace(/[_-]/g, " ");
+  return `Using ${toolName}...`;
 }
