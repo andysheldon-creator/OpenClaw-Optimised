@@ -179,4 +179,56 @@ describe("subscribeEmbeddedPiSession forcePrependThinkTag", () => {
     expect(onBlockReply.mock.calls[0][0].text).toBe("Answer");
     expect(onBlockReply.mock.calls[1][0].text).toBe("Response");
   });
+
+  it("does not double-prepend when model already emits <think>", () => {
+    let handler: ((evt: unknown) => void) | undefined;
+    const session: StubSession = {
+      subscribe: (fn) => {
+        handler = fn;
+        return () => {};
+      },
+    };
+
+    const onBlockReply = vi.fn();
+
+    subscribeEmbeddedPiSession({
+      session: session as unknown as Parameters<typeof subscribeEmbeddedPiSession>[0]["session"],
+      runId: "run",
+      onBlockReply,
+      blockReplyBreak: "message_end",
+      forcePrependThinkTag: true,
+    });
+
+    const assistantMessage = {
+      role: "assistant",
+      content: [] as Array<{ type: string; text?: string }>,
+    };
+
+    // Simulate message_start
+    handler?.({ type: "message_start", message: assistantMessage });
+
+    // Simulate text_delta events where model already emits <think>
+    handler?.({
+      type: "message_update",
+      message: assistantMessage,
+      assistantMessageEvent: { type: "text_delta", delta: "<think>Model's own think tag" },
+    });
+    handler?.({
+      type: "message_update",
+      message: assistantMessage,
+      assistantMessageEvent: { type: "text_delta", delta: "</think>\n\nFinal answer" },
+    });
+
+    // Simulate message_end
+    (assistantMessage.content as Array<{ type: string; text?: string }>).push({
+      type: "text",
+      text: "<think>Model's own think tag</think>\n\nFinal answer",
+    });
+    handler?.({ type: "message_end", message: assistantMessage });
+
+    // Should NOT have double <think><think>
+    expect(onBlockReply).toHaveBeenCalled();
+    const lastCall = onBlockReply.mock.calls[onBlockReply.mock.calls.length - 1][0];
+    expect(lastCall.text).toBe("Final answer");
+  });
 });

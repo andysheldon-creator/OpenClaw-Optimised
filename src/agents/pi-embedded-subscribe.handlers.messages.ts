@@ -102,12 +102,13 @@ export function handleMessageUpdate(
 
   if (chunk) {
     // Force-prepend <think> tag if enabled and this is the first chunk of the assistant message.
+    // Guard against double-tagging if the model already emits <think>.
     if (
       ctx.params.forcePrependThinkTag &&
       !ctx.state.thinkTagPrepended &&
       ctx.state.deltaBuffer.length === 0
     ) {
-      chunk = "<think>" + chunk;
+      chunk = chunk.startsWith("<think>") ? chunk : "<think>" + chunk;
       ctx.state.thinkTagPrepended = true;
     }
     ctx.state.deltaBuffer += chunk;
