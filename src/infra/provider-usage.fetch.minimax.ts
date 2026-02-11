@@ -309,90 +309,107 @@ export async function fetchMinimaxUsage(
   timeoutMs: number,
   fetchFn: typeof fetch,
 ): Promise<ProviderUsageSnapshot> {
-  const res = await fetchJson(
-    "https://api.minimaxi.com/v1/api/openplatform/coding_plan/remains",
-    {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "MM-API-Source": "OpenClaw",
+  try {
+    const res = await fetchJson(
+      "https://api.minimaxi.com/v1/api/openplatform/coding_plan/remains",
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          "MM-API-Source": "OpenClaw",
+        },
       },
-    },
-    timeoutMs,
-    fetchFn,
-  );
+      timeoutMs,
+      fetchFn,
+    );
 
-  if (!res.ok) {
-    return {
-      provider: "minimax",
-      displayName: PROVIDER_LABELS.minimax,
-      windows: [],
-      error: `HTTP ${res.status}`,
-    };
-  }
-
-  const data = (await res.json().catch(() => null)) as MinimaxUsageResponse;
-  if (!isRecord(data)) {
-    return {
-      provider: "minimax",
-      displayName: PROVIDER_LABELS.minimax,
-      windows: [],
-      error: "Invalid JSON",
-    };
-  }
-
-  const baseResp = isRecord(data.base_resp) ? data.base_resp : undefined;
-  if (baseResp && typeof baseResp.status_code === "number" && baseResp.status_code !== 0) {
-    return {
-      provider: "minimax",
-      displayName: PROVIDER_LABELS.minimax,
-      windows: [],
-      error: baseResp.status_msg?.trim() || "API error",
-    };
-  }
-
-  const payload = isRecord(data.data) ? data.data : data;
-  const candidates = collectUsageCandidates(payload);
-  let usageRecord: Record<string, unknown> = payload;
-  let usedPercent: number | null = null;
-  for (const candidate of candidates) {
-    const candidatePercent = deriveUsedPercent(candidate);
-    if (candidatePercent !== null) {
-      usageRecord = candidate;
-      usedPercent = candidatePercent;
-      break;
+    if (!res.ok) {
+      return {
+        provider: "minimax",
+        displayName: PROVIDER_LABELS.minimax,
+        windows: [],
+        error: `HTTP ${res.status}`,
+      };
     }
-  }
-  if (usedPercent === null) {
-    usedPercent = deriveUsedPercent(payload);
-  }
-  if (usedPercent === null) {
+
+    const data = (await res.json().catch(() => null)) as MinimaxUsageResponse;
+    if (!isRecord(data)) {
+      return {
+        provider: "minimax",
+        displayName: PROVIDER_LABELS.minimax,
+        windows: [],
+        error: "Invalid JSON",
+      };
+    }
+
+    const baseResp = isRecord(data.base_resp) ? data.base_resp : undefined;
+    if (baseResp && typeof baseResp.status_code === "number" && baseResp.status_code !== 0) {
+      return {
+        provider: "minimax",
+        displayName: PROVIDER_LABELS.minimax,
+        windows: [],
+        error: baseResp.status_msg?.trim() || "API error",
+      };
+    }
+
+    const payload = isRecord(data.data) ? data.data : data;
+    const candidates = collectUsageCandidates(payload);
+    let usageRecord: Record<string, unknown> = payload;
+    let usedPercent: number | null = null;
+    for (const candidate of candidates) {
+      const candidatePercent = deriveUsedPercent(candidate);
+      if (candidatePercent !== null) {
+        usageRecord = candidate;
+        usedPercent = candidatePercent;
+        break;
+      }
+    }
+    if (usedPercent === null) {
+      usedPercent = deriveUsedPercent(payload);
+    }
+    if (usedPercent === null) {
+      return {
+        provider: "minimax",
+        displayName: PROVIDER_LABELS.minimax,
+        windows: [],
+        error: "Unsupported response shape",
+      };
+    }
+
+    const resetAt =
+      parseEpoch(pickString(usageRecord, RESET_KEYS)) ??
+      parseEpoch(pickNumber(usageRecord, RESET_KEYS)) ??
+      parseEpoch(pickString(payload, RESET_KEYS)) ??
+      parseEpoch(pickNumber(payload, RESET_KEYS));
+    const windows: UsageWindow[] = [
+      {
+        label: deriveWindowLabel(usageRecord),
+        usedPercent,
+        resetAt,
+      },
+    ];
+
+    return {
+      provider: "minimax",
+      displayName: PROVIDER_LABELS.minimax,
+      windows,
+      plan: pickString(usageRecord, PLAN_KEYS) ?? pickString(payload, PLAN_KEYS),
+    };
+  } catch (err) {
+    // Handle AbortError and other network failures gracefully
+    const errorMessage =
+      err instanceof Error && err.name === "AbortError"
+        ? "Timeout"
+        : err instanceof Error
+          ? err.message
+          : "Unknown error";
+
     return {
       provider: "minimax",
       displayName: PROVIDER_LABELS.minimax,
       windows: [],
-      error: "Unsupported response shape",
+      error: errorMessage,
     };
   }
-
-  const resetAt =
-    parseEpoch(pickString(usageRecord, RESET_KEYS)) ??
-    parseEpoch(pickNumber(usageRecord, RESET_KEYS)) ??
-    parseEpoch(pickString(payload, RESET_KEYS)) ??
-    parseEpoch(pickNumber(payload, RESET_KEYS));
-  const windows: UsageWindow[] = [
-    {
-      label: deriveWindowLabel(usageRecord),
-      usedPercent,
-      resetAt,
-    },
-  ];
-
-  return {
-    provider: "minimax",
-    displayName: PROVIDER_LABELS.minimax,
-    windows,
-    plan: pickString(usageRecord, PLAN_KEYS) ?? pickString(payload, PLAN_KEYS),
-  };
 }

@@ -16,74 +16,91 @@ export async function fetchGeminiUsage(
   fetchFn: typeof fetch,
   provider: UsageProviderId,
 ): Promise<ProviderUsageSnapshot> {
-  const res = await fetchJson(
-    "https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuota",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
+  try {
+    const res = await fetchJson(
+      "https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuota",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: "{}",
       },
-      body: "{}",
-    },
-    timeoutMs,
-    fetchFn,
-  );
+      timeoutMs,
+      fetchFn,
+    );
 
-  if (!res.ok) {
+    if (!res.ok) {
+      return {
+        provider,
+        displayName: PROVIDER_LABELS[provider],
+        windows: [],
+        error: `HTTP ${res.status}`,
+      };
+    }
+
+    const data = (await res.json()) as GeminiUsageResponse;
+    const quotas: Record<string, number> = {};
+
+    for (const bucket of data.buckets || []) {
+      const model = bucket.modelId || "unknown";
+      const frac = bucket.remainingFraction ?? 1;
+      if (!quotas[model] || frac < quotas[model]) {
+        quotas[model] = frac;
+      }
+    }
+
+    const windows: UsageWindow[] = [];
+    let proMin = 1;
+    let flashMin = 1;
+    let hasPro = false;
+    let hasFlash = false;
+
+    for (const [model, frac] of Object.entries(quotas)) {
+      const lower = model.toLowerCase();
+      if (lower.includes("pro")) {
+        hasPro = true;
+        if (frac < proMin) {
+          proMin = frac;
+        }
+      }
+      if (lower.includes("flash")) {
+        hasFlash = true;
+        if (frac < flashMin) {
+          flashMin = frac;
+        }
+      }
+    }
+
+    if (hasPro) {
+      windows.push({
+        label: "Pro",
+        usedPercent: clampPercent((1 - proMin) * 100),
+      });
+    }
+    if (hasFlash) {
+      windows.push({
+        label: "Flash",
+        usedPercent: clampPercent((1 - flashMin) * 100),
+      });
+    }
+
+    return { provider, displayName: PROVIDER_LABELS[provider], windows };
+  } catch (err) {
+    // Handle AbortError and other network failures gracefully
+    const errorMessage =
+      err instanceof Error && err.name === "AbortError"
+        ? "Timeout"
+        : err instanceof Error
+          ? err.message
+          : "Unknown error";
+
     return {
       provider,
       displayName: PROVIDER_LABELS[provider],
       windows: [],
-      error: `HTTP ${res.status}`,
+      error: errorMessage,
     };
   }
-
-  const data = (await res.json()) as GeminiUsageResponse;
-  const quotas: Record<string, number> = {};
-
-  for (const bucket of data.buckets || []) {
-    const model = bucket.modelId || "unknown";
-    const frac = bucket.remainingFraction ?? 1;
-    if (!quotas[model] || frac < quotas[model]) {
-      quotas[model] = frac;
-    }
-  }
-
-  const windows: UsageWindow[] = [];
-  let proMin = 1;
-  let flashMin = 1;
-  let hasPro = false;
-  let hasFlash = false;
-
-  for (const [model, frac] of Object.entries(quotas)) {
-    const lower = model.toLowerCase();
-    if (lower.includes("pro")) {
-      hasPro = true;
-      if (frac < proMin) {
-        proMin = frac;
-      }
-    }
-    if (lower.includes("flash")) {
-      hasFlash = true;
-      if (frac < flashMin) {
-        flashMin = frac;
-      }
-    }
-  }
-
-  if (hasPro) {
-    windows.push({
-      label: "Pro",
-      usedPercent: clampPercent((1 - proMin) * 100),
-    });
-  }
-  if (hasFlash) {
-    windows.push({
-      label: "Flash",
-      usedPercent: clampPercent((1 - flashMin) * 100),
-    });
-  }
-
-  return { provider, displayName: PROVIDER_LABELS[provider], windows };
 }

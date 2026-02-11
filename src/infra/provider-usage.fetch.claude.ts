@@ -111,87 +111,108 @@ export async function fetchClaudeUsage(
   timeoutMs: number,
   fetchFn: typeof fetch,
 ): Promise<ProviderUsageSnapshot> {
-  const res = await fetchJson(
-    "https://api.anthropic.com/api/oauth/usage",
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "User-Agent": "openclaw",
-        Accept: "application/json",
-        "anthropic-version": "2023-06-01",
-        "anthropic-beta": "oauth-2025-04-20",
+  try {
+    const res = await fetchJson(
+      "https://api.anthropic.com/api/oauth/usage",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "User-Agent": "openclaw",
+          Accept: "application/json",
+          "anthropic-version": "2023-06-01",
+          "anthropic-beta": "oauth-2025-04-20",
+        },
       },
-    },
-    timeoutMs,
-    fetchFn,
-  );
+      timeoutMs,
+      fetchFn,
+    );
 
-  if (!res.ok) {
-    let message: string | undefined;
-    try {
-      const data = (await res.json()) as {
-        error?: { message?: unknown } | null;
-      };
-      const raw = data?.error?.message;
-      if (typeof raw === "string" && raw.trim()) {
-        message = raw.trim();
+    if (!res.ok) {
+      let message: string | undefined;
+      try {
+        const data = (await res.json()) as {
+          error?: { message?: unknown } | null;
+        };
+        const raw = data?.error?.message;
+        if (typeof raw === "string" && raw.trim()) {
+          message = raw.trim();
+        }
+      } catch {
+        // ignore parse errors
       }
-    } catch {
-      // ignore parse errors
-    }
 
-    // Claude Code CLI setup-token yields tokens that can be used for inference, but may not
-    // include user:profile scope required by the OAuth usage endpoint. When a claude.ai
-    // browser sessionKey is available, fall back to the web API.
-    if (res.status === 403 && message?.includes("scope requirement user:profile")) {
-      const sessionKey = resolveClaudeWebSessionKey();
-      if (sessionKey) {
-        const web = await fetchClaudeWebUsage(sessionKey, timeoutMs, fetchFn);
-        if (web) {
-          return web;
+      // Claude Code CLI setup-token yields tokens that can be used for inference, but may not
+      // include user:profile scope required by the OAuth usage endpoint. When a claude.ai
+      // browser sessionKey is available, fall back to the web API.
+      if (res.status === 403 && message?.includes("scope requirement user:profile")) {
+        const sessionKey = resolveClaudeWebSessionKey();
+        if (sessionKey) {
+          const web = await fetchClaudeWebUsage(sessionKey, timeoutMs, fetchFn);
+          if (web) {
+            return web;
+          }
         }
       }
+
+      const suffix = message ? `: ${message}` : "";
+      return {
+        provider: "anthropic",
+        displayName: PROVIDER_LABELS.anthropic,
+        windows: [],
+        error: `HTTP ${res.status}${suffix}`,
+      };
     }
 
-    const suffix = message ? `: ${message}` : "";
+    const data = (await res.json()) as ClaudeUsageResponse;
+    const windows: UsageWindow[] = [];
+
+    if (data.five_hour?.utilization !== undefined) {
+      windows.push({
+        label: "5h",
+        usedPercent: clampPercent(data.five_hour.utilization),
+        resetAt: data.five_hour.resets_at
+          ? new Date(data.five_hour.resets_at).getTime()
+          : undefined,
+      });
+    }
+
+    if (data.seven_day?.utilization !== undefined) {
+      windows.push({
+        label: "Week",
+        usedPercent: clampPercent(data.seven_day.utilization),
+        resetAt: data.seven_day.resets_at
+          ? new Date(data.seven_day.resets_at).getTime()
+          : undefined,
+      });
+    }
+
+    const modelWindow = data.seven_day_sonnet || data.seven_day_opus;
+    if (modelWindow?.utilization !== undefined) {
+      windows.push({
+        label: data.seven_day_sonnet ? "Sonnet" : "Opus",
+        usedPercent: clampPercent(modelWindow.utilization),
+      });
+    }
+
+    return {
+      provider: "anthropic",
+      displayName: PROVIDER_LABELS.anthropic,
+      windows,
+    };
+  } catch (err) {
+    // Handle AbortError and other network failures gracefully
+    const errorMessage =
+      err instanceof Error && err.name === "AbortError"
+        ? "Timeout"
+        : err instanceof Error
+          ? err.message
+          : "Unknown error";
+
     return {
       provider: "anthropic",
       displayName: PROVIDER_LABELS.anthropic,
       windows: [],
-      error: `HTTP ${res.status}${suffix}`,
+      error: errorMessage,
     };
   }
-
-  const data = (await res.json()) as ClaudeUsageResponse;
-  const windows: UsageWindow[] = [];
-
-  if (data.five_hour?.utilization !== undefined) {
-    windows.push({
-      label: "5h",
-      usedPercent: clampPercent(data.five_hour.utilization),
-      resetAt: data.five_hour.resets_at ? new Date(data.five_hour.resets_at).getTime() : undefined,
-    });
-  }
-
-  if (data.seven_day?.utilization !== undefined) {
-    windows.push({
-      label: "Week",
-      usedPercent: clampPercent(data.seven_day.utilization),
-      resetAt: data.seven_day.resets_at ? new Date(data.seven_day.resets_at).getTime() : undefined,
-    });
-  }
-
-  const modelWindow = data.seven_day_sonnet || data.seven_day_opus;
-  if (modelWindow?.utilization !== undefined) {
-    windows.push({
-      label: data.seven_day_sonnet ? "Sonnet" : "Opus",
-      usedPercent: clampPercent(modelWindow.utilization),
-    });
-  }
-
-  return {
-    provider: "anthropic",
-    displayName: PROVIDER_LABELS.anthropic,
-    windows,
-  };
 }
