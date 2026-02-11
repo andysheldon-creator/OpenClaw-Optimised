@@ -16,16 +16,19 @@ Der Session-Manager (Backend): Ein unsichtbares Objekt im Hintergrund, das die V
 Die Tool-Schnittstellen (Frontend): Drei Funktionen, die der KI zur Verfügung gestellt werden.
 
 ### Architektur
+
 1. Der Session-Manager (Das "Gedächtnis" für Verbindungen)
    In OpenClaw (oder jedem Python-basierten Agenten-Framework) werden Tools normalerweise als Funktionen definiert. Damit eine Session über mehrere Tool-Aufrufe hinweg bestehen bleibt, darf das SSH-Objekt nicht innerhalb der Funktion erzeugt und gelöscht werden.
 
 Du benötigst eine globale Registry oder eine Singleton-Klasse innerhalb deines Tool-Moduls:
 
 Python
+
 # Pseudo-Code für die Tool-Logik
+
 class SSHSessionRegistry:
-def __init__(self):
-self.active_sessions = {}  # Speichert { "session_id": ssh_object }
+def **init**(self):
+self.active_sessions = {} # Speichert { "session_id": ssh_object }
 
     def open_ssh_session(self, session_id, connection):
         self.active_sessions[session_id] = connection
@@ -39,9 +42,9 @@ self.active_sessions = {}  # Speichert { "session_id": ssh_object }
             del self.active_sessions[session_id]
 
 # Instanz, die während der Laufzeit von OpenClaw existiert
-registry = SSHSessionRegistry()
-2. Die Tool-Schnittstellen für die KI
-   Du definierst drei spezifische Tools für die KI. Damit die KI weiß, welche Session sie gerade nutzt, muss sie mit einer session_id arbeiten.
+
+registry = SSHSessionRegistry() 2. Die Tool-Schnittstellen für die KI
+Du definierst drei spezifische Tools für die KI. Damit die KI weiß, welche Session sie gerade nutzt, muss sie mit einer session_id arbeiten.
 
 Tool A: open_ssh_session(host, user, password/key)
 Logik: Erstellt eine Verbindung mit pexpect oder Paramiko(invoke_shell).
@@ -75,7 +78,7 @@ Session-Limit: Begrenze die Anzahl der gleichzeitigen Sessions (z. B. max. 3), d
 ## Code-Vorschlag
 
 Ein konkreter Code-Vorschlag (Scaffold)
-Hier ist ein Entwurf für ein solches Modul (nennen wir es stateful_ssh.py), das du als Plugin integrieren kannst. 
+Hier ist ein Entwurf für ein solches Modul (nennen wir es stateful_ssh.py), das du als Plugin integrieren kannst.
 Ich verwende hier pexpect, da es für "interaktive" Sessions (Warten auf Prompts) deutlich zuverlässiger ist als reines Paramiko.
 
 Python
@@ -83,23 +86,25 @@ import pexpect
 import uuid
 
 class SSHPlugin:
-def __init__(self):
+def **init**(self):
+
 # Hier werden die aktiven Sessions gespeichert: {session_id: pexpect_spawn_object}
-self._sessions = {}
+
+self.\_sessions = {}
 
     def open_ssh_session(self, host, user, password=None):
         """Baut eine persistente Verbindung auf."""
         session_id = str(uuid.uuid4())[:8]
         ssh_command = f"ssh -o StrictHostKeyChecking=no {user}@{host}"
-        
+
         child = pexpect.spawn(ssh_command, encoding='utf-8', timeout=30)
-        
+
         # Einfaches Handling für Passwortabfrage
         i = child.expect(['[Pp]assword:', r'(\$|#|>|~)\s*'])
         if i == 0:
             child.sendline(password)
             child.expect(r'(\$|#|>|~)\s*') # Warte auf den Prompt nach Login
-        
+
         self._sessions[session_id] = child
         return session_id, "Verbindung hergestellt. Prompt erkannt."
 
@@ -110,11 +115,11 @@ self._sessions = {}
 
         child = self._sessions[session_id]
         child.sendline(command)
-        
+
         # Das Herzstück: Wir warten, bis der Prompt wieder erscheint
         # Das signalisiert, dass der Befehl fertig ist.
         child.expect(r'(\$|#|>|~)\s*')
-        
+
         # Wir geben den Output zurück (ohne den Befehl selbst zu wiederholen)
         return child.before.strip()
 
@@ -127,6 +132,7 @@ self._sessions = {}
         return "Session nicht gefunden."
 
 # Instanz für das Plugin
+
 ssh_manager = SSHPlugin()
 Die Integration in OpenClaw
 In OpenClaw (oder ähnlichen Frameworks) registrierst du diese Funktionen als Tools. Damit die KI sie korrekt nutzt, ist die Beschreibung (Docstring) entscheidend:
@@ -193,9 +199,9 @@ Das Plugin kann über `openclaw.plugin.json` konfiguriert werden:
 
 ```json
 {
-  "maxSessions": 5,           // Max. gleichzeitige Sessions (Default: 5)
+  "maxSessions": 5, // Max. gleichzeitige Sessions (Default: 5)
   "sessionTimeoutMs": 600000, // Idle-Timeout in ms (Default: 10 Min)
-  "commandTimeoutMs": 30000   // Command-Timeout in ms (Default: 30 Sek)
+  "commandTimeoutMs": 30000 // Command-Timeout in ms (Default: 30 Sek)
 }
 ```
 
@@ -210,15 +216,18 @@ Das Plugin kann über `openclaw.plugin.json` konfiguriert werden:
 ### Technische Details
 
 **SSH-Library**: `ssh2` (Node.js)
+
 - Robuste, weit verbreitete SSH-Implementierung
 - Unterstützt Shell-Sessions mit Streaming
 - Unterstützt verschiedene Authentifizierungsmethoden
 
 **Prompt-Erkennung**: RegExp `/[\$#>]\s*$/`
+
 - Erkennt gängige Shell-Prompts ($, #, >)
 - Signalisiert, dass ein Befehl abgeschlossen ist
 
 **Session-ID**: 8-stellige UUID
+
 - Kurz genug für die KI zum Merken
 - Eindeutig genug für praktische Nutzung
 
@@ -259,4 +268,4 @@ WICHTIG: Vergiss nicht, die Session zu schließen!"
 
 ---
 
-*Letzte Aktualisierung: 2026-02-11*
+_Letzte Aktualisierung: 2026-02-11_

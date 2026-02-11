@@ -5,6 +5,7 @@
 The Stateful SSH plugin now **parses `~/.ssh/config`** just like a standard SSH client!
 
 This means you can:
+
 - ✅ Use **hostnames** instead of IPs (e.g., `moltbot-1` instead of `192.168.2.134`)
 - ✅ Define **host-specific SSH keys** (e.g., `id_ed25519_moltbot-1`, `id_ed25519_other-server`)
 - ✅ Use **wildcard patterns** (e.g., `Host *.local`)
@@ -49,6 +50,7 @@ Host production-server
 ### Example 1: Connect by Hostname
 
 **SSH Config:**
+
 ```
 Host moltbot-1
     HostName 192.168.2.134
@@ -57,11 +59,13 @@ Host moltbot-1
 ```
 
 **Bot Command:**
+
 ```
 Connect to moltbot-1 and run 'hostname'
 ```
 
 **What happens:**
+
 1. Plugin reads `~/.ssh/config`
 2. Finds `Host moltbot-1`
 3. Resolves `HostName` to `192.168.2.134`
@@ -69,6 +73,7 @@ Connect to moltbot-1 and run 'hostname'
 5. Connects automatically!
 
 **Log output:**
+
 ```
 [SSH] No authentication provided, searching for SSH key for host: moltbot-1
 [SSH] Found SSH key from config: /home/node/.ssh/bot_key
@@ -80,6 +85,7 @@ Connect to moltbot-1 and run 'hostname'
 ### Example 2: Host-Specific Keys
 
 **SSH Config:**
+
 ```
 Host server-a
     HostName 192.168.1.10
@@ -91,14 +97,17 @@ Host server-b
 ```
 
 **Bot Commands:**
+
 ```
 Connect to server-a and run 'pwd'
 ```
+
 → Uses `id_ed25519_server_a`
 
 ```
 Connect to server-b and run 'pwd'
 ```
+
 → Uses `id_ed25519_server_b`
 
 **Different keys for different servers!**
@@ -108,6 +117,7 @@ Connect to server-b and run 'pwd'
 ### Example 3: Wildcard Patterns
 
 **SSH Config:**
+
 ```
 Host *.production
     IdentityFile ~/.ssh/id_ed25519_production
@@ -119,9 +129,11 @@ Host *.development
 ```
 
 **Bot Command:**
+
 ```
 Connect to web1.production and run 'uptime'
 ```
+
 → Matches `*.production` pattern, uses production key
 
 ---
@@ -174,6 +186,7 @@ When you connect **without** providing a password or key:
 ### On the Host (Raspberry Pi)
 
 1. **Create SSH config** (if not exists):
+
    ```bash
    mkdir -p ~/.ssh
    touch ~/.ssh/config
@@ -181,11 +194,13 @@ When you connect **without** providing a password or key:
    ```
 
 2. **Edit config**:
+
    ```bash
    nano ~/.ssh/config
    ```
 
 3. **Add your hosts**:
+
    ```
    Host moltbot-1
        HostName 192.168.2.134
@@ -205,6 +220,7 @@ When you connect **without** providing a password or key:
 The config is already set up at `/home/node/.ssh/config`!
 
 **Verify:**
+
 ```bash
 docker exec moltbot-openclaw-gateway-1 cat /home/node/.ssh/config
 ```
@@ -216,11 +232,13 @@ docker exec moltbot-openclaw-gateway-1 cat /home/node/.ssh/config
 ### Test 1: Connect by Hostname
 
 **Telegram/WhatsApp:**
+
 ```
 Hey, connect to moltbot-1 and run 'hostname'
 ```
 
 **Expected:**
+
 - ✅ Resolves to 192.168.2.134
 - ✅ Uses `/home/node/.ssh/bot_key`
 - ✅ Connects successfully
@@ -232,6 +250,7 @@ Hey, connect to 192.168.2.134 as user 'pi' and run 'hostname'
 ```
 
 **Expected:**
+
 - ✅ No match in config
 - ✅ Falls back to default keys
 - ✅ Finds `/home/node/.ssh/bot_key`
@@ -244,6 +263,7 @@ Hey, connect to non-existent-host
 ```
 
 **Expected:**
+
 - ❌ No match in config
 - ❌ No default keys work
 - ❌ Error: "No authentication method provided..."
@@ -276,13 +296,16 @@ Connect to moltbot-1
 ### 1. Use Host-Specific Keys
 
 **Bad:**
+
 ```
 Host *
     IdentityFile ~/.ssh/id_rsa
 ```
+
 → Uses same key everywhere
 
 **Good:**
+
 ```
 Host production-*
     IdentityFile ~/.ssh/id_ed25519_production
@@ -290,6 +313,7 @@ Host production-*
 Host development-*
     IdentityFile ~/.ssh/id_ed25519_dev
 ```
+
 → Different keys for different environments
 
 ### 2. Restrict Permissions
@@ -335,6 +359,7 @@ Host prod-web1
 ```
 
 **Bot can now connect to:**
+
 - `dev-web1` → auto-resolves and uses dev key
 - `staging-api` → auto-resolves and uses staging key
 - `prod-web1` → uses production key
@@ -354,6 +379,7 @@ Host rpi2.local
 ```
 
 **Usage:**
+
 ```
 Connect to rpi1.local
 Connect to rpi2.local
@@ -366,11 +392,13 @@ Connect to rpi2.local
 ### SSH Config Not Found
 
 **Error:**
+
 ```
 [SSH] Could not read /home/node/.ssh/config: ENOENT
 ```
 
 **Solution:**
+
 ```bash
 # Create config in container
 docker exec moltbot-openclaw-gateway-1 sh -c 'cat > /home/node/.ssh/config << EOF
@@ -383,12 +411,15 @@ EOF'
 ### Key File Not Found
 
 **Error:**
+
 ```
 [SSH] Could not read key file /home/node/.ssh/id_ed25519_server: ENOENT
 ```
 
 **Solution:**
+
 1. Check key exists in container:
+
    ```bash
    docker exec moltbot-openclaw-gateway-1 ls -la /home/node/.ssh/
    ```
@@ -403,6 +434,7 @@ EOF'
 **Issue:** Bot doesn't find config entry
 
 **Debug:**
+
 ```bash
 # View config
 docker exec moltbot-openclaw-gateway-1 cat /home/node/.ssh/config
@@ -412,6 +444,7 @@ docker logs --tail 50 moltbot-openclaw-gateway-1 | grep SSH
 ```
 
 **Common issues:**
+
 - Typo in hostname
 - Wrong indentation (use spaces, not tabs)
 - Missing `IdentityFile` directive
@@ -433,11 +466,13 @@ docker logs --tail 50 moltbot-openclaw-gateway-1 | grep SSH
 **Location:** `extensions/stateful-ssh/src/session-manager.ts`
 
 **Key Functions:**
+
 - `findKeyFromSSHConfig(host)` - Parse config, find matching host
 - `matchesHost(target, pattern, hostname)` - Match host patterns
 - `expandAndReadKey(keyPath)` - Expand paths and read keys
 
 **Config Parsing:**
+
 1. Read `~/.ssh/config` line by line
 2. Track current `Host` block
 3. Extract `HostName` and `IdentityFile` directives
@@ -445,6 +480,7 @@ docker logs --tail 50 moltbot-openclaw-gateway-1 | grep SSH
 5. Return key content if match found
 
 **Path Expansion:**
+
 - `~` → `/home/node`
 - `$HOME` → `/home/node`
 - `${HOME}` → `/home/node`

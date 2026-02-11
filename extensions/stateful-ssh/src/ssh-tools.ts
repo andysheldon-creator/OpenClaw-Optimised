@@ -29,26 +29,27 @@ export function createOpenSSHSessionTool(api: OpenClawPluginApi) {
       port: Type.Optional(
         Type.Number({
           description: "The SSH port (default: 22)",
-        })
+        }),
       ),
       username: Type.String({
         description: "The username for SSH authentication",
       }),
       password: Type.Optional(
         Type.String({
-          description: "Optional: The password for SSH authentication. If not provided, will try to use SSH keys from ~/.ssh/",
-        })
+          description:
+            "Optional: The password for SSH authentication. If not provided, will try to use SSH keys from ~/.ssh/",
+        }),
       ),
       privateKey: Type.Optional(
         Type.String({
           description:
             "Optional: The private key for SSH authentication in PEM/OpenSSH format. If not provided, will automatically search for keys in ~/.ssh/ (bot_key, id_ed25519, id_rsa, etc.)",
-        })
+        }),
       ),
       passphrase: Type.Optional(
         Type.String({
           description: "The passphrase for the private key, if encrypted",
-        })
+        }),
       ),
     }),
     async execute(_id: string, params: Record<string, unknown>) {
@@ -89,8 +90,7 @@ Example usage:
           },
         };
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : "Unknown error occurred";
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
         return {
           content: [{ type: "text", text: `Failed to open SSH session: ${errorMessage}` }],
           isError: true,
@@ -140,8 +140,7 @@ export function createExecuteSSHCommandTool(api: OpenClawPluginApi) {
           },
         };
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : "Unknown error occurred";
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
         return {
           content: [
             {
@@ -191,8 +190,7 @@ export function createCloseSSHSessionTool(api: OpenClawPluginApi) {
           },
         };
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : "Unknown error occurred";
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
         return {
           content: [
             {
@@ -244,8 +242,7 @@ export function createListSSHSessionsTool(api: OpenClawPluginApi) {
           details: { sessions },
         };
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : "Unknown error occurred";
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
         return {
           content: [
             {

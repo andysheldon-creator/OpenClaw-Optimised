@@ -28,9 +28,9 @@ Configure the plugin via OpenClaw's plugin configuration:
 ```json
 {
   "stateful-ssh": {
-    "maxSessions": 5,           // Maximum concurrent sessions (default: 5)
+    "maxSessions": 5, // Maximum concurrent sessions (default: 5)
     "sessionTimeoutMs": 600000, // Idle timeout in ms (default: 10 minutes)
-    "commandTimeoutMs": 30000   // Command timeout in ms (default: 30 seconds)
+    "commandTimeoutMs": 30000 // Command timeout in ms (default: 30 seconds)
   }
 }
 ```
@@ -42,6 +42,7 @@ Configure the plugin via OpenClaw's plugin configuration:
 Opens a persistent SSH connection to a remote server.
 
 **Parameters:**
+
 - `host` (required): Hostname or IP address
 - `port` (optional): SSH port (default: 22)
 - `username` (required): SSH username
@@ -50,9 +51,11 @@ Opens a persistent SSH connection to a remote server.
 - `passphrase` (optional): Passphrase for encrypted private key
 
 **Returns:**
+
 - `session_id`: Unique identifier for the session
 
 **Example:**
+
 ```json
 {
   "host": "example.com",
@@ -66,13 +69,16 @@ Opens a persistent SSH connection to a remote server.
 Executes a command in an existing SSH session.
 
 **Parameters:**
+
 - `session_id` (required): Session ID from `open_ssh_session`
 - `command` (required): Command to execute
 
 **Returns:**
+
 - Command output
 
 **Example:**
+
 ```json
 {
   "session_id": "a1b2c3d4",
@@ -85,9 +91,11 @@ Executes a command in an existing SSH session.
 Closes an SSH session and frees resources.
 
 **Parameters:**
+
 - `session_id` (required): Session ID to close
 
 **Example:**
+
 ```json
 {
   "session_id": "a1b2c3d4"
@@ -101,6 +109,7 @@ Lists all currently active SSH sessions.
 **Parameters:** None
 
 **Returns:**
+
 - List of active sessions with IDs, hosts, and activity times
 
 ## Usage Example
@@ -110,25 +119,25 @@ Lists all currently active SSH sessions.
 const result1 = await open_ssh_session({
   host: "192.168.1.100",
   username: "admin",
-  password: "password123"
+  password: "password123",
 });
 // Result: { session_id: "a1b2c3d4" }
 
 // 2. Execute commands in the session
 await execute_ssh_command({
   session_id: "a1b2c3d4",
-  command: "cd /var/log"
+  command: "cd /var/log",
 });
 
 await execute_ssh_command({
   session_id: "a1b2c3d4",
-  command: "ls -la"
+  command: "ls -la",
 });
 // The working directory is preserved!
 
 // 3. Close the session when done
 await close_ssh_session({
-  session_id: "a1b2c3d4"
+  session_id: "a1b2c3d4",
 });
 ```
 

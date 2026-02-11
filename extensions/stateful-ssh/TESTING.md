@@ -66,6 +66,7 @@ node /app/dist/index.js --help
 ### 1. `open_ssh_session`
 
 **Parameters:**
+
 - `host` (required): Hostname or IP
 - `username` (required): SSH username
 - `password` (optional): Password authentication
@@ -73,9 +74,11 @@ node /app/dist/index.js --help
 - `port` (optional): SSH port (default: 22)
 
 **Returns:**
+
 - `session_id`: Unique session identifier
 
 **Example Request:**
+
 ```json
 {
   "tool": "open_ssh_session",
@@ -92,13 +95,16 @@ node /app/dist/index.js --help
 ### 2. `execute_ssh_command`
 
 **Parameters:**
+
 - `session_id` (required): Session ID from open_ssh_session
 - `command` (required): Command to execute
 
 **Returns:**
+
 - Command output
 
 **Example Request:**
+
 ```json
 {
   "tool": "execute_ssh_command",
@@ -112,9 +118,11 @@ node /app/dist/index.js --help
 ### 3. `close_ssh_session`
 
 **Parameters:**
+
 - `session_id` (required): Session ID to close
 
 **Example Request:**
+
 ```json
 {
   "tool": "close_ssh_session",
@@ -129,6 +137,7 @@ node /app/dist/index.js --help
 **Parameters:** None
 
 **Returns:**
+
 - List of active sessions
 
 ## 🔍 Verification
@@ -192,6 +201,7 @@ Please perform the following SSH operations:
 4. Verify the session is closed by listing all sessions
 
 Expected Behavior:
+
 - Session should remain active between commands
 - Working directory should persist (cd /tmp then pwd should show /tmp)
 - Session should close cleanly
@@ -278,12 +288,14 @@ docker compose -f ~/moltbot/docker-compose.yml restart openclaw-gateway
 **Symptom**: Plugin showed as "loaded" and "enabled", visible in UI, but bot reported "Tool open_ssh_session not found"
 
 **Root Cause**: Plugin pattern mismatch. OpenClaw supports two plugin patterns:
+
 1. **Plugin Object Pattern** (for multiple named tools): `export default { id, name, description, register(api) {...} }`
 2. **Function Pattern** (for single tools): `export default function register(api) {...}`
 
 Our plugin was using the function pattern (copied from lobster) but trying to register multiple tools with explicit names. This pattern combination doesn't work correctly for tool exposure to channels like Telegram.
 
 **Solution**: Changed to plugin object pattern matching memory-core plugin:
+
 - Changed import from `../../src/plugins/types.js` to `openclaw/plugin-sdk`
 - Changed export from function to plugin object with `register` method
 - Removed `optional: true` flag (not needed in this pattern)
@@ -291,6 +303,7 @@ Our plugin was using the function pattern (copied from lobster) but trying to re
 - Added plugin metadata directly in object (id, name, description)
 
 **Files Changed**:
+
 - `index.ts`: Complete rewrite to plugin object pattern
 - Commit: `35a8f104e` - "fix: change plugin pattern to match memory-core"
 

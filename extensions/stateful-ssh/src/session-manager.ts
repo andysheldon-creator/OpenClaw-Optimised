@@ -1,8 +1,8 @@
-import { Client, ClientChannel } from "ssh2";
 import { randomUUID } from "node:crypto";
-import { readFile, access } from "node:fs/promises";
 import { constants } from "node:fs";
+import { readFile, access } from "node:fs/promises";
 import { homedir } from "node:os";
+import { Client, ClientChannel } from "ssh2";
 
 export interface SSHSessionConfig {
   host: string;
@@ -74,7 +74,11 @@ export class SSHSessionManager {
         const hostMatch = trimmed.match(/^Host\s+(.+)$/i);
         if (hostMatch) {
           // Check if previous host matched and had an IdentityFile
-          if (currentHostPatterns.length > 0 && identityFile && this.matchesAnyHostPattern(host, currentHostPatterns, currentHostName)) {
+          if (
+            currentHostPatterns.length > 0 &&
+            identityFile &&
+            this.matchesAnyHostPattern(host, currentHostPatterns, currentHostName)
+          ) {
             return await this.expandAndReadKey(identityFile);
           }
 
@@ -102,7 +106,11 @@ export class SSHSessionManager {
       }
 
       // Check last host block
-      if (currentHostPatterns.length > 0 && identityFile && this.matchesAnyHostPattern(host, currentHostPatterns, currentHostName)) {
+      if (
+        currentHostPatterns.length > 0 &&
+        identityFile &&
+        this.matchesAnyHostPattern(host, currentHostPatterns, currentHostName)
+      ) {
         return await this.expandAndReadKey(identityFile);
       }
 
@@ -110,7 +118,9 @@ export class SSHSessionManager {
       return null;
     } catch (error) {
       // Config file doesn't exist or not readable
-      console.log(`[SSH] Could not read ${sshConfigPath}: ${error instanceof Error ? error.message : "unknown error"}`);
+      console.log(
+        `[SSH] Could not read ${sshConfigPath}: ${error instanceof Error ? error.message : "unknown error"}`,
+      );
       return null;
     }
   }
@@ -119,7 +129,11 @@ export class SSHSessionManager {
    * Checks if the given host matches any of the Host patterns or HostName.
    * SSH config allows multiple patterns in one Host line: "Host pattern1 pattern2 pattern3"
    */
-  private matchesAnyHostPattern(targetHost: string, hostPatterns: string[], hostName: string | null): boolean {
+  private matchesAnyHostPattern(
+    targetHost: string,
+    hostPatterns: string[],
+    hostName: string | null,
+  ): boolean {
     // Check each Host pattern
     for (const pattern of hostPatterns) {
       // Direct match with Host pattern
@@ -160,7 +174,9 @@ export class SSHSessionManager {
       console.log(`[SSH] Found SSH key from config: ${expandedPath}`);
       return keyContent;
     } catch (error) {
-      console.log(`[SSH] Could not read key file ${expandedPath}: ${error instanceof Error ? error.message : "unknown error"}`);
+      console.log(
+        `[SSH] Could not read key file ${expandedPath}: ${error instanceof Error ? error.message : "unknown error"}`,
+      );
       return null;
     }
   }
@@ -174,11 +190,11 @@ export class SSHSessionManager {
 
     // Standard SSH key filenames, in order of preference
     const keyFilenames = [
-      "bot_key",        // Our custom bot key
-      "id_ed25519",     // Modern, recommended
-      "id_ecdsa",       // ECDSA
-      "id_rsa",         // Classic RSA
-      "id_dsa",         // Legacy (deprecated but still checked)
+      "bot_key", // Our custom bot key
+      "id_ed25519", // Modern, recommended
+      "id_ecdsa", // ECDSA
+      "id_rsa", // Classic RSA
+      "id_dsa", // Legacy (deprecated but still checked)
     ];
 
     for (const filename of keyFilenames) {
@@ -204,13 +220,15 @@ export class SSHSessionManager {
     // Check session limit
     if (this.sessions.size >= this.maxSessions) {
       throw new Error(
-        `Maximum number of sessions (${this.maxSessions}) reached. Please close existing sessions.`
+        `Maximum number of sessions (${this.maxSessions}) reached. Please close existing sessions.`,
       );
     }
 
     // Auto-detect SSH key if no authentication method provided
     if (!config.password && !config.privateKey) {
-      console.log(`[SSH] No authentication provided, searching for SSH key for host: ${config.host}`);
+      console.log(
+        `[SSH] No authentication provided, searching for SSH key for host: ${config.host}`,
+      );
 
       // 1. First, try to find key from ~/.ssh/config
       let detectedKey = await this.findKeyFromSSHConfig(config.host);
@@ -226,7 +244,7 @@ export class SSHSessionManager {
         console.log("[SSH] Using automatically detected SSH key");
       } else {
         throw new Error(
-          `No authentication method provided for ${config.host}. Either provide a password, privateKey, or configure the host in ~/.ssh/config, or ensure a default SSH key exists in ~/.ssh/`
+          `No authentication method provided for ${config.host}. Either provide a password, privateKey, or configure the host in ~/.ssh/config, or ensure a default SSH key exists in ~/.ssh/`,
         );
       }
     }
@@ -354,10 +372,7 @@ export class SSHSessionManager {
 
           // Remove the prompt from the last line
           if (lines.length > 0) {
-            lines[lines.length - 1] = lines[lines.length - 1].replace(
-              session.promptPattern,
-              ""
-            );
+            lines[lines.length - 1] = lines[lines.length - 1].replace(session.promptPattern, "");
           }
 
           output = lines.join("\n").trim();
@@ -418,7 +433,7 @@ export class SSHSessionManager {
     const closePromises = Array.from(this.sessions.keys()).map((sessionId) =>
       this.closeSession(sessionId).catch((err) => {
         console.error(`Error closing session ${sessionId}:`, err);
-      })
+      }),
     );
 
     await Promise.all(closePromises);

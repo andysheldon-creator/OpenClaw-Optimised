@@ -40,6 +40,7 @@ When you open an SSH session **without** providing a `password` or `privateKey` 
 ### Simple Connection (Recommended)
 
 **Before** (explicit key):
+
 ```
 Connect to 192.168.2.134 as user 'pi' using the SSH private key:
 [long key content]
@@ -47,6 +48,7 @@ Then run 'hostname'
 ```
 
 **Now** (auto-detection):
+
 ```
 Connect to 192.168.2.134 as user 'pi'
 Then run 'hostname'
@@ -61,11 +63,13 @@ That's it! No password, no key content needed.
 #### Telegram/WhatsApp
 
 **Minimal Command:**
+
 ```
 Hey, connect to 192.168.2.134 as user 'pi', run 'pwd' and 'whoami', then close the session.
 ```
 
 **Longer Command (same result):**
+
 ```
 Please test SSH connection.
 Connect to 192.168.2.134 as user 'pi' (use auto-detected SSH key).
@@ -90,6 +94,7 @@ Close the session when done.
 ```
 
 The plugin automatically:
+
 1. Checks `/home/node/.ssh/bot_key` → ✅ Found!
 2. Reads the key content
 3. Uses it for authentication
@@ -102,11 +107,13 @@ The plugin automatically:
 ### Check Which Key Was Used
 
 Look at the logs:
+
 ```bash
 docker logs moltbot-openclaw-gateway-1 | grep -i "ssh"
 ```
 
 You should see:
+
 ```
 [SSH] No authentication provided, searching for default SSH key...
 [SSH] Found default private key: /home/node/.ssh/bot_key
@@ -116,6 +123,7 @@ You should see:
 ### If Auto-Detection Fails
 
 Error message:
+
 ```
 No authentication method provided. Either provide a password, privateKey, or
 ensure a default SSH key exists in ~/.ssh/
@@ -124,14 +132,17 @@ ensure a default SSH key exists in ~/.ssh/
 **Solutions:**
 
 1. **Check if key exists in container:**
+
    ```bash
    docker exec moltbot-openclaw-gateway-1 ls -la /home/node/.ssh/
    ```
 
 2. **Verify key is readable:**
+
    ```bash
    docker exec moltbot-openclaw-gateway-1 cat /home/node/.ssh/bot_key | head -1
    ```
+
    Should show: `-----BEGIN OPENSSH PRIVATE KEY-----`
 
 3. **Re-copy key if needed:**
@@ -149,11 +160,13 @@ ensure a default SSH key exists in ~/.ssh/
 The auto-detection is **optional**. You can still provide explicit authentication:
 
 #### Option 1: Password (not recommended)
+
 ```
 Connect to 192.168.2.134 as user 'pi' with password 'power123'
 ```
 
 #### Option 2: Explicit Key Content
+
 ```
 Connect to 192.168.2.134 as user 'pi' using this private key:
 -----BEGIN OPENSSH PRIVATE KEY-----
@@ -162,6 +175,7 @@ Connect to 192.168.2.134 as user 'pi' using this private key:
 ```
 
 #### Option 3: Auto-Detection (recommended)
+
 ```
 Connect to 192.168.2.134 as user 'pi'
 ```
@@ -183,6 +197,7 @@ The plugin checks keys in this specific order:
 5. **id_dsa** - Legacy DSA (lowest priority)
 
 **Why this order?**
+
 - `bot_key` first ensures the bot uses its dedicated key
 - Ed25519 is more secure than RSA/ECDSA
 - DSA is deprecated but checked for compatibility
@@ -190,6 +205,7 @@ The plugin checks keys in this specific order:
 ### Key Permissions
 
 Keys must be readable by the container user (`node:node`):
+
 ```bash
 -rw------- 1 node node 411 bot_key
 ```
@@ -209,17 +225,20 @@ If you have multiple keys, the plugin uses the **first one it finds**. To contro
 ## 🚀 Benefits
 
 ### For Users
+
 - ✅ **Simpler commands** - no need to paste long keys
 - ✅ **Less clutter** - chat logs stay clean
 - ✅ **Faster** - fewer tokens, quicker responses
 - ✅ **Familiar** - works like normal SSH
 
 ### For Bot
+
 - ✅ **No memory burden** - doesn't need to remember keys
 - ✅ **Consistent auth** - same key every time
 - ✅ **Automatic** - zero configuration needed per session
 
 ### For Security
+
 - ✅ **Keys not in logs** - no sensitive data in chat history
 - ✅ **Centralized management** - one place to update keys
 - ✅ **Standard practice** - follows SSH conventions
@@ -228,11 +247,11 @@ If you have multiple keys, the plugin uses the **first one it finds**. To contro
 
 ## 📊 Comparison
 
-| Method | Command Length | Security | Convenience |
-|--------|---------------|----------|-------------|
-| **Auto-detection** | Short | ✅ High | ✅ Best |
-| **Explicit key** | Very long | ⚠️ Medium | ❌ Tedious |
-| **Password** | Short | ❌ Low | ⚠️ OK |
+| Method             | Command Length | Security  | Convenience |
+| ------------------ | -------------- | --------- | ----------- |
+| **Auto-detection** | Short          | ✅ High   | ✅ Best     |
+| **Explicit key**   | Very long      | ⚠️ Medium | ❌ Tedious  |
+| **Password**       | Short          | ❌ Low    | ⚠️ OK       |
 
 **Recommendation:** Use auto-detection for all connections!
 
@@ -243,6 +262,7 @@ If you have multiple keys, the plugin uses the **first one it finds**. To contro
 Want to use a key with a custom name?
 
 ### Method 1: Rename to Standard Name
+
 ```bash
 cp ~/.ssh/my_custom_key /home/node/.ssh/bot_key
 ```
@@ -250,10 +270,11 @@ cp ~/.ssh/my_custom_key /home/node/.ssh/bot_key
 ### Method 2: Add to Search List
 
 Edit `session-manager.ts`:
+
 ```typescript
 const keyFilenames = [
   "bot_key",
-  "my_custom_key",  // Add your key here
+  "my_custom_key", // Add your key here
   "id_ed25519",
   "id_rsa",
 ];
@@ -272,6 +293,7 @@ SYSTEM: When connecting to SSH servers, remember to use the private key from /ho
 ```
 
 Workflow:
+
 1. Read key file
 2. Pass content to tool
 3. Connect
@@ -283,6 +305,7 @@ SYSTEM: You can connect to SSH servers directly. No need to specify keys.
 ```
 
 Workflow:
+
 1. Connect (auto-detection handles the rest!)
 
 **Much simpler!** ✨
@@ -292,14 +315,17 @@ Workflow:
 ## 📝 Key Lifecycle
 
 ### Setup (One-Time)
+
 1. Generate key: `ssh-keygen -t ed25519 -f ~/.ssh/openclaw_bot_key`
 2. Copy to servers: `ssh-copy-id -i ~/.ssh/openclaw_bot_key.pub user@server`
 3. Mount in container: `docker cp ~/.ssh/openclaw_bot_key container:/home/node/.ssh/bot_key`
 
 ### Usage (Every Session)
+
 1. Just connect! Auto-detection works automatically.
 
 ### Maintenance
+
 - **Rotate keys**: Replace `/home/node/.ssh/bot_key`, restart container
 - **Revoke access**: Remove public key from target server's `authorized_keys`
 - **Update**: New keys automatically detected on next connection
@@ -311,6 +337,7 @@ Workflow:
 ### Quick Test
 
 **Via Telegram/WhatsApp:**
+
 ```
 Hey, test SSH auto-detection!
 Connect to 192.168.2.134 as user 'pi' (don't provide any password or key).
@@ -318,6 +345,7 @@ Run 'hostname' and close the session.
 ```
 
 **Expected Result:**
+
 ```
 SSH session opened successfully.
 Session ID: abc12345
@@ -333,6 +361,7 @@ docker logs --tail 20 moltbot-openclaw-gateway-1 | grep SSH
 ```
 
 Should show:
+
 ```
 [SSH] No authentication provided, searching for default SSH key...
 [SSH] Found default private key: /home/node/.ssh/bot_key
@@ -348,6 +377,7 @@ Should show:
 Location: `extensions/stateful-ssh/src/session-manager.ts`
 
 **Key Function:**
+
 ```typescript
 private async findDefaultPrivateKey(): Promise<string | null> {
   const sshDir = `${homedir()}/.ssh`;
@@ -370,6 +400,7 @@ private async findDefaultPrivateKey(): Promise<string | null> {
 ```
 
 **Integration Point:**
+
 ```typescript
 async openSession(config: SSHSessionConfig): Promise<string> {
   // Auto-detect SSH key if no authentication method provided
@@ -386,6 +417,7 @@ async openSession(config: SSHSessionConfig): Promise<string> {
 ### Dependencies
 
 Uses Node.js built-ins:
+
 - `fs/promises` - File system access
 - `os` - Home directory detection
 - `ssh2` - SSH client (unchanged)

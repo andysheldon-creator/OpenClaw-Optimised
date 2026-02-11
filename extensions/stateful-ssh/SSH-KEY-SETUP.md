@@ -21,6 +21,7 @@ ssh-keygen -t ed25519 -C "openclaw-bot@moltbot" -f ~/.ssh/openclaw_bot_key -N ""
 ```
 
 This creates:
+
 - `~/.ssh/openclaw_bot_key` (private key)
 - `~/.ssh/openclaw_bot_key.pub` (public key)
 
@@ -44,11 +45,12 @@ services:
   openclaw-gateway:
     # ... existing config ...
     volumes:
-      - ./extensions:/app/extensions  # existing
-      - /home/pi/.ssh/openclaw_bot_key:/app/secrets/ssh_key:ro  # NEW
+      - ./extensions:/app/extensions # existing
+      - /home/pi/.ssh/openclaw_bot_key:/app/secrets/ssh_key:ro # NEW
 ```
 
 Restart container:
+
 ```bash
 docker compose -f ~/moltbot/docker-compose.yml restart openclaw-gateway
 ```
@@ -114,11 +116,13 @@ Connect to 192.168.2.134 as user 'pi' using this private key:
 ## Current Implementation Status
 
 ✅ **Supported Parameters**:
+
 - `privateKey`: Private key in PEM/OpenSSH format (string)
 - `passphrase`: Optional passphrase if key is encrypted
 - `password`: Alternative to privateKey
 
 ✅ **Key Formats**:
+
 - RSA (PEM format)
 - Ed25519 (OpenSSH format)
 - ECDSA
@@ -132,6 +136,7 @@ Yes, just provide the `passphrase` parameter
 ## Best Practices
 
 ### 1. Use Dedicated Bot Keys
+
 Don't reuse your personal SSH keys. Generate a dedicated key for the bot:
 
 ```bash
@@ -139,6 +144,7 @@ ssh-keygen -t ed25519 -C "bot@yourproject" -f ~/.ssh/bot_key
 ```
 
 ### 2. Restrict Key Permissions
+
 ```bash
 chmod 600 ~/.ssh/bot_key
 ```
@@ -154,6 +160,7 @@ command="/usr/bin/safe-commands-only",no-port-forwarding,no-X11-forwarding ssh-e
 This limits what the bot can do even if the key is compromised.
 
 ### 4. Audit and Rotate Keys
+
 - Log all SSH connections
 - Rotate keys regularly (e.g., every 90 days)
 - Remove old keys from `authorized_keys`
@@ -188,6 +195,7 @@ Finally, close the session.
 ```
 
 **Expected Output**:
+
 1. Session opens successfully
 2. Commands execute (proving authentication worked)
 3. Session closes cleanly
@@ -197,15 +205,18 @@ Finally, close the session.
 ## Troubleshooting
 
 ### "Permission denied (publickey)"
+
 - Check `~/.ssh/authorized_keys` contains the public key
 - Verify key permissions: `chmod 600 ~/.ssh/bot_key`
 - Check SSH server config: `PubkeyAuthentication yes`
 
 ### "Invalid key format"
+
 - Ensure key is in PEM/OpenSSH format
 - Try converting: `ssh-keygen -p -f key -m pem`
 
 ### "Encrypted key without passphrase"
+
 - Provide the `passphrase` parameter
 - Or remove passphrase: `ssh-keygen -p -f key -N ""`
 

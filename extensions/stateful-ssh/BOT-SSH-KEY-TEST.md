@@ -21,6 +21,7 @@ SSH key authentication is now configured for the OpenClaw bot!
 The bot can now read the key from its container filesystem:
 
 **Telegram/WhatsApp Command:**
+
 ```
 Hey, please test SSH key authentication!
 
@@ -35,6 +36,7 @@ Finally, close the session.
 ```
 
 **How it works:**
+
 - Bot reads the file `/home/node/.ssh/bot_key` in the container
 - Uses that key for authentication
 - No password needed!
@@ -46,6 +48,7 @@ Finally, close the session.
 You can also provide the key content directly:
 
 **Telegram/WhatsApp Command:**
+
 ```
 Hey, please test SSH key authentication!
 
@@ -72,18 +75,22 @@ Finally, close the session.
 ## 🔒 Security Notes
 
 ### This Key is Bot-Only
+
 - Key comment: `openclaw-bot@moltbot`
 - Purpose: Dedicated for bot automation
 - Not for manual use
 
 ### Key Properties
+
 - Type: Ed25519 (modern, secure)
 - Encryption: None (unencrypted for bot automation)
 - Location (Host): `/home/pi/.ssh/openclaw_bot_key`
 - Location (Container): `/home/node/.ssh/bot_key`
 
 ### Access Control
+
 The key allows SSH access to:
+
 - ✅ `pi@192.168.2.134` (Raspberry Pi moltbot-1)
 - ✅ Any other server where you add the public key
 
@@ -122,6 +129,7 @@ Currently investigating why volume mount doesn't work (might need pre-created di
 ## 📋 Verification Commands
 
 ### Check Key on Host
+
 ```bash
 ssh pi@192.168.2.134
 ls -la ~/.ssh/openclaw_bot_key*
@@ -129,6 +137,7 @@ cat ~/.ssh/openclaw_bot_key.pub
 ```
 
 ### Check Key in Container
+
 ```bash
 ssh pi@192.168.2.134
 docker exec moltbot-openclaw-gateway-1 ls -la /home/node/.ssh/bot_key
@@ -136,6 +145,7 @@ docker exec moltbot-openclaw-gateway-1 cat /home/node/.ssh/bot_key
 ```
 
 ### Test Key Manually
+
 ```bash
 ssh pi@192.168.2.134
 ssh -i ~/.ssh/openclaw_bot_key pi@192.168.2.134 'hostname && whoami'
@@ -148,6 +158,7 @@ ssh -i ~/.ssh/openclaw_bot_key pi@192.168.2.134 'hostname && whoami'
 When you run the bot test command, you should see:
 
 1. **Session Opens:**
+
    ```
    SSH session opened successfully.
    Session ID: xxxxxxxx
@@ -156,6 +167,7 @@ When you run the bot test command, you should see:
    ```
 
 2. **Commands Execute:**
+
    ```
    hostname: moltbot-1
    whoami: pi
@@ -168,6 +180,7 @@ When you run the bot test command, you should see:
    ```
 
 **Key Difference from Password Auth:**
+
 - ✅ No password prompt
 - ✅ No "password" parameter in logs
 - ✅ Uses `privateKey` parameter instead
@@ -179,6 +192,7 @@ When you run the bot test command, you should see:
 To allow the bot to connect to other servers:
 
 ### 1. Copy Public Key to Target Server
+
 ```bash
 ssh pi@192.168.2.134 "cat ~/.ssh/openclaw_bot_key.pub"
 # Copy output, then on target server:
@@ -186,6 +200,7 @@ echo "ssh-ed25519 AAAA... openclaw-bot@moltbot" >> ~/.ssh/authorized_keys
 ```
 
 ### 2. Bot Command
+
 ```
 Connect to <other-server-ip> as user '<username>' using the SSH private key from file /home/node/.ssh/bot_key
 ```
@@ -197,6 +212,7 @@ Connect to <other-server-ip> as user '<username>' using the SSH private key from
 If you need to revoke bot access:
 
 ### Remove from authorized_keys
+
 ```bash
 ssh pi@192.168.2.134
 nano ~/.ssh/authorized_keys
@@ -204,6 +220,7 @@ nano ~/.ssh/authorized_keys
 ```
 
 ### Delete Keys
+
 ```bash
 rm ~/.ssh/openclaw_bot_key ~/.ssh/openclaw_bot_key.pub
 docker exec moltbot-openclaw-gateway-1 rm -f /home/node/.ssh/bot_key
