@@ -238,6 +238,7 @@ function createMockAccount(
     configured: true,
     config: {
       serverUrl: "http://localhost:1234",
+      password: "test-password",
       dmPolicy: "open",
       groupPolicy: "open",
       allowFrom: [],
@@ -253,9 +254,20 @@ function createMockRequest(
   body: unknown,
   headers: Record<string, string> = {},
 ): IncomingMessage {
+  const parsedUrl = new URL(url, "http://localhost");
+  const hasAuthQuery = parsedUrl.searchParams.has("guid") || parsedUrl.searchParams.has("password");
+  const hasAuthHeader =
+    headers["x-guid"] !== undefined ||
+    headers["x-password"] !== undefined ||
+    headers["x-bluebubbles-guid"] !== undefined ||
+    headers.authorization !== undefined;
+  if (!hasAuthQuery && !hasAuthHeader) {
+    parsedUrl.searchParams.set("password", "test-password");
+  }
+
   const req = new EventEmitter() as IncomingMessage;
   req.method = method;
-  req.url = url;
+  req.url = `${parsedUrl.pathname}${parsedUrl.search}`;
   req.headers = headers;
   (req as unknown as { socket: { remoteAddress: string } }).socket = { remoteAddress: "127.0.0.1" };
 
