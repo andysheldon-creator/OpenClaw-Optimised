@@ -446,6 +446,46 @@ describe("diagnostics-otel service – metrics & inference", () => {
     await service.stop?.();
   });
 
+  test("gen_ai.usage.input_tokens includes cache tokens even without promptTokens", async () => {
+    const service = createService();
+    await service.start(createTestCtx());
+
+    emitDiagnosticEvent({
+      type: "model.inference",
+      provider: "anthropic",
+      model: "claude-sonnet-4-5-20250929",
+      usage: { input: 12, output: 57, cacheRead: 28976, cacheWrite: 295 },
+      durationMs: 4000,
+    });
+
+    const attrs = telemetryState.tracer.startSpan.mock.calls[0]?.[1]?.attributes;
+    // gen_ai.usage.input_tokens should be input + cacheRead + cacheWrite
+    expect(attrs["gen_ai.usage.input_tokens"]).toBe(12 + 28976 + 295);
+    expect(attrs["gen_ai.usage.output_tokens"]).toBe(57);
+    // openclaw.tokens.input stays as raw input
+    expect(attrs["openclaw.tokens.input"]).toBe(12);
+
+    await service.stop?.();
+  });
+
+  test("gen_ai.usage.input_tokens uses promptTokens when available", async () => {
+    const service = createService();
+    await service.start(createTestCtx());
+
+    emitDiagnosticEvent({
+      type: "model.inference",
+      provider: "anthropic",
+      model: "claude-sonnet-4-5-20250929",
+      usage: { input: 12, output: 57, cacheRead: 28976, cacheWrite: 295, promptTokens: 29283 },
+      durationMs: 4000,
+    });
+
+    const attrs = telemetryState.tracer.startSpan.mock.calls[0]?.[1]?.attributes;
+    expect(attrs["gen_ai.usage.input_tokens"]).toBe(29283);
+
+    await service.stop?.();
+  });
+
   test("error event creates span with ERROR status and gen_ai.error.type attribute", async () => {
     const service = createService();
     await service.start(createTestCtx());

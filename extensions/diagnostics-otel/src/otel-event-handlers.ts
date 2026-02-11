@@ -308,9 +308,17 @@ export function recordModelInference(
     spanAttrs["openclaw.tokens.total"] = usage.total;
   }
   // OTEL GenAI semconv: gen_ai.usage.input_tokens SHOULD include all input
-  // tokens including cached tokens. Use promptTokens (input + cacheRead +
-  // cacheWrite) when available, fall back to raw input.
-  const inputTokensForOtel = usage.promptTokens ?? usage.input;
+  // tokens including cached tokens. Compute from components when promptTokens
+  // is unavailable to avoid under-counting.
+  const hasInputComponents =
+    typeof usage.input === "number" ||
+    typeof usage.cacheRead === "number" ||
+    typeof usage.cacheWrite === "number";
+  const inputTokensForOtel =
+    usage.promptTokens ??
+    (hasInputComponents
+      ? (usage.input ?? 0) + (usage.cacheRead ?? 0) + (usage.cacheWrite ?? 0)
+      : undefined);
   if (typeof inputTokensForOtel === "number") {
     spanAttrs["gen_ai.usage.input_tokens"] = inputTokensForOtel;
   }
