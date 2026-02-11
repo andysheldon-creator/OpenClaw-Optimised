@@ -210,9 +210,9 @@ export function buildAuthChoiceOptions(params: {
     value: "kimi-code-api-key",
     label: "Kimi Code API key (subscription)",
   });
-  options.push({ 
-    value: "stepfun-api-key", 
-    label: "StepFun API key" 
+  options.push({
+    value: "stepfun-api-key",
+    label: "StepFun API key",
   });
   options.push({ value: "synthetic-api-key", label: "Synthetic API key" });
   options.push({
