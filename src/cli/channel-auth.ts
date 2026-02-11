@@ -4,17 +4,25 @@ import { DEFAULT_CHAT_CHANNEL } from "../channels/registry.js";
 import { loadConfig } from "../config/config.js";
 import { setVerbose } from "../globals.js";
 import { defaultRuntime, type RuntimeEnv } from "../runtime.js";
+import { ensurePluginRegistryLoaded } from "./plugin-registry.js";
 
 type ChannelAuthOptions = {
   channel?: string;
   account?: string;
   verbose?: boolean;
+  /** Use pairing code instead of QR (WhatsApp only). */
+  useCode?: boolean;
+  /** Phone number for pairing code (E.164 format). */
+  phoneNumber?: string;
 };
 
 export async function runChannelLogin(
   opts: ChannelAuthOptions,
   runtime: RuntimeEnv = defaultRuntime,
 ) {
+  // Ensure channel plugins are loaded before resolving the channel.
+  ensurePluginRegistryLoaded();
+
   const channelInput = opts.channel ?? DEFAULT_CHAT_CHANNEL;
   const channelId = normalizeChannelId(channelInput);
   if (!channelId) {
@@ -34,6 +42,8 @@ export async function runChannelLogin(
     runtime,
     verbose: Boolean(opts.verbose),
     channelInput,
+    useCode: opts.useCode,
+    phoneNumber: opts.phoneNumber,
   });
 }
 
@@ -41,6 +51,9 @@ export async function runChannelLogout(
   opts: ChannelAuthOptions,
   runtime: RuntimeEnv = defaultRuntime,
 ) {
+  // Ensure channel plugins are loaded before resolving the channel.
+  ensurePluginRegistryLoaded();
+
   const channelInput = opts.channel ?? DEFAULT_CHAT_CHANNEL;
   const channelId = normalizeChannelId(channelInput);
   if (!channelId) {

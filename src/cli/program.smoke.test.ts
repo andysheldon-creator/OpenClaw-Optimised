@@ -270,7 +270,13 @@ describe("cli program (smoke)", () => {
       from: "user",
     });
     expect(runChannelLogin).toHaveBeenCalledWith(
-      { channel: undefined, account: "work", verbose: false },
+      {
+        channel: undefined,
+        account: "work",
+        verbose: false,
+        useCode: false,
+        phoneNumber: undefined,
+      },
       runtime,
     );
   });
