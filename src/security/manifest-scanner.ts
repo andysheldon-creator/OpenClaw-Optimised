@@ -86,7 +86,7 @@ const MANIFEST_RULES: ManifestRule[] = [
     severity: "critical",
     message: "Prompt injection: safety bypass attempt",
     pattern:
-      /bypass\s+safety|unrestricted\s+mode|jailbreak|you\s+are\s+now\s+in\s+.*mode|enter\s+.*mode|switch\s+to\s+.*mode/i,
+      /bypass\s+safety|unrestricted\s+mode|jailbreak|you\s+are\s+now\s+in\s+(unrestricted|developer|god|sudo|admin)\s+mode|enter\s+(unrestricted|developer|god|sudo|admin)\s+mode|switch\s+to\s+(unrestricted|developer|god|sudo|admin)\s+mode/i,
   },
   {
     ruleId: "prompt-injection",
