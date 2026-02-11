@@ -1,5 +1,8 @@
 import { Client, ClientChannel } from "ssh2";
 import { randomUUID } from "node:crypto";
+import { readFile, access } from "node:fs/promises";
+import { constants } from "node:fs";
+import { homedir } from "node:os";
 
 export interface SSHSessionConfig {
   host: string;
@@ -44,12 +47,61 @@ export class SSHSessionManager {
     }, 60000); // Check every minute
   }
 
+  /**
+   * Searches for default SSH private keys in the standard locations.
+   * Mimics SSH client behavior by checking common key filenames.
+   */
+  private async findDefaultPrivateKey(): Promise<string | null> {
+    const sshDir = `${homedir()}/.ssh`;
+
+    // Standard SSH key filenames, in order of preference
+    const keyFilenames = [
+      "bot_key",        // Our custom bot key
+      "id_ed25519",     // Modern, recommended
+      "id_ecdsa",       // ECDSA
+      "id_rsa",         // Classic RSA
+      "id_dsa",         // Legacy (deprecated but still checked)
+    ];
+
+    for (const filename of keyFilenames) {
+      const keyPath = `${sshDir}/${filename}`;
+      try {
+        // Check if file exists and is readable
+        await access(keyPath, constants.R_OK);
+        // Read the key content
+        const keyContent = await readFile(keyPath, "utf-8");
+        console.log(`[SSH] Found default private key: ${keyPath}`);
+        return keyContent;
+      } catch {
+        // File doesn't exist or not readable, continue to next
+        continue;
+      }
+    }
+
+    console.log(`[SSH] No default private key found in ${sshDir}`);
+    return null;
+  }
+
   async openSession(config: SSHSessionConfig): Promise<string> {
     // Check session limit
     if (this.sessions.size >= this.maxSessions) {
       throw new Error(
         `Maximum number of sessions (${this.maxSessions}) reached. Please close existing sessions.`
       );
+    }
+
+    // Auto-detect SSH key if no authentication method provided
+    if (!config.password && !config.privateKey) {
+      console.log("[SSH] No authentication provided, searching for default SSH key...");
+      const defaultKey = await this.findDefaultPrivateKey();
+      if (defaultKey) {
+        config.privateKey = defaultKey;
+        console.log("[SSH] Using automatically detected SSH key");
+      } else {
+        throw new Error(
+          "No authentication method provided. Either provide a password, privateKey, or ensure a default SSH key exists in ~/.ssh/"
+        );
+      }
     }
 
     const sessionId = randomUUID().substring(0, 8);

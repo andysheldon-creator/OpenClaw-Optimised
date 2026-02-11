@@ -21,7 +21,7 @@ export function createOpenSSHSessionTool(api: OpenClawPluginApi) {
     name: "open_ssh_session",
     label: "Open SSH Session",
     description:
-      "Opens a persistent SSH connection to a remote server. Returns a session_id that must be used for all subsequent commands. The session maintains its state (working directory, environment variables) across multiple commands. IMPORTANT: Remember the session_id - you will need it for execute_ssh_command and close_ssh_session.",
+      "Opens a persistent SSH connection to a remote server. Returns a session_id that must be used for all subsequent commands. The session maintains its state (working directory, environment variables) across multiple commands. IMPORTANT: Remember the session_id - you will need it for execute_ssh_command and close_ssh_session. AUTHENTICATION: If no password or privateKey is provided, the tool will automatically search for SSH keys in ~/.ssh/ (id_ed25519, id_rsa, etc.), just like a normal SSH client.",
     parameters: Type.Object({
       host: Type.String({
         description: "The hostname or IP address of the SSH server",
@@ -36,13 +36,13 @@ export function createOpenSSHSessionTool(api: OpenClawPluginApi) {
       }),
       password: Type.Optional(
         Type.String({
-          description: "The password for SSH authentication (use either password or privateKey)",
+          description: "Optional: The password for SSH authentication. If not provided, will try to use SSH keys from ~/.ssh/",
         })
       ),
       privateKey: Type.Optional(
         Type.String({
           description:
-            "The private key for SSH authentication in PEM format (use either password or privateKey)",
+            "Optional: The private key for SSH authentication in PEM/OpenSSH format. If not provided, will automatically search for keys in ~/.ssh/ (bot_key, id_ed25519, id_rsa, etc.)",
         })
       ),
       passphrase: Type.Optional(
@@ -64,11 +64,8 @@ export function createOpenSSHSessionTool(api: OpenClawPluginApi) {
           passphrase: params.passphrase as string | undefined,
         };
 
-        // Validate authentication method
-        if (!config.password && !config.privateKey) {
-          throw new Error("Either password or privateKey must be provided");
-        }
-
+        // Note: If no password or privateKey is provided, the session manager
+        // will automatically search for default SSH keys in ~/.ssh/
         const sessionId = await manager.openSession(config);
 
         const message = `SSH session opened successfully.
