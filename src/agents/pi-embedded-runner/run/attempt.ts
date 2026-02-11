@@ -638,6 +638,14 @@ export async function runEmbeddedAttempt(
         onPartialReply: params.onPartialReply,
         onAssistantMessageStart: params.onAssistantMessageStart,
         onAgentEvent: params.onAgentEvent,
+        onConsecutiveToolErrors: (count, lastError) => {
+          log.warn(
+            `Aborting run due to ${count} consecutive tool errors. Last error: ${lastError ?? "unknown"}. ` +
+              `runId=${params.runId} sessionId=${params.sessionId}`,
+          );
+          abortRun(false, new Error(`Circuit breaker: ${count} consecutive tool validation failures`));
+        },
+        consecutiveToolErrorThreshold: 3,
         enforceFinalTag: params.enforceFinalTag,
       });
 
