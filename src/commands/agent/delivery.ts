@@ -17,7 +17,7 @@ import {
   normalizeOutboundPayloads,
   normalizeOutboundPayloadsForJson,
 } from "../../infra/outbound/payloads.js";
-import { isInternalMessageChannel } from "../../utils/message-channel.js";
+import { isSystemMessageChannel } from "../../utils/message-channel.js";
 
 type RunResult = Awaited<
   ReturnType<(typeof import("../../agents/pi-embedded.js"))["runEmbeddedPiAgent"]>
@@ -79,12 +79,11 @@ export async function deliverAgentCommandResult(params: {
   });
   const deliveryChannel = deliveryPlan.resolvedChannel;
   // Channel docking: delivery channels are resolved via plugin registry.
-  const deliveryPlugin = !isInternalMessageChannel(deliveryChannel)
+  const deliveryPlugin = !isSystemMessageChannel(deliveryChannel)
     ? getChannelPlugin(normalizeChannelId(deliveryChannel) ?? deliveryChannel)
     : undefined;
 
-  const isDeliveryChannelKnown =
-    isInternalMessageChannel(deliveryChannel) || Boolean(deliveryPlugin);
+  const isDeliveryChannelKnown = isSystemMessageChannel(deliveryChannel) || Boolean(deliveryPlugin);
 
   const targetMode =
     opts.deliveryTargetMode ??
@@ -176,7 +175,7 @@ export async function deliverAgentCommandResult(params: {
       logPayload(payload);
     }
   }
-  if (deliver && deliveryChannel && !isInternalMessageChannel(deliveryChannel)) {
+  if (deliver && deliveryChannel && !isSystemMessageChannel(deliveryChannel)) {
     if (deliveryTarget) {
       await deliverOutboundPayloads({
         cfg,

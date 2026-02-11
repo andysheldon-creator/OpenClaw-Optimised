@@ -1,6 +1,6 @@
 import type { OpenClawConfig } from "../config/config.js";
 import type { ChannelHeartbeatVisibilityConfig } from "../config/types.channels.js";
-import type { GatewayMessageChannel } from "../utils/message-channel.js";
+import { type GatewayMessageChannel, isSystemMessageChannel } from "../utils/message-channel.js";
 
 export type ResolvedHeartbeatVisibility = {
   showOk: boolean;
@@ -26,8 +26,8 @@ export function resolveHeartbeatVisibility(params: {
 }): ResolvedHeartbeatVisibility {
   const { cfg, channel, accountId } = params;
 
-  // Webchat uses channel defaults only (no per-channel or per-account config)
-  if (channel === "webchat") {
+  // Webchat/Internal uses channel defaults only (no per-channel or per-account config)
+  if (isSystemMessageChannel(channel)) {
     const channelDefaults = cfg.channels?.defaults?.heartbeat;
     return {
       showOk: channelDefaults?.showOk ?? DEFAULT_VISIBILITY.showOk,

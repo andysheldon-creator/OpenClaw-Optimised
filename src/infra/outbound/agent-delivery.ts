@@ -6,8 +6,10 @@ import { DEFAULT_CHAT_CHANNEL } from "../../channels/registry.js";
 import { normalizeAccountId } from "../../utils/account-id.js";
 import {
   INTERNAL_MESSAGE_CHANNEL,
+  WEBCHAT_MESSAGE_CHANNEL,
   isDeliverableMessageChannel,
   isGatewayMessageChannel,
+  isSystemMessageChannel,
   normalizeMessageChannel,
   type GatewayMessageChannel,
 } from "../../utils/message-channel.js";
@@ -46,7 +48,7 @@ export function resolveAgentDeliveryPlan(params: {
 
   const baseDelivery = resolveSessionDeliveryTarget({
     entry: params.sessionEntry,
-    requestedChannel: requestedChannel === INTERNAL_MESSAGE_CHANNEL ? "last" : requestedChannel,
+    requestedChannel: isSystemMessageChannel(requestedChannel) ? "last" : requestedChannel,
     explicitTo,
     explicitThreadId: params.explicitThreadId,
   });
@@ -55,8 +57,11 @@ export function resolveAgentDeliveryPlan(params: {
     if (requestedChannel === INTERNAL_MESSAGE_CHANNEL) {
       return INTERNAL_MESSAGE_CHANNEL;
     }
+    if (requestedChannel === WEBCHAT_MESSAGE_CHANNEL) {
+      return WEBCHAT_MESSAGE_CHANNEL;
+    }
     if (requestedChannel === "last") {
-      if (baseDelivery.channel && baseDelivery.channel !== INTERNAL_MESSAGE_CHANNEL) {
+      if (baseDelivery.channel && !isSystemMessageChannel(baseDelivery.channel)) {
         return baseDelivery.channel;
       }
       return params.wantsDelivery ? DEFAULT_CHAT_CHANNEL : INTERNAL_MESSAGE_CHANNEL;
@@ -66,7 +71,7 @@ export function resolveAgentDeliveryPlan(params: {
       return requestedChannel;
     }
 
-    if (baseDelivery.channel && baseDelivery.channel !== INTERNAL_MESSAGE_CHANNEL) {
+    if (baseDelivery.channel && !isSystemMessageChannel(baseDelivery.channel)) {
       return baseDelivery.channel;
     }
     return params.wantsDelivery ? DEFAULT_CHAT_CHANNEL : INTERNAL_MESSAGE_CHANNEL;

@@ -4,7 +4,7 @@ import { logVerbose } from "../../globals.js";
 import {
   GATEWAY_CLIENT_MODES,
   GATEWAY_CLIENT_NAMES,
-  isInternalMessageChannel,
+  isSystemMessageChannel,
 } from "../../utils/message-channel.js";
 
 const COMMAND = "/approve";
@@ -86,7 +86,7 @@ export const handleApproveCommand: CommandHandler = async (params, allowTextComm
     return { shouldContinue: false, reply: { text: parsed.error } };
   }
 
-  if (isInternalMessageChannel(params.command.channel)) {
+  if (isSystemMessageChannel(params.command.channel)) {
     const scopes = params.ctx.GatewayClientScopes ?? [];
     const hasApprovals = scopes.includes("operator.approvals") || scopes.includes("operator.admin");
     if (!hasApprovals) {

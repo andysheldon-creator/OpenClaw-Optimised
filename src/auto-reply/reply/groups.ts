@@ -3,7 +3,7 @@ import type { GroupKeyResolution, SessionEntry } from "../../config/sessions.js"
 import type { TemplateContext } from "../templating.js";
 import { getChannelDock } from "../../channels/dock.js";
 import { getChannelPlugin, normalizeChannelId } from "../../channels/plugins/index.js";
-import { isInternalMessageChannel } from "../../utils/message-channel.js";
+import { isSystemMessageChannel } from "../../utils/message-channel.js";
 import { normalizeGroupActivation } from "../group-activation.js";
 
 function extractGroupId(raw: string | undefined | null): string | undefined {
@@ -75,7 +75,7 @@ export function buildGroupIntro(params: {
     if (!providerKey) {
       return "chat";
     }
-    if (isInternalMessageChannel(providerKey)) {
+    if (isSystemMessageChannel(providerKey)) {
       return "WebChat";
     }
     if (providerId) {

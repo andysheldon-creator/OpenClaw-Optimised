@@ -20,9 +20,9 @@ import { defaultRuntime } from "../../runtime.js";
 import { resolveSendPolicy } from "../../sessions/send-policy.js";
 import { normalizeSessionDeliveryFields } from "../../utils/delivery-context.js";
 import {
-  INTERNAL_MESSAGE_CHANNEL,
   isDeliverableMessageChannel,
   isGatewayMessageChannel,
+  isSystemMessageChannel,
   normalizeMessageChannel,
 } from "../../utils/message-channel.js";
 import { resolveAssistantIdentity } from "../assistant-identity.js";
@@ -352,7 +352,7 @@ export const agentHandlers: GatewayRequestHandlers = {
       }
     }
 
-    const deliver = request.deliver === true && resolvedChannel !== INTERNAL_MESSAGE_CHANNEL;
+    const deliver = request.deliver === true && !isSystemMessageChannel(resolvedChannel);
 
     const accepted = {
       runId,

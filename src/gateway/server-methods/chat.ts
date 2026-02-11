@@ -10,7 +10,7 @@ import { dispatchInboundMessage } from "../../auto-reply/dispatch.js";
 import { createReplyDispatcher } from "../../auto-reply/reply/reply-dispatcher.js";
 import { createReplyPrefixOptions } from "../../channels/reply-prefix.js";
 import { resolveSendPolicy } from "../../sessions/send-policy.js";
-import { INTERNAL_MESSAGE_CHANNEL } from "../../utils/message-channel.js";
+import { INTERNAL_MESSAGE_CHANNEL, WEBCHAT_MESSAGE_CHANNEL } from "../../utils/message-channel.js";
 import {
   abortChatRunById,
   abortChatRunsForSessionKey,
@@ -163,6 +163,24 @@ function nextChatSeq(context: { agentRunSeq: Map<string, number> }, runId: strin
   return next;
 }
 
+function isHeartbeatAckMessage(message: Record<string, unknown>): boolean {
+  if (message.role !== "assistant") {
+    return false;
+  }
+  const content = message.content;
+  if (!Array.isArray(content)) {
+    return false;
+  }
+  return content.some((part) => {
+    if (part.type !== "text") {
+      return false;
+    }
+    const text = part.text?.trim() ?? "";
+    // Robust pattern matching for heartbeats, allowing emojis and subtle variations
+    return /^(HEARTBEAT_(OK|ACK))(?:[\s\W]*|[\u{1F300}-\u{1F9FF}]*)$/u.test(text);
+  });
+}
+
 function broadcastChatFinal(params: {
   context: Pick<GatewayRequestContext, "broadcast" | "nodeSendToSession" | "agentRunSeq">;
   runId: string;
@@ -200,7 +218,7 @@ function broadcastChatError(params: {
 }
 
 export const chatHandlers: GatewayRequestHandlers = {
-  "chat.history": async ({ params, respond, context }) => {
+  "chat.history": async ({ params, respond, context, client, isWebchatConnect }) => {
     if (!validateChatHistoryParams(params)) {
       respond(
         false,
@@ -220,11 +238,26 @@ export const chatHandlers: GatewayRequestHandlers = {
     const sessionId = entry?.sessionId;
     const rawMessages =
       sessionId && storePath ? readSessionMessages(sessionId, storePath, entry?.sessionFile) : [];
+
+    // Filter heartbeats if requested or if this is a webchat connection
+    const showHeartbeats = cfg.channels?.defaults?.heartbeat?.showOk ?? false;
+    const isWebchat = isWebchatConnect(client?.connect);
+    const shouldFilterHeartbeats = !showHeartbeats && isWebchat;
+
+    const filteredMessages = shouldFilterHeartbeats
+      ? rawMessages.filter(
+          (msg): msg is Record<string, unknown> =>
+            typeof msg === "object" &&
+            msg !== null &&
+            !isHeartbeatAckMessage(msg as Record<string, unknown>),
+        )
+      : rawMessages;
+
     const hardMax = 1000;
     const defaultLimit = 200;
     const requested = typeof limit === "number" ? limit : defaultLimit;
     const max = Math.min(hardMax, requested);
-    const sliced = rawMessages.length > max ? rawMessages.slice(-max) : rawMessages;
+    const sliced = filteredMessages.length > max ? filteredMessages.slice(-max) : filteredMessages;
     const sanitized = stripEnvelopeFromMessages(sliced);
     const capped = capArrayByJsonBytes(sanitized, getMaxChatHistoryMessagesBytes()).items;
     let thinkingLevel = entry?.thinkingLevel;
@@ -315,7 +348,7 @@ export const chatHandlers: GatewayRequestHandlers = {
       runIds: res.aborted ? [runId] : [],
     });
   },
-  "chat.send": async ({ params, respond, context, client }) => {
+  "chat.send": async ({ params, respond, context, client, isWebchatConnect }) => {
     if (!validateChatSendParams(params)) {
       respond(
         false,
@@ -341,6 +374,10 @@ export const chatHandlers: GatewayRequestHandlers = {
       timeoutMs?: number;
       idempotencyKey: string;
     };
+
+    const isWebchat = isWebchatConnect(client?.connect);
+    const effectiveChannel = isWebchat ? WEBCHAT_MESSAGE_CHANNEL : INTERNAL_MESSAGE_CHANNEL;
+
     const stopCommand = isChatStopCommandText(p.message);
     const normalizedAttachments =
       p.attachments
@@ -477,9 +514,9 @@ export const chatHandlers: GatewayRequestHandlers = {
         RawBody: parsedMessage,
         CommandBody: commandBody,
         SessionKey: sessionKey,
-        Provider: INTERNAL_MESSAGE_CHANNEL,
-        Surface: INTERNAL_MESSAGE_CHANNEL,
-        OriginatingChannel: INTERNAL_MESSAGE_CHANNEL,
+        Provider: effectiveChannel,
+        Surface: effectiveChannel,
+        OriginatingChannel: effectiveChannel,
         ChatType: "direct",
         CommandAuthorized: true,
         MessageSid: clientRunId,
@@ -496,7 +533,7 @@ export const chatHandlers: GatewayRequestHandlers = {
       const { onModelSelected, ...prefixOptions } = createReplyPrefixOptions({
         cfg,
         agentId,
-        channel: INTERNAL_MESSAGE_CHANNEL,
+        channel: effectiveChannel,
       });
       const finalReplyParts: string[] = [];
       const dispatcher = createReplyDispatcher({

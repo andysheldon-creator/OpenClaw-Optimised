@@ -104,6 +104,14 @@ describe("resolveOutboundTarget", () => {
       expect(res.error.message).toContain("WebChat");
     }
   });
+
+  it("rejects internal delivery", () => {
+    const res = resolveOutboundTarget({ channel: "internal", to: "x" });
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.error.message).toContain("WebChat");
+    }
+  });
 });
 
 describe("resolveSessionDeliveryTarget", () => {

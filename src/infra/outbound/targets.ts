@@ -11,8 +11,8 @@ import { formatCliCommand } from "../../cli/command-format.js";
 import { normalizeAccountId } from "../../routing/session-key.js";
 import { deliveryContextFromSession } from "../../utils/delivery-context.js";
 import {
-  INTERNAL_MESSAGE_CHANNEL,
   isDeliverableMessageChannel,
+  isSystemMessageChannel,
   normalizeMessageChannel,
 } from "../../utils/message-channel.js";
 import { missingTargetError } from "./target-errors.js";
@@ -124,7 +124,7 @@ export function resolveOutboundTarget(params: {
   accountId?: string | null;
   mode?: ChannelOutboundTargetMode;
 }): OutboundTargetResolution {
-  if (params.channel === INTERNAL_MESSAGE_CHANNEL) {
+  if (isSystemMessageChannel(params.channel)) {
     return {
       ok: false,
       error: new Error(

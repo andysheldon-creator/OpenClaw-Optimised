@@ -248,7 +248,7 @@ describe("resolveHeartbeatVisibility", () => {
     });
   });
 
-  it("webchat uses channel defaults only (no per-channel config)", () => {
+  it("system channels use channel defaults only (no per-channel config)", () => {
     const cfg = {
       channels: {
         defaults: {
@@ -261,28 +261,33 @@ describe("resolveHeartbeatVisibility", () => {
       },
     } as OpenClawConfig;
 
-    const result = resolveHeartbeatVisibility({ cfg, channel: "webchat" });
+    const webchatResult = resolveHeartbeatVisibility({ cfg, channel: "webchat" });
+    const internalResult = resolveHeartbeatVisibility({ cfg, channel: "internal" });
 
-    expect(result).toEqual({
+    expect(webchatResult).toEqual({
       showOk: true,
       showAlerts: false,
       useIndicator: false,
     });
+    expect(internalResult).toEqual(webchatResult);
   });
 
-  it("webchat returns defaults when no channel defaults configured", () => {
+  it("system channels return defaults when no channel defaults configured", () => {
     const cfg = {} as OpenClawConfig;
 
-    const result = resolveHeartbeatVisibility({ cfg, channel: "webchat" });
+    const webchatResult = resolveHeartbeatVisibility({ cfg, channel: "webchat" });
+    const internalResult = resolveHeartbeatVisibility({ cfg, channel: "internal" });
 
-    expect(result).toEqual({
+    const expected = {
       showOk: false,
       showAlerts: true,
       useIndicator: true,
-    });
+    };
+    expect(webchatResult).toEqual(expected);
+    expect(internalResult).toEqual(expected);
   });
 
-  it("webchat ignores accountId (only uses defaults)", () => {
+  it("system channels ignore accountId (only uses defaults)", () => {
     const cfg = {
       channels: {
         defaults: {

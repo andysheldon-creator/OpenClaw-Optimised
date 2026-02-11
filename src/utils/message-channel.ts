@@ -14,8 +14,11 @@ import {
 } from "../gateway/protocol/client-info.js";
 import { getActivePluginRegistry } from "../plugins/runtime.js";
 
-export const INTERNAL_MESSAGE_CHANNEL = "webchat" as const;
+export const INTERNAL_MESSAGE_CHANNEL = "internal" as const;
 export type InternalMessageChannel = typeof INTERNAL_MESSAGE_CHANNEL;
+
+export const WEBCHAT_MESSAGE_CHANNEL = "webchat" as const;
+export type WebchatMessageChannel = typeof WEBCHAT_MESSAGE_CHANNEL;
 
 const MARKDOWN_CAPABLE_CHANNELS = new Set<string>([
   "slack",
@@ -24,6 +27,7 @@ const MARKDOWN_CAPABLE_CHANNELS = new Set<string>([
   "discord",
   "googlechat",
   "tui",
+  WEBCHAT_MESSAGE_CHANNEL,
   INTERNAL_MESSAGE_CHANNEL,
 ]);
 
@@ -44,6 +48,21 @@ export function isInternalMessageChannel(raw?: string | null): raw is InternalMe
   return normalizeMessageChannel(raw) === INTERNAL_MESSAGE_CHANNEL;
 }
 
+export function isWebchatMessageChannel(raw?: string | null): raw is WebchatMessageChannel {
+  return normalizeMessageChannel(raw) === WEBCHAT_MESSAGE_CHANNEL;
+}
+
+/** Returns true if the channel is 'webchat' or 'internal' (non-deliverable gateway channels). */
+export function isSystemMessageChannel(
+  raw?: string | null,
+): raw is WebchatMessageChannel | InternalMessageChannel {
+  const normalized = normalizeMessageChannel(raw);
+  return normalized === WEBCHAT_MESSAGE_CHANNEL || normalized === INTERNAL_MESSAGE_CHANNEL;
+}
+
+/** @deprecated Use isSystemMessageChannel */
+export const isClientMessageChannel = isSystemMessageChannel;
+
 export function isWebchatClient(client?: GatewayClientInfoLike | null): boolean {
   const mode = normalizeGatewayClientMode(client?.mode);
   if (mode === GATEWAY_CLIENT_MODES.WEBCHAT) {
@@ -59,6 +78,9 @@ export function normalizeMessageChannel(raw?: string | null): string | undefined
   }
   if (normalized === INTERNAL_MESSAGE_CHANNEL) {
     return INTERNAL_MESSAGE_CHANNEL;
+  }
+  if (normalized === WEBCHAT_MESSAGE_CHANNEL) {
+    return WEBCHAT_MESSAGE_CHANNEL;
   }
   const builtIn = normalizeChatChannelId(normalized);
   if (builtIn) {
@@ -97,11 +119,15 @@ export const listDeliverableMessageChannels = (): ChannelId[] =>
 
 export type DeliverableMessageChannel = ChannelId;
 
-export type GatewayMessageChannel = DeliverableMessageChannel | InternalMessageChannel;
+export type GatewayMessageChannel =
+  | DeliverableMessageChannel
+  | InternalMessageChannel
+  | WebchatMessageChannel;
 
 export const listGatewayMessageChannels = (): GatewayMessageChannel[] => [
   ...listDeliverableMessageChannels(),
   INTERNAL_MESSAGE_CHANNEL,
+  WEBCHAT_MESSAGE_CHANNEL,
 ];
 
 export const listGatewayAgentChannelAliases = (): string[] =>
