@@ -350,11 +350,26 @@ export function createMatrixRoomMessageHandler(params: MatrixMonitorHandlerParam
         return;
       }
 
+      // Resolve route early to get agent ID for mention patterns (fixes agent-level pattern support)
+      const baseRoute = core.channel.routing.resolveAgentRoute({
+        cfg,
+        channel: "matrix",
+        peer: {
+          kind: isDirectMessage ? "direct" : "channel",
+          id: isDirectMessage ? senderId : roomId,
+        },
+      });
+
+      // Build agent-specific mention regexes (fallback to global if route invalid)
+      const agentMentionRegexes = baseRoute?.agentId
+        ? core.channel.mentions.buildMentionRegexes(cfg, baseRoute.agentId)
+        : mentionRegexes;
+
       const { wasMentioned, hasExplicitMention } = resolveMentions({
         content,
         userId: selfUserId,
         text: bodyText,
-        mentionRegexes,
+        mentionRegexes: agentMentionRegexes,
       });
       const allowTextCommands = core.channel.commands.shouldHandleTextCommands({
         cfg,
@@ -416,7 +431,7 @@ export function createMatrixRoomMessageHandler(params: MatrixMonitorHandlerParam
         !hasExplicitMention &&
         commandAuthorized &&
         hasControlCommandInMessage;
-      const canDetectMention = mentionRegexes.length > 0 || hasExplicitMention;
+      const canDetectMention = agentMentionRegexes.length > 0 || hasExplicitMention;
       if (isRoom && shouldRequireMention && !wasMentioned && !shouldBypassMention) {
         logger.info("skipping room message", { roomId, reason: "no-mention" });
         return;
@@ -430,15 +445,6 @@ export function createMatrixRoomMessageHandler(params: MatrixMonitorHandlerParam
         messageId,
         threadRootId,
         isThreadRoot: false, // @vector-im/matrix-bot-sdk doesn't have this info readily available
-      });
-
-      const baseRoute = core.channel.routing.resolveAgentRoute({
-        cfg,
-        channel: "matrix",
-        peer: {
-          kind: isDirectMessage ? "direct" : "channel",
-          id: isDirectMessage ? senderId : roomId,
-        },
       });
 
       const route = {
