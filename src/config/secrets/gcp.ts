@@ -29,8 +29,9 @@ export class GcpSecretsProviderError extends Error {
   constructor(
     message: string,
     public readonly secretName?: string,
+    options?: ErrorOptions,
   ) {
-    super(message);
+    super(message, options);
     this.name = "GcpSecretsProviderError";
   }
 }
@@ -64,11 +65,11 @@ export function createGcpSecretsProvider(options: GcpSecretsProviderOptions): Se
       client = new SecretManagerServiceClient() as SecretManagerClient;
       return client;
     } catch (err) {
-      const wrapped = new GcpSecretsProviderError(
+      throw new GcpSecretsProviderError(
         `Failed to load @google-cloud/secret-manager. Is it installed? ${err instanceof Error ? err.message : String(err)}`,
+        undefined,
+        { cause: err },
       );
-      wrapped.cause = err;
-      throw wrapped;
     }
   }
 
