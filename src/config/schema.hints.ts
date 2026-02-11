@@ -139,6 +139,8 @@ const FIELD_LABELS: Record<string, string> = {
   "agents.list[].tools.alsoAllow": "Agent Tool Allowlist Additions",
   "tools.byProvider": "Tool Policy by Provider",
   "agents.list[].tools.byProvider": "Agent Tool Policy by Provider",
+  "tools.exec.shell": "Exec Shell",
+  "tools.exec.shellArgs": "Exec Shell Args",
   "tools.exec.applyPatch.enabled": "Enable apply_patch",
   "tools.exec.applyPatch.allowModels": "apply_patch Model Allowlist",
   "tools.exec.notifyOnExit": "Exec Notify On Exit",
@@ -421,6 +423,8 @@ const FIELD_HELP: Record<string, string> = {
     "Include full message payloads in trace output (default: true).",
   "diagnostics.cacheTrace.includePrompt": "Include prompt text in trace output (default: true).",
   "diagnostics.cacheTrace.includeSystem": "Include system prompt in trace output (default: true).",
+  "tools.exec.shell": "Exec shell binary path (PowerShell on Windows, $SHELL on Unix).",
+  "tools.exec.shellArgs": "Exec shell arguments. Auto-detected when omitted.",
   "tools.exec.applyPatch.enabled":
     "Experimental. Enables apply_patch for OpenAI models when allowed by tool policy.",
   "tools.exec.applyPatch.allowModels":
