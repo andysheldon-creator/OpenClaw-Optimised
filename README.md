@@ -332,6 +332,42 @@ Minimal `~/.openclaw/openclaw.json` (model + defaults):
 
 Details: [Security guide](https://docs.openclaw.ai/gateway/security) · [Docker + sandboxing](https://docs.openclaw.ai/install/docker) · [Sandbox config](https://docs.openclaw.ai/gateway/configuration)
 
+### Secure mode (zero-trust secrets proxy)
+
+For high-security deployments, run the gateway inside a Docker container with **no access to secrets**. API keys stay on the host and are injected at the network edge by a secrets proxy.
+
+```bash
+# Start gateway in zero-trust secure mode (requires Docker)
+openclaw gateway --secure
+```
+
+The `--secure` flag starts a host-side secrets proxy + an isolated Docker container. A socat relay bridges the air-gapped container network to the host proxy. The container never sees real credentials — only placeholder tokens that the proxy replaces at request time.
+
+```mermaid
+graph LR
+  USER["👤 User"] <-->|WebSocket| GW["Gateway Container<br/>(no secrets)"]
+  GW -->|"outbound API call"| RELAY["Relay<br/>(socat)"]
+  RELAY -->|forwards| PROXY["Secrets Proxy<br/>127.0.0.1 (host)"]
+  PROXY -->|"request with credentials"| API["☁️ Allowlisted APIs<br/>(LLMs · Channels · Integrations)"]
+  API -.->|response| PROXY -.-> RELAY -.-> GW
+
+  style GW fill:#1a1a2e,color:#fff
+  style RELAY fill:#16213e,color:#fff
+  style PROXY fill:#0f3460,color:#fff
+  style API fill:#533483,color:#fff
+```
+
+**Allowlist CLI** — manage which domains the proxy will forward to:
+
+| Command | Description |
+|---------|-------------|
+| `openclaw gateway allowlist list` | List all allowed proxy domains |
+| `openclaw gateway allowlist add <domain>` | Add a domain to the allowlist |
+| `openclaw gateway allowlist remove <domain>` | Remove a domain from the allowlist |
+| `openclaw gateway allowlist port [value]` | Get or set the secrets proxy port |
+
+Details: [Security guide](https://docs.openclaw.ai/gateway/security) · [Trust model](https://trust.openclaw.ai)
+
 ### [WhatsApp](https://docs.openclaw.ai/channels/whatsapp)
 
 - Link the device: `pnpm openclaw channels login` (stores creds in `~/.openclaw/credentials`).
