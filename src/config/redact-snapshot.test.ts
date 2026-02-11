@@ -257,6 +257,53 @@ describe("redactConfigSnapshot", () => {
     const gw = result.config.gateway as Record<string, Record<string, string>>;
     expect(gw.auth.token).toBe(REDACTED_SENTINEL);
   });
+
+  it("does not redact non-sensitive token-like fields (maxTokens, contextTokens)", () => {
+    const snapshot = makeSnapshot({
+      models: {
+        providers: {
+          openai: {
+            apiKey: "sk-proj-fake-openai-api-key-value",
+            models: [{ id: "gpt-5.2", maxTokens: 8192, contextWindow: 32768 }],
+          },
+        },
+      },
+      agents: {
+        defaults: { contextTokens: 200000 },
+      },
+    });
+    const result = redactConfigSnapshot(snapshot);
+    const models = (result.config as Record<string, unknown>).models as Record<string, unknown>;
+    const openai = (models.providers as Record<string, unknown>).openai as Record<string, unknown>;
+    // apiKey should be redacted
+    expect(openai.apiKey).toBe(REDACTED_SENTINEL);
+    // maxTokens should NOT be redacted (it's a number, not a credential)
+    const modelList = openai.models as Array<Record<string, unknown>>;
+    expect(modelList[0].maxTokens).toBe(8192);
+    expect(modelList[0].contextWindow).toBe(32768);
+    // contextTokens should NOT be redacted
+    const agents = (result.config as Record<string, unknown>).agents as Record<string, unknown>;
+    const defaults = agents.defaults as Record<string, unknown>;
+    expect(defaults.contextTokens).toBe(200000);
+  });
+
+  it("does not redact maxTokensField (string enum, not a credential)", () => {
+    const snapshot = makeSnapshot({
+      models: {
+        providers: {
+          openai: {
+            apiKey: "sk-proj-fake-openai-api-key-value",
+            maxTokensField: "max_completion_tokens",
+          },
+        },
+      },
+    });
+    const result = redactConfigSnapshot(snapshot);
+    const models = (result.config as Record<string, unknown>).models as Record<string, unknown>;
+    const openai = (models.providers as Record<string, unknown>).openai as Record<string, unknown>;
+    expect(openai.apiKey).toBe(REDACTED_SENTINEL);
+    expect(openai.maxTokensField).toBe("max_completion_tokens");
+  });
 });
 
 describe("restoreRedactedValues", () => {
@@ -364,6 +411,30 @@ describe("restoreRedactedValues", () => {
     // Restore (simulates config.set before write)
     const restored = restoreRedactedValues(redacted.config, snapshot.config);
 
+    expect(restored).toEqual(originalConfig);
+  });
+
+  it("round-trips config with model token fields through redact → restore", () => {
+    const originalConfig = {
+      gateway: { auth: { token: "gateway-auth-secret-token-value" }, port: 18789 },
+      channels: {
+        telegram: { botToken: "fake-telegram-token-placeholder-value" },
+      },
+      models: {
+        providers: {
+          openai: {
+            apiKey: "sk-proj-fake-openai-api-key-value",
+            models: [{ id: "gpt-5.2", maxTokens: 8192, contextWindow: 32768 }],
+          },
+        },
+      },
+      agents: {
+        defaults: { contextTokens: 200000 },
+      },
+    };
+    const snapshot = makeSnapshot(originalConfig);
+    const redacted = redactConfigSnapshot(snapshot);
+    const restored = restoreRedactedValues(redacted.config, snapshot.config);
     expect(restored).toEqual(originalConfig);
   });
 });

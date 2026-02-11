@@ -10,7 +10,8 @@ export const REDACTED_SENTINEL = "__OPENCLAW_REDACTED__";
 
 /**
  * Patterns that identify sensitive config field names.
- * Aligned with the UI-hint logic in schema.ts.
+ * Narrower than the UI-hint logic in schema.ts (which still uses /token/i)
+ * to avoid false-positive redaction of numeric fields like maxTokens.
  */
 const SENSITIVE_KEY_PATTERNS = [/token$/i, /password/i, /secret/i, /api.?key/i];
 
