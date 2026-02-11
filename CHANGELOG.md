@@ -10,6 +10,10 @@ Docs: https://docs.openclaw.ai
 - CLI: add `openclaw logs --local-time` to display log timestamps in local timezone. (#13818) Thanks @xialonglee.
 - Config: avoid redacting `maxTokens`-like fields during config snapshot redaction, preventing round-trip validation failures in `/config`. (#14006) Thanks @constansino.
 
+### Changes
+
+- Android: add timeout constant and exponential backoff to gateway discovery; prevents freezes when gateways are offline. (#9744) Thanks @hubertusgbecker.
+
 ### Fixes
 
 - Ollama: use configured `models.providers.ollama.baseUrl` for model discovery and normalize `/v1` endpoints to the native Ollama API root. (#14131) Thanks @shtse8.
