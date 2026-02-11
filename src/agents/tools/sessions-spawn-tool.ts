@@ -210,16 +210,27 @@ export function createSessionsSpawnTool(opts?: {
 
       // Now resolve with potentially overridden targetAgentId
       const targetAgentId = initialTargetAgentId;
-      if (targetAgentId !== requesterAgentId) {
+      const originalRequestedId = requestedAgentId
+        ? normalizeAgentId(requestedAgentId)
+        : requesterAgentId;
+
+      // Check allowlist against BOTH the original requested ID and the final overridden ID.
+      // This prevents a context script from silently redirecting to a disallowed agent.
+      const idsToCheck = new Set(
+        [originalRequestedId, targetAgentId]
+          .filter((id) => id !== requesterAgentId)
+          .map((id) => id.toLowerCase()),
+      );
+      if (idsToCheck.size > 0) {
         const allowAgents = resolveAgentConfig(cfg, requesterAgentId)?.subagents?.allowAgents ?? [];
         const allowAny = allowAgents.some((value) => value.trim() === "*");
-        const normalizedTargetId = targetAgentId.toLowerCase();
         const allowSet = new Set(
           allowAgents
             .filter((value) => value.trim() && value.trim() !== "*")
             .map((value) => normalizeAgentId(value).toLowerCase()),
         );
-        if (!allowAny && !allowSet.has(normalizedTargetId)) {
+        const disallowed = [...idsToCheck].find((id) => !allowAny && !allowSet.has(id));
+        if (disallowed) {
           const allowedText = allowAny
             ? "*"
             : allowSet.size > 0
@@ -227,7 +238,7 @@ export function createSessionsSpawnTool(opts?: {
               : "none";
           return jsonResult({
             status: "forbidden",
-            error: `agentId is not allowed for sessions_spawn (allowed: ${allowedText})`,
+            error: `agentId "${disallowed}" is not allowed for sessions_spawn (allowed: ${allowedText})`,
           });
         }
       }
