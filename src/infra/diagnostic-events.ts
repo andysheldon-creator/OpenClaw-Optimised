@@ -1,5 +1,4 @@
 import type { OpenClawConfig } from "../config/config.js";
-import { isVerbose } from "../globals.js";
 
 export type DiagnosticSessionState = "idle" | "processing" | "waiting";
 
@@ -168,12 +167,6 @@ function getDiagnosticEventsState(): DiagnosticEventsGlobalState {
   return globalStore.__openclawDiagnosticEventsState;
 }
 
-function debugLog(message: string): void {
-  if (isVerbose()) {
-    console.log(message);
-  }
-}
-
 export function isDiagnosticsEnabled(config?: OpenClawConfig): boolean {
   return config?.diagnostics?.enabled === true;
 }
@@ -192,22 +185,13 @@ export function emitDiagnosticEvent(event: DiagnosticEventInput) {
     seq: (state.seq += 1),
     ts: Date.now(),
   } satisfies DiagnosticEventPayload;
-  debugLog(
-    `[diagnostic-events] emit type=${enriched.type} seq=${enriched.seq} listeners=${state.listeners.size}`,
-  );
   state.dispatchDepth += 1;
   let listenerIndex = 0;
   for (const listener of state.listeners) {
     listenerIndex += 1;
     const listenerName = listener.name || `listener_${listenerIndex}`;
     try {
-      debugLog(
-        `[diagnostic-events] dispatch type=${enriched.type} seq=${enriched.seq} listener=${listenerName}`,
-      );
       listener(enriched);
-      debugLog(
-        `[diagnostic-events] dispatched type=${enriched.type} seq=${enriched.seq} listener=${listenerName}`,
-      );
     } catch (err) {
       const errorMessage =
         err instanceof Error
@@ -227,25 +211,14 @@ export function emitDiagnosticEvent(event: DiagnosticEventInput) {
 export function onDiagnosticEvent(listener: (evt: DiagnosticEventPayload) => void): () => void {
   const state = getDiagnosticEventsState();
   state.listeners.add(listener);
-  const listenerName = listener.name || "listener";
-  debugLog(
-    `[diagnostic-events] subscribe listeners=${state.listeners.size} listener=${listenerName}`,
-  );
   return () => {
     state.listeners.delete(listener);
-    debugLog(
-      `[diagnostic-events] unsubscribe listeners=${state.listeners.size} listener=${listenerName}`,
-    );
   };
 }
 
 export function resetDiagnosticEventsForTest(): void {
   const state = getDiagnosticEventsState();
-  debugLog(
-    `[diagnostic-events] reset before seq=${state.seq} listeners=${state.listeners.size} depth=${state.dispatchDepth}`,
-  );
   state.seq = 0;
   state.listeners.clear();
   state.dispatchDepth = 0;
-  debugLog("[diagnostic-events] reset complete");
 }
