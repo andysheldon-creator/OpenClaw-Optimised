@@ -23,7 +23,10 @@ import {
 import { listChannelAgentTools } from "./channel-tools.js";
 import { createOpenClawTools } from "./openclaw-tools.js";
 import { wrapToolWithAbortSignal } from "./pi-tools.abort.js";
-import { wrapToolWithAgentShieldTrust } from "./pi-tools.agentshield-trust.js";
+import {
+  wrapToolWithAgentShieldTrust,
+  resolveAgentShieldTrustContext,
+} from "./pi-tools.agentshield-trust.js";
 import { wrapToolWithAgentShieldApproval } from "./pi-tools.agentshield.js";
 import { wrapToolWithBeforeToolCallHook } from "./pi-tools.before-tool-call.js";
 import {
@@ -438,10 +441,21 @@ export function createOpenClawCodingTools(options?: {
   // Always normalize tool JSON Schemas before handing them to pi-agent/pi-ai.
   // Without this, some providers (notably OpenAI) will reject root-level union schemas.
   const normalized = subagentFiltered.map(normalizeToolParameters);
+  const trustMeta = resolveAgentShieldTrustContext({
+    agentId,
+    agentDir: options?.agentDir,
+    workspaceDir: options?.workspaceDir,
+    sessionKey: options?.sessionKey,
+    config: options?.config,
+  });
   const withTrust = normalized.map((tool) =>
     wrapToolWithAgentShieldTrust(tool, {
       agentId,
       sessionKey: options?.sessionKey,
+      publisherId: trustMeta.publisherId,
+      signedObject: trustMeta.signedTrustCard ?? undefined,
+      trustCardId: trustMeta.trustCardId ?? undefined,
+      contentSha256: trustMeta.contentSha256 ?? undefined,
     }),
   );
   const withAgentShield = withTrust.map((tool) =>
