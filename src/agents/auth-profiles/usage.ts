@@ -83,10 +83,13 @@ export function calculateAuthProfileCooldownMs(errorCount: number): number {
   );
 }
 
+type BillingRecoveryMode = "disable" | "retry" | "notify";
+
 type ResolvedAuthCooldownConfig = {
   billingBackoffMs: number;
   billingMaxMs: number;
   failureWindowMs: number;
+  billingRecoveryMode: BillingRecoveryMode;
 };
 
 function resolveAuthCooldownConfig(params: {
@@ -126,10 +129,14 @@ function resolveAuthCooldownConfig(params: {
     defaults.failureWindowHours,
   );
 
+  const billingRecoveryMode: BillingRecoveryMode =
+    (cooldowns?.billingRecoveryMode as BillingRecoveryMode | undefined) ?? "disable";
+
   return {
     billingBackoffMs: billingBackoffHours * 60 * 60 * 1000,
     billingMaxMs: billingMaxHours * 60 * 60 * 1000,
     failureWindowMs: failureWindowHours * 60 * 60 * 1000,
+    billingRecoveryMode,
   };
 }
 
@@ -182,14 +189,24 @@ function computeNextProfileUsageStats(params: {
   };
 
   if (params.reason === "billing") {
-    const billingCount = failureCounts.billing ?? 1;
-    const backoffMs = calculateAuthProfileBillingDisableMsWithConfig({
-      errorCount: billingCount,
-      baseMs: params.cfgResolved.billingBackoffMs,
-      maxMs: params.cfgResolved.billingMaxMs,
-    });
-    updatedStats.disabledUntil = params.now + backoffMs;
-    updatedStats.disabledReason = "billing";
+    const recoveryMode = params.cfgResolved.billingRecoveryMode;
+    if (recoveryMode === "notify") {
+      // No cooldown — profile stays available for immediate retry after top-up.
+      // Still record the failure for diagnostics but don't disable.
+    } else if (recoveryMode === "retry") {
+      // Short 5-minute cooldown for replenishable credit systems.
+      updatedStats.cooldownUntil = params.now + 5 * 60 * 1000;
+    } else {
+      // Default "disable": exponential backoff (5–24 hours).
+      const billingCount = failureCounts.billing ?? 1;
+      const backoffMs = calculateAuthProfileBillingDisableMsWithConfig({
+        errorCount: billingCount,
+        baseMs: params.cfgResolved.billingBackoffMs,
+        maxMs: params.cfgResolved.billingMaxMs,
+      });
+      updatedStats.disabledUntil = params.now + backoffMs;
+      updatedStats.disabledReason = "billing";
+    }
   } else {
     const backoffMs = calculateAuthProfileCooldownMs(nextErrorCount);
     updatedStats.cooldownUntil = params.now + backoffMs;

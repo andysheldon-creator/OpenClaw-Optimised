@@ -25,5 +25,15 @@ export type AuthConfig = {
      * this window, counters reset. Default: 24.
      */
     failureWindowHours?: number;
+    /**
+     * How to handle billing/402 errors.
+     * - "disable": (default) Disable the profile for hours (exponential backoff).
+     *   Best for provider API keys where credits require manual action.
+     * - "retry": Short 5-minute cooldown then retry. Best for prepaid credit
+     *   systems (like Fuel) where top-ups are fast and automated.
+     * - "notify": No cooldown — just show the error and continue. The profile
+     *   stays available for immediate retry after the user tops up.
+     */
+    billingRecoveryMode?: "disable" | "retry" | "notify";
   };
 };

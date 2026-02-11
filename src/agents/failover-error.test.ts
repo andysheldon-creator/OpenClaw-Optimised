@@ -53,4 +53,39 @@ describe("failover-error", () => {
     expect(described.message).toBe("123");
     expect(described.reason).toBeUndefined();
   });
+
+  it("extracts x402 payment info from billing error with JSON body", () => {
+    const body = JSON.stringify({
+      error: "Credits exhausted",
+      topup: "https://openclaw.rocks/fuel",
+      balance: { budgetLimit: 20, budgetUsed: 20, remaining: 0 },
+    });
+    const err = coerceToFailoverError(`402 ${body}`, {
+      provider: "bifrost",
+      model: "kimi-k2p5",
+    });
+    expect(err?.reason).toBe("billing");
+    expect(err?.status).toBe(402);
+    expect(err?.paymentInfo).toBeDefined();
+    expect(err?.paymentInfo?.topupUrl).toBe("https://openclaw.rocks/fuel");
+    expect(err?.paymentInfo?.balance?.remaining).toBe(0);
+  });
+
+  it("sets paymentInfo to undefined for non-billing errors", () => {
+    const err = coerceToFailoverError("rate limit exceeded", {
+      provider: "openai",
+      model: "gpt-4",
+    });
+    expect(err?.reason).toBe("rate_limit");
+    expect(err?.paymentInfo).toBeUndefined();
+  });
+
+  it("sets paymentInfo to undefined for billing errors without x402 body", () => {
+    const err = coerceToFailoverError("insufficient credits", {
+      provider: "anthropic",
+      model: "claude-opus-4-5",
+    });
+    expect(err?.reason).toBe("billing");
+    expect(err?.paymentInfo).toBeUndefined();
+  });
 });
