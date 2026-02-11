@@ -4,6 +4,7 @@ import type { OpenClawConfig } from "../config/config.js";
 import type { ModelProviderAuthMode, ModelProviderConfig } from "../config/types.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import { getShellEnvAppliedKeys } from "../infra/shell-env.js";
+import { getLogger } from "../logging/logger.js";
 import {
   normalizeOptionalSecretInput,
   normalizeSecretInput,
@@ -190,7 +191,9 @@ export async function resolveApiKeyForProvider(params: {
           mode: mode === "oauth" ? "oauth" : mode === "token" ? "token" : "api-key",
         };
       }
-    } catch {}
+    } catch (err) {
+      getLogger().debug(`auth profile resolution failed for ${candidate}: ${String(err)}`);
+    }
   }
 
   const envResolved = resolveEnvApiKey(provider);
