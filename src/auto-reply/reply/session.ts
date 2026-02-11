@@ -26,6 +26,7 @@ import {
   type SessionScope,
   updateSessionStore,
 } from "../../config/sessions.js";
+import { deliverSessionMaintenanceWarning } from "../../infra/session-maintenance-warning.js";
 import { normalizeMainKey } from "../../routing/session-key.js";
 import { normalizeSessionDeliveryFields } from "../../utils/delivery-context.js";
 import { resolveCommandAuthorization } from "../command-auth.js";
@@ -347,10 +348,46 @@ export async function initSessionState(params: {
   }
   // Preserve per-session overrides while resetting compaction state on /new.
   sessionStore[sessionKey] = { ...sessionStore[sessionKey], ...sessionEntry };
-  await updateSessionStore(storePath, (store) => {
-    // Preserve per-session overrides while resetting compaction state on /new.
-    store[sessionKey] = { ...store[sessionKey], ...sessionEntry };
-  });
+  await updateSessionStore(
+    storePath,
+    (store) => {
+      // Preserve per-session overrides while resetting compaction state on /new.
+      store[sessionKey] = { ...store[sessionKey], ...sessionEntry };
+    },
+    {
+      activeSessionKey: sessionKey,
+      onWarn: (warning) =>
+        deliverSessionMaintenanceWarning({
+          cfg,
+          sessionKey,
+          entry: sessionEntry,
+          warning,
+        }),
+    },
+  );
+
+  // For new sessions triggered by reset commands, prepend a reminder to check workspace context.
+  let effectiveBody =
+    bodyStripped ??
+    ctx.BodyForAgent ??
+    ctx.Body ??
+    ctx.CommandBody ??
+    ctx.RawBody ??
+    ctx.BodyForCommands ??
+    "";
+
+  if (isNewSession && resetTriggered) {
+    // When a session reset is triggered, remind the AI to review workspace context files.
+    // These files (SOUL.md, USER.md, MEMORY.md, memory/*.md) are auto-loaded in the
+    // system prompt's "Project Context" section, but an explicit reminder helps ensure
+    // they are actively referenced at session start, as specified in AGENTS.md.
+    const contextReminder =
+      "[System: New session started. Review the Project Context section in your system prompt " +
+      "(SOUL.md, USER.md, MEMORY.md, and recent memory/*.md files) before responding.]";
+    effectiveBody = effectiveBody.trim()
+      ? `${contextReminder}\n\n${effectiveBody}`
+      : `${contextReminder}\n\nGreet the user based on the context above.`;
+  }
 
   const sessionCtx: TemplateContext = {
     ...ctx,
@@ -358,15 +395,7 @@ export async function initSessionState(params: {
     // RawBody is reserved for command/directive parsing and may omit context.
     BodyStripped: formatInboundBodyWithSenderMeta({
       ctx,
-      body: normalizeInboundTextNewlines(
-        bodyStripped ??
-          ctx.BodyForAgent ??
-          ctx.Body ??
-          ctx.CommandBody ??
-          ctx.RawBody ??
-          ctx.BodyForCommands ??
-          "",
-      ),
+      body: normalizeInboundTextNewlines(effectiveBody),
     }),
     SessionId: sessionId,
     IsNewSession: isNewSession ? "true" : "false",
