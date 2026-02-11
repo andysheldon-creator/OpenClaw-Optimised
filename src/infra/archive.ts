@@ -113,6 +113,9 @@ export async function extractArchive(params: {
 
   const label = kind === "zip" ? "extract zip" : "extract tar";
   if (kind === "tar") {
+    // Store validation error to throw after extraction attempt
+    let validationError: Error | null = null;
+
     await withTimeout(
       tar.x({
         file: params.archivePath,
@@ -125,7 +128,9 @@ export async function extractArchive(params: {
             return true;
           }
           if (!isPathWithinBase(params.destDir, normalizedEntry)) {
-            throw new Error(`tar entry escapes destination: ${entryPath}`);
+            // Store error instead of throwing to avoid unhandled rejection
+            validationError = new Error(`tar entry escapes destination: ${entryPath}`);
+            return false; // Reject this entry
           }
           return true;
         },
@@ -133,6 +138,11 @@ export async function extractArchive(params: {
       params.timeoutMs,
       label,
     );
+
+    // Throw validation error after extraction completes
+    if (validationError) {
+      throw validationError;
+    }
     return;
   }
 
