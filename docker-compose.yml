@@ -29,6 +29,8 @@ services:
         - OPENCLAW_DOCKER_APT_PACKAGES=ffmpeg libvips-dev
     container_name: openclaw-gateway
     image: ${OPENCLAW_IMAGE:-openclaw-local:latest}
+    ports:
+      - "18789:18789"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: always
@@ -44,8 +46,9 @@ services:
       - "lan"
       - "--port"
       - "${VIRTUAL_PORT:-18789}"
+      - "--allow-unconfigured"
     environment:
-      NODE_ENV: production
+      NODE_ENV: ${NODE_ENV:-production}
       OLLAMA_API_KEY: ${OLLAMA_API_KEY}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       VIRTUAL_HOST: ${DOMAIN}
@@ -55,6 +58,7 @@ services:
       BROWSER_PROVIDER: ${BROWSER_PROVIDER}
       BROWSER_ENDPOINT: ${BROWSER_ENDPOINT}
       OPENCLAW_PROFILE: ${OPENCLAW_PROFILE}
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
       AUTH_TOKEN: ${AUTH_TOKEN}
       WX_WEBHOOK_URL: ${WX_WEBHOOK_URL}
