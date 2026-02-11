@@ -12,6 +12,9 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -84,6 +87,9 @@ class GatewaySession(
   private val writeLock = Mutex()
   private val pending = ConcurrentHashMap<String, CompletableDeferred<RpcResponse>>()
 
+  private val _awaitingPairing = MutableStateFlow(false)
+  val awaitingPairing: StateFlow<Boolean> = _awaitingPairing.asStateFlow()
+
   @Volatile private var canvasHostUrl: String? = null
   @Volatile private var mainSessionKey: String? = null
 
@@ -120,6 +126,7 @@ class GatewaySession(
       job = null
       canvasHostUrl = null
       mainSessionKey = null
+      _awaitingPairing.value = false
       onDisconnected("Offline")
     }
   }
@@ -195,11 +202,7 @@ class GatewaySession(
       val url = "$scheme://${endpoint.host}:${endpoint.port}"
       val request = Request.Builder().url(url).build()
       socket = client.newWebSocket(request, Listener())
-      try {
-        connectDeferred.await()
-      } catch (err: Throwable) {
-        throw err
-      }
+      connectDeferred.await()
     }
 
     suspend fun request(method: String, params: JsonElement?, timeoutMs: Long): RpcResponse {
@@ -247,6 +250,11 @@ class GatewaySession(
       if (tlsConfig != null) {
         builder.sslSocketFactory(tlsConfig.sslSocketFactory, tlsConfig.trustManager)
         builder.hostnameVerifier(tlsConfig.hostnameVerifier)
+      } else {
+        // Force cleartext connection specs when TLS is not required.
+        // Prevents OkHttp from attempting TLS negotiation on plain ws:// URLs
+        // which can fail with "Not initialized" on some Android versions.
+        builder.connectionSpecs(listOf(okhttp3.ConnectionSpec.CLEARTEXT))
       }
       return builder.build()
     }
@@ -269,13 +277,27 @@ class GatewaySession(
       }
 
       override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+        val cause = t.cause
+        val detail = buildString {
+          append(t::class.java.simpleName)
+          append(": ")
+          append(t.message ?: "null")
+          if (cause != null) {
+            append(" [cause: ")
+            append(cause::class.java.simpleName)
+            append(": ")
+            append(cause.message ?: "null")
+            append("]")
+          }
+        }
+        Log.e(loggerTag, "WebSocket onFailure: $detail, response=$response", t)
         if (!connectDeferred.isCompleted) {
           connectDeferred.completeExceptionally(t)
         }
         if (isClosed.compareAndSet(false, true)) {
           failPending()
           closedDeferred.complete(Unit)
-          onDisconnected("Gateway error: ${t.message ?: t::class.java.simpleName}")
+          onDisconnected("Error: $detail")
         }
       }
 
@@ -292,7 +314,12 @@ class GatewaySession(
     }
 
     private suspend fun sendConnect(connectNonce: String?) {
-      val identity = identityStore.loadOrCreate()
+      val identity = try {
+        identityStore.loadOrCreate()
+      } catch (err: Throwable) {
+        Log.e(loggerTag, "loadOrCreate failed", err)
+        throw err
+      }
       val storedToken = deviceAuthStore.loadToken(identity.deviceId, options.role)
       val trimmedToken = token?.trim().orEmpty()
       val authToken = if (storedToken.isNullOrBlank()) trimmedToken else storedToken
@@ -300,9 +327,13 @@ class GatewaySession(
       val payload = buildConnectParams(identity, connectNonce, authToken, password?.trim())
       val res = request("connect", payload, timeoutMs = 8_000)
       if (!res.ok) {
+        val errorCode = res.error?.code ?: ""
         val msg = res.error?.message ?: "connect failed"
         if (canFallbackToShared) {
           deviceAuthStore.clearToken(identity.deviceId, options.role)
+        }
+        if (errorCode == "NOT_PAIRED") {
+          throw PairingRequiredException("Pairing required — approve this device from the gateway")
         }
         throw IllegalStateException(msg)
       }
@@ -552,17 +583,50 @@ class GatewaySession(
       if (target == null) {
         currentConnection?.closeQuietly()
         currentConnection = null
+        _awaitingPairing.value = false
         delay(250)
         continue
       }
 
       try {
-        onDisconnected(if (attempt == 0) "Connecting…" else "Reconnecting…")
+        if (!_awaitingPairing.value) {
+          onDisconnected(if (attempt == 0) "Connecting…" else "Reconnecting…")
+        }
         connectOnce(target)
         attempt = 0
+        _awaitingPairing.value = false
       } catch (err: Throwable) {
         attempt += 1
-        onDisconnected("Gateway error: ${err.message ?: err::class.java.simpleName}")
+        if (err is PairingRequiredException) {
+          if (!_awaitingPairing.value) {
+            onDisconnected(err.message ?: "Pairing required")
+          }
+          _awaitingPairing.value = true
+          delay(5_000)
+          continue
+        }
+        _awaitingPairing.value = false
+        val cause = err.cause
+        val detail = buildString {
+          append(err::class.java.simpleName)
+          append(": ")
+          append(err.message ?: "null")
+          if (cause != null) {
+            append(" | cause: ")
+            append(cause::class.java.simpleName)
+            append(": ")
+            append(cause.message ?: "null")
+            val innerCause = cause.cause
+            if (innerCause != null) {
+              append(" | inner: ")
+              append(innerCause::class.java.simpleName)
+              append(": ")
+              append(innerCause.message ?: "null")
+            }
+          }
+        }
+        Log.e("OpenClawGateway", "runLoop error: $detail", err)
+        onDisconnected("GW err: $detail")
         val sleepMs = minOf(8_000L, (350.0 * Math.pow(1.7, attempt.toDouble())).toLong())
         delay(sleepMs)
       }
@@ -643,6 +707,8 @@ class GatewaySession(
     return host.startsWith("127.")
   }
 }
+
+class PairingRequiredException(message: String) : Exception(message)
 
 private fun JsonElement?.asObjectOrNull(): JsonObject? = this as? JsonObject
 

@@ -22,6 +22,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
   val discoveryStatusText: StateFlow<String> = runtime.discoveryStatusText
 
   val isConnected: StateFlow<Boolean> = runtime.isConnected
+  val awaitingPairing: StateFlow<Boolean> = runtime.awaitingPairing
   val statusText: StateFlow<String> = runtime.statusText
   val serverName: StateFlow<String?> = runtime.serverName
   val remoteAddress: StateFlow<String?> = runtime.remoteAddress
@@ -51,6 +52,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
   val manualHost: StateFlow<String> = runtime.manualHost
   val manualPort: StateFlow<Int> = runtime.manualPort
   val manualTls: StateFlow<Boolean> = runtime.manualTls
+  val manualToken: StateFlow<String> = runtime.manualToken
   val canvasDebugStatusEnabled: StateFlow<Boolean> = runtime.canvasDebugStatusEnabled
 
   val chatSessionKey: StateFlow<String> = runtime.chatSessionKey
@@ -102,6 +104,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
   fun setManualTls(value: Boolean) {
     runtime.setManualTls(value)
+  }
+
+  fun setManualToken(value: String) {
+    runtime.setManualToken(value)
   }
 
   fun setCanvasDebugStatusEnabled(value: Boolean) {

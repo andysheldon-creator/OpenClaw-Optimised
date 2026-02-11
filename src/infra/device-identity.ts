@@ -152,19 +152,39 @@ export function publicKeyRawBase64UrlFromPem(publicKeyPem: string): string {
   return base64UrlEncode(derivePublicKeyRaw(publicKeyPem));
 }
 
+// ECDSA P-256 SPKI prefix (for uncompressed 65-byte public keys)
+const P256_SPKI_PREFIX = Buffer.from("3059301306072a8648ce3d020106082a8648ce3d030107034200", "hex");
+
 export function verifyDeviceSignature(
   publicKey: string,
   payload: string,
   signatureBase64Url: string,
 ): boolean {
   try {
-    const key = publicKey.includes("BEGIN")
-      ? crypto.createPublicKey(publicKey)
-      : crypto.createPublicKey({
-          key: Buffer.concat([ED25519_SPKI_PREFIX, base64UrlDecode(publicKey)]),
+    let key: crypto.KeyObject;
+    if (publicKey.includes("BEGIN")) {
+      key = crypto.createPublicKey(publicKey);
+    } else {
+      const raw = base64UrlDecode(publicKey);
+      if (raw.length === 32) {
+        // Ed25519: 32-byte raw public key
+        key = crypto.createPublicKey({
+          key: Buffer.concat([ED25519_SPKI_PREFIX, raw]),
           type: "spki",
           format: "der",
         });
+      } else if (raw.length === 65 && raw[0] === 0x04) {
+        // ECDSA P-256: 65-byte uncompressed point (0x04 + 32-byte X + 32-byte Y)
+        key = crypto.createPublicKey({
+          key: Buffer.concat([P256_SPKI_PREFIX, raw]),
+          type: "spki",
+          format: "der",
+        });
+      } else {
+        // Try as full SPKI DER (e.g., Android KeyStore P-256 sends full SPKI)
+        key = crypto.createPublicKey({ key: raw, type: "spki", format: "der" });
+      }
+    }
     const sig = (() => {
       try {
         return base64UrlDecode(signatureBase64Url);
@@ -172,7 +192,28 @@ export function verifyDeviceSignature(
         return Buffer.from(signatureBase64Url, "base64");
       }
     })();
-    return crypto.verify(null, Buffer.from(payload, "utf8"), key, sig);
+    const payloadBuf = Buffer.from(payload, "utf8");
+
+    const keyType = key.asymmetricKeyType;
+
+    if (keyType === "ec") {
+      // Try SHA-256 first (standard ECDSA P-256)
+      if (crypto.verify("sha256", payloadBuf, key, sig)) {
+        return true;
+      }
+      // Try without hash (NONEwithECDSA fallback)
+      try {
+        if (crypto.verify(null, payloadBuf, key, sig)) {
+          return true;
+        }
+      } catch {
+        // not supported for this key
+      }
+      return false;
+    }
+
+    // Ed25519: signatures are always 64-byte raw R||S
+    return crypto.verify(null, payloadBuf, key, sig);
   } catch {
     return false;
   }
