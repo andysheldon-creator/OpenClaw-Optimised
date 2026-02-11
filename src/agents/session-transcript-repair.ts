@@ -155,6 +155,155 @@ export function sanitizeToolUseResultPairing(messages: AgentMessage[]): AgentMes
   return repairToolUseResultPairing(messages).messages;
 }
 
+/**
+ * Convert tool call rounds (assistant tool_call blocks + matching toolResult messages) into
+ * plain text so that proxied Gemini endpoints (e.g. GitHub Copilot) don't choke on
+ * OpenAI-style tool_calls in conversation history.
+ *
+ * For each assistant message that contains toolCall/toolUse/functionCall blocks:
+ * - The tool call blocks are replaced with a text summary.
+ * - Following toolResult messages that belong to those tool calls are converted to user
+ *   messages containing the result text.
+ * - Non-tool-call content blocks in the assistant message are preserved.
+ */
+export function textifyToolCallRounds(messages: AgentMessage[]): AgentMessage[] {
+  let changed = false;
+  const out: AgentMessage[] = [];
+
+  // Collect all toolResult messages keyed by id so we can match them.
+  const toolResultById = new Map<string, Extract<AgentMessage, { role: "toolResult" }>>();
+  for (const msg of messages) {
+    if (msg && typeof msg === "object" && msg.role === "toolResult") {
+      const id = extractToolResultId(msg);
+      if (id && !toolResultById.has(id)) {
+        toolResultById.set(id, msg);
+      }
+    }
+  }
+
+  // IDs of tool calls whose results we've already inlined (so we can skip the toolResult messages).
+  const consumedToolResultIds = new Set<string>();
+
+  for (const msg of messages) {
+    if (!msg || typeof msg !== "object") {
+      out.push(msg);
+      continue;
+    }
+
+    // Skip toolResult messages that were consumed by textification.
+    if (msg.role === "toolResult") {
+      const id = extractToolResultId(msg);
+      if (id && consumedToolResultIds.has(id)) {
+        changed = true;
+        continue;
+      }
+      out.push(msg);
+      continue;
+    }
+
+    if (msg.role !== "assistant" || !Array.isArray(msg.content)) {
+      out.push(msg);
+      continue;
+    }
+
+    // Check if this assistant message has any tool call blocks.
+    const toolCallBlocks: Array<{
+      type: string;
+      id: string;
+      name?: string;
+      input?: unknown;
+      arguments?: unknown;
+    }> = [];
+    const otherBlocks: unknown[] = [];
+
+    for (const block of msg.content) {
+      if (isToolCallBlock(block) && typeof (block as { id?: unknown }).id === "string") {
+        toolCallBlocks.push(
+          block as {
+            type: string;
+            id: string;
+            name?: string;
+            input?: unknown;
+            arguments?: unknown;
+          },
+        );
+      } else {
+        otherBlocks.push(block);
+      }
+    }
+
+    if (toolCallBlocks.length === 0) {
+      out.push(msg);
+      continue;
+    }
+
+    changed = true;
+
+    // Build text summaries for each tool call + its result.
+    const textParts: string[] = [];
+    const resultMessages: AgentMessage[] = [];
+
+    for (const tc of toolCallBlocks) {
+      const name = tc.name ?? "unknown_tool";
+      const args = tc.input ?? tc.arguments;
+      const argsStr = args ? JSON.stringify(args) : "{}";
+      textParts.push(`[Called tool ${name}(${argsStr})]`);
+
+      // Mark the corresponding toolResult as consumed and convert it.
+      const result = toolResultById.get(tc.id);
+      if (result) {
+        consumedToolResultIds.add(tc.id);
+        const resultText = extractToolResultText(result);
+        resultMessages.push({
+          role: "user",
+          content: `[Tool ${name} result: ${resultText}]`,
+          timestamp: (result as { timestamp?: number }).timestamp ?? Date.now(),
+        } as AgentMessage);
+      }
+    }
+
+    // Rebuild the assistant message: keep non-tool-call blocks + add summary text.
+    const newContent: unknown[] = [...otherBlocks];
+    const summaryText = textParts.join("\n");
+    newContent.push({ type: "text", text: summaryText });
+
+    out.push({ ...msg, content: newContent } as AgentMessage);
+    out.push(...resultMessages);
+  }
+
+  return changed ? out : messages;
+}
+
+/** Extract a textual representation from a toolResult message. */
+function extractToolResultText(msg: Extract<AgentMessage, { role: "toolResult" }>): string {
+  const content = (msg as { content?: unknown }).content;
+  if (typeof content === "string") {
+    return truncateToolResultForTextify(content);
+  }
+  if (!Array.isArray(content)) {
+    return "(no content)";
+  }
+  const texts: string[] = [];
+  for (const block of content) {
+    if (block && typeof block === "object" && (block as { type?: string }).type === "text") {
+      const text = (block as { text?: string }).text;
+      if (typeof text === "string") {
+        texts.push(text);
+      }
+    }
+  }
+  return truncateToolResultForTextify(texts.join("\n") || "(no content)");
+}
+
+const TEXTIFY_MAX_RESULT_CHARS = 800;
+
+function truncateToolResultForTextify(text: string): string {
+  if (text.length <= TEXTIFY_MAX_RESULT_CHARS) {
+    return text;
+  }
+  return text.slice(0, TEXTIFY_MAX_RESULT_CHARS) + "… (truncated)";
+}
+
 export type ToolUseRepairReport = {
   messages: AgentMessage[];
   added: Array<Extract<AgentMessage, { role: "toolResult" }>>;

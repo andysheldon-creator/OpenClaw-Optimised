@@ -19,6 +19,8 @@ export type TranscriptPolicy = {
   validateGeminiTurns: boolean;
   validateAnthropicTurns: boolean;
   allowSyntheticToolResults: boolean;
+  /** Convert tool call rounds to plain text for proxied Gemini endpoints that reject OpenAI-style tool_calls in history. */
+  textifyToolCallHistory: boolean;
 };
 
 const MISTRAL_MODEL_HINTS = [
@@ -87,6 +89,7 @@ export function resolveTranscriptPolicy(params: {
   const isOpenRouterGemini =
     (provider === "openrouter" || provider === "opencode") &&
     modelId.toLowerCase().includes("gemini");
+  const isCopilotGemini = provider === "github-copilot" && modelId.toLowerCase().includes("gemini");
   const isAntigravityClaudeModel = isAntigravityClaude({
     api: params.modelApi,
     provider,
@@ -119,5 +122,6 @@ export function resolveTranscriptPolicy(params: {
     validateGeminiTurns: !isOpenAi && isGoogle,
     validateAnthropicTurns: !isOpenAi && isAnthropic,
     allowSyntheticToolResults: !isOpenAi && (isGoogle || isAnthropic),
+    textifyToolCallHistory: isCopilotGemini,
   };
 }

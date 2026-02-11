@@ -15,6 +15,7 @@ import { cleanToolSchemaForGemini } from "../pi-tools.schema.js";
 import {
   sanitizeToolCallInputs,
   sanitizeToolUseResultPairing,
+  textifyToolCallRounds,
 } from "../session-transcript-repair.js";
 import { resolveTranscriptPolicy } from "../transcript-policy.js";
 import { log } from "./logger.js";
@@ -371,6 +372,13 @@ export async function sanitizeSessionHistory(params: {
       ? downgradeOpenAIReasoningBlocks(repairedTools)
       : repairedTools;
 
+  // Proxied Gemini endpoints (e.g. GitHub Copilot) reject OpenAI-style tool_calls in
+  // conversation history. Convert tool call rounds to plain text so the model still sees
+  // the context without the problematic wire format.
+  const textified = policy.textifyToolCallHistory
+    ? textifyToolCallRounds(sanitizedOpenAI)
+    : sanitizedOpenAI;
+
   if (hasSnapshot && (!priorSnapshot || modelChanged)) {
     appendModelSnapshot(params.sessionManager, {
       timestamp: Date.now(),
@@ -381,11 +389,11 @@ export async function sanitizeSessionHistory(params: {
   }
 
   if (!policy.applyGoogleTurnOrdering) {
-    return sanitizedOpenAI;
+    return textified;
   }
 
   return applyGoogleTurnOrderingFix({
-    messages: sanitizedOpenAI,
+    messages: textified,
     modelApi: params.modelApi,
     sessionManager: params.sessionManager,
     sessionId: params.sessionId,
