@@ -1,106 +1,104 @@
-# 企业微信 (WeCom)
+# WeCom (Enterprise WeChat)
 
-企业微信是腾讯推出的企业级通信与协作平台，支持文字、语音、图片、文件等多种沟通方式，并提供组织架构管理、应用集成等企业级能力，广泛应用于企业内部沟通与业务协同。
+WeCom is an enterprise-level communication and collaboration platform launched by Tencent. It supports various communication methods such as text, voice, images, and files, and provides enterprise-level capabilities like organizational structure management and application integration. It is widely used for internal communication and business collaboration within enterprises.
 
-该插件可将 OpenClaw 与企业微信进行连接，支持 **Bot（智能体）** 和 **Agent（自建应用）** 双模式并行接入。Bot 模式提供实时流式对话体验，Agent 模式提供文件发送、主动推送、定时广播等企业级能力。两种模式智能互补，在 Bot 能力受限时自动切换 Agent 通道兜底，实现稳定、安全的消息收发与自动化能力集成。
+This plugin connects OpenClaw with WeCom, supporting parallel access via dual modes: **Bot (Intelligent Agent)** and **Agent (Self-built Application)**. Bot mode provides a real-time streaming conversation experience, while Agent mode offers enterprise-level capabilities such as file sending, proactive pushing, and scheduled broadcasts. The two modes intelligently complement each other, automatically switching to the Agent channel as a fallback when Bot capabilities are limited, enabling stable and secure message exchange and automation capability integration.
 
-# 步骤1：安装企业微信插件
+# Step 1: Install the WeCom Plugin
 
-OpenClaw plugins 命令安装：
+Install via the OpenClaw plugins command:
 
 ```
 openclaw plugins install @yanhaidao/wecom@latest
 ```
 
-使用源码安装：
+Install from source code:
 
 ```
 git clone https://github.com/yanhaidao/wecom.git && cd wecom
 openclaw plugins install .
 ```
 
-# 步骤2：创建企业微信应用
+# Step 2: Create a WeCom Application
 
-## 模式选择
+## Mode Selection
 
-本插件支持两种模式，您可以根据需求选择一种或同时启用：
+This plugin supports two modes. You can choose one or enable both according to your needs:
 
-| 模式 | 适用场景 | 核心能力 |
+| Mode | Applicable Scenarios | Core Capabilities |
 | :--- | :--- | :--- |
-| **Bot（智能体）** | 实时对话 | 流式响应（打字机效果）、群聊 @回复 |
-| **Agent（自建应用）** | 企业级推送 | 文件发送、主动推送、Cronjob 定时广播、图片/语音/视频接收 |
+| **Bot (Intelligent Agent)** | Real-time Conversation | Streaming Response (Typewriter Effect), Group Chat @ Reply |
+| **Agent (Self-built Application)** | Enterprise-level Push | File Sending, Proactive Push, Cronjob Scheduled Broadcasts, Image/Voice/Video Reception |
 
-推荐同时启用两种模式，获得最佳体验。
+It is recommended to enable both modes for the best experience.
 
-## Bot 模式配置（智能体，可选）
+## Bot Mode Configuration (Intelligent Agent, Optional)
 
-### 1. 登录企业微信管理后台
+### 1. Log in to the WeCom Admin Console
 
-前往 [企业微信管理后台](https://work.weixin.qq.com/wework_admin/frame) 登录。
+Go to the [WeCom Admin Console](https://work.weixin.qq.com/wework_admin/frame) and log in.
 
 ![register account](../images/wecom-register.png)
 
-### 2. 创建智能机器人
+### 2. Create an Intelligent Robot
 
-进入「安全与管理」→「管理工具」→「智能机器人」，创建机器人并选择 **API 模式**。
+Navigate to "Security & Management" → "Management Tools" → "Intelligent Robot", create a robot, and select the **API Mode**.
 
 ![create bot](../images/wecom-step2-bot-create.png)
 ![select api model](../images/wecom-step2-bot-model.png)
 
-### 3. 配置回调 URL
+### 3. Configure the Callback URL
 
-填写回调 URL：`https://your-domain.com/wecom/bot`
+Fill in the callback URL: `https://your-domain.com/wecom/bot`
 
-记录页面中生成的 **Token** 和 **EncodingAESKey**，后续在"步骤3：配置 OpenClaw"中需要使用。
+Record the **Token** and **EncodingAESKey** generated on the page, which will be needed later in "Step 3: Configure OpenClaw".
 
-注意：请妥善保存 Token 和 EncodingAESKey，勿泄露。
+Note: Please securely store the Token and EncodingAESKey and do not disclose them.
 
 ![bot callback config](../images/wecom-step2-bot-config.png)
 
-## Agent 模式配置（自建应用，可选）
+## Agent Mode Configuration (Self-built Application, Optional)
 
-### 1. 创建自建应用
+### 1. Create a Self-built Application
 
-在企业微信管理后台，进入「应用管理」→「自建」→ 创建应用。
+In the WeCom Admin Console, go to "Application Management" → "Self-built" → Create Application.
 
 ![create agent app](../images/wecom-step2-agent-create.png)
 
-### 2. 获取应用凭证
+### 2. Obtain Application Credentials
 
-在应用详情页获取以下信息，复制并妥善保存：
+On the application details page, obtain the following information, copy it, and store it securely:
 
-- **CorpId**（企业 ID，在「我的企业」页面查看）
-- **AgentId**（应用 ID）
-- **Secret**（应用密钥）
+- **CorpId** (Corporate ID, viewable on the "My Company" page)
+- **AgentId** (Application ID)
+- **Secret** (Application Secret)
 
-注意：出于安全考虑，Secret 不支持明文保存，首次查看或忘记需重新生成。
+Note: For security reasons, the Secret cannot be stored in plaintext. If viewed for the first time or forgotten, it must be regenerated.
 
 ![corpid](../images/wecom-step3-corpid.png)
 ![agentid and secret](../images/wecom-step3-agentid-secret.png)
 
+### 3. Configure API Reception
 
-### 3. 设置 API 接收
+In the application details, set up "Receive Messages - Configure API Reception":
 
-在应用详情中设置「接收消息 - 设置 API 接收」：
-
-- 填写回调 URL：`https://your-domain.com/wecom/agent`
-- 记录回调 **Token** 和 **EncodingAESKey**
+- Fill in the callback URL: `https://your-domain.com/wecom/agent`
+- Record the callback **Token** and **EncodingAESKey**
 
 ![agent api receive config](../images/wecom-step2-agent-config-api.png)
 
-### 4. 配置企业可信 IP
+### 4. Configure Trusted Company IP
 
-进入应用详情 →「企业可信IP」→「配置」→ 添加你服务器的公网 IP 地址。
+Go to Application Details → "Trusted Company IP" → "Configure" → Add your server's public IP address.
 
-如果您使用内网穿透或动态 IP，建议在步骤3中配置 `channels.wecom.network.egressProxyUrl` 走固定出口代理，否则可能出现 `60020 not allow to access from your ip` 错误。
+If you are using intranet penetration or have a dynamic IP, it is recommended to configure `channels.wecom.network.egressProxyUrl` in step 3 to use a fixed egress proxy. Otherwise, you may encounter the `60020 not allow to access from your ip` error.
 ![trusted ip config](../images/wecom-step2-agent-config-ip.png)
 
+# Step 3: Configure OpenClaw
 
-# 步骤3：配置 OpenClaw
+## Method 1: Configure via Command Line (Recommended)
 
-## 方式一：通过命令行配置（推荐）
-
-### Bot 模式
+### Bot Mode
 
 ```
 openclaw channels add --channel wecom
@@ -109,7 +107,7 @@ openclaw config set channels.wecom.bot.token "YOUR_BOT_TOKEN"
 openclaw config set channels.wecom.bot.encodingAESKey "YOUR_BOT_AES_KEY"
 ```
 
-### Agent 模式（可选）
+### Agent Mode (Optional)
 
 ```
 openclaw config set channels.wecom.agent.corpId "YOUR_CORP_ID"
@@ -119,15 +117,15 @@ openclaw config set channels.wecom.agent.token "YOUR_CALLBACK_TOKEN"
 openclaw config set channels.wecom.agent.encodingAESKey "YOUR_CALLBACK_AES_KEY"
 ```
 
-### 网络代理（可选，动态 IP 场景）
+### Network Proxy (Optional, for Dynamic IP Scenarios)
 
 ```
 openclaw config set channels.wecom.network.egressProxyUrl "http://proxy.company.local:3128"
 ```
 
-## 方式二：通过配置文件配置
+## Method 2: Configure via Configuration File
 
-编辑 `~/.openclaw/openclaw.json`：
+Edit `~/.openclaw/openclaw.json`:
 
 ```json
 {
@@ -150,40 +148,40 @@ openclaw config set channels.wecom.network.egressProxyUrl "http://proxy.company.
 }
 ```
 
-# 步骤4：启动与测试
+# Step 4: Start and Test
 
-## 1. 启动 Gateway
+## 1. Start Gateway
 
 ```
 openclaw gateway
 ```
 
-## 2. 验证连接状态
+## 2. Verify Connection Status
 
 ```
 openclaw channels status
 ```
 
-## 3. Bot 模式测试
+## 3. Bot Mode Test
 
-回到企微管理后台，进入「安全与管理」→「管理工具」→「智能机器人」，找到 Openclaw 的 Bot，点击「详情」
+Return to the WeCom admin console, go to "Security & Management" → "Management Tools" → "Smart Bots", find the OpenClaw Bot, and click "Details"
 ![bot detail](../images/wecom-step4-bot-detail.png)
 
-进入智能机器人详情界面后，选择「获取机器人二维码」，扫描后在企微客户端测试
+After entering the smart bot details interface, select "Get Bot QR Code", scan it, and test in the WeCom client.
 ![bot test](../images/wecom-step4-bot-test.png)
 ![bot talk](../images/wecom-step4-bot-talk.png)
 
-## 4. Agent 模式测试
+## 4. Agent Mode Test
 
-进入企微客户端，选择「工作台」，找到 Openclaw 的 Agent 应用，进行对话测试
+Enter the WeCom client, select "Workbench", find the OpenClaw Agent application, and conduct a conversation test.
 ![agent test](../images/wecom-step4-agent-test.png)
 ![agent talk](../images/wecom-step4-agent-talk.png)
 
-## 5. 双模式测试
+## 5. Dual Mode Test
 
-同时启用 Bot 和 Agent 后，插件采用「Bot 优先 + Agent 兜底」策略，自动选择最优通道。
+After enabling both Bot and Agent modes simultaneously, the plugin adopts a "Bot Priority + Agent Fallback" strategy, automatically selecting the optimal channel.
 
-将 Bot 拉入群聊，在群聊中 @Bot 对话即可体验全部双模式能力（流式回复 + 文件发送 + 超时接力）。
+Add the Bot to the group chat, then mention @Bot in the group to experience all dual-mode capabilities (streaming replies + file sending + timeout relay).
 
 ![dual mode launch](../images/wecom-step4-dual-mode-launch.png)
 ![dual mode test](../images/wecom-step4-dual-model-test.png)
