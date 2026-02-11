@@ -49,55 +49,198 @@ export function extractToolCards(message: unknown): ToolCard[] {
 /**
  * Security level classification for exec commands
  */
-type SecurityLevel = 'safe' | 'low' | 'medium' | 'high' | 'critical';
+type SecurityLevel = "safe" | "low" | "medium" | "high" | "critical";
 
 const SECURITY_LEVELS: Record<SecurityLevel, { emoji: string; label: string; desc: string }> = {
-  safe: { emoji: '🟢', label: 'SAFE', desc: 'Read-only information gathering' },
-  low: { emoji: '🔵', label: 'LOW', desc: 'Project file modifications' },
-  medium: { emoji: '🟡', label: 'MEDIUM', desc: 'Configuration or dependency changes' },
-  high: { emoji: '🟠', label: 'HIGH', desc: 'System-level changes' },
-  critical: { emoji: '🔴', label: 'CRITICAL', desc: 'Potential data loss or security risk' },
+  safe: { emoji: "🟢", label: "SAFE", desc: "Read-only information gathering" },
+  low: { emoji: "🔵", label: "LOW", desc: "Project file modifications" },
+  medium: { emoji: "🟡", label: "MEDIUM", desc: "Configuration or dependency changes" },
+  high: { emoji: "🟠", label: "HIGH", desc: "System-level changes" },
+  critical: { emoji: "🔴", label: "CRITICAL", desc: "Potential data loss or security risk" },
 };
 
 const COMMAND_PATTERNS: Record<SecurityLevel, string[]> = {
   critical: [
-    'sudo', 'rm -rf', 'rm -fr', 'mkfs', 'dd if=', 'dd of=', 'shred',
-    'chmod 777 -R', 'shutdown', 'reboot', 'halt', 'poweroff', 'kill -9 -1',
-    'DROP TABLE', 'DROP DATABASE', 'TRUNCATE', 'curl | sh', 'curl | bash'
+    "sudo",
+    "rm -rf",
+    "rm -fr",
+    "mkfs",
+    "dd if=",
+    "dd of=",
+    "shred",
+    "chmod 777 -R",
+    "shutdown",
+    "reboot",
+    "halt",
+    "poweroff",
+    "kill -9 -1",
+    "DROP TABLE",
+    "DROP DATABASE",
+    "TRUNCATE",
+    "curl | sh",
+    "curl | bash",
   ],
   high: [
-    'systemctl start', 'systemctl stop', 'systemctl restart', 'systemctl enable',
-    'apt install', 'apt remove', 'apt purge', 'apt upgrade', 'apt-get install',
-    'brew install', 'brew uninstall', 'dnf install', 'pacman -S',
-    'npm install -g', 'pip install --user', 'useradd', 'userdel', 'usermod',
-    'chown -R', 'chmod -R', 'ufw', 'iptables', 'crontab', 'mount', 'umount'
+    "systemctl start",
+    "systemctl stop",
+    "systemctl restart",
+    "systemctl enable",
+    "apt install",
+    "apt remove",
+    "apt purge",
+    "apt upgrade",
+    "apt-get install",
+    "brew install",
+    "brew uninstall",
+    "dnf install",
+    "pacman -S",
+    "npm install -g",
+    "pip install --user",
+    "useradd",
+    "userdel",
+    "usermod",
+    "chown -R",
+    "chmod -R",
+    "ufw",
+    "iptables",
+    "crontab",
+    "mount",
+    "umount",
   ],
   medium: [
-    'npm install', 'npm update', 'pnpm install', 'pnpm add', 'yarn install', 'yarn add',
-    'pip install', 'pip3 install', 'composer install', 'bundle install', 'gem install',
-    'go get', 'cargo add', 'git push', 'git pull', 'git merge', 'git rebase', 'git reset',
-    'docker run', 'docker exec', 'docker build', 'docker stop', 'kubectl apply',
-    'chmod', 'chown', 'ln -s', 'make install', 'ssh', 'scp', 'rsync'
+    "npm install",
+    "npm update",
+    "pnpm install",
+    "pnpm add",
+    "yarn install",
+    "yarn add",
+    "pip install",
+    "pip3 install",
+    "composer install",
+    "bundle install",
+    "gem install",
+    "go get",
+    "cargo add",
+    "git push",
+    "git pull",
+    "git merge",
+    "git rebase",
+    "git reset",
+    "docker run",
+    "docker exec",
+    "docker build",
+    "docker stop",
+    "kubectl apply",
+    "chmod",
+    "chown",
+    "ln -s",
+    "make install",
+    "ssh",
+    "scp",
+    "rsync",
   ],
   low: [
-    'touch', 'mkdir', 'cp', 'mv', 'rm', 'rmdir', 'git add', 'git commit', 'git stash',
-    'git checkout', 'git branch', 'git switch', 'echo >', 'cat >', 'tee', 'sed -i',
-    'make', 'npm run', 'pnpm run', 'yarn run', 'node', 'python', 'python3',
-    'tar', 'unzip', 'zip', 'gzip'
+    "touch",
+    "mkdir",
+    "cp",
+    "mv",
+    "rm",
+    "rmdir",
+    "git add",
+    "git commit",
+    "git stash",
+    "git checkout",
+    "git branch",
+    "git switch",
+    "echo >",
+    "cat >",
+    "tee",
+    "sed -i",
+    "make",
+    "npm run",
+    "pnpm run",
+    "yarn run",
+    "node",
+    "python",
+    "python3",
+    "tar",
+    "unzip",
+    "zip",
+    "gzip",
   ],
   safe: [
-    'ls', 'll', 'la', 'dir', 'cat', 'head', 'tail', 'less', 'more', 'grep', 'rg', 'find',
-    'which', 'whereis', 'type', 'pwd', 'cd', 'whoami', 'id', 'groups', 'date', 'cal',
-    'uptime', 'uname', 'hostname', 'echo', 'printf', 'env', 'printenv', 'man', 'help',
-    '--help', '--version', '-v', '-V', 'file', 'stat', 'wc', 'du', 'df', 'free',
-    'top', 'htop', 'ps', 'netstat', 'ss', 'ip addr', 'ping', 'dig', 'nslookup',
-    'git status', 'git log', 'git diff', 'git show', 'git branch -l', 'git remote',
-    'npm list', 'npm view', 'npm outdated', 'pip list', 'pip show',
-    'docker ps', 'docker images', 'docker logs', 'tree', 'jq', 'sort', 'diff'
-  ]
+    "ls",
+    "ll",
+    "la",
+    "dir",
+    "cat",
+    "head",
+    "tail",
+    "less",
+    "more",
+    "grep",
+    "rg",
+    "find",
+    "which",
+    "whereis",
+    "type",
+    "pwd",
+    "cd",
+    "whoami",
+    "id",
+    "groups",
+    "date",
+    "cal",
+    "uptime",
+    "uname",
+    "hostname",
+    "echo",
+    "printf",
+    "env",
+    "printenv",
+    "man",
+    "help",
+    "--help",
+    "--version",
+    "-v",
+    "-V",
+    "file",
+    "stat",
+    "wc",
+    "du",
+    "df",
+    "free",
+    "top",
+    "htop",
+    "ps",
+    "netstat",
+    "ss",
+    "ip addr",
+    "ping",
+    "dig",
+    "nslookup",
+    "git status",
+    "git log",
+    "git diff",
+    "git show",
+    "git branch -l",
+    "git remote",
+    "npm list",
+    "npm view",
+    "npm outdated",
+    "pip list",
+    "pip show",
+    "docker ps",
+    "docker images",
+    "docker logs",
+    "tree",
+    "jq",
+    "sort",
+    "diff",
+  ],
 };
 
-const LEVEL_ORDER: SecurityLevel[] = ['critical', 'high', 'medium', 'low', 'safe'];
+const LEVEL_ORDER: SecurityLevel[] = ["critical", "high", "medium", "low", "safe"];
 
 function classifyCommand(cmd: string): SecurityLevel {
   const lower = cmd.trim().toLowerCase();
@@ -108,7 +251,7 @@ function classifyCommand(cmd: string): SecurityLevel {
       }
     }
   }
-  return 'medium';
+  return "medium";
 }
 
 /**
@@ -119,7 +262,7 @@ export function renderToolCardSidebar(card: ToolCard, onOpenSidebar?: (content: 
   const detail = formatToolDetail(display);
   const hasText = Boolean(card.text?.trim());
   const canClick = Boolean(onOpenSidebar);
-  
+
   const handleClick = canClick
     ? () => {
         if (hasText) {
@@ -133,20 +276,21 @@ export function renderToolCardSidebar(card: ToolCard, onOpenSidebar?: (content: 
       }
     : undefined;
 
-  const isExec = card.name === 'exec' || card.name === 'bash';
+  const isExec = card.name === "exec" || card.name === "bash";
   const command = detail || display.label;
-  const level = isExec ? classifyCommand(command) : 'medium';
+  const level = isExec ? classifyCommand(command) : "medium";
   const levelInfo = SECURITY_LEVELS[level];
-  
+
   // Get purpose from args if available (contextual explanation)
   const args = card.args as Record<string, unknown> | undefined;
-  const purpose = typeof args?.purpose === 'string' ? args.purpose : levelInfo.desc;
-  
-  const isError = card.text?.toLowerCase().includes('error') || 
-                  card.text?.toLowerCase().includes('failed') ||
-                  card.text?.includes('exited with code');
-  
-  const statusIcon = isError ? '✗' : '✓';
+  const purpose = typeof args?.purpose === "string" ? args.purpose : levelInfo.desc;
+
+  const isError =
+    card.text?.toLowerCase().includes("error") ||
+    card.text?.toLowerCase().includes("failed") ||
+    card.text?.includes("exited with code");
+
+  const statusIcon = isError ? "✗" : "✓";
 
   return html`
     <div
@@ -154,7 +298,16 @@ export function renderToolCardSidebar(card: ToolCard, onOpenSidebar?: (content: 
       @click=${handleClick}
       role=${canClick ? "button" : nothing}
       tabindex=${canClick ? "0" : nothing}
-      @keydown=${canClick ? (e: KeyboardEvent) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleClick?.(); } } : nothing}
+      @keydown=${
+        canClick
+          ? (e: KeyboardEvent) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handleClick?.();
+              }
+            }
+          : nothing
+      }
     >
       <span class="chat-tool-compact__icon">${levelInfo.emoji}</span>
       <span class="chat-tool-compact__status">${statusIcon}</span>

@@ -594,7 +594,11 @@ export function isModelNotFoundErrorMessage(raw: string): boolean {
   }
   // Avoid false positives from file/path not found contexts
   const lower = raw.toLowerCase();
-  if (lower.includes("file not found") || lower.includes("path not found") || lower.includes("command not found")) {
+  if (
+    lower.includes("file not found") ||
+    lower.includes("path not found") ||
+    lower.includes("command not found")
+  ) {
     return false;
   }
   return matchesErrorPatterns(raw, ERROR_PATTERNS.modelNotFound);

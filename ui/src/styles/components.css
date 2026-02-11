@@ -1256,33 +1256,66 @@
   opacity: 0.8;
 }
 
-.chat-tool-compact__icon { flex-shrink: 0; }
-.chat-tool-compact__status { font-weight: 600; flex-shrink: 0; }
-.chat-tool-compact__cmd { font-weight: 500; max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.chat-tool-compact__sep { color: var(--muted); opacity: 0.4; flex-shrink: 0; }
-.chat-tool-compact__level { font-weight: 600; font-size: 11px; flex-shrink: 0; }
-.chat-tool-compact__desc { color: var(--muted); font-size: 11px; white-space: nowrap; }
+.chat-tool-compact__icon {
+  flex-shrink: 0;
+}
+.chat-tool-compact__status {
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.chat-tool-compact__cmd {
+  font-weight: 500;
+  max-width: 400px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chat-tool-compact__sep {
+  color: var(--muted);
+  opacity: 0.4;
+  flex-shrink: 0;
+}
+.chat-tool-compact__level {
+  font-weight: 600;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+.chat-tool-compact__desc {
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
 
 /* Security level colors */
 .chat-tool-compact--safe .chat-tool-compact__status,
 .chat-tool-compact--safe .chat-tool-compact__cmd,
-.chat-tool-compact--safe .chat-tool-compact__level { color: #22c55e; }
+.chat-tool-compact--safe .chat-tool-compact__level {
+  color: #22c55e;
+}
 
 .chat-tool-compact--low .chat-tool-compact__status,
 .chat-tool-compact--low .chat-tool-compact__cmd,
-.chat-tool-compact--low .chat-tool-compact__level { color: #3b82f6; }
+.chat-tool-compact--low .chat-tool-compact__level {
+  color: #3b82f6;
+}
 
 .chat-tool-compact--medium .chat-tool-compact__status,
 .chat-tool-compact--medium .chat-tool-compact__cmd,
-.chat-tool-compact--medium .chat-tool-compact__level { color: #eab308; }
+.chat-tool-compact--medium .chat-tool-compact__level {
+  color: #eab308;
+}
 
 .chat-tool-compact--high .chat-tool-compact__status,
 .chat-tool-compact--high .chat-tool-compact__cmd,
-.chat-tool-compact--high .chat-tool-compact__level { color: #f97316; }
+.chat-tool-compact--high .chat-tool-compact__level {
+  color: #f97316;
+}
 
 .chat-tool-compact--critical .chat-tool-compact__status,
 .chat-tool-compact--critical .chat-tool-compact__cmd,
-.chat-tool-compact--critical .chat-tool-compact__level { color: #ef4444; }
+.chat-tool-compact--critical .chat-tool-compact__level {
+  color: #ef4444;
+}
 
 :root[data-theme="light"] .chat-tool-card {
   background: var(--bg-muted);

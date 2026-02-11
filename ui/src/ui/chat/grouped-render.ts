@@ -57,9 +57,7 @@ export function renderReadingIndicatorGroup(assistant?: AssistantIdentity) {
     <div class="chat-group assistant">
       <div class="chat-group-messages">
         <div class="chat-bubble chat-reading-indicator" aria-hidden="true">
-          <span class="chat-reading-indicator__dots">
-            <span></span><span></span><span></span>
-          </span>
+          <span class="chat-reading-indicator__dots"> <span></span><span></span><span></span> </span>
         </div>
       </div>
     </div>
