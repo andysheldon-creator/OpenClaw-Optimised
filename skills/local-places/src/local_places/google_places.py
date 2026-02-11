@@ -67,123 +67,82 @@ _RESOLVE_FIELD_MASK = (
     "places.types"
 )
 
-def _validate_place_id(place_id: str | None) -> None:
+
+def _validate_place_id(place_id: str) -> None:
     """
-    Validate Google Places API place_id format to prevent path traversal and injection attacks.
-
-    This validation:
-    1. Ensures the input is a non-empty string
-    2. Validates length (10-300 characters)
-    3. Explicitly blocks path traversal sequences
-    4. Rejects dangerous characters while allowing valid Google Place ID characters
-    5. Implements URL path normalization to prevent encoding bypasses
-
+    Validate Google Places API place_id format to prevent path traversal.
+    
+    Google Place IDs are alphanumeric strings that may contain specific special
+    characters (+, =, /, _, -). This validation prevents path traversal attacks
+    (e.g., ../../../etc/passwd) while allowing all legitimate place_id formats.
+    
     Args:
         place_id: The place ID string to validate
-
+        
     Raises:
-        HTTPException: If place_id format is invalid or contains traversal patterns
+        HTTPException: If place_id format is invalid
+        
+    Note:
+        This addresses SonarCloud pythonsecurity:S7044. While the URL scheme and host
+        are fixed (https://places.googleapis.com), validating the place_id prevents
+        any potential path manipulation and satisfies security analysis requirements.
     """
-    # Check for non-empty string
-    if not isinstance(place_id, str) or not place_id:
+    if not place_id or not isinstance(place_id, str):
         raise HTTPException(
             status_code=400,
-            detail="Invalid place_id: must be a non-empty string."
+            detail="Invalid place_id: must be a non-empty string.",
         )
-
-    # Validate length
+    
+    # Google place IDs are typically 20-200 characters
     if len(place_id) < 10 or len(place_id) > 300:
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid place_id length: {len(place_id)}. Expected 10-300 characters."
+            detail=f"Invalid place_id length: {len(place_id)}. Expected 10-300 characters.",
         )
-
-    # Normalize the path to detect encoded traversal attempts (both lowercase and uppercase)
-    normalized_path = place_id.replace('%2e', '.').replace('%2E', '.').replace('%2f', '/').replace('%2F', '/')
-
-    # Explicitly block path traversal patterns
+    
+    # Normalize percent-encoded sequences (both lowercase and uppercase)
+    # This catches attempts to bypass validation with URL encoding
+    normalized = place_id.lower()
+    normalized = normalized.replace('%2e', '.')
+    normalized = normalized.replace('%2f', '/')
+    normalized = normalized.replace('%5c', '\\')
+    
+    # Check for path traversal patterns in the normalized string
     traversal_patterns = [
-        r'\.\./',      # ../
-        r'\./',        # ./ (current directory)
-        r'^\./',       # Starts with ./ (current directory)
-        r'^\.\.',      # Starts with .. (parent directory)
-        r'\/$',        # Ends with /
-        r'\\$',        # Ends with \
-        r'\/[^/]+?\/\.\.',  # Contains /../
-        r'\\\\[^\\]+?\\\.\.', # Contains \..\
-        r'%2e%2e%2f',  # URL-encoded ../ (lowercase)
-        r'%2E%2E%2F',  # URL-encoded ../ (uppercase)
-        r'%2e%2f',     # URL-encoded ./ (lowercase)
-        r'%2E%2F'      # URL-encoded ./ (uppercase)
+        r'\.\.',           # Double dots
+        r'//',             # Double slashes
+        r'\\\\',           # Double backslashes
+        r'\.\/',           # Dot-slash
+        r'\.\\',           # Dot-backslash
+        r'%2e%2e',         # URL-encoded .. (after normalization this checks for residual encoding)
+        r'%2f%2f',         # URL-encoded //
+        r'%5c%5c',         # URL-encoded \\
     ]
-
+    
     for pattern in traversal_patterns:
-        if re.search(pattern, normalized_path, re.IGNORECASE):
-            logger.warning(f"Blocked potential path traversal attempt: {place_id}")
+        if re.search(pattern, normalized, re.IGNORECASE):
             raise HTTPException(
                 status_code=400,
-                detail="Invalid place_id format: contains path traversal sequences."
+                detail=f"Invalid place_id format: contains path traversal pattern '{pattern}'.",
             )
-
-    # Check for mixed slashes which could indicate traversal attempts
-    if '/' in normalized_path and '\\' in normalized_path:
-        logger.warning(f"Blocked place_id with mixed slashes: {place_id}")
+    
+    # Block dangerous special characters that could be used for injection
+    # Using double quotes for the string to avoid escaping issues with single quotes
+    if re.search(r"[\s?#<>|*%$&'`;]", place_id):
         raise HTTPException(
             status_code=400,
-            detail="Invalid place_id format: contains mixed path separators."
+            detail="Invalid place_id format: contains disallowed special characters.",
         )
-
-    # Allow alphanumeric, '+', '/', '=', '_', and '-' but reject dangerous characters
-    if re.search(r'[\s?#<>|\*%$&\'"`;]', place_id):  # Fixed: Properly escaped single quote
-        logger.warning(f"Blocked place_id with illegal characters: {place_id}")
+    
+    # Only allow alphanumeric characters and specific Google Place ID characters: + = / _ -
+    # Note: / is allowed as it appears in legitimate Google Place IDs, but we've already
+    # blocked dangerous patterns like // and ../ above
+    if not re.match(r'^[A-Za-z0-9+=/_-]+$', place_id):
         raise HTTPException(
             status_code=400,
-            detail="Invalid place_id format: contains illegal characters."
+            detail="Invalid place_id format: must contain only alphanumeric characters and +, =, /, _, -",
         )
 
-
-    # Normalize the path to detect encoded traversal attempts (both lowercase and uppercase)
-    normalized_path = place_id.replace('%2e', '.').replace('%2E', '.').replace('%2f', '/').replace('%2F', '/')
-
-    # Explicitly block path traversal patterns
-    traversal_patterns = [
-        r'\.\./',      # ../
-        r'\./',        # ./ (current directory)
-        r'^\./',       # Starts with ./ (current directory)
-        r'^\.\.',      # Starts with .. (parent directory)
-        r'\/$',        # Ends with /
-        r'\\$',        # Ends with \
-        r'\/[^/]+?\/\.\.',  # Contains /../
-        r'\\\\[^\\]+?\\\.\.', # Contains \..\
-        r'%2e%2e%2f',  # URL-encoded ../ (lowercase)
-        r'%2E%2E%2F',  # URL-encoded ../ (uppercase)
-        r'%2e%2f',     # URL-encoded ./ (lowercase)
-        r'%2E%2F'      # URL-encoded ./ (uppercase)
-    ]
-
-    for pattern in traversal_patterns:
-        if re.search(pattern, normalized_path, re.IGNORECASE):
-            logger.warning(f"Blocked potential path traversal attempt: {place_id}")
-            raise HTTPException(
-                status_code=400,
-                detail="Invalid place_id format: contains path traversal sequences."
-            )
-
-    # Check for mixed slashes which could indicate traversal attempts
-    if '/' in normalized_path and '\\' in normalized_path:
-        logger.warning(f"Blocked place_id with mixed slashes: {place_id}")
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid place_id format: contains mixed path separators."
-        )
-
-    # Allow alphanumeric, '+', '/', '=', '_', and '-' but reject dangerous characters
-    if re.search(r'[\s?#<>|\*%$&\'";`]', place_id):
-        logger.warning(f"Blocked place_id with illegal characters: {place_id}")
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid place_id format: contains illegal characters."
-        )
 
 class _GoogleResponse:
     def __init__(self, response: httpx.Response):
@@ -197,18 +156,20 @@ class _GoogleResponse:
     def text(self) -> str:
         return self._response.text
 
+
 def _api_headers(field_mask: str) -> dict[str, str]:
     api_key = os.getenv("GOOGLE_PLACES_API_KEY")
     if not api_key:
         raise HTTPException(
             status_code=500,
-            detail="GOOGLE_PLACES_API_KEY is not set."
+            detail="GOOGLE_PLACES_API_KEY is not set.",
         )
     return {
         "Content-Type": "application/json",
         "X-Goog-Api-Key": api_key,
         "X-Goog-FieldMask": field_mask,
     }
+
 
 def _request(
     method: str, url: str, payload: dict[str, Any] | None, field_mask: str
@@ -226,11 +187,13 @@ def _request(
 
     return _GoogleResponse(response)
 
+
 def _build_text_query(request: SearchRequest) -> str:
     keyword = request.filters.keyword if request.filters else None
     if keyword:
         return f"{request.query} {keyword}".strip()
     return request.query
+
 
 def _build_search_body(request: SearchRequest) -> dict[str, Any]:
     body: dict[str, Any] = {
@@ -267,6 +230,7 @@ def _build_search_body(request: SearchRequest) -> dict[str, Any]:
 
     return body
 
+
 def _parse_lat_lng(raw: dict[str, Any] | None) -> LatLng | None:
     if not raw:
         return None
@@ -276,25 +240,30 @@ def _parse_lat_lng(raw: dict[str, Any] | None) -> LatLng | None:
         return None
     return LatLng(lat=latitude, lng=longitude)
 
+
 def _parse_display_name(raw: dict[str, Any] | None) -> str | None:
     if not raw:
         return None
     return raw.get("text")
+
 
 def _parse_open_now(raw: dict[str, Any] | None) -> bool | None:
     if not raw:
         return None
     return raw.get("openNow")
 
+
 def _parse_hours(raw: dict[str, Any] | None) -> list[str] | None:
     if not raw:
         return None
     return raw.get("weekdayDescriptions")
 
+
 def _parse_price_level(raw: str | None) -> int | None:
     if not raw:
         return None
     return _ENUM_TO_PRICE_LEVEL.get(raw)
+
 
 def search_places(request: SearchRequest) -> SearchResponse:
     url = f"{GOOGLE_PLACES_BASE_URL}/places:searchText"
@@ -341,10 +310,11 @@ def search_places(request: SearchRequest) -> SearchResponse:
         next_page_token=payload.get("nextPageToken"),
     )
 
+
 def get_place_details(place_id: str) -> PlaceDetails:
     # Validate place_id to prevent path traversal (addresses SonarCloud pythonsecurity:S7044)
     _validate_place_id(place_id)
-
+    
     url = f"{GOOGLE_PLACES_BASE_URL}/places/{place_id}"
     response = _request("GET", url, None, _DETAILS_FIELD_MASK)
 
@@ -381,6 +351,7 @@ def get_place_details(place_id: str) -> PlaceDetails:
         hours=_parse_hours(payload.get("regularOpeningHours")),
         open_now=_parse_open_now(payload.get("currentOpeningHours")),
     )
+
 
 def resolve_locations(request: LocationResolveRequest) -> LocationResolveResponse:
     url = f"{GOOGLE_PLACES_BASE_URL}/places:searchText"
