@@ -228,13 +228,17 @@ export async function transcribeAssemblyAiAudio(
 
   // Step 2: Submit transcription job
   const elapsed1 = Date.now() - start;
+  const remaining1 = totalTimeout - elapsed1;
+  if (remaining1 <= 0) {
+    throw new Error("AssemblyAI timeout budget exhausted after upload step");
+  }
   const transcriptId = await submitTranscript({
     audioUrl: uploadUrl,
     model,
     language: params.language,
     baseUrl,
     apiKey: params.apiKey,
-    timeoutMs: Math.min(totalTimeout - elapsed1, 15_000),
+    timeoutMs: Math.min(remaining1, 15_000),
     fetchFn,
     headers: params.headers,
     query: params.query,
@@ -242,11 +246,15 @@ export async function transcribeAssemblyAiAudio(
 
   // Step 3: Poll for completion
   const elapsed2 = Date.now() - start;
+  const remaining2 = totalTimeout - elapsed2;
+  if (remaining2 <= 0) {
+    throw new Error("AssemblyAI timeout budget exhausted before polling");
+  }
   const result = await pollTranscript({
     transcriptId,
     baseUrl,
     apiKey: params.apiKey,
-    deadlineMs: totalTimeout - elapsed2,
+    deadlineMs: remaining2,
     fetchFn,
     headers: params.headers,
   });
