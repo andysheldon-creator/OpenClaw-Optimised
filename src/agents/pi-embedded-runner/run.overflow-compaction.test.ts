@@ -75,11 +75,15 @@ vi.mock("../auth-profiles.js", () => ({
   markAuthProfileUsed: vi.fn(async () => {}),
 }));
 
-vi.mock("../defaults.js", () => ({
-  DEFAULT_CONTEXT_TOKENS: 200000,
-  DEFAULT_MODEL: "test-model",
-  DEFAULT_PROVIDER: "anthropic",
-}));
+vi.mock("../defaults.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../defaults.js")>();
+  return {
+    ...actual,
+    DEFAULT_CONTEXT_TOKENS: 200000,
+    DEFAULT_MODEL: "test-model",
+    DEFAULT_PROVIDER: "anthropic",
+  };
+});
 
 vi.mock("../failover-error.js", () => ({
   FailoverError: class extends Error {

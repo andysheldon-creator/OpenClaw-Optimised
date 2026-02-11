@@ -79,15 +79,15 @@
 - **Completed:** 2026-02-10
 
 ### FIX-001: Fix overflow-compaction test vi.mock missing resolveDefaultProvider export
-- **Status:** READY
+- **Status:** COMPLETED
 - **Type:** fix
 - **Prerequisites:** None
 - **Definition of Done:** All 4 tests in `src/agents/pi-embedded-runner/run.overflow-compaction.test.ts` pass. The vi.mock of `../defaults.js` re-exports `resolveDefaultProvider` and `resolveDefaultModel` using `importOriginal`. `pnpm test` shows 0 failures in this file.
 - **Max Diff:** ~10 lines
-- **Notes:** Pre-existing failure. The test mocks `../defaults.js` but does not re-export `resolveDefaultProvider`, which `run.ts:99` imports. Error: `[vitest] No "resolveDefaultProvider" export is defined on the "../defaults.js" mock`. Deterministic failure, 100% reproducible on main branch at commit 9a30a7947. Not caused by any recent PR.
-- **Assigned:** unassigned
-- **Branch:** --
-- **Completed:** --
+- **Notes:** Fixed by replacing the inline mock factory with `importOriginal` + spread pattern. The mock now inherits all real exports (including `resolveDefaultProvider` and `resolveDefaultModel`) and overrides only the three constants needed for deterministic tests.
+- **Assigned:** claude-code
+- **Branch:** main
+- **Completed:** 2026-02-10
 
 ---
 
