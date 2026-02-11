@@ -40,6 +40,11 @@ export function isLikelyContextOverflowError(errorMessage?: string): boolean {
   if (CONTEXT_WINDOW_TOO_SMALL_RE.test(errorMessage)) {
     return false;
   }
+  // Exclude rate limit errors — they can match the broad regex below
+  // (e.g. "request reached organization TPD rate limit" matches "request" + "limit")
+  if (isRateLimitErrorMessage(errorMessage)) {
+    return false;
+  }
   if (isContextOverflowError(errorMessage)) {
     return true;
   }
