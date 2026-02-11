@@ -51,4 +51,29 @@ describe("diagnostic-events", () => {
 
     expect(types).toEqual(["webhook.received", "message.queued", "session.state"]);
   });
+
+  test("guards against recursive self-emits", async () => {
+    resetDiagnosticEventsForTest();
+    let callCount = 0;
+    const stop = onDiagnosticEvent((evt) => {
+      if (evt.type !== "run.attempt") {
+        return;
+      }
+      callCount += 1;
+      emitDiagnosticEvent({
+        type: "run.attempt",
+        runId: "loop",
+        attempt: 1,
+      });
+    });
+
+    emitDiagnosticEvent({
+      type: "run.attempt",
+      runId: "seed",
+      attempt: 1,
+    });
+
+    stop();
+    expect(callCount).toBe(101);
+  });
 });
