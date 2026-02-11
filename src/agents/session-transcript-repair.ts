@@ -207,12 +207,26 @@ export function textifyToolCallRounds(messages: AgentMessage[]): AgentMessage[] 
     }
 
     // Check if this assistant message has any tool call blocks.
-    const toolCallBlocks: Array<{ type: string; id: string; name?: string; input?: unknown; arguments?: unknown }> = [];
+    const toolCallBlocks: Array<{
+      type: string;
+      id: string;
+      name?: string;
+      input?: unknown;
+      arguments?: unknown;
+    }> = [];
     const otherBlocks: unknown[] = [];
 
     for (const block of msg.content) {
       if (isToolCallBlock(block) && typeof (block as { id?: unknown }).id === "string") {
-        toolCallBlocks.push(block as { type: string; id: string; name?: string; input?: unknown; arguments?: unknown });
+        toolCallBlocks.push(
+          block as {
+            type: string;
+            id: string;
+            name?: string;
+            input?: unknown;
+            arguments?: unknown;
+          },
+        );
       } else {
         otherBlocks.push(block);
       }

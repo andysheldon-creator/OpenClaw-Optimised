@@ -52,7 +52,12 @@ describe("textifyToolCallRounds", () => {
         role: "assistant",
         content: [
           { type: "toolCall", id: "call_1", name: "web_search", arguments: { query: "dogs" } },
-          { type: "toolCall", id: "call_2", name: "web_fetch", arguments: { url: "http://example.com" } },
+          {
+            type: "toolCall",
+            id: "call_2",
+            name: "web_fetch",
+            arguments: { url: "http://example.com" },
+          },
         ],
       },
       {
@@ -114,8 +119,8 @@ describe("textifyToolCallRounds", () => {
     const textBlocks = assistantMsg.content.filter(
       (b: unknown) => (b as { type?: string }).type === "text",
     ) as Array<{ text: string }>;
-    expect(textBlocks[0]!.text).toBe("Let me search for that.");
-    expect(textBlocks[1]!.text).toContain("[Called tool web_search(");
+    expect(textBlocks[0].text).toBe("Let me search for that.");
+    expect(textBlocks[1].text).toContain("[Called tool web_search(");
   });
 
   it("returns original array when no tool calls present", () => {
@@ -155,9 +160,7 @@ describe("textifyToolCallRounds", () => {
     const input = [
       {
         role: "assistant",
-        content: [
-          { type: "toolCall", id: "call_orphan", name: "exec", arguments: { cmd: "ls" } },
-        ],
+        content: [{ type: "toolCall", id: "call_orphan", name: "exec", arguments: { cmd: "ls" } }],
       },
     ] satisfies AgentMessage[];
 
@@ -177,9 +180,7 @@ describe("textifyToolCallRounds", () => {
     const input = [
       {
         role: "assistant",
-        content: [
-          { type: "toolCall", id: "call_1", name: "read", arguments: { path: "big.txt" } },
-        ],
+        content: [{ type: "toolCall", id: "call_1", name: "read", arguments: { path: "big.txt" } }],
       },
       {
         role: "toolResult",
@@ -200,9 +201,7 @@ describe("textifyToolCallRounds", () => {
     const input = [
       {
         role: "assistant",
-        content: [
-          { type: "toolUse", id: "tu_1", name: "bash", input: { command: "echo hi" } },
-        ],
+        content: [{ type: "toolUse", id: "tu_1", name: "bash", input: { command: "echo hi" } }],
       },
       {
         role: "toolResult",
@@ -226,9 +225,7 @@ describe("textifyToolCallRounds", () => {
     const input = [
       {
         role: "assistant",
-        content: [
-          { type: "toolCall", id: "call_1", name: "search", arguments: {} },
-        ],
+        content: [{ type: "toolCall", id: "call_1", name: "search", arguments: {} }],
       },
       {
         role: "toolResult",
@@ -240,9 +237,7 @@ describe("textifyToolCallRounds", () => {
       { role: "user", content: "ok do something else" },
       {
         role: "assistant",
-        content: [
-          { type: "toolCall", id: "call_2", name: "exec", arguments: {} },
-        ],
+        content: [{ type: "toolCall", id: "call_2", name: "exec", arguments: {} }],
       },
       {
         role: "toolResult",
@@ -256,12 +251,12 @@ describe("textifyToolCallRounds", () => {
     const out = textifyToolCallRounds(input);
 
     // Both rounds textified, user message preserved in between
-    expect(out[0]!.role).toBe("assistant");
-    expect(out[1]!.role).toBe("user"); // converted result1
+    expect(out[0].role).toBe("assistant");
+    expect(out[1].role).toBe("user"); // converted result1
     expect((out[1] as { content: string }).content).toContain("result1");
-    expect(out[2]!.role).toBe("user"); // original user message
-    expect(out[3]!.role).toBe("assistant");
-    expect(out[4]!.role).toBe("user"); // converted result2
+    expect(out[2].role).toBe("user"); // original user message
+    expect(out[3].role).toBe("assistant");
+    expect(out[4].role).toBe("user"); // converted result2
     expect((out[4] as { content: string }).content).toContain("result2");
   });
 });

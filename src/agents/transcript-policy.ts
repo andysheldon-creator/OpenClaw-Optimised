@@ -89,8 +89,7 @@ export function resolveTranscriptPolicy(params: {
   const isOpenRouterGemini =
     (provider === "openrouter" || provider === "opencode") &&
     modelId.toLowerCase().includes("gemini");
-  const isCopilotGemini =
-    provider === "github-copilot" && modelId.toLowerCase().includes("gemini");
+  const isCopilotGemini = provider === "github-copilot" && modelId.toLowerCase().includes("gemini");
   const isAntigravityClaudeModel = isAntigravityClaude({
     api: params.modelApi,
     provider,
