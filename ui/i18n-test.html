@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenClaw UI Internationalization Test</title>
+    <script type="module">
+      // Import the i18n manager to test the functionality
+      import { i18n, t } from "./src/ui/i18n/i18n-manager.js";
+
+      // Wait for DOM to load
+      document.addEventListener("DOMContentLoaded", () => {
+        // Initialize the UI
+        initializeTestUI();
+
+        // Add event listeners for language switching
+        document.getElementById("lang-en").addEventListener("click", () => switchLanguage("en"));
+        document.getElementById("lang-zh").addEventListener("click", () => switchLanguage("zh"));
+
+        // Listen for locale changes
+        window.addEventListener("localeChanged", updateUITexts);
+      });
+
+      function initializeTestUI() {
+        updateUITexts();
+      }
+
+      function switchLanguage(lang) {
+        i18n.setLocale(lang);
+        updateUITexts();
+      }
+
+      function updateUITexts() {
+        const currentLang = i18n.getLocale();
+        document.documentElement.lang = currentLang;
+
+        // Update the language indicator
+        document.getElementById("current-lang").textContent =
+          currentLang === "zh" ? "当前语言: 中文" : "Current Language: English";
+
+        // Update sample texts
+        document.getElementById("sample-title").textContent = t("pageTitles.overview");
+        document.getElementById("sample-subtitle").textContent = t("pageSubtitles.overview");
+        document.getElementById("sample-button").textContent = t("common.save");
+        document.getElementById("sample-status").textContent = t("topbar.status");
+        document.getElementById("sample-chat-send").textContent = t("chat.send");
+      }
+    </script>
+  </head>
+  <body>
+    <div class="container">
+      <h1>OpenClaw UI Internationalization Test</h1>
+      <p id="current-lang">Current Language: English</p>
+
+      <div class="language-controls">
+        <button id="lang-en">English</button>
+        <button id="lang-zh">中文</button>
+      </div>
+
+      <div class="sample-section">
+        <h2>Sample Translated Texts:</h2>
+        <p><strong>Title:</strong> <span id="sample-title">Overview</span></p>
+        <p>
+          <strong>Subtitle:</strong>
+          <span id="sample-subtitle">Gateway status, entry points, and a fast health read.</span>
+        </p>
+        <p><strong>Button:</strong> <span id="sample-button">Save</span></p>
+        <p><strong>Status:</strong> <span id="sample-status">Status</span></p>
+        <p><strong>Chat Action:</strong> <span id="sample-chat-send">Send</span></p>
+      </div>
+
+      <div class="info">
+        <p>This test page demonstrates the internationalization functionality.</p>
+        <p>Click the language buttons above to switch between English and Chinese.</p>
+      </div>
+    </div>
+
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background-color: #f5f5f5;
+      }
+
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .language-controls {
+        margin: 20px 0;
+      }
+
+      .language-controls button {
+        margin-right: 10px;
+        padding: 8px 16px;
+        background-color: #007acc;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      .language-controls button:hover {
+        background-color: #005a9e;
+      }
+
+      .sample-section {
+        margin: 20px 0;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background-color: #f9f9f9;
+      }
+
+      .info {
+        margin-top: 20px;
+        padding: 10px;
+        background-color: #e7f3ff;
+        border-left: 4px solid #2196f3;
+      }
+    </style>
+  </body>
+</html>
