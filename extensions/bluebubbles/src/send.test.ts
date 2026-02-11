@@ -445,7 +445,7 @@ describe("send", () => {
       const body = JSON.parse(sendCall[1].body);
       expect(body.chatGuid).toBe("iMessage;-;+15551234567");
       expect(body.message).toBe("Hello world!");
-      expect(body.method).toBeUndefined();
+      expect(body.method).toBe("private-api");
     });
 
     it("strips markdown formatting from outbound messages", async () => {
