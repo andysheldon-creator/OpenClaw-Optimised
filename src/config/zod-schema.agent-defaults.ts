@@ -105,6 +105,20 @@ export const AgentDefaultsSchema = z
       })
       .strict()
       .optional(),
+    hierarchicalMemory: z
+      .object({
+        enabled: z.boolean().optional(),
+        workerInterval: z.string().optional(),
+        workerIntervalMs: z.number().int().positive().optional(),
+        chunkTokens: z.number().int().positive().optional(),
+        summaryTargetTokens: z.number().int().positive().optional(),
+        mergeThreshold: z.number().int().min(2).max(10).optional(),
+        pruningBoundaryTokens: z.number().int().nonnegative().optional(),
+        model: z.string().optional(),
+        maxLevels: z.number().int().min(1).max(5).optional(),
+      })
+      .strict()
+      .optional(),
     thinkingDefault: z
       .union([
         z.literal("off"),

@@ -94,6 +94,7 @@ const logReload = log.child("reload");
 const logHooks = log.child("hooks");
 const logPlugins = log.child("plugins");
 const logWsControl = log.child("ws");
+const logMemory = log.child("memory");
 const gatewayRuntime = runtimeForLogger(log);
 const canvasRuntime = runtimeForLogger(logCanvas);
 
@@ -546,7 +547,8 @@ export async function startGatewayServer(
   });
 
   let browserControl: Awaited<ReturnType<typeof startBrowserControlServerIfEnabled>> = null;
-  ({ browserControl, pluginServices } = await startGatewaySidecars({
+  let memoryTimer: Awaited<ReturnType<typeof startGatewaySidecars>>["memoryTimer"] = null;
+  ({ browserControl, pluginServices, memoryTimer } = await startGatewaySidecars({
     cfg: cfgAtStart,
     pluginRegistry,
     defaultWorkspaceDir,
@@ -556,6 +558,7 @@ export async function startGatewayServer(
     logHooks,
     logChannels,
     logBrowser,
+    logMemory,
   }));
 
   const { applyHotReload, requestGatewayRestart } = createGatewayReloadHandlers({
@@ -627,6 +630,7 @@ export async function startGatewayServer(
       if (diagnosticsEnabled) {
         stopDiagnosticHeartbeat();
       }
+      memoryTimer?.stop();
       if (skillsRefreshTimer) {
         clearTimeout(skillsRefreshTimer);
         skillsRefreshTimer = null;

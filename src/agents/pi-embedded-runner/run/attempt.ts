@@ -9,6 +9,10 @@ import { resolveHeartbeatPrompt } from "../../../auto-reply/heartbeat.js";
 import { resolveChannelCapabilities } from "../../../config/channel-capabilities.js";
 import { getMachineDisplayName } from "../../../infra/machine-name.js";
 import { MAX_IMAGE_BYTES } from "../../../media/constants.js";
+import {
+  isHierarchicalMemoryEnabled,
+  loadMemoryContext,
+} from "../../../memory/hierarchical/index.js";
 import { getGlobalHookRunner } from "../../../plugins/hook-runner-global.js";
 import { isSubagentSessionKey, normalizeAgentId } from "../../../routing/session-key.js";
 import { resolveSignalReactionLevel } from "../../../signal/reaction-level.js";
@@ -348,6 +352,24 @@ export async function runEmbeddedAttempt(
     });
     const ttsHint = params.config ? buildTtsSystemPromptHint(params.config) : undefined;
 
+    // Load hierarchical memory context if enabled (autobiographical memories from prior conversations)
+    let memorySection: string | undefined;
+    if (isHierarchicalMemoryEnabled(params.config) && promptMode !== "minimal") {
+      try {
+        const memoryContext = await loadMemoryContext(sessionAgentId);
+        if (memoryContext) {
+          memorySection = memoryContext.memorySection;
+          log.debug(
+            `loaded hierarchical memory: L1=${memoryContext.counts.L1} L2=${memoryContext.counts.L2} L3=${memoryContext.counts.L3} (~${memoryContext.tokenEstimate} tokens)`,
+          );
+        }
+      } catch (err) {
+        log.warn(
+          `failed to load hierarchical memory: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+
     const appendPrompt = buildEmbeddedSystemPrompt({
       workspaceDir: effectiveWorkspace,
       defaultThinkLevel: params.thinkLevel,
@@ -374,6 +396,7 @@ export async function runEmbeddedAttempt(
       userTimeFormat,
       contextFiles,
       memoryCitationsMode: params.config?.memory?.citations,
+      memorySection,
     });
     const systemPromptReport = buildSystemPromptReport({
       source: "run",

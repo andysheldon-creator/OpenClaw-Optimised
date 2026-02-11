@@ -175,6 +175,8 @@ export function buildAgentSystemPrompt(params: {
   userTime?: string;
   userTimeFormat?: ResolvedTimeFormat;
   contextFiles?: EmbeddedContextFile[];
+  /** Hierarchical memory section (autobiographical memories from prior conversations) */
+  memorySection?: string;
   skillsPrompt?: string;
   heartbeatPrompt?: string;
   docsPath?: string;
@@ -501,6 +503,8 @@ export function buildAgentSystemPrompt(params: {
     ...buildTimeSection({
       userTimezone,
     }),
+    // Hierarchical memory section (autobiographical memories from prior conversations)
+    ...(params.memorySection ? [params.memorySection, ""] : []),
     "## Workspace Files (injected)",
     "These user-editable files are loaded by OpenClaw and included below in Project Context.",
     "",
