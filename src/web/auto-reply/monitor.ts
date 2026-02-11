@@ -24,6 +24,7 @@ import {
   sleepWithAbort,
 } from "../reconnect.js";
 import { formatError, getWebAuthAgeMs, readWebSelfId } from "../session.js";
+import { WhatsAppMessageStore } from "../whatsapp-message-store.js";
 import { DEFAULT_WEB_MEDIA_BYTES } from "./constants.js";
 import { whatsappHeartbeatLog, whatsappLog } from "./loggers.js";
 import { buildMentionConfig } from "./mentions.js";
@@ -67,6 +68,18 @@ export async function monitorWebChannel(
     cfg: baseCfg,
     accountId: tuning.accountId,
   });
+
+  // Initialize message store if enabled
+  let messageStore: WhatsAppMessageStore | null = null;
+  const messageStoreEnabled = account.messageStore?.enabled ?? false;
+  if (messageStoreEnabled) {
+    messageStore = new WhatsAppMessageStore({
+      accountId: account.accountId,
+      maxMessagesPerChat: account.messageStore?.maxMessagesPerChat,
+    });
+    await messageStore.load();
+    messageStore.startPersistence();
+  }
   const cfg = {
     ...baseCfg,
     channels: {
@@ -197,6 +210,7 @@ export async function monitorWebChannel(
       sendReadReceipts: account.sendReadReceipts,
       debounceMs: inboundDebounceMs,
       shouldDebounce,
+      messageStore: messageStore,
       onMessage: async (msg: WebInboundMsg) => {
         handledMessages += 1;
         lastMessageAt = Date.now();
@@ -446,6 +460,11 @@ export async function monitorWebChannel(
   status.connected = false;
   status.lastEventAt = Date.now();
   emitStatus();
+
+  // Clean up message store
+  if (messageStore) {
+    await messageStore.stopPersistence();
+  }
 
   process.removeListener("SIGINT", handleSigint);
 }

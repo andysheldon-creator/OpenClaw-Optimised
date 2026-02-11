@@ -1,5 +1,6 @@
 import type { AgentToolResult } from "@mariozechner/pi-agent-core";
 import type { OpenClawConfig } from "../../config/config.js";
+import { requireActiveWebListener } from "../../web/active-listener.js";
 import { sendReactionWhatsApp } from "../../web/outbound.js";
 import { createActionGate, jsonResult, readReactionParams, readStringParam } from "./common.js";
 
@@ -34,6 +35,107 @@ export async function handleWhatsAppAction(
       return jsonResult({ ok: true, added: emoji });
     }
     return jsonResult({ ok: true, removed: true });
+  }
+
+  if (action === "getMessages") {
+    const accountId = readStringParam(params, "accountId");
+    const { listener } = requireActiveWebListener(accountId);
+    if (!listener.getMessages) {
+      throw new Error(
+        "WhatsApp message store is not enabled. Enable it in config: channels.whatsapp.messageStore.enabled = true",
+      );
+    }
+    const chatJid =
+      readStringParam(params, "chatJid") || readStringParam(params, "target", { required: true });
+    const limitRaw = params.limit;
+    const limit = typeof limitRaw === "number" ? limitRaw : 20;
+
+    // Auto-fetch from WhatsApp servers if store has fewer messages than requested
+    let messages = await listener.getMessages(chatJid, limit);
+    if (messages.length < limit && listener.fetchMessageHistory) {
+      const fetchCount = Math.max(limit, 50);
+      await listener.fetchMessageHistory(chatJid, fetchCount);
+      // Wait for messages to arrive via upsert (WhatsApp delivers async)
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      messages = await listener.getMessages(chatJid, limit);
+    }
+
+    return jsonResult({ ok: true, messages, count: messages.length });
+  }
+
+  if (action === "searchMessages") {
+    const accountId = readStringParam(params, "accountId");
+    const { listener } = requireActiveWebListener(accountId);
+    if (!listener.searchMessages) {
+      throw new Error(
+        "WhatsApp message store is not enabled. Enable it in config: channels.whatsapp.messageStore.enabled = true",
+      );
+    }
+    const query = readStringParam(params, "query", { required: true });
+    const chatJid = readStringParam(params, "chatJid");
+
+    // If searching a specific chat with no messages, auto-fetch first
+    if (chatJid && listener.getMessages && listener.fetchMessageHistory) {
+      const existing = await listener.getMessages(chatJid);
+      if (existing.length === 0) {
+        await listener.fetchMessageHistory(chatJid, 100);
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+      }
+    }
+
+    const limitRaw = params.limit;
+    const searchLimit = typeof limitRaw === "number" ? limitRaw : 100;
+    const messages = await listener.searchMessages(query, chatJid, searchLimit);
+    return jsonResult({ ok: true, messages, count: messages.length });
+  }
+
+  if (action === "listChats") {
+    const accountId = readStringParam(params, "accountId");
+    const { listener } = requireActiveWebListener(accountId);
+    if (!listener.listChats) {
+      throw new Error(
+        "WhatsApp message store is not enabled. Enable it in config: channels.whatsapp.messageStore.enabled = true",
+      );
+    }
+    // Merge store chats with live groups from WhatsApp
+    const storeChats = await listener.listChats();
+    const groups = listener.fetchAllGroups ? await listener.fetchAllGroups() : [];
+    const storeJids = new Set(storeChats.map((c) => c.chatJid));
+    const mergedChats = [...storeChats];
+    for (const g of groups) {
+      if (!storeJids.has(g.jid)) {
+        mergedChats.push({
+          chatJid: g.jid,
+          lastMessage: undefined,
+          messageCount: 0,
+          groupSubject: g.subject,
+          participants: g.participants,
+        });
+      } else {
+        // Enrich existing store entry with group info
+        const existing = mergedChats.find((c) => c.chatJid === g.jid);
+        if (existing) {
+          existing.groupSubject = g.subject;
+          existing.participants = g.participants;
+        }
+      }
+    }
+    return jsonResult({ ok: true, chats: mergedChats, count: mergedChats.length });
+  }
+
+  if (action === "fetchHistory") {
+    const accountId = readStringParam(params, "accountId");
+    const { listener } = requireActiveWebListener(accountId);
+    if (!listener.fetchMessageHistory) {
+      throw new Error(
+        "WhatsApp message store is not enabled. Enable it in config: channels.whatsapp.messageStore.enabled = true",
+      );
+    }
+    const chatJid = readStringParam(params, "chatJid", { required: true });
+    const countRaw = params.count;
+    const count = typeof countRaw === "number" ? countRaw : 50;
+    await listener.fetchMessageHistory(chatJid, count);
+    return jsonResult({ ok: true, message: `Requested ${count} messages from ${chatJid}` });
   }
 
   throw new Error(`Unsupported WhatsApp action: ${action}`);

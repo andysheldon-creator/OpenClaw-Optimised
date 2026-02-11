@@ -255,32 +255,68 @@ export const whatsappPlugin: ChannelPlugin<ResolvedWhatsAppAccount> = {
       if (gate("polls")) {
         actions.add("poll");
       }
+      // Check if ANY account has message store enabled
+      const accountIds = listWhatsAppAccountIds(cfg);
+      const anyStoreEnabled = accountIds.some((id) => {
+        const account = resolveWhatsAppAccount({ cfg, accountId: id });
+        return account.messageStore?.enabled ?? false;
+      });
+      if (anyStoreEnabled) {
+        actions.add("getMessages" as ChannelMessageActionName);
+        actions.add("searchMessages" as ChannelMessageActionName);
+        actions.add("listChats" as ChannelMessageActionName);
+        actions.add("fetchHistory" as ChannelMessageActionName);
+      }
       return Array.from(actions);
     },
-    supportsAction: ({ action }) => action === "react",
+    supportsAction: ({ action }) =>
+      ["react", "getMessages", "searchMessages", "listChats", "fetchHistory"].includes(action),
     handleAction: async ({ action, params, cfg, accountId }) => {
-      if (action !== "react") {
-        throw new Error(`Action ${action} is not supported for provider ${meta.id}.`);
+      const runtime = getWhatsAppRuntime();
+
+      if (action === "react") {
+        const messageId = readStringParam(params, "messageId", {
+          required: true,
+        });
+        const emoji = readStringParam(params, "emoji", { allowEmpty: true });
+        const remove = typeof params.remove === "boolean" ? params.remove : undefined;
+        return await runtime.channel.whatsapp.handleWhatsAppAction(
+          {
+            action: "react",
+            chatJid:
+              readStringParam(params, "chatJid") ??
+              readStringParam(params, "to", { required: true }),
+            messageId,
+            emoji,
+            remove,
+            participant: readStringParam(params, "participant"),
+            accountId: accountId ?? undefined,
+            fromMe: typeof params.fromMe === "boolean" ? params.fromMe : undefined,
+          },
+          cfg,
+        );
       }
-      const messageId = readStringParam(params, "messageId", {
-        required: true,
-      });
-      const emoji = readStringParam(params, "emoji", { allowEmpty: true });
-      const remove = typeof params.remove === "boolean" ? params.remove : undefined;
-      return await getWhatsAppRuntime().channel.whatsapp.handleWhatsAppAction(
-        {
-          action: "react",
-          chatJid:
-            readStringParam(params, "chatJid") ?? readStringParam(params, "to", { required: true }),
-          messageId,
-          emoji,
-          remove,
-          participant: readStringParam(params, "participant"),
-          accountId: accountId ?? undefined,
-          fromMe: typeof params.fromMe === "boolean" ? params.fromMe : undefined,
-        },
-        cfg,
-      );
+
+      // Message reading actions — delegate to handleWhatsAppAction
+      if (["getMessages", "searchMessages", "listChats", "fetchHistory"].includes(action)) {
+        return await runtime.channel.whatsapp.handleWhatsAppAction(
+          {
+            action,
+            chatJid:
+              readStringParam(params, "chatJid") ??
+              readStringParam(params, "to") ??
+              readStringParam(params, "target") ??
+              undefined,
+            query: readStringParam(params, "query") ?? undefined,
+            limit: typeof params.limit === "number" ? params.limit : undefined,
+            count: typeof params.count === "number" ? params.count : undefined,
+            accountId: accountId ?? undefined,
+          },
+          cfg,
+        );
+      }
+
+      throw new Error(`Action ${action} is not supported for provider ${meta.id}.`);
     },
   },
   outbound: {
