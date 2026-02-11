@@ -500,6 +500,117 @@ describe("runCronIsolatedAgentTurn", () => {
     });
   });
 
+  it("accepts full provider/model string override", async () => {
+    await withTempHome(async (home) => {
+      const storePath = await writeSessionStore(home);
+      const deps: CliDeps = {
+        sendMessageWhatsApp: vi.fn(),
+        sendMessageTelegram: vi.fn(),
+        sendMessageDiscord: vi.fn(),
+        sendMessageSignal: vi.fn(),
+        sendMessageIMessage: vi.fn(),
+      };
+      vi.mocked(runEmbeddedPiAgent).mockResolvedValue({
+        payloads: [{ text: "done" }],
+        meta: {
+          durationMs: 5,
+          agentMeta: { sessionId: "s", provider: "anthropic", model: "claude-sonnet-4-5" },
+        },
+      });
+      vi.mocked(loadModelCatalog).mockResolvedValueOnce([
+        {
+          id: "claude-sonnet-4-5",
+          name: "Sonnet 4.5",
+          provider: "anthropic",
+          reasoning: true,
+        },
+      ]);
+
+      const res = await runCronIsolatedAgentTurn({
+        cfg: makeCfg(home, storePath),
+        deps,
+        job: makeJob({
+          kind: "agentTurn",
+          message: "do it",
+          model: "anthropic/claude-sonnet-4-5",
+          deliver: false,
+        }),
+        message: "do it",
+        sessionKey: "cron:job-1",
+        lane: "cron",
+      });
+
+      expect(res.status).toBe("ok");
+      const callArgs = vi.mocked(runEmbeddedPiAgent).mock.calls.at(-1)?.[0];
+      expect(callArgs?.provider).toBe("anthropic");
+      expect(callArgs?.model).toBe("claude-sonnet-4-5");
+    });
+  });
+
+  it("accepts full provider/model string override with object-style default model config", async () => {
+    await withTempHome(async (home) => {
+      const storePath = await writeSessionStore(home);
+      const deps: CliDeps = {
+        sendMessageWhatsApp: vi.fn(),
+        sendMessageTelegram: vi.fn(),
+        sendMessageDiscord: vi.fn(),
+        sendMessageSignal: vi.fn(),
+        sendMessageIMessage: vi.fn(),
+      };
+      vi.mocked(runEmbeddedPiAgent).mockResolvedValue({
+        payloads: [{ text: "done" }],
+        meta: {
+          durationMs: 5,
+          agentMeta: { sessionId: "s", provider: "anthropic", model: "claude-sonnet-4-5" },
+        },
+      });
+      vi.mocked(loadModelCatalog).mockResolvedValueOnce([
+        {
+          id: "claude-sonnet-4-5",
+          name: "Sonnet 4.5",
+          provider: "anthropic",
+          reasoning: true,
+        },
+      ]);
+
+      // Use object-style model config like production
+      const cfg: OpenClawConfig = {
+        agents: {
+          defaults: {
+            model: {
+              primary: "anthropic/claude-opus-4-5",
+              fallbacks: ["qwen-portal/coder-model"],
+            },
+            models: {
+              "anthropic/claude-sonnet-4-5": { alias: "sonnet" },
+            },
+            workspace: path.join(home, "openclaw"),
+          },
+        },
+        session: { store: storePath, mainKey: "main" },
+      } as OpenClawConfig;
+
+      const res = await runCronIsolatedAgentTurn({
+        cfg,
+        deps,
+        job: makeJob({
+          kind: "agentTurn",
+          message: "do it",
+          model: "anthropic/claude-sonnet-4-5",
+          deliver: false,
+        }),
+        message: "do it",
+        sessionKey: "cron:job-1",
+        lane: "cron",
+      });
+
+      expect(res.status).toBe("ok");
+      const callArgs = vi.mocked(runEmbeddedPiAgent).mock.calls.at(-1)?.[0];
+      expect(callArgs?.provider).toBe("anthropic");
+      expect(callArgs?.model).toBe("claude-sonnet-4-5");
+    });
+  });
+
   it("defaults thinking to low for reasoning-capable models", async () => {
     await withTempHome(async (home) => {
       const storePath = await writeSessionStore(home);
