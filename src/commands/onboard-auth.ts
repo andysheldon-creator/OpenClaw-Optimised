@@ -32,9 +32,11 @@ export {
   applyXiaomiConfig,
   applyXiaomiProviderConfig,
   applyZaiConfig,
+} from "./onboard-auth.config-core.js";
+export {
   applyDigitalOceanGradientConfig,
   applyDigitalOceanGradientProviderConfig,
-} from "./onboard-auth.config-core.js";
+} from "./digitalocean-gradient-config.js";
 export {
   applyMinimaxApiConfig,
   applyMinimaxApiProviderConfig,
