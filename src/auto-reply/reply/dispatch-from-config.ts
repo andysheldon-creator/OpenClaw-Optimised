@@ -353,7 +353,7 @@ export async function dispatchReplyFromConfig(params: {
     let queuedFinal = false;
     let routedFinalCount = 0;
     for (const reply of replies) {
-      const ttsReply = await maybeApplyTtsToPayload({
+      let ttsReply = await maybeApplyTtsToPayload({
         payload: reply,
         cfg,
         channel: ttsChannel,
@@ -361,6 +361,38 @@ export async function dispatchReplyFromConfig(params: {
         inboundAudio,
         ttsAuto: sessionTtsAuto,
       });
+
+      // === message_sending hook: allow plugins to modify or cancel outgoing replies ===
+      if (hookRunner?.hasHooks("message_sending")) {
+        const sendingResult = await hookRunner.runMessageSending(
+          {
+            to: chatId ?? "",
+            content: ttsReply.text ?? "",
+            metadata: {
+              provider: ctx.Provider,
+              surface: ctx.Surface,
+              sessionKey,
+              messageId,
+            },
+          },
+          {
+            channelId: channel,
+            accountId: ctx.AccountId,
+            conversationId: chatId,
+          },
+        );
+
+        if (sendingResult?.cancel) {
+          logVerbose("dispatch-from-config: message_sending hook cancelled reply");
+          continue;
+        }
+
+        if (sendingResult?.content !== undefined) {
+          ttsReply = { ...ttsReply, text: sendingResult.content };
+        }
+      }
+
+      let sendSuccess = false;
       if (shouldRouteToOriginating && originatingChannel && originatingTo) {
         // Route final reply to originating channel.
         const result = await routeReply({
@@ -378,11 +410,33 @@ export async function dispatchReplyFromConfig(params: {
           );
         }
         queuedFinal = result.ok || queuedFinal;
+        sendSuccess = result.ok;
         if (result.ok) {
           routedFinalCount += 1;
         }
       } else {
-        queuedFinal = dispatcher.sendFinalReply(ttsReply) || queuedFinal;
+        sendSuccess = dispatcher.sendFinalReply(ttsReply);
+        queuedFinal = sendSuccess || queuedFinal;
+      }
+
+      // === message_sent hook: notify plugins after delivery ===
+      if (hookRunner?.hasHooks("message_sent")) {
+        void hookRunner
+          .runMessageSent(
+            {
+              to: chatId ?? "",
+              content: ttsReply.text ?? "",
+              success: sendSuccess,
+            },
+            {
+              channelId: channel,
+              accountId: ctx.AccountId,
+              conversationId: chatId,
+            },
+          )
+          .catch((err) => {
+            logVerbose(`dispatch-from-config: message_sent hook failed: ${String(err)}`);
+          });
       }
     }
 
