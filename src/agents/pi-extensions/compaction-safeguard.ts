@@ -1,5 +1,5 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
-import type { ExtensionAPI, FileOperations } from "@mariozechner/pi-coding-agent";
+import { type ExtensionAPI, type FileOperations } from "@mariozechner/pi-coding-agent";
 import {
   BASE_CHUNK_RATIO,
   MIN_CHUNK_RATIO,

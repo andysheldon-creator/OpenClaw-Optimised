@@ -51,7 +51,11 @@ import { handleToolsInvokeHttpRequest } from "./tools-invoke-http.js";
 type SubsystemLogger = ReturnType<typeof createSubsystemLogger>;
 
 type HookDispatchers = {
-  dispatchWakeHook: (value: { text: string; mode: "now" | "next-heartbeat" }) => void;
+  dispatchWakeHook: (value: {
+    text: string;
+    mode: "now" | "next-heartbeat";
+    sessionKey?: string;
+  }) => void;
   dispatchAgentHook: (value: {
     message: string;
     name: string;
