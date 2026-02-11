@@ -58,7 +58,7 @@ describe("resolveMatrixSessionKey", () => {
     });
 
     expect(resolved).toEqual({
-      sessionKey: "agent:main:matrix:channel:!room:example.org:thread:$threadroot:example.org",
+      sessionKey: "agent:main:matrix:channel:!room:example.org:thread:$ThreadRoot:Example.Org",
       parentSessionKey: "agent:main:matrix:channel:!room:example.org",
     });
   });
@@ -75,7 +75,7 @@ describe("resolveMatrixSessionKey", () => {
     });
 
     expect(resolved).toEqual({
-      sessionKey: "agent:main-agent:matrix:main:thread:$threadroot:example.org",
+      sessionKey: "agent:main-agent:matrix:main:thread:$ThreadRoot:Example.Org",
       parentSessionKey: "agent:main-agent:matrix:main",
     });
   });
@@ -114,7 +114,7 @@ describe("resolveMatrixSessionKey", () => {
     });
   });
 
-  it("normalizes threadRootId to lowercase", () => {
+  it("preserves case in threadRootId", () => {
     const resolved = resolveMatrixSessionKey({
       sessionScope: "room",
       route: {
@@ -126,7 +126,7 @@ describe("resolveMatrixSessionKey", () => {
     });
 
     expect(resolved.sessionKey).toBe(
-      "agent:main:matrix:channel:!room:example.org:thread:$uppercase:thread.id",
+      "agent:main:matrix:channel:!room:example.org:thread:$UPPERCASE:THREAD.ID",
     );
   });
 
@@ -194,7 +194,7 @@ describe("resolveMatrixSessionKey", () => {
     });
 
     expect(resolved).toEqual({
-      sessionKey: "agent:myagent:matrix:main:thread:$mixedcase:thread.id",
+      sessionKey: "agent:myagent:matrix:main:thread:$MixedCase:Thread.ID",
       parentSessionKey: "agent:myagent:matrix:main",
     });
   });
