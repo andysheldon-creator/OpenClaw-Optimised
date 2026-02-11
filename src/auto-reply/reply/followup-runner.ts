@@ -260,20 +260,26 @@ export function createFollowupRunner(params: {
       if (storePath && sessionKey) {
         const usage = runResult.meta.agentMeta?.usage;
         const modelUsed = runResult.meta.agentMeta?.model ?? fallbackModel ?? defaultModel;
+        const providerUsed = fallbackProvider;
         const contextTokensUsed =
           agentCfgContextTokens ??
           lookupContextTokens(modelUsed) ??
           sessionEntry?.contextTokens ??
           DEFAULT_CONTEXT_TOKENS;
+        const runRole =
+          providerUsed === configuredBrainProvider && modelUsed === configuredBrainModel
+            ? "brain"
+            : "muscle";
 
         await persistSessionUsageUpdate({
           storePath,
           sessionKey,
           usage,
           modelUsed,
-          providerUsed: fallbackProvider,
+          providerUsed,
           contextTokensUsed,
           logLabel: "followup",
+          role: runRole,
         });
       }
 
@@ -303,6 +309,27 @@ export function createFollowupRunner(params: {
         queued.originatingChatType,
       );
 
+      const footerMeta = {
+        provider: fallbackProvider,
+        model: runResult.meta.agentMeta?.model ?? fallbackModel ?? defaultModel,
+        inputTokens: runResult.meta.agentMeta?.usage?.input,
+        outputTokens: runResult.meta.agentMeta?.usage?.output,
+      };
+      const annotateFooter = (payload: ReplyPayload): ReplyPayload => {
+        if (!footerMeta.provider || !footerMeta.model) {
+          return payload;
+        }
+        const telegramData = payload.channelData?.telegram ?? {};
+        const annotatedTelegram = {
+          ...telegramData,
+          modelFooter: footerMeta,
+        };
+        const channelData = payload.channelData
+          ? { ...payload.channelData, telegram: annotatedTelegram }
+          : { telegram: annotatedTelegram };
+        return { ...payload, channelData };
+      };
+
       const replyTaggedPayloads: ReplyPayload[] = applyReplyThreading({
         payloads: sanitizedPayloads,
         replyToMode,
@@ -319,7 +346,8 @@ export function createFollowupRunner(params: {
         originatingTo: queued.originatingTo,
         accountId: queued.run.agentAccountId,
       });
-      const finalPayloads = suppressMessagingToolReplies ? [] : dedupedPayloads;
+      const annotatedPayloads = dedupedPayloads.map(annotateFooter);
+      const finalPayloads = suppressMessagingToolReplies ? [] : annotatedPayloads;
 
       if (finalPayloads.length === 0) {
         return;

@@ -240,11 +240,11 @@ if (cfg.browser && cfg.browser.profiles) {
 }
 
 // Agent model config
-// Defaults favor low cost (Haiku). Opus is opt-in via OPENCLAW_BRAIN_MODEL / OPENCLAW_FALLBACK_MODELS.
+// Defaults favor a pinned OpenRouter muscle model. Anthropic Opus stays reserved for the Brain pipeline.
 cfg.agents = cfg.agents || {};
 cfg.agents.defaults = cfg.agents.defaults || {};
 
-const primaryModel = (process.env.OPENCLAW_PRIMARY_MODEL || 'anthropic/claude-haiku-4.5').trim();
+const primaryModel = (process.env.OPENCLAW_PRIMARY_MODEL || 'openrouter/moonshotai/kimi-k2').trim();
 const fallbacksRaw = (process.env.OPENCLAW_FALLBACK_MODELS || '').trim();
 const fallbackModels = fallbacksRaw
   ? fallbacksRaw
@@ -262,12 +262,12 @@ cfg.agents.defaults.model = {
 cfg.agents.defaults.thinkingDefault = cfg.agents.defaults.thinkingDefault || 'off';
 
 // Enable brain -> muscle -> brain reply pipeline.
-// Brain defaults to Opus (better planning) but can be overridden to a cheaper model.
-// Muscle defaults to model fallbacks (or Haiku when no fallbacks are configured).
+// Brain uses high-level Anthropic reasoning only when explicitly escalated.
+// Muscle relies on the configured fallback models (prefer OpenRouter) for execution.
 cfg.agents.defaults.replyPipeline = cfg.agents.defaults.replyPipeline || {};
 cfg.agents.defaults.replyPipeline.enabled = true;
 cfg.agents.defaults.replyPipeline.brainModel = (
-  process.env.OPENCLAW_BRAIN_MODEL || 'anthropic/claude-opus-4-5'
+  process.env.OPENCLAW_BRAIN_MODEL || 'anthropic/claude-opus-4-6'
 ).trim();
 const muscleRaw = (process.env.OPENCLAW_MUSCLE_MODELS || '').trim();
 cfg.agents.defaults.replyPipeline.muscleModels = muscleRaw
@@ -289,6 +289,21 @@ for (const ref of [
     cfg.agents.defaults.models[ref.trim()] = cfg.agents.defaults.models[ref.trim()] || {};
   }
 }
+
+const muscleModels = cfg.agents.defaults.replyPipeline.muscleModels || [];
+const muscleList = muscleModels.length > 0 ? muscleModels.join(', ') : primaryModel;
+const fallbackLabel = fallbackModels.length > 0 ? fallbackModels.join(', ') : 'none';
+const openRouterKeyState = process.env.OPENROUTER_API_KEY?.trim() ? 'set' : 'missing';
+const anthropicKeyState = process.env.ANTHROPIC_API_KEY?.trim() ? 'set' : 'missing';
+console.log(
+  `[entrypoint] Model defaults: primary=${primaryModel} fallbacks=${fallbackLabel}`,
+);
+console.log(
+  `[entrypoint] Pipeline models: brain=${cfg.agents.defaults.replyPipeline.brainModel} muscle=${muscleList}`,
+);
+console.log(
+  `[entrypoint] API keys: OPENROUTER_API_KEY=${openRouterKeyState} ANTHROPIC_API_KEY=${anthropicKeyState}`,
+);
 
 fs.mkdirSync(path.dirname(configPath), { recursive: true });
 fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2));

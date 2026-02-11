@@ -71,6 +71,7 @@ type StatusArgs = {
   mediaDecisions?: MediaUnderstandingDecision[];
   subagentsLine?: string;
   includeTranscriptUsage?: boolean;
+  role?: "muscle" | "brain";
   now?: number;
 };
 
@@ -440,6 +441,8 @@ export function buildStatusMessage(args: StatusArgs): string {
   const modelLabel = model ? `${provider}/${model}` : "unknown";
   const authLabel = authLabelValue ? ` · 🔑 ${authLabelValue}` : "";
   const modelLine = `🧠 Model: ${modelLabel}${authLabel}`;
+  const roleLabel = args.role ?? "muscle";
+  const roleLine = `🎯 Role: ${roleLabel}`;
   const commit = resolveCommitHash();
   const versionLine = `🦞 OpenClaw ${VERSION}${commit ? ` (${commit})` : ""}`;
   const usagePair = formatUsagePair(inputTokens, outputTokens);
@@ -453,6 +456,7 @@ export function buildStatusMessage(args: StatusArgs): string {
     versionLine,
     args.timeLine,
     modelLine,
+    roleLine,
     usageCostLine,
     `📚 ${contextLine}`,
     mediaLine,

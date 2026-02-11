@@ -12,6 +12,12 @@ const PLANNING_OR_META_PATTERNS: RegExp[] = [
   /\b(?:how\s+should\s+we|what\s+should\s+we\s+do|next\s+steps?)\b/i,
   /\b(architecture|design\s+doc|approach|decision)\b/i,
   /\b(meta|prompt|system\s+prompt|reason\s+about|think\s+through)\b/i,
+  /\b(publish|deployment|deploy|release|ship|launch|go[- ]live)\b/i,
+  /\b(payment|invoice|purchase|billing|charge|transfer|money|financial|funds)\b/i,
+  /\b(auth|authenticate|authentication|credentials|credential|password|token|authorize|login)\b/i,
+  /\b(delete|destroy|remove|erase|wipe|reset|terminate|uninstall)\b/i,
+  /\b(analyze|analysis|evaluate|reason|scrutinize|audit)\b/i,
+  /\b(verify|validation|double[- ]check|confirm|confidence|uncertain|doubt)\b/i,
 ];
 
 const BOUNDED_TRANSFORM_PATTERNS: RegExp[] = [

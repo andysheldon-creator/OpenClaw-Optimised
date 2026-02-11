@@ -209,6 +209,7 @@ export async function buildStatusReply(params: {
     ? (normalizeGroupActivation(sessionEntry?.groupActivation) ?? defaultGroupActivation())
     : undefined;
   const agentDefaults = cfg.agents?.defaults ?? {};
+  const statusRole = (sessionEntry?.lastRunRole as "muscle" | "brain") ?? "muscle";
   const statusText = buildStatusMessage({
     config: cfg,
     agent: {
@@ -231,6 +232,7 @@ export async function buildStatusReply(params: {
     resolvedReasoning: resolvedReasoningLevel,
     resolvedElevated: resolvedElevatedLevel,
     modelAuth: resolveModelAuthLabel(provider, cfg, sessionEntry, statusAgentDir),
+    role: statusRole,
     usageLine: usageLine ?? undefined,
     queue: {
       mode: queueSettings.mode,

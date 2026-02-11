@@ -56,6 +56,7 @@ export type SessionEntry = {
   brainOwnerActive?: boolean;
   brainOwnerProvider?: string;
   brainOwnerModel?: string;
+  lastRunRole?: "muscle" | "brain";
   groupActivation?: "mention" | "always";
   groupActivationNeedsSystemIntro?: boolean;
   sendPolicy?: "allow" | "deny";

@@ -20,6 +20,7 @@ export async function persistSessionUsageUpdate(params: {
   contextTokensUsed?: number;
   systemPromptReport?: SessionSystemPromptReport;
   cliSessionId?: string;
+  role?: "muscle" | "brain";
   logLabel?: string;
 }): Promise<void> {
   const { storePath, sessionKey } = params;
@@ -49,6 +50,7 @@ export async function persistSessionUsageUpdate(params: {
             model: params.modelUsed ?? entry.model,
             contextTokens: resolvedContextTokens,
             systemPromptReport: params.systemPromptReport ?? entry.systemPromptReport,
+            lastRunRole: params.role ?? entry.lastRunRole,
             updatedAt: Date.now(),
           };
           const cliProvider = params.providerUsed ?? entry.modelProvider;
@@ -81,6 +83,7 @@ export async function persistSessionUsageUpdate(params: {
             model: params.modelUsed ?? entry.model,
             contextTokens: params.contextTokensUsed ?? entry.contextTokens,
             systemPromptReport: params.systemPromptReport ?? entry.systemPromptReport,
+            lastRunRole: params.role ?? entry.lastRunRole,
             updatedAt: Date.now(),
           };
           const cliProvider = params.providerUsed ?? entry.modelProvider;

@@ -18,6 +18,7 @@ import {
   markdownToTelegramChunks,
   markdownToTelegramHtml,
   renderTelegramHtmlText,
+  escapeHtml,
 } from "../format.js";
 import { buildInlineKeyboard } from "../send.js";
 import { cacheSticker, getCachedSticker } from "../sticker-cache.js";
@@ -30,6 +31,64 @@ import {
 
 const PARSE_ERR_RE = /can't parse entities|parse entities|find end of the entity/i;
 const VOICE_FORBIDDEN_RE = /VOICE_MESSAGES_FORBIDDEN/;
+
+type TelegramModelFooterMeta = {
+  provider: string;
+  model: string;
+  inputTokens?: number;
+  outputTokens?: number;
+};
+
+function buildTelegramFooter(meta?: TelegramModelFooterMeta): string | null {
+  if (!meta?.provider || !meta?.model) {
+    return null;
+  }
+  const tokenParts: string[] = [];
+  if (typeof meta.inputTokens === "number") {
+    tokenParts.push(`input_tokens=${meta.inputTokens}`);
+  }
+  if (typeof meta.outputTokens === "number") {
+    tokenParts.push(`output_tokens=${meta.outputTokens}`);
+  }
+  const tokensText = tokenParts.length ? ` | ${tokenParts.join(" | ")}` : "";
+  return `[model=${meta.provider}/${meta.model}${tokensText}]`;
+}
+
+function appendFooterToChunk(chunk: { html: string; text: string }, footer: string | null) {
+  if (!footer) {
+    return chunk;
+  }
+  const htmlTrimmed = chunk.html.trim();
+  const textTrimmed = chunk.text.trim();
+  const htmlSuffix = `<br><br>${escapeHtml(footer)}`;
+  const textSuffix = textTrimmed ? `\n\n${footer}` : footer;
+  return {
+    html: htmlTrimmed ? `${htmlTrimmed}${htmlSuffix}` : escapeHtml(footer),
+    text: textTrimmed ? `${textTrimmed}${textSuffix}` : footer,
+  };
+}
+
+function applyFooterToHtml(html?: string, footer?: string | null): string | undefined {
+  if (!footer) {
+    return html;
+  }
+  const trimmed = html?.trim();
+  const suffix = `<br><br>${escapeHtml(footer)}`;
+  return trimmed ? `${trimmed}${suffix}` : escapeHtml(footer);
+}
+
+function applyFooterToPlainText(text?: string, footer?: string | null): string | undefined {
+  if (!footer) {
+    return text;
+  }
+  const trimmed = text?.trim();
+  return trimmed ? `${trimmed}\n\n${footer}` : footer;
+}
+
+type TelegramChannelData = {
+  buttons?: Array<Array<{ text: string; callback_data: string }>>;
+  modelFooter?: TelegramModelFooterMeta;
+};
 
 export async function deliverReplies(params: {
   replies: ReplyPayload[];
@@ -101,10 +160,9 @@ export async function deliverReplies(params: {
       : reply.mediaUrl
         ? [reply.mediaUrl]
         : [];
-    const telegramData = reply.channelData?.telegram as
-      | { buttons?: Array<Array<{ text: string; callback_data: string }>> }
-      | undefined;
+    const telegramData = reply.channelData?.telegram as TelegramChannelData | undefined;
     const replyMarkup = buildInlineKeyboard(telegramData?.buttons);
+    const footerText = buildTelegramFooter(telegramData?.modelFooter);
     if (mediaList.length === 0) {
       const chunks = chunkText(reply.text || "");
       for (let i = 0; i < chunks.length; i += 1) {
@@ -112,15 +170,16 @@ export async function deliverReplies(params: {
         if (!chunk) {
           continue;
         }
+        const chunkWithFooter = appendFooterToChunk(chunk, footerText);
         // Only attach buttons to the first chunk.
         const shouldAttachButtons = i === 0 && replyMarkup;
-        await sendTelegramText(bot, chatId, chunk.html, runtime, {
+        await sendTelegramText(bot, chatId, chunkWithFooter.html, runtime, {
           replyToMessageId:
             replyToId && (replyToMode === "all" || !hasReplied) ? replyToId : undefined,
           replyQuoteText,
           thread,
           textMode: "html",
-          plainText: chunk.text,
+          plainText: chunkWithFooter.text,
           linkPreview,
           replyMarkup: shouldAttachButtons ? replyMarkup : undefined,
         });
@@ -153,6 +212,7 @@ export async function deliverReplies(params: {
       const htmlCaption = caption
         ? renderTelegramHtmlText(caption, { tableMode: params.tableMode })
         : undefined;
+      const htmlCaptionWithFooter = applyFooterToHtml(htmlCaption, footerText);
       if (followUpText) {
         pendingFollowUpText = followUpText;
       }
@@ -161,8 +221,7 @@ export async function deliverReplies(params: {
         replyToId && (replyToMode === "all" || !hasReplied) ? replyToId : undefined;
       const shouldAttachButtonsToMedia = isFirstMedia && replyMarkup && !followUpText;
       const mediaParams: Record<string, unknown> = {
-        caption: htmlCaption,
-        ...(htmlCaption ? { parse_mode: "HTML" } : {}),
+        ...(htmlCaptionWithFooter ? { caption: htmlCaptionWithFooter, parse_mode: "HTML" } : {}),
         ...(shouldAttachButtonsToMedia ? { reply_markup: replyMarkup } : {}),
         ...buildTelegramSendParams({
           replyToMessageId,
@@ -233,6 +292,7 @@ export async function deliverReplies(params: {
                 thread,
                 linkPreview,
                 replyMarkup,
+                footerText,
                 replyQuoteText,
               });
               markDelivered();
@@ -269,11 +329,12 @@ export async function deliverReplies(params: {
           const chunk = chunks[i];
           const replyToMessageIdFollowup =
             replyToId && (replyToMode === "all" || !hasReplied) ? replyToId : undefined;
-          await sendTelegramText(bot, chatId, chunk.html, runtime, {
+          const chunkWithFooter = appendFooterToChunk(chunk, footerText);
+          await sendTelegramText(bot, chatId, chunkWithFooter.html, runtime, {
             replyToMessageId: replyToMessageIdFollowup,
             thread,
             textMode: "html",
-            plainText: chunk.text,
+            plainText: chunkWithFooter.text,
             linkPreview,
             replyMarkup: i === 0 ? replyMarkup : undefined,
           });
@@ -454,18 +515,20 @@ async function sendTelegramVoiceFallbackText(opts: {
   linkPreview?: boolean;
   replyMarkup?: ReturnType<typeof buildInlineKeyboard>;
   replyQuoteText?: string;
+  footerText?: string | null;
 }): Promise<boolean> {
   const chunks = opts.chunkText(opts.text);
   let hasReplied = opts.hasReplied;
   for (let i = 0; i < chunks.length; i += 1) {
     const chunk = chunks[i];
-    await sendTelegramText(opts.bot, opts.chatId, chunk.html, opts.runtime, {
+    const chunkWithFooter = appendFooterToChunk(chunk, opts.footerText ?? null);
+    await sendTelegramText(opts.bot, opts.chatId, chunkWithFooter.html, opts.runtime, {
       replyToMessageId:
         opts.replyToId && (opts.replyToMode === "all" || !hasReplied) ? opts.replyToId : undefined,
       replyQuoteText: opts.replyQuoteText,
       thread: opts.thread,
       textMode: "html",
-      plainText: chunk.text,
+      plainText: chunkWithFooter.text,
       linkPreview: opts.linkPreview,
       replyMarkup: i === 0 ? opts.replyMarkup : undefined,
     });

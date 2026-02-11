@@ -45,6 +45,7 @@ import {
   resolveReplyPipelineConfig,
 } from "./brain-muscle-pipeline.js";
 import { createFollowupRunner } from "./followup-runner.js";
+import { requiresBrain } from "./intent-gate.js";
 import { enqueueFollowupRun, type FollowupRun, type QueueSettings } from "./queue.js";
 import { createReplyToModeFilterForChannel, resolveReplyToMode } from "./reply-threading.js";
 import { incrementCompactionCount } from "./session-updates.js";
@@ -368,6 +369,23 @@ export async function runReplyAgent(params: {
 
   // The brain-muscle pipeline adds at least one extra model call (planner) and often two (planner + synthesis).
   // Keep it for heavier prompts where the orchestration benefit outweighs cost/latency.
+  const brainEscalationTriggered = (() => {
+    const reasoningLevel = followupRun.run.reasoningLevel ?? "off";
+    if (followupRun.run.brainOwnerActive) {
+      return true;
+    }
+    if (followupRun.run.forceFinalBrainSynthesis) {
+      return true;
+    }
+    if (reasoningLevel !== "off") {
+      return true;
+    }
+    if (requiresBrain(commandBody, { sessionEntry, sessionStore, sessionKey })) {
+      return true;
+    }
+    return false;
+  })();
+
   const shouldRunReplyPipeline = (() => {
     if (!pipelineEnabled || isHeartbeat) {
       return false;
@@ -382,8 +400,13 @@ export async function runReplyAgent(params: {
     if (!isDistinctModel) {
       return false;
     }
-    const trimmed = commandBody.trim();
-    return trimmed.length >= 600;
+    if (!brainEscalationTriggered) {
+      return false;
+    }
+    if (!commandBody.trim()) {
+      return false;
+    }
+    return true;
   })();
 
   const runBrainMuscleBrainPipeline = async (): Promise<
@@ -656,6 +679,10 @@ export async function runReplyAgent(params: {
       lookupContextTokens(modelUsed) ??
       activeSessionEntry?.contextTokens ??
       DEFAULT_CONTEXT_TOKENS;
+    const runRole =
+      providerUsed === pipeline.brain.provider && modelUsed === pipeline.brain.model
+        ? "brain"
+        : "muscle";
 
     await persistSessionUsageUpdate({
       storePath,
@@ -666,6 +693,7 @@ export async function runReplyAgent(params: {
       contextTokensUsed,
       systemPromptReport: runResult.meta.systemPromptReport,
       cliSessionId,
+      role: runRole,
     });
 
     // Drain any late tool/block deliveries before deciding there's "nothing to send".
@@ -785,6 +813,31 @@ export async function runReplyAgent(params: {
     if (responseUsageLine) {
       finalPayloads = appendUsageLine(finalPayloads, responseUsageLine);
     }
+
+    const footerMeta = {
+      provider: providerUsed,
+      model: modelUsed,
+      inputTokens: usage?.input,
+      outputTokens: usage?.output,
+    };
+    const annotateFooter = (payload: ReplyPayload): ReplyPayload => {
+      if (!footerMeta.provider || !footerMeta.model) {
+        return payload;
+      }
+      const telegramData = payload.channelData?.telegram ?? {};
+      const annotatedTelegram = {
+        ...telegramData,
+        modelFooter: footerMeta,
+      };
+      const channelData = payload.channelData
+        ? { ...payload.channelData, telegram: annotatedTelegram }
+        : { telegram: annotatedTelegram };
+      return {
+        ...payload,
+        channelData,
+      };
+    };
+    finalPayloads = finalPayloads.map(annotateFooter);
 
     return finalizeWithFollowup(
       finalPayloads.length === 1 ? finalPayloads[0] : finalPayloads,
