@@ -54,7 +54,9 @@ async function resizeImageBase64IfNeeded(params: {
   base64: string;
   mimeType: string;
   maxDimensionPx: number;
-  maxBytes: number;
+  /** Maximum base64 string length (not decoded byte count). The Anthropic API
+   *  enforces size limits on the encoded base64 payload (~33% larger than raw). */
+  maxBase64Length: number;
   label?: string;
 }): Promise<{
   base64: string;
@@ -63,11 +65,15 @@ async function resizeImageBase64IfNeeded(params: {
   width?: number;
   height?: number;
 }> {
+  // Compare base64 string length (not decoded buffer size) because the Anthropic
+  // Messages API enforces the size limit on the encoded base64 payload.
+  // Base64 inflates data by ~33%, so a 3.75 MB buffer produces ~5 MB of base64.
+  const base64Length = params.base64.length;
   const buf = Buffer.from(params.base64, "base64");
   const meta = await getImageMetadata(buf);
   const width = meta?.width;
   const height = meta?.height;
-  const overBytes = buf.byteLength > params.maxBytes;
+  const overBytes = base64Length > params.maxBase64Length;
   const hasDimensions = typeof width === "number" && typeof height === "number";
   if (
     hasDimensions &&
@@ -92,7 +98,7 @@ async function resizeImageBase64IfNeeded(params: {
       width,
       height,
       maxDimensionPx: params.maxDimensionPx,
-      maxBytes: params.maxBytes,
+      maxBase64Length: params.maxBase64Length,
     });
   }
 
@@ -104,7 +110,7 @@ async function resizeImageBase64IfNeeded(params: {
     .filter((v, i, arr) => v > 0 && arr.indexOf(v) === i)
     .toSorted((a, b) => b - a);
 
-  let smallest: { buffer: Buffer; size: number } | null = null;
+  let smallest: { base64: string; size: number } | null = null;
   for (const side of sideGrid) {
     for (const quality of qualities) {
       const out = await resizeToJpeg({
@@ -113,23 +119,24 @@ async function resizeImageBase64IfNeeded(params: {
         quality,
         withoutEnlargement: true,
       });
-      if (!smallest || out.byteLength < smallest.size) {
-        smallest = { buffer: out, size: out.byteLength };
+      const outBase64 = out.toString("base64");
+      if (!smallest || outBase64.length < smallest.size) {
+        smallest = { base64: outBase64, size: outBase64.length };
       }
-      if (out.byteLength <= params.maxBytes) {
+      if (outBase64.length <= params.maxBase64Length) {
         log.info("Image resized", {
           label: params.label,
           width,
           height,
           maxDimensionPx: params.maxDimensionPx,
-          maxBytes: params.maxBytes,
-          originalBytes: buf.byteLength,
-          resizedBytes: out.byteLength,
+          maxBase64Length: params.maxBase64Length,
+          originalBase64Len: base64Length,
+          resizedBase64Len: outBase64.length,
           quality,
           side,
         });
         return {
-          base64: out.toString("base64"),
+          base64: outBase64,
           mimeType: "image/jpeg",
           resized: true,
           width,
@@ -139,10 +146,10 @@ async function resizeImageBase64IfNeeded(params: {
     }
   }
 
-  const best = smallest?.buffer ?? buf;
-  const maxMb = (params.maxBytes / (1024 * 1024)).toFixed(0);
-  const gotMb = (best.byteLength / (1024 * 1024)).toFixed(2);
-  throw new Error(`Image could not be reduced below ${maxMb}MB (got ${gotMb}MB)`);
+  const bestSize = smallest?.size ?? base64Length;
+  const maxMb = (params.maxBase64Length / (1024 * 1024)).toFixed(0);
+  const gotMb = (bestSize / (1024 * 1024)).toFixed(2);
+  throw new Error(`Image could not be reduced below ${maxMb}MB base64 (got ${gotMb}MB)`);
 }
 
 export async function sanitizeContentBlocksImages(
@@ -176,7 +183,7 @@ export async function sanitizeContentBlocksImages(
         base64: data,
         mimeType,
         maxDimensionPx,
-        maxBytes,
+        maxBase64Length: maxBytes,
         label,
       });
       out.push({
