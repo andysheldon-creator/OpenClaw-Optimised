@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import type { OpenClawConfig, ConfigFileSnapshot, LegacyConfigIssue } from "./types.js";
 import { loadDotEnv } from "../infra/dotenv.js";
 import { resolveRequiredHomeDir } from "../infra/home-dir.js";
@@ -60,6 +61,9 @@ const SHELL_ENV_EXPECTED_KEYS = [
 const CONFIG_BACKUP_COUNT = 5;
 const loggedInvalidConfigs = new Set<string>();
 
+const CONFIG_SCHEMA_FILENAME = "openclaw.schema.json";
+const CONFIG_SCHEMA_REF = `./${CONFIG_SCHEMA_FILENAME}`;
+
 export type ParseConfigJson5Result = { ok: true; parsed: unknown } | { ok: false; error: string };
 
 function hashConfigRaw(raw: string | null): string {
@@ -90,6 +94,72 @@ function coerceConfig(value: unknown): OpenClawConfig {
     return {};
   }
   return value as OpenClawConfig;
+}
+
+function withSchemaRef(cfg: OpenClawConfig): OpenClawConfig {
+  const current = cfg.$schema;
+  if (typeof current === "string" && current.trim()) {
+    return cfg;
+  }
+  return {
+    $schema: CONFIG_SCHEMA_REF,
+    ...cfg,
+  };
+}
+
+async function ensureConfigSchemaSidecar(params: {
+  dir: string;
+  ioFs: typeof fs.promises;
+}): Promise<void> {
+  const target = path.join(params.dir, CONFIG_SCHEMA_FILENAME);
+  const hasTarget = await params.ioFs
+    .stat(target)
+    .then((stat) => stat.isFile())
+    .catch(() => false);
+  const candidates: string[] = [];
+  // Built output: dist/config/io.js -> dist/openclaw.schema.json
+  try {
+    const builtPath = fileURLToPath(new URL("../openclaw.schema.json", import.meta.url));
+    candidates.push(builtPath);
+  } catch {
+    // ignore
+  }
+  // Repo/dev fallback: dist/openclaw.schema.json under cwd.
+  candidates.push(path.resolve(process.cwd(), "dist", "openclaw.schema.json"));
+
+  for (const candidate of candidates) {
+    try {
+      const stat = await params.ioFs.stat(candidate);
+      if (!stat.isFile()) {
+        continue;
+      }
+      await params.ioFs.copyFile(candidate, target);
+      await params.ioFs.chmod(target, 0o600).catch(() => {
+        // best-effort
+      });
+      return;
+    } catch {
+      // try next
+    }
+  }
+
+  if (hasTarget) {
+    return;
+  }
+
+  // Last-resort fallback: generate from the in-memory Zod schema.
+  // This should only be needed in dev/test when dist artifacts aren't present.
+  const { OpenClawSchema } = await import("./zod-schema.js");
+  const schema = OpenClawSchema.toJSONSchema({
+    target: "draft-07",
+    unrepresentable: "any",
+  });
+  schema.$schema = "http://json-schema.org/draft-07/schema#";
+  schema.title = "OpenClawConfig";
+  await params.ioFs.writeFile(target, `${JSON.stringify(schema, null, 2)}\n`, {
+    encoding: "utf-8",
+    mode: 0o600,
+  });
 }
 
 async function rotateConfigBackups(configPath: string, ioFs: typeof fs.promises): Promise<void> {
@@ -493,7 +563,8 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
 
   async function writeConfigFile(cfg: OpenClawConfig) {
     clearConfigCache();
-    const validated = validateConfigObjectWithPlugins(cfg);
+    const cfgWithSchema = withSchemaRef(cfg);
+    const validated = validateConfigObjectWithPlugins(cfgWithSchema);
     if (!validated.ok) {
       const issue = validated.issues[0];
       const pathLabel = issue?.path ? issue.path : "<root>";
@@ -507,7 +578,10 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
     }
     const dir = path.dirname(configPath);
     await deps.fs.promises.mkdir(dir, { recursive: true, mode: 0o700 });
-    const json = JSON.stringify(applyModelDefaults(stampConfigVersion(cfg)), null, 2)
+
+    await ensureConfigSchemaSidecar({ dir, ioFs: deps.fs.promises });
+
+    const json = JSON.stringify(applyModelDefaults(stampConfigVersion(cfgWithSchema)), null, 2)
       .trimEnd()
       .concat("\n");
 
