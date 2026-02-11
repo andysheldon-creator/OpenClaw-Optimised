@@ -326,7 +326,11 @@ export class AsteriskAriProvider implements VoiceCallProvider {
           break;
         }
       }
-    } else if (evt.type === "StasisEnd") {
+    } else if (
+      evt.type === "StasisEnd" ||
+      evt.type === "ChannelDestroyed" ||
+      evt.type === "ChannelHangupRequest"
+    ) {
       const chId = evt.channel?.id;
       let cleaned = false;
       for (const [pId, state] of this.calls.entries()) {

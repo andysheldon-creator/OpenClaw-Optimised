@@ -72,4 +72,21 @@ describe("AriClient", () => {
     expect(firstUrl.pathname).toBe("/ari/channels/chan-1/hangup");
     expect(secondUrl.pathname).toBe("/ari/channels/chan-1");
   });
+
+  it("safeHangupChannel treats 404 on hangup as benign and does not fall back", async () => {
+    const responses = [new Response("not found", { status: 404, statusText: "Not Found" })];
+    const fetchMock = vi.fn(async () => responses.shift() as Response);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (globalThis as any).fetch = fetchMock;
+
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const client = new AriClient(cfg);
+    await client.safeHangupChannel("chan-404");
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const firstUrl = new URL(fetchMock.mock.calls[0]?.[0] as string);
+    expect(firstUrl.pathname).toBe("/ari/channels/chan-404/hangup");
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
 });

@@ -148,16 +148,37 @@ export class AriClient {
     });
   }
 
+  private getHttpStatusFromError(err: unknown): number | null {
+    if (!(err instanceof Error)) return null;
+    const m = err.message.match(/ARI HTTP (\d{3})\b/);
+    if (!m) return null;
+    const code = Number(m[1]);
+    return Number.isFinite(code) ? code : null;
+  }
+
   async safeHangupChannel(channelId: string): Promise<void> {
     try {
       await this.hangupChannel(channelId);
       return;
     } catch (err) {
+      const status = this.getHttpStatusFromError(err);
+      if (status === 404) {
+        // Channel is already gone. This happens naturally when the remote party hangs up before we
+        // get a chance to send a hangup, and should not be treated as a warning.
+        console.debug("[ari] hangup: channel already gone (404)", { channelId });
+        return;
+      }
       console.warn("[ari] hangup failed, falling back to delete", { channelId, err });
     }
+
     try {
       await this.deleteChannel(channelId);
     } catch (err) {
+      const status = this.getHttpStatusFromError(err);
+      if (status === 404) {
+        console.debug("[ari] delete: channel already gone (404)", { channelId });
+        return;
+      }
       console.warn("[ari] delete channel failed", { channelId, err });
     }
   }
