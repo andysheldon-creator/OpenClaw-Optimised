@@ -36,6 +36,7 @@ export type AuthChoice =
   | "github-copilot"
   | "copilot-proxy"
   | "qwen-portal"
+  | "aliyun-bailian-api-key"
   | "xai-api-key"
   | "qianfan-api-key"
   | "custom-api-key"
@@ -101,6 +102,7 @@ export type OnboardOptions = {
   minimaxApiKey?: string;
   syntheticApiKey?: string;
   veniceApiKey?: string;
+  aliyunBailianApiKey?: string;
   togetherApiKey?: string;
   opencodeZenApiKey?: string;
   xaiApiKey?: string;

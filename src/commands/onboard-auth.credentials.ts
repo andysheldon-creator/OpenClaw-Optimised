@@ -117,6 +117,7 @@ export async function setVeniceApiKey(key: string, agentDir?: string) {
 
 export const ZAI_DEFAULT_MODEL_REF = "zai/glm-4.7";
 export const XIAOMI_DEFAULT_MODEL_REF = "xiaomi/mimo-v2-flash";
+export const ALIYUN_BAILIAN_DEFAULT_MODEL_REF = "aliyun-bailian/qwen-max";
 export const OPENROUTER_DEFAULT_MODEL_REF = "openrouter/auto";
 export const TOGETHER_DEFAULT_MODEL_REF = "together/moonshotai/Kimi-K2.5";
 export const VERCEL_AI_GATEWAY_DEFAULT_MODEL_REF = "vercel-ai-gateway/anthropic/claude-opus-4.6";
@@ -206,6 +207,18 @@ export async function setOpencodeZenApiKey(key: string, agentDir?: string) {
   });
 }
 
+export async function setAliyunBailianApiKey(key: string, agentDir?: string) {
+  upsertAuthProfile({
+    profileId: "aliyun-bailian:default",
+    credential: {
+      type: "api_key",
+      provider: "aliyun-bailian",
+      key,
+    },
+    agentDir: resolveAuthAgentDir(agentDir),
+  });
+}
+
 export async function setTogetherApiKey(key: string, agentDir?: string) {
   upsertAuthProfile({
     profileId: "together:default",
@@ -230,6 +243,7 @@ export function setQianfanApiKey(key: string, agentDir?: string) {
   });
 }
 
+// 保留官方新增的 XAI 函数
 export function setXaiApiKey(key: string, agentDir?: string) {
   upsertAuthProfile({
     profileId: "xai:default",
