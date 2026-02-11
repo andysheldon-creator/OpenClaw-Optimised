@@ -33,6 +33,14 @@ const SessionsSpawnToolSchema = Type.Object({
   // Back-compat alias. Prefer runTimeoutSeconds.
   timeoutSeconds: Type.Optional(Type.Number({ minimum: 0 })),
   cleanup: optionalStringEnum(["delete", "keep"] as const),
+  sessionKey: Type.Optional(
+    Type.String({
+      description:
+        "Reuse an existing sub-agent session instead of creating a new one. " +
+        "When provided, the sub-agent runs in the session keyed by this value, " +
+        "preserving conversation history across spawns.",
+    }),
+  ),
 });
 
 function splitModelRef(ref?: string) {
@@ -165,7 +173,17 @@ export function createSessionsSpawnTool(opts?: {
           });
         }
       }
-      const childSessionKey = `agent:${targetAgentId}:subagent:${crypto.randomUUID()}`;
+      const childSessionKey = (() => {
+        const requestedKey = readStringParam(params, "sessionKey");
+        if (requestedKey) {
+          // If the key already contains the subagent prefix, use it as-is.
+          if (requestedKey.includes(":subagent:")) {
+            return requestedKey;
+          }
+          return `agent:${targetAgentId}:subagent:${requestedKey}`;
+        }
+        return `agent:${targetAgentId}:subagent:${crypto.randomUUID()}`;
+      })();
       const spawnedByKey = requesterInternalKey;
       const targetAgentConfig = resolveAgentConfig(cfg, targetAgentId);
       const resolvedModel =
