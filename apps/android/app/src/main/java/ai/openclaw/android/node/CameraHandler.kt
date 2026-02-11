@@ -2,6 +2,7 @@ package ai.openclaw.android.node
 
 import android.content.Context
 import ai.openclaw.android.CameraHudKind
+import ai.openclaw.android.BuildConfig
 import ai.openclaw.android.SecurePrefs
 import ai.openclaw.android.gateway.GatewayEndpoint
 import ai.openclaw.android.gateway.GatewaySession
@@ -23,14 +24,15 @@ class CameraHandler(
 ) {
 
   suspend fun handleSnap(paramsJson: String?): GatewaySession.InvokeResult {
-    val logFile = java.io.File(appContext.cacheDir, "camera_debug.log")
+    val logFile = if (BuildConfig.DEBUG) java.io.File(appContext.cacheDir, "camera_debug.log") else null
     fun camLog(msg: String) {
+      if (!BuildConfig.DEBUG) return
       val ts = java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
-      logFile.appendText("[$ts] $msg\n")
+      logFile?.appendText("[$ts] $msg\n")
       android.util.Log.w("openclaw", "camera.snap: $msg")
     }
     try {
-      logFile.writeText("") // clear
+      logFile?.writeText("") // clear
       camLog("starting, params=$paramsJson")
       camLog("calling showCameraHud")
       showCameraHud("Taking photo…", CameraHudKind.Photo, null)
@@ -60,16 +62,17 @@ class CameraHandler(
   }
 
   suspend fun handleClip(paramsJson: String?): GatewaySession.InvokeResult {
-    val clipLogFile = java.io.File(appContext.cacheDir, "camera_debug.log")
+    val clipLogFile = if (BuildConfig.DEBUG) java.io.File(appContext.cacheDir, "camera_debug.log") else null
     fun clipLog(msg: String) {
+      if (!BuildConfig.DEBUG) return
       val ts = java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
-      clipLogFile.appendText("[CLIP $ts] $msg\n")
+      clipLogFile?.appendText("[CLIP $ts] $msg\n")
       android.util.Log.w("openclaw", "camera.clip: $msg")
     }
     val includeAudio = paramsJson?.contains("\"includeAudio\":true") != false
     if (includeAudio) externalAudioCaptureActive.value = true
     try {
-      clipLogFile.writeText("") // clear
+      clipLogFile?.writeText("") // clear
       clipLog("starting, params=$paramsJson includeAudio=$includeAudio")
       clipLog("calling showCameraHud")
       showCameraHud("Recording…", CameraHudKind.Recording, null)
