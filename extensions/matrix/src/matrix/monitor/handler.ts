@@ -444,7 +444,8 @@ export function createMatrixRoomMessageHandler(params: MatrixMonitorHandlerParam
 
       const messageId = event.event_id ?? "";
       const replyToEventId = content["m.relates_to"]?.["m.in_reply_to"]?.event_id;
-      const threadRootId = resolveMatrixThreadRootId({ event, content });
+      const rawThreadRootId = resolveMatrixThreadRootId({ event, content });
+      const threadRootId = rawThreadRootId?.trim() || undefined;
       const threadTarget = resolveMatrixThreadTarget({
         threadReplies,
         messageId,
@@ -481,7 +482,7 @@ export function createMatrixRoomMessageHandler(params: MatrixMonitorHandlerParam
           storePath: core.channel.session.resolveStorePath(cfg.session?.store, {
             agentId: route.agentId,
           }),
-          sessionKey: route.sessionKey,
+          sessionKey,
         });
 
         if (existingSession === undefined) {
