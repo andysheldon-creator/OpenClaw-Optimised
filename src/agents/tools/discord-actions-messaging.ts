@@ -1,5 +1,10 @@
 import type { AgentToolResult } from "@mariozechner/pi-agent-core";
 import type { DiscordActionConfig } from "../../config/config.js";
+import { loadConfig } from "../../config/config.js";
+import {
+  resolveDiscordInlineButtonsScope,
+  resolveDiscordTargetChatType,
+} from "../../discord/inline-buttons.js";
 import {
   createThreadDiscord,
   deleteMessageDiscord,
@@ -16,6 +21,7 @@ import {
   removeReactionDiscord,
   searchMessagesDiscord,
   sendMessageDiscord,
+  sendMessageWithButtonsDiscord,
   sendPollDiscord,
   sendStickerDiscord,
   unpinMessageDiscord,
@@ -235,6 +241,50 @@ export async function handleDiscordMessagingAction(
       const replyTo = readStringParam(params, "replyTo");
       const embeds =
         Array.isArray(params.embeds) && params.embeds.length > 0 ? params.embeds : undefined;
+      const components =
+        Array.isArray(params.components) && params.components.length > 0
+          ? params.components
+          : undefined;
+
+      // Validate inline buttons scope if components are provided
+      if (components) {
+        const cfg = loadConfig();
+        const inlineButtonsScope = resolveDiscordInlineButtonsScope({
+          cfg,
+          accountId: accountId ?? undefined,
+        });
+
+        if (inlineButtonsScope === "off") {
+          throw new Error(
+            'Discord inline buttons are disabled. Set channels.discord.capabilities.inlineButtons (or channels.discord.accounts.<id>.capabilities.inlineButtons) to "dm", "group", "all", or "allowlist".',
+          );
+        }
+
+        if (inlineButtonsScope === "dm" || inlineButtonsScope === "group") {
+          const targetType = resolveDiscordTargetChatType(to);
+          if (targetType === "unknown") {
+            throw new Error(
+              `Discord inline buttons require explicit target type (user: or channel:) when inlineButtons="${inlineButtonsScope}".`,
+            );
+          }
+          if (inlineButtonsScope === "dm" && targetType !== "direct") {
+            throw new Error('Discord inline buttons are limited to DMs when inlineButtons="dm".');
+          }
+          if (inlineButtonsScope === "group" && targetType !== "group") {
+            throw new Error(
+              'Discord inline buttons are limited to channels when inlineButtons="group".',
+            );
+          }
+        }
+
+        const result = await sendMessageWithButtonsDiscord(to, content, components, {
+          ...(accountId ? { accountId } : {}),
+          replyTo,
+          embeds,
+        });
+        return jsonResult({ ok: true, result });
+      }
+
       const result = await sendMessageDiscord(to, content, {
         ...(accountId ? { accountId } : {}),
         mediaUrl,

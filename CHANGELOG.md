@@ -79,6 +79,7 @@ Docs: https://docs.openclaw.ai
 
 ### Changes
 
+- Discord: add inline buttons (MessageComponents) support with scope-based gating (`channels.discord[.accounts.<id>].capabilities.inlineButtons`).
 - Cron: default `wakeMode` is now `"now"` for new jobs (was `"next-heartbeat"`). (#10776) Thanks @tyler6204.
 - Cron: `cron run` defaults to force execution; use `--due` to restrict to due-only. (#10776) Thanks @tyler6204.
 - Models: support Anthropic Opus 4.6 and OpenAI Codex gpt-5.3-codex (forward-compat fallbacks). (#9853, #10720, #9995) Thanks @TinyTb, @calvin-hpnet, @tyler6204.
