@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  ZulipApiError,
   parseJsonOrThrow,
   zulipAddReaction,
   zulipSendMessage,
@@ -23,6 +24,19 @@ describe("parseJsonOrThrow", () => {
     });
 
     await expect(parseJsonOrThrow(res)).rejects.toThrow(/bad/);
+  });
+
+  it("captures Retry-After metadata in ZulipApiError", async () => {
+    const res = new Response(JSON.stringify({ result: "error", msg: "slow down" }), {
+      status: 429,
+      headers: { "content-type": "application/json", "retry-after": "3" },
+    });
+
+    await expect(parseJsonOrThrow(res)).rejects.toMatchObject({
+      name: "ZulipApiError",
+      status: 429,
+      retryAfterMs: 3000,
+    });
   });
 });
 
@@ -100,6 +114,30 @@ describe("client outbound payloads", () => {
 });
 
 describe("client failover", () => {
+  it("does not fail over on 429 so monitor can honor Retry-After", async () => {
+    const lan = "http://lan.zulip.invalid";
+    const tunnel = "https://tunnel.zulip.invalid";
+
+    const fetchMock = vi.fn(async (url: string | URL) => {
+      const u = new URL(String(url));
+      expect([lan, tunnel]).toContain(u.origin);
+      return new Response(JSON.stringify({ result: "error", msg: "rate limit" }), {
+        status: 429,
+        headers: { "content-type": "application/json", "retry-after": "4" },
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      zulipSendMessage(
+        { baseUrls: [lan, tunnel], email: "bot@example.com", apiKey: "x" },
+        { type: "stream", stream: "a", topic: "b", content: "c" },
+      ),
+    ).rejects.toBeInstanceOf(ZulipApiError);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it("fails over to the next base URL on 5xx/HTML and remembers last-good", async () => {
     const lan = "http://lan.zulip.invalid";
     const tunnel = "https://tunnel.zulip.invalid";

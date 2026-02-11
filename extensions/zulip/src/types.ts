@@ -20,6 +20,10 @@ export type ZulipAccountConfig = {
 
   // Optional: keep a lightweight DM policy; defaults to pairing.
   dmPolicy?: "disabled" | "pairing" | "allowlist" | "open";
+
+  // Outbound chunking (markdown). If set, overrides the default chunk limit.
+  // Applies to replies generated from inbound messages as well as any manual chunking.
+  textChunkLimit?: number;
 };
 
 export type CoreConfig = {

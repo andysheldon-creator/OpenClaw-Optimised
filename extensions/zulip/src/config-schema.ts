@@ -18,6 +18,8 @@ const ZulipAccountSchemaBase = z
     groupPolicy: GroupPolicySchema.optional().default("allowlist"),
 
     dmPolicy: DmPolicySchema.optional().default("pairing"),
+
+    textChunkLimit: z.number().int().positive().optional(),
   })
   .strict();
 

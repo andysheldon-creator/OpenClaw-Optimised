@@ -21,6 +21,41 @@ export type ZulipEventsResponse = {
   msg?: string;
 };
 
+export class ZulipApiError extends Error {
+  status?: number;
+  retryAfterMs?: number;
+  code?: string;
+
+  constructor(message: string, opts: { status?: number; retryAfterMs?: number; code?: string } = {}) {
+    super(message);
+    this.name = "ZulipApiError";
+    this.status = opts.status;
+    this.retryAfterMs = opts.retryAfterMs;
+    this.code = opts.code;
+  }
+}
+
+function parseRetryAfterMs(headerValue: string | null): number | undefined {
+  if (!headerValue) {
+    return undefined;
+  }
+  const trimmed = headerValue.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  const seconds = Number(trimmed);
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return Math.max(0, Math.floor(seconds * 1000));
+  }
+
+  const when = Date.parse(trimmed);
+  if (!Number.isFinite(when)) {
+    return undefined;
+  }
+  return Math.max(0, when - Date.now());
+}
+
 export type ZulipUser = {
   user_id: number;
   email?: string;
@@ -141,11 +176,6 @@ function looksLikeHtml(text: string): boolean {
   );
 }
 
-function looksLikeCloudflareHtml(text: string): boolean {
-  const t = text.toLowerCase();
-  return t.includes("cloudflare") || t.includes("cf-ray") || t.includes("attention required");
-}
-
 function shouldFailoverResponse(res: Response, bodyText: string): boolean {
   if (res.status >= 500) {
     return true;
@@ -207,14 +237,25 @@ export async function parseJsonOrThrow(res: Response): Promise<unknown> {
         ? payload.message
         : null;
 
+  const retryAfterMs = parseRetryAfterMs(res.headers.get("retry-after"));
+  const codeField = typeof payload?.code === "string" ? payload.code : undefined;
+
   if (!res.ok) {
     const msg = msgField ?? `${res.status} ${res.statusText}`;
-    throw new Error(`Zulip API error: ${msg}`);
+    throw new ZulipApiError(`Zulip API error: ${msg}`, {
+      status: res.status,
+      retryAfterMs,
+      code: codeField,
+    });
   }
 
   if (payload?.result && payload.result !== "success") {
     const resultField = typeof payload.result === "string" ? payload.result : "unknown";
-    throw new Error(`Zulip API error: ${msgField ?? resultField}`);
+    throw new ZulipApiError(`Zulip API error: ${msgField ?? resultField}`, {
+      status: res.status,
+      retryAfterMs,
+      code: codeField,
+    });
   }
 
   return payload;
@@ -254,7 +295,14 @@ async function fetchJsonWithFailover(
       const isNetwork =
         /fetch failed|ECONNREFUSED|ENOTFOUND|ETIMEDOUT|EAI_AGAIN|socket/i.test(msg);
       const isHtml = /received HTML instead of JSON/i.test(msg);
-      const is5xx = /\b5\d\d\b/.test(msg);
+      const isApiError = err instanceof ZulipApiError;
+      const status = isApiError ? err.status : undefined;
+      const is5xx = status != null ? status >= 500 : /\b5\d\d\b/.test(msg);
+
+      // Keep 429/4xx semantics (Retry-After, auth errors) for caller backoff/handling.
+      if (isApiError && status != null && status < 500) {
+        throw err;
+      }
 
       // Fail over only for network/5xx-ish/proxy HTML failures.
       if (isNetwork || isHtml || is5xx) {

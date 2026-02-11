@@ -4,6 +4,7 @@ import type {
   ReplyPayload,
   RuntimeEnv,
 } from "openclaw/plugin-sdk";
+import crypto from "node:crypto";
 import {
   DEFAULT_GROUP_HISTORY_LIMIT,
   createReplyPrefixContext,
@@ -17,6 +18,7 @@ import {
 import { getZulipRuntime } from "../runtime.js";
 import { resolveZulipAccount, type ResolvedZulipAccount } from "./accounts.js";
 import {
+  ZulipApiError,
   zulipGetEvents,
   zulipRegister,
   zulipSetTypingStatus,
@@ -25,6 +27,7 @@ import {
 } from "./client.js";
 import { reactEyes } from "./reactions.js";
 import { sendMessageZulip } from "./send.js";
+import { extractZulipTopicDirective } from "./directives.js";
 import { extractZulipUploadUrls } from "./uploads.js";
 
 export type MonitorZulipOpts = {
@@ -84,10 +87,63 @@ function buildPrivateReplyTarget(message: ZulipMessage): string {
   return `pm:${message.sender_email}`;
 }
 
-function buildStreamReplyTarget(message: ZulipMessage): string {
-  const stream = message.display_recipient?.trim() || String(message.stream_id ?? "");
-  const topic = (message.topic ?? message.subject ?? "")?.trim() || "general";
+function base64UrlEncode(buf: Buffer): string {
+  return buf
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+export function hashZulipTopicKey(topic: string): string {
+  // Keep session keys stable, safe, and short.
+  // Use a hash instead of raw topic (topics can be long and contain slashes/newlines).
+  const digest = crypto.createHash("sha256").update(topic, "utf8").digest();
+  return base64UrlEncode(digest).slice(0, 16);
+}
+
+function resolveStreamName(message: ZulipMessage): string {
+  return message.display_recipient?.trim() || String(message.stream_id ?? "").trim() || "stream";
+}
+
+function resolveTopicName(message: ZulipMessage): string {
+  return (message.topic ?? message.subject ?? "")?.trim() || "general";
+}
+
+function buildStreamReplyTarget(message: ZulipMessage, overrideTopic?: string): string {
+  const stream = resolveStreamName(message);
+  const topic = (overrideTopic?.trim() || resolveTopicName(message))?.trim() || "general";
   return `stream:${stream}/${topic}`;
+}
+
+function buildHistoryKeyForThread(message: ZulipMessage): string {
+  const streamId = String(message.stream_id ?? resolveStreamName(message) ?? "stream");
+  const topic = resolveTopicName(message);
+  const topicKey = hashZulipTopicKey(topic);
+  return `zulip:${streamId}:${topicKey}`;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, Math.max(0, ms)));
+}
+
+export function resolveMonitorBackoffMs(params: {
+  error: unknown;
+  consecutiveFailures: number;
+}): number {
+  const { error, consecutiveFailures } = params;
+  const fallback = Math.min(30000, 2000 + Math.max(0, consecutiveFailures - 1) * 2000);
+
+  if (error instanceof ZulipApiError) {
+    if (typeof error.retryAfterMs === "number") {
+      return Math.min(60000, Math.max(500, error.retryAfterMs));
+    }
+    if (error.status === 429) {
+      return Math.min(60000, Math.max(3000, fallback * 2));
+    }
+  }
+
+  return fallback;
 }
 
 function resolveClient(account: ResolvedZulipAccount): ZulipClient {
@@ -232,7 +288,7 @@ export async function monitorZulipProvider(opts: MonitorZulipOpts = {}): Promise
         recordPendingHistoryEntryIfEnabled({
           historyMap: channelHistories,
           limit: historyLimit,
-          historyKey: `${message.stream_id ?? message.display_recipient ?? "stream"}:${message.topic ?? message.subject ?? ""}`,
+          historyKey: buildHistoryKeyForThread(message),
           entry: {
             sender: senderName,
             body: rawText,
@@ -244,12 +300,6 @@ export async function monitorZulipProvider(opts: MonitorZulipOpts = {}): Promise
       }
     }
 
-    // Ack reaction (👀) only for messages we are going to process (post-gating).
-    try {
-      await reactEyes(client, message.id);
-    } catch {
-      // best-effort
-    }
     const useAccessGroups =
       (cfg as { commands?: { useAccessGroups?: boolean } }).commands?.useAccessGroups !== false;
     const commandGate = resolveControlCommandGate({
@@ -278,10 +328,19 @@ export async function monitorZulipProvider(opts: MonitorZulipOpts = {}): Promise
       direction: "inbound",
     });
 
+    const streamName = !isDm ? resolveStreamName(message) : null;
+    const topicName = !isDm ? resolveTopicName(message) : null;
+
     const groupLabel =
-      message.type === "stream"
-        ? `${message.display_recipient ?? "stream"} · ${(message.topic ?? message.subject ?? "") || "general"}`
+      message.type === "stream" && streamName && topicName
+        ? `${streamName} · ${topicName || "general"}`
         : undefined;
+
+    // Session/threading isolation:
+    //  - DMs: one session per sender
+    //  - Streams: one session per (stream + topic)
+    const threadHistoryKey = !isDm ? buildHistoryKeyForThread(message) : null;
+    const topicKey = !isDm && topicName ? hashZulipTopicKey(topicName) : null;
 
     const route = core.channel.routing.resolveAgentRoute({
       cfg,
@@ -289,13 +348,13 @@ export async function monitorZulipProvider(opts: MonitorZulipOpts = {}): Promise
       accountId: account.accountId,
       peer: {
         kind: isDm ? "dm" : "group",
-        id: isDm ? senderEmail : String(message.stream_id ?? message.display_recipient ?? "stream"),
+        id: isDm
+          ? senderEmail
+          : `stream:${String(message.stream_id ?? streamName ?? "stream")}/${topicKey ?? "topic"}`,
       },
     });
 
-    const historyKey = !isDm
-      ? `${route.sessionKey}:${message.stream_id ?? message.display_recipient ?? "stream"}:${message.topic ?? message.subject ?? ""}`
-      : null;
+    const historyKey = threadHistoryKey;
 
     const fromLabel = isDm
       ? senderName
@@ -413,6 +472,15 @@ export async function monitorZulipProvider(opts: MonitorZulipOpts = {}): Promise
       logVerboseMessage(`zulip: upload extraction failed: ${String(err)}`);
     }
 
+    const textLimit = core.channel.text.resolveTextChunkLimit(cfg, "zulip", account.accountId, {
+      fallbackLimit: account.config.textChunkLimit ?? 9000,
+    });
+    const tableMode = core.channel.text.resolveMarkdownTableMode({
+      cfg,
+      channel: "zulip",
+      accountId: account.accountId,
+    });
+
     const prefixContext = createReplyPrefixContext({ cfg, agentId: route.agentId });
 
     const { dispatcher, replyOptions, markDispatchIdle } =
@@ -421,16 +489,28 @@ export async function monitorZulipProvider(opts: MonitorZulipOpts = {}): Promise
         responsePrefixContextProvider: prefixContext.responsePrefixContextProvider,
         humanDelay: core.channel.reply.resolveHumanDelayConfig(cfg, route.agentId),
         deliver: async (payload: ReplyPayload) => {
-          const text = payload.text ?? "";
-          if (!text.trim()) {
+          const raw = payload.text ?? "";
+          if (!raw.trim()) {
             return;
           }
-          // Zulip messages are already chunked reasonably; keep MVP simple.
-          const result = await sendMessageZulip(to, text, { accountId: account.accountId });
-          if (!result.ok) {
-            throw result.error;
+
+          // Outbound directive: [[zulip_topic: <topic>]] overrides the topic for stream replies.
+          const { text, topicOverride } = extractZulipTopicDirective(raw);
+          const effectiveTo =
+            !isDm && topicOverride ? buildStreamReplyTarget(message, topicOverride) : to;
+
+          const rendered = core.channel.text.convertMarkdownTables(text, tableMode);
+          const chunks = core.channel.text.chunkMarkdownText(rendered, textLimit);
+          for (const chunk of chunks.length > 0 ? chunks : [rendered]) {
+            if (!chunk?.trim()) {
+              continue;
+            }
+            const result = await sendMessageZulip(effectiveTo, chunk, { accountId: account.accountId });
+            if (!result.ok) {
+              throw result.error;
+            }
+            opts.statusSink?.({ lastOutboundAt: Date.now() });
           }
-          opts.statusSink?.({ lastOutboundAt: Date.now() });
         },
         onError: (err, info) => {
           runtime.error?.(`zulip ${info.kind} reply failed: ${String(err)}`);
@@ -480,6 +560,7 @@ export async function monitorZulipProvider(opts: MonitorZulipOpts = {}): Promise
   };
 
   let consecutivePollFailures = 0;
+  let consecutiveEmptyPayloads = 0;
 
   while (!opts.abortSignal?.aborted) {
     try {
@@ -489,7 +570,16 @@ export async function monitorZulipProvider(opts: MonitorZulipOpts = {}): Promise
         timeoutSeconds: 30,
       });
       consecutivePollFailures = 0;
-      const events = response.events ?? [];
+
+      const events = Array.isArray(response.events) ? response.events : [];
+      if (!Array.isArray(response.events)) {
+        consecutiveEmptyPayloads++;
+        // Defensive sleep to avoid hot-looping on malformed/empty poll payloads.
+        await sleep(Math.min(5000, 250 * consecutiveEmptyPayloads));
+      } else {
+        consecutiveEmptyPayloads = 0;
+      }
+
       for (const event of events) {
         lastEventId = Math.max(lastEventId, event.id);
         if (event.type !== "message" || !event.message) {
@@ -500,9 +590,10 @@ export async function monitorZulipProvider(opts: MonitorZulipOpts = {}): Promise
     } catch (err) {
       consecutivePollFailures++;
       const message = err instanceof Error ? err.message : String(err);
-      const looksLikeBadQueue = /BAD_EVENT_QUEUE_ID|Bad event queue/i.test(message);
-      const statusMatch = message.match(/HTTP\s+(\d{3})/i);
-      const httpStatus = statusMatch ? Number(statusMatch[1]) : null;
+      const looksLikeBadQueue =
+        /BAD_EVENT_QUEUE_ID|Bad event queue/i.test(message) ||
+        (err instanceof ZulipApiError && err.code === "BAD_EVENT_QUEUE_ID");
+      const httpStatus = err instanceof ZulipApiError ? (err.status ?? null) : null;
 
       runtime.error?.(`zulip events error: ${message}`);
       opts.statusSink?.({
@@ -513,8 +604,8 @@ export async function monitorZulipProvider(opts: MonitorZulipOpts = {}): Promise
 
       // Poll errors are often transient (Cloudflare/proxy/origin hiccups). Prefer retrying the
       // existing queue rather than immediately re-registering.
-      const delayMs = Math.min(30000, 2000 + Math.max(0, consecutivePollFailures - 1) * 2000);
-      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      const delayMs = resolveMonitorBackoffMs({ error: err, consecutiveFailures: consecutivePollFailures });
+      await sleep(delayMs);
 
       // Only re-register when the queue is invalid (BAD_EVENT_QUEUE_ID). Avoid
       // re-registering on generic 5xx/proxy issues; those are often transient.
@@ -533,7 +624,7 @@ export async function monitorZulipProvider(opts: MonitorZulipOpts = {}): Promise
         opts.statusSink?.({ connected: true, lastConnectedAt: Date.now(), lastError: null });
       } catch (regErr) {
         runtime.error?.(`zulip register retry failed: ${String(regErr)}`);
-        await new Promise((resolve) => setTimeout(resolve, 5000));
+        await sleep(5000);
       }
     }
   }
