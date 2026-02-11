@@ -541,6 +541,9 @@ export function resolveSessionModelRef(
   if (storedModelOverride) {
     provider = entry?.providerOverride?.trim() || provider;
     model = storedModelOverride;
+  } else if (entry?.model?.trim()) {
+    provider = entry?.modelProvider?.trim() || provider;
+    model = entry.model.trim();
   }
   return { provider, model };
 }
