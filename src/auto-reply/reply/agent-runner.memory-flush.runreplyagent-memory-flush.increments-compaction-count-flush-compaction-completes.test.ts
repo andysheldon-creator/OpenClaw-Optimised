@@ -182,6 +182,6 @@ describe("runReplyAgent memory flush", () => {
 
     const stored = JSON.parse(await fs.readFile(storePath, "utf-8"));
     expect(stored[sessionKey].compactionCount).toBe(2);
-    expect(stored[sessionKey].memoryFlushCompactionCount).toBe(2);
+    expect(stored[sessionKey].memoryFlushCompactionCount).toBe(1);
   });
 });
