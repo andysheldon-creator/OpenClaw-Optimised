@@ -446,6 +446,9 @@ export function registerPluginsCli(program: Command) {
         defaultRuntime.error(result.error);
         process.exit(1);
       }
+      for (const warning of result.warnings) {
+        defaultRuntime.log(theme.warn(warning));
+      }
 
       await writeConfigFile(result.config);
 

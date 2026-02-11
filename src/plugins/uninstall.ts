@@ -15,7 +15,13 @@ export type UninstallActions = {
 };
 
 export type UninstallPluginResult =
-  | { ok: true; config: OpenClawConfig; pluginId: string; actions: UninstallActions }
+  | {
+      ok: true;
+      config: OpenClawConfig;
+      pluginId: string;
+      actions: UninstallActions;
+      warnings: string[];
+    }
   | { ok: false; error: string };
 
 export function resolveUninstallDirectoryTarget(params: {
@@ -191,6 +197,7 @@ export async function uninstallPlugin(
     ...configActions,
     directory: false,
   };
+  const warnings: string[] = [];
 
   const deleteTarget =
     deleteFiles && !isLinked
@@ -212,8 +219,11 @@ export async function uninstallPlugin(
     try {
       await fs.rm(deleteTarget, { recursive: true, force: true });
       actions.directory = existed;
-    } catch {
-      // Directory deletion failure is not fatal; config is the source of truth
+    } catch (error) {
+      warnings.push(
+        `Failed to remove plugin directory ${deleteTarget}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      // Directory deletion failure is not fatal; config is the source of truth.
     }
   }
 
@@ -222,5 +232,6 @@ export async function uninstallPlugin(
     config: newConfig,
     pluginId,
     actions,
+    warnings,
   };
 }

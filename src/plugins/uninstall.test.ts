@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../config/config.js";
 import { resolvePluginInstallDir } from "./install.js";
 import {
@@ -136,6 +136,21 @@ describe("removePluginFromConfig", () => {
 
     expect(result.plugins?.slots?.memory).toBe("memory-core");
     expect(actions.memorySlot).toBe(false);
+  });
+
+  it("removes plugins object when uninstall leaves only empty slots", () => {
+    const config: OpenClawConfig = {
+      plugins: {
+        entries: {
+          "my-plugin": { enabled: true },
+        },
+        slots: {},
+      },
+    };
+
+    const { config: result } = removePluginFromConfig(config, "my-plugin");
+
+    expect(result.plugins?.slots).toBeUndefined();
   });
 
   it("cleans up empty slots object", () => {
@@ -408,6 +423,49 @@ describe("uninstallPlugin", () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.actions.directory).toBe(false);
+      expect(result.warnings).toEqual([]);
+    }
+  });
+
+  it("returns a warning when directory deletion fails unexpectedly", async () => {
+    const pluginId = "my-plugin";
+    const extensionsDir = path.join(tempDir, "extensions");
+    const pluginDir = resolvePluginInstallDir(pluginId, extensionsDir);
+    await fs.mkdir(pluginDir, { recursive: true });
+    await fs.writeFile(path.join(pluginDir, "index.js"), "// plugin");
+
+    const config: OpenClawConfig = {
+      plugins: {
+        entries: {
+          [pluginId]: { enabled: true },
+        },
+        installs: {
+          [pluginId]: {
+            source: "npm",
+            spec: `${pluginId}@1.0.0`,
+            installPath: pluginDir,
+          },
+        },
+      },
+    };
+
+    const rmSpy = vi.spyOn(fs, "rm").mockRejectedValueOnce(new Error("permission denied"));
+    try {
+      const result = await uninstallPlugin({
+        config,
+        pluginId,
+        deleteFiles: true,
+        extensionsDir,
+      });
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.actions.directory).toBe(false);
+        expect(result.warnings).toHaveLength(1);
+        expect(result.warnings[0]).toContain("Failed to remove plugin directory");
+      }
+    } finally {
+      rmSpy.mockRestore();
     }
   });
 
