@@ -8,8 +8,18 @@
  *    credentials for a short-lived access token via the workspace OIDC endpoint.
  */
 
-// In-memory token cache to avoid re-exchanging on every call.
-let cachedToken: { accessToken: string; expiresAt: number } | null = null;
+interface CachedDatabricksToken {
+  accessToken: string;
+  expiresAt: number;
+  /** Workspace URL the token was issued for. */
+  workspaceUrl: string;
+  /** Client ID the token was issued for. */
+  clientId: string;
+}
+
+// In-memory token cache keyed on (workspaceUrl, clientId) to prevent returning
+// a stale token when the user switches workspaces or service principals.
+let cachedToken: CachedDatabricksToken | null = null;
 
 /** Clear the cached token (useful for tests). */
 export function clearDatabricksTokenCache(): void {
@@ -41,6 +51,25 @@ export function resolveDatabricksServicePrincipalEnv(
 }
 
 /**
+ * Check if the cached token matches the current config and is still valid.
+ * A token is valid when:
+ *  - workspaceUrl and clientId match (prevents cross-workspace leaks)
+ *  - current time is at least 60 seconds before expiry
+ */
+function isCacheValid(config: DatabricksServicePrincipalConfig): boolean {
+  if (!cachedToken) {
+    return false;
+  }
+  if (cachedToken.workspaceUrl !== config.workspaceUrl) {
+    return false;
+  }
+  if (cachedToken.clientId !== config.clientId) {
+    return false;
+  }
+  return Date.now() < cachedToken.expiresAt - 60_000;
+}
+
+/**
  * Exchange Databricks service principal client credentials for an OAuth access token.
  *
  * Uses the standard OAuth 2.0 client_credentials grant against the workspace OIDC endpoint:
@@ -48,15 +77,16 @@ export function resolveDatabricksServicePrincipalEnv(
  *   Authorization: Basic base64(client_id:client_secret)
  *   Body: grant_type=client_credentials&scope=all-apis
  *
- * Returns the access_token string. Caches the token in memory and reuses it until
- * 60 seconds before expiry.
+ * Returns the access_token string. Caches the token in memory keyed on
+ * (workspaceUrl, clientId) and reuses it until 60 seconds before expiry.
+ * Changing workspaceUrl or clientId between calls triggers a fresh exchange.
  */
 export async function exchangeDatabricksServicePrincipalToken(
   config: DatabricksServicePrincipalConfig,
 ): Promise<string> {
-  // Return cached token if still valid (with 60-second safety margin).
-  if (cachedToken && Date.now() < cachedToken.expiresAt - 60_000) {
-    return cachedToken.accessToken;
+  // Return cached token if it matches this workspace+client and is still valid.
+  if (isCacheValid(config)) {
+    return cachedToken!.accessToken;
   }
 
   const tokenUrl = `${config.workspaceUrl}/oidc/v1/token`;
@@ -87,11 +117,13 @@ export async function exchangeDatabricksServicePrincipalToken(
     throw new Error("Databricks OAuth response missing access_token");
   }
 
-  // Cache the token. Default TTL: 1 hour if expires_in is not provided.
+  // Cache the token keyed on workspace + client. Default TTL: 1 hour.
   const expiresInMs = (data.expires_in ?? 3600) * 1000;
   cachedToken = {
     accessToken: data.access_token,
     expiresAt: Date.now() + expiresInMs,
+    workspaceUrl: config.workspaceUrl,
+    clientId: config.clientId,
   };
 
   return data.access_token;

@@ -162,7 +162,7 @@ describe("exchangeDatabricksServicePrincipalToken", () => {
     expect(headers.Authorization).toBe(`Basic ${expectedBasic}`);
   });
 
-  it("caches the token for subsequent calls", async () => {
+  it("caches the token for subsequent calls with same config", async () => {
     const mockResponse = {
       ok: true,
       status: 200,
@@ -187,6 +187,125 @@ describe("exchangeDatabricksServicePrincipalToken", () => {
     expect(token2).toBe("dapi-cached-token");
     // Should only call fetch once due to caching
     expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("invalidates cache when workspaceUrl changes", async () => {
+    let callCount = 0;
+    vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
+      callCount++;
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          access_token: `token-for-workspace-${callCount}`,
+          token_type: "Bearer",
+          expires_in: 3600,
+        }),
+      } as Response;
+    });
+
+    const token1 = await exchangeDatabricksServicePrincipalToken({
+      workspaceUrl: "https://workspace-a.cloud.databricks.com",
+      clientId: "same-client",
+      clientSecret: "secret",
+    });
+    expect(token1).toBe("token-for-workspace-1");
+
+    // Same workspace → cached
+    const token1b = await exchangeDatabricksServicePrincipalToken({
+      workspaceUrl: "https://workspace-a.cloud.databricks.com",
+      clientId: "same-client",
+      clientSecret: "secret",
+    });
+    expect(token1b).toBe("token-for-workspace-1");
+    expect(fetch).toHaveBeenCalledTimes(1);
+
+    // Different workspace → re-exchange
+    const token2 = await exchangeDatabricksServicePrincipalToken({
+      workspaceUrl: "https://workspace-b.cloud.databricks.com",
+      clientId: "same-client",
+      clientSecret: "secret",
+    });
+    expect(token2).toBe("token-for-workspace-2");
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("invalidates cache when clientId changes", async () => {
+    let callCount = 0;
+    vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
+      callCount++;
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          access_token: `token-for-client-${callCount}`,
+          token_type: "Bearer",
+          expires_in: 3600,
+        }),
+      } as Response;
+    });
+
+    const token1 = await exchangeDatabricksServicePrincipalToken({
+      workspaceUrl: "https://workspace.cloud.databricks.com",
+      clientId: "client-a",
+      clientSecret: "secret-a",
+    });
+    expect(token1).toBe("token-for-client-1");
+
+    // Different clientId → re-exchange
+    const token2 = await exchangeDatabricksServicePrincipalToken({
+      workspaceUrl: "https://workspace.cloud.databricks.com",
+      clientId: "client-b",
+      clientSecret: "secret-b",
+    });
+    expect(token2).toBe("token-for-client-2");
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("invalidates cache when clientSecret changes (same clientId triggers re-fetch only after cache clears)", async () => {
+    // Changing clientSecret alone does NOT invalidate the cache because the
+    // cache is keyed on (workspaceUrl, clientId). This is by design: the
+    // secret is not stored in the cache for security reasons. Users must
+    // call clearDatabricksTokenCache() when rotating secrets within the same
+    // clientId.
+    let callCount = 0;
+    vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
+      callCount++;
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          access_token: `token-${callCount}`,
+          token_type: "Bearer",
+          expires_in: 3600,
+        }),
+      } as Response;
+    });
+
+    await exchangeDatabricksServicePrincipalToken({
+      workspaceUrl: "https://workspace.cloud.databricks.com",
+      clientId: "client-a",
+      clientSecret: "old-secret",
+    });
+
+    // Same clientId, different secret → still cached (cache keyed on clientId)
+    const token2 = await exchangeDatabricksServicePrincipalToken({
+      workspaceUrl: "https://workspace.cloud.databricks.com",
+      clientId: "client-a",
+      clientSecret: "new-secret",
+    });
+    expect(token2).toBe("token-1");
+    expect(fetch).toHaveBeenCalledTimes(1);
+
+    // After clearing cache, new secret is used
+    clearDatabricksTokenCache();
+    const token3 = await exchangeDatabricksServicePrincipalToken({
+      workspaceUrl: "https://workspace.cloud.databricks.com",
+      clientId: "client-a",
+      clientSecret: "new-secret",
+    });
+    expect(token3).toBe("token-2");
+    expect(fetch).toHaveBeenCalledTimes(2);
   });
 
   it("throws on non-OK response", async () => {
@@ -235,20 +354,17 @@ describe("exchangeDatabricksServicePrincipalToken", () => {
     };
     vi.spyOn(globalThis, "fetch").mockResolvedValue(mockResponse as Response);
 
-    const token = await exchangeDatabricksServicePrincipalToken({
+    const config = {
       workspaceUrl: "https://workspace.cloud.databricks.com",
       clientId: "id",
       clientSecret: "secret",
-    });
+    };
 
+    const token = await exchangeDatabricksServicePrincipalToken(config);
     expect(token).toBe("dapi-no-expiry-token");
 
     // Second call should still use cache (token defaults to 1hr TTL)
-    const token2 = await exchangeDatabricksServicePrincipalToken({
-      workspaceUrl: "https://workspace.cloud.databricks.com",
-      clientId: "id",
-      clientSecret: "secret",
-    });
+    const token2 = await exchangeDatabricksServicePrincipalToken(config);
     expect(token2).toBe("dapi-no-expiry-token");
     expect(fetch).toHaveBeenCalledTimes(1);
   });
