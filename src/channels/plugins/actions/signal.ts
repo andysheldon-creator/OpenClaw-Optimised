@@ -16,7 +16,9 @@ function normalizeSignalReactionRecipient(raw: string): string {
   if (!withoutSignal) {
     return withoutSignal;
   }
-  if (withoutSignal.toLowerCase().startsWith("uuid:")) {
+  // Check prefix case-insensitively but preserve UUID case
+  const lower = withoutSignal.toLowerCase();
+  if (lower.startsWith("uuid:")) {
     return withoutSignal.slice("uuid:".length).trim();
   }
   return withoutSignal;
@@ -31,7 +33,9 @@ function resolveSignalReactionTarget(raw: string): { recipient?: string; groupId
   if (!withoutSignal) {
     return {};
   }
-  if (withoutSignal.toLowerCase().startsWith(GROUP_PREFIX)) {
+  // Check prefix case-insensitively but preserve group ID case (base64)
+  const lower = withoutSignal.toLowerCase();
+  if (lower.startsWith(GROUP_PREFIX)) {
     const groupId = withoutSignal.slice(GROUP_PREFIX.length).trim();
     return groupId ? { groupId } : {};
   }
