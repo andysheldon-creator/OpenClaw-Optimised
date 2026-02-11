@@ -20,7 +20,9 @@ x-i18n:
 
 涵盖范围包括：
 
+- 中止/错误助手消息处理
 - 工具调用 id 清理
+- 工具调用输入验证
 - 工具结果配对修复
 - 轮次验证 / 排序
 - 思考签名清理
@@ -51,6 +53,32 @@ x-i18n:
 
 - `src/agents/pi-embedded-helpers/images.ts` 中的 `sanitizeSessionMessagesImages`
 - `src/agents/tool-images.ts` 中的 `sanitizeContentBlocksImages`
+
+---
+
+## 全局规则：中止/错误助手消息
+
+`stopReason` 为 `"aborted"` 或 `"error"` 的助手消息在其他清理运行之前会被替换为纯文本上下文消息。其关联的 tool_result 消息会被丢弃。这可以防止孤立的 tool_result（引用了对话记录中不再存在的 tool_use ID）导致永久性的 `400: unexpected tool_use_id` API 错误。
+
+替换的文本消息描述了哪些工具调用被中断以及原因，以便模型了解失败的尝试并决定是否重试。
+
+中止可能由以下原因引起：用户取消、网络超时、流式传输期间的认证失败、速率限制或服务器端流终止。
+
+实现：
+
+- `src/agents/pi-embedded-runner/google.ts` 中的 `stripAbortedAssistantMessages`
+- 在 `sanitizeSessionHistory` 顶部调用，在图片清理之前
+
+---
+
+## 全局规则：格式错误的工具调用
+
+缺少 `input` 和 `arguments`，或 `arguments` 为空（空对象 `{}` 或空字符串 `""`）的助手工具调用块在构建模型上下文之前会被丢弃。这可以防止部分持久化的工具调用（例如，在速率限制失败或中止的流式响应中 `parseStreamingJson` 返回 `{}` 后）导致提供商拒绝。
+
+实现：
+
+- `src/agents/session-transcript-repair.ts` 中的 `sanitizeToolCallInputs` / `hasToolCallInput`
+- 在 `src/agents/pi-embedded-runner/google.ts` 中的 `sanitizeSessionHistory` 中应用
 
 ---
 

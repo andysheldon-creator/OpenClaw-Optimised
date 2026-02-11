@@ -18,6 +18,7 @@ file is backed up alongside the session file.
 
 Scope includes:
 
+- Aborted/errored assistant message handling
 - Tool call id sanitization
 - Tool call input validation
 - Tool result pairing repair
@@ -59,15 +60,38 @@ Implementation:
 
 ---
 
-## Global rule: malformed tool calls
+## Global rule: aborted/errored assistant messages
 
-Assistant tool-call blocks that are missing both `input` and `arguments` are dropped
-before model context is built. This prevents provider rejections from partially
-persisted tool calls (for example, after a rate limit failure).
+Assistant messages with `stopReason: "aborted"` or `stopReason: "error"` are replaced
+with text-only context messages before any other sanitization runs. Their associated
+tool_result messages are dropped. This prevents orphaned tool_results (which reference
+tool_use IDs that no longer exist in the transcript) from causing permanent
+`400: unexpected tool_use_id` API errors.
+
+The replacement text message describes which tool calls were interrupted and why, so
+the model has context about the failed attempt and can decide whether to retry.
+
+Aborts can occur from: user cancellation, network timeouts, auth failures during
+streaming, rate limits, or server-side stream termination.
 
 Implementation:
 
-- `sanitizeToolCallInputs` in `src/agents/session-transcript-repair.ts`
+- `stripAbortedAssistantMessages` in `src/agents/pi-embedded-runner/google.ts`
+- Called at the top of `sanitizeSessionHistory`, before image sanitization
+
+---
+
+## Global rule: malformed tool calls
+
+Assistant tool-call blocks that are missing `input` and `arguments`, or that have
+empty `arguments` (empty object `{}` or empty string `""`), are dropped before model
+context is built. This prevents provider rejections from partially persisted tool
+calls (for example, after a rate limit failure or aborted streaming response where
+`parseStreamingJson` returns `{}`).
+
+Implementation:
+
+- `sanitizeToolCallInputs` / `hasToolCallInput` in `src/agents/session-transcript-repair.ts`
 - Applied in `sanitizeSessionHistory` in `src/agents/pi-embedded-runner/google.ts`
 
 ---

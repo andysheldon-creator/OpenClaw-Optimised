@@ -53,9 +53,23 @@ function isToolCallBlock(block: unknown): block is ToolCallBlock {
 
 function hasToolCallInput(block: ToolCallBlock): boolean {
   const hasInput = "input" in block ? block.input !== undefined && block.input !== null : false;
-  const hasArguments =
-    "arguments" in block ? block.arguments !== undefined && block.arguments !== null : false;
-  return hasInput || hasArguments;
+  if (hasInput) {
+    return true;
+  }
+  if (!("arguments" in block) || block.arguments === undefined || block.arguments === null) {
+    return false;
+  }
+  // String arguments (pi-ai session format): must be non-empty
+  if (typeof block.arguments === "string") {
+    return block.arguments.length > 0;
+  }
+  // Object arguments: treat any object (including empty {}) as valid input.
+  // Parameterless tool calls legitimately use arguments: {}.
+  // Aborted-stream cleanup is handled upstream by stripAbortedAssistantMessages().
+  if (typeof block.arguments === "object") {
+    return true;
+  }
+  return false;
 }
 
 function extractToolResultId(msg: Extract<AgentMessage, { role: "toolResult" }>): string | null {

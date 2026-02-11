@@ -227,6 +227,92 @@ registerUnhandledRejectionHandler((reason) => {
   return true;
 });
 
+const TOOL_CALL_BLOCK_TYPES = new Set(["toolCall", "toolUse"]);
+
+function describeAbortedToolCalls(content: unknown[], stopReason: string): string {
+  const toolNames: string[] = [];
+  for (const block of content) {
+    const rec = block as { type?: unknown; name?: unknown };
+    if (typeof rec.type === "string" && TOOL_CALL_BLOCK_TYPES.has(rec.type)) {
+      toolNames.push(typeof rec.name === "string" ? rec.name : "unknown");
+    }
+  }
+  const reason = stopReason === "aborted" ? "connection interruption" : "a streaming error";
+  if (toolNames.length === 0) {
+    return `[A previous response was interrupted due to ${reason} before completing. No tool calls were finalized.]`;
+  }
+  const names = toolNames.map((n) => `\`${n}\``).join(", ");
+  const plural = toolNames.length > 1 ? "calls" : "call";
+  return `[A previous response was interrupted due to ${reason}. Tool ${plural} to ${names} did not complete and no results were returned. You may retry if still needed.]`;
+}
+
+export function stripAbortedAssistantMessages(messages: AgentMessage[]): AgentMessage[] {
+  // Collect tool_call IDs from aborted/errored assistant messages so we can
+  // drop their orphaned tool_results.  Replace each aborted assistant with a
+  // text-only message that preserves context for the LLM.
+  const abortedToolCallIds = new Set<string>();
+  const abortedIndices = new Set<number>();
+
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i];
+    if (!msg || typeof msg !== "object") {
+      continue;
+    }
+    if (msg.role !== "assistant") {
+      continue;
+    }
+    const stopReason = (msg as { stopReason?: unknown }).stopReason;
+    if (stopReason !== "aborted" && stopReason !== "error") {
+      continue;
+    }
+
+    abortedIndices.add(i);
+    if (Array.isArray(msg.content)) {
+      for (const block of msg.content) {
+        const rec = block as { type?: unknown; id?: unknown };
+        if (
+          typeof rec.type === "string" &&
+          TOOL_CALL_BLOCK_TYPES.has(rec.type) &&
+          typeof rec.id === "string"
+        ) {
+          abortedToolCallIds.add(rec.id);
+        }
+      }
+    }
+  }
+
+  if (abortedIndices.size === 0) {
+    return messages;
+  }
+
+  const out: AgentMessage[] = [];
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i];
+    if (abortedIndices.has(i)) {
+      // Replace aborted assistant with a text-only message carrying context
+      const stopReason = String((msg as { stopReason?: unknown }).stopReason);
+      const content = Array.isArray((msg as { content?: unknown }).content)
+        ? (msg as { content?: unknown[] }).content!
+        : [];
+      const description = describeAbortedToolCalls(content, stopReason);
+      out.push({
+        ...msg,
+        content: [{ type: "text", text: description }],
+        stopReason: undefined,
+      } as unknown as AgentMessage);
+      continue;
+    }
+    if (msg.role === "toolResult") {
+      const toolCallId = (msg as { toolCallId?: unknown }).toolCallId;
+      if (typeof toolCallId === "string" && abortedToolCallIds.has(toolCallId)) {
+        continue;
+      }
+    }
+    out.push(msg);
+  }
+  return out;
+}
+
 type CustomEntryLike = { type?: unknown; customType?: unknown; data?: unknown };
 
 type ModelSnapshotEntry = {
@@ -332,6 +418,7 @@ export async function sanitizeSessionHistory(params: {
   policy?: TranscriptPolicy;
 }): Promise<AgentMessage[]> {
   // Keep docs/reference/transcript-hygiene.md in sync with any logic changes here.
+  const strippedAborted = stripAbortedAssistantMessages(params.messages);
   const policy =
     params.policy ??
     resolveTranscriptPolicy({
@@ -339,7 +426,7 @@ export async function sanitizeSessionHistory(params: {
       provider: params.provider,
       modelId: params.modelId,
     });
-  const sanitizedImages = await sanitizeSessionMessagesImages(params.messages, "session:history", {
+  const sanitizedImages = await sanitizeSessionMessagesImages(strippedAborted, "session:history", {
     sanitizeMode: policy.sanitizeMode,
     sanitizeToolCallIds: policy.sanitizeToolCallIds,
     toolCallIdMode: policy.toolCallIdMode,
