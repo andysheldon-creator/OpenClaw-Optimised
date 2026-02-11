@@ -1,5 +1,6 @@
 import type { OpenClawConfig } from "../../../config/config.js";
 import type { OnboardOptions } from "../../onboard-types.js";
+import { normalizeWorkspacePath } from "../../../agents/workspace.js";
 import { resolveUserPath } from "../../../utils.js";
 
 export function resolveNonInteractiveWorkspaceDir(params: {
@@ -7,9 +8,10 @@ export function resolveNonInteractiveWorkspaceDir(params: {
   baseConfig: OpenClawConfig;
   defaultWorkspaceDir: string;
 }) {
+  const fromConfig = params.baseConfig.agents?.defaults?.workspace;
   const raw = (
     params.opts.workspace ??
-    params.baseConfig.agents?.defaults?.workspace ??
+    (fromConfig ? normalizeWorkspacePath(fromConfig) : undefined) ??
     params.defaultWorkspaceDir
   ).trim();
   return resolveUserPath(raw);

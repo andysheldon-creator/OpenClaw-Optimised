@@ -8,6 +8,7 @@ import type { OpenClawConfig } from "../config/config.js";
 import type { RuntimeEnv } from "../runtime.js";
 import type { QuickstartGatewayDefaults, WizardFlow } from "./onboarding.types.js";
 import { ensureAuthProfileStore } from "../agents/auth-profiles.js";
+import { normalizeWorkspacePath } from "../agents/workspace.js";
 import { listChannelPlugins } from "../channels/plugins/index.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import { promptAuthChoiceGrouped } from "../commands/auth-choice-prompt.js";
@@ -167,7 +168,10 @@ export async function runOnboardingWizard(
     });
 
     if (action === "reset") {
-      const workspaceDefault = baseConfig.agents?.defaults?.workspace ?? DEFAULT_WORKSPACE;
+      const storedWorkspace = baseConfig.agents?.defaults?.workspace;
+      const workspaceDefault = storedWorkspace
+        ? normalizeWorkspacePath(storedWorkspace)
+        : DEFAULT_WORKSPACE;
       const resetScope = (await prompter.select({
         message: "Reset scope",
         options: [
@@ -341,13 +345,18 @@ export async function runOnboardingWizard(
     return;
   }
 
+  const storedWorkspace = baseConfig.agents?.defaults?.workspace;
+  const effectiveStoredWorkspace = storedWorkspace
+    ? normalizeWorkspacePath(storedWorkspace)
+    : undefined;
+
   const workspaceInput =
     opts.workspace ??
     (flow === "quickstart"
-      ? (baseConfig.agents?.defaults?.workspace ?? DEFAULT_WORKSPACE)
+      ? (effectiveStoredWorkspace ?? DEFAULT_WORKSPACE)
       : await prompter.text({
           message: "Workspace directory",
-          initialValue: baseConfig.agents?.defaults?.workspace ?? DEFAULT_WORKSPACE,
+          initialValue: effectiveStoredWorkspace ?? DEFAULT_WORKSPACE,
         }));
 
   const workspaceDir = resolveUserPath(workspaceInput.trim() || DEFAULT_WORKSPACE);

@@ -1,5 +1,6 @@
 import type { RuntimeEnv } from "../runtime.js";
 import type { OnboardOptions } from "./onboard-types.js";
+import { normalizeWorkspacePath } from "../agents/workspace.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import { readConfigFileSnapshot } from "../config/config.js";
 import { assertSupportedRuntime } from "../infra/runtime-guard.js";
@@ -55,8 +56,11 @@ export async function onboardCommand(opts: OnboardOptions, runtime: RuntimeEnv =
   if (normalizedOpts.reset) {
     const snapshot = await readConfigFileSnapshot();
     const baseConfig = snapshot.valid ? snapshot.config : {};
+    const storedWorkspace = baseConfig.agents?.defaults?.workspace;
     const workspaceDefault =
-      normalizedOpts.workspace ?? baseConfig.agents?.defaults?.workspace ?? DEFAULT_WORKSPACE;
+      normalizedOpts.workspace ??
+      (storedWorkspace ? normalizeWorkspacePath(storedWorkspace) : undefined) ??
+      DEFAULT_WORKSPACE;
     await handleReset("full", resolveUserPath(workspaceDefault), runtime);
   }
 

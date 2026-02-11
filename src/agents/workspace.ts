@@ -20,6 +20,61 @@ export function resolveDefaultAgentWorkspaceDir(
 }
 
 export const DEFAULT_AGENT_WORKSPACE_DIR = resolveDefaultAgentWorkspaceDir();
+
+/**
+ * Normalize a stored workspace path to use the current HOME directory.
+ *
+ * If the stored path follows the `<SOME_HOME>/.openclaw/workspace[-profile]`
+ * pattern but uses a HOME directory different from the current one, remaps
+ * the path to use the current HOME directory.
+ *
+ * This handles config portability between host and Docker container, where
+ * the config file may contain absolute paths from a different environment.
+ *
+ * @example
+ * // macOS host config: /Users/cy/.openclaw/workspace
+ * // Docker container HOME: /home/node
+ * normalizeWorkspacePath("/Users/cy/.openclaw/workspace")
+ * // => "/home/node/.openclaw/workspace"
+ *
+ * @param storedPath - The workspace path from the config file
+ * @param env - Environment variables (for testing)
+ * @param homedir - Function to get home directory (for testing)
+ * @returns Normalized workspace path
+ */
+export function normalizeWorkspacePath(
+  storedPath: string,
+  env: NodeJS.ProcessEnv = process.env,
+  homedir: () => string = os.homedir,
+): string {
+  const currentHome = resolveRequiredHomeDir(env, homedir);
+
+  // Only remap if the stored path matches the pattern <SOME_HOME>/.openclaw/workspace*
+  const suffix = "/.openclaw/workspace";
+  const suffixIdx = storedPath.indexOf(suffix);
+  if (suffixIdx === -1) {
+    // Not a default-pattern workspace path; leave it as-is.
+    return storedPath;
+  }
+
+  const storedHome = storedPath.slice(0, suffixIdx);
+  const trailAfterWorkspace = storedPath.slice(suffixIdx + suffix.length);
+
+  // If the trail is non-empty and doesn't start with "-" (profile suffix like workspace-prod),
+  // this is not a default-shaped path (e.g., /path/.openclaw/workspace/subdir).
+  if (trailAfterWorkspace !== "" && !trailAfterWorkspace.startsWith("-")) {
+    return storedPath;
+  }
+
+  // If the stored home matches the current home, no remapping needed.
+  if (path.resolve(storedHome) === path.resolve(currentHome)) {
+    return storedPath;
+  }
+
+  // Remap: replace foreign home prefix with current home.
+  return path.join(currentHome, ".openclaw", `workspace${trailAfterWorkspace}`);
+}
+
 export const DEFAULT_AGENTS_FILENAME = "AGENTS.md";
 export const DEFAULT_SOUL_FILENAME = "SOUL.md";
 export const DEFAULT_TOOLS_FILENAME = "TOOLS.md";
