@@ -990,6 +990,10 @@ Controls how chat commands are enabled across connectors.
     config: false, // allow /config (writes to disk)
     debug: false, // allow /debug (runtime-only overrides)
     restart: false, // allow /restart + gateway restart tool
+    allowFrom: {
+      "*": ["user1"], // optional per-provider command allowlist
+      discord: ["user:123"],
+    },
     useAccessGroups: true, // enforce access-group allowlists/policies for commands
   },
 }
@@ -1008,9 +1012,14 @@ Notes:
 - `channels.<provider>.configWrites` gates config mutations initiated by that channel (default: true). This applies to `/config set|unset` plus provider-specific auto-migrations (Telegram supergroup ID changes, Slack channel ID changes).
 - `commands.debug: true` enables `/debug` (runtime-only overrides).
 - `commands.restart: true` enables `/restart` and the gateway tool restart action.
-- `commands.useAccessGroups: false` allows commands to bypass access-group allowlists/policies.
-- Slash commands and directives are only honored for **authorized senders**. Authorization is derived from
-  channel allowlists/pairing plus `commands.useAccessGroups`.
+- `commands.allowFrom` sets a per-provider allowlist for command execution. When configured, it is the **only**
+  authorization source for commands and directives (channel allowlists/pairing and `commands.useAccessGroups` are ignored).
+  Use `"*"` for a global default; provider-specific keys (for example `discord`) override it.
+- `commands.useAccessGroups: false` allows commands to bypass access-group allowlists/policies when `commands.allowFrom`
+  is not set.
+- Slash commands and directives are only honored for **authorized senders**. If `commands.allowFrom` is set,
+  authorization comes solely from that list; otherwise it is derived from channel allowlists/pairing plus
+  `commands.useAccessGroups`.
 
 ### `web` (WhatsApp web channel runtime)
 
@@ -3167,12 +3176,17 @@ Defaults:
     enabled: true,
     token: "shared-secret",
     path: "/hooks",
+    // Optional: restrict explicit `agentId` routing.
+    // Omit or include "*" to allow any agent.
+    // Set [] to deny all explicit `agentId` routing.
+    allowedAgentIds: ["hooks", "main"],
     presets: ["gmail"],
     transformsDir: "~/.openclaw/hooks",
     mappings: [
       {
         match: { path: "gmail" },
         action: "agent",
+        agentId: "hooks",
         wakeMode: "now",
         name: "Gmail",
         sessionKey: "hook:gmail:{{messages[0].id}}",
@@ -3194,7 +3208,7 @@ Requests must include the hook token:
 Endpoints:
 
 - `POST /hooks/wake` → `{ text, mode?: "now"|"next-heartbeat" }`
-- `POST /hooks/agent` → `{ message, name?, sessionKey?, wakeMode?, deliver?, channel?, to?, model?, thinking?, timeoutSeconds? }`
+- `POST /hooks/agent` → `{ message, name?, agentId?, sessionKey?, wakeMode?, deliver?, channel?, to?, model?, thinking?, timeoutSeconds? }`
 - `POST /hooks/<name>` → resolved via `hooks.mappings`
 
 `/hooks/agent` always posts a summary into the main session (and can optionally trigger an immediate heartbeat via `wakeMode: "now"`).
@@ -3205,6 +3219,8 @@ Mapping notes:
 - `match.source` matches a payload field (e.g. `{ source: "gmail" }`) so you can use a generic `/hooks/ingest` path.
 - Templates like `{{messages[0].subject}}` read from the payload.
 - `transform` can point to a JS/TS module that returns a hook action.
+- `agentId` can route to a specific agent; unknown IDs fall back to the default agent.
+- `hooks.allowedAgentIds` restricts explicit `agentId` routing (`*` or omitted means allow all, `[]` denies all explicit routing).
 - `deliver: true` sends the final reply to a channel; `channel` defaults to `last` (falls back to WhatsApp).
 - If there is no prior delivery route, set `channel` + `to` explicitly (required for Telegram/Discord/Google Chat/Slack/Signal/iMessage/MS Teams).
 - `model` overrides the LLM for this hook run (`provider/model` or alias; must be allowed if `agents.defaults.models` is set).
