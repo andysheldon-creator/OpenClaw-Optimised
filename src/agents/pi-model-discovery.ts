@@ -1,6 +1,7 @@
 import { AuthStorage, ModelRegistry } from "@mariozechner/pi-coding-agent";
 import fs from "node:fs";
 import path from "node:path";
+import type { OpenClawConfig } from "../config/config.js";
 import type { AuthProfileCredential, AuthProfileStore } from "./auth-profiles/types.js";
 import { resolveAuthProfileOrder } from "./auth-profiles/order.js";
 import { ensureAuthProfileStore } from "./auth-profiles/store.js";
@@ -16,7 +17,7 @@ export { AuthStorage, ModelRegistry } from "@mariozechner/pi-coding-agent";
  * `resolveAuthProfileOrder` which respects `store.order`, cooldown state,
  * and type preference (oauth > token > api_key).
  */
-function syncAuthJsonFromProfiles(agentDir: string): void {
+function syncAuthJsonFromProfiles(agentDir: string, cfg?: OpenClawConfig): void {
   const store: AuthProfileStore = ensureAuthProfileStore(agentDir);
   const flat: Record<string, unknown> = {};
 
@@ -29,7 +30,7 @@ function syncAuthJsonFromProfiles(agentDir: string): void {
   }
 
   for (const provider of providers) {
-    const orderedIds = resolveAuthProfileOrder({ store, provider });
+    const orderedIds = resolveAuthProfileOrder({ store, provider, cfg });
     if (orderedIds.length === 0) {
       continue;
     }
@@ -98,8 +99,8 @@ function convertProfileToSdkCredential(
 }
 
 // Compatibility helpers for pi-coding-agent 0.50+ (discover* helpers removed).
-export function discoverAuthStorage(agentDir: string): AuthStorage {
-  syncAuthJsonFromProfiles(agentDir);
+export function discoverAuthStorage(agentDir: string, cfg?: OpenClawConfig): AuthStorage {
+  syncAuthJsonFromProfiles(agentDir, cfg);
   return new AuthStorage(path.join(agentDir, "auth.json"));
 }
 
