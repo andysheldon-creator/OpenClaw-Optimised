@@ -2,6 +2,7 @@ import { AuthStorage, ModelRegistry } from "@mariozechner/pi-coding-agent";
 import fs from "node:fs";
 import path from "node:path";
 import type { AuthProfileCredential, AuthProfileStore } from "./auth-profiles/types.js";
+import { resolveAuthProfileOrder } from "./auth-profiles/order.js";
 import { ensureAuthProfileStore } from "./auth-profiles/store.js";
 
 export { AuthStorage, ModelRegistry } from "@mariozechner/pi-coding-agent";
@@ -11,20 +12,34 @@ export { AuthStorage, ModelRegistry } from "@mariozechner/pi-coding-agent";
  * `AuthStorage` reads. This bridges the newer auth-profiles.json (which
  * survives migration) with the legacy auth.json the SDK expects.
  *
- * Only the first profile encountered per provider is used, since the flat
- * format is keyed by provider name (one credential per provider).
+ * For each provider, the best profile is selected using
+ * `resolveAuthProfileOrder` which respects `store.order`, cooldown state,
+ * and type preference (oauth > token > api_key).
  */
 function syncAuthJsonFromProfiles(agentDir: string): void {
   const store: AuthProfileStore = ensureAuthProfileStore(agentDir);
   const flat: Record<string, unknown> = {};
 
-  for (const [, profile] of Object.entries(store.profiles)) {
-    const provider = profile.provider;
-    if (!provider || provider in flat) {
+  // Collect unique providers from all profiles.
+  const providers = new Set<string>();
+  for (const profile of Object.values(store.profiles)) {
+    if (profile.provider) {
+      providers.add(profile.provider);
+    }
+  }
+
+  for (const provider of providers) {
+    const orderedIds = resolveAuthProfileOrder({ store, provider });
+    if (orderedIds.length === 0) {
       continue;
     }
 
-    const converted = convertProfileToSdkCredential(profile);
+    const bestProfile = store.profiles[orderedIds[0]];
+    if (!bestProfile) {
+      continue;
+    }
+
+    const converted = convertProfileToSdkCredential(bestProfile);
     if (converted) {
       flat[provider] = converted;
     }

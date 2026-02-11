@@ -49,7 +49,7 @@ describe("discoverAuthStorage", () => {
           type: "token",
           provider: "anthropic",
           token: "sk-ant-oat01-test",
-          expires: 1700000000000,
+          expires: Date.now() + 3_600_000,
         },
       },
     });
@@ -135,6 +135,57 @@ describe("discoverAuthStorage", () => {
     const authStorage = discoverAuthStorage(tempDir);
     const cred = authStorage.get("anthropic");
     expect(cred).toEqual({ type: "api_key", key: "sk-first" });
+  });
+
+  it("respects explicit store.order for profile selection", () => {
+    mockEnsureAuthProfileStore.mockReturnValue({
+      version: 1,
+      profiles: {
+        "anthropic:primary": {
+          type: "api_key",
+          provider: "anthropic",
+          key: "sk-first",
+        },
+        "anthropic:secondary": {
+          type: "api_key",
+          provider: "anthropic",
+          key: "sk-second",
+        },
+      },
+      order: {
+        anthropic: ["anthropic:secondary", "anthropic:primary"],
+      },
+    });
+
+    const authStorage = discoverAuthStorage(tempDir);
+    const cred = authStorage.get("anthropic");
+    // store.order puts secondary first
+    expect(cred).toEqual({ type: "api_key", key: "sk-second" });
+  });
+
+  it("prefers oauth over api_key when no explicit order is set", () => {
+    mockEnsureAuthProfileStore.mockReturnValue({
+      version: 1,
+      profiles: {
+        "anthropic:apikey": {
+          type: "api_key",
+          provider: "anthropic",
+          key: "sk-api",
+        },
+        "anthropic:oauth": {
+          type: "oauth",
+          provider: "anthropic",
+          access: "access-tok",
+          refresh: "refresh-tok",
+          expires: Date.now() + 3_600_000,
+        },
+      },
+    });
+
+    const authStorage = discoverAuthStorage(tempDir);
+    const cred = authStorage.get("anthropic");
+    // oauth has higher type priority than api_key
+    expect(cred).toMatchObject({ type: "oauth", access: "access-tok" });
   });
 
   it("refreshes auth.json when auth-profiles change", () => {
