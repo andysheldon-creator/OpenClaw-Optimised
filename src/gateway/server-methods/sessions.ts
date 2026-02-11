@@ -1,8 +1,12 @@
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import type { GatewayRequestHandlers } from "./types.js";
-import { resolveDefaultAgentId } from "../../agents/agent-scope.js";
+import { resolveAgentConfig, resolveDefaultAgentId } from "../../agents/agent-scope.js";
+import { AGENT_LANE_SUBAGENT } from "../../agents/lanes.js";
+import { buildSubagentSystemPrompt } from "../../agents/subagent-announce.js";
+import { registerSubagentRun } from "../../agents/subagent-registry.js";
 import { abortEmbeddedPiRun, waitForEmbeddedPiRunEnd } from "../../agents/pi-embedded.js";
+import { formatThinkingLevels, normalizeThinkLevel } from "../../auto-reply/thinking.js";
 import { stopSubagentsForRequester } from "../../auto-reply/reply/abort.js";
 import { clearSessionQueues } from "../../auto-reply/reply/queue.js";
 import { loadConfig } from "../../config/config.js";
@@ -13,7 +17,17 @@ import {
   type SessionEntry,
   updateSessionStore,
 } from "../../config/sessions.js";
-import { normalizeAgentId, parseAgentSessionKey } from "../../routing/session-key.js";
+import {
+  resolveInternalSessionKey,
+  resolveMainSessionAlias,
+} from "../../agents/tools/sessions-helpers.js";
+import {
+  isSubagentSessionKey,
+  normalizeAgentId,
+  parseAgentSessionKey,
+} from "../../routing/session-key.js";
+import { normalizeDeliveryContext } from "../../utils/delivery-context.js";
+import { callGateway } from "../call.js";
 import {
   ErrorCodes,
   errorShape,
@@ -25,6 +39,7 @@ import {
   validateSessionsPreviewParams,
   validateSessionsResetParams,
   validateSessionsResolveParams,
+  validateSessionsSpawnParams,
 } from "../protocol/index.js";
 import {
   archiveFileOnDisk,
@@ -475,6 +490,276 @@ export const sessionsHandlers: GatewayRequestHandlers = {
         compacted: true,
         archived,
         kept: keptLines.length,
+      },
+      undefined,
+    );
+  },
+  "sessions.spawn": async ({ params, respond }) => {
+    if (!validateSessionsSpawnParams(params)) {
+      respond(
+        false,
+        undefined,
+        errorShape(
+          ErrorCodes.INVALID_REQUEST,
+          `invalid sessions.spawn params: ${formatValidationErrors(validateSessionsSpawnParams.errors)}`,
+        ),
+      );
+      return;
+    }
+
+    const p = params as {
+      task: string;
+      label?: string;
+      agentId?: string;
+      model?: string;
+      thinking?: string;
+      runTimeoutSeconds?: number;
+      timeoutSeconds?: number;
+      cleanup?: "delete" | "keep";
+      channel?: string;
+      accountId?: string;
+      to?: string;
+      threadId?: string | number;
+      requesterSessionKey?: string;
+    };
+
+    const task = String(p.task ?? "").trim();
+    if (!task) {
+      respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, "task required"));
+      return;
+    }
+
+    const label = typeof p.label === "string" ? p.label.trim() : "";
+    const requestedAgentId = typeof p.agentId === "string" ? p.agentId.trim() : undefined;
+    const modelOverride = typeof p.model === "string" ? p.model.trim() : undefined;
+    const thinkingOverrideRaw = typeof p.thinking === "string" ? p.thinking.trim() : undefined;
+    const cleanup = p.cleanup === "keep" || p.cleanup === "delete" ? p.cleanup : "keep";
+
+    const requesterOrigin = normalizeDeliveryContext({
+      channel: p.channel,
+      accountId: p.accountId,
+      to: p.to,
+      threadId: p.threadId,
+    });
+
+    const runTimeoutSeconds = (() => {
+      const explicit =
+        typeof p.runTimeoutSeconds === "number" && Number.isFinite(p.runTimeoutSeconds)
+          ? Math.max(0, Math.floor(p.runTimeoutSeconds))
+          : undefined;
+      if (explicit !== undefined) {
+        return explicit;
+      }
+      const legacy =
+        typeof p.timeoutSeconds === "number" && Number.isFinite(p.timeoutSeconds)
+          ? Math.max(0, Math.floor(p.timeoutSeconds))
+          : undefined;
+      return legacy ?? 0;
+    })();
+
+    const cfg = loadConfig();
+
+    const requesterSessionKeyRaw =
+      typeof p.requesterSessionKey === "string" ? p.requesterSessionKey.trim() : "";
+
+    const { mainKey, alias } = resolveMainSessionAlias(cfg);
+    const requesterSessionKey = requesterSessionKeyRaw
+      ? resolveInternalSessionKey({
+          key: requesterSessionKeyRaw,
+          alias,
+          mainKey,
+        })
+      : alias;
+
+    if (isSubagentSessionKey(requesterSessionKey)) {
+      respond(
+        false,
+        undefined,
+        errorShape(ErrorCodes.FORBIDDEN, "sessions.spawn is not allowed from sub-agent sessions"),
+      );
+      return;
+    }
+
+    const parsedRequester = parseAgentSessionKey(requesterSessionKey);
+    const requesterAgentId = normalizeAgentId(
+      parsedRequester?.agentId ?? resolveDefaultAgentId(cfg),
+    );
+    const targetAgentId = requestedAgentId ? normalizeAgentId(requestedAgentId) : requesterAgentId;
+
+    if (targetAgentId !== requesterAgentId) {
+      const allowAgents = resolveAgentConfig(cfg, requesterAgentId)?.subagents?.allowAgents ?? [];
+      const allowAny = allowAgents.some((value) => value.trim() === "*");
+      const normalizedTargetId = targetAgentId.toLowerCase();
+      const allowSet = new Set(
+        allowAgents
+          .filter((value) => value.trim() && value.trim() !== "*")
+          .map((value) => normalizeAgentId(value).toLowerCase()),
+      );
+      if (!allowAny && !allowSet.has(normalizedTargetId)) {
+        respond(
+          false,
+          undefined,
+          errorShape(ErrorCodes.FORBIDDEN, `agentId "${targetAgentId}" not in subagents.allowAgents`),
+        );
+        return;
+      }
+    }
+
+    const childSessionKey = `agent:${targetAgentId}:subagent:${randomUUID()}`;
+    const targetAgentConfig = resolveAgentConfig(cfg, targetAgentId);
+
+    const normalizeModelSelection = (value: unknown): string | undefined => {
+      if (typeof value === "string") {
+        const trimmed = value.trim();
+        return trimmed || undefined;
+      }
+      if (!value || typeof value !== "object") {
+        return undefined;
+      }
+      const primary = (value as { primary?: unknown }).primary;
+      if (typeof primary === "string" && primary.trim()) {
+        return primary.trim();
+      }
+      return undefined;
+    };
+
+    const resolvedModel =
+      normalizeModelSelection(modelOverride) ??
+      normalizeModelSelection(targetAgentConfig?.subagents?.model) ??
+      normalizeModelSelection(cfg.agents?.defaults?.subagents?.model);
+
+    const resolvedThinkingDefaultRaw = (() => {
+      const agentThinking =
+        typeof targetAgentConfig?.subagents === "object" && targetAgentConfig?.subagents
+          ? (targetAgentConfig.subagents as { thinking?: unknown }).thinking
+          : undefined;
+      if (typeof agentThinking === "string") {
+        return agentThinking;
+      }
+      const defaultThinking =
+        typeof cfg.agents?.defaults?.subagents === "object" && cfg.agents?.defaults?.subagents
+          ? (cfg.agents.defaults.subagents as { thinking?: unknown }).thinking
+          : undefined;
+      if (typeof defaultThinking === "string") {
+        return defaultThinking;
+      }
+      return undefined;
+    })();
+
+    const thinkingCandidateRaw = thinkingOverrideRaw || resolvedThinkingDefaultRaw;
+    let thinkingOverride: string | undefined;
+    if (thinkingCandidateRaw) {
+      const normalized = normalizeThinkLevel(thinkingCandidateRaw);
+      if (!normalized) {
+        const splitModelRef = (ref?: string) => {
+          if (!ref) {
+            return { provider: undefined, model: undefined };
+          }
+          const [provider, model] = ref.trim().split("/", 2);
+          return model ? { provider, model } : { provider: undefined, model: ref.trim() };
+        };
+        const { provider, model } = splitModelRef(resolvedModel);
+        const hint = formatThinkingLevels(provider, model);
+        respond(
+          false,
+          undefined,
+          errorShape(
+            ErrorCodes.INVALID_REQUEST,
+            `Invalid thinking level "${thinkingCandidateRaw}". Use one of: ${hint}.`,
+          ),
+        );
+        return;
+      }
+      thinkingOverride = normalized;
+    }
+
+    let modelApplied = false;
+    let modelWarning: string | undefined;
+    if (resolvedModel) {
+      try {
+        await callGateway({
+          method: "sessions.patch",
+          params: { key: childSessionKey, model: resolvedModel },
+          timeoutMs: 10_000,
+        });
+        modelApplied = true;
+      } catch (err) {
+        const messageText =
+          err instanceof Error ? err.message : typeof err === "string" ? err : "error";
+        const recoverable =
+          messageText.includes("invalid model") || messageText.includes("model not allowed");
+        if (!recoverable) {
+          respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, messageText));
+          return;
+        }
+        modelWarning = messageText;
+      }
+    }
+
+    const childSystemPrompt = buildSubagentSystemPrompt({
+      requesterSessionKey: requesterSessionKey || undefined,
+      requesterOrigin,
+      childSessionKey,
+      label: label || undefined,
+      task,
+    });
+
+    const childIdem = randomUUID();
+    let childRunId: string = childIdem;
+    try {
+      const response = await callGateway<{ runId: string }>({
+        method: "agent",
+        params: {
+          message: task,
+          sessionKey: childSessionKey,
+          channel: requesterOrigin?.channel,
+          to: requesterOrigin?.to ?? undefined,
+          accountId: requesterOrigin?.accountId ?? undefined,
+          threadId:
+            requesterOrigin?.threadId != null ? String(requesterOrigin.threadId) : undefined,
+          idempotencyKey: childIdem,
+          deliver: false,
+          lane: AGENT_LANE_SUBAGENT,
+          extraSystemPrompt: childSystemPrompt,
+          thinking: thinkingOverride ?? undefined,
+          timeout: runTimeoutSeconds > 0 ? runTimeoutSeconds : undefined,
+          label: label || undefined,
+          spawnedBy: requesterSessionKey,
+          groupId: typeof p.groupId === "string" ? p.groupId : undefined,
+          groupChannel: typeof p.groupChannel === "string" ? p.groupChannel : undefined,
+          groupSpace: typeof p.groupSpace === "string" ? p.groupSpace : undefined,
+        },
+        timeoutMs: 10_000,
+      });
+      if (typeof response?.runId === "string" && response.runId) {
+        childRunId = response.runId;
+      }
+    } catch (err) {
+      const messageText = err instanceof Error ? err.message : typeof err === "string" ? err : "error";
+      respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, messageText));
+      return;
+    }
+
+    registerSubagentRun({
+      runId: childRunId,
+      childSessionKey,
+      requesterSessionKey,
+      requesterOrigin,
+      requesterDisplayKey: requesterSessionKey,
+      task,
+      cleanup,
+      label: label || undefined,
+      runTimeoutSeconds,
+    });
+
+    respond(
+      true,
+      {
+        ok: true,
+        childSessionKey,
+        runId: childRunId,
+        modelApplied: resolvedModel ? modelApplied : undefined,
+        warning: modelWarning,
       },
       undefined,
     );
