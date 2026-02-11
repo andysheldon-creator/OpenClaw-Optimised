@@ -42,6 +42,7 @@ import {
   resolveSessionTranscriptPath,
   updateSessionStore,
 } from "../../config/sessions.js";
+import { emitAgentReplyHook } from "../../hooks/emit-agent-reply.js";
 import { registerAgentRunContext } from "../../infra/agent-events.js";
 import { deliverOutboundPayloads } from "../../infra/outbound/deliver.js";
 import { getRemoteSkillEligibility } from "../../infra/skills-remote.js";
@@ -455,6 +456,22 @@ export async function runCronIsolatedAgentTurn(params: {
         }) ?? input;
     }
     await persistSessionEntry();
+
+    // Emit agent:reply hook for post-turn processing (e.g., promise verification).
+    await emitAgentReplyHook({
+      cfg: cfgWithAgentDefaults,
+      replyText: payloads
+        .filter((p) => typeof p.text === "string")
+        .map((p) => p.text)
+        .join("\n"),
+      sessionKey: agentSessionKey,
+      sessionId: cronSession.sessionEntry.sessionId,
+      channel: resolvedDelivery.channel,
+      to: resolvedDelivery.to,
+      model: modelUsed,
+      provider: providerUsed,
+      toolMetas: runResult.toolMetas ?? [],
+    });
   }
   const firstText = payloads[0]?.text ?? "";
   const summary = pickSummaryFromPayloads(payloads) ?? pickSummaryFromOutput(firstText);

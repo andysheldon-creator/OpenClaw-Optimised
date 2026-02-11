@@ -18,6 +18,7 @@ import {
   updateSessionStore,
   updateSessionStoreEntry,
 } from "../../config/sessions.js";
+import { emitAgentReplyHook } from "../../hooks/emit-agent-reply.js";
 import { emitDiagnosticEvent, isDiagnosticsEnabled } from "../../infra/diagnostic-events.js";
 import { defaultRuntime } from "../../runtime.js";
 import { estimateUsageCost, resolveModelCostConfig } from "../../utils/usage-format.js";
@@ -492,6 +493,12 @@ export async function runReplyAgent(params: {
     }
 
     // If verbose is enabled and this is a new session, prepend a session hint.
+    // IMPORTANT: internal hooks like agent:reply should see only the agent's
+    // user-facing reply text for the turn (not verbose/session/usage decorations).
+    const replyTextForHook = replyPayloads
+      .filter((p) => typeof p.text === "string")
+      .map((p) => p.text)
+      .join("\n");
     let finalPayloads = replyPayloads;
     const verboseEnabled = resolvedVerboseLevel !== "off";
     if (autoCompactionCompleted) {
@@ -512,6 +519,19 @@ export async function runReplyAgent(params: {
     if (responseUsageLine) {
       finalPayloads = appendUsageLine(finalPayloads, responseUsageLine);
     }
+
+    // Emit agent:reply hook for post-turn processing (e.g., promise verification).
+    await emitAgentReplyHook({
+      cfg,
+      replyText: replyTextForHook,
+      sessionKey: sessionKey ?? "",
+      sessionId: followupRun.run.sessionId,
+      channel: replyToChannel,
+      to: sessionCtx.OriginatingTo,
+      model: modelUsed,
+      provider: providerUsed,
+      toolMetas: runResult.toolMetas ?? [],
+    });
 
     return finalizeWithFollowup(
       finalPayloads.length === 1 ? finalPayloads[0] : finalPayloads,
