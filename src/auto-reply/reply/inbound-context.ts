@@ -31,12 +31,10 @@ export function finalizeInboundContext<T extends Record<string, unknown>>(
   normalized.Transcript = normalizeTextField(normalized.Transcript);
   normalized.ThreadStarterBody = normalizeTextField(normalized.ThreadStarterBody);
   if (Array.isArray(normalized.ThreadHistory)) {
-    normalized.ThreadHistory = normalized.ThreadHistory
-      .map((entry) => ({
-        ...entry,
-        body: normalizeInboundTextNewlines(entry.body),
-      }))
-      .filter((entry) => Boolean(entry.body));
+    normalized.ThreadHistory = normalized.ThreadHistory.map((entry) => ({
+      ...entry,
+      body: normalizeInboundTextNewlines(entry.body),
+    })).filter((entry) => Boolean(entry.body));
   }
   if (Array.isArray(normalized.UntrustedContext)) {
     const normalizedUntrusted = normalized.UntrustedContext.map((entry) =>

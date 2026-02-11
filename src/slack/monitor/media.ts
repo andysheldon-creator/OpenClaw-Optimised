@@ -197,12 +197,9 @@ export async function resolveSlackThreadHistory(params: {
       messages?: Array<{ text?: string; user?: string; ts?: string }>;
     };
     const messages = response?.messages ?? [];
-    const filtered = messages.filter(
-      (m) => m.ts !== params.excludeTs && (m.text ?? "").trim(),
-    );
+    const filtered = messages.filter((m) => m.ts !== params.excludeTs && (m.text ?? "").trim());
     // Take the last `limit` entries to prioritize recent context.
-    const sliced =
-      filtered.length > params.limit ? filtered.slice(-params.limit) : filtered;
+    const sliced = filtered.length > params.limit ? filtered.slice(-params.limit) : filtered;
     return sliced.map((m) => ({
       text: (m.text ?? "").trim(),
       userId: m.user,
@@ -240,7 +237,7 @@ export async function resolveSlackChannelHistory(params: {
     // conversations.history returns newest-first; reverse to chronological order.
     return messages
       .filter((m) => (m.text ?? "").trim())
-      .reverse()
+      .toReversed()
       .map((m) => ({
         text: (m.text ?? "").trim(),
         userId: m.user,
