@@ -109,6 +109,40 @@ describe("redactConfigSnapshot", () => {
     expect(result.config).toEqual(snapshot.config);
   });
 
+  it("does NOT redact maxTokens and similar token-count fields", () => {
+    const snapshot = makeSnapshot({
+      maxTokens: 16384,
+      models: {
+        providers: {
+          openai: {
+            apiKey: "sk-proj-fake-openai-api-key-value",
+            maxTokens: 8192,
+            maxOutputTokens: 4096,
+            maxCompletionTokens: 2048,
+            contextTokens: 128000,
+            tokenCount: 500,
+            tokenLimit: 100000,
+            tokenBudget: 50000,
+          },
+        },
+      },
+      gateway: { auth: { token: "secret-gateway-token-value" } },
+    });
+    const result = redactConfigSnapshot(snapshot);
+    expect((result.config as Record<string, unknown>).maxTokens).toBe(16384);
+    const models = result.config.models as Record<string, Record<string, Record<string, unknown>>>;
+    expect(models.providers.openai.apiKey).toBe(REDACTED_SENTINEL);
+    expect(models.providers.openai.maxTokens).toBe(8192);
+    expect(models.providers.openai.maxOutputTokens).toBe(4096);
+    expect(models.providers.openai.maxCompletionTokens).toBe(2048);
+    expect(models.providers.openai.contextTokens).toBe(128000);
+    expect(models.providers.openai.tokenCount).toBe(500);
+    expect(models.providers.openai.tokenLimit).toBe(100000);
+    expect(models.providers.openai.tokenBudget).toBe(50000);
+    const gw = result.config.gateway as Record<string, Record<string, string>>;
+    expect(gw.auth.token).toBe(REDACTED_SENTINEL);
+  });
+
   it("preserves hash unchanged", () => {
     const snapshot = makeSnapshot({ gateway: { auth: { token: "secret-token-value-here" } } });
     const result = redactConfigSnapshot(snapshot);
