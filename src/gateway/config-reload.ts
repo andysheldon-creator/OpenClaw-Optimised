@@ -83,6 +83,7 @@ const BASE_RELOAD_RULES_TAIL: ReloadRule[] = [
   { prefix: "gateway", kind: "restart" },
   { prefix: "discovery", kind: "restart" },
   { prefix: "canvasHost", kind: "restart" },
+  { prefix: "meta", kind: "none" },
 ];
 
 let cachedReloadRules: ReloadRule[] | null = null;
