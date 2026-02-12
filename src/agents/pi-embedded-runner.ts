@@ -33,6 +33,13 @@ import {
 } from "../process/command-queue.js";
 import { defaultRuntime } from "../runtime.js";
 import { trackCost } from "../services/cost-tracker.js";
+import {
+  backgroundRetain,
+  buildMemoryContext,
+  initMemory,
+  isMemoryEnabled,
+  recallHybrid,
+} from "../services/memory/index.js";
 import { backgroundIngest } from "../services/rag-ingest.js";
 import { retrieveContext } from "../services/rag-retrieval.js";
 import { CONFIG_DIR, resolveUserPath } from "../utils.js";
@@ -515,10 +522,44 @@ export async function runEmbeddedPiAgent(params: {
           }
         }
 
+        // --- Tiered Memory Context (Week 3) ---
+        // Recall structured facts from the memory database to supplement
+        // the conversation context. This provides entity-centric and
+        // temporal knowledge beyond what RAG vector search captures.
+        let memoryContextBlock = "";
+        if (isMemoryEnabled()) {
+          try {
+            initMemory();
+            const memoryResult = recallHybrid(params.prompt);
+            if (memoryResult.items.length > 0) {
+              memoryContextBlock = buildMemoryContext(memoryResult);
+              defaultRuntime.log?.(
+                `Memory recall: found=${memoryResult.totalFound} returned=${memoryResult.items.length} ` +
+                  `type=${memoryResult.queryType} duration=${memoryResult.durationMs}ms`,
+              );
+            }
+          } catch (memErr) {
+            defaultRuntime.log?.(
+              `Memory recall failed (non-critical): ${String(memErr)}`,
+            );
+          }
+        }
+
         const prior = await sanitizeSessionMessagesImages(
           contextMessages,
           "session:history",
         );
+
+        // If we have memory context, prepend it as a system-like message
+        // so the LLM has access to long-term structured knowledge.
+        if (memoryContextBlock && prior.length > 0) {
+          const firstMsg = prior[0] as unknown as Record<string, unknown>;
+          const existingContent = firstMsg.content;
+          if (typeof existingContent === "string") {
+            firstMsg.content = `${memoryContextBlock}\n\n${existingContent}`;
+          }
+        }
+
         if (prior.length > 0) {
           session.agent.replaceMessages(prior);
         }
@@ -659,6 +700,16 @@ export async function runEmbeddedPiAgent(params: {
             sessionId: sessionIdUsed,
             messages: messagesSnapshot,
           });
+
+          // --- Memory Retain (background) ---
+          // Extract structured facts from messages into the tiered memory store.
+          // Runs synchronously but is very fast (no embedding, just heuristic extraction).
+          if (isMemoryEnabled()) {
+            backgroundRetain({
+              sessionId: sessionIdUsed,
+              messages: messagesSnapshot,
+            });
+          }
         }
 
         const agentMeta: EmbeddedPiAgentMeta = {

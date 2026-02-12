@@ -614,6 +614,17 @@ export type ClawdisConfig = {
       /** Recent messages always included for coherence (default: 4). */
       recencyWindow?: number;
     };
+    /** Tiered memory system configuration (Week 3). */
+    memory?: {
+      /** Enable/disable tiered memory (default: true). */
+      enabled?: boolean;
+      /** Reflect interval in seconds (default: 86400 = 24h). */
+      reflectInterval?: number;
+      /** Maximum recall items per query (default: 25). */
+      maxRecallItems?: number;
+      /** Maximum characters for memory context block (default: 4000). */
+      maxRecallChars?: number;
+    };
     /** Max concurrent agent runs across all conversations. Default: 1 (sequential). */
     maxConcurrent?: number;
     /** Bash tool defaults. */
@@ -1018,6 +1029,14 @@ const ClawdisSchema = z.object({
           topK: z.number().int().positive().optional(),
           minScore: z.number().min(0).max(1).optional(),
           recencyWindow: z.number().int().min(0).optional(),
+        })
+        .optional(),
+      memory: z
+        .object({
+          enabled: z.boolean().optional(),
+          reflectInterval: z.number().int().positive().optional(),
+          maxRecallItems: z.number().int().positive().optional(),
+          maxRecallChars: z.number().int().positive().optional(),
         })
         .optional(),
       maxConcurrent: z.number().int().positive().optional(),
