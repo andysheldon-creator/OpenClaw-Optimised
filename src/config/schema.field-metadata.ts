@@ -240,6 +240,7 @@ export const FIELD_LABELS: Record<string, string> = {
   "auth.cooldowns.billingBackoffHoursByProvider": "Billing Backoff Overrides",
   "auth.cooldowns.billingMaxHours": "Billing Backoff Cap (hours)",
   "auth.cooldowns.failureWindowHours": "Failover Window (hours)",
+  "auth.cooldowns.billingRecoveryMode": "Billing Recovery Mode",
   "agents.defaults.models": "Models",
   "agents.defaults.model.primary": "Primary Model",
   "agents.defaults.model.fallbacks": "Model Fallbacks",
@@ -482,6 +483,8 @@ export const FIELD_HELP: Record<string, string> = {
     "Optional per-provider overrides for billing backoff (hours).",
   "auth.cooldowns.billingMaxHours": "Cap (hours) for billing backoff (default: 24).",
   "auth.cooldowns.failureWindowHours": "Failure window (hours) for backoff counters (default: 24).",
+  "auth.cooldowns.billingRecoveryMode":
+    'How to handle billing/402 errors: "disable" (default, hours-long backoff), "retry" (5 min cooldown), or "notify" (no cooldown, just show error).',
   "agents.defaults.bootstrapMaxChars":
     "Max characters of each workspace bootstrap file injected into the system prompt before truncation (default: 20000).",
   "agents.defaults.repoRoot":
