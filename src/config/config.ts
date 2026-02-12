@@ -603,6 +603,17 @@ export type ClawdisConfig = {
      * Default: 10. Set to 0 to disable windowing (send full history).
      */
     maxHistoryWindow?: number;
+    /** RAG (Retrieval Augmented Generation) configuration. */
+    rag?: {
+      /** Enable/disable RAG retrieval (default: true). */
+      enabled?: boolean;
+      /** Number of semantically similar messages to retrieve (default: 10). */
+      topK?: number;
+      /** Minimum similarity score threshold 0-1 (default: 0.35). */
+      minScore?: number;
+      /** Recent messages always included for coherence (default: 4). */
+      recencyWindow?: number;
+    };
     /** Max concurrent agent runs across all conversations. Default: 1 (sequential). */
     maxConcurrent?: number;
     /** Bash tool defaults. */
@@ -1001,6 +1012,14 @@ const ClawdisSchema = z.object({
       typingIntervalSeconds: z.number().int().positive().optional(),
       heartbeat: HeartbeatSchema,
       maxHistoryWindow: z.number().int().min(0).optional(),
+      rag: z
+        .object({
+          enabled: z.boolean().optional(),
+          topK: z.number().int().positive().optional(),
+          minScore: z.number().min(0).max(1).optional(),
+          recencyWindow: z.number().int().min(0).optional(),
+        })
+        .optional(),
       maxConcurrent: z.number().int().positive().optional(),
       bash: z
         .object({

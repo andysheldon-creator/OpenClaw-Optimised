@@ -33,6 +33,8 @@ import {
 } from "../process/command-queue.js";
 import { defaultRuntime } from "../runtime.js";
 import { trackCost } from "../services/cost-tracker.js";
+import { backgroundIngest } from "../services/rag-ingest.js";
+import { retrieveContext } from "../services/rag-retrieval.js";
 import { CONFIG_DIR, resolveUserPath } from "../utils.js";
 import { resolveClawdisAgentDir } from "./agent-paths.js";
 import {
@@ -473,26 +475,48 @@ export async function runEmbeddedPiAgent(params: {
           contextFiles,
         });
 
-        // --- Conversation Windowing (Cost Optimization) ---
-        // Only send the last N messages to the LLM to reduce input token count.
-        // Configurable via agent.maxHistoryWindow in clawdis.json (default: 10).
-        // Set to 0 to disable windowing and send full history.
+        // --- RAG-Enhanced Conversation Context (Cost Optimization) ---
+        // Uses a hybrid approach:
+        // 1. Recent messages always included for conversational coherence
+        // 2. Semantically similar older messages retrieved via RAG
+        // Falls back to simple windowing if RAG is disabled or unavailable.
         const maxHistoryWindow =
           params.config?.agent?.maxHistoryWindow ?? DEFAULT_MAX_HISTORY_WINDOW;
         const rawMessages = session.messages;
-        const windowedMessages =
-          maxHistoryWindow > 0 && rawMessages.length > maxHistoryWindow
-            ? rawMessages.slice(-maxHistoryWindow)
-            : rawMessages;
+        let contextMessages = rawMessages;
 
         if (maxHistoryWindow > 0 && rawMessages.length > maxHistoryWindow) {
-          defaultRuntime.log?.(
-            `conversation windowing: kept ${windowedMessages.length}/${rawMessages.length} messages (window=${maxHistoryWindow}) sessionId=${params.sessionId}`,
-          );
+          try {
+            const ragResult = await retrieveContext({
+              currentMessage: params.prompt,
+              sessionId: params.sessionId,
+              fullHistory: rawMessages,
+              maxHistoryWindow,
+            });
+
+            contextMessages = ragResult.contextMessages;
+
+            if (ragResult.used) {
+              defaultRuntime.log?.(
+                `RAG context: retrieved=${ragResult.retrievedCount} total=${contextMessages.length}/${rawMessages.length} ` +
+                  `duration=${ragResult.durationMs}ms sessionId=${params.sessionId}`,
+              );
+            } else {
+              defaultRuntime.log?.(
+                `conversation windowing: kept ${contextMessages.length}/${rawMessages.length} messages (window=${maxHistoryWindow}) sessionId=${params.sessionId}`,
+              );
+            }
+          } catch (ragErr) {
+            // Fallback to simple windowing on any RAG error
+            contextMessages = rawMessages.slice(-maxHistoryWindow);
+            defaultRuntime.log?.(
+              `RAG failed, falling back to windowing: ${String(ragErr)} sessionId=${params.sessionId}`,
+            );
+          }
         }
 
         const prior = await sanitizeSessionMessagesImages(
-          windowedMessages,
+          contextMessages,
           "session:history",
         );
         if (prior.length > 0) {
@@ -625,6 +649,16 @@ export async function runEmbeddedPiAgent(params: {
               `[cost-tracker] failed to track cost: ${String(costErr)}`,
             );
           }
+        }
+
+        // --- RAG Ingestion (background) ---
+        // Store messages in the vector store for future semantic retrieval.
+        // Runs asynchronously to avoid adding latency to the response path.
+        if (messagesSnapshot.length > 0) {
+          backgroundIngest({
+            sessionId: sessionIdUsed,
+            messages: messagesSnapshot,
+          });
         }
 
         const agentMeta: EmbeddedPiAgentMeta = {
