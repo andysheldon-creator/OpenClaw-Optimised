@@ -429,6 +429,7 @@ export async function runCronIsolatedAgentTurn(params: {
   // Update token+model fields in the session store.
   {
     const usage = runResult.meta.agentMeta?.usage;
+    const promptTokens = runResult.meta.agentMeta?.promptTokens;
     const modelUsed = runResult.meta.agentMeta?.model ?? fallbackModel ?? model;
     const providerUsed = runResult.meta.agentMeta?.provider ?? fallbackProvider ?? provider;
     const contextTokens =
@@ -452,6 +453,7 @@ export async function runCronIsolatedAgentTurn(params: {
         deriveSessionTotalTokens({
           usage,
           contextTokens,
+          promptTokens,
         }) ?? input;
     }
     await persistSessionEntry();
