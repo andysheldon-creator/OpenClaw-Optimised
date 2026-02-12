@@ -883,7 +883,13 @@ function resolveFallbackSession(
   if (!peerId) {
     return null;
   }
-  const peer: RoutePeer = { kind: peerKind, id: peerId };
+  const threadId = normalizeThreadId(params.threadId);
+  // Encode threadId into peer ID for group/channel contexts so that
+  // topic-scoped conversations get their own session key.
+  // See: https://github.com/openclaw/openclaw/issues/13880
+  const topicAwarePeerId =
+    threadId && peerKind !== "direct" ? `${peerId}:topic:${threadId}` : peerId;
+  const peer: RoutePeer = { kind: peerKind, id: topicAwarePeerId };
   const baseSessionKey = buildBaseSessionKey({
     cfg: params.cfg,
     agentId: params.agentId,
@@ -903,6 +909,7 @@ function resolveFallbackSession(
     chatType,
     from,
     to: `${toPrefix}:${peerId}`,
+    threadId,
   };
 }
 
