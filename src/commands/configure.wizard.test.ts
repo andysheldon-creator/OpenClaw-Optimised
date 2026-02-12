@@ -91,6 +91,19 @@ vi.mock("./onboard-skills.js", () => ({
   setupSkills: vi.fn(),
 }));
 
+vi.mock("../plugins/enable.js", () => ({
+  enablePluginInConfig: vi.fn((cfg: OpenClawConfig) => ({ config: cfg, enabled: true })),
+}));
+
+vi.mock("./onboarding/plugin-install.js", () => ({
+  installTrustedFromNpm: vi.fn(async (params: { cfg: OpenClawConfig }) => ({
+    cfg: params.cfg,
+    ok: true,
+    version: "1.0.0",
+    targetDir: "/tmp/extensions/camofox-browser",
+  })),
+}));
+
 vi.mock("./onboard-channels.js", () => ({
   setupChannels: vi.fn(),
 }));

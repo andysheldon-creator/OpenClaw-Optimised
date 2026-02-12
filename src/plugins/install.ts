@@ -140,6 +140,7 @@ async function installPluginFromPackageDir(params: {
   mode?: "install" | "update";
   dryRun?: boolean;
   expectedPluginId?: string;
+  trustedPlugins?: Set<string>;
 }): Promise<InstallPluginResult> {
   const logger = params.logger ?? defaultLogger;
   const timeoutMs = params.timeoutMs ?? 120_000;
@@ -195,27 +196,30 @@ async function installPluginFromPackageDir(params: {
   }
 
   // Scan plugin source for dangerous code patterns (warn-only; never blocks install)
-  try {
-    const scanSummary = await scanDirectoryWithSummary(params.packageDir, {
-      includeFiles: forcedScanEntries,
-    });
-    if (scanSummary.critical > 0) {
-      const criticalDetails = scanSummary.findings
-        .filter((f) => f.severity === "critical")
-        .map((f) => `${f.message} (${f.file}:${f.line})`)
-        .join("; ");
+  const isTrusted = params.trustedPlugins?.has(pluginId) ?? false;
+  if (!isTrusted) {
+    try {
+      const scanSummary = await scanDirectoryWithSummary(params.packageDir, {
+        includeFiles: forcedScanEntries,
+      });
+      if (scanSummary.critical > 0) {
+        const criticalDetails = scanSummary.findings
+          .filter((f) => f.severity === "critical")
+          .map((f) => `${f.message} (${f.file}:${f.line})`)
+          .join("; ");
+        logger.warn?.(
+          `WARNING: Plugin "${pluginId}" contains dangerous code patterns: ${criticalDetails}`,
+        );
+      } else if (scanSummary.warn > 0) {
+        logger.warn?.(
+          `Plugin "${pluginId}" has ${scanSummary.warn} suspicious code pattern(s). Run "openclaw security audit --deep" for details.`,
+        );
+      }
+    } catch (err) {
       logger.warn?.(
-        `WARNING: Plugin "${pluginId}" contains dangerous code patterns: ${criticalDetails}`,
-      );
-    } else if (scanSummary.warn > 0) {
-      logger.warn?.(
-        `Plugin "${pluginId}" has ${scanSummary.warn} suspicious code pattern(s). Run "openclaw security audit --deep" for details.`,
+        `Plugin "${pluginId}" code safety scan failed (${String(err)}). Installation continues; run "openclaw security audit --deep" after install.`,
       );
     }
-  } catch (err) {
-    logger.warn?.(
-      `Plugin "${pluginId}" code safety scan failed (${String(err)}). Installation continues; run "openclaw security audit --deep" after install.`,
-    );
   }
 
   const extensionsDir = params.extensionsDir
@@ -319,6 +323,7 @@ export async function installPluginFromArchive(params: {
   mode?: "install" | "update";
   dryRun?: boolean;
   expectedPluginId?: string;
+  trustedPlugins?: Set<string>;
 }): Promise<InstallPluginResult> {
   const logger = params.logger ?? defaultLogger;
   const timeoutMs = params.timeoutMs ?? 120_000;
@@ -364,6 +369,7 @@ export async function installPluginFromArchive(params: {
     mode,
     dryRun: params.dryRun,
     expectedPluginId: params.expectedPluginId,
+    trustedPlugins: params.trustedPlugins,
   });
 }
 
@@ -375,6 +381,7 @@ export async function installPluginFromDir(params: {
   mode?: "install" | "update";
   dryRun?: boolean;
   expectedPluginId?: string;
+  trustedPlugins?: Set<string>;
 }): Promise<InstallPluginResult> {
   const dirPath = resolveUserPath(params.dirPath);
   if (!(await fileExists(dirPath))) {
@@ -393,6 +400,7 @@ export async function installPluginFromDir(params: {
     mode: params.mode,
     dryRun: params.dryRun,
     expectedPluginId: params.expectedPluginId,
+    trustedPlugins: params.trustedPlugins,
   });
 }
 
@@ -461,6 +469,7 @@ export async function installPluginFromNpmSpec(params: {
   mode?: "install" | "update";
   dryRun?: boolean;
   expectedPluginId?: string;
+  trustedPlugins?: Set<string>;
 }): Promise<InstallPluginResult> {
   const logger = params.logger ?? defaultLogger;
   const timeoutMs = params.timeoutMs ?? 120_000;
@@ -504,6 +513,7 @@ export async function installPluginFromNpmSpec(params: {
     mode,
     dryRun,
     expectedPluginId,
+    trustedPlugins: params.trustedPlugins,
   });
 }
 
@@ -515,6 +525,7 @@ export async function installPluginFromPath(params: {
   mode?: "install" | "update";
   dryRun?: boolean;
   expectedPluginId?: string;
+  trustedPlugins?: Set<string>;
 }): Promise<InstallPluginResult> {
   const resolved = resolveUserPath(params.path);
   if (!(await fileExists(resolved))) {
@@ -531,6 +542,7 @@ export async function installPluginFromPath(params: {
       mode: params.mode,
       dryRun: params.dryRun,
       expectedPluginId: params.expectedPluginId,
+      trustedPlugins: params.trustedPlugins,
     });
   }
 
@@ -544,6 +556,7 @@ export async function installPluginFromPath(params: {
       mode: params.mode,
       dryRun: params.dryRun,
       expectedPluginId: params.expectedPluginId,
+      trustedPlugins: params.trustedPlugins,
     });
   }
 

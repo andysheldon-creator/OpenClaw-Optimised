@@ -147,6 +147,8 @@ export async function updateNpmInstalledPlugins(params: {
   const logger = params.logger ?? {};
   const installs = params.config.plugins?.installs ?? {};
   const targets = params.pluginIds?.length ? params.pluginIds : Object.keys(installs);
+  // Do not pass trustedPlugins during updates — always re-scan.
+  // A plugin trusted at v1.0 could be compromised at v2.0 (supply-chain attack).
   const outcomes: PluginUpdateOutcome[] = [];
   let next = params.config;
   let changed = false;
@@ -390,6 +392,7 @@ export async function syncPluginsForUpdateChannel(params: {
           mode: "update",
           expectedPluginId: pluginId,
           logger: params.logger,
+          // No trustedPlugins — always re-scan on update
         });
       } catch (err) {
         summary.errors.push(`Failed to install ${pluginId}: ${String(err)}`);

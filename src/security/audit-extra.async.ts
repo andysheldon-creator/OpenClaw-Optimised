@@ -546,6 +546,7 @@ export async function readConfigSnapshotForAudit(params: {
 
 export async function collectPluginsCodeSafetyFindings(params: {
   stateDir: string;
+  trustedPlugins?: Set<string>;
 }): Promise<SecurityAuditFinding[]> {
   const findings: SecurityAuditFinding[] = [];
   const extensionsDir = path.join(params.stateDir, "extensions");
@@ -568,6 +569,17 @@ export async function collectPluginsCodeSafetyFindings(params: {
   const pluginDirs = entries.filter((e) => e.isDirectory()).map((e) => e.name);
 
   for (const pluginName of pluginDirs) {
+    if (params.trustedPlugins?.has(pluginName)) {
+      findings.push({
+        checkId: "plugins.code_safety.trusted_skip",
+        severity: "info",
+        title: `Trusted plugin "${pluginName}" skipped code-safety scan`,
+        detail: `Plugin "${pluginName}" is marked trusted in config and was excluded from deep code-safety scanning.`,
+        remediation:
+          "Remove the trusted flag from plugins.entries to re-enable scanning for this plugin.",
+      });
+      continue;
+    }
     const pluginPath = path.join(extensionsDir, pluginName);
     const extensionEntries = await readPluginManifestExtensions(pluginPath).catch(() => []);
     const forcedScanEntries: string[] = [];

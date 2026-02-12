@@ -1,5 +1,19 @@
 import type { OpenClawConfig } from "../config/config.js";
 
+/**
+ * Collect the set of plugin ids marked as trusted in config.
+ */
+export function buildTrustedPlugins(cfg: OpenClawConfig): Set<string> {
+  const entries = cfg.plugins?.entries ?? {};
+  const trusted = new Set<string>();
+  for (const [id, entry] of Object.entries(entries)) {
+    if (entry.trusted) {
+      trusted.add(id);
+    }
+  }
+  return trusted;
+}
+
 export type PluginEnableResult = {
   config: OpenClawConfig;
   enabled: boolean;

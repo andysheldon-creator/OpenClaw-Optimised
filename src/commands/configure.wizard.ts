@@ -9,6 +9,7 @@ import { formatCliCommand } from "../cli/command-format.js";
 import { readConfigFileSnapshot, resolveGatewayPort, writeConfigFile } from "../config/config.js";
 import { logConfigUpdated } from "../config/logging.js";
 import { ensureControlUiAssetsBuilt } from "../infra/control-ui-assets.js";
+import { enablePluginInConfig } from "../plugins/enable.js";
 import { defaultRuntime } from "../runtime.js";
 import { note } from "../terminal/note.js";
 import { resolveUserPath } from "../utils.js";
@@ -42,6 +43,7 @@ import {
 } from "./onboard-helpers.js";
 import { promptRemoteGatewayConfig } from "./onboard-remote.js";
 import { setupSkills } from "./onboard-skills.js";
+import { installTrustedFromNpm } from "./onboarding/plugin-install.js";
 
 type ConfigureSectionChoice = WizardSection | "__continue";
 
@@ -86,6 +88,105 @@ async function promptChannelMode(runtime: RuntimeEnv): Promise<ChannelsWizardMod
     }),
     runtime,
   ) as ChannelsWizardMode;
+}
+
+const CAMOFOX_PLUGIN_ID = "camofox-browser";
+const CAMOFOX_NPM_SPEC = "@askjo/camofox-browser";
+
+async function promptCamofoxPlugin(
+  cfg: OpenClawConfig,
+  runtime: RuntimeEnv,
+): Promise<OpenClawConfig> {
+  let next = cfg;
+  const camofoxInstalled = Boolean(next.plugins?.installs?.[CAMOFOX_PLUGIN_ID]);
+  const camofoxEnabled =
+    (next.plugins?.entries?.[CAMOFOX_PLUGIN_ID] as { enabled?: boolean } | undefined)?.enabled ??
+    false;
+
+  note(
+    [
+      "Camofox is an anti-detection browser for AI agents (Firefox-based via Camoufox).",
+      "It bypasses bot detection on Google, Amazon, LinkedIn, and other sites.",
+      "Installs as an OpenClaw plugin with tools: camofox_create_tab, camofox_snapshot, camofox_click, etc.",
+      "https://github.com/askjo/camofox-browser",
+    ].join("\n"),
+    "Camofox Browser",
+  );
+
+  if (camofoxInstalled) {
+    const toggleAction = guardCancel(
+      await select({
+        message: `Camofox Browser is installed (${camofoxEnabled ? "enabled" : "disabled"})`,
+        options: [
+          {
+            value: "enable",
+            label: "Enable",
+            hint: camofoxEnabled ? "Already enabled" : "Activate the plugin",
+          },
+          {
+            value: "disable",
+            label: "Disable",
+            hint: camofoxEnabled ? "Deactivate the plugin" : "Already disabled",
+          },
+          { value: "skip", label: "Skip" },
+        ],
+        initialValue: "enable",
+      }),
+      runtime,
+    );
+
+    if (toggleAction === "enable" && !camofoxEnabled) {
+      next = enablePluginInConfig(next, CAMOFOX_PLUGIN_ID).config;
+    } else if (toggleAction === "disable" && camofoxEnabled) {
+      next = {
+        ...next,
+        plugins: {
+          ...next.plugins,
+          entries: {
+            ...next.plugins?.entries,
+            [CAMOFOX_PLUGIN_ID]: {
+              ...(next.plugins?.entries?.[CAMOFOX_PLUGIN_ID] as object | undefined),
+              enabled: false,
+            },
+          },
+        },
+      };
+    }
+
+    return next;
+  }
+
+  const installCamofox = guardCancel(
+    await confirm({
+      message: "Install Camofox Browser plugin?",
+      initialValue: false,
+    }),
+    runtime,
+  );
+
+  if (!installCamofox) {
+    return next;
+  }
+
+  note("Downloading and installing Camofox Browser plugin…", "Camofox Browser");
+  const result = await installTrustedFromNpm({
+    cfg: next,
+    pluginId: CAMOFOX_PLUGIN_ID,
+    npmSpec: CAMOFOX_NPM_SPEC,
+    logger: {
+      info: (msg) => runtime.log?.(msg),
+      warn: (msg) => runtime.log?.(msg),
+    },
+  });
+
+  if (!result.ok) {
+    note(`Failed to install: ${result.error}`, "Camofox Browser install");
+    return next;
+  }
+
+  next = result.cfg;
+  note(`Camofox Browser v${result.version ?? "latest"} installed and enabled.`, "Camofox Browser");
+  return next;
 }
 
 async function promptWebToolsConfig(
@@ -156,7 +257,7 @@ async function promptWebToolsConfig(
     enabled: enableFetch,
   };
 
-  return {
+  let configWithTools: OpenClawConfig = {
     ...nextConfig,
     tools: {
       ...nextConfig.tools,
@@ -167,6 +268,10 @@ async function promptWebToolsConfig(
       },
     },
   };
+
+  configWithTools = await promptCamofoxPlugin(configWithTools, runtime);
+
+  return configWithTools;
 }
 
 export async function runConfigureWizard(
