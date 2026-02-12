@@ -44,7 +44,10 @@ export async function runExec(
           encoding: "utf8" as const,
         };
   try {
-    const { stdout, stderr } = await execFileAsync(resolveCommand(command), args, options);
+    const { stdout, stderr } = await execFileAsync(resolveCommand(command), args, {
+      ...options,
+      ...(process.platform === "win32" ? { shell: true } : {}),
+    });
     if (shouldLogVerbose()) {
       if (stdout.trim()) {
         logDebug(stdout.trim());
@@ -116,6 +119,7 @@ export async function runCommandWithTimeout(
     cwd,
     env: resolvedEnv,
     windowsVerbatimArguments,
+    ...(process.platform === "win32" ? { shell: true } : {}),
   });
   // Spawn with inherited stdin (TTY) so tools like `pi` stay interactive when needed.
   return await new Promise((resolve, reject) => {
