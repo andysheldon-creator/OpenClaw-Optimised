@@ -10,6 +10,7 @@ import {
 } from "../config/sessions.js";
 import { callGateway } from "../gateway/call.js";
 import { formatDurationCompact } from "../infra/format-time/format-duration.ts";
+import { enqueueSystemEvent } from "../infra/system-events.js";
 import { normalizeMainKey } from "../routing/session-key.js";
 import { defaultRuntime } from "../runtime.js";
 import {
@@ -218,11 +219,21 @@ async function maybeQueueSubagentAnnounce(params: {
   return "none";
 }
 
-async function buildSubagentStatsLine(params: {
+type SubagentStatsInfo = {
+  runtime?: string;
+  input?: number;
+  output?: number;
+  total?: number;
+  cost?: number;
+  sessionId?: string;
+  transcriptPath?: string;
+};
+
+async function loadSubagentStatsInfo(params: {
   sessionKey: string;
   startedAt?: number;
   endedAt?: number;
-}) {
+}): Promise<SubagentStatsInfo> {
   const cfg = loadConfig();
   const { entry, storePath } = await waitForSessionUsage({
     sessionKey: params.sessionKey,
@@ -250,30 +261,105 @@ async function buildSubagentStatsLine(params: {
       ? (input * costConfig.input + output * costConfig.output) / 1_000_000
       : undefined;
 
+  return {
+    runtime: formatDurationCompact(runtimeMs),
+    input,
+    output,
+    total,
+    cost,
+    sessionId,
+    transcriptPath,
+  };
+}
+
+function buildSubagentDetailedStatsLine(params: { sessionKey: string; stats: SubagentStatsInfo }) {
   const parts: string[] = [];
-  const runtime = formatDurationCompact(runtimeMs);
-  parts.push(`runtime ${runtime ?? "n/a"}`);
-  if (typeof total === "number") {
-    const inputText = typeof input === "number" ? formatTokenCount(input) : "n/a";
-    const outputText = typeof output === "number" ? formatTokenCount(output) : "n/a";
-    const totalText = formatTokenCount(total);
+  parts.push(`runtime ${params.stats.runtime ?? "n/a"}`);
+  if (typeof params.stats.total === "number") {
+    const inputText =
+      typeof params.stats.input === "number" ? formatTokenCount(params.stats.input) : "n/a";
+    const outputText =
+      typeof params.stats.output === "number" ? formatTokenCount(params.stats.output) : "n/a";
+    const totalText = formatTokenCount(params.stats.total);
     parts.push(`tokens ${totalText} (in ${inputText} / out ${outputText})`);
   } else {
     parts.push("tokens n/a");
   }
-  const costText = formatUsd(cost);
+  const costText = formatUsd(params.stats.cost);
   if (costText) {
     parts.push(`est ${costText}`);
   }
   parts.push(`sessionKey ${params.sessionKey}`);
-  if (sessionId) {
-    parts.push(`sessionId ${sessionId}`);
+  if (params.stats.sessionId) {
+    parts.push(`sessionId ${params.stats.sessionId}`);
   }
-  if (transcriptPath) {
-    parts.push(`transcript ${transcriptPath}`);
+  if (params.stats.transcriptPath) {
+    parts.push(`transcript ${params.stats.transcriptPath}`);
   }
-
   return `Stats: ${parts.join(" \u2022 ")}`;
+}
+
+function buildSubagentCompactStatsLine(stats: SubagentStatsInfo) {
+  const parts: string[] = [];
+  if (typeof stats.total === "number") {
+    parts.push(`${formatTokenCount(stats.total)} tokens`);
+  } else {
+    parts.push("tokens n/a");
+  }
+  const costText = formatUsd(stats.cost);
+  if (costText) {
+    parts.push(costText);
+  }
+  parts.push(stats.runtime ?? "runtime n/a");
+  return `Stats: ${parts.join(" \u00b7 ")}`;
+}
+
+function buildParentSystemEventText(params: {
+  taskLabel: string;
+  statusLabel: string;
+  childSessionKey: string;
+  findings: string;
+  statsLine: string;
+}) {
+  return [
+    `[Sub-agent completed] "${params.taskLabel}"`,
+    `Status: ${params.statusLabel}`,
+    `Session: ${params.childSessionKey}`,
+    "",
+    "Findings:",
+    params.findings,
+    "",
+    params.statsLine,
+  ].join("\n");
+}
+
+async function triggerParentSystemEventWake(params: {
+  requesterSessionKey: string;
+  requesterOrigin?: DeliveryContext;
+  childRunId: string;
+  taskLabel: string;
+}) {
+  const origin = normalizeDeliveryContext(params.requesterOrigin);
+  const threadId =
+    origin?.threadId != null && origin.threadId !== "" ? String(origin.threadId) : undefined;
+  await callGateway({
+    method: "agent",
+    params: {
+      sessionKey: params.requesterSessionKey,
+      message: [
+        `A sub-agent completion event for "${params.taskLabel}" was queued as a system event.`,
+        "Process it and continue orchestration.",
+        "If no user-facing update is needed now, reply NO_REPLY.",
+      ].join(" "),
+      deliver: false,
+      channel: origin?.channel,
+      accountId: origin?.accountId,
+      to: origin?.to,
+      threadId,
+      idempotencyKey: `subagent-parent-wake:${params.childRunId}`,
+    },
+    timeoutMs: 10_000,
+  });
 }
 
 function loadSessionEntryByKey(sessionKey: string) {
@@ -363,6 +449,30 @@ export type SubagentRunOutcome = {
 };
 
 export type SubagentAnnounceType = "subagent task" | "cron job";
+export type SubagentAnnounceMode = "user" | "parent" | "skip";
+
+export function normalizeAnnounceMode(value: unknown): SubagentAnnounceMode | undefined {
+  if (value === "user" || value === "parent" || value === "skip") {
+    return value;
+  }
+  return undefined;
+}
+
+function resolveSubagentAnnounceMode(params: {
+  announce?: SubagentAnnounceMode;
+}): SubagentAnnounceMode {
+  // Per-spawn override takes precedence.
+  if (params.announce) {
+    return params.announce;
+  }
+
+  const cfg = loadConfig();
+  const configAnnounce = normalizeAnnounceMode(cfg.agents?.defaults?.subagents?.announce);
+  if (configAnnounce) {
+    return configAnnounce;
+  }
+  return "user";
+}
 
 export async function runSubagentAnnounceFlow(params: {
   childSessionKey: string;
@@ -380,10 +490,20 @@ export async function runSubagentAnnounceFlow(params: {
   label?: string;
   outcome?: SubagentRunOutcome;
   announceType?: SubagentAnnounceType;
+  /** Per-spawn override (default: user). */
+  announce?: SubagentAnnounceMode;
 }): Promise<boolean> {
   let didAnnounce = false;
   let shouldDeleteChildSession = params.cleanup === "delete";
   try {
+    const announceMode = resolveSubagentAnnounceMode({
+      announce: params.announce,
+    });
+    // Treat skip mode as success for cleanup bookkeeping — returning false here would
+    // cause finalizeSubagentCleanup to retry on every wake/restart.
+    if (announceMode === "skip") {
+      return true;
+    }
     const requesterOrigin = normalizeDeliveryContext(params.requesterOrigin);
     const childSessionId = (() => {
       const entry = loadSessionEntryByKey(params.childSessionKey);
@@ -466,8 +586,8 @@ export async function runSubagentAnnounceFlow(params: {
       outcome = { status: "unknown" };
     }
 
-    // Build stats
-    const statsLine = await buildSubagentStatsLine({
+    const findings = reply || "(no output)";
+    const stats = await loadSubagentStatsInfo({
       sessionKey: params.childSessionKey,
       startedAt: params.startedAt,
       endedAt: params.endedAt,
@@ -483,14 +603,46 @@ export async function runSubagentAnnounceFlow(params: {
             ? `failed: ${outcome.error || "unknown error"}`
             : "finished with unknown status";
 
-    // Build instructional message for main agent
     const announceType = params.announceType ?? "subagent task";
     const taskLabel = params.label || params.task || "task";
+
+    if (announceMode === "parent") {
+      const systemEventText = buildParentSystemEventText({
+        taskLabel,
+        statusLabel,
+        childSessionKey: params.childSessionKey,
+        findings,
+        statsLine: buildSubagentCompactStatsLine(stats),
+      });
+      enqueueSystemEvent(systemEventText, {
+        sessionKey: params.requesterSessionKey,
+        contextKey: `subagent:${params.childRunId}`,
+      });
+      try {
+        await triggerParentSystemEventWake({
+          requesterSessionKey: params.requesterSessionKey,
+          requesterOrigin,
+          childRunId: params.childRunId,
+          taskLabel,
+        });
+      } catch (err) {
+        defaultRuntime.error?.(`Subagent parent wake failed: ${String(err)}`);
+      }
+      didAnnounce = true;
+      return true;
+    }
+
+    const statsLine = buildSubagentDetailedStatsLine({
+      sessionKey: params.childSessionKey,
+      stats,
+    });
+
+    // Build instructional message for main agent
     const triggerMessage = [
       `A ${announceType} "${taskLabel}" just ${statusLabel}.`,
       "",
       "Findings:",
-      reply || "(no output)",
+      findings,
       "",
       statsLine,
       "",

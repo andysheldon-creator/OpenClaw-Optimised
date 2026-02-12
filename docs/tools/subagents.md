@@ -1,5 +1,5 @@
 ---
-summary: "Sub-agents: spawning isolated agent runs that announce results back to the requester chat"
+summary: "Sub-agents: spawning isolated agent runs with configurable announce routing (user/parent/skip)"
 read_when:
   - You want background/parallel work via the agent
   - You are changing sessions_spawn or sub-agent tool policy
@@ -8,7 +8,7 @@ title: "Sub-Agents"
 
 # Sub-Agents
 
-Sub-agents let you run background tasks without blocking the main conversation. When you spawn a sub-agent, it runs in its own isolated session, does its work, and announces the result back to the chat when finished.
+Sub-agents let you run background tasks without blocking the main conversation. When you spawn a sub-agent, it runs in its own isolated session, does its work, and then announces according to mode: to the user chat, to the parent session, or skipped.
 
 **Use cases:**
 
@@ -22,7 +22,7 @@ The simplest way to use sub-agents is to ask your agent naturally:
 
 > "Spawn a sub-agent to research the latest Node.js release notes"
 
-The agent will call the `sessions_spawn` tool behind the scenes. When the sub-agent finishes, it announces its findings back into your chat.
+The agent will call the `sessions_spawn` tool behind the scenes. When the sub-agent finishes, default mode (`announce: "user"`) posts findings back into your chat.
 
 You can also be explicit about options:
 
@@ -38,7 +38,10 @@ You can also be explicit about options:
     A new isolated session is created (`agent:<agentId>:subagent:<uuid>`) on the dedicated `subagent` queue lane.
   </Step>
   <Step title="Result is announced">
-    When the sub-agent finishes, it announces its findings back to the requester chat. The main agent posts a natural-language summary.
+    When the sub-agent finishes, announce behavior depends on mode:
+    - `"user"` (default): a natural-language summary is posted to the requester chat
+    - `"parent"`: a system event is injected into the parent session for orchestration
+    - `"skip"`: no announce is sent
   </Step>
   <Step title="Session is archived">
     The sub-agent session is auto-archived after 60 minutes (configurable). Transcripts are preserved.
@@ -55,6 +58,7 @@ Sub-agents work out of the box with no configuration. Defaults:
 
 - Model: target agent’s normal model selection (unless `subagents.model` is set)
 - Thinking: no sub-agent override (unless `subagents.thinking` is set)
+- Announce mode: `"user"` (unless `subagents.announce` is set)
 - Max concurrent: 8
 - Auto-archive: after 60 minutes
 
@@ -82,6 +86,20 @@ Use a cheaper model for sub-agents to save on token costs:
     defaults: {
       subagents: {
         thinking: "low",
+      },
+    },
+  },
+}
+```
+
+### Setting a Default Announce Mode
+
+```json5
+{
+  agents: {
+    defaults: {
+      subagents: {
+        announce: "parent", // "user" (default) | "parent" | "skip"
       },
     },
   },
@@ -157,15 +175,36 @@ This is the tool the agent calls to create sub-agents.
 
 ### Parameters
 
-| Parameter           | Type                   | Default            | Description                                                    |
-| ------------------- | ---------------------- | ------------------ | -------------------------------------------------------------- |
-| `task`              | string                 | _(required)_       | What the sub-agent should do                                   |
-| `label`             | string                 | —                  | Short label for identification                                 |
-| `agentId`           | string                 | _(caller's agent)_ | Spawn under a different agent id (must be allowed)             |
-| `model`             | string                 | _(optional)_       | Override the model for this sub-agent                          |
-| `thinking`          | string                 | _(optional)_       | Override thinking level (`off`, `low`, `medium`, `high`, etc.) |
-| `runTimeoutSeconds` | number                 | `0` (no limit)     | Abort the sub-agent after N seconds                            |
-| `cleanup`           | `"delete"` \| `"keep"` | `"keep"`           | `"delete"` archives immediately after announce                 |
+| Parameter           | Type                               | Default            | Description                                                       |
+| ------------------- | ---------------------------------- | ------------------ | ----------------------------------------------------------------- |
+| `task`              | string                             | _(required)_       | What the sub-agent should do                                      |
+| `label`             | string                             | —                  | Short label for identification                                    |
+| `agentId`           | string                             | _(caller's agent)_ | Spawn under a different agent id (must be allowed)                |
+| `model`             | string                             | _(optional)_       | Override the model for this sub-agent                             |
+| `thinking`          | string                             | _(optional)_       | Override thinking level (`off`, `low`, `medium`, `high`, etc.)    |
+| `runTimeoutSeconds` | number                             | `0` (no limit)     | Abort the sub-agent after N seconds                               |
+| `cleanup`           | `"delete"` \| `"keep"`             | `"keep"`           | `"delete"` archives immediately after announce                    |
+| `announce`          | `"user"` \| `"parent"` \| `"skip"` | `"user"`           | Route result to chat (`user`), parent session (`parent`), or skip |
+
+### Announce Mode Examples
+
+```json
+{ "task": "Research release notes", "announce": "user" }
+```
+
+Posts a natural-language summary back to chat (default behavior).
+
+```json
+{ "task": "Collect shard metrics", "announce": "parent" }
+```
+
+Injects a system event into the spawning session and wakes the parent agent for orchestration.
+
+```json
+{ "task": "Internal scratch work", "announce": "skip" }
+```
+
+Skips announce entirely. Cleanup still runs.
 
 ### Model Resolution Order
 
@@ -289,26 +328,43 @@ You can reference sub-agents by list index (`1`, `2`), run id prefix, full sessi
 
 ## Announce (How Results Come Back)
 
-When a sub-agent finishes, it goes through an **announce** step:
+When a sub-agent finishes, announce behavior depends on `announce` mode:
 
-1. The sub-agent's final reply is captured
-2. A summary message is sent to the main agent's session with the result, status, and stats
-3. The main agent posts a natural-language summary to your chat
+- `"user"` (default):
+  1. The sub-agent's final reply is captured
+  2. A summary message is sent to the main agent's session with result, status, and stats
+  3. The main agent posts a natural-language summary to your chat
+- `"parent"`:
+  1. A system event is injected into the parent session
+  2. The parent agent is woken with a non-delivered turn (`deliver: false`)
+  3. Parent orchestration logic decides what (if anything) to tell the user
+- `"skip"`:
+  - No announce is sent (cleanup still runs)
 
-Announce replies preserve thread/topic routing when available (Slack threads, Telegram topics, Matrix threads).
+User-facing announce replies preserve thread/topic routing when available (Slack threads, Telegram topics, Matrix threads).
+
+### `announce: "parent"` System Event Format
+
+Parent mode injects the following structure into the parent session:
+
+```text
+[Sub-agent completed] "task-label"
+Status: completed successfully | timed out | failed: ...
+Session: <childSessionKey>
+
+Findings:
+<sub-agent output>
+
+Stats: 42.3k tokens · $0.12 · 1m 23s
+```
 
 ### Announce Stats
 
-Each announce includes a stats line with:
-
-- Runtime duration
-- Token usage (input/output/total)
-- Estimated cost (when model pricing is configured via `models.providers.*.models[].cost`)
-- Session key, session id, and transcript path
+Stats include runtime duration, token usage, and estimated cost (when model pricing is configured via `models.providers.*.models[].cost`).
 
 ### Announce Status
 
-The announce message includes a status derived from the runtime outcome (not from model output):
+The announce status is derived from runtime outcome (not model output):
 
 - **successful completion** (`ok`) — task completed normally
 - **error** — task failed (error details in notes)
@@ -422,6 +478,7 @@ The sub-agent also receives a task-focused system prompt that instructs it to st
       subagents: {
         model: "minimax/MiniMax-M2.1",
         thinking: "low",
+        announce: "user",
         maxConcurrent: 4,
         archiveAfterMinutes: 30,
       },

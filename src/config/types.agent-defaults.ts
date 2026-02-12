@@ -210,6 +210,8 @@ export type AgentDefaultsConfig = {
     model?: string | { primary?: string; fallbacks?: string[] };
     /** Default thinking level for spawned sub-agents (e.g. "off", "low", "medium", "high"). */
     thinking?: string;
+    /** Default sub-agent announce mode (default: "user"). */
+    announce?: "user" | "parent" | "skip";
   };
   /** Optional sandbox settings for non-main sessions. */
   sandbox?: {

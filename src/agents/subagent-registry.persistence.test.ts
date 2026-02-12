@@ -18,9 +18,13 @@ vi.mock("../infra/agent-events.js", () => ({
 }));
 
 const announceSpy = vi.fn(async () => true);
-vi.mock("./subagent-announce.js", () => ({
-  runSubagentAnnounceFlow: (...args: unknown[]) => announceSpy(...args),
-}));
+vi.mock("./subagent-announce.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./subagent-announce.js")>();
+  return {
+    ...actual,
+    runSubagentAnnounceFlow: (...args: unknown[]) => announceSpy(...args),
+  };
+});
 
 describe("subagent registry persistence", () => {
   const previousStateDir = process.env.OPENCLAW_STATE_DIR;
@@ -179,6 +183,41 @@ describe("subagent registry persistence", () => {
 
     const after = JSON.parse(await fs.readFile(registryPath, "utf8")) as { version?: number };
     expect(after.version).toBe(2);
+  });
+
+  it("persists announce enum values", async () => {
+    tempStateDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-subagent-"));
+    process.env.OPENCLAW_STATE_DIR = tempStateDir;
+
+    vi.resetModules();
+    const mod = await import("./subagent-registry.js");
+
+    mod.registerSubagentRun({
+      runId: "run-announce-parent",
+      childSessionKey: "agent:main:subagent:announce-parent",
+      requesterSessionKey: "agent:main:main",
+      requesterDisplayKey: "main",
+      task: "announce parent",
+      cleanup: "keep",
+      announce: "parent",
+    });
+
+    mod.registerSubagentRun({
+      runId: "run-announce-skip",
+      childSessionKey: "agent:main:subagent:announce-skip",
+      requesterSessionKey: "agent:main:main",
+      requesterDisplayKey: "main",
+      task: "announce skip",
+      cleanup: "keep",
+      announce: "skip",
+    });
+
+    const registryPath = path.join(tempStateDir, "subagents", "runs.json");
+    const parsed = JSON.parse(await fs.readFile(registryPath, "utf8")) as {
+      runs?: Record<string, { announce?: string }>;
+    };
+    expect(parsed.runs?.["run-announce-parent"]?.announce).toBe("parent");
+    expect(parsed.runs?.["run-announce-skip"]?.announce).toBe("skip");
   });
 
   it("retries cleanup announce after a failed announce", async () => {

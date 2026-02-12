@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { peekSystemEvents, resetSystemEventsForTest } from "../infra/system-events.js";
 
 const agentSpy = vi.fn(async () => ({ runId: "run-main", status: "ok" }));
 const sessionsDeleteSpy = vi.fn();
@@ -69,6 +70,7 @@ describe("subagent announce formatting", () => {
     embeddedRunMock.queueEmbeddedPiMessage.mockReset().mockReturnValue(false);
     embeddedRunMock.waitForEmbeddedPiRunEnd.mockReset().mockResolvedValue(true);
     readLatestAssistantReplyMock.mockReset().mockResolvedValue("raw subagent reply");
+    resetSystemEventsForTest();
     sessionStore = {};
     configOverride = {
       session: {
@@ -127,6 +129,126 @@ describe("subagent announce formatting", () => {
     const call = agentSpy.mock.calls[0]?.[0] as { params?: { message?: string } };
     const msg = call?.params?.message as string;
     expect(msg).toContain("completed successfully");
+  });
+
+  it("announce=skip suppresses delivery but still performs delete cleanup", async () => {
+    const { runSubagentAnnounceFlow } = await import("./subagent-announce.js");
+
+    const didAnnounce = await runSubagentAnnounceFlow({
+      childSessionKey: "agent:main:subagent:skip",
+      childRunId: "run-skip",
+      requesterSessionKey: "agent:main:main",
+      requesterDisplayKey: "main",
+      task: "do thing",
+      timeoutMs: 1000,
+      cleanup: "delete",
+      waitForCompletion: false,
+      announce: "skip",
+      startedAt: 10,
+      endedAt: 20,
+      outcome: { status: "ok" },
+    });
+
+    expect(didAnnounce).toBe(true);
+    expect(agentSpy).not.toHaveBeenCalled();
+    expect(sessionsDeleteSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("announce=parent injects a system event and wakes the parent session", async () => {
+    const { runSubagentAnnounceFlow } = await import("./subagent-announce.js");
+
+    const didAnnounce = await runSubagentAnnounceFlow({
+      childSessionKey: "agent:main:subagent:parent",
+      childRunId: "run-parent",
+      requesterSessionKey: "agent:main:main",
+      requesterDisplayKey: "main",
+      task: "do thing",
+      label: "investigate logs",
+      timeoutMs: 1000,
+      cleanup: "keep",
+      waitForCompletion: false,
+      announce: "parent",
+      startedAt: 10,
+      endedAt: 20,
+      outcome: { status: "ok" },
+    });
+
+    expect(didAnnounce).toBe(true);
+    const queuedEvents = peekSystemEvents("agent:main:main");
+    expect(queuedEvents).toHaveLength(1);
+    const event = queuedEvents[0] ?? "";
+    expect(event).toContain('[Sub-agent completed] "investigate logs"');
+    expect(event).toContain("Status: completed successfully");
+    expect(event).toContain("Session: agent:main:subagent:parent");
+    expect(event).toContain("Findings:");
+    expect(event).toContain("raw subagent reply");
+    expect(event).toContain("Stats:");
+
+    expect(agentSpy).toHaveBeenCalledTimes(1);
+    const wakeCall = agentSpy.mock.calls[0]?.[0] as { params?: Record<string, unknown> };
+    expect(wakeCall?.params?.sessionKey).toBe("agent:main:main");
+    expect(wakeCall?.params?.deliver).toBe(false);
+  });
+
+  it("announce=user delivers to user channel and still performs delete cleanup", async () => {
+    const { runSubagentAnnounceFlow } = await import("./subagent-announce.js");
+
+    const didAnnounce = await runSubagentAnnounceFlow({
+      childSessionKey: "agent:main:subagent:user",
+      childRunId: "run-user",
+      requesterSessionKey: "agent:main:main",
+      requesterDisplayKey: "main",
+      task: "do thing",
+      timeoutMs: 1000,
+      cleanup: "delete",
+      waitForCompletion: false,
+      announce: "user",
+      startedAt: 10,
+      endedAt: 20,
+      outcome: { status: "ok" },
+    });
+
+    expect(didAnnounce).toBe(true);
+    expect(agentSpy).toHaveBeenCalledTimes(1);
+    const call = agentSpy.mock.calls[0]?.[0] as { params?: Record<string, unknown> };
+    expect(call?.params?.deliver).toBe(true);
+    expect(sessionsDeleteSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses global subagents.announce when per-run announce is omitted", async () => {
+    const { runSubagentAnnounceFlow } = await import("./subagent-announce.js");
+    configOverride = {
+      session: {
+        mainKey: "main",
+        scope: "per-sender",
+      },
+      agents: {
+        defaults: {
+          subagents: {
+            announce: "parent",
+          },
+        },
+      },
+    };
+
+    const didAnnounce = await runSubagentAnnounceFlow({
+      childSessionKey: "agent:main:subagent:global-parent",
+      childRunId: "run-global-parent",
+      requesterSessionKey: "agent:main:main",
+      requesterDisplayKey: "main",
+      task: "do thing",
+      timeoutMs: 1000,
+      cleanup: "keep",
+      waitForCompletion: false,
+      startedAt: 10,
+      endedAt: 20,
+      outcome: { status: "ok" },
+    });
+
+    expect(didAnnounce).toBe(true);
+    expect(peekSystemEvents("agent:main:main")).toHaveLength(1);
+    const call = agentSpy.mock.calls[0]?.[0] as { params?: Record<string, unknown> };
+    expect(call?.params?.deliver).toBe(false);
   });
 
   it("steers announcements into an active run when queue mode is steer", async () => {

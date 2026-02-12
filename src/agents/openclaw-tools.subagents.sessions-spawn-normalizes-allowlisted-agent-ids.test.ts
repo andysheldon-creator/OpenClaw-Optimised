@@ -341,4 +341,141 @@ describe("openclaw-tools: subagents", () => {
     expect(announceParams?.channel).toBe("whatsapp");
     expect(announceParams?.accountId).toBe("kev");
   });
+
+  it("sessions_spawn supports announce=parent and wakes parent with deliver=false", async () => {
+    resetSubagentRegistryForTests();
+    callGatewayMock.mockReset();
+    const calls: Array<{ method?: string; params?: unknown }> = [];
+    let childRunId: string | undefined;
+    let agentCallCount = 0;
+
+    callGatewayMock.mockImplementation(async (opts: unknown) => {
+      const request = opts as { method?: string; params?: unknown };
+      calls.push(request);
+      if (request.method === "agent") {
+        agentCallCount += 1;
+        const runId = `run-${agentCallCount}`;
+        const params = request.params as { lane?: string; sessionKey?: string } | undefined;
+        if (params?.lane === "subagent") {
+          childRunId = runId;
+        }
+        return { runId, status: "accepted", acceptedAt: 2000 + agentCallCount };
+      }
+      if (request.method === "agent.wait") {
+        const params = request.params as { runId?: string } | undefined;
+        return { runId: params?.runId ?? "run-1", status: "ok", startedAt: 100, endedAt: 200 };
+      }
+      if (request.method === "sessions.delete" || request.method === "sessions.patch") {
+        return { ok: true };
+      }
+      return {};
+    });
+
+    const tool = createOpenClawTools({
+      agentSessionKey: "main",
+      agentChannel: "whatsapp",
+    }).find((candidate) => candidate.name === "sessions_spawn");
+    if (!tool) {
+      throw new Error("missing sessions_spawn tool");
+    }
+
+    const result = await tool.execute("call-parent", {
+      task: "orchestrate",
+      announce: "parent",
+      cleanup: "keep",
+    });
+    expect(result.details).toMatchObject({ status: "accepted", runId: "run-1" });
+
+    if (!childRunId) {
+      throw new Error("missing child runId");
+    }
+
+    vi.useFakeTimers();
+    try {
+      emitAgentEvent({
+        runId: childRunId,
+        stream: "lifecycle",
+        data: { phase: "end", startedAt: 100, endedAt: 200 },
+      });
+      await vi.runAllTimersAsync();
+    } finally {
+      vi.useRealTimers();
+    }
+
+    const agentCalls = calls.filter((call) => call.method === "agent");
+    expect(agentCalls).toHaveLength(2);
+    const wakeParams = agentCalls[1]?.params as
+      | { sessionKey?: string; deliver?: boolean; message?: string }
+      | undefined;
+    expect(wakeParams?.sessionKey).toBe("main");
+    expect(wakeParams?.deliver).toBe(false);
+    expect(wakeParams?.message).toContain("system event");
+  });
+
+  it("sessions_spawn supports announce=skip without user announce", async () => {
+    resetSubagentRegistryForTests();
+    callGatewayMock.mockReset();
+    const calls: Array<{ method?: string; params?: unknown }> = [];
+    let childRunId: string | undefined;
+    let deletedChild = false;
+
+    callGatewayMock.mockImplementation(async (opts: unknown) => {
+      const request = opts as { method?: string; params?: unknown };
+      calls.push(request);
+      if (request.method === "agent") {
+        const params = request.params as { lane?: string } | undefined;
+        const runId = params?.lane === "subagent" ? "run-1" : "run-2";
+        if (params?.lane === "subagent") {
+          childRunId = runId;
+        }
+        return { runId, status: "accepted", acceptedAt: 7000 };
+      }
+      if (request.method === "agent.wait") {
+        return { status: "ok", startedAt: 10, endedAt: 20 };
+      }
+      if (request.method === "sessions.delete") {
+        deletedChild = true;
+        return { ok: true };
+      }
+      if (request.method === "sessions.patch") {
+        return { ok: true };
+      }
+      return {};
+    });
+
+    const tool = createOpenClawTools({
+      agentSessionKey: "main",
+      agentChannel: "whatsapp",
+    }).find((candidate) => candidate.name === "sessions_spawn");
+    if (!tool) {
+      throw new Error("missing sessions_spawn tool");
+    }
+
+    const result = await tool.execute("call-skip", {
+      task: "internal task",
+      announce: "skip",
+      cleanup: "delete",
+    });
+    expect(result.details).toMatchObject({ status: "accepted", runId: "run-1" });
+
+    if (!childRunId) {
+      throw new Error("missing child runId");
+    }
+
+    vi.useFakeTimers();
+    try {
+      emitAgentEvent({
+        runId: childRunId,
+        stream: "lifecycle",
+        data: { phase: "end", startedAt: 10, endedAt: 20 },
+      });
+      await vi.runAllTimersAsync();
+    } finally {
+      vi.useRealTimers();
+    }
+
+    const agentCalls = calls.filter((call) => call.method === "agent");
+    expect(agentCalls).toHaveLength(1);
+    expect(deletedChild).toBe(true);
+  });
 });

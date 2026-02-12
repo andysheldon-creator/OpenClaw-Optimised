@@ -14,7 +14,7 @@ import { normalizeDeliveryContext } from "../../utils/delivery-context.js";
 import { resolveAgentConfig } from "../agent-scope.js";
 import { AGENT_LANE_SUBAGENT } from "../lanes.js";
 import { optionalStringEnum } from "../schema/typebox.js";
-import { buildSubagentSystemPrompt } from "../subagent-announce.js";
+import { buildSubagentSystemPrompt, type SubagentAnnounceMode } from "../subagent-announce.js";
 import { registerSubagentRun } from "../subagent-registry.js";
 import { jsonResult, readStringParam } from "./common.js";
 import {
@@ -33,6 +33,7 @@ const SessionsSpawnToolSchema = Type.Object({
   // Back-compat alias. Prefer runTimeoutSeconds.
   timeoutSeconds: Type.Optional(Type.Number({ minimum: 0 })),
   cleanup: optionalStringEnum(["delete", "keep"] as const),
+  announce: optionalStringEnum(["user", "parent", "skip"] as const),
 });
 
 function splitModelRef(ref?: string) {
@@ -65,6 +66,12 @@ function normalizeModelSelection(value: unknown): string | undefined {
   return undefined;
 }
 
+function resolveSpawnAnnounceMode(params: {
+  announce?: SubagentAnnounceMode;
+}): SubagentAnnounceMode | undefined {
+  return params.announce;
+}
+
 export function createSessionsSpawnTool(opts?: {
   agentSessionKey?: string;
   agentChannel?: GatewayMessageChannel;
@@ -82,7 +89,7 @@ export function createSessionsSpawnTool(opts?: {
     label: "Sessions",
     name: "sessions_spawn",
     description:
-      "Spawn a background sub-agent run in an isolated session and announce the result back to the requester chat.",
+      "Spawn a background sub-agent run in an isolated session and announce the result to the requester or parent session.",
     parameters: SessionsSpawnToolSchema,
     execute: async (_toolCallId, args) => {
       const params = args as Record<string, unknown>;
@@ -93,6 +100,11 @@ export function createSessionsSpawnTool(opts?: {
       const thinkingOverrideRaw = readStringParam(params, "thinking");
       const cleanup =
         params.cleanup === "keep" || params.cleanup === "delete" ? params.cleanup : "keep";
+      const announceParam =
+        params.announce === "user" || params.announce === "parent" || params.announce === "skip"
+          ? params.announce
+          : undefined;
+      const announce = resolveSpawnAnnounceMode({ announce: announceParam });
       const requesterOrigin = normalizeDeliveryContext({
         channel: opts?.agentChannel,
         accountId: opts?.agentAccountId,
@@ -293,6 +305,7 @@ export function createSessionsSpawnTool(opts?: {
         cleanup,
         label: label || undefined,
         runTimeoutSeconds,
+        announce,
       });
 
       return jsonResult({

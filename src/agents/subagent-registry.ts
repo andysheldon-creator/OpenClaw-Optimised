@@ -2,7 +2,11 @@ import { loadConfig } from "../config/config.js";
 import { callGateway } from "../gateway/call.js";
 import { onAgentEvent } from "../infra/agent-events.js";
 import { type DeliveryContext, normalizeDeliveryContext } from "../utils/delivery-context.js";
-import { runSubagentAnnounceFlow, type SubagentRunOutcome } from "./subagent-announce.js";
+import {
+  runSubagentAnnounceFlow,
+  type SubagentAnnounceMode,
+  type SubagentRunOutcome,
+} from "./subagent-announce.js";
 import {
   loadSubagentRegistryFromDisk,
   saveSubagentRegistryToDisk,
@@ -18,6 +22,8 @@ export type SubagentRunRecord = {
   task: string;
   cleanup: "delete" | "keep";
   label?: string;
+  /** Announcement routing mode for this run. */
+  announce?: SubagentAnnounceMode;
   createdAt: number;
   startedAt?: number;
   endedAt?: number;
@@ -76,6 +82,7 @@ function resumeSubagentRun(runId: string) {
       endedAt: entry.endedAt,
       label: entry.label,
       outcome: entry.outcome,
+      announce: entry.announce,
     }).then((didAnnounce) => {
       finalizeSubagentCleanup(runId, entry.cleanup, didAnnounce);
     });
@@ -239,6 +246,7 @@ function ensureListener() {
       endedAt: entry.endedAt,
       label: entry.label,
       outcome: entry.outcome,
+      announce: entry.announce,
     }).then((didAnnounce) => {
       finalizeSubagentCleanup(evt.runId, entry.cleanup, didAnnounce);
     });
@@ -291,6 +299,7 @@ export function registerSubagentRun(params: {
   cleanup: "delete" | "keep";
   label?: string;
   runTimeoutSeconds?: number;
+  announce?: SubagentAnnounceMode;
 }) {
   const now = Date.now();
   const cfg = loadConfig();
@@ -298,6 +307,7 @@ export function registerSubagentRun(params: {
   const archiveAtMs = archiveAfterMs ? now + archiveAfterMs : undefined;
   const waitTimeoutMs = resolveSubagentWaitTimeoutMs(cfg, params.runTimeoutSeconds);
   const requesterOrigin = normalizeDeliveryContext(params.requesterOrigin);
+  const announce = params.announce;
   subagentRuns.set(params.runId, {
     runId: params.runId,
     childSessionKey: params.childSessionKey,
@@ -307,6 +317,7 @@ export function registerSubagentRun(params: {
     task: params.task,
     cleanup: params.cleanup,
     label: params.label,
+    announce,
     createdAt: now,
     startedAt: now,
     archiveAtMs,
@@ -387,6 +398,7 @@ async function waitForSubagentCompletion(runId: string, waitTimeoutMs: number) {
       endedAt: entry.endedAt,
       label: entry.label,
       outcome: entry.outcome,
+      announce: entry.announce,
     }).then((didAnnounce) => {
       finalizeSubagentCleanup(runId, entry.cleanup, didAnnounce);
     });
