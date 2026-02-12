@@ -36,13 +36,17 @@ describe("loadModelCatalog", () => {
       if (call === 1) {
         throw new Error("boom");
       }
+      const MockAuthStorage = class {};
+      const MockModelRegistry = class {
+        getAll() {
+          return [{ id: "gpt-4.1", name: "GPT-4.1", provider: "openai" }];
+        }
+      };
       return {
-        AuthStorage: class {},
-        ModelRegistry: class {
-          getAll() {
-            return [{ id: "gpt-4.1", name: "GPT-4.1", provider: "openai" }];
-          }
-        },
+        AuthStorage: MockAuthStorage,
+        ModelRegistry: MockModelRegistry,
+        discoverAuthStorage: () => new MockAuthStorage(),
+        discoverModels: () => new MockModelRegistry(),
       } as unknown as PiSdkModule;
     });
 
@@ -61,9 +65,9 @@ describe("loadModelCatalog", () => {
 
     __setModelCatalogImportForTest(
       async () =>
-        ({
-          AuthStorage: class {},
-          ModelRegistry: class {
+        (() => {
+          const MockAuthStorage = class {};
+          const MockModelRegistry = class {
             getAll() {
               return [
                 { id: "gpt-4.1", name: "GPT-4.1", provider: "openai" },
@@ -76,8 +80,14 @@ describe("loadModelCatalog", () => {
                 },
               ];
             }
-          },
-        }) as unknown as PiSdkModule,
+          };
+          return {
+            AuthStorage: MockAuthStorage,
+            ModelRegistry: MockModelRegistry,
+            discoverAuthStorage: () => new MockAuthStorage(),
+            discoverModels: () => new MockModelRegistry(),
+          };
+        })() as unknown as PiSdkModule,
     );
 
     const result = await loadModelCatalog({ config: {} as OpenClawConfig });

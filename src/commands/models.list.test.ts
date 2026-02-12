@@ -58,6 +58,26 @@ vi.mock("@mariozechner/pi-coding-agent", () => ({
   },
 }));
 
+vi.mock("../agents/pi-model-discovery.js", async (importOriginal) => {
+  const orig = await importOriginal<typeof import("../agents/pi-model-discovery.js")>();
+  return {
+    ...orig,
+    discoverAuthStorage: () => new orig.AuthStorage(""),
+    discoverModels: () =>
+      new (class {
+        getAll() {
+          return modelRegistryState.models;
+        }
+        getAvailable() {
+          return modelRegistryState.available;
+        }
+        find() {
+          return null;
+        }
+      })(),
+  };
+});
+
 function makeRuntime() {
   return {
     log: vi.fn(),

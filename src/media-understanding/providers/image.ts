@@ -11,7 +11,7 @@ export async function describeImageWithModel(
   params: ImageDescriptionRequest,
 ): Promise<ImageDescriptionResult> {
   await ensureOpenClawModelsJson(params.cfg, params.agentDir);
-  const authStorage = discoverAuthStorage(params.agentDir);
+  const authStorage = discoverAuthStorage(params.agentDir, params.cfg);
   const modelRegistry = discoverModels(authStorage, params.agentDir);
   const model = modelRegistry.find(params.provider, params.model) as Model<Api> | null;
   if (!model) {

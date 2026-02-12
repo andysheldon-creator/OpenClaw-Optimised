@@ -162,7 +162,7 @@ export function resolveModel(
   modelRegistry: ModelRegistry;
 } {
   const resolvedAgentDir = agentDir ?? resolveOpenClawAgentDir();
-  const authStorage = discoverAuthStorage(resolvedAgentDir);
+  const authStorage = discoverAuthStorage(resolvedAgentDir, cfg);
   const modelRegistry = discoverModels(authStorage, resolvedAgentDir);
   const model = modelRegistry.find(provider, modelId) as Model<Api> | null;
   if (!model) {

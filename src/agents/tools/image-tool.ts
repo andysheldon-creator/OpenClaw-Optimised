@@ -244,7 +244,7 @@ async function runImagePrompt(params: {
     : undefined;
 
   await ensureOpenClawModelsJson(effectiveCfg, params.agentDir);
-  const authStorage = discoverAuthStorage(params.agentDir);
+  const authStorage = discoverAuthStorage(params.agentDir, effectiveCfg);
   const modelRegistry = discoverModels(authStorage, params.agentDir);
 
   const result = await runWithImageModelFallback({

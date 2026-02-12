@@ -14,7 +14,7 @@ const loadPromise = (async () => {
     const cfg = loadConfig();
     await ensureOpenClawModelsJson(cfg);
     const agentDir = resolveOpenClawAgentDir();
-    const authStorage = discoverAuthStorage(agentDir);
+    const authStorage = discoverAuthStorage(agentDir, cfg);
     const modelRegistry = discoverModels(authStorage, agentDir);
     const models = modelRegistry.getAll() as ModelEntry[];
     for (const m of models) {
