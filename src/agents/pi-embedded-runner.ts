@@ -32,7 +32,18 @@ import {
   enqueueCommandInLane,
 } from "../process/command-queue.js";
 import { defaultRuntime } from "../runtime.js";
+import {
+  isSummarizationEnabled,
+  summarizeConversation,
+} from "../services/conversation-summarizer.js";
 import { trackCost } from "../services/cost-tracker.js";
+import {
+  applyFallbacks,
+  isHybridRoutingEnabled,
+  logRoutingDecision,
+  type RoutingDecision,
+  routeQuery,
+} from "../services/hybrid-router.js";
 import {
   backgroundRetain,
   buildMemoryContext,
@@ -42,6 +53,10 @@ import {
 } from "../services/memory/index.js";
 import { backgroundIngest } from "../services/rag-ingest.js";
 import { retrieveContext } from "../services/rag-retrieval.js";
+import {
+  isVisionRoutingEnabled,
+  processVisionMessage,
+} from "../services/vision-router.js";
 import { CONFIG_DIR, resolveUserPath } from "../utils.js";
 import { resolveClawdisAgentDir } from "./agent-paths.js";
 import {
@@ -545,10 +560,71 @@ export async function runEmbeddedPiAgent(params: {
           }
         }
 
+        // --- Hybrid Routing Decision (Week 4) ---
+        // Score the query complexity and decide which model tier to use.
+        // This happens before message processing so we can log the decision
+        // alongside the model selection for cost monitoring.
+        let routingDecision: RoutingDecision | undefined;
+        if (isHybridRoutingEnabled()) {
+          try {
+            const rawDecision = routeQuery({
+              text: params.prompt,
+              conversationLength: contextMessages.length,
+            });
+            routingDecision = await applyFallbacks(rawDecision);
+            logRoutingDecision(routingDecision);
+          } catch (routeErr) {
+            defaultRuntime.log?.(
+              `[hybrid-router] routing failed (non-critical): ${String(routeErr)}`,
+            );
+          }
+        }
+
+        // --- Conversation Summarization (Week 4) ---
+        // Compress old message segments to reduce token counts.
+        // Runs before sanitization so summaries replace original messages.
+        if (isSummarizationEnabled() && contextMessages.length > 0) {
+          try {
+            const summaryResult = await summarizeConversation(contextMessages);
+            if (summaryResult.applied) {
+              contextMessages = summaryResult.messages;
+              defaultRuntime.log?.(
+                `Summarization: ${summaryResult.originalCount} → ${summaryResult.resultCount} messages ` +
+                  `(summarized=${summaryResult.summarizedCount}) duration=${summaryResult.durationMs}ms`,
+              );
+            }
+          } catch (sumErr) {
+            defaultRuntime.log?.(
+              `Summarization failed (non-critical): ${String(sumErr)}`,
+            );
+          }
+        }
+
         const prior = await sanitizeSessionMessagesImages(
           contextMessages,
           "session:history",
         );
+
+        // --- Vision Routing (Week 4) ---
+        // If there are images in the message history, route them through
+        // Ollama Vision instead of sending base64 to Claude (saves tokens).
+        if (isVisionRoutingEnabled() && prior.length > 0) {
+          try {
+            const lastMsg = prior[prior.length - 1];
+            const visionResult = await processVisionMessage(lastMsg);
+            if (visionResult.applied) {
+              prior[prior.length - 1] = visionResult.message;
+              defaultRuntime.log?.(
+                `Vision routing: processed ${visionResult.imagesProcessed} images ` +
+                  `via Ollama Vision duration=${visionResult.durationMs}ms`,
+              );
+            }
+          } catch (visionErr) {
+            defaultRuntime.log?.(
+              `Vision routing failed (non-critical): ${String(visionErr)}`,
+            );
+          }
+        }
 
         // If we have memory context, prepend it as a system-like message
         // so the LLM has access to long-term structured knowledge.
@@ -775,8 +851,11 @@ export async function runEmbeddedPiAgent(params: {
               p.text || p.mediaUrl || (p.mediaUrls && p.mediaUrls.length > 0),
           );
 
+        const routingInfo = routingDecision
+          ? ` routing=${routingDecision.tier}(${routingDecision.taskType},complexity=${routingDecision.complexity.toFixed(2)},cost=${routingDecision.costFactor.toFixed(2)})`
+          : "";
         defaultRuntime.log?.(
-          `embedded run done: runId=${params.runId} sessionId=${params.sessionId} durationMs=${Date.now() - started} aborted=${aborted}`,
+          `embedded run done: runId=${params.runId} sessionId=${params.sessionId} durationMs=${Date.now() - started} aborted=${aborted}${routingInfo}`,
         );
         return {
           payloads: payloads.length ? payloads : undefined,

@@ -625,6 +625,25 @@ export type ClawdisConfig = {
       /** Maximum characters for memory context block (default: 4000). */
       maxRecallChars?: number;
     };
+    /** Hybrid routing configuration (Week 4). */
+    hybridRouting?: {
+      /** Enable/disable hybrid routing (default: true). */
+      enabled?: boolean;
+      /** Routing mode: aggressive, balanced, quality (default: balanced). */
+      mode?: "aggressive" | "balanced" | "quality";
+      /** Vision model for image analysis (default: llava:7b). */
+      visionModel?: string;
+      /** Maximum images to process per message (default: 3). */
+      visionMaxImages?: number;
+      /** Enable/disable vision routing (default: true). */
+      visionEnabled?: boolean;
+      /** Enable/disable conversation summarization (default: true). */
+      summarizationEnabled?: boolean;
+      /** Messages before summarization kicks in (default: 15). */
+      summarizeThreshold?: number;
+      /** Recent messages to keep in full (default: 6). */
+      summarizeKeepRecent?: number;
+    };
     /** Max concurrent agent runs across all conversations. Default: 1 (sequential). */
     maxConcurrent?: number;
     /** Bash tool defaults. */
@@ -1037,6 +1056,24 @@ const ClawdisSchema = z.object({
           reflectInterval: z.number().int().positive().optional(),
           maxRecallItems: z.number().int().positive().optional(),
           maxRecallChars: z.number().int().positive().optional(),
+        })
+        .optional(),
+      hybridRouting: z
+        .object({
+          enabled: z.boolean().optional(),
+          mode: z
+            .union([
+              z.literal("aggressive"),
+              z.literal("balanced"),
+              z.literal("quality"),
+            ])
+            .optional(),
+          visionModel: z.string().optional(),
+          visionMaxImages: z.number().int().positive().optional(),
+          visionEnabled: z.boolean().optional(),
+          summarizationEnabled: z.boolean().optional(),
+          summarizeThreshold: z.number().int().positive().optional(),
+          summarizeKeepRecent: z.number().int().positive().optional(),
         })
         .optional(),
       maxConcurrent: z.number().int().positive().optional(),
