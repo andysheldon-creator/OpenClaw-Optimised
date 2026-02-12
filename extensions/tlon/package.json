@@ -6,7 +6,8 @@
   "type": "module",
   "dependencies": {
     "@urbit/aura": "^3.0.0",
-    "@urbit/http-api": "^3.0.0"
+    "@urbit/http-api": "^3.0.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "openclaw": "workspace:*"
