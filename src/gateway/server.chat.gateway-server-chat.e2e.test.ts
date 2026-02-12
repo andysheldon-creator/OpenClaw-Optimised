@@ -243,6 +243,45 @@ describe("gateway server chat", () => {
         | undefined;
       expect(imgOnlyOpts?.images).toEqual([{ type: "image", data: pngB64, mimeType: "image/png" }]);
 
+      const imagePathDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-gw-path-"));
+      tempDirs.push(imagePathDir);
+      const imagePath = path.join(imagePathDir, "dot.png");
+      await fs.writeFile(imagePath, Buffer.from(pngB64, "base64"));
+
+      const callsBeforePath = spy.mock.calls.length;
+      const reqPath = "chat-img-path";
+      ws.send(
+        JSON.stringify({
+          type: "req",
+          id: reqPath,
+          method: "chat.send",
+          params: {
+            sessionKey: "main",
+            message: "see image from path",
+            idempotencyKey: "idem-img-path",
+            attachments: [
+              {
+                type: "image",
+                mimeType: "image/png",
+                fileName: "dot.png",
+                path: imagePath,
+                content: "%not-base64%",
+              },
+            ],
+          },
+        }),
+      );
+
+      const pathRes = await onceMessage(ws, (o) => o.type === "res" && o.id === reqPath, 8000);
+      expect(pathRes.ok).toBe(true);
+      expect(pathRes.payload?.runId).toBeDefined();
+
+      await waitFor(() => spy.mock.calls.length > callsBeforePath, 8000);
+      const imgPathOpts = spy.mock.calls.at(-1)?.[1] as
+        | { images?: Array<{ type: string; data: string; mimeType: string }> }
+        | undefined;
+      expect(imgPathOpts?.images).toEqual([{ type: "image", data: pngB64, mimeType: "image/png" }]);
+
       const historyDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-gw-"));
       tempDirs.push(historyDir);
       testState.sessionStorePath = path.join(historyDir, "sessions.json");

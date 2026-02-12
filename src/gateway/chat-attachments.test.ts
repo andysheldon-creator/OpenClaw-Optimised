@@ -1,3 +1,6 @@
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   buildMessageWithAttachments,
@@ -209,5 +212,49 @@ describe("parseMessageWithAttachments", () => {
     expect(parsed.images[0]?.mimeType).toBe("image/png");
     expect(parsed.images[0]?.data).toBe(PNG_1x1);
     expect(logs.some((l) => /non-image/i.test(l))).toBe(true);
+  });
+
+  it("loads image from workspace-relative path", async () => {
+    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-att-"));
+    const relPath = path.join("media", "inbound", "dot.png");
+    const absPath = path.join(workspaceDir, relPath);
+    await fs.mkdir(path.dirname(absPath), { recursive: true });
+    await fs.writeFile(absPath, Buffer.from(PNG_1x1, "base64"));
+    try {
+      const parsed = await parseMessageWithAttachments(
+        "see this",
+        [
+          {
+            type: "image",
+            fileName: "dot.png",
+            path: relPath,
+          },
+        ],
+        { log: { warn: () => {} }, workspaceDir },
+      );
+      expect(parsed.images).toHaveLength(1);
+      expect(parsed.images[0]?.mimeType).toBe("image/png");
+      expect(parsed.images[0]?.data).toBe(PNG_1x1);
+    } finally {
+      await fs.rm(workspaceDir, { recursive: true, force: true });
+    }
+  });
+
+  it("prefers path over base64 content when both are present", async () => {
+    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-att-"));
+    const relPath = "dot.png";
+    await fs.writeFile(path.join(workspaceDir, relPath), Buffer.from(PNG_1x1, "base64"));
+    const invalidB64 = "%not-base64%";
+    try {
+      const parsed = await parseMessageWithAttachments(
+        "x",
+        [{ type: "image", path: relPath, content: invalidB64 }],
+        { log: { warn: () => {} }, workspaceDir },
+      );
+      expect(parsed.images).toHaveLength(1);
+      expect(parsed.images[0]?.data).toBe(PNG_1x1);
+    } finally {
+      await fs.rm(workspaceDir, { recursive: true, force: true });
+    }
   });
 });

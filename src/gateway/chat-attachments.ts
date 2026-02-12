@@ -1,3 +1,5 @@
+import fs from "node:fs/promises";
+import nodePath from "node:path";
 import { detectMime } from "../media/mime.js";
 
 export type ChatAttachment = {
@@ -5,6 +7,7 @@ export type ChatAttachment = {
   mimeType?: string;
   fileName?: string;
   content?: unknown;
+  path?: string;
 };
 
 export type ChatImageContent = {
@@ -54,6 +57,33 @@ function isImageMime(mime?: string): boolean {
   return typeof mime === "string" && mime.startsWith("image/");
 }
 
+async function loadImageFromPath(
+  filePath: string,
+  workspaceDir: string,
+  opts?: { maxBytes?: number; log?: AttachmentLog },
+): Promise<ChatImageContent> {
+  const maxBytes = opts?.maxBytes ?? 5_000_000;
+  const absPath = nodePath.isAbsolute(filePath) ? filePath : nodePath.join(workspaceDir, filePath);
+
+  const stat = await fs.stat(absPath);
+  if (stat.size > maxBytes) {
+    throw new Error(`image file exceeds size limit (${stat.size} > ${maxBytes} bytes)`);
+  }
+
+  const buffer = await fs.readFile(absPath);
+  const sniffed = await detectMime({ buffer });
+  const mime = sniffed ?? "image/jpeg";
+  if (!isImageMime(mime)) {
+    throw new Error(`file is not an image (${mime})`);
+  }
+
+  return {
+    type: "image",
+    data: buffer.toString("base64"),
+    mimeType: mime,
+  };
+}
+
 /**
  * Parse attachments and extract images as structured content blocks.
  * Returns the message text and an array of image content blocks
@@ -62,7 +92,7 @@ function isImageMime(mime?: string): boolean {
 export async function parseMessageWithAttachments(
   message: string,
   attachments: ChatAttachment[] | undefined,
-  opts?: { maxBytes?: number; log?: AttachmentLog },
+  opts?: { maxBytes?: number; log?: AttachmentLog; workspaceDir?: string },
 ): Promise<ParsedMessageWithImages> {
   const maxBytes = opts?.maxBytes ?? 5_000_000; // 5 MB
   const log = opts?.log;
@@ -79,6 +109,15 @@ export async function parseMessageWithAttachments(
     const mime = att.mimeType ?? "";
     const content = att.content;
     const label = att.fileName || att.type || `attachment-${idx + 1}`;
+    if (att.path && opts?.workspaceDir) {
+      try {
+        const img = await loadImageFromPath(att.path, opts.workspaceDir, { maxBytes, log });
+        images.push(img);
+      } catch (err) {
+        throw new Error(`attachment ${label}: ${String(err)}`, { cause: err });
+      }
+      continue;
+    }
 
     if (typeof content !== "string") {
       throw new Error(`attachment ${label}: content must be base64 string`);
