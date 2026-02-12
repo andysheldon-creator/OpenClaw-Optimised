@@ -201,8 +201,8 @@ Each event includes:
 
 ```typescript
 {
-  type: 'command' | 'session' | 'agent' | 'gateway',
-  action: string,              // e.g., 'new', 'reset', 'stop'
+  type: 'command' | 'session' | 'agent' | 'gateway' | 'message',
+  action: string,              // e.g., 'new', 'reset', 'stop', 'received', 'sent'
   sessionKey: string,          // Session identifier
   timestamp: Date,             // When the event occurred
   messages: string[],          // Push messages here to send to user
@@ -240,6 +240,14 @@ Triggered when the gateway starts:
 
 - **`gateway:startup`**: After channels start and hooks are loaded
 
+### Message Events
+
+Triggered during the message lifecycle:
+
+- **`message:received`**: When an inbound message is received from any channel, before reply generation. Fires after the plugin `message_received` hook but is part of the internal hook system. Context includes `text`, `channel`, `chatType`, `from`, `to`, `senderId`, `senderName`, `senderUsername`, `messageId`, `threadId`, `timestamp`, `accountId`, `provider`, and `surface`.
+
+- **`message:sent`**: When an outbound reply is successfully delivered to a channel. Fires after each reply payload (block, tool, or final) is sent. Context includes `text`, `channel`, `chatType`, `kind` (the dispatch kind: `"tool"`, `"block"`, or `"final"`), `mediaUrl`, and `mediaUrls`.
+
 ### Tool Result Hooks (Plugin API)
 
 These hooks are not event-stream listeners; they let plugins synchronously adjust tool results before OpenClaw persists them.
@@ -253,8 +261,6 @@ Planned event types:
 - **`session:start`**: When a new session begins
 - **`session:end`**: When a session ends
 - **`agent:error`**: When an agent encounters an error
-- **`message:sent`**: When a message is sent
-- **`message:received`**: When a message is received
 
 ## Creating Custom Hooks
 

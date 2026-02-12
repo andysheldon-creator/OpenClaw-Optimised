@@ -2,6 +2,8 @@ import type { HumanDelayConfig } from "../../config/types.js";
 import type { GetReplyOptions, ReplyPayload } from "../types.js";
 import type { ResponsePrefixContext } from "./response-prefix-template.js";
 import type { TypingController } from "./typing.js";
+import { logVerbose } from "../../globals.js";
+import { createInternalHookEvent, triggerInternalHook } from "../../hooks/internal-hooks.js";
 import { sleep } from "../../utils.js";
 import { normalizeReplyPayload, type NormalizeReplySkipReason } from "./normalize-reply.js";
 
@@ -53,6 +55,12 @@ export type ReplyDispatcherOptions = {
   onSkip?: ReplyDispatchSkipHandler;
   /** Human-like delay between block replies for natural rhythm. */
   humanDelay?: HumanDelayConfig;
+  /** Session key for message:sent hook events. */
+  sessionKey?: string;
+  /** Channel identifier for message:sent hook events. */
+  channel?: string;
+  /** Chat type (dm/group) for message:sent hook events. */
+  chatType?: string;
 };
 
 export type ReplyDispatcherWithTypingOptions = Omit<ReplyDispatcherOptions, "onIdle"> & {
@@ -141,6 +149,24 @@ export function createReplyDispatcher(options: ReplyDispatcherOptions): ReplyDis
           }
         }
         await options.deliver(normalized, { kind });
+
+        // Trigger message:sent hook after successful delivery.
+        // Only emit when session context is available (some call sites like
+        // webchat may not inject sessionKey/channel, and emitting incomplete
+        // events would be unreliable for consumers).
+        if (options.sessionKey) {
+          const hookEvent = createInternalHookEvent("message", "sent", options.sessionKey, {
+            text: normalized.text,
+            channel: options.channel ?? "unknown",
+            chatType: options.chatType ?? "unknown",
+            kind,
+            mediaUrl: normalized.mediaUrl,
+            mediaUrls: normalized.mediaUrls,
+          });
+          void triggerInternalHook(hookEvent).catch((err) => {
+            logVerbose(`reply-dispatcher: message:sent hook failed: ${String(err)}`);
+          });
+        }
       })
       .catch((err) => {
         options.onError?.(err, { kind });
