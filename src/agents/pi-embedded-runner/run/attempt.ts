@@ -646,6 +646,7 @@ export async function runEmbeddedAttempt(
         onAssistantMessageStart: params.onAssistantMessageStart,
         onAgentEvent: params.onAgentEvent,
         enforceFinalTag: params.enforceFinalTag,
+        forcePrependThinkTag: params.forcePrependThinkTag,
       });
 
       const {

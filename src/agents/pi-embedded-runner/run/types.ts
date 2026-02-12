@@ -90,6 +90,11 @@ export type EmbeddedRunAttemptParams = {
   streamParams?: AgentStreamParams;
   ownerNumbers?: string[];
   enforceFinalTag?: boolean;
+  /**
+   * Force-prepend an opening `<think>` tag to the model's response.
+   * Useful for reasoning models that don't reliably emit think tags.
+   */
+  forcePrependThinkTag?: boolean;
 };
 
 export type EmbeddedRunAttemptResult = {
