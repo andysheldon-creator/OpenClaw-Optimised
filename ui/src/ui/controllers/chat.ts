@@ -168,11 +168,30 @@ export async function abortChatRun(state: ChatState): Promise<boolean> {
   }
 }
 
+/**
+ * Compare session keys accounting for the agent-scoped prefix.
+ * Gateway events may use "agent:<agentId>:<baseKey>" while the UI
+ * stores just the base key (or vice-versa).
+ */
+function sessionKeyMatches(eventKey: string, stateKey: string): boolean {
+  if (eventKey === stateKey) {
+    return true;
+  }
+  // Gateway events use agent-scoped keys: "agent:<agentId>:<baseKey>"
+  if (eventKey.startsWith("agent:") && eventKey.endsWith(`:${stateKey}`)) {
+    return true;
+  }
+  if (stateKey.startsWith("agent:") && stateKey.endsWith(`:${eventKey}`)) {
+    return true;
+  }
+  return false;
+}
+
 export function handleChatEvent(state: ChatState, payload?: ChatEventPayload) {
   if (!payload) {
     return null;
   }
-  if (payload.sessionKey !== state.sessionKey) {
+  if (!sessionKeyMatches(payload.sessionKey, state.sessionKey)) {
     return null;
   }
 
@@ -194,6 +213,20 @@ export function handleChatEvent(state: ChatState, payload?: ChatEventPayload) {
       }
     }
   } else if (payload.state === "final") {
+    // Optimistically append the final assistant message so the UI updates
+    // instantly instead of waiting for the loadChatHistory round-trip.
+    // See https://github.com/openclaw/openclaw/issues/10132
+    const finalText = extractText(payload.message);
+    if (typeof finalText === "string" && finalText) {
+      state.chatMessages = [
+        ...state.chatMessages,
+        {
+          role: "assistant",
+          content: payload.message,
+          timestamp: Date.now(),
+        },
+      ];
+    }
     state.chatStream = null;
     state.chatRunId = null;
     state.chatStreamStartedAt = null;
