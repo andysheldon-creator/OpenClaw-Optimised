@@ -4,6 +4,11 @@ import type { UsageState } from "./controllers/usage.ts";
 import { parseAgentSessionKey } from "../../../src/routing/session-key.js";
 import { refreshChatAvatar } from "./app-chat.ts";
 import { renderChatControls, renderTab, renderThemeToggle } from "./app-render.helpers.ts";
+import {
+  applyAgentToolsOverridesChange,
+  applyAgentToolsProfileChange,
+  applySubagentToolsPolicyChange,
+} from "./controllers/agent-config-path.ts";
 import { loadAgentFileContent, loadAgentFiles, saveAgentFile } from "./controllers/agent-files.ts";
 import { loadAgentIdentities, loadAgentIdentity } from "./controllers/agent-identity.ts";
 import { loadAgentSkills } from "./controllers/agent-skills.ts";
@@ -109,6 +114,9 @@ export function renderApp(state: AppViewState) {
   const chatAvatarUrl = state.chatAvatarUrl ?? assistantAvatarUrl ?? null;
   const configValue =
     state.configForm ?? (state.configSnapshot?.config as Record<string, unknown> | null);
+  const applyConfigValue = (path: (string | number)[], value: unknown) =>
+    updateConfigFormValue(state, path, value);
+  const clearConfigValue = (path: (string | number)[]) => removeConfigFormValue(state, path);
   const basePath = normalizeBasePath(state.basePath ?? "");
   const resolvedAgentId =
     state.agentsSelectedId ??
@@ -718,62 +726,33 @@ export function renderApp(state: AppViewState) {
                   void saveAgentFile(state, resolvedAgentId, name, content);
                 },
                 onToolsProfileChange: (agentId, profile, clearAllow) => {
-                  if (!configValue) {
-                    return;
-                  }
-                  const list = (configValue as { agents?: { list?: unknown[] } }).agents?.list;
-                  if (!Array.isArray(list)) {
-                    return;
-                  }
-                  const index = list.findIndex(
-                    (entry) =>
-                      entry &&
-                      typeof entry === "object" &&
-                      "id" in entry &&
-                      (entry as { id?: string }).id === agentId,
-                  );
-                  if (index < 0) {
-                    return;
-                  }
-                  const basePath = ["agents", "list", index, "tools"];
-                  if (profile) {
-                    updateConfigFormValue(state, [...basePath, "profile"], profile);
-                  } else {
-                    removeConfigFormValue(state, [...basePath, "profile"]);
-                  }
-                  if (clearAllow) {
-                    removeConfigFormValue(state, [...basePath, "allow"]);
-                  }
+                  applyAgentToolsProfileChange({
+                    configValue,
+                    agentId,
+                    profile,
+                    clearAllow,
+                    update: applyConfigValue,
+                    remove: clearConfigValue,
+                  });
                 },
                 onToolsOverridesChange: (agentId, alsoAllow, deny) => {
-                  if (!configValue) {
-                    return;
-                  }
-                  const list = (configValue as { agents?: { list?: unknown[] } }).agents?.list;
-                  if (!Array.isArray(list)) {
-                    return;
-                  }
-                  const index = list.findIndex(
-                    (entry) =>
-                      entry &&
-                      typeof entry === "object" &&
-                      "id" in entry &&
-                      (entry as { id?: string }).id === agentId,
-                  );
-                  if (index < 0) {
-                    return;
-                  }
-                  const basePath = ["agents", "list", index, "tools"];
-                  if (alsoAllow.length > 0) {
-                    updateConfigFormValue(state, [...basePath, "alsoAllow"], alsoAllow);
-                  } else {
-                    removeConfigFormValue(state, [...basePath, "alsoAllow"]);
-                  }
-                  if (deny.length > 0) {
-                    updateConfigFormValue(state, [...basePath, "deny"], deny);
-                  } else {
-                    removeConfigFormValue(state, [...basePath, "deny"]);
-                  }
+                  applyAgentToolsOverridesChange({
+                    configValue,
+                    agentId,
+                    alsoAllow,
+                    deny,
+                    update: applyConfigValue,
+                    remove: clearConfigValue,
+                  });
+                },
+                onSubagentToolsPolicyChange: (agentId, policy) => {
+                  applySubagentToolsPolicyChange({
+                    configValue,
+                    agentId,
+                    policy,
+                    update: applyConfigValue,
+                    remove: clearConfigValue,
+                  });
                 },
                 onConfigReload: () => loadConfig(state),
                 onConfigSave: () => saveConfig(state),
