@@ -5,6 +5,7 @@ import { ensureAuthProfileStore } from "../../agents/auth-profiles.js";
 import { parseModelRef } from "../../agents/model-selection.js";
 import { loadConfig } from "../../config/config.js";
 import { resolveConfiguredEntries } from "./list.configured.js";
+import { formatErrorWithStack } from "./list.errors.js";
 import { loadModelRegistry, toModelRow } from "./list.registry.js";
 import { printModelTable } from "./list.table.js";
 import { DEFAULT_PROVIDER, ensureFlagCompatibility, modelKey } from "./shared.js";
@@ -33,12 +34,21 @@ export async function modelsListCommand(
 
   let models: Model<Api>[] = [];
   let availableKeys: Set<string> | undefined;
+  let availabilityErrorMessage: string | undefined;
   try {
     const loaded = await loadModelRegistry(cfg);
     models = loaded.models;
     availableKeys = loaded.availableKeys;
+    availabilityErrorMessage = loaded.availabilityErrorMessage;
   } catch (err) {
-    runtime.error(`Model registry unavailable: ${String(err)}`);
+    runtime.error(`Model registry unavailable:\n${formatErrorWithStack(err)}`);
+    process.exitCode = 1;
+    return;
+  }
+  if (availabilityErrorMessage !== undefined) {
+    runtime.error(
+      `Model availability lookup failed; falling back to auth heuristics for discovered models: ${availabilityErrorMessage}`,
+    );
   }
 
   const modelByKey = new Map(models.map((model) => [modelKey(model.provider, model.id), model]));
