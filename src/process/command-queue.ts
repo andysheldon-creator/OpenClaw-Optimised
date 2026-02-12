@@ -158,3 +158,43 @@ export function clearCommandLane(lane: string = CommandLane.Main) {
   state.queue.length = 0;
   return removed;
 }
+
+/**
+ * Returns the total number of actively executing tasks across all lanes
+ * (excludes queued-but-not-started entries).
+ */
+export function getActiveTaskCount(): number {
+  let total = 0;
+  for (const s of lanes.values()) {
+    total += s.active;
+  }
+  return total;
+}
+
+/**
+ * Wait for all currently active tasks across all lanes to finish.
+ * Polls at a short interval; resolves when no tasks are active or
+ * when `timeoutMs` elapses (whichever comes first).
+ *
+ * New tasks enqueued after this call are ignored — only tasks that are
+ * already executing are waited on.
+ */
+export function waitForActiveTasks(timeoutMs: number): Promise<{ drained: boolean }> {
+  const POLL_INTERVAL_MS = 250;
+  const deadline = Date.now() + timeoutMs;
+
+  return new Promise((resolve) => {
+    const check = () => {
+      if (getActiveTaskCount() === 0) {
+        resolve({ drained: true });
+        return;
+      }
+      if (Date.now() >= deadline) {
+        resolve({ drained: false });
+        return;
+      }
+      setTimeout(check, POLL_INTERVAL_MS);
+    };
+    check();
+  });
+}
