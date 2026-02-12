@@ -17,8 +17,9 @@
 import { defaultRuntime } from "../runtime.js";
 
 /** Ollama configuration from environment. */
-const OLLAMA_HOST =
-  (process.env.OLLAMA_HOST ?? "http://localhost:11434").replace(/\/$/, "");
+const OLLAMA_HOST = (
+  process.env.OLLAMA_HOST ?? "http://localhost:11434"
+).replace(/\/$/, "");
 const ENABLE_OLLAMA = process.env.ENABLE_OLLAMA !== "false";
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "llama3.1:8b";
 const OLLAMA_TIMEOUT_MS = 30_000;

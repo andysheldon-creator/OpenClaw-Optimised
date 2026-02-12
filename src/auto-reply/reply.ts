@@ -55,6 +55,7 @@ import {
 } from "../infra/system-events.js";
 import { clearCommandLane, getQueueSize } from "../process/command-queue.js";
 import { defaultRuntime } from "../runtime.js";
+import { routeMessage } from "../services/ollama-router.js";
 import { normalizeE164 } from "../utils.js";
 import { resolveHeartbeatSeconds } from "../web/reconnect.js";
 import { getWebAuthAgeMs, webAuthExists } from "../web/session.js";
@@ -75,7 +76,6 @@ import {
 import { SILENT_REPLY_TOKEN } from "./tokens.js";
 import { isAudio, transcribeInboundAudio } from "./transcription.js";
 import type { GetReplyOptions, ReplyPayload } from "./types.js";
-import { routeMessage } from "../services/ollama-router.js";
 
 export type { GetReplyOptions, ReplyPayload } from "./types.js";
 
@@ -2108,7 +2108,9 @@ export async function getReplyFromConfig(
         return finalizeWithFollowup({ text: routing.response });
       }
     } catch (ollamaErr) {
-      logVerbose(`Ollama routing failed, continuing to Claude: ${String(ollamaErr)}`);
+      logVerbose(
+        `Ollama routing failed, continuing to Claude: ${String(ollamaErr)}`,
+      );
     }
   }
 

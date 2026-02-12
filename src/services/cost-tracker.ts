@@ -65,8 +65,7 @@ const DEFAULT_PRICING: ModelPricing = {
 };
 
 /** USD to GBP exchange rate (configurable via env). */
-const USD_TO_GBP =
-  Number.parseFloat(process.env.USD_TO_GBP_RATE ?? "") || 0.79;
+const USD_TO_GBP = Number.parseFloat(process.env.USD_TO_GBP_RATE ?? "") || 0.79;
 
 /** Daily budget in GBP (configurable via env, default: 2 GBP = ~60 GBP/month). */
 const DAILY_BUDGET_GBP =
@@ -248,10 +247,7 @@ export function trackCost(params: {
   }
 
   // Alert when approaching budget (80%)
-  if (
-    !summary.overBudget &&
-    summary.totalCostGbp > DAILY_BUDGET_GBP * 0.8
-  ) {
+  if (!summary.overBudget && summary.totalCostGbp > DAILY_BUDGET_GBP * 0.8) {
     defaultRuntime.log?.(
       `[cost-tracker] CAUTION: Approaching daily budget (${Math.round((summary.totalCostGbp / DAILY_BUDGET_GBP) * 100)}% used)`,
     );
@@ -297,10 +293,9 @@ function formatGbp(amount: number): string {
  * Resolve the cost log file path.
  */
 function resolveCostLogPath(): string {
-  const stateDir = process.env.CLAWDIS_STATE_DIR ?? path.join(
-    process.env.HOME ?? process.env.USERPROFILE ?? ".",
-    ".clawdis",
-  );
+  const stateDir =
+    process.env.CLAWDIS_STATE_DIR ??
+    path.join(process.env.HOME ?? process.env.USERPROFILE ?? ".", ".clawdis");
   return path.join(stateDir, "cost-log.jsonl");
 }
 

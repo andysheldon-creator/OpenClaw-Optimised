@@ -32,6 +32,7 @@ import {
   enqueueCommandInLane,
 } from "../process/command-queue.js";
 import { defaultRuntime } from "../runtime.js";
+import { trackCost } from "../services/cost-tracker.js";
 import { CONFIG_DIR, resolveUserPath } from "../utils.js";
 import { resolveClawdisAgentDir } from "./agent-paths.js";
 import {
@@ -48,7 +49,6 @@ import {
 } from "./pi-embedded-helpers.js";
 import { subscribeEmbeddedPiSession } from "./pi-embedded-subscribe.js";
 import { extractAssistantText } from "./pi-embedded-utils.js";
-import { trackCost } from "../services/cost-tracker.js";
 import { createClawdisCodingTools } from "./pi-tools.js";
 import {
   applySkillEnvOverrides,
