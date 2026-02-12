@@ -75,6 +75,7 @@ import {
 import { SILENT_REPLY_TOKEN } from "./tokens.js";
 import { isAudio, transcribeInboundAudio } from "./transcription.js";
 import type { GetReplyOptions, ReplyPayload } from "./types.js";
+import { routeMessage } from "../services/ollama-router.js";
 
 export type { GetReplyOptions, ReplyPayload } from "./types.js";
 
@@ -2093,6 +2094,23 @@ export async function getReplyFromConfig(
     scheduleFollowupDrain(queueKey, runFollowupTurn);
     return value;
   };
+
+  // --- Ollama Router: handle simple queries locally for free ---
+  if (!opts?.isHeartbeat) {
+    const plainBody = baseBodyTrimmed;
+    try {
+      const routing = await routeMessage(plainBody);
+      if (routing.useOllama && routing.response) {
+        logVerbose(
+          `Ollama handled query locally: category=${routing.category} duration=${routing.durationMs}ms`,
+        );
+        cleanupTyping();
+        return finalizeWithFollowup({ text: routing.response });
+      }
+    } catch (ollamaErr) {
+      logVerbose(`Ollama routing failed, continuing to Claude: ${String(ollamaErr)}`);
+    }
+  }
 
   let didLogHeartbeatStrip = false;
   try {

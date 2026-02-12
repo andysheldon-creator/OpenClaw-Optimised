@@ -597,6 +597,12 @@ export type ClawdisConfig = {
       /** Override the heartbeat prompt body (default: "HEARTBEAT"). */
       prompt?: string;
     };
+    /**
+     * Maximum number of recent messages to send to the LLM per turn.
+     * Limits conversation history to reduce token usage and cost.
+     * Default: 10. Set to 0 to disable windowing (send full history).
+     */
+    maxHistoryWindow?: number;
     /** Max concurrent agent runs across all conversations. Default: 1 (sequential). */
     maxConcurrent?: number;
     /** Bash tool defaults. */
@@ -994,6 +1000,7 @@ const ClawdisSchema = z.object({
       mediaMaxMb: z.number().positive().optional(),
       typingIntervalSeconds: z.number().int().positive().optional(),
       heartbeat: HeartbeatSchema,
+      maxHistoryWindow: z.number().int().min(0).optional(),
       maxConcurrent: z.number().int().positive().optional(),
       bash: z
         .object({

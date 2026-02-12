@@ -34,7 +34,11 @@ import {
 import { defaultRuntime } from "../runtime.js";
 import { CONFIG_DIR, resolveUserPath } from "../utils.js";
 import { resolveClawdisAgentDir } from "./agent-paths.js";
-import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "./defaults.js";
+import {
+  DEFAULT_MAX_HISTORY_WINDOW,
+  DEFAULT_MODEL,
+  DEFAULT_PROVIDER,
+} from "./defaults.js";
 import { ensureClawdisModelsJson } from "./models-config.js";
 import {
   buildBootstrapContextFiles,
@@ -44,6 +48,7 @@ import {
 } from "./pi-embedded-helpers.js";
 import { subscribeEmbeddedPiSession } from "./pi-embedded-subscribe.js";
 import { extractAssistantText } from "./pi-embedded-utils.js";
+import { trackCost } from "../services/cost-tracker.js";
 import { createClawdisCodingTools } from "./pi-tools.js";
 import {
   applySkillEnvOverrides,
@@ -468,8 +473,26 @@ export async function runEmbeddedPiAgent(params: {
           contextFiles,
         });
 
+        // --- Conversation Windowing (Cost Optimization) ---
+        // Only send the last N messages to the LLM to reduce input token count.
+        // Configurable via agent.maxHistoryWindow in clawdis.json (default: 10).
+        // Set to 0 to disable windowing and send full history.
+        const maxHistoryWindow =
+          params.config?.agent?.maxHistoryWindow ?? DEFAULT_MAX_HISTORY_WINDOW;
+        const rawMessages = session.messages;
+        const windowedMessages =
+          maxHistoryWindow > 0 && rawMessages.length > maxHistoryWindow
+            ? rawMessages.slice(-maxHistoryWindow)
+            : rawMessages;
+
+        if (maxHistoryWindow > 0 && rawMessages.length > maxHistoryWindow) {
+          defaultRuntime.log?.(
+            `conversation windowing: kept ${windowedMessages.length}/${rawMessages.length} messages (window=${maxHistoryWindow}) sessionId=${params.sessionId}`,
+          );
+        }
+
         const prior = await sanitizeSessionMessagesImages(
-          session.messages,
+          windowedMessages,
           "session:history",
         );
         if (prior.length > 0) {
@@ -585,6 +608,25 @@ export async function runEmbeddedPiAgent(params: {
           | undefined;
 
         const usage = lastAssistant?.usage;
+
+        // --- Cost Tracking ---
+        if (usage) {
+          try {
+            trackCost({
+              sessionId: sessionIdUsed,
+              model: lastAssistant?.model ?? model.id,
+              inputTokens: usage.input ?? 0,
+              outputTokens: usage.output ?? 0,
+              cacheReadTokens: usage.cacheRead ?? 0,
+              cacheWriteTokens: usage.cacheWrite ?? 0,
+            });
+          } catch (costErr) {
+            defaultRuntime.log?.(
+              `[cost-tracker] failed to track cost: ${String(costErr)}`,
+            );
+          }
+        }
+
         const agentMeta: EmbeddedPiAgentMeta = {
           sessionId: sessionIdUsed,
           provider: lastAssistant?.provider ?? provider,
