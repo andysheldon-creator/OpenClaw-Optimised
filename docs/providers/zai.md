@@ -25,12 +25,19 @@ openclaw onboard --zai-api-key "$ZAI_API_KEY"
 ```json5
 {
   env: { ZAI_API_KEY: "sk-..." },
-  agents: { defaults: { model: { primary: "zai/glm-4.7" } } },
+  agents: { defaults: { model: { primary: "zai/glm-5" } } },
 }
 ```
 
+## Available models
+
+- `glm-5` — New flagship, optimized for agentic engineering (131K context)
+- `glm-4.7` — Previous generation (198K context)
+- `glm-4.6v` — Vision model (images + text)
+- `glm-4.7-flash` — Fast, low-cost option
+
 ## Notes
 
-- GLM models are available as `zai/<model>` (example: `zai/glm-4.7`).
+- GLM models are available as `zai/<model>` (example: `zai/glm-5`).
 - See [/providers/glm](/providers/glm) for the model family overview.
 - Z.AI uses Bearer auth with your API key.
