@@ -336,6 +336,17 @@ export function resolveModelSelectionFromDirective(params: {
   const raw = params.directives.rawModelDirective.trim();
   let modelSelection: ModelDirectiveSelection | undefined;
 
+  // "/model default" resets to the configured default model
+  if (raw.toLowerCase() === "default") {
+    return {
+      modelSelection: {
+        provider: params.defaultProvider,
+        model: params.defaultModel,
+        isDefault: true,
+      },
+    };
+  }
+
   if (/^[0-9]+$/.test(raw)) {
     return {
       errorText: [
