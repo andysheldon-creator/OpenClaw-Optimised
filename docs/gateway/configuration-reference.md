@@ -729,6 +729,7 @@ Periodic heartbeat runs.
       compaction: {
         mode: "safeguard", // default | safeguard
         reserveTokensFloor: 24000,
+        structuredSummary: true, // opt-in structured template
         memoryFlush: {
           enabled: true,
           softThresholdTokens: 6000,
@@ -742,6 +743,7 @@ Periodic heartbeat runs.
 ```
 
 - `mode`: `default` or `safeguard` (chunked summarization for long histories). See [Compaction](/concepts/compaction).
+- `structuredSummary`: when `true` and mode is `safeguard`, forces the compaction summary to use a fixed section template (Goal, Progress, Key Data, Decisions, Modified Files, Next Steps, Constraints). Each section must be populated or explicitly marked "None." This prevents the summarizer from silently dropping URLs, IDs, tokens, and other specific data. Default: `false`. **Warning:** the template instructs the model to retain URLs, IDs, tokens, credentials, and config values verbatim — enable only for trusted environments.
 - `memoryFlush`: silent agentic turn before auto-compaction to store durable memories. Skipped when workspace is read-only.
 
 ### `agents.defaults.contextPruning`

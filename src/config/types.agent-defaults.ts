@@ -254,6 +254,13 @@ export type AgentCompactionConfig = {
   maxHistoryShare?: number;
   /** Pre-compaction memory flush (agentic turn). Default: enabled. */
   memoryFlush?: AgentCompactionMemoryFlushConfig;
+  /**
+   * Inject a structured template into compaction summary instructions.
+   * When enabled, the summarizer is given mandatory sections (Goal, Progress,
+   * Key Data, Decisions, Modified Files, Next Steps, Constraints) to prevent
+   * silent information loss during compaction. Default: false.
+   */
+  structuredSummary?: boolean;
 };
 
 export type AgentCompactionMemoryFlushConfig = {

@@ -76,4 +76,35 @@ describe("config compaction settings", () => {
       expect(cfg.agents?.defaults?.compaction?.reserveTokensFloor).toBe(9000);
     });
   });
+
+  it("preserves structuredSummary config value", async () => {
+    await withTempHome(async (home) => {
+      const configDir = path.join(home, ".openclaw");
+      await fs.mkdir(configDir, { recursive: true });
+      await fs.writeFile(
+        path.join(configDir, "openclaw.json"),
+        JSON.stringify(
+          {
+            agents: {
+              defaults: {
+                compaction: {
+                  mode: "safeguard",
+                  structuredSummary: true,
+                },
+              },
+            },
+          },
+          null,
+          2,
+        ),
+        "utf-8",
+      );
+
+      vi.resetModules();
+      const { loadConfig } = await import("./config.js");
+      const cfg = loadConfig();
+
+      expect(cfg.agents?.defaults?.compaction?.structuredSummary).toBe(true);
+    });
+  });
 });
