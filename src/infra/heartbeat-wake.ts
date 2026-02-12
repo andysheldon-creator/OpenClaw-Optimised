@@ -3,10 +3,14 @@ export type HeartbeatRunResult =
   | { status: "skipped"; reason: string }
   | { status: "failed"; reason: string };
 
-export type HeartbeatWakeHandler = (opts: { reason?: string }) => Promise<HeartbeatRunResult>;
+export type HeartbeatWakeHandler = (opts: {
+  reason?: string;
+  sessionKey?: string;
+}) => Promise<HeartbeatRunResult>;
 
 let handler: HeartbeatWakeHandler | null = null;
 let pendingReason: string | null = null;
+let pendingSessionKey: string | null = null;
 let scheduled = false;
 let running = false;
 let timer: NodeJS.Timeout | null = null;
@@ -32,10 +36,15 @@ function schedule(coalesceMs: number) {
     }
 
     const reason = pendingReason;
+    const sessionKey = pendingSessionKey;
     pendingReason = null;
+    pendingSessionKey = null;
     running = true;
     try {
-      const res = await active({ reason: reason ?? undefined });
+      const res = await active({
+        reason: reason ?? undefined,
+        sessionKey: sessionKey ?? undefined,
+      });
       if (res.status === "skipped" && res.reason === "requests-in-flight") {
         // The main lane is busy; retry soon.
         pendingReason = reason ?? "retry";
@@ -62,8 +71,15 @@ export function setHeartbeatWakeHandler(next: HeartbeatWakeHandler | null) {
   }
 }
 
-export function requestHeartbeatNow(opts?: { reason?: string; coalesceMs?: number }) {
+export function requestHeartbeatNow(opts?: {
+  reason?: string;
+  sessionKey?: string;
+  coalesceMs?: number;
+}) {
   pendingReason = opts?.reason ?? pendingReason ?? "requested";
+  if (opts?.sessionKey) {
+    pendingSessionKey = opts.sessionKey;
+  }
   schedule(opts?.coalesceMs ?? DEFAULT_COALESCE_MS);
 }
 

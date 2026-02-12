@@ -400,6 +400,7 @@ export async function runHeartbeatOnce(opts: {
   agentId?: string;
   heartbeat?: HeartbeatConfig;
   reason?: string;
+  eventSessionKey?: string;
   deps?: HeartbeatDeps;
 }): Promise<HeartbeatRunResult> {
   const cfg = opts.cfg ?? loadConfig();
@@ -487,7 +488,11 @@ export async function runHeartbeatOnce(opts: {
   // instead of the standard heartbeat prompt with "reply HEARTBEAT_OK".
   const isExecEvent = opts.reason === "exec-event";
   const isCronEvent = Boolean(opts.reason?.startsWith("cron:"));
-  const pendingEvents = isExecEvent || isCronEvent ? peekSystemEvents(sessionKey) : [];
+  // When an exec/cron event originates from a channel-specific session (e.g. Discord, WhatsApp),
+  // the system events are enqueued under that session's key, not the main heartbeat session key.
+  // Use the originating session key when provided to peek the correct queue.
+  const eventQueueKey = opts.eventSessionKey?.trim() || sessionKey;
+  const pendingEvents = isExecEvent || isCronEvent ? peekSystemEvents(eventQueueKey) : [];
   const hasExecCompletion = pendingEvents.some((evt) => evt.includes("Exec finished"));
   const hasCronEvents = isCronEvent && pendingEvents.length > 0;
   const prompt = hasExecCompletion
@@ -902,6 +907,7 @@ export function startHeartbeatRunner(opts: {
         agentId: agent.agentId,
         heartbeat: agent.heartbeat,
         reason,
+        eventSessionKey: params?.sessionKey,
         deps: { runtime: state.runtime },
       });
       if (res.status === "skipped" && res.reason === "requests-in-flight") {
@@ -923,7 +929,9 @@ export function startHeartbeatRunner(opts: {
     return { status: "skipped", reason: isInterval ? "not-due" : "disabled" };
   };
 
-  setHeartbeatWakeHandler(async (params) => run({ reason: params.reason }));
+  setHeartbeatWakeHandler(async (params) =>
+    run({ reason: params.reason, sessionKey: params.sessionKey }),
+  );
   updateConfig(state.cfg);
 
   const cleanup = () => {
