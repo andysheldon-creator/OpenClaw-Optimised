@@ -45,8 +45,8 @@ const REFLECT_INTERVAL_MS = (() => {
 /** Last reflect timestamp. */
 let lastReflectMs = 0;
 
-/** Reflect timer handle. */
-let reflectTimer: ReturnType<typeof setInterval> | null = null;
+/** Reflect timer handle (or `true` during startup to prevent races). */
+let reflectTimer: ReturnType<typeof setInterval> | true | null = null;
 
 /** Maximum facts to summarise per entity. */
 const MAX_FACTS_PER_ENTITY = 30;
@@ -303,6 +303,9 @@ function maybeCreateOpinion(fact: Fact): boolean {
 export function startReflectSchedule(): void {
   if (reflectTimer) return; // Already running
 
+  // Immediately mark as starting to prevent race conditions
+  reflectTimer = true;
+
   // Run an initial reflect if we have data and haven't reflected recently
   const timeSinceLastReflect = Date.now() - lastReflectMs;
   if (timeSinceLastReflect > REFLECT_INTERVAL_MS) {
@@ -341,11 +344,11 @@ export function startReflectSchedule(): void {
  * Stop the periodic reflect job.
  */
 export function stopReflectSchedule(): void {
-  if (reflectTimer) {
+  if (reflectTimer && reflectTimer !== true) {
     clearInterval(reflectTimer);
-    reflectTimer = null;
-    defaultRuntime.log?.("[memory-reflect] stopped reflect schedule");
   }
+  reflectTimer = null;
+  defaultRuntime.log?.("[memory-reflect] stopped reflect schedule");
 }
 
 /**

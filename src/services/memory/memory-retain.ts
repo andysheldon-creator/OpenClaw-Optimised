@@ -18,7 +18,12 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 
 import { defaultRuntime } from "../../runtime.js";
-import { type FactType, factExists, insertFacts } from "./memory-store.js";
+import {
+  type EntityRef,
+  type FactType,
+  factExists,
+  insertFacts,
+} from "./memory-store.js";
 
 /** Minimum message length to extract facts from. */
 const MIN_MESSAGE_LENGTH = 20;
@@ -164,10 +169,12 @@ function classifyFactType(text: string, role: string): FactType {
 
 /**
  * Extract entity mentions from text.
- * Returns normalised slugs (lowercase, hyphenated).
+ * Returns objects with slug + original display name.
  */
-function extractEntities(text: string): string[] {
-  const entities = new Set<string>();
+function extractEntities(
+  text: string,
+): Array<{ slug: string; display: string }> {
+  const seen = new Map<string, string>(); // slug → display name
 
   for (const pattern of ENTITY_PATTERNS) {
     // Reset pattern state for global regexes
@@ -179,14 +186,18 @@ function extractEntities(text: string): string[] {
         const slug = raw.toLowerCase().replace(/\s+/g, "-");
         // Skip stopwords and very short slugs
         if (!ENTITY_STOPWORDS.has(slug) && slug.length >= 2) {
-          entities.add(slug);
+          // Keep the longest (most informative) display name
+          const existing = seen.get(slug);
+          if (!existing || raw.length > existing.length) {
+            seen.set(slug, raw);
+          }
         }
       }
       match = pattern.exec(text);
     }
   }
 
-  return [...entities];
+  return [...seen.entries()].map(([slug, display]) => ({ slug, display }));
 }
 
 /**
@@ -271,7 +282,7 @@ export function retainMessages(params: {
     timestamp: number;
     sourceDay: string;
     confidence?: number;
-    entities?: string[];
+    entities?: EntityRef[];
   }> = [];
 
   for (const msg of params.messages) {
@@ -294,7 +305,7 @@ export function retainMessages(params: {
         factType === "opinion" ? estimateConfidence(candidate) : undefined;
 
       for (const e of entities) {
-        allEntities.add(e);
+        allEntities.add(e.slug);
       }
 
       factsToInsert.push({

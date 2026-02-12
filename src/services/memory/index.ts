@@ -45,6 +45,7 @@ export {
 export {
   closeMemoryStore,
   type Entity,
+  type EntityRef,
   type Fact,
   type FactType,
   getDb,

@@ -557,6 +557,12 @@ export async function runEmbeddedPiAgent(params: {
           const existingContent = firstMsg.content;
           if (typeof existingContent === "string") {
             firstMsg.content = `${memoryContextBlock}\n\n${existingContent}`;
+          } else if (Array.isArray(existingContent)) {
+            // Content is an array of blocks — prepend memory as a text block
+            firstMsg.content = [
+              { type: "text", text: memoryContextBlock },
+              ...existingContent,
+            ];
           }
         }
 

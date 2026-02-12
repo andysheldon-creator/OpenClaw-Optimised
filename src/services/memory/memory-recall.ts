@@ -393,12 +393,29 @@ function opinionToRecallItem(opinion: Opinion): RecallItem {
   };
 }
 
+/** Cached entity list for fast lookup during recall. */
+let entityCache: { slug: string; displayName: string }[] = [];
+let entityCacheTimestamp = 0;
+const ENTITY_CACHE_TTL_MS = 60_000; // 1 minute
+
+function getCachedEntities(): { slug: string; displayName: string }[] {
+  const now = Date.now();
+  if (now - entityCacheTimestamp > ENTITY_CACHE_TTL_MS) {
+    entityCache = getAllEntities().map((e) => ({
+      slug: e.slug,
+      displayName: e.displayName,
+    }));
+    entityCacheTimestamp = now;
+  }
+  return entityCache;
+}
+
 /**
  * Extract potential entity slugs from a query string.
  */
 function extractQueryEntities(query: string): string[] {
   const entities = new Set<string>();
-  const allKnown = getAllEntities();
+  const allKnown = getCachedEntities();
   const knownSlugs = new Set(allKnown.map((e) => e.slug));
 
   // Check for @mentions

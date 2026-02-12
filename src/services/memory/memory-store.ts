@@ -173,6 +173,17 @@ function initSchema(database: BetterSqlite3.Database): void {
 /**
  * Insert a fact and link it to entities.
  */
+/** Entity reference: slug + optional human-readable display name. */
+export type EntityRef = { slug: string; display?: string } | string;
+
+/** Normalise an EntityRef to slug + display. */
+function normaliseEntityRef(ref: EntityRef): {
+  slug: string;
+  display?: string;
+} {
+  return typeof ref === "string" ? { slug: ref } : ref;
+}
+
 export function insertFact(params: {
   sessionId: string;
   factType: FactType;
@@ -180,7 +191,7 @@ export function insertFact(params: {
   timestamp: number;
   sourceDay: string;
   confidence?: number;
-  entities?: string[];
+  entities?: EntityRef[];
 }): number {
   const database = getDb();
 
@@ -202,8 +213,9 @@ export function insertFact(params: {
 
   // Link entities
   if (params.entities && params.entities.length > 0) {
-    for (const entitySlug of params.entities) {
-      linkFactToEntity(factId, entitySlug);
+    for (const ref of params.entities) {
+      const { slug, display } = normaliseEntityRef(ref);
+      linkFactToEntity(factId, slug, display);
     }
   }
 
@@ -212,17 +224,24 @@ export function insertFact(params: {
 
 /**
  * Link a fact to an entity, creating the entity if it doesn't exist.
+ * @param displayName - Human-readable name (falls back to slug if omitted).
  */
-function linkFactToEntity(factId: number, entitySlug: string): void {
+function linkFactToEntity(
+  factId: number,
+  entitySlug: string,
+  displayName?: string,
+): void {
   const database = getDb();
 
-  // Upsert entity
+  // Upsert entity — update display_name if a better one is provided
+  const name = displayName ?? entitySlug;
   database
     .prepare(
       `INSERT INTO entities (slug, display_name) VALUES (?, ?)
-     ON CONFLICT(slug) DO NOTHING`,
+     ON CONFLICT(slug) DO UPDATE SET display_name = excluded.display_name
+     WHERE length(excluded.display_name) > length(entities.display_name)`,
     )
-    .run(entitySlug, entitySlug);
+    .run(entitySlug, name);
 
   // Get entity id
   const entity = database
@@ -249,7 +268,7 @@ export function insertFacts(
     timestamp: number;
     sourceDay: string;
     confidence?: number;
-    entities?: string[];
+    entities?: EntityRef[];
   }>,
 ): number[] {
   const database = getDb();
@@ -261,7 +280,13 @@ export function insertFacts(
     }
   });
 
-  transaction();
+  try {
+    transaction();
+  } catch (err) {
+    defaultRuntime.log?.(`[memory-store] batch insert failed: ${String(err)}`);
+    throw err;
+  }
+
   return ids;
 }
 
@@ -284,9 +309,14 @@ export type FtsResult = {
 export function searchFts(query: string, limit = 20): FtsResult[] {
   const database = getDb();
 
-  // Sanitise the FTS query: escape special characters
-  const sanitised = query.replace(/['"(){}[\]^~*:]/g, " ").trim();
-  if (!sanitised) return [];
+  // Sanitise the FTS query: strip non-alphanumeric chars then wrap each
+  // word in double quotes to prevent FTS5 operator injection (AND/OR/NOT/NEAR).
+  const words = query
+    .replace(/[^a-zA-Z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length > 0);
+  if (words.length === 0) return [];
+  const sanitised = words.map((w) => `"${w}"`).join(" ");
 
   const rows = database
     .prepare(
@@ -575,13 +605,14 @@ export function getMemoryStats(): MemoryStats {
 }
 
 /**
- * Check if a fact with similar content already exists (deduplication).
+ * Check if a fact with identical content already exists (deduplication).
+ * Checks across all sessions to avoid storing the same fact multiple times.
  */
-export function factExists(content: string, sessionId: string): boolean {
+export function factExists(content: string, _sessionId?: string): boolean {
   const database = getDb();
   const row = database
-    .prepare("SELECT 1 FROM facts WHERE content = ? AND session_id = ? LIMIT 1")
-    .get(content, sessionId);
+    .prepare("SELECT 1 FROM facts WHERE content = ? LIMIT 1")
+    .get(content);
   return row !== undefined;
 }
 
