@@ -30,6 +30,61 @@ async function runCommandSafe(argv: string[], timeoutMs = 5_000): Promise<Comman
   }
 }
 
+/**
+ * Parses `ss -tlnp` output into PortListener entries.
+ *
+ * Example lines:
+ *   State  Recv-Q Send-Q Local Address:Port  Peer Address:Port Process
+ *   LISTEN 0      128    0.0.0.0:18789       0.0.0.0:*        users:(("node",pid=12345,fd=3))
+ *   LISTEN 0      128    [::]:18789          [::]:*           users:(("node",pid=12345,fd=3))
+ */
+export function parseSsOutput(output: string, port: number): PortListener[] {
+  const lines = output.split(/\r?\n/);
+  const listeners: PortListener[] = [];
+  const portSuffix = `:${port}`;
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("State")) {
+      continue;
+    }
+    // Only consider LISTEN state lines that match the target port
+    if (!line.startsWith("LISTEN")) {
+      continue;
+    }
+    if (!line.includes(portSuffix)) {
+      continue;
+    }
+
+    const parts = line.split(/\s+/);
+    // Expected: State Recv-Q Send-Q LocalAddr:Port PeerAddr:Port [Process]
+    if (parts.length < 5) {
+      continue;
+    }
+
+    const localAddr = parts[3];
+    if (!localAddr || !localAddr.endsWith(portSuffix)) {
+      continue;
+    }
+
+    const listener: PortListener = { address: localAddr };
+
+    // Extract process info from users:(("cmd",pid=N,fd=N)) pattern
+    const processField = parts.slice(5).join(" ");
+    const pidMatch = processField.match(/pid=(\d+)/);
+    if (pidMatch) {
+      listener.pid = Number.parseInt(pidMatch[1], 10);
+    }
+    const cmdMatch = processField.match(/\(\("([^"]+)"/);
+    if (cmdMatch) {
+      listener.command = cmdMatch[1];
+    }
+
+    listeners.push(listener);
+  }
+  return listeners;
+}
+
 function parseLsofFieldOutput(output: string): PortListener[] {
   const lines = output.split(/\r?\n/).filter(Boolean);
   const listeners: PortListener[] = [];
@@ -75,6 +130,46 @@ async function resolveUnixUser(pid: number): Promise<string | undefined> {
   return line || undefined;
 }
 
+async function enrichListenersWithProcessInfo(listeners: PortListener[]): Promise<void> {
+  await Promise.all(
+    listeners.map(async (listener) => {
+      if (!listener.pid) {
+        return;
+      }
+      const [commandLine, user] = await Promise.all([
+        resolveUnixCommandLine(listener.pid),
+        resolveUnixUser(listener.pid),
+      ]);
+      if (commandLine) {
+        listener.commandLine = commandLine;
+      }
+      if (user) {
+        listener.user = user;
+      }
+    }),
+  );
+}
+
+async function readSsListeners(
+  port: number,
+): Promise<{ listeners: PortListener[]; detail?: string; errors: string[] }> {
+  const errors: string[] = [];
+  const res = await runCommandSafe(["ss", "-tlnp", `sport = :${port}`]);
+  if (res.code !== 0) {
+    if (res.error) {
+      errors.push(res.error);
+    }
+    const detail = [res.stderr.trim(), res.stdout.trim()].filter(Boolean).join("\n");
+    if (detail) {
+      errors.push(detail);
+    }
+    return { listeners: [], errors };
+  }
+  const listeners = parseSsOutput(res.stdout, port);
+  await enrichListenersWithProcessInfo(listeners);
+  return { listeners, detail: res.stdout.trim() || undefined, errors };
+}
+
 async function readUnixListeners(
   port: number,
 ): Promise<{ listeners: PortListener[]; detail?: string; errors: string[] }> {
@@ -83,23 +178,7 @@ async function readUnixListeners(
   const res = await runCommandSafe([lsof, "-nP", `-iTCP:${port}`, "-sTCP:LISTEN", "-FpFcn"]);
   if (res.code === 0) {
     const listeners = parseLsofFieldOutput(res.stdout);
-    await Promise.all(
-      listeners.map(async (listener) => {
-        if (!listener.pid) {
-          return;
-        }
-        const [commandLine, user] = await Promise.all([
-          resolveUnixCommandLine(listener.pid),
-          resolveUnixUser(listener.pid),
-        ]);
-        if (commandLine) {
-          listener.commandLine = commandLine;
-        }
-        if (user) {
-          listener.user = user;
-        }
-      }),
-    );
+    await enrichListenersWithProcessInfo(listeners);
     return { listeners, detail: res.stdout.trim() || undefined, errors };
   }
   const stderr = res.stderr.trim();
@@ -113,6 +192,17 @@ async function readUnixListeners(
   if (detail) {
     errors.push(detail);
   }
+
+  // On Linux, fall back to `ss` (from iproute2) when lsof is unavailable.
+  // ss is nearly universal on Linux, even on minimal containers and cloud VMs.
+  if (process.platform === "linux") {
+    const ssResult = await readSsListeners(port);
+    if (ssResult.listeners.length > 0) {
+      return { listeners: ssResult.listeners, detail: ssResult.detail, errors };
+    }
+    errors.push(...ssResult.errors);
+  }
+
   return { listeners: [], detail: undefined, errors };
 }
 
@@ -279,7 +369,7 @@ export async function inspectPortUsage(port: number): Promise<PortUsage> {
   const hints = buildPortHints(listeners, port);
   if (status === "busy" && listeners.length === 0) {
     hints.push(
-      "Port is in use but process details are unavailable (install lsof or run as an admin user).",
+      "Port is in use but process details are unavailable (install lsof or iproute2, or run as an admin user).",
     );
   }
   return {
