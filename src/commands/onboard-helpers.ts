@@ -7,6 +7,7 @@ import type { OpenClawConfig } from "../config/config.js";
 import type { RuntimeEnv } from "../runtime.js";
 import type { NodeManagerChoice, OnboardMode, ResetScope } from "./onboard-types.js";
 import { DEFAULT_AGENT_WORKSPACE_DIR, ensureAgentWorkspace } from "../agents/workspace.js";
+import { movePathToTrash } from "../browser/trash.js";
 import { CONFIG_PATH } from "../config/config.js";
 import { resolveSessionTranscriptsDirForAgent } from "../config/sessions.js";
 import { callGateway } from "../gateway/call.js";
@@ -300,7 +301,7 @@ export async function moveToTrash(pathname: string, runtime: RuntimeEnv): Promis
     return;
   }
   try {
-    await runCommandWithTimeout(["trash", pathname], { timeoutMs: 5000 });
+    await movePathToTrash(pathname);
     runtime.log(`Moved to Trash: ${shortenHomePath(pathname)}`);
   } catch {
     runtime.log(`Failed to move to Trash (manual delete): ${shortenHomePath(pathname)}`);
