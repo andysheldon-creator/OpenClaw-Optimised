@@ -116,6 +116,9 @@ export async function runCommandWithTimeout(
     cwd,
     env: resolvedEnv,
     windowsVerbatimArguments,
+    // Windows requires shell: true to spawn .cmd/.bat files (e.g., npm.cmd).
+    // Without it, newer Node versions throw EINVAL.
+    shell: process.platform === "win32",
   });
   // Spawn with inherited stdin (TTY) so tools like `pi` stay interactive when needed.
   return await new Promise((resolve, reject) => {
