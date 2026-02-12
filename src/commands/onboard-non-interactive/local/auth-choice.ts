@@ -28,6 +28,8 @@ import {
   applyXaiConfig,
   applyXiaomiConfig,
   applyZaiConfig,
+  applyDigitalOceanGradientConfig,
+  applyDigitalOceanGradientProviderConfig,
   setAnthropicApiKey,
   setCloudflareAiGatewayConfig,
   setQianfanApiKey,
@@ -45,6 +47,7 @@ import {
   setVercelAiGatewayApiKey,
   setXiaomiApiKey,
   setZaiApiKey,
+  setDigitalOceanGradientApiKey,
 } from "../../onboard-auth.js";
 import {
   applyCustomApiConfig,
@@ -598,6 +601,30 @@ export async function applyNonInteractiveAuthChoice(params: {
       mode: "api_key",
     });
     return applyTogetherConfig(nextConfig);
+  }
+
+  if (authChoice === "digitalocean-gradient-api-key") {
+    const resolved = await resolveNonInteractiveApiKey({
+      provider: "digitalocean",
+      cfg: baseConfig,
+      flagValue: opts.digitaloceanApiKey,
+      flagName: "--digitalocean-api-key",
+      envVar: "DIGITALOCEAN_API_KEY",
+      runtime,
+    });
+    if (!resolved) {
+      return null;
+    }
+    if (resolved.source !== "profile") {
+      await setDigitalOceanGradientApiKey(resolved.key);
+    }
+    nextConfig = applyAuthProfileConfig(nextConfig, {
+      profileId: "digitalocean:default",
+      provider: "digitalocean",
+      mode: "api_key",
+    });
+    nextConfig = applyDigitalOceanGradientProviderConfig(nextConfig);
+    return applyDigitalOceanGradientConfig(nextConfig);
   }
 
   if (authChoice === "custom-api-key") {

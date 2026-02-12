@@ -24,6 +24,7 @@ type AuthChoiceFlagOptions = Pick<
   | "opencodeZenApiKey"
   | "xaiApiKey"
   | "litellmApiKey"
+  | "digitaloceanApiKey"
   | "customBaseUrl"
   | "customModelId"
   | "customApiKey"
@@ -50,6 +51,7 @@ const AUTH_CHOICE_FLAG_MAP = [
   { flag: "minimaxApiKey", authChoice: "minimax-api", label: "--minimax-api-key" },
   { flag: "opencodeZenApiKey", authChoice: "opencode-zen", label: "--opencode-zen-api-key" },
   { flag: "litellmApiKey", authChoice: "litellm-api-key", label: "--litellm-api-key" },
+  { flag: "digitaloceanApiKey", authChoice: "digitalocean-gradient-api-key", label: "--digitalocean-api-key" },
 ] satisfies ReadonlyArray<AuthChoiceFlag>;
 
 export type AuthChoiceInference = {

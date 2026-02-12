@@ -7,6 +7,7 @@ import {
   validateApiKeyInput,
 } from "./auth-choice.api-key.js";
 import { applyDefaultModelChoice } from "./auth-choice.default-model.js";
+import { applyDigitalOceanGradientAuthChoice } from "./digitalocean-gradient-config.js";
 import {
   applyGoogleGeminiModelDefault,
   GOOGLE_GEMINI_DEFAULT_MODEL,
@@ -83,7 +84,6 @@ export async function applyAuthChoiceApiProviders(
       "Model configured",
     );
   };
-
   let authChoice = params.authChoice;
   if (
     authChoice === "apiKey" &&
@@ -124,7 +124,6 @@ export async function applyAuthChoiceApiProviders(
       authChoice = "qianfan-api-key";
     }
   }
-
   if (authChoice === "openrouter-api-key") {
     const store = ensureAuthProfileStore(params.agentDir, {
       allowKeychainPrompt: false,
@@ -268,7 +267,6 @@ export async function applyAuthChoiceApiProviders(
 
   if (authChoice === "ai-gateway-api-key") {
     let hasCredential = false;
-
     if (
       !hasCredential &&
       params.opts?.token &&
@@ -317,7 +315,6 @@ export async function applyAuthChoiceApiProviders(
     }
     return { config: nextConfig, agentModelOverride };
   }
-
   if (authChoice === "cloudflare-ai-gateway-api-key") {
     let hasCredential = false;
     let accountId = params.opts?.cloudflareAiGatewayAccountId?.trim() ?? "";
@@ -416,10 +413,8 @@ export async function applyAuthChoiceApiProviders(
     }
     return { config: nextConfig, agentModelOverride };
   }
-
   if (authChoice === "moonshot-api-key") {
     let hasCredential = false;
-
     if (!hasCredential && params.opts?.token && params.opts?.tokenProvider === "moonshot") {
       await setMoonshotApiKey(normalizeApiKeyInput(params.opts.token), params.agentDir);
       hasCredential = true;
@@ -463,10 +458,8 @@ export async function applyAuthChoiceApiProviders(
     }
     return { config: nextConfig, agentModelOverride };
   }
-
   if (authChoice === "moonshot-api-key-cn") {
     let hasCredential = false;
-
     if (!hasCredential && params.opts?.token && params.opts?.tokenProvider === "moonshot") {
       await setMoonshotApiKey(normalizeApiKeyInput(params.opts.token), params.agentDir);
       hasCredential = true;
@@ -571,10 +564,8 @@ export async function applyAuthChoiceApiProviders(
     }
     return { config: nextConfig, agentModelOverride };
   }
-
   if (authChoice === "gemini-api-key") {
     let hasCredential = false;
-
     if (!hasCredential && params.opts?.token && params.opts?.tokenProvider === "google") {
       await setGeminiApiKey(normalizeApiKeyInput(params.opts.token), params.agentDir);
       hasCredential = true;
@@ -618,7 +609,6 @@ export async function applyAuthChoiceApiProviders(
     }
     return { config: nextConfig, agentModelOverride };
   }
-
   if (authChoice === "zai-api-key") {
     let hasCredential = false;
 
@@ -990,6 +980,10 @@ export async function applyAuthChoiceApiProviders(
       agentModelOverride = applied.agentModelOverride ?? agentModelOverride;
     }
     return { config: nextConfig, agentModelOverride };
+  }
+
+  if (authChoice === "digitalocean-gradient-api-key") {
+    return applyDigitalOceanGradientAuthChoice(params);
   }
 
   return null;
