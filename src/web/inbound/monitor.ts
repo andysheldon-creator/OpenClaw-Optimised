@@ -34,6 +34,8 @@ export async function monitorWebInbox(options: {
   debounceMs?: number;
   /** Optional debounce gating predicate. */
   shouldDebounce?: (msg: WebInboundMessage) => boolean;
+  /** Whether auto-reply is enabled for this channel/account (default: true). */
+  autoReplyEnabled?: boolean;
 }) {
   const inboundLogger = getChildLogger({ module: "web-inbound" });
   const inboundConsoleLog = createSubsystemLogger("gateway/channels/whatsapp").child("inbound");
@@ -330,6 +332,7 @@ export async function monitorWebInbox(options: {
         mediaPath,
         mediaType,
         mediaFileName,
+        suppressAutoReply: (options.autoReplyEnabled ?? true) ? undefined : true,
       };
       try {
         const task = Promise.resolve(debouncer.enqueue(inboundMessage));

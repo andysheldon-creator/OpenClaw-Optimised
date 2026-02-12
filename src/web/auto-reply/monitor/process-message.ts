@@ -188,18 +188,21 @@ export async function processMessage(params: {
     return false;
   }
 
-  // Send ack reaction immediately upon message receipt (post-gating)
-  maybeSendAckReaction({
-    cfg: params.cfg,
-    msg: params.msg,
-    agentId: params.route.agentId,
-    sessionKey: params.route.sessionKey,
-    conversationId,
-    verbose: params.verbose,
-    accountId: params.route.accountId,
-    info: params.replyLogger.info.bind(params.replyLogger),
-    warn: params.replyLogger.warn.bind(params.replyLogger),
-  });
+  // Send ack reaction immediately upon message receipt (post-gating).
+  // Skip when auto-reply is suppressed so the channel stays fully silent.
+  if (params.msg.suppressAutoReply !== true) {
+    maybeSendAckReaction({
+      cfg: params.cfg,
+      msg: params.msg,
+      agentId: params.route.agentId,
+      sessionKey: params.route.sessionKey,
+      conversationId,
+      verbose: params.verbose,
+      accountId: params.route.accountId,
+      info: params.replyLogger.info.bind(params.replyLogger),
+      warn: params.replyLogger.warn.bind(params.replyLogger),
+    });
+  }
 
   const correlationId = params.msg.id ?? newConnectionId();
   params.replyLogger.info(
@@ -359,6 +362,15 @@ export async function processMessage(params: {
         }
       },
       deliver: async (payload: ReplyPayload, info) => {
+        // When suppressAutoReply is set (channel autoReply: false), skip outbound delivery
+        // but keep the LLM call so the message stays in session context for cross-channel use
+        // (e.g., Telegram primary + WhatsApp receive-only).
+        if (params.msg.suppressAutoReply === true) {
+          whatsappOutboundLog.info(
+            `Suppressed auto-reply to ${params.msg.from ?? conversationId} (channel autoReply: false)`,
+          );
+          return;
+        }
         await deliverWebReply({
           replyResult: payload,
           msg: params.msg,
@@ -404,7 +416,7 @@ export async function processMessage(params: {
           `Failed sending web ${label} to ${params.msg.from ?? conversationId}: ${formatError(err)}`,
         );
       },
-      onReplyStart: params.msg.sendComposing,
+      onReplyStart: params.msg.suppressAutoReply === true ? undefined : params.msg.sendComposing,
     },
     replyOptions: {
       disableBlockStreaming:

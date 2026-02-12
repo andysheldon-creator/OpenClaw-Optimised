@@ -22,6 +22,8 @@ export type ChannelDefaultsConfig = {
   groupPolicy?: GroupPolicy;
   /** Default heartbeat visibility for all channels. */
   heartbeat?: ChannelHeartbeatVisibilityConfig;
+  /** Whether channels auto-reply to inbound messages (default: true). */
+  autoReply?: boolean;
 };
 
 /**
@@ -33,6 +35,7 @@ export type ExtensionChannelConfig = {
   allowFrom?: string | string[];
   dmPolicy?: string;
   groupPolicy?: GroupPolicy;
+  autoReply?: boolean;
   accounts?: Record<string, unknown>;
   [key: string]: unknown;
 };
