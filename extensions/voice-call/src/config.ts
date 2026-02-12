@@ -598,6 +598,19 @@ export function validateProviderConfig(config: VoiceCallConfig): {
     if (!a?.rtpHost) {
       errors.push("plugins.entries.voice-call.config.asteriskAri.rtpHost is required");
     }
+
+    // Keep validation aligned with runtime requirements (requireAriConfig).
+    if (a?.rtpPort === undefined || a?.rtpPort === null) {
+      errors.push("plugins.entries.voice-call.config.asteriskAri.rtpPort is required");
+    } else if (!Number.isInteger(a.rtpPort) || a.rtpPort < 1024 || a.rtpPort > 65535) {
+      errors.push(
+        "plugins.entries.voice-call.config.asteriskAri.rtpPort must be an integer between 1024 and 65535",
+      );
+    }
+
+    if (!a?.codec) {
+      errors.push("plugins.entries.voice-call.config.asteriskAri.codec is required");
+    }
   }
 
   return { valid: errors.length === 0, errors };
