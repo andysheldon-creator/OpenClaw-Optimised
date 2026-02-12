@@ -220,7 +220,38 @@ export function extractAssistantText(msg: AssistantMessage): string {
         )
         .filter(Boolean)
     : [];
-  const extracted = blocks.join("\n").trim();
+  let extracted = blocks.join("\n").trim();
+
+  // Fallback: Some providers (e.g. Poe's Gemini models) return the actual answer
+  // in reasoning_content instead of content, which the streaming layer maps to
+  // thinking blocks. When there are no text blocks and no tool calls, promote
+  // thinking content to the assistant text so the response is not lost.
+  if (!extracted && Array.isArray(msg.content)) {
+    const hasToolCalls = msg.content.some(
+      (block) =>
+        block != null &&
+        typeof block === "object" &&
+        (block as unknown as Record<string, unknown>).type === "toolCall",
+    );
+    if (!hasToolCalls) {
+      const thinkingText = msg.content
+        .filter(
+          (block): block is { type: "thinking"; thinking: string } =>
+            block != null &&
+            typeof block === "object" &&
+            (block as unknown as Record<string, unknown>).type === "thinking" &&
+            typeof (block as unknown as Record<string, unknown>).thinking === "string",
+        )
+        .map((block) => block.thinking.trim())
+        .filter(Boolean)
+        .join("\n")
+        .trim();
+      if (thinkingText) {
+        extracted = thinkingText;
+      }
+    }
+  }
+
   // Only apply keyword-based error rewrites when the assistant message is actually an error.
   // Otherwise normal prose that *mentions* errors (e.g. "context overflow") can get clobbered.
   const errorContext = msg.stopReason === "error" || Boolean(msg.errorMessage?.trim());

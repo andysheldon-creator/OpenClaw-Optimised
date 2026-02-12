@@ -524,6 +524,100 @@ File contents here`,
     const result = extractAssistantText(msg);
     expect(result).toBe("StartMiddleEnd");
   });
+
+  it("falls back to thinking content when no text blocks exist", () => {
+    const msg: AssistantMessage = {
+      role: "assistant",
+      content: [
+        {
+          type: "thinking",
+          thinking: "The answer to 2+2 is 4.",
+        },
+      ],
+      timestamp: Date.now(),
+    };
+
+    const result = extractAssistantText(msg);
+    expect(result).toBe("The answer to 2+2 is 4.");
+  });
+
+  it("does not fall back to thinking when text blocks have content", () => {
+    const msg: AssistantMessage = {
+      role: "assistant",
+      content: [
+        {
+          type: "thinking",
+          thinking: "Internal reasoning only.",
+        },
+        {
+          type: "text",
+          text: "Actual answer.",
+        },
+      ],
+      timestamp: Date.now(),
+    };
+
+    const result = extractAssistantText(msg);
+    expect(result).toBe("Actual answer.");
+  });
+
+  it("does not fall back to thinking when tool calls are present", () => {
+    const msg: AssistantMessage = {
+      role: "assistant",
+      content: [
+        {
+          type: "thinking",
+          thinking: "Let me run a command.",
+        },
+        {
+          type: "toolCall",
+          id: "call_1",
+          name: "exec",
+          arguments: { command: "ls" },
+        },
+      ] as AssistantMessage["content"],
+      timestamp: Date.now(),
+    };
+
+    const result = extractAssistantText(msg);
+    expect(result).toBe("");
+  });
+
+  it("falls back to multiple thinking blocks joined", () => {
+    const msg: AssistantMessage = {
+      role: "assistant",
+      content: [
+        {
+          type: "thinking",
+          thinking: "First part of the answer.",
+        },
+        {
+          type: "thinking",
+          thinking: "Second part of the answer.",
+        },
+      ],
+      timestamp: Date.now(),
+    };
+
+    const result = extractAssistantText(msg);
+    expect(result).toBe("First part of the answer.\nSecond part of the answer.");
+  });
+
+  it("does not fall back to empty thinking blocks", () => {
+    const msg: AssistantMessage = {
+      role: "assistant",
+      content: [
+        {
+          type: "thinking",
+          thinking: "   ",
+        },
+      ],
+      timestamp: Date.now(),
+    };
+
+    const result = extractAssistantText(msg);
+    expect(result).toBe("");
+  });
 });
 
 describe("formatReasoningMessage", () => {

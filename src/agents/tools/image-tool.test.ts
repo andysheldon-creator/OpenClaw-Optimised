@@ -369,7 +369,7 @@ describe("image tool response validation", () => {
               total: 0,
             },
           },
-          content: [{ type: "thinking", thinking: "hmm" }],
+          content: [],
         },
       }),
     ).toThrow(/returned no text/i);
