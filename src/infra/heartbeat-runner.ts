@@ -489,7 +489,12 @@ export async function runHeartbeatOnce(opts: {
   const isCronEvent = Boolean(opts.reason?.startsWith("cron:"));
   const pendingEvents = isExecEvent || isCronEvent ? peekSystemEvents(sessionKey) : [];
   const hasExecCompletion = pendingEvents.some((evt) => evt.includes("Exec finished"));
-  const hasCronEvents = isCronEvent && pendingEvents.length > 0;
+  // Filter out gateway status events (disconnect/connect) when checking for cron events.
+  // These are informational and should not trigger the cron reminder prompt.
+  const isGatewayStatusEvent = (evt: string) =>
+    evt.includes("gateway disconnected") || evt.includes("gateway connected");
+  const cronRelevantEvents = pendingEvents.filter((evt) => !isGatewayStatusEvent(evt));
+  const hasCronEvents = isCronEvent && cronRelevantEvents.length > 0;
   const prompt = hasExecCompletion
     ? EXEC_EVENT_PROMPT
     : hasCronEvents
