@@ -1,5 +1,7 @@
 export type PluginEntryConfig = {
   enabled?: boolean;
+  /** Mark plugin as trusted to suppress security scan warnings. */
+  trusted?: boolean;
   config?: Record<string, unknown>;
 };
 

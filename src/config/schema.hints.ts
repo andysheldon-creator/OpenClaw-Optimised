@@ -355,6 +355,7 @@ const FIELD_LABELS: Record<string, string> = {
   "plugins.slots.memory": "Memory Plugin",
   "plugins.entries": "Plugin Entries",
   "plugins.entries.*.enabled": "Plugin Enabled",
+  "plugins.entries.*.trusted": "Plugin Trusted",
   "plugins.entries.*.config": "Plugin Config",
   "plugins.installs": "Plugin Install Records",
   "plugins.installs.*.source": "Plugin Install Source",
@@ -607,6 +608,8 @@ const FIELD_HELP: Record<string, string> = {
     'Select the active memory plugin by id, or "none" to disable memory plugins.',
   "plugins.entries": "Per-plugin settings keyed by plugin id (enable/disable + config payloads).",
   "plugins.entries.*.enabled": "Overrides plugin enable/disable for this entry (restart required).",
+  "plugins.entries.*.trusted":
+    "Mark plugin as trusted to suppress security scan warnings during install and audit. Normally set by the configure wizard — setting manually bypasses security scanning.",
   "plugins.entries.*.config": "Plugin-defined config payload (schema is provided by the plugin).",
   "plugins.installs":
     "CLI-managed install metadata (used by `openclaw plugins update` to locate install sources).",

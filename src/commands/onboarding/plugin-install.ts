@@ -6,7 +6,7 @@ import type { RuntimeEnv } from "../../runtime.js";
 import type { WizardPrompter } from "../../wizard/prompts.js";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../../agents/agent-scope.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
-import { enablePluginInConfig } from "../../plugins/enable.js";
+import { buildTrustedPlugins, enablePluginInConfig } from "../../plugins/enable.js";
 import { installPluginFromNpmSpec } from "../../plugins/install.js";
 import { recordPluginInstall } from "../../plugins/installs.js";
 import { loadOpenClawPlugins } from "../../plugins/loader.js";
@@ -158,23 +158,18 @@ export async function ensureOnboardingPluginInstalled(params: {
     return { cfg: next, installed: true };
   }
 
-  const result = await installPluginFromNpmSpec({
-    spec: entry.install.npmSpec,
+  const result = await installTrustedFromNpm({
+    cfg: next,
+    pluginId: entry.id,
+    npmSpec: entry.install.npmSpec,
     logger: {
       info: (msg) => runtime.log?.(msg),
       warn: (msg) => runtime.log?.(msg),
     },
   });
+  next = result.cfg;
 
   if (result.ok) {
-    next = enablePluginInConfig(next, result.pluginId).config;
-    next = recordPluginInstall(next, {
-      pluginId: result.pluginId,
-      source: "npm",
-      spec: entry.install.npmSpec,
-      installPath: result.targetDir,
-      version: result.version,
-    });
     return { cfg: next, installed: true };
   }
 
@@ -218,4 +213,67 @@ export function reloadOnboardingPluginRegistry(params: {
       debug: (msg) => log.debug(msg),
     },
   });
+}
+
+/**
+ * Install a plugin from npm with trusted flag pre-set.
+ * Used by both channel onboarding and the configure wizard for
+ * wizard-recommended plugins.
+ */
+export async function installTrustedFromNpm(params: {
+  cfg: OpenClawConfig;
+  pluginId: string;
+  npmSpec: string;
+  logger: { info?: (msg: string) => void; warn?: (msg: string) => void };
+}): Promise<{
+  cfg: OpenClawConfig;
+  ok: boolean;
+  error?: string;
+  version?: string;
+  targetDir?: string;
+}> {
+  let next = params.cfg;
+
+  // Mark as trusted before install — wizard-recommended plugin
+  next = {
+    ...next,
+    plugins: {
+      ...next.plugins,
+      entries: {
+        ...next.plugins?.entries,
+        [params.pluginId]: {
+          ...(next.plugins?.entries?.[params.pluginId] as object | undefined),
+          trusted: true,
+        },
+      },
+    },
+  };
+
+  const result = await installPluginFromNpmSpec({
+    spec: params.npmSpec,
+    logger: params.logger,
+    trustedPlugins: buildTrustedPlugins(next),
+    expectedPluginId: params.pluginId,
+  });
+
+  if (!result.ok) {
+    // Don't persist trusted flag if install failed
+    return { cfg: params.cfg, ok: false, error: result.error };
+  }
+
+  next = enablePluginInConfig(next, result.pluginId).config;
+  next = recordPluginInstall(next, {
+    pluginId: result.pluginId,
+    source: "npm",
+    spec: params.npmSpec,
+    installPath: result.targetDir,
+    version: result.version,
+  });
+
+  return {
+    cfg: next,
+    ok: true,
+    version: result.version,
+    targetDir: result.targetDir,
+  };
 }

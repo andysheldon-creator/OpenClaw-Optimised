@@ -573,6 +573,7 @@ export const OpenClawSchema = z
             z
               .object({
                 enabled: z.boolean().optional(),
+                trusted: z.boolean().optional(),
                 config: z.record(z.string(), z.unknown()).optional(),
               })
               .strict(),
