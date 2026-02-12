@@ -506,6 +506,14 @@ export async function runAgentTurnWithFallback(params: {
       const isCompactionFailure = isCompactionFailureError(message);
       const isSessionCorruption = /function call turn comes immediately after/i.test(message);
       const isRoleOrderingError = /incorrect role information|roles must alternate/i.test(message);
+      const isGeminiInvalidArgument =
+        !isContextOverflow &&
+        !isCompactionFailure &&
+        !isSessionCorruption &&
+        !isRoleOrderingError &&
+        /(?:INVALID_ARGUMENT|Request contains an invalid argument|400.*invalid argument)/i.test(
+          message,
+        );
 
       if (
         isCompactionFailure &&
@@ -527,6 +535,19 @@ export async function runAgentTurnWithFallback(params: {
             kind: "final",
             payload: {
               text: "⚠️ Message ordering conflict. I've reset the conversation - please try again.",
+            },
+          };
+        }
+      }
+
+      // Auto-recover from Gemini INVALID_ARGUMENT (likely corrupted session)
+      if (isGeminiInvalidArgument) {
+        const didReset = await params.resetSessionAfterRoleOrderingConflict(message);
+        if (didReset) {
+          return {
+            kind: "final",
+            payload: {
+              text: "⚠️ The API rejected the request (likely a corrupted session). I've reset the conversation - please try again.",
             },
           };
         }
@@ -583,7 +604,9 @@ export async function runAgentTurnWithFallback(params: {
         ? "⚠️ Context overflow — prompt too large for this model. Try a shorter message or a larger-context model."
         : isRoleOrderingError
           ? "⚠️ Message ordering conflict - please try again. If this persists, use /new to start a fresh session."
-          : `⚠️ Agent failed before reply: ${trimmedMessage}.\nLogs: openclaw logs --follow`;
+          : isGeminiInvalidArgument
+            ? "⚠️ The API rejected the request (invalid argument). Try /reset to start a fresh session."
+            : `⚠️ Agent failed before reply: ${trimmedMessage}.\nLogs: openclaw logs --follow`;
 
       return {
         kind: "final",

@@ -186,7 +186,7 @@ describe("runReplyAgent typing (heartbeat)", () => {
       await fs.writeFile(transcriptPath, "ok", "utf-8");
 
       runEmbeddedPiAgentMock.mockImplementationOnce(async () => {
-        throw new Error("INVALID_ARGUMENT: some other failure");
+        throw new Error("SOME_OTHER_ERROR: unexpected internal failure");
       });
 
       const { run } = createMinimalRun({
@@ -212,6 +212,21 @@ describe("runReplyAgent typing (heartbeat)", () => {
         delete process.env.OPENCLAW_STATE_DIR;
       }
     }
+  });
+  it("auto-recovers from Gemini INVALID_ARGUMENT by resetting session", async () => {
+    runEmbeddedPiAgentMock.mockImplementationOnce(async () => {
+      throw new Error("HTTP 400: Request contains an invalid argument.");
+    });
+
+    const { run } = createMinimalRun({});
+    const res = await run();
+
+    expect(res).toMatchObject({
+      text: expect.stringContaining("rejected the request"),
+    });
+    expect(res).toMatchObject({
+      text: expect.not.stringContaining("HTTP 400"),
+    });
   });
   it("returns friendly message for role ordering errors thrown as exceptions", async () => {
     runEmbeddedPiAgentMock.mockImplementationOnce(async () => {
