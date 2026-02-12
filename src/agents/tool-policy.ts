@@ -27,6 +27,7 @@ export const TOOL_GROUPS: Record<string, string[]> = {
     "sessions_send",
     "sessions_spawn",
     "session_status",
+    "provider_quota",
   ],
   // UI helpers
   "group:ui": ["browser", "canvas"],
@@ -50,6 +51,7 @@ export const TOOL_GROUPS: Record<string, string[]> = {
     "sessions_send",
     "sessions_spawn",
     "session_status",
+    "provider_quota",
     "memory_search",
     "memory_get",
     "web_search",
@@ -62,7 +64,7 @@ const OWNER_ONLY_TOOL_NAMES = new Set<string>(["whatsapp_login"]);
 
 const TOOL_PROFILES: Record<ToolProfileId, ToolProfilePolicy> = {
   minimal: {
-    allow: ["session_status"],
+    allow: ["session_status", "provider_quota"],
   },
   coding: {
     allow: ["group:fs", "group:runtime", "group:sessions", "group:memory", "image"],
