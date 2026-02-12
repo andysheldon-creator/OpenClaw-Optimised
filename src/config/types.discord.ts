@@ -1,4 +1,5 @@
 import type { DiscordPluralKitConfig } from "../discord/pluralkit.js";
+import type { ContextDecayConfig } from "./types.agent-defaults.js";
 import type {
   BlockStreamingCoalesceConfig,
   DmPolicy,
@@ -40,6 +41,8 @@ export type DiscordGuildChannelConfig = {
   systemPrompt?: string;
   /** If false, omit thread starter context for this channel (default: true). */
   includeThreadStarter?: boolean;
+  /** Context decay settings for this channel. */
+  contextDecay?: ContextDecayConfig;
 };
 
 export type DiscordReactionNotificationMode = "off" | "own" | "all" | "allowlist";
@@ -145,6 +148,8 @@ export type DiscordAccountConfig = {
   historyLimit?: number;
   /** Max DM turns to keep as history context. */
   dmHistoryLimit?: number;
+  /** Context decay settings for this account. */
+  contextDecay?: ContextDecayConfig;
   /** Per-DM config overrides keyed by user ID. */
   dms?: Record<string, DmConfig>;
   /** Retry policy for outbound Discord API calls. */

@@ -19,7 +19,6 @@ import { resolveSignalReactionLevel } from "../../signal/reaction-level.js";
 import { resolveTelegramInlineButtonsScope } from "../../telegram/inline-buttons.js";
 import { resolveTelegramReactionLevel } from "../../telegram/reaction-level.js";
 import { buildTtsSystemPromptHint } from "../../tts/tts.js";
-import { resolveUserPath } from "../../utils.js";
 import { normalizeMessageChannel } from "../../utils/message-channel.js";
 import { isReasoningTagProvider } from "../../utils/provider-utils.js";
 import { resolveOpenClawAgentDir } from "../agent-paths.js";
@@ -55,6 +54,7 @@ import {
   type SkillSnapshot,
 } from "../skills.js";
 import { resolveTranscriptPolicy } from "../transcript-policy.js";
+import { resolveRunWorkspaceDir } from "../workspace-run.js";
 import { buildEmbeddedExtensionPaths } from "./extensions.js";
 import {
   logToolSchemasForGoogle,
@@ -116,7 +116,12 @@ export type CompactEmbeddedPiSessionParams = {
 export async function compactEmbeddedPiSessionDirect(
   params: CompactEmbeddedPiSessionParams,
 ): Promise<EmbeddedPiCompactResult> {
-  const resolvedWorkspace = resolveUserPath(params.workspaceDir);
+  const workspaceResolution = resolveRunWorkspaceDir({
+    workspaceDir: params.workspaceDir,
+    sessionKey: params.sessionKey,
+    config: params.config,
+  });
+  const resolvedWorkspace = workspaceResolution.workspaceDir;
   const prevCwd = process.cwd();
 
   const provider = (params.provider ?? DEFAULT_PROVIDER).trim() || DEFAULT_PROVIDER;
@@ -386,7 +391,8 @@ export async function compactEmbeddedPiSessionDirect(
         settingsManager,
         minReserveTokens: resolveCompactionReserveTokensFloor(params.config),
       });
-      // Call for side effects (sets compaction/pruning runtime state)
+      // Call for side effects (sets compaction/pruning runtime state).
+      // Context decay is not active during compaction (no sessionKey/sessionFile).
       buildEmbeddedExtensionPaths({
         cfg: params.config,
         sessionManager,
@@ -401,7 +407,7 @@ export async function compactEmbeddedPiSessionDirect(
       });
 
       const { session } = await createAgentSession({
-        cwd: resolvedWorkspace,
+        cwd: effectiveWorkspace,
         agentDir,
         authStorage,
         modelRegistry,
