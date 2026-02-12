@@ -28,7 +28,7 @@ import { GatewayChatClient } from "./gateway-chat.js";
 import { editorTheme, theme } from "./theme/theme.js";
 import { createCommandHandlers } from "./tui-command-handlers.js";
 import { createEventHandlers } from "./tui-event-handlers.js";
-import { formatTokens } from "./tui-formatters.js";
+import { formatTokens, sanitizeForDisplay } from "./tui-formatters.js";
 import { createLocalShellRunner } from "./tui-local-shell.js";
 import { createOverlayHandlers } from "./tui-overlays.js";
 import { createSessionActions } from "./tui-session-actions.js";
@@ -683,7 +683,7 @@ export async function runTui(opts: TuiOptions) {
     isConnected = false;
     wasDisconnected = true;
     historyLoaded = false;
-    const reasonLabel = reason?.trim() ? reason.trim() : "closed";
+    const reasonLabel = reason?.trim() ? sanitizeForDisplay(reason.trim()) : "closed";
     setConnectionStatus(`gateway disconnected: ${reasonLabel}`, 5000);
     setActivityStatus("idle");
     updateFooter();

@@ -1,5 +1,6 @@
 import { Container, Spacer, Text } from "@mariozechner/pi-tui";
 import { theme } from "../theme/theme.js";
+import { sanitizeForDisplay } from "../tui-formatters.js";
 import { AssistantMessageComponent } from "./assistant-message.js";
 import { ToolExecutionComponent } from "./tool-execution.js";
 import { UserMessageComponent } from "./user-message.js";
@@ -17,11 +18,11 @@ export class ChatLog extends Container {
 
   addSystem(text: string) {
     this.addChild(new Spacer(1));
-    this.addChild(new Text(theme.system(text), 1, 0));
+    this.addChild(new Text(theme.system(sanitizeForDisplay(text)), 1, 0));
   }
 
   addUser(text: string) {
-    this.addChild(new UserMessageComponent(text));
+    this.addChild(new UserMessageComponent(sanitizeForDisplay(text)));
   }
 
   private resolveRunId(runId?: string) {
@@ -29,7 +30,8 @@ export class ChatLog extends Container {
   }
 
   startAssistant(text: string, runId?: string) {
-    const component = new AssistantMessageComponent(text);
+    const safe = sanitizeForDisplay(text);
+    const component = new AssistantMessageComponent(safe);
     this.streamingRuns.set(this.resolveRunId(runId), component);
     this.addChild(component);
     return component;
@@ -42,18 +44,19 @@ export class ChatLog extends Container {
       this.startAssistant(text, runId);
       return;
     }
-    existing.setText(text);
+    existing.setText(sanitizeForDisplay(text));
   }
 
   finalizeAssistant(text: string, runId?: string) {
+    const safe = sanitizeForDisplay(text);
     const effectiveRunId = this.resolveRunId(runId);
     const existing = this.streamingRuns.get(effectiveRunId);
     if (existing) {
-      existing.setText(text);
+      existing.setText(safe);
       this.streamingRuns.delete(effectiveRunId);
       return;
     }
-    this.addChild(new AssistantMessageComponent(text));
+    this.addChild(new AssistantMessageComponent(safe));
   }
 
   startTool(toolCallId: string, toolName: string, args: unknown) {

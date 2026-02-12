@@ -1,15 +1,32 @@
 import { formatRawAssistantErrorForUi } from "../agents/pi-embedded-helpers.js";
 import { formatTokenCount } from "../utils/usage-format.js";
 
+/**
+ * Strip non-printable / control characters from text to prevent TUI render crashes.
+ * Binary data (e.g. from WhatsApp attachment bytes leaked into text fields)
+ * contains characters that break terminal width calculations and crash pi-tui.
+ *
+ * Preserves: tab (0x09), newline (0x0A), carriage return (0x0D),
+ *            printable ASCII (0x20-0x7E), and Unicode above U+009F.
+ * Strips:    C0 control (0x00-0x08, 0x0B-0x0C, 0x0E-0x1F),
+ *            DELETE (0x7F), C1 control (0x80-0x9F).
+ */
+// eslint-disable-next-line no-control-regex
+const NON_PRINTABLE_RE = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g;
+
+export function sanitizeForDisplay(text: string): string {
+  return text.replace(NON_PRINTABLE_RE, "");
+}
+
 export function resolveFinalAssistantText(params: {
   finalText?: string | null;
   streamedText?: string | null;
 }) {
-  const finalText = params.finalText ?? "";
+  const finalText = sanitizeForDisplay(params.finalText ?? "");
   if (finalText.trim()) {
     return finalText;
   }
-  const streamedText = params.streamedText ?? "";
+  const streamedText = sanitizeForDisplay(params.streamedText ?? "");
   if (streamedText.trim()) {
     return streamedText;
   }
@@ -62,7 +79,7 @@ export function extractThinkingFromMessage(message: unknown): string {
       parts.push(rec.thinking);
     }
   }
-  return parts.join("\n").trim();
+  return sanitizeForDisplay(parts.join("\n").trim());
 }
 
 /**
@@ -77,7 +94,7 @@ export function extractContentFromMessage(message: unknown): string {
   const content = record.content;
 
   if (typeof content === "string") {
-    return content.trim();
+    return sanitizeForDisplay(content.trim());
   }
 
   // Check for error BEFORE returning empty for non-array content
@@ -85,7 +102,7 @@ export function extractContentFromMessage(message: unknown): string {
     const stopReason = typeof record.stopReason === "string" ? record.stopReason : "";
     if (stopReason === "error") {
       const errorMessage = typeof record.errorMessage === "string" ? record.errorMessage : "";
-      return formatRawAssistantErrorForUi(errorMessage);
+      return sanitizeForDisplay(formatRawAssistantErrorForUi(errorMessage));
     }
     return "";
   }
@@ -106,16 +123,16 @@ export function extractContentFromMessage(message: unknown): string {
     const stopReason = typeof record.stopReason === "string" ? record.stopReason : "";
     if (stopReason === "error") {
       const errorMessage = typeof record.errorMessage === "string" ? record.errorMessage : "";
-      return formatRawAssistantErrorForUi(errorMessage);
+      return sanitizeForDisplay(formatRawAssistantErrorForUi(errorMessage));
     }
   }
 
-  return parts.join("\n").trim();
+  return sanitizeForDisplay(parts.join("\n").trim());
 }
 
 function extractTextBlocks(content: unknown, opts?: { includeThinking?: boolean }): string {
   if (typeof content === "string") {
-    return content.trim();
+    return sanitizeForDisplay(content.trim());
   }
   if (!Array.isArray(content)) {
     return "";
@@ -141,11 +158,13 @@ function extractTextBlocks(content: unknown, opts?: { includeThinking?: boolean 
     }
   }
 
-  return composeThinkingAndContent({
-    thinkingText: thinkingParts.join("\n").trim(),
-    contentText: textParts.join("\n").trim(),
-    showThinking: opts?.includeThinking ?? false,
-  });
+  return sanitizeForDisplay(
+    composeThinkingAndContent({
+      thinkingText: thinkingParts.join("\n").trim(),
+      contentText: textParts.join("\n").trim(),
+      showThinking: opts?.includeThinking ?? false,
+    }),
+  );
 }
 
 export function extractTextFromMessage(
@@ -167,7 +186,7 @@ export function extractTextFromMessage(
   }
 
   const errorMessage = typeof record.errorMessage === "string" ? record.errorMessage : "";
-  return formatRawAssistantErrorForUi(errorMessage);
+  return sanitizeForDisplay(formatRawAssistantErrorForUi(errorMessage));
 }
 
 export function isCommandMessage(message: unknown): boolean {

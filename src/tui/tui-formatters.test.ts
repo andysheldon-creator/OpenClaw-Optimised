@@ -4,6 +4,8 @@ import {
   extractTextFromMessage,
   extractThinkingFromMessage,
   isCommandMessage,
+  resolveFinalAssistantText,
+  sanitizeForDisplay,
 } from "./tui-formatters.js";
 
 describe("extractTextFromMessage", () => {
@@ -60,6 +62,31 @@ describe("extractTextFromMessage", () => {
   });
 });
 
+describe("resolveFinalAssistantText", () => {
+  it("falls through to '(no output)' when finalText is purely binary", () => {
+    const text = resolveFinalAssistantText({
+      finalText: "\x00\x01\x02\x80\x9F",
+      streamedText: null,
+    });
+    expect(text).toBe("(no output)");
+  });
+
+  it("falls through to streamedText when finalText is purely binary", () => {
+    const text = resolveFinalAssistantText({
+      finalText: "\x00\x01\x02",
+      streamedText: "fallback content",
+    });
+    expect(text).toBe("fallback content");
+  });
+
+  it("sanitizes finalText before returning", () => {
+    const text = resolveFinalAssistantText({
+      finalText: "hello\x00world",
+    });
+    expect(text).toBe("helloworld");
+  });
+});
+
 describe("extractThinkingFromMessage", () => {
   it("collects only thinking blocks", () => {
     const text = extractThinkingFromMessage({
@@ -72,6 +99,15 @@ describe("extractThinkingFromMessage", () => {
     });
 
     expect(text).toBe("alpha\nbeta");
+  });
+
+  it("strips binary data from thinking blocks", () => {
+    const text = extractThinkingFromMessage({
+      role: "assistant",
+      content: [{ type: "thinking", thinking: "thought\x00\x01\x80process" }],
+    });
+
+    expect(text).toBe("thoughtprocess");
   });
 });
 
@@ -96,6 +132,74 @@ describe("extractContentFromMessage", () => {
     });
 
     expect(text).toContain("HTTP 429");
+  });
+});
+
+describe("sanitizeForDisplay", () => {
+  it("strips control characters from text", () => {
+    // Simulate binary data that leaked into a text field
+    const binaryText = "hello\x00\x01\x02\x03\x04\x05\x06\x07\x08world";
+    const result = sanitizeForDisplay(binaryText);
+    expect(result).toBe("helloworld");
+  });
+
+  it("strips C1 control codes (0x80-0x9F)", () => {
+    const c1Text = "data\x80\x81\x8F\x9Fmore";
+    const result = sanitizeForDisplay(c1Text);
+    expect(result).toBe("datamore");
+  });
+
+  it("strips DELETE character (0x7F)", () => {
+    const text = "before\x7Fafter";
+    const result = sanitizeForDisplay(text);
+    expect(result).toBe("beforeafter");
+  });
+
+  it("preserves normal whitespace (newline, tab, carriage return)", () => {
+    const text = "line1\nline2\ttabbed\rcarriage";
+    const result = sanitizeForDisplay(text);
+    expect(result).toBe("line1\nline2\ttabbed\rcarriage");
+  });
+
+  it("preserves Unicode printable characters", () => {
+    const text = "café résumé 日本語 한국어 Привет";
+    const result = sanitizeForDisplay(text);
+    expect(result).toBe("café résumé 日本語 한국어 Привет");
+  });
+
+  it("returns empty string for purely binary content", () => {
+    // Simulate raw PDF header bytes as a string
+    const binary = String.fromCharCode(0x00, 0x01, 0x02, 0x80, 0x90, 0x9f, 0x7f);
+    const result = sanitizeForDisplay(binary);
+    expect(result).toBe("");
+  });
+});
+
+describe("extractTextFromMessage — binary sanitization", () => {
+  it("strips binary data from text content blocks", () => {
+    const text = extractTextFromMessage({
+      role: "user",
+      content: [{ type: "text", text: "hello\x00\x01\x02 world\x80\x9F" }],
+    });
+    expect(text).toBe("hello world");
+  });
+
+  it("strips binary data from string content", () => {
+    const text = extractTextFromMessage({
+      role: "user",
+      content: "message\x00\x01with\x7Fbinary",
+    });
+    expect(text).toBe("messagewithbinary");
+  });
+});
+
+describe("extractContentFromMessage — binary sanitization", () => {
+  it("strips binary data from text content blocks", () => {
+    const text = extractContentFromMessage({
+      role: "assistant",
+      content: [{ type: "text", text: "response\x00\x03\x80data" }],
+    });
+    expect(text).toBe("responsedata");
   });
 });
 
