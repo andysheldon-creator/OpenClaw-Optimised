@@ -1,5 +1,5 @@
 import type { OpenClawConfig } from "../config/config.js";
-import { loadSessionStore } from "../config/sessions.js";
+import { loadSessionStore, updateSessionStore } from "../config/sessions.js";
 import { parseSessionLabel } from "../sessions/session-label.js";
 import {
   ErrorCodes,
@@ -15,10 +15,10 @@ import {
 
 export type SessionsResolveResult = { ok: true; key: string } | { ok: false; error: ErrorShape };
 
-export function resolveSessionKeyFromResolveParams(params: {
+export async function resolveSessionKeyFromResolveParams(params: {
   cfg: OpenClawConfig;
   p: SessionsResolveParams;
-}): SessionsResolveResult {
+}): Promise<SessionsResolveResult> {
   const { cfg, p } = params;
 
   const key = typeof p.key === "string" ? p.key.trim() : "";
@@ -46,13 +46,28 @@ export function resolveSessionKeyFromResolveParams(params: {
   if (hasKey) {
     const target = resolveGatewaySessionStoreTarget({ cfg, key });
     const store = loadSessionStore(target.storePath);
-    const existingKey = target.storeKeys.find((candidate) => store[candidate]);
-    if (!existingKey) {
+    if (store[target.canonicalKey]) {
+      return { ok: true, key: target.canonicalKey };
+    }
+    const legacyKey = target.storeKeys.find((candidate) => store[candidate]);
+    if (!legacyKey) {
       return {
         ok: false,
         error: errorShape(ErrorCodes.INVALID_REQUEST, `No session found: ${key}`),
       };
     }
+    await updateSessionStore(target.storePath, (s) => {
+      // Migrate the first legacy entry to the canonical key.
+      if (!s[target.canonicalKey] && s[legacyKey]) {
+        s[target.canonicalKey] = s[legacyKey];
+      }
+      // Delete ALL legacy case-variant keys to fully clean up ghost duplicates.
+      for (const candidate of target.storeKeys) {
+        if (candidate !== target.canonicalKey && s[candidate]) {
+          delete s[candidate];
+        }
+      }
+    });
     return { ok: true, key: target.canonicalKey };
   }
 
