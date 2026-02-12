@@ -564,6 +564,17 @@ export class CallManager {
         event.to || this.config.fromNumber || "unknown",
       );
 
+      // Auto-answer inbound calls
+      if (this.provider && "answerCall" in this.provider) {
+        void (this.provider as { answerCall: (id: string) => Promise<void> })
+          .answerCall(event.providerCallId)
+          .catch((err: unknown) => {
+            console.warn(
+              `[voice-call] Failed to answer inbound call: ${err instanceof Error ? err.message : err}`,
+            );
+          });
+      }
+
       // Update the event's callId to use our internal ID
       event.callId = call.callId;
     }

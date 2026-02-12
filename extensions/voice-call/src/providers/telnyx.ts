@@ -188,6 +188,11 @@ export class TelnyxProvider implements VoiceCallProvider {
       callId,
       providerCallId: data.payload?.call_control_id,
       timestamp: Date.now(),
+      direction: (data.payload?.direction === "incoming" ? "inbound" : "outbound") as
+        | "inbound"
+        | "outbound",
+      from: data.payload?.from as string | undefined,
+      to: data.payload?.to as string | undefined,
     };
 
     switch (data.event_type) {
@@ -296,6 +301,15 @@ export class TelnyxProvider implements VoiceCallProvider {
   }
 
   /**
+   * Answer an inbound call via Telnyx API.
+   */
+  async answerCall(providerCallId: string): Promise<void> {
+    await this.apiRequest(`/calls/${providerCallId}/actions/answer`, {
+      command_id: crypto.randomUUID(),
+    });
+  }
+
+  /**
    * Hang up a call via Telnyx API.
    */
   async hangupCall(input: HangupCallInput): Promise<void> {
@@ -350,6 +364,9 @@ interface TelnyxEvent {
   payload?: {
     call_control_id?: string;
     client_state?: string;
+    direction?: string;
+    from?: string;
+    to?: string;
     text?: string;
     transcription?: string;
     is_final?: boolean;
