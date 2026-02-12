@@ -17,6 +17,7 @@ export type CronDelivery = {
   channel?: CronMessageChannel;
   to?: string;
   bestEffort?: boolean;
+  summaryPrompt?: string | false;
 };
 
 export type CronDeliveryPatch = Partial<CronDelivery>;

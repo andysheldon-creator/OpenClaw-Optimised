@@ -562,6 +562,7 @@ export async function runCronIsolatedAgentTurn(params: {
           endedAt: runEndedAt,
           outcome: { status: "ok" },
           announceType: "cron job",
+          summaryPrompt: params.job.delivery?.summaryPrompt,
         });
         if (!didAnnounce) {
           const message = "cron announce delivery failed";
