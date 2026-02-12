@@ -7,6 +7,7 @@ import os from "node:os";
 import type { EmbeddedRunAttemptParams, EmbeddedRunAttemptResult } from "./types.js";
 import { resolveHeartbeatPrompt } from "../../../auto-reply/heartbeat.js";
 import { resolveChannelCapabilities } from "../../../config/channel-capabilities.js";
+import { emitAgentEvent } from "../../../infra/agent-events.js";
 import { getMachineDisplayName } from "../../../infra/machine-name.js";
 import { MAX_IMAGE_BYTES } from "../../../media/constants.js";
 import { getGlobalHookRunner } from "../../../plugins/hook-runner-global.js";
@@ -628,6 +629,42 @@ export async function runEmbeddedAttempt(
         });
       };
 
+      const onSafeguardAbort = (reason: string) => {
+        const err = new Error(reason);
+        err.name = "SafeguardAbortError";
+
+        const safeguardMessage = `[Safeguard] Aborted: ${reason}`;
+
+        // Emit an assistant event first so the text is buffered in chatRunState.buffers.
+        // When the lifecycle:end event follows, emitChatFinal reads this buffer and
+        // sends it as the final chat message — preventing the "(no output)" display.
+        emitAgentEvent({
+          runId: params.runId,
+          stream: "assistant" as const,
+          data: { text: safeguardMessage },
+        });
+
+        const endEvent = {
+          stream: "lifecycle" as const,
+          data: {
+            phase: "end" as const,
+            error: reason,
+            aborted: true,
+          },
+        };
+
+        // Emit globally for TUI
+        emitAgentEvent({
+          runId: params.runId,
+          ...endEvent,
+        });
+
+        // Emit locally for agent runner state tracking
+        void params.onAgentEvent?.(endEvent);
+
+        abortRun(false, err);
+      };
+
       const subscription = subscribeEmbeddedPiSession({
         session: activeSession,
         runId: params.runId,
@@ -646,6 +683,8 @@ export async function runEmbeddedAttempt(
         onAssistantMessageStart: params.onAssistantMessageStart,
         onAgentEvent: params.onAgentEvent,
         enforceFinalTag: params.enforceFinalTag,
+        safeguards: params.config?.agents?.defaults?.safeguards,
+        onAbort: onSafeguardAbort,
       });
 
       const {

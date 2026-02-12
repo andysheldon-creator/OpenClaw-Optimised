@@ -69,6 +69,14 @@ export async function handleToolExecutionStart(
   );
 
   const shouldEmitToolEvents = ctx.shouldEmitToolResult();
+
+  if (toolName) {
+    const ok = ctx.checkSafeguards(toolName, meta);
+    if (!ok) {
+      return;
+    }
+  }
+
   emitAgentEvent({
     runId: ctx.params.runId,
     stream: "tool",

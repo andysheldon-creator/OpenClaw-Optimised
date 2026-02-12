@@ -48,6 +48,15 @@ export type AgentContextPruningConfig = {
   };
 };
 
+export type AgentSafeguardsConfig = {
+  /** Max tool-call turns before forced termination. Disabled when omitted. */
+  maxTurns?: number;
+  /** Enable repeated-tool-call loop detection. Disabled when omitted or false. */
+  loopDetection?: boolean;
+  /** Number of consecutive identical tool calls to trigger loop abort (default: 3). */
+  loopThreshold?: number;
+};
+
 export type CliBackendConfig = {
   /** CLI command to execute (absolute path or on PATH). */
   command: string;
@@ -130,6 +139,8 @@ export type AgentDefaultsConfig = {
   cliBackends?: Record<string, CliBackendConfig>;
   /** Opt-in: prune old tool results from the LLM context to reduce token usage. */
   contextPruning?: AgentContextPruningConfig;
+  /** Safeguards against infinite loops and excessive turns. */
+  safeguards?: AgentSafeguardsConfig;
   /** Compaction tuning and pre-compaction memory flush behavior. */
   compaction?: AgentCompactionConfig;
   /** Vector memory search configuration (per-agent overrides supported). */

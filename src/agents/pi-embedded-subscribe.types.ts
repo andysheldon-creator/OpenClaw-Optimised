@@ -30,6 +30,8 @@ export type SubscribeEmbeddedPiSessionParams = {
   onAssistantMessageStart?: () => void | Promise<void>;
   onAgentEvent?: (evt: { stream: string; data: Record<string, unknown> }) => void | Promise<void>;
   enforceFinalTag?: boolean;
+  safeguards?: import("../config/types.agent-defaults.js").AgentSafeguardsConfig;
+  onAbort?: (reason: string) => void;
 };
 
 export type { BlockReplyChunking } from "./pi-embedded-block-chunker.js";
