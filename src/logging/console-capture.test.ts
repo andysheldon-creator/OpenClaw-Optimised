@@ -86,7 +86,8 @@ describe("enableConsoleCapture", () => {
     console.warn("[EventQueue] Slow listener detected");
     expect(warn).toHaveBeenCalledTimes(1);
     const firstArg = String(warn.mock.calls[0]?.[0] ?? "");
-    expect(firstArg.startsWith("2026-01-17T18:01:02.000Z [EventQueue]")).toBe(true);
+    // Timestamp format is now HH:MM:SS in local time (respects TZ)
+    expect(firstArg).toMatch(/^\d{2}:\d{2}:\d{2} \[EventQueue\]/);
     vi.useRealTimers();
   });
 

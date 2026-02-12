@@ -136,11 +136,26 @@ function isEpipeError(err: unknown): boolean {
 }
 
 function formatConsoleTimestamp(style: ConsoleStyle): string {
-  const now = new Date().toISOString();
+  const now = new Date();
   if (style === "pretty") {
-    return now.slice(11, 19);
+    // Use Intl to explicitly respect TZ env var (more robust than Date.getHours())
+    try {
+      return new Intl.DateTimeFormat("en-GB", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+        timeZone: process.env.TZ || undefined,
+      }).format(now);
+    } catch {
+      // Fallback if TZ is invalid
+      const hh = String(now.getHours()).padStart(2, "0");
+      const mm = String(now.getMinutes()).padStart(2, "0");
+      const ss = String(now.getSeconds()).padStart(2, "0");
+      return `${hh}:${mm}:${ss}`;
+    }
   }
-  return now;
+  return now.toISOString();
 }
 
 function hasTimestampPrefix(value: string): boolean {
