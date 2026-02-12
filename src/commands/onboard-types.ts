@@ -37,6 +37,7 @@ export type AuthChoice =
   | "github-copilot"
   | "copilot-proxy"
   | "qwen-portal"
+  | "qwen-api-key"
   | "xai-api-key"
   | "qianfan-api-key"
   | "custom-api-key"
