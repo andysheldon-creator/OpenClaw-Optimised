@@ -3,7 +3,10 @@ import type { AnyAgentTool } from "./pi-tools.types.js";
 import type { SandboxToolPolicy } from "./sandbox.js";
 import { getChannelDock } from "../channels/dock.js";
 import { resolveChannelGroupToolsPolicy } from "../config/group-policy.js";
-import { resolveThreadParentSessionKey } from "../sessions/session-key-utils.js";
+import {
+  isSubagentSessionKey,
+  resolveThreadParentSessionKey,
+} from "../sessions/session-key-utils.js";
 import { normalizeMessageChannel } from "../utils/message-channel.js";
 import { resolveAgentConfig, resolveAgentIdFromSessionKey } from "./agent-scope.js";
 import { expandToolGroups, normalizeToolName } from "./tool-policy.js";
@@ -81,7 +84,6 @@ const DEFAULT_SUBAGENT_TOOL_DENY = [
   "sessions_list",
   "sessions_history",
   "sessions_send",
-  "sessions_spawn",
   // System admin - dangerous from subagent
   "gateway",
   "agents_list",
@@ -95,10 +97,36 @@ const DEFAULT_SUBAGENT_TOOL_DENY = [
   "memory_get",
 ];
 
-export function resolveSubagentToolPolicy(cfg?: OpenClawConfig): SandboxToolPolicy {
+function isNestedSpawnEnabledForSession(
+  cfg?: OpenClawConfig,
+  opts?: { sessionKey?: string; agentId?: string; forceSubagent?: boolean },
+): boolean {
+  if (!cfg) {
+    return false;
+  }
+  const sessionKey = opts?.sessionKey;
+  const isSubagent = opts?.forceSubagent ?? isSubagentSessionKey(sessionKey);
+  if (!isSubagent) {
+    return false;
+  }
+  const agentId = opts?.agentId ? opts.agentId : resolveAgentIdFromSessionKey(sessionKey);
+  const agentConfig = resolveAgentConfig(cfg, agentId);
+  return (
+    agentConfig?.subagents?.allowNestedSpawns ??
+    cfg.agents?.defaults?.subagents?.allowNestedSpawns ??
+    false
+  );
+}
+
+export function resolveSubagentToolPolicy(
+  cfg?: OpenClawConfig,
+  opts?: { sessionKey?: string; agentId?: string; forceSubagent?: boolean },
+): SandboxToolPolicy {
   const configured = cfg?.tools?.subagents?.tools;
+  const nestedSpawnEnabled = isNestedSpawnEnabledForSession(cfg, opts);
   const deny = [
     ...DEFAULT_SUBAGENT_TOOL_DENY,
+    ...(nestedSpawnEnabled ? [] : ["sessions_spawn"]),
     ...(Array.isArray(configured?.deny) ? configured.deny : []),
   ];
   const allow = Array.isArray(configured?.allow) ? configured.allow : undefined;

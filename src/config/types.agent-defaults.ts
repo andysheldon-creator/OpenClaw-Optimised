@@ -210,6 +210,10 @@ export type AgentDefaultsConfig = {
     model?: string | { primary?: string; fallbacks?: string[] };
     /** Default thinking level for spawned sub-agents (e.g. "off", "low", "medium", "high"). */
     thinking?: string;
+    /** Allow sub-agent sessions to call sessions_spawn (nested spawning). Default: false. */
+    allowNestedSpawns?: boolean;
+    /** Max allowed sub-agent nesting depth when nested spawning is enabled (default: 2). */
+    maxDepth?: number;
   };
   /** Optional sandbox settings for non-main sessions. */
   sandbox?: {

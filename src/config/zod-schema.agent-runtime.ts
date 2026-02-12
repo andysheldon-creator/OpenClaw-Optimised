@@ -466,6 +466,8 @@ export const AgentEntrySchema = z
           ])
           .optional(),
         thinking: z.string().optional(),
+        allowNestedSpawns: z.boolean().optional(),
+        maxDepth: z.number().int().positive().optional(),
       })
       .strict()
       .optional(),

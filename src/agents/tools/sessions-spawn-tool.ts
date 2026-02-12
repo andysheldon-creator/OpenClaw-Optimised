@@ -3,7 +3,7 @@ import crypto from "node:crypto";
 import type { GatewayMessageChannel } from "../../utils/message-channel.js";
 import type { AnyAgentTool } from "./common.js";
 import { formatThinkingLevels, normalizeThinkLevel } from "../../auto-reply/thinking.js";
-import { loadConfig } from "../../config/config.js";
+import { type OpenClawConfig, loadConfig } from "../../config/config.js";
 import { callGateway } from "../../gateway/call.js";
 import {
   isSubagentSessionKey,
@@ -65,6 +65,51 @@ function normalizeModelSelection(value: unknown): string | undefined {
   return undefined;
 }
 
+function parseSubagentDepth(sessionKey?: string): number {
+  const raw = (sessionKey ?? "").trim();
+  if (!raw || !isSubagentSessionKey(raw)) {
+    return 0;
+  }
+  const rest = raw.startsWith("agent:") ? (parseAgentSessionKey(raw)?.rest ?? raw) : raw;
+  const match = /^subagent:(\d+):/i.exec(rest);
+  if (match) {
+    const parsed = Number.parseInt(match[1] ?? "", 10);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+  return 1;
+}
+
+function resolveNestedSpawnPolicy(
+  cfg: OpenClawConfig,
+  requesterAgentId: string,
+): {
+  enabled: boolean;
+  maxDepth: number;
+} {
+  const requesterAgent = resolveAgentConfig(cfg, requesterAgentId);
+  const enabled =
+    requesterAgent?.subagents?.allowNestedSpawns ??
+    cfg.agents?.defaults?.subagents?.allowNestedSpawns ??
+    false;
+  const configuredMaxDepth =
+    requesterAgent?.subagents?.maxDepth ?? cfg.agents?.defaults?.subagents?.maxDepth;
+  const maxDepth =
+    typeof configuredMaxDepth === "number" && Number.isFinite(configuredMaxDepth)
+      ? Math.max(1, Math.floor(configuredMaxDepth))
+      : 2;
+  return { enabled, maxDepth };
+}
+
+function buildSubagentSessionKey(agentId: string, depth: number): string {
+  const suffix = crypto.randomUUID();
+  if (depth <= 1) {
+    return `agent:${agentId}:subagent:${suffix}`;
+  }
+  return `agent:${agentId}:subagent:${depth}:${suffix}`;
+}
+
 export function createSessionsSpawnTool(opts?: {
   agentSessionKey?: string;
   agentChannel?: GatewayMessageChannel;
@@ -119,12 +164,6 @@ export function createSessionsSpawnTool(opts?: {
       const cfg = loadConfig();
       const { mainKey, alias } = resolveMainSessionAlias(cfg);
       const requesterSessionKey = opts?.agentSessionKey;
-      if (typeof requesterSessionKey === "string" && isSubagentSessionKey(requesterSessionKey)) {
-        return jsonResult({
-          status: "forbidden",
-          error: "sessions_spawn is not allowed from sub-agent sessions",
-        });
-      }
       const requesterInternalKey = requesterSessionKey
         ? resolveInternalSessionKey({
             key: requesterSessionKey,
@@ -141,6 +180,24 @@ export function createSessionsSpawnTool(opts?: {
       const requesterAgentId = normalizeAgentId(
         opts?.requesterAgentIdOverride ?? parseAgentSessionKey(requesterInternalKey)?.agentId,
       );
+      const requesterDepth = parseSubagentDepth(requesterInternalKey);
+      if (requesterDepth > 0) {
+        const nestedPolicy = resolveNestedSpawnPolicy(cfg, requesterAgentId);
+        if (!nestedPolicy.enabled) {
+          return jsonResult({
+            status: "forbidden",
+            error:
+              "sessions_spawn is not allowed from sub-agent sessions unless nested spawning is enabled",
+          });
+        }
+        if (requesterDepth + 1 > nestedPolicy.maxDepth) {
+          return jsonResult({
+            status: "forbidden",
+            error: `nested sub-agent spawn depth exceeded (maxDepth=${nestedPolicy.maxDepth})`,
+          });
+        }
+      }
+
       const targetAgentId = requestedAgentId
         ? normalizeAgentId(requestedAgentId)
         : requesterAgentId;
@@ -165,7 +222,9 @@ export function createSessionsSpawnTool(opts?: {
           });
         }
       }
-      const childSessionKey = `agent:${targetAgentId}:subagent:${crypto.randomUUID()}`;
+
+      const childDepth = requesterDepth > 0 ? requesterDepth + 1 : 1;
+      const childSessionKey = buildSubagentSessionKey(targetAgentId, childDepth);
       const spawnedByKey = requesterInternalKey;
       const targetAgentConfig = resolveAgentConfig(cfg, targetAgentId);
       const resolvedModel =

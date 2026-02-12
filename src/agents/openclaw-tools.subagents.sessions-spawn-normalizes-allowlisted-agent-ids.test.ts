@@ -127,6 +127,109 @@ describe("openclaw-tools: subagents", () => {
     expect(callGatewayMock).not.toHaveBeenCalled();
   });
 
+  it("sessions_spawn forbids nested spawning by default", async () => {
+    resetSubagentRegistryForTests();
+    callGatewayMock.mockReset();
+
+    const tool = createOpenClawTools({
+      agentSessionKey: "agent:main:subagent:parent",
+      agentChannel: "whatsapp",
+    }).find((candidate) => candidate.name === "sessions_spawn");
+    if (!tool) {
+      throw new Error("missing sessions_spawn tool");
+    }
+
+    const result = await tool.execute("call9b", {
+      task: "do nested thing",
+    });
+    expect(result.details).toMatchObject({
+      status: "forbidden",
+    });
+    expect(callGatewayMock).not.toHaveBeenCalled();
+  });
+
+  it("sessions_spawn allows nested spawning when enabled and maxDepth permits", async () => {
+    resetSubagentRegistryForTests();
+    callGatewayMock.mockReset();
+    configOverride = {
+      session: {
+        mainKey: "main",
+        scope: "per-sender",
+      },
+      agents: {
+        defaults: {
+          subagents: {
+            allowNestedSpawns: true,
+            maxDepth: 2,
+          },
+        },
+      },
+    };
+
+    let childSessionKey: string | undefined;
+    callGatewayMock.mockImplementation(async (opts: unknown) => {
+      const request = opts as { method?: string; params?: unknown };
+      if (request.method === "agent") {
+        const params = request.params as { sessionKey?: string } | undefined;
+        childSessionKey = params?.sessionKey;
+        return { runId: "run-nested-1", status: "accepted", acceptedAt: 6100 };
+      }
+      return {};
+    });
+
+    const tool = createOpenClawTools({
+      agentSessionKey: "agent:main:subagent:parent",
+      agentChannel: "whatsapp",
+    }).find((candidate) => candidate.name === "sessions_spawn");
+    if (!tool) {
+      throw new Error("missing sessions_spawn tool");
+    }
+
+    const result = await tool.execute("call9c", {
+      task: "do nested thing",
+    });
+    expect(result.details).toMatchObject({
+      status: "accepted",
+      runId: "run-nested-1",
+    });
+    expect(childSessionKey?.startsWith("agent:main:subagent:2:")).toBe(true);
+  });
+
+  it("sessions_spawn enforces maxDepth for nested spawning", async () => {
+    resetSubagentRegistryForTests();
+    callGatewayMock.mockReset();
+    configOverride = {
+      session: {
+        mainKey: "main",
+        scope: "per-sender",
+      },
+      agents: {
+        defaults: {
+          subagents: {
+            allowNestedSpawns: true,
+            maxDepth: 2,
+          },
+        },
+      },
+    };
+
+    const tool = createOpenClawTools({
+      agentSessionKey: "agent:main:subagent:2:parent",
+      agentChannel: "whatsapp",
+    }).find((candidate) => candidate.name === "sessions_spawn");
+    if (!tool) {
+      throw new Error("missing sessions_spawn tool");
+    }
+
+    const result = await tool.execute("call9d", {
+      task: "too deep",
+    });
+    expect(result.details).toMatchObject({
+      status: "forbidden",
+    });
+    expect(callGatewayMock).not.toHaveBeenCalled();
+  });
+
   it("sessions_spawn runs cleanup via lifecycle events", async () => {
     resetSubagentRegistryForTests();
     callGatewayMock.mockReset();

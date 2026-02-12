@@ -11,7 +11,7 @@ import type { AnyAgentTool } from "./pi-tools.types.js";
 import type { SandboxContext } from "./sandbox.js";
 import { logWarn } from "../logger.js";
 import { getPluginToolMeta } from "../plugins/tools.js";
-import { isSubagentSessionKey } from "../routing/session-key.js";
+import { isSubagentSessionKey, normalizeAgentId } from "../routing/session-key.js";
 import { resolveGatewayMessageChannel } from "../utils/message-channel.js";
 import { createApplyPatchTool } from "./apply-patch.js";
 import {
@@ -56,6 +56,65 @@ import {
 function isOpenAIProvider(provider?: string) {
   const normalized = provider?.trim().toLowerCase();
   return normalized === "openai" || normalized === "openai-codex";
+}
+
+function deriveAgentIdFromAgentDir(agentDir?: string): string | undefined {
+  const raw = agentDir?.trim();
+  if (!raw) {
+    return undefined;
+  }
+  const match = raw.match(/[\\/]agents[\\/]([^\\/]+)[\\/]agent(?:[\\/]|$)/i);
+  const candidate = match?.[1]?.trim();
+  return candidate ? normalizeAgentId(candidate) : undefined;
+}
+
+function resolveSubagentSessionPolicyContext(params: {
+  sessionKey?: string;
+  agentId?: string;
+  agentDir?: string;
+  spawnedBy?: string | null;
+}): { sessionKey?: string; agentId?: string; forceSubagent: boolean } {
+  const raw = params.sessionKey?.trim();
+  const agentIdFromDir = deriveAgentIdFromAgentDir(params.agentDir);
+  const preferDirAgentId = !!params.spawnedBy && (!raw || !raw.startsWith("agent:"));
+  const fallbackAgentId = normalizeAgentId(
+    preferDirAgentId
+      ? (agentIdFromDir ?? params.agentId ?? "main")
+      : (params.agentId ?? agentIdFromDir ?? "main"),
+  );
+  if (!raw) {
+    return {
+      sessionKey: params.spawnedBy ? `agent:${fallbackAgentId}:subagent:derived` : undefined,
+      agentId: fallbackAgentId,
+      forceSubagent: !!params.spawnedBy,
+    };
+  }
+  if (raw.startsWith("agent:")) {
+    return {
+      sessionKey: raw,
+      agentId: fallbackAgentId,
+      forceSubagent: !!params.spawnedBy || isSubagentSessionKey(raw),
+    };
+  }
+  if (isSubagentSessionKey(raw)) {
+    return {
+      sessionKey: `agent:${fallbackAgentId}:${raw}`,
+      agentId: fallbackAgentId,
+      forceSubagent: true,
+    };
+  }
+  if (params.spawnedBy) {
+    return {
+      sessionKey: `agent:${fallbackAgentId}:subagent:derived`,
+      agentId: fallbackAgentId,
+      forceSubagent: true,
+    };
+  }
+  return {
+    sessionKey: raw,
+    agentId: fallbackAgentId,
+    forceSubagent: false,
+  };
 }
 
 function isApplyPatchAllowedForModel(params: {
@@ -213,10 +272,15 @@ export function createOpenClawCodingTools(options?: {
     providerProfileAlsoAllow,
   );
   const scopeKey = options?.exec?.scopeKey ?? (agentId ? `agent:${agentId}` : undefined);
-  const subagentPolicy =
-    isSubagentSessionKey(options?.sessionKey) && options?.sessionKey
-      ? resolveSubagentToolPolicy(options.config)
-      : undefined;
+  const subagentPolicyContext = resolveSubagentSessionPolicyContext({
+    sessionKey: options?.sessionKey,
+    agentId,
+    agentDir: options?.agentDir,
+    spawnedBy: options?.spawnedBy,
+  });
+  const subagentPolicy = subagentPolicyContext.forceSubagent
+    ? resolveSubagentToolPolicy(options?.config, subagentPolicyContext)
+    : undefined;
   const allowBackground = isToolAllowedByPolicies("process", [
     profilePolicyWithAlsoAllow,
     providerProfilePolicyWithAlsoAllow,

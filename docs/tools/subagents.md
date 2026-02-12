@@ -331,7 +331,7 @@ By default, sub-agents get **all tools except** a set of denied tools that are u
     | `sessions_list` | Session management — main agent orchestrates |
     | `sessions_history` | Session management — main agent orchestrates |
     | `sessions_send` | Session management — main agent orchestrates |
-    | `sessions_spawn` | No nested fan-out (sub-agents cannot spawn sub-agents) |
+    | `sessions_spawn` | Denied by default (prevents nested fan-out unless explicitly enabled) |
     | `gateway` | System admin — dangerous from sub-agent |
     | `agents_list` | System admin |
     | `whatsapp_login` | Interactive setup — not a task |
@@ -377,6 +377,35 @@ To restrict sub-agents to **only** specific tools:
 <Note>
 Custom deny entries are **added to** the default deny list. If `allow` is set, only those tools are available (the default deny list still applies on top).
 </Note>
+
+### Enabling nested spawning (advanced)
+
+Nested spawning is **off by default**. To allow sub-agents to call `sessions_spawn`, opt in with `allowNestedSpawns` and keep a strict depth cap with `maxDepth`.
+
+```json5
+{
+  agents: {
+    defaults: {
+      subagents: {
+        allowNestedSpawns: true,
+        maxDepth: 2, // one nested hop: parent sub-agent -> child sub-agent
+      },
+    },
+    list: [
+      {
+        id: "planner",
+        subagents: {
+          allowNestedSpawns: true, // per-agent override
+          maxDepth: 2,
+          allowAgents: ["coder", "qa"],
+        },
+      },
+    ],
+  },
+}
+```
+
+Use this sparingly: keep the allowlist tight and avoid deep delegation chains.
 
 ## Authentication
 
@@ -424,6 +453,8 @@ The sub-agent also receives a task-focused system prompt that instructs it to st
         thinking: "low",
         maxConcurrent: 4,
         archiveAfterMinutes: 30,
+        allowNestedSpawns: true,
+        maxDepth: 2,
       },
     },
     list: [
@@ -438,6 +469,8 @@ The sub-agent also receives a task-focused system prompt that instructs it to st
         subagents: {
           model: "anthropic/claude-sonnet-4",
           allowAgents: ["main"], // ops can spawn sub-agents under "main"
+          allowNestedSpawns: true,
+          maxDepth: 2,
         },
       },
     ],
@@ -457,7 +490,7 @@ The sub-agent also receives a task-focused system prompt that instructs it to st
 
 <Warning>
 - **Best-effort announce:** If the gateway restarts, pending announce work is lost.
-- **No nested spawning:** Sub-agents cannot spawn their own sub-agents.
+- **Nested spawning is opt-in:** Disabled by default. Enable with `allowNestedSpawns` and keep `maxDepth` low (recommended: `2`).
 - **Shared resources:** Sub-agents share the gateway process; use `maxConcurrent` as a safety valve.
 - **Auto-archive is best-effort:** Pending archive timers are lost on gateway restart.
 </Warning>
