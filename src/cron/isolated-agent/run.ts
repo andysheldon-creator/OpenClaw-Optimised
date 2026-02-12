@@ -6,6 +6,7 @@ import {
   resolveAgentConfig,
   resolveAgentDir,
   resolveAgentModelFallbacksOverride,
+  resolveAgentSkillsFilter,
   resolveAgentWorkspaceDir,
   resolveDefaultAgentId,
 } from "../../agents/agent-scope.js";
@@ -328,25 +329,23 @@ export async function runCronIsolatedAgentTurn(params: {
       `${commandBody}\n\nReturn your summary as plain text; it will be delivered automatically. If the task explicitly calls for messaging a specific external recipient, note who/where it should go instead of sending it yourself.`.trim();
   }
 
-  const existingSnapshot = cronSession.sessionEntry.skillsSnapshot;
   const skillsSnapshotVersion = getSkillsSnapshotVersion(workspaceDir);
-  const needsSkillsSnapshot =
-    !existingSnapshot || existingSnapshot.version !== skillsSnapshotVersion;
-  const skillsSnapshot = needsSkillsSnapshot
-    ? buildWorkspaceSkillSnapshot(workspaceDir, {
-        config: cfgWithAgentDefaults,
-        eligibility: { remote: getRemoteSkillEligibility() },
-        snapshotVersion: skillsSnapshotVersion,
-      })
-    : cronSession.sessionEntry.skillsSnapshot;
-  if (needsSkillsSnapshot && skillsSnapshot) {
-    cronSession.sessionEntry = {
-      ...cronSession.sessionEntry,
-      updatedAt: Date.now(),
-      skillsSnapshot,
-    };
-    await persistSessionEntry();
-  }
+  const skillFilter = resolveAgentSkillsFilter(params.cfg, agentId);
+  // Always rebuild: cron runs are infrequent (scheduled, not per-message), and
+  // config-level allowlist changes (agents.list[].skills) do not bump the snapshot
+  // version, so a version-only cache check would miss filter changes.
+  const skillsSnapshot = buildWorkspaceSkillSnapshot(workspaceDir, {
+    config: cfgWithAgentDefaults,
+    skillFilter,
+    eligibility: { remote: getRemoteSkillEligibility() },
+    snapshotVersion: skillsSnapshotVersion,
+  });
+  cronSession.sessionEntry = {
+    ...cronSession.sessionEntry,
+    updatedAt: Date.now(),
+    skillsSnapshot,
+  };
+  await persistSessionEntry();
 
   // Persist systemSent before the run, mirroring the inbound auto-reply behavior.
   cronSession.sessionEntry.systemSent = true;
