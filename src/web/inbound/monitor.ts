@@ -1,4 +1,4 @@
-import type { AnyMessageContent, proto, WAMessage } from "@whiskeysockets/baileys";
+import type { AnyMessageContent, GroupMetadata, proto, WAMessage } from "@whiskeysockets/baileys";
 import { DisconnectReason, isJidGroup } from "@whiskeysockets/baileys";
 import type { WebInboundMessage, WebListenerCloseReason } from "./types.js";
 import { createInboundDebouncer } from "../../auto-reply/inbound-debounce.js";
@@ -10,6 +10,7 @@ import { createSubsystemLogger } from "../../logging/subsystem.js";
 import { saveMediaBuffer } from "../../media/store.js";
 import { jidToE164, resolveJidToE164 } from "../../utils.js";
 import { createWaSocket, getStatusCode, waitForWaConnection } from "../session.js";
+import { WhatsAppMessageStore, type StoredMessage } from "../whatsapp-message-store.js";
 import { checkInboundAccessControl } from "./access-control.js";
 import { isRecentInboundMessage } from "./dedupe.js";
 import {
@@ -34,6 +35,8 @@ export async function monitorWebInbox(options: {
   debounceMs?: number;
   /** Optional debounce gating predicate. */
   shouldDebounce?: (msg: WebInboundMessage) => boolean;
+  /** Optional message store instance. */
+  messageStore?: WhatsAppMessageStore | null;
 }) {
   const inboundLogger = getChildLogger({ module: "web-inbound" });
   const inboundConsoleLog = createSubsystemLogger("gateway/channels/whatsapp").child("inbound");
@@ -199,6 +202,22 @@ export async function monitorWebInbox(options: {
         ? Number(msg.messageTimestamp) * 1000
         : undefined;
 
+      // Store message BEFORE policy checks (for history/search)
+      const messageText = extractText(msg.message ?? undefined);
+      if (messageText && options.messageStore) {
+        const storedMsg: StoredMessage = {
+          id,
+          chatJid: remoteJid,
+          senderJid: participantJid,
+          text: messageText,
+          timestamp: messageTimestampMs ?? Date.now(),
+          fromMe: Boolean(msg.key?.fromMe),
+          pushName: msg.pushName ?? undefined,
+          type: "text", // simplified for now
+        };
+        options.messageStore.storeMessage(storedMsg);
+      }
+
       const access = await checkInboundAccessControl({
         accountId: options.accountId,
         from,
@@ -345,6 +364,53 @@ export async function monitorWebInbox(options: {
   };
   sock.ev.on("messages.upsert", handleMessagesUpsert);
 
+  // Sync message history on connection — WhatsApp sends historical messages
+  // via "messaging-history.set" when the device reconnects
+  // Only register this listener if message store is enabled
+  if (options.messageStore) {
+    sock.ev.on(
+      "messaging-history.set",
+      (data: {
+        messages?: Array<WAMessage>;
+        chats?: unknown[];
+        contacts?: unknown[];
+        isLatest?: boolean;
+      }) => {
+        const msgs = data.messages ?? [];
+        let stored = 0;
+        for (const msg of msgs) {
+          const remoteJid = msg.key?.remoteJid;
+          if (!remoteJid || remoteJid.endsWith("@status") || remoteJid.endsWith("@broadcast")) {
+            continue;
+          }
+          const text = extractText(msg.message ?? undefined);
+          if (!text) {
+            continue;
+          }
+          const ts = msg.messageTimestamp ? Number(msg.messageTimestamp) * 1000 : Date.now();
+          if (options.messageStore) {
+            options.messageStore.storeMessage({
+              id: msg.key?.id ?? undefined,
+              chatJid: remoteJid,
+              senderJid: msg.key?.participant ?? undefined,
+              text,
+              timestamp: ts,
+              fromMe: Boolean(msg.key?.fromMe),
+              pushName: msg.pushName ?? undefined,
+              type: "text",
+            });
+            stored++;
+          }
+        }
+        if (stored > 0) {
+          logVerbose(
+            `[WA history sync] Stored ${stored} messages from ${msgs.length} total (isLatest: ${data.isLatest})`,
+          );
+        }
+      },
+    );
+  }
+
   const handleConnectionUpdate = (
     update: Partial<import("@whiskeysockets/baileys").ConnectionState>,
   ) => {
@@ -370,6 +436,7 @@ export async function monitorWebInbox(options: {
       sendPresenceUpdate: (presence, jid?: string) => sock.sendPresenceUpdate(presence, jid),
     },
     defaultAccountId: options.accountId,
+    messageStore: options.messageStore,
   });
 
   return {
@@ -403,5 +470,52 @@ export async function monitorWebInbox(options: {
     },
     // IPC surface (sendMessage/sendPoll/sendReaction/sendComposingTo)
     ...sendApi,
+    // Message history and retrieval methods (only if store is enabled)
+    ...(options.messageStore
+      ? {
+          fetchMessageHistory: async (chatJid: string, count: number): Promise<void> => {
+            // Get the oldest message from the store to use as a starting point
+            const existingMessages = options.messageStore!.getMessages(chatJid);
+            if (existingMessages.length > 0) {
+              const oldestMsg = existingMessages[0];
+              const timestamp = oldestMsg.timestamp || Date.now();
+              await sock.fetchMessageHistory(
+                count,
+                { remoteJid: chatJid, id: oldestMsg.id || "" },
+                timestamp,
+              );
+            } else {
+              // If no messages in store, fetch from current time
+              await sock.fetchMessageHistory(count, { remoteJid: chatJid, id: "" }, Date.now());
+            }
+          },
+          getMessages: async (chatJid: string, limit?: number): Promise<StoredMessage[]> => {
+            return options.messageStore!.getMessages(chatJid, limit);
+          },
+          searchMessages: async (
+            query: string,
+            chatJid?: string,
+            limit?: number,
+          ): Promise<StoredMessage[]> => {
+            return options.messageStore!.searchMessages(query, chatJid, limit);
+          },
+          listChats: async () => {
+            return options.messageStore!.listChats();
+          },
+        }
+      : {}),
+    fetchAllGroups: async () => {
+      try {
+        const groups = await sock.groupFetchAllParticipating();
+        return Object.values(groups).map((g: GroupMetadata) => ({
+          jid: g.id,
+          subject: g.subject ?? "Unknown",
+          participants: g.participants?.length ?? 0,
+        }));
+      } catch (err) {
+        logVerbose(`Failed to fetch groups: ${String(err)}`);
+        return [];
+      }
+    },
   } as const;
 }

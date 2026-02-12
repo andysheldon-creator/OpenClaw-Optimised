@@ -1,4 +1,5 @@
 import type { PollInput } from "../polls.js";
+import type { StoredMessage, ChatSummary } from "./whatsapp-message-store.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import { DEFAULT_ACCOUNT_ID } from "../routing/session-key.js";
 
@@ -25,6 +26,11 @@ export type ActiveWebListener = {
   ) => Promise<void>;
   sendComposingTo: (to: string) => Promise<void>;
   close?: () => Promise<void>;
+  fetchMessageHistory?: (chatJid: string, count: number) => Promise<void>;
+  getMessages?: (chatJid: string, limit?: number) => Promise<StoredMessage[]>;
+  searchMessages?: (query: string, chatJid?: string, limit?: number) => Promise<StoredMessage[]>;
+  listChats?: () => Promise<ChatSummary[]>;
+  fetchAllGroups?: () => Promise<Array<{ jid: string; subject: string; participants?: number }>>;
 };
 
 let _currentListener: ActiveWebListener | null = null;

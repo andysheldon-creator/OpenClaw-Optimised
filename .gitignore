@@ -82,3 +82,8 @@ USER.md
 .agent/*.json
 !.agent/workflows/
 local/
+
+# WhatsApp user data (NEVER COMMIT)
+/data/
+*.whatsapp-messages.json
+credentials/
