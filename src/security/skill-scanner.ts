@@ -140,7 +140,7 @@ const SOURCE_RULES: SourceRule[] = [
 // Core scanner
 // ---------------------------------------------------------------------------
 
-function truncateEvidence(evidence: string, maxLen = 120): string {
+export function truncateEvidence(evidence: string, maxLen = 120): string {
   if (evidence.length <= maxLen) {
     return evidence;
   }

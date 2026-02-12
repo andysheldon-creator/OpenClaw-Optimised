@@ -7,6 +7,7 @@ import type { OpenClawConfig } from "../config/config.js";
 import { resolveBrewExecutable } from "../infra/brew.js";
 import { fetchWithSsrFGuard } from "../infra/net/fetch-guard.js";
 import { runCommandWithTimeout } from "../process/exec.js";
+import { scanManifestDirectory } from "../security/manifest-scanner.js";
 import { scanDirectoryWithSummary } from "../security/skill-scanner.js";
 import { CONFIG_DIR, ensureDir, resolveUserPath } from "../utils.js";
 import {
@@ -106,6 +107,7 @@ async function collectSkillInstallScanWarnings(entry: SkillEntry): Promise<strin
   const skillName = entry.skill.name;
   const skillDir = path.resolve(entry.skill.baseDir);
 
+  // Scan executable code (JS/TS) for dangerous patterns
   try {
     const summary = await scanDirectoryWithSummary(skillDir);
     if (summary.critical > 0) {
@@ -124,6 +126,31 @@ async function collectSkillInstallScanWarnings(entry: SkillEntry): Promise<strin
   } catch (err) {
     warnings.push(
       `Skill "${skillName}" code safety scan failed (${String(err)}). Installation continues; run "openclaw security audit --deep" after install.`,
+    );
+  }
+
+  // Scan manifest files (SKILL.md, AGENTS.md) for prompt injection and trust issues
+  try {
+    const manifestSummary = await scanManifestDirectory(skillDir);
+    if (manifestSummary.critical > 0) {
+      const criticalDetails = manifestSummary.findings
+        .filter((finding) => finding.severity === "critical")
+        .map((finding) => formatScanFindingDetail(skillDir, finding))
+        .join("; ");
+      warnings.push(
+        `WARNING: Skill "${skillName}" manifest contains dangerous patterns: ${criticalDetails}`,
+      );
+      if (manifestSummary.deepAnalysisHint) {
+        warnings.push(manifestSummary.deepAnalysisHint);
+      }
+    } else if (manifestSummary.warn > 0) {
+      warnings.push(
+        `Skill "${skillName}" manifest has ${manifestSummary.warn} suspicious pattern(s). Run "openclaw security audit --deep" for details.`,
+      );
+    }
+  } catch (err) {
+    warnings.push(
+      `Skill "${skillName}" manifest scan failed (${String(err)}). Installation continues.`,
     );
   }
 

@@ -10,6 +10,7 @@ import {
   resolvePackedRootDir,
 } from "../infra/archive.js";
 import { runCommandWithTimeout } from "../process/exec.js";
+import { scanManifestDirectory } from "../security/manifest-scanner.js";
 import { scanDirectoryWithSummary } from "../security/skill-scanner.js";
 import { CONFIG_DIR, resolveUserPath } from "../utils.js";
 
@@ -215,6 +216,31 @@ async function installPluginFromPackageDir(params: {
   } catch (err) {
     logger.warn?.(
       `Plugin "${pluginId}" code safety scan failed (${String(err)}). Installation continues; run "openclaw security audit --deep" after install.`,
+    );
+  }
+
+  // Scan manifest files (SKILL.md, AGENTS.md) for prompt injection and trust issues
+  try {
+    const manifestSummary = await scanManifestDirectory(params.packageDir);
+    if (manifestSummary.critical > 0) {
+      const criticalDetails = manifestSummary.findings
+        .filter((f) => f.severity === "critical")
+        .map((f) => `${f.message} (${f.file}:${f.line})`)
+        .join("; ");
+      logger.warn?.(
+        `WARNING: Plugin "${pluginId}" manifest contains dangerous patterns: ${criticalDetails}`,
+      );
+      if (manifestSummary.deepAnalysisHint) {
+        logger.info?.(manifestSummary.deepAnalysisHint);
+      }
+    } else if (manifestSummary.warn > 0) {
+      logger.warn?.(
+        `Plugin "${pluginId}" manifest has ${manifestSummary.warn} suspicious pattern(s). Run "openclaw security audit --deep" for details.`,
+      );
+    }
+  } catch (err) {
+    logger.warn?.(
+      `Plugin "${pluginId}" manifest scan failed (${String(err)}). Installation continues.`,
     );
   }
 

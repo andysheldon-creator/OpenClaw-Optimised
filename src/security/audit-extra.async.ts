@@ -22,6 +22,7 @@ import {
   inspectPathPermissions,
   safeStat,
 } from "./audit-fs.js";
+import { scanManifestDirectory } from "./manifest-scanner.js";
 import { scanDirectoryWithSummary, type SkillScanFinding } from "./skill-scanner.js";
 
 export type SecurityAuditFinding = {
@@ -711,6 +712,88 @@ export async function collectInstalledSkillsCodeSafetyFindings(params: {
           title: `Skill "${skillName}" contains suspicious code patterns`,
           detail: `Found ${summary.warn} warning(s) in ${summary.scannedFiles} scanned file(s) under ${skillDir}:\n${details}`,
           remediation: "Review flagged lines to ensure the behavior is intentional and safe.",
+        });
+      }
+    }
+  }
+
+  return findings;
+}
+
+export async function collectInstalledSkillsManifestSafetyFindings(params: {
+  cfg: OpenClawConfig;
+  stateDir: string;
+}): Promise<SecurityAuditFinding[]> {
+  const findings: SecurityAuditFinding[] = [];
+  const pluginExtensionsDir = path.join(params.stateDir, "extensions");
+  const scannedSkillDirs = new Set<string>();
+  const workspaceDirs = listWorkspaceDirs(params.cfg);
+
+  for (const workspaceDir of workspaceDirs) {
+    const entries = loadWorkspaceSkillEntries(workspaceDir, { config: params.cfg });
+    for (const entry of entries) {
+      if (entry.skill.source === "openclaw-bundled") {
+        continue;
+      }
+
+      const skillDir = path.resolve(entry.skill.baseDir);
+      if (isPathInside(pluginExtensionsDir, skillDir)) {
+        continue;
+      }
+      if (scannedSkillDirs.has(skillDir)) {
+        continue;
+      }
+      scannedSkillDirs.add(skillDir);
+
+      const skillName = entry.skill.name;
+      const summary = await scanManifestDirectory(skillDir).catch((err) => {
+        findings.push({
+          checkId: "skills.manifest_safety.scan_failed",
+          severity: "warn",
+          title: `Skill "${skillName}" manifest scan failed`,
+          detail: `Manifest scan could not complete for ${skillDir}: ${String(err)}`,
+          remediation:
+            "Check file permissions and skill layout, then rerun `openclaw security audit --deep`.",
+        });
+        return null;
+      });
+      if (!summary) {
+        continue;
+      }
+
+      if (summary.critical > 0) {
+        const details = summary.findings
+          .filter((f) => f.severity === "critical")
+          .map((f) => {
+            const rel = path.relative(skillDir, f.file);
+            const filePart = rel && !rel.startsWith("..") ? rel : path.basename(f.file);
+            return `  ${f.message} (${filePart}:${f.line})`;
+          })
+          .join("\n");
+        const hint = summary.deepAnalysisHint ? `\n\n${summary.deepAnalysisHint}` : "";
+        findings.push({
+          checkId: "skills.manifest_safety",
+          severity: "critical",
+          title: `Skill "${skillName}" manifest contains dangerous patterns`,
+          detail: `Found ${summary.critical} critical issue(s) in ${summary.scannedFiles} manifest file(s) under ${skillDir}:\n${details}${hint}`,
+          remediation: `Review the skill manifest (SKILL.md) before use. If untrusted, remove "${skillDir}".`,
+        });
+      } else if (summary.warn > 0) {
+        const details = summary.findings
+          .filter((f) => f.severity === "warn")
+          .map((f) => {
+            const rel = path.relative(skillDir, f.file);
+            const filePart = rel && !rel.startsWith("..") ? rel : path.basename(f.file);
+            return `  ${f.message} (${filePart}:${f.line})`;
+          })
+          .join("\n");
+        findings.push({
+          checkId: "skills.manifest_safety",
+          severity: "warn",
+          title: `Skill "${skillName}" manifest contains suspicious patterns`,
+          detail: `Found ${summary.warn} warning(s) in ${summary.scannedFiles} manifest file(s) under ${skillDir}:\n${details}`,
+          remediation:
+            "Review the flagged patterns in the skill manifest to ensure they are intentional.",
         });
       }
     }

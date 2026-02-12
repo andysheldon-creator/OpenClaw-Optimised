@@ -23,6 +23,7 @@ export {
 export {
   collectIncludeFilePermFindings,
   collectInstalledSkillsCodeSafetyFindings,
+  collectInstalledSkillsManifestSafetyFindings,
   collectPluginsCodeSafetyFindings,
   collectPluginsTrustFindings,
   collectStateDeepFilesystemFindings,
