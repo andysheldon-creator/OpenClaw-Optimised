@@ -1,3 +1,4 @@
+import type { Message } from "@grammyjs/types";
 import { type Bot, GrammyError, InputFile } from "grammy";
 import type { ReplyPayload } from "../../auto-reply/types.js";
 import type { ReplyToMode } from "../../config/config.js";
@@ -432,6 +433,137 @@ export async function resolveMedia(
     placeholder = "<media:audio>";
   }
   return { path: saved.path, contentType: saved.contentType, placeholder };
+}
+
+export async function resolveReplyMedia(
+  msg: Message,
+  maxBytes: number,
+  token: string,
+  proxyFetch?: typeof fetch,
+): Promise<Array<{ path: string; contentType?: string }>> {
+  const reply = msg.reply_to_message;
+  const externalReply = (msg as Message & { external_reply?: Message }).external_reply;
+  const replyLike = reply ?? externalReply;
+  if (!replyLike) {
+    return [];
+  }
+
+  try {
+    const resolved = await resolveReplyMediaAttachment(replyLike, maxBytes, token, proxyFetch);
+    return resolved ? [{ path: resolved.path, contentType: resolved.contentType }] : [];
+  } catch (err) {
+    logVerbose(`telegram: failed to resolve replied media: ${String(err)}`);
+    return [];
+  }
+}
+
+async function resolveReplyMediaAttachment(
+  msg: Message,
+  maxBytes: number,
+  token: string,
+  proxyFetch?: typeof fetch,
+): Promise<{ path: string; contentType?: string } | null> {
+  const fetchImpl = proxyFetch ?? globalThis.fetch;
+  if (!fetchImpl) {
+    throw new Error("fetch is not available; set channels.telegram.proxy in config");
+  }
+
+  const sticker = msg.sticker;
+  if (sticker) {
+    if (sticker.is_animated || sticker.is_video) {
+      logVerbose(
+        "telegram: skipping animated/video replied sticker (only static stickers supported)",
+      );
+      return null;
+    }
+    if (!sticker.file_id) {
+      return null;
+    }
+    const filePath = await getTelegramFilePath({
+      fetchImpl,
+      token,
+      fileId: sticker.file_id,
+    });
+    return await downloadTelegramMediaFromFilePath({
+      fetchImpl,
+      token,
+      filePath,
+      maxBytes,
+    });
+  }
+
+  const media =
+    msg.photo?.[msg.photo.length - 1] ??
+    msg.video ??
+    msg.video_note ??
+    msg.document ??
+    msg.audio ??
+    msg.voice;
+  if (!media?.file_id) {
+    return null;
+  }
+  const filePath = await getTelegramFilePath({
+    fetchImpl,
+    token,
+    fileId: media.file_id,
+  });
+  return await downloadTelegramMediaFromFilePath({
+    fetchImpl,
+    token,
+    filePath,
+    maxBytes,
+  });
+}
+
+async function getTelegramFilePath(params: {
+  fetchImpl: typeof fetch;
+  token: string;
+  fileId: string;
+}): Promise<string> {
+  const res = await params.fetchImpl(
+    `https://api.telegram.org/bot${params.token}/getFile?file_id=${encodeURIComponent(params.fileId)}`,
+    {
+      redirect: "manual",
+      signal: AbortSignal.timeout(30_000),
+    },
+  );
+  if (!res.ok) {
+    throw new Error(`Telegram getFile failed: ${res.status} ${res.statusText}`);
+  }
+  const data = (await res.json()) as {
+    ok?: boolean;
+    result?: { file_path?: string };
+    description?: string;
+  };
+  const filePath = data.result?.file_path?.trim();
+  if (!data.ok || !filePath) {
+    throw new Error(data.description || "Telegram getFile returned no file_path");
+  }
+  return filePath;
+}
+
+async function downloadTelegramMediaFromFilePath(params: {
+  fetchImpl: typeof fetch;
+  token: string;
+  filePath: string;
+  maxBytes: number;
+}): Promise<{ path: string; contentType?: string }> {
+  const url = `https://api.telegram.org/file/bot${params.token}/${params.filePath}`;
+  const fetched = await fetchRemoteMedia({
+    url,
+    fetchImpl: params.fetchImpl,
+    filePathHint: params.filePath,
+    maxBytes: params.maxBytes,
+  });
+  const originalName = fetched.fileName ?? params.filePath;
+  const saved = await saveMediaBuffer(
+    fetched.buffer,
+    fetched.contentType,
+    "inbound",
+    params.maxBytes,
+    originalName,
+  );
+  return { path: saved.path, contentType: saved.contentType };
 }
 
 function isVoiceMessagesForbidden(err: unknown): boolean {

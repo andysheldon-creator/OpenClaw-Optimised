@@ -20,12 +20,24 @@ export async function stageSandboxMedia(params: {
   const { ctx, sessionCtx, cfg, sessionKey, workspaceDir } = params;
   const hasPathsArray = Array.isArray(ctx.MediaPaths) && ctx.MediaPaths.length > 0;
   const pathsFromArray = Array.isArray(ctx.MediaPaths) ? ctx.MediaPaths : undefined;
-  const rawPaths =
+  const mediaPaths =
     pathsFromArray && pathsFromArray.length > 0
       ? pathsFromArray
       : ctx.MediaPath?.trim()
         ? [ctx.MediaPath.trim()]
         : [];
+  const hasReplyPathsArray =
+    Array.isArray(ctx.ReplyToMediaPaths) && ctx.ReplyToMediaPaths.length > 0;
+  const replyPathsFromArray = Array.isArray(ctx.ReplyToMediaPaths)
+    ? ctx.ReplyToMediaPaths
+    : undefined;
+  const replyMediaPaths =
+    replyPathsFromArray && replyPathsFromArray.length > 0
+      ? replyPathsFromArray
+      : ctx.ReplyToMediaPath?.trim()
+        ? [ctx.ReplyToMediaPath.trim()]
+        : [];
+  const rawPaths = [...mediaPaths, ...replyMediaPaths];
   if (rawPaths.length === 0 || !sessionKey) {
     return;
   }
@@ -135,7 +147,9 @@ export async function stageSandboxMedia(params: {
       return mapped ?? value;
     };
 
-    const nextMediaPaths = hasPathsArray ? rawPaths.map((p) => rewriteIfStaged(p) ?? p) : undefined;
+    const nextMediaPaths = hasPathsArray
+      ? mediaPaths.map((entry) => rewriteIfStaged(entry) ?? entry)
+      : undefined;
     if (nextMediaPaths) {
       ctx.MediaPaths = nextMediaPaths;
       sessionCtx.MediaPaths = nextMediaPaths;
@@ -148,6 +162,21 @@ export async function stageSandboxMedia(params: {
         sessionCtx.MediaPath = rewritten;
       }
     }
+    const nextReplyMediaPaths = hasReplyPathsArray
+      ? replyMediaPaths.map((entry) => rewriteIfStaged(entry) ?? entry)
+      : undefined;
+    if (nextReplyMediaPaths) {
+      ctx.ReplyToMediaPaths = nextReplyMediaPaths;
+      sessionCtx.ReplyToMediaPaths = nextReplyMediaPaths;
+      ctx.ReplyToMediaPath = nextReplyMediaPaths[0];
+      sessionCtx.ReplyToMediaPath = nextReplyMediaPaths[0];
+    } else {
+      const rewritten = rewriteIfStaged(ctx.ReplyToMediaPath);
+      if (rewritten && rewritten !== ctx.ReplyToMediaPath) {
+        ctx.ReplyToMediaPath = rewritten;
+        sessionCtx.ReplyToMediaPath = rewritten;
+      }
+    }
 
     if (Array.isArray(ctx.MediaUrls) && ctx.MediaUrls.length > 0) {
       const nextUrls = ctx.MediaUrls.map((u) => rewriteIfStaged(u) ?? u);
@@ -158,6 +187,16 @@ export async function stageSandboxMedia(params: {
     if (rewrittenUrl && rewrittenUrl !== ctx.MediaUrl) {
       ctx.MediaUrl = rewrittenUrl;
       sessionCtx.MediaUrl = rewrittenUrl;
+    }
+    if (Array.isArray(ctx.ReplyToMediaUrls) && ctx.ReplyToMediaUrls.length > 0) {
+      const nextReplyUrls = ctx.ReplyToMediaUrls.map((entry) => rewriteIfStaged(entry) ?? entry);
+      ctx.ReplyToMediaUrls = nextReplyUrls;
+      sessionCtx.ReplyToMediaUrls = nextReplyUrls;
+    }
+    const rewrittenReplyUrl = rewriteIfStaged(ctx.ReplyToMediaUrl);
+    if (rewrittenReplyUrl && rewrittenReplyUrl !== ctx.ReplyToMediaUrl) {
+      ctx.ReplyToMediaUrl = rewrittenReplyUrl;
+      sessionCtx.ReplyToMediaUrl = rewrittenReplyUrl;
     }
   } catch (err) {
     logVerbose(`Failed to stage inbound media for sandbox: ${String(err)}`);

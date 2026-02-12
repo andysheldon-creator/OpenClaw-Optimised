@@ -22,6 +22,7 @@ type TelegramMessageProcessorDeps = Omit<
   textLimit: number;
   opts: Pick<TelegramBotOptions, "token">;
   resolveBotTopicsEnabled: (ctx: TelegramContext) => boolean | Promise<boolean>;
+  resolveReplyMedia?: (msg: TelegramContext["message"]) => Promise<TelegramMediaRef[]>;
 };
 
 export const createTelegramMessageProcessor = (deps: TelegramMessageProcessorDeps) => {
@@ -46,6 +47,7 @@ export const createTelegramMessageProcessor = (deps: TelegramMessageProcessorDep
     textLimit,
     opts,
     resolveBotTopicsEnabled,
+    resolveReplyMedia,
   } = deps;
 
   return async (
@@ -54,11 +56,12 @@ export const createTelegramMessageProcessor = (deps: TelegramMessageProcessorDep
     storeAllowFrom: string[],
     options?: { messageIdOverride?: string; forceWasMentioned?: boolean },
   ) => {
+    const replyMedia = resolveReplyMedia ? await resolveReplyMedia(primaryCtx.message) : [];
     const context = await buildTelegramMessageContext({
       primaryCtx,
       allMedia,
       storeAllowFrom,
-      options,
+      options: { ...options, replyMedia },
       bot,
       cfg,
       account,

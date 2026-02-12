@@ -10,6 +10,17 @@ function safeTrim(value: unknown): string | undefined {
   return trimmed ? trimmed : undefined;
 }
 
+function safeStringArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  const normalized = value
+    .filter((entry): entry is string => typeof entry === "string")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  return normalized.length > 0 ? normalized : undefined;
+}
+
 export function buildInboundMetaSystemPrompt(ctx: TemplateContext): string {
   const chatType = normalizeChatType(ctx.ChatType);
   const isDirect = !chatType || chatType === "direct";
@@ -105,6 +116,14 @@ export function buildInboundUserContextPrefix(ctx: TemplateContext): string {
   }
 
   if (ctx.ReplyToBody) {
+    const replyMediaPathSingle = safeTrim(ctx.ReplyToMediaPath);
+    const replyMediaTypeSingle = safeTrim(ctx.ReplyToMediaType);
+    const replyMediaPaths =
+      safeStringArray(ctx.ReplyToMediaPaths) ??
+      (replyMediaPathSingle ? [replyMediaPathSingle] : undefined);
+    const replyMediaTypes =
+      safeStringArray(ctx.ReplyToMediaTypes) ??
+      (replyMediaTypeSingle ? [replyMediaTypeSingle] : undefined);
     blocks.push(
       [
         "Replied message (untrusted, for context):",
@@ -114,6 +133,8 @@ export function buildInboundUserContextPrefix(ctx: TemplateContext): string {
             sender_label: safeTrim(ctx.ReplyToSender),
             is_quote: ctx.ReplyToIsQuote === true ? true : undefined,
             body: ctx.ReplyToBody,
+            media_paths: replyMediaPaths,
+            media_types: replyMediaTypes,
           },
           null,
           2,

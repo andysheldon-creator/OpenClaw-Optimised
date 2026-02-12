@@ -183,6 +183,154 @@ describe("telegram inbound media", () => {
     INBOUND_MEDIA_TEST_TIMEOUT_MS,
   );
 
+  it("downloads replied media via reply_to_message", async () => {
+    const { createTelegramBot } = await import("./bot.js");
+    const replyModule = await import("../auto-reply/reply.js");
+    const replySpy = replyModule.__replySpy as unknown as ReturnType<typeof vi.fn>;
+
+    onSpy.mockReset();
+    replySpy.mockReset();
+
+    const runtimeError = vi.fn();
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch" as never)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        json: async () => ({ ok: true, result: { file_path: "photos/replied.jpg" } }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        headers: { get: () => "image/jpeg" },
+        arrayBuffer: async () => new Uint8Array([0xff, 0xd8, 0xff, 0x00]).buffer,
+      } as Response);
+
+    createTelegramBot({
+      token: "tok",
+      runtime: {
+        log: vi.fn(),
+        error: runtimeError,
+        exit: () => {
+          throw new Error("exit");
+        },
+      },
+    });
+    const handler = onSpy.mock.calls.find((call) => call[0] === "message")?.[1] as (
+      ctx: Record<string, unknown>,
+    ) => Promise<void>;
+    expect(handler).toBeDefined();
+
+    await handler({
+      message: {
+        message_id: 9,
+        chat: { id: 1234, type: "private" },
+        text: "what is in the image?",
+        date: 1736380800,
+        reply_to_message: {
+          message_id: 8,
+          photo: [{ file_id: "reply-photo-1" }],
+          from: { first_name: "Ada" },
+        },
+      },
+      me: { username: "openclaw_bot" },
+      getFile: async () => ({}),
+    });
+
+    expect(runtimeError).not.toHaveBeenCalled();
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "https://api.telegram.org/bottok/getFile?file_id=reply-photo-1",
+      expect.objectContaining({ redirect: "manual" }),
+    );
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "https://api.telegram.org/file/bottok/photos/replied.jpg",
+      expect.objectContaining({ redirect: "manual" }),
+    );
+    expect(replySpy).toHaveBeenCalledTimes(1);
+    const payload = replySpy.mock.calls[0][0];
+    expect(payload.ReplyToBody).toBe("<media:image>");
+    expect(payload.ReplyToMediaPath).toBe("/tmp/telegram-media");
+    expect(payload.ReplyToMediaPaths).toEqual(["/tmp/telegram-media"]);
+
+    fetchSpy.mockRestore();
+  });
+
+  it("downloads replied media via external_reply", async () => {
+    const { createTelegramBot } = await import("./bot.js");
+    const replyModule = await import("../auto-reply/reply.js");
+    const replySpy = replyModule.__replySpy as unknown as ReturnType<typeof vi.fn>;
+
+    onSpy.mockReset();
+    replySpy.mockReset();
+
+    const runtimeError = vi.fn();
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch" as never)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        json: async () => ({ ok: true, result: { file_path: "voice/replied.ogg" } }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        headers: { get: () => "audio/ogg" },
+        arrayBuffer: async () => new Uint8Array([0x4f, 0x67, 0x67, 0x53]).buffer,
+      } as Response);
+
+    createTelegramBot({
+      token: "tok",
+      runtime: {
+        log: vi.fn(),
+        error: runtimeError,
+        exit: () => {
+          throw new Error("exit");
+        },
+      },
+    });
+    const handler = onSpy.mock.calls.find((call) => call[0] === "message")?.[1] as (
+      ctx: Record<string, unknown>,
+    ) => Promise<void>;
+    expect(handler).toBeDefined();
+
+    await handler({
+      message: {
+        message_id: 11,
+        chat: { id: 1234, type: "private" },
+        text: "summarize this clip",
+        date: 1736380800,
+        external_reply: {
+          message_id: 10,
+          voice: { file_id: "reply-voice-1" },
+          from: { first_name: "Ada" },
+        },
+      },
+      me: { username: "openclaw_bot" },
+      getFile: async () => ({}),
+    });
+
+    expect(runtimeError).not.toHaveBeenCalled();
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "https://api.telegram.org/bottok/getFile?file_id=reply-voice-1",
+      expect.objectContaining({ redirect: "manual" }),
+    );
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "https://api.telegram.org/file/bottok/voice/replied.ogg",
+      expect.objectContaining({ redirect: "manual" }),
+    );
+    expect(replySpy).toHaveBeenCalledTimes(1);
+    const payload = replySpy.mock.calls[0][0];
+    expect(payload.ReplyToBody).toBe("<media:audio>");
+    expect(payload.ReplyToMediaPath).toBe("/tmp/telegram-media");
+    expect(payload.ReplyToMediaPaths).toEqual(["/tmp/telegram-media"]);
+
+    fetchSpy.mockRestore();
+  });
+
   it("prefers proxyFetch over global fetch", async () => {
     const { createTelegramBot } = await import("./bot.js");
 

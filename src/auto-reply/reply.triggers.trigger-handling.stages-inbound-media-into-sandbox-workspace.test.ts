@@ -27,7 +27,9 @@ describe("stageSandboxMedia", () => {
       const inboundDir = join(home, ".openclaw", "media", "inbound");
       await fs.mkdir(inboundDir, { recursive: true });
       const mediaPath = join(inboundDir, "photo.jpg");
+      const repliedMediaPath = join(inboundDir, "replied.png");
       await fs.writeFile(mediaPath, "test");
+      await fs.writeFile(repliedMediaPath, "test-reply");
 
       const sandboxDir = join(home, "sandboxes", "session");
       vi.mocked(ensureSandboxWorkspaceForSession).mockResolvedValue({
@@ -44,6 +46,8 @@ describe("stageSandboxMedia", () => {
         MediaPath: mediaPath,
         MediaType: "image/jpeg",
         MediaUrl: mediaPath,
+        ReplyToMediaPath: repliedMediaPath,
+        ReplyToMediaUrl: repliedMediaPath,
       };
       const sessionCtx: TemplateContext = { ...ctx };
 
@@ -73,9 +77,16 @@ describe("stageSandboxMedia", () => {
       expect(sessionCtx.MediaPath).toBe(stagedPath);
       expect(ctx.MediaUrl).toBe(stagedPath);
       expect(sessionCtx.MediaUrl).toBe(stagedPath);
+      const stagedReplyPath = `media/inbound/${basename(repliedMediaPath)}`;
+      expect(ctx.ReplyToMediaPath).toBe(stagedReplyPath);
+      expect(sessionCtx.ReplyToMediaPath).toBe(stagedReplyPath);
+      expect(ctx.ReplyToMediaUrl).toBe(stagedReplyPath);
+      expect(sessionCtx.ReplyToMediaUrl).toBe(stagedReplyPath);
 
       const stagedFullPath = join(sandboxDir, "media", "inbound", basename(mediaPath));
       await expect(fs.stat(stagedFullPath)).resolves.toBeTruthy();
+      const stagedReplyFullPath = join(sandboxDir, "media", "inbound", basename(repliedMediaPath));
+      await expect(fs.stat(stagedReplyFullPath)).resolves.toBeTruthy();
     });
   });
 });

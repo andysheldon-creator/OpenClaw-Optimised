@@ -59,6 +59,12 @@ export type MsgContext = {
   ReplyToBody?: string;
   ReplyToSender?: string;
   ReplyToIsQuote?: boolean;
+  ReplyToMediaPath?: string;
+  ReplyToMediaUrl?: string;
+  ReplyToMediaType?: string;
+  ReplyToMediaPaths?: string[];
+  ReplyToMediaUrls?: string[];
+  ReplyToMediaTypes?: string[];
   ForwardedFrom?: string;
   ForwardedFromType?: string;
   ForwardedFromId?: string;

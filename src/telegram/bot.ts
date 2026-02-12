@@ -38,6 +38,7 @@ import {
   resolveTelegramUpdateId,
   type TelegramUpdateKeyContext,
 } from "./bot-updates.js";
+import { resolveReplyMedia } from "./bot/delivery.js";
 import {
   buildTelegramGroupPeerId,
   buildTelegramParentPeer,
@@ -360,6 +361,9 @@ export function createTelegramBot(opts: TelegramBotOptions) {
     textLimit,
     opts,
     resolveBotTopicsEnabled,
+    resolveReplyMedia: async (msg) => {
+      return await resolveReplyMedia(msg, mediaMaxBytes, opts.token, opts.proxyFetch);
+    },
   });
 
   registerTelegramNativeCommands({
