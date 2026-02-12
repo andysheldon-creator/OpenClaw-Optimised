@@ -102,7 +102,9 @@ export async function preflightDiscordMessage(
 
   const isGuildMessage = Boolean(params.data.guild_id);
   const channelInfo = await resolveDiscordChannelInfo(params.client, message.channelId);
-  const isDirectMessage = channelInfo?.type === ChannelType.DM;
+  // Use guild_id as primary signal: if no guild_id, it's a DM regardless of
+  // channelInfo resolution (which can fail or return stale cache data).
+  const isDirectMessage = channelInfo?.type === ChannelType.DM || (!isGuildMessage && !channelInfo);
   const isGroupDm = channelInfo?.type === ChannelType.GroupDM;
 
   if (isGroupDm && !params.groupDmEnabled) {
