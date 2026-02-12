@@ -43,3 +43,22 @@ describe("extractThinkingCached", () => {
     expect(extractThinkingCached(message)).toBe("Plan A");
   });
 });
+
+describe("extractText metadata stripping", () => {
+  it("strips inbound untrusted conversation metadata from user-visible text", () => {
+    const message = {
+      role: "user",
+      content:
+        "Conversation info (untrusted metadata):\n```json\n{\n  \"conversation_label\": \"Test\"\n}\n```\n\nHello world",
+    };
+    expect(extractText(message)).toBe("Hello world");
+  });
+
+  it("keeps normal user content untouched", () => {
+    const message = {
+      role: "user",
+      content: "Just a normal message",
+    };
+    expect(extractText(message)).toBe("Just a normal message");
+  });
+});
