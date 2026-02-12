@@ -238,7 +238,7 @@ export function resolveGatewayConnection(opts: GatewayConnectionOptions) {
     (typeof remote?.url === "string" && remote.url.trim().length > 0
       ? remote.url.trim()
       : undefined) ||
-    `ws://127.0.0.1:${localPort}`;
+    `ws://${process.env.OPENCLAW_GATEWAY_HOST || "127.0.0.1"}:${localPort}`;
 
   const token =
     explicitAuth.token ||
