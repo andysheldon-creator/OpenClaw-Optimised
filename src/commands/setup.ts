@@ -1,4 +1,3 @@
-import JSON5 from "json5";
 import fs from "node:fs/promises";
 import type { RuntimeEnv } from "../runtime.js";
 import { DEFAULT_AGENT_WORKSPACE_DIR, ensureAgentWorkspace } from "../agents/workspace.js";
@@ -7,22 +6,6 @@ import { formatConfigPath, logConfigUpdated } from "../config/logging.js";
 import { resolveSessionTranscriptsDir } from "../config/sessions.js";
 import { defaultRuntime } from "../runtime.js";
 import { shortenHomePath } from "../utils.js";
-
-async function readConfigFileRaw(configPath: string): Promise<{
-  exists: boolean;
-  parsed: OpenClawConfig;
-}> {
-  try {
-    const raw = await fs.readFile(configPath, "utf-8");
-    const parsed = JSON5.parse(raw);
-    if (parsed && typeof parsed === "object") {
-      return { exists: true, parsed: parsed as OpenClawConfig };
-    }
-    return { exists: true, parsed: {} };
-  } catch {
-    return { exists: false, parsed: {} };
-  }
-}
 
 export async function setupCommand(
   opts?: { workspace?: string },
@@ -35,8 +18,12 @@ export async function setupCommand(
 
   const io = createConfigIO();
   const configPath = io.configPath;
-  const existingRaw = await readConfigFileRaw(configPath);
-  const cfg = existingRaw.parsed;
+  // Use readConfigFileSnapshot() which properly resolves $include directives,
+  // env var substitution, and validation — unlike the old readConfigFileRaw()
+  // which parsed JSON5 without resolving $include, causing writeConfigFile()
+  // to fail with "Unrecognized key: $include" on modular configs.
+  const snapshot = await io.readConfigFileSnapshot();
+  const cfg = snapshot.config;
   const defaults = cfg.agents?.defaults ?? {};
 
   const workspace = desiredWorkspace ?? defaults.workspace ?? DEFAULT_AGENT_WORKSPACE_DIR;
@@ -52,9 +39,9 @@ export async function setupCommand(
     },
   };
 
-  if (!existingRaw.exists || defaults.workspace !== workspace) {
+  if (!snapshot.exists || defaults.workspace !== workspace) {
     await writeConfigFile(next);
-    if (!existingRaw.exists) {
+    if (!snapshot.exists) {
       runtime.log(`Wrote ${formatConfigPath(configPath)}`);
     } else {
       logConfigUpdated(runtime, { path: configPath, suffix: "(set agents.defaults.workspace)" });

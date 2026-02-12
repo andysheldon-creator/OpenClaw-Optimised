@@ -493,7 +493,26 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
 
   async function writeConfigFile(cfg: OpenClawConfig) {
     clearConfigCache();
-    const validated = validateConfigObjectWithPlugins(cfg);
+    // Defensive: resolve any lingering $include directives before validation.
+    // Callers *should* pass fully-resolved configs, but some code paths
+    // (e.g. setup, legacy migration) may pass raw parsed objects that still
+    // contain $include keys. Resolving here prevents "Unrecognized key: $include"
+    // validation errors and ensures writes always succeed for valid modular configs.
+    let resolvedCfg: OpenClawConfig;
+    try {
+      const resolved = resolveConfigIncludes(cfg, configPath, {
+        readFile: (p) => deps.fs.readFileSync(p, "utf-8"),
+        parseJson: (raw) => deps.json5.parse(raw),
+      });
+      resolvedCfg = (resolved && typeof resolved === "object" && !Array.isArray(resolved))
+        ? resolved as OpenClawConfig
+        : cfg;
+    } catch {
+      // If include resolution fails (e.g. no $include keys, or missing files),
+      // fall back to the original config object — validation will catch real issues.
+      resolvedCfg = cfg;
+    }
+    const validated = validateConfigObjectWithPlugins(resolvedCfg);
     if (!validated.ok) {
       const issue = validated.issues[0];
       const pathLabel = issue?.path ? issue.path : "<root>";
@@ -507,7 +526,7 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
     }
     const dir = path.dirname(configPath);
     await deps.fs.promises.mkdir(dir, { recursive: true, mode: 0o700 });
-    const json = JSON.stringify(applyModelDefaults(stampConfigVersion(cfg)), null, 2)
+    const json = JSON.stringify(applyModelDefaults(stampConfigVersion(resolvedCfg)), null, 2)
       .trimEnd()
       .concat("\n");
 
