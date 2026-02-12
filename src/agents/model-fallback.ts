@@ -53,6 +53,46 @@ function shouldRethrowAbort(err: unknown): boolean {
   return isFallbackAbortError(err) && !isTimeoutError(err);
 }
 
+const EMPTY_STREAM_ERROR_RE =
+  /request ended without sending any chunks|stream ended before first chunk/i;
+
+function isEmptyStreamError(err: unknown): boolean {
+  if (!err) {
+    return false;
+  }
+  let message = "";
+  if (err instanceof Error) {
+    message = err.message;
+  } else if (typeof err === "string") {
+    message = err;
+  }
+  return EMPTY_STREAM_ERROR_RE.test(message);
+}
+
+function isEmptyStreamRetryEnabled(): boolean {
+  const raw = process.env.OPENCLAW_EMPTY_STREAM_RETRY;
+  if (raw == null || raw === "") {
+    return true;
+  }
+  const normalized = String(raw).trim().toLowerCase();
+  return !["0", "false", "off", "no"].includes(normalized);
+}
+
+function resolveEmptyStreamRetryDelayMs(): number {
+  const minRaw = Number(process.env.OPENCLAW_EMPTY_STREAM_RETRY_MIN_MS);
+  const maxRaw = Number(process.env.OPENCLAW_EMPTY_STREAM_RETRY_MAX_MS);
+  const min = Number.isFinite(minRaw) && minRaw >= 0 ? Math.floor(minRaw) : 300;
+  const max = Number.isFinite(maxRaw) && maxRaw >= min ? Math.floor(maxRaw) : 800;
+  if (max <= min) {
+    return min;
+  }
+  return Math.floor(min + Math.random() * (max - min + 1));
+}
+
+async function sleepEmptyStreamRetry(ms: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function resolveImageFallbackCandidates(params: {
   cfg: OpenClawConfig | undefined;
   defaultProvider: string;
@@ -260,44 +300,62 @@ export async function runWithModelFallback<T>(params: {
         continue;
       }
     }
-    try {
-      const result = await params.run(candidate.provider, candidate.model);
-      return {
-        result,
-        provider: candidate.provider,
-        model: candidate.model,
-        attempts,
-      };
-    } catch (err) {
-      if (shouldRethrowAbort(err)) {
-        throw err;
-      }
-      const normalized =
-        coerceToFailoverError(err, {
+    let didEmptyStreamRetry = false;
+    for (;;) {
+      try {
+        const result = await params.run(candidate.provider, candidate.model);
+        return {
+          result,
           provider: candidate.provider,
           model: candidate.model,
-        }) ?? err;
-      if (!isFailoverError(normalized)) {
-        throw err;
-      }
+          attempts,
+        };
+      } catch (err) {
+        if (shouldRethrowAbort(err)) {
+          throw err;
+        }
+        const normalized =
+          coerceToFailoverError(err, {
+            provider: candidate.provider,
+            model: candidate.model,
+          }) ?? err;
 
-      lastError = normalized;
-      const described = describeFailoverError(normalized);
-      attempts.push({
-        provider: candidate.provider,
-        model: candidate.model,
-        error: described.message,
-        reason: described.reason,
-        status: described.status,
-        code: described.code,
-      });
-      await params.onError?.({
-        provider: candidate.provider,
-        model: candidate.model,
-        error: normalized,
-        attempt: i + 1,
-        total: candidates.length,
-      });
+        const emptyStream = isEmptyStreamError(normalized) || isEmptyStreamError(err);
+        if (emptyStream && isEmptyStreamRetryEnabled() && !didEmptyStreamRetry) {
+          didEmptyStreamRetry = true;
+          const retryDelayMs = resolveEmptyStreamRetryDelayMs();
+          attempts.push({
+            provider: candidate.provider,
+            model: candidate.model,
+            error: `Empty stream before first chunk; retrying once after ${retryDelayMs}ms`,
+          });
+          await sleepEmptyStreamRetry(retryDelayMs);
+          continue;
+        }
+
+        if (!isFailoverError(normalized)) {
+          throw err;
+        }
+
+        lastError = normalized;
+        const described = describeFailoverError(normalized);
+        attempts.push({
+          provider: candidate.provider,
+          model: candidate.model,
+          error: described.message,
+          reason: described.reason,
+          status: described.status,
+          code: described.code,
+        });
+        await params.onError?.({
+          provider: candidate.provider,
+          model: candidate.model,
+          error: normalized,
+          attempt: i + 1,
+          total: candidates.length,
+        });
+        break;
+      }
     }
   }
 
