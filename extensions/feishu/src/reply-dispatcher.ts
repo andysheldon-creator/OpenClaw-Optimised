@@ -9,7 +9,7 @@ import {
 import type { MentionTarget } from "./mention.js";
 import { resolveFeishuAccount } from "./accounts.js";
 import { getFeishuRuntime } from "./runtime.js";
-import { sendMessageFeishu, sendMarkdownCardFeishu } from "./send.js";
+import { sendMessageFeishu, sendMarkdownCardFeishu, processMarkdownImages } from "./send.js";
 import { addTypingIndicator, removeTypingIndicator, type TypingIndicatorState } from "./typing.js";
 
 /**
@@ -124,20 +124,51 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
 
         if (useCard) {
           // Card mode: send as interactive card with markdown rendering
-          const chunks = core.channel.text.chunkTextWithMode(text, textChunkLimit, chunkMode);
+          // Pre-process: upload remote images to Feishu to get image_keys
+          const processedText = await processMarkdownImages({ text, cfg, accountId });
+          const chunks = core.channel.text.chunkTextWithMode(
+            processedText,
+            textChunkLimit,
+            chunkMode,
+          );
           params.runtime.log?.(
             `feishu[${account.accountId}] deliver: sending ${chunks.length} card chunks to ${chatId}`,
           );
-          for (const chunk of chunks) {
-            await sendMarkdownCardFeishu({
-              cfg,
-              to: chatId,
-              text: chunk,
-              replyToMessageId,
-              mentions: isFirstChunk ? mentionTargets : undefined,
-              accountId,
-            });
-            isFirstChunk = false;
+          try {
+            for (const chunk of chunks) {
+              await sendMarkdownCardFeishu({
+                cfg,
+                to: chatId,
+                text: chunk,
+                replyToMessageId,
+                mentions: isFirstChunk ? mentionTargets : undefined,
+                accountId,
+              });
+              isFirstChunk = false;
+            }
+          } catch (cardErr) {
+            // Card send failed (e.g. image_key issues) — fallback to text mode
+            params.runtime.log?.(
+              `feishu[${account.accountId}] card send failed, falling back to text: ${String(cardErr)}`,
+            );
+            isFirstChunk = true;
+            const converted = core.channel.text.convertMarkdownTables(text, tableMode);
+            const textChunks = core.channel.text.chunkTextWithMode(
+              converted,
+              textChunkLimit,
+              chunkMode,
+            );
+            for (const chunk of textChunks) {
+              await sendMessageFeishu({
+                cfg,
+                to: chatId,
+                text: chunk,
+                replyToMessageId,
+                mentions: isFirstChunk ? mentionTargets : undefined,
+                accountId,
+              });
+              isFirstChunk = false;
+            }
           }
         } else {
           // Raw mode: send as plain text with table conversion
