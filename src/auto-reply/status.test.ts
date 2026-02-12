@@ -401,7 +401,10 @@ describe("buildStatusMessage", () => {
           modelAuth: "api-key",
         });
 
-        expect(normalizeTestText(text)).toContain("Context: 1.0k/32k");
+        // After #13853 fix: derivePromptTokens uses only `input` (not cacheRead).
+        // The status builder falls back to sessionEntry.totalTokens (3) when
+        // the transcript-derived value is smaller than the session entry.
+        expect(normalizeTestText(text)).toContain("Context: 3/32k");
       },
       { prefix: "openclaw-status-" },
     );
