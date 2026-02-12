@@ -25,6 +25,12 @@ vi.mock("./bot.js", () => ({
 }));
 
 describe("startTelegramWebhook", () => {
+  it("throws when secret is missing", async () => {
+    await expect(startTelegramWebhook({ token: "tok", port: 0 })).rejects.toThrow(
+      "requires a secret token",
+    );
+  });
+
   it("starts server, registers webhook, and serves health", async () => {
     createTelegramBotSpy.mockClear();
     const abort = new AbortController();
@@ -34,6 +40,7 @@ describe("startTelegramWebhook", () => {
       accountId: "opie",
       config: cfg,
       port: 0, // random free port
+      secret: "test-secret",
       abortSignal: abort.signal,
     });
     expect(createTelegramBotSpy).toHaveBeenCalledWith(
@@ -65,6 +72,7 @@ describe("startTelegramWebhook", () => {
       accountId: "opie",
       config: cfg,
       port: 0,
+      secret: "test-secret",
       abortSignal: abort.signal,
       path: "/hook",
     });
