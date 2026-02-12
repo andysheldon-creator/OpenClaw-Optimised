@@ -10,6 +10,21 @@ import { parseKeyValueOutput } from "./runtime-parse.js";
 
 const execFileAsync = promisify(execFile);
 
+
+/**
+ * Write to a stream, silently ignoring EPIPE/EIO errors that occur when the
+ * receiving end of the pipe has already closed (e.g. during task restart).
+ */
+function safeWrite(stream: NodeJS.WritableStream, data: string): void {
+  try {
+    stream.write(data);
+  } catch (err: unknown) {
+    const code = (err as NodeJS.ErrnoException | undefined)?.code;
+    if (code !== "EPIPE" && code !== "EIO") {
+      throw err;
+    }
+  }
+}
 const formatLine = (label: string, value: string) => {
   const rich = isRich();
   return `${colorize(rich, theme.muted, `${label}:`)} ${colorize(rich, theme.command, value)}`;
@@ -300,9 +315,9 @@ export async function installScheduledTask({
 
   await execSchtasks(["/Run", "/TN", taskName]);
   // Ensure we don't end up writing to a clack spinner line (wizards show progress without a newline).
-  stdout.write("\n");
-  stdout.write(`${formatLine("Installed Scheduled Task", taskName)}\n`);
-  stdout.write(`${formatLine("Task script", scriptPath)}\n`);
+  safeWrite(stdout, "\n");
+  safeWrite(stdout, `${formatLine("Installed Scheduled Task", taskName)}\n`);
+  safeWrite(stdout, `${formatLine("Task script", scriptPath)}\n`);
   return { scriptPath };
 }
 
@@ -320,9 +335,9 @@ export async function uninstallScheduledTask({
   const scriptPath = resolveTaskScriptPath(env);
   try {
     await fs.unlink(scriptPath);
-    stdout.write(`${formatLine("Removed task script", scriptPath)}\n`);
+    safeWrite(stdout, `${formatLine("Removed task script", scriptPath)}\n`);
   } catch {
-    stdout.write(`Task script not found at ${scriptPath}\n`);
+    safeWrite(stdout, `Task script not found at ${scriptPath}\n`);
   }
 }
 
@@ -344,7 +359,7 @@ export async function stopScheduledTask({
   if (res.code !== 0 && !isTaskNotRunning(res)) {
     throw new Error(`schtasks end failed: ${res.stderr || res.stdout}`.trim());
   }
-  stdout.write(`${formatLine("Stopped Scheduled Task", taskName)}\n`);
+  safeWrite(stdout, `${formatLine("Stopped Scheduled Task", taskName)}\n`);
 }
 
 export async function restartScheduledTask({
@@ -361,7 +376,7 @@ export async function restartScheduledTask({
   if (res.code !== 0) {
     throw new Error(`schtasks run failed: ${res.stderr || res.stdout}`.trim());
   }
-  stdout.write(`${formatLine("Restarted Scheduled Task", taskName)}\n`);
+  safeWrite(stdout, `${formatLine("Restarted Scheduled Task", taskName)}\n`);
 }
 
 export async function isScheduledTaskInstalled(args: {
