@@ -691,7 +691,9 @@ export async function runTui(opts: TuiOptions) {
   };
 
   client.onGap = (info) => {
-    setConnectionStatus(`event gap: expected ${info.expected}, got ${info.received}`, 5000);
+    // Auto-recover: reload history instead of just showing warning
+    setConnectionStatus(`resyncing (event gap ${info.expected}→${info.received})`, 2000);
+    void loadHistory();
     tui.requestRender();
   };
 
