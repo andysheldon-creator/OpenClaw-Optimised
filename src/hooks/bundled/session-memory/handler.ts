@@ -20,6 +20,16 @@ import { generateSlugViaLLM } from "../../llm-slug-generator.js";
 const log = createSubsystemLogger("hooks/session-memory");
 
 /**
+ * Extract topic/thread ID from session key if present.
+ * Session keys look like: agent:main:telegram:group:-100...:topic:11
+ * or: agent:main:...:thread:123
+ */
+function extractTopicId(sessionKey: string): string | null {
+  const match = sessionKey.match(/:(?:topic|thread):([^:]+)$/);
+  return match ? match[1] : null;
+}
+
+/**
  * Read recent messages from session file for slug generation
  */
 async function getRecentSessionContent(
@@ -67,13 +77,15 @@ async function getRecentSessionContent(
  * Save session context to memory when /new command is triggered
  */
 const saveSessionToMemory: HookHandler = async (event) => {
-  // Only trigger on 'new' command
-  if (event.type !== "command" || event.action !== "new") {
+  // Trigger on /new command OR automatic session resets (SESSION-001)
+  const isNewCommand = event.type === "command" && event.action === "new";
+  const isAutoReset = event.type === "session" && event.action === "auto-reset";
+  if (!isNewCommand && !isAutoReset) {
     return;
   }
 
   try {
-    log.debug("Hook triggered for /new command");
+    log.debug("Hook triggered", { type: event.type, action: event.action });
 
     const context = event.context || {};
     const cfg = context.cfg as OpenClawConfig | undefined;
@@ -111,7 +123,6 @@ const saveSessionToMemory: HookHandler = async (event) => {
         ? hookConfig.messages
         : 15;
 
-    let slug: string | null = null;
     let sessionContent: string | null = null;
 
     if (sessionFile) {
@@ -121,30 +132,42 @@ const saveSessionToMemory: HookHandler = async (event) => {
         length: sessionContent?.length ?? 0,
         messageCount,
       });
+    }
 
-      // Avoid calling the model provider in unit tests, keep hooks fast and deterministic.
+    // Determine save path: topic-specific or slug-based fallback
+    const topicId = extractTopicId(event.sessionKey);
+    let memoryFilePath: string;
+
+    if (topicId) {
+      // Topic session: save to memory/topics/topic-{id}/YYYY-MM-DD.md
+      const topicDir = path.join(memoryDir, "topics", `topic-${topicId}`);
+      await fs.mkdir(topicDir, { recursive: true });
+      const timeSlug = now.toISOString().split("T")[1].split(".")[0].replace(/:/g, "").slice(0, 4);
+      memoryFilePath = path.join(topicDir, `${dateStr}-${timeSlug}.md`);
+      log.debug("Topic memory path resolved", {
+        topicId,
+        path: memoryFilePath.replace(os.homedir(), "~"),
+      });
+    } else {
+      // Non-topic session: generate LLM slug (original behavior)
+      let slug: string | null = null;
       if (sessionContent && cfg && !process.env.VITEST && process.env.NODE_ENV !== "test") {
         log.debug("Calling generateSlugViaLLM...");
-        // Use LLM to generate a descriptive slug
         slug = await generateSlugViaLLM({ sessionContent, cfg });
         log.debug("Generated slug", { slug });
       }
+      if (!slug) {
+        const timeSlug = now.toISOString().split("T")[1].split(".")[0].replace(/:/g, "");
+        slug = timeSlug.slice(0, 4); // HHMM
+        log.debug("Using fallback timestamp slug", { slug });
+      }
+      const filename = `${dateStr}-${slug}.md`;
+      memoryFilePath = path.join(memoryDir, filename);
+      log.debug("Memory file path resolved", {
+        filename,
+        path: memoryFilePath.replace(os.homedir(), "~"),
+      });
     }
-
-    // If no slug, use timestamp
-    if (!slug) {
-      const timeSlug = now.toISOString().split("T")[1].split(".")[0].replace(/:/g, "");
-      slug = timeSlug.slice(0, 4); // HHMM
-      log.debug("Using fallback timestamp slug", { slug });
-    }
-
-    // Create filename with date and slug
-    const filename = `${dateStr}-${slug}.md`;
-    const memoryFilePath = path.join(memoryDir, filename);
-    log.debug("Memory file path resolved", {
-      filename,
-      path: memoryFilePath.replace(os.homedir(), "~"),
-    });
 
     // Format time as HH:MM:SS UTC
     const timeStr = now.toISOString().split("T")[1].split(".")[0];
