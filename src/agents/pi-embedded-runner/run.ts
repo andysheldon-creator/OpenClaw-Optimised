@@ -527,6 +527,7 @@ export async function runEmbeddedPiAgent(
                 bashElevated: params.bashElevated,
                 extraSystemPrompt: params.extraSystemPrompt,
                 ownerNumbers: params.ownerNumbers,
+                trigger: "auto",
               });
               if (compactResult.compacted) {
                 autoCompactionCount += 1;

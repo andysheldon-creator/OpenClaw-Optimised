@@ -21,6 +21,7 @@ Docs: https://docs.openclaw.ai
 
 ### Added
 
+- Hooks: add `session:compaction` hook event fired after auto-compaction or `/compact` completes. (#13754)
 - Commands: add `commands.allowFrom` config for separate command authorization, allowing operators to restrict slash commands to specific users while keeping chat open to others. (#12430) Thanks @thewilloftheshadow.
 - Docker: add ClawDock shell helpers for Docker workflows. (#12817) Thanks @Olshansk.
 - iOS: alpha node app + setup-code onboarding. (#11756) Thanks @mbelinky.

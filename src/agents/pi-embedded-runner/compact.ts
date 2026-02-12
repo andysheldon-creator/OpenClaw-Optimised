@@ -12,6 +12,7 @@ import type { ExecElevatedDefaults } from "../bash-tools.js";
 import type { EmbeddedPiCompactResult } from "./types.js";
 import { resolveHeartbeatPrompt } from "../../auto-reply/heartbeat.js";
 import { resolveChannelCapabilities } from "../../config/channel-capabilities.js";
+import { createInternalHookEvent, triggerInternalHook } from "../../hooks/internal-hooks.js";
 import { getMachineDisplayName } from "../../infra/machine-name.js";
 import { type enqueueCommand, enqueueCommandInLane } from "../../process/command-queue.js";
 import { isSubagentSessionKey } from "../../routing/session-key.js";
@@ -107,6 +108,8 @@ export type CompactEmbeddedPiSessionParams = {
   enqueue?: typeof enqueueCommand;
   extraSystemPrompt?: string;
   ownerNumbers?: string[];
+  /** Whether compaction was triggered manually (/compact) or automatically (context overflow). */
+  trigger?: "manual" | "auto";
 };
 
 /**
@@ -459,7 +462,7 @@ export async function compactEmbeddedPiSessionDirect(
           // If estimation fails, leave tokensAfter undefined
           tokensAfter = undefined;
         }
-        return {
+        const compactResult: EmbeddedPiCompactResult = {
           ok: true,
           compacted: true,
           result: {
@@ -470,6 +473,23 @@ export async function compactEmbeddedPiSessionDirect(
             details: result.details,
           },
         };
+
+        // Fire session:compaction hook so plugins/hooks can react
+        // (e.g. re-bootstrap context after compaction).
+        const hookSessionKey = params.sessionKey ?? params.sessionId;
+        try {
+          const hookEvent = createInternalHookEvent("session", "compaction", hookSessionKey, {
+            sessionKey: hookSessionKey,
+            trigger: params.trigger ?? "auto",
+            tokensBefore: result.tokensBefore,
+            tokensAfter,
+          });
+          await triggerInternalHook(hookEvent);
+        } catch {
+          // Best-effort: hook failures must not break compaction.
+        }
+
+        return compactResult;
       } finally {
         sessionManager.flushPendingToolResults?.();
         session.dispose();

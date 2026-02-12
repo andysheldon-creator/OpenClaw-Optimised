@@ -212,6 +212,68 @@ describe("hooks", () => {
     });
   });
 
+  describe("session:compaction event", () => {
+    it("triggers session:compaction handlers with correct context", async () => {
+      const handler = vi.fn();
+      registerInternalHook("session:compaction", handler);
+
+      const event = createInternalHookEvent("session", "compaction", "agent:main:main", {
+        sessionKey: "agent:main:main",
+        trigger: "manual",
+        tokensBefore: 50000,
+        tokensAfter: 12000,
+      });
+      await triggerInternalHook(event);
+
+      expect(handler).toHaveBeenCalledTimes(1);
+      const received = handler.mock.calls[0][0] as InternalHookEvent;
+      expect(received.type).toBe("session");
+      expect(received.action).toBe("compaction");
+      expect(received.sessionKey).toBe("agent:main:main");
+      expect(received.context).toMatchObject({
+        sessionKey: "agent:main:main",
+        trigger: "manual",
+        tokensBefore: 50000,
+        tokensAfter: 12000,
+      });
+    });
+
+    it("triggers general session handlers for compaction events", async () => {
+      const generalHandler = vi.fn();
+      const specificHandler = vi.fn();
+      registerInternalHook("session", generalHandler);
+      registerInternalHook("session:compaction", specificHandler);
+
+      const event = createInternalHookEvent("session", "compaction", "test-session", {
+        sessionKey: "test-session",
+        trigger: "auto",
+        tokensBefore: 80000,
+        tokensAfter: undefined,
+      });
+      await triggerInternalHook(event);
+
+      expect(generalHandler).toHaveBeenCalledTimes(1);
+      expect(specificHandler).toHaveBeenCalledTimes(1);
+    });
+
+    it("allows hooks to push messages after compaction", async () => {
+      const handler = vi.fn((event: InternalHookEvent) => {
+        event.messages.push("Re-reading workspace context after compaction...");
+      });
+      registerInternalHook("session:compaction", handler);
+
+      const event = createInternalHookEvent("session", "compaction", "test-session", {
+        sessionKey: "test-session",
+        trigger: "manual",
+        tokensBefore: 40000,
+        tokensAfter: 10000,
+      });
+      await triggerInternalHook(event);
+
+      expect(event.messages).toEqual(["Re-reading workspace context after compaction..."]);
+    });
+  });
+
   describe("integration", () => {
     it("should handle a complete hook lifecycle", async () => {
       const results: InternalHookEvent[] = [];

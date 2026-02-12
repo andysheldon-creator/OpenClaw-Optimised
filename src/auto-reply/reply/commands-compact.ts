@@ -94,6 +94,7 @@ export const handleCompactCommand: CommandHandler = async (params) => {
     customInstructions,
     senderIsOwner: params.command.senderIsOwner,
     ownerNumbers: params.command.ownerList.length > 0 ? params.command.ownerList : undefined,
+    trigger: "manual",
   });
 
   const compactLabel = result.ok

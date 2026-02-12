@@ -230,6 +230,33 @@ Triggered when agent commands are issued:
 - **`command:reset`**: When `/reset` command is issued
 - **`command:stop`**: When `/stop` command is issued
 
+### Session Events
+
+- **`session:compaction`**: After auto-compaction or `/compact` completes successfully
+
+The event context includes:
+
+| Field          | Type                  | Description                                                           |
+| -------------- | --------------------- | --------------------------------------------------------------------- |
+| `sessionKey`   | `string`              | Which session was compacted                                           |
+| `trigger`      | `"manual" \| "auto"`  | Whether compaction was triggered by `/compact` or by context overflow |
+| `tokensBefore` | `number`              | Token count before compaction                                         |
+| `tokensAfter`  | `number \| undefined` | Estimated token count after compaction                                |
+
+**Example handler:**
+
+```typescript
+const handler: HookHandler = async (event) => {
+  if (event.type !== "session" || event.action !== "compaction") {
+    return;
+  }
+  const { trigger, tokensBefore, tokensAfter } = event.context;
+  console.log(`[post-compact] ${trigger} compaction: ${tokensBefore} -> ${tokensAfter}`);
+  // Re-inject context, e.g. "Read today's daily log"
+  event.messages.push("Re-reading workspace context after compaction...");
+};
+```
+
 ### Agent Events
 
 - **`agent:bootstrap`**: Before workspace bootstrap files are injected (hooks may mutate `context.bootstrapFiles`)
@@ -253,8 +280,6 @@ Planned event types:
 - **`session:start`**: When a new session begins
 - **`session:end`**: When a session ends
 - **`agent:error`**: When an agent encounters an error
-- **`message:sent`**: When a message is sent
-- **`message:received`**: When a message is received
 
 ## Creating Custom Hooks
 
