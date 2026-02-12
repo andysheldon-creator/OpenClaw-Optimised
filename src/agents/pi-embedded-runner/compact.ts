@@ -471,6 +471,18 @@ export async function compactEmbeddedPiSessionDirect(
           },
         };
       } finally {
+        // Wait for agent idle before flushing to prevent inserting synthetic
+        // "missing tool result" errors while tools are still executing.
+        if (session?.agent?.waitForIdle) {
+          try {
+            await Promise.race([
+              session.agent.waitForIdle(),
+              new Promise<void>((resolve) => setTimeout(resolve, 30_000)),
+            ]);
+          } catch {
+            /* best-effort */
+          }
+        }
         sessionManager.flushPendingToolResults?.();
         session.dispose();
       }
