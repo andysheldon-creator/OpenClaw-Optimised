@@ -633,7 +633,16 @@ export async function reactMessageTelegram(
   if (typeof api.setMessageReaction !== "function") {
     throw new Error("Telegram reactions are unavailable in this bot API.");
   }
-  await requestWithDiag(() => api.setMessageReaction(chatId, messageId, reactions), "reaction");
+  try {
+    await requestWithDiag(() => api.setMessageReaction(chatId, messageId, reactions), "reaction");
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (/REACTION_INVALID/i.test(msg)) {
+      logHttpError("reaction", err);
+      return { ok: false as const, warning: `Reaction unavailable: ${trimmedEmoji}` };
+    }
+    throw err;
+  }
   return { ok: true };
 }
 

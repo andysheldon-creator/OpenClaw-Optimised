@@ -354,6 +354,9 @@ function generateZshCompletion(program: Command): string {
   const script = `
 #compdef ${rootCmd}
 
+# Ensure compdef is available (e.g. when sourced before compinit)
+if ! type compdef &>/dev/null; then autoload -Uz compinit && compinit -i; fi
+
 _${rootCmd}_root_completion() {
   local -a commands
   local -a options
