@@ -61,6 +61,31 @@ describe("restart sentinel", () => {
     await expect(fs.stat(filePath)).rejects.toThrow();
   });
 
+  it("preserves deliveryContext and threadId in sentinel", async () => {
+    const payload = {
+      kind: "config-apply" as const,
+      status: "ok" as const,
+      ts: Date.now(),
+      sessionKey: "agent:main:telegram:dm:12345",
+      deliveryContext: {
+        channel: "telegram",
+        to: "12345",
+        accountId: "bot-account",
+      },
+      threadId: "topic-99",
+      stats: { mode: "config.patch" },
+    };
+    await writeRestartSentinel(payload);
+
+    const consumed = await consumeRestartSentinel();
+    expect(consumed?.payload.deliveryContext).toEqual({
+      channel: "telegram",
+      to: "12345",
+      accountId: "bot-account",
+    });
+    expect(consumed?.payload.threadId).toBe("topic-99");
+  });
+
   it("trims log tails", () => {
     const text = "a".repeat(9000);
     const trimmed = trimLogTail(text, 8000);
