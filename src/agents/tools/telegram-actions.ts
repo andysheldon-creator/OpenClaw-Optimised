@@ -8,6 +8,7 @@ import { resolveTelegramReactionLevel } from "../../telegram/reaction-level.js";
 import {
   deleteMessageTelegram,
   editMessageTelegram,
+  getChatMembersTelegram,
   reactMessageTelegram,
   sendMessageTelegram,
   sendStickerTelegram,
@@ -318,6 +319,33 @@ export async function handleTelegramAction(
   if (action === "stickerCacheStats") {
     const stats = getCacheStats();
     return jsonResult({ ok: true, ...stats });
+  }
+
+  if (action === "memberInfo") {
+    if (!isActionEnabled("memberInfo")) {
+      throw new Error(
+        "Telegram memberInfo is disabled. Set channels.telegram.actions.memberInfo to true.",
+      );
+    }
+    const chatId =
+      readStringOrNumberParam(params, "chatId") ??
+      readStringOrNumberParam(params, "channelId") ??
+      readStringParam(params, "to", { required: true });
+    const token = resolveTelegramToken(cfg, { accountId }).token;
+    if (!token) {
+      throw new Error(
+        "Telegram bot token missing. Set TELEGRAM_BOT_TOKEN or channels.telegram.botToken.",
+      );
+    }
+    const result = await getChatMembersTelegram(chatId ?? "", {
+      token,
+      accountId: accountId ?? undefined,
+    });
+    return jsonResult({
+      ok: true,
+      chatId,
+      members: result.members,
+    });
   }
 
   throw new Error(`Unsupported Telegram action: ${action}`);

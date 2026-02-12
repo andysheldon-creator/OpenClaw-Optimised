@@ -60,6 +60,9 @@ export const telegramMessageActions: ChannelMessageActionAdapter = {
       actions.add("sticker");
       actions.add("sticker-search");
     }
+    if (gate("memberInfo", false)) {
+      actions.add("member-info");
+    }
     return Array.from(actions);
   },
   supportsButtons: ({ cfg }) => {
@@ -193,6 +196,21 @@ export const telegramMessageActions: ChannelMessageActionAdapter = {
           action: "searchSticker",
           query,
           limit: limit ?? undefined,
+          accountId: accountId ?? undefined,
+        },
+        cfg,
+      );
+    }
+
+    if (action === "member-info") {
+      const chatId =
+        readStringOrNumberParam(params, "chatId") ??
+        readStringOrNumberParam(params, "channelId") ??
+        readStringParam(params, "to", { required: true });
+      return await handleTelegramAction(
+        {
+          action: "memberInfo",
+          chatId,
           accountId: accountId ?? undefined,
         },
         cfg,

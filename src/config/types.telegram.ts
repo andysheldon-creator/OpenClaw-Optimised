@@ -18,6 +18,8 @@ export type TelegramActionConfig = {
   editMessage?: boolean;
   /** Enable sticker actions (send and search). */
   sticker?: boolean;
+  /** Enable member-info action to retrieve chat administrators. */
+  memberInfo?: boolean;
 };
 
 export type TelegramNetworkConfig = {

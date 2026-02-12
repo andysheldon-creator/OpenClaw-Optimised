@@ -915,3 +915,75 @@ export async function sendStickerTelegram(
 
   return { messageId, chatId: resolvedChatId };
 }
+
+type TelegramChatMemberOpts = {
+  token?: string;
+  accountId?: string;
+  verbose?: boolean;
+  api?: Bot["api"];
+  retry?: RetryConfig;
+};
+
+export type TelegramChatMember = {
+  id: number;
+  username?: string;
+  firstName?: string;
+  lastName?: string;
+  isBot: boolean;
+  status: string;
+};
+
+/**
+ * Get chat administrators (members with admin privileges) from a Telegram chat.
+ * Note: Telegram Bot API only provides getChatAdministrators, not a full member list.
+ * For full member lists, user would need Telegram user API (not bot API).
+ *
+ * @param chatId - Chat ID or username (e.g., "-1001234567890" or "@username")
+ * @param opts - Optional configuration
+ */
+export async function getChatMembersTelegram(
+  chatIdInput: string | number,
+  opts: TelegramChatMemberOpts = {},
+): Promise<{ ok: true; members: TelegramChatMember[] }> {
+  const cfg = loadConfig();
+  const account = resolveTelegramAccount({
+    cfg,
+    accountId: opts.accountId,
+  });
+  const token = resolveToken(opts.token, account);
+  const chatId = normalizeChatId(String(chatIdInput));
+  const client = resolveTelegramClientOptions(account);
+  const api = opts.api ?? new Bot(token, client ? { client } : undefined).api;
+  const request = createTelegramRetryRunner({
+    retry: opts.retry,
+    configRetry: account.config.retry,
+    verbose: opts.verbose,
+    shouldRetry: (err) => isRecoverableTelegramNetworkError(err, { context: "send" }),
+  });
+  const logHttpError = createTelegramHttpLogger(cfg);
+  const requestWithDiag = <T>(fn: () => Promise<T>, label?: string) =>
+    withTelegramApiErrorLogging({
+      operation: label ?? "request",
+      fn: () => request(fn, label),
+    }).catch((err) => {
+      logHttpError(label ?? "request", err);
+      throw err;
+    });
+
+  const admins = await requestWithDiag(
+    () => api.getChatAdministrators(chatId),
+    "getChatAdministrators",
+  );
+
+  const members: TelegramChatMember[] = admins.map((admin) => ({
+    id: admin.user.id,
+    username: admin.user.username,
+    firstName: admin.user.first_name,
+    lastName: admin.user.last_name,
+    isBot: admin.user.is_bot,
+    status: admin.status,
+  }));
+
+  logVerbose(`[telegram] Retrieved ${members.length} administrators from chat ${chatId}`);
+  return { ok: true, members };
+}
