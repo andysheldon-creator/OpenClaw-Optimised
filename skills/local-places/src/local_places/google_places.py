@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 from typing import Any
 
 import httpx
@@ -65,6 +66,82 @@ _RESOLVE_FIELD_MASK = (
     "places.location,"
     "places.types"
 )
+
+
+def _validate_place_id(place_id: str) -> None:
+    """
+    Validate Google Places API place_id format to prevent path traversal.
+    
+    Google Place IDs are base64-like alphanumeric strings that may contain
+    specific special characters (+, =, _, -). This validation prevents path
+    traversal attacks (e.g., ../../../etc/passwd) while allowing all
+    legitimate place_id formats.
+    
+    Args:
+        place_id: The place ID string to validate
+        
+    Raises:
+        HTTPException: If place_id format is invalid
+        
+    Note:
+        This addresses SonarCloud pythonsecurity:S7044. While the URL scheme and host
+        are fixed (https://places.googleapis.com), validating the place_id prevents
+        any potential path manipulation and satisfies security analysis requirements.
+    """
+    if not place_id or not isinstance(place_id, str):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid place_id: must be a non-empty string.",
+        )
+    
+    # Google place IDs are typically 20-200 characters
+    if len(place_id) < 10 or len(place_id) > 300:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid place_id length: {len(place_id)}. Expected 10-300 characters.",
+        )
+    
+    # Normalize percent-encoded sequences (both lowercase and uppercase)
+    # This catches attempts to bypass validation with URL encoding
+    normalized = place_id.lower()
+    normalized = normalized.replace('%2e', '.')
+    normalized = normalized.replace('%2f', '/')
+    normalized = normalized.replace('%5c', r'\\')
+    
+    # Check for path traversal patterns in the normalized string
+    # Note: We already decoded %2e, %2f, %5c above, so we only need to check
+    # for the actual characters, not the encoded forms
+    traversal_patterns = [
+        r'\.\.',           # Double dots (.. or %2e%2e after normalization)
+        r'//',             # Double slashes (// or %2f%2f after normalization)
+        r'\\\\',           # Double backslashes (\\ or %5c%5c after normalization)
+        r'\.\/',           # Dot-slash (./  )
+        r'\.\\',           # Dot-backslash (.\ )
+    ]
+    
+    for pattern in traversal_patterns:
+        if re.search(pattern, normalized, re.IGNORECASE):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid place_id format: contains path traversal pattern.",
+            )
+    
+    # Block dangerous special characters that could be used for injection
+    # Fixed: Escaped the single quote properly
+    if re.search(r"[\s?#<>|*%$&'`;]", place_id):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid place_id format: contains disallowed special characters.",
+        )
+    
+    # Only allow alphanumeric characters and specific Google Place ID characters: + = _ -
+    # Note: Forward slash (/) is NOT included as Google Place IDs don't contain slashes
+    # Real examples: ChIJN1t_tDeuEmsRUsoyG83frY4, Ei1Tb21lIFBsYWNlIE5hbWU
+    if not re.match(r'^[A-Za-z0-9+=_-]+$', place_id):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid place_id format: must contain only alphanumeric characters and +, =, _, -",
+        )
 
 
 class _GoogleResponse:
@@ -235,6 +312,9 @@ def search_places(request: SearchRequest) -> SearchResponse:
 
 
 def get_place_details(place_id: str) -> PlaceDetails:
+    # Validate place_id to prevent path traversal (addresses SonarCloud pythonsecurity:S7044)
+    _validate_place_id(place_id)
+    
     url = f"{GOOGLE_PLACES_BASE_URL}/places/{place_id}"
     response = _request("GET", url, None, _DETAILS_FIELD_MASK)
 
