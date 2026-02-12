@@ -8,6 +8,7 @@ import { formatUncaughtError } from "../infra/errors.js";
 import { isMainModule } from "../infra/is-main.js";
 import { ensureOpenClawCliOnPath } from "../infra/path-env.js";
 import { assertSupportedRuntime } from "../infra/runtime-guard.js";
+import { loadSupabaseEnv } from "../infra/supabase-env.js";
 import { installUnhandledRejectionHandler } from "../infra/unhandled-rejections.js";
 import { enableConsoleCapture } from "../logging.js";
 import { getPrimaryCommand, hasHelpOrVersion } from "./argv.js";
@@ -27,6 +28,11 @@ export function rewriteUpdateFlagArgv(argv: string[]): string[] {
 export async function runCli(argv: string[] = process.argv) {
   const normalizedArgv = stripWindowsNodeExec(argv);
   loadDotEnv({ quiet: true });
+  // Load remote env vars from Supabase (if configured) before any config
+  // loading runs. This is async but must complete before loadConfig() so
+  // that ${VAR} substitution in openclaw.json can reference Supabase-stored
+  // secrets. No-op when SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are unset.
+  await loadSupabaseEnv();
   normalizeEnv();
   ensureOpenClawCliOnPath();
 

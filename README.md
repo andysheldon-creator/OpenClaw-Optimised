@@ -1,14 +1,14 @@
-# 🦞 OpenClaw — Personal AI Assistant
+# SecureClaw — Secure Personal AI Assistant
 
 <p align="center">
     <picture>
         <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/openclaw/openclaw/main/docs/assets/openclaw-logo-text-dark.png">
-        <img src="https://raw.githubusercontent.com/openclaw/openclaw/main/docs/assets/openclaw-logo-text.png" alt="OpenClaw" width="500">
+        <img src="https://raw.githubusercontent.com/openclaw/openclaw/main/docs/assets/openclaw-logo-text.png" alt="SecureClaw" width="500">
     </picture>
 </p>
 
 <p align="center">
-  <strong>EXFOLIATE! EXFOLIATE!</strong>
+  <strong>Secure by default. Open at heart.</strong>
 </p>
 
 <p align="center">
@@ -18,12 +18,19 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License"></a>
 </p>
 
-**OpenClaw** is a _personal AI assistant_ you run on your own devices.
+**SecureClaw** is a security-hardened distribution of [OpenClaw](https://openclaw.ai), brought to you by [clawoncloud.com](https://clawoncloud.com). It is still fully open-source under the MIT license and built on the same OpenClaw core — but with an enhanced security posture designed for teams and individuals who need stronger secret management and a more secure deployment model.
+
+**What makes SecureClaw different from upstream OpenClaw?**
+
+- **Remote secret storage via Supabase** — API keys, tokens, and credentials are stored in a secure Supabase database with Row Level Security, instead of sitting in plaintext `.env` files on disk. Only two bootstrap variables remain local; everything else lives in the cloud, encrypted at rest.
+- **Same OpenClaw you know** — every feature, channel, tool, and companion app works exactly as before. SecureClaw is a superset, not a fork. Upstream updates merge cleanly.
+
+SecureClaw is a _personal AI assistant_ you run on your own devices.
 It answers you on the channels you already use (WhatsApp, Telegram, Slack, Discord, Google Chat, Signal, iMessage, Microsoft Teams, WebChat), plus extension channels like BlueBubbles, Matrix, Zalo, and Zalo Personal. It can speak and listen on macOS/iOS/Android, and can render a live Canvas you control. The Gateway is just the control plane — the product is the assistant.
 
-If you want a personal, single-user assistant that feels local, fast, and always-on, this is it.
+If you want a personal, single-user assistant that feels local, fast, and always-on — with enterprise-grade secret management — this is it.
 
-[Website](https://openclaw.ai) · [Docs](https://docs.openclaw.ai) · [DeepWiki](https://deepwiki.com/openclaw/openclaw) · [Getting Started](https://docs.openclaw.ai/start/getting-started) · [Updating](https://docs.openclaw.ai/install/updating) · [Showcase](https://docs.openclaw.ai/start/showcase) · [FAQ](https://docs.openclaw.ai/start/faq) · [Wizard](https://docs.openclaw.ai/start/wizard) · [Nix](https://github.com/openclaw/nix-openclaw) · [Docker](https://docs.openclaw.ai/install/docker) · [Discord](https://discord.gg/clawd)
+[clawoncloud.com](https://clawoncloud.com) · [OpenClaw Website](https://openclaw.ai) · [Docs](https://docs.openclaw.ai) · [DeepWiki](https://deepwiki.com/openclaw/openclaw) · [Getting Started](https://docs.openclaw.ai/start/getting-started) · [Updating](https://docs.openclaw.ai/install/updating) · [Showcase](https://docs.openclaw.ai/start/showcase) · [FAQ](https://docs.openclaw.ai/start/faq) · [Wizard](https://docs.openclaw.ai/start/wizard) · [Nix](https://github.com/openclaw/nix-openclaw) · [Docker](https://docs.openclaw.ai/install/docker) · [Discord](https://discord.gg/clawd)
 
 Preferred setup: run the onboarding wizard (`openclaw onboard`) in your terminal.
 The wizard guides you step by step through setting up the gateway, workspace, channels, and skills. The CLI wizard is the recommended path and works on **macOS, Linux, and Windows (via WSL2; strongly recommended)**.
@@ -104,9 +111,30 @@ pnpm gateway:watch
 
 Note: `pnpm openclaw ...` runs TypeScript directly (via `tsx`). `pnpm build` produces `dist/` for running via Node / the packaged `openclaw` binary.
 
+## Secure environment variable storage (SecureClaw)
+
+SecureClaw adds an optional **Supabase-backed secret store** so your API keys and tokens never need to live in plaintext `.env` files. When configured, secrets are fetched at startup from a Supabase `env_vars` table (protected by Row Level Security) and injected into the runtime — local `.env` values still take precedence if present.
+
+Setup:
+
+1. Run `supabase-schema.sql` in your Supabase SQL editor to create the `env_vars` table.
+2. Insert your secrets: `INSERT INTO env_vars (key, value) VALUES ('OPENAI_API_KEY', 'sk-...')`.
+3. Set only two bootstrap vars in your local `.env`:
+
+   ```
+   SUPABASE_URL=https://your-project.supabase.co
+   SUPABASE_SERVICE_ROLE_KEY=eyJhbG...
+   ```
+
+4. Start SecureClaw normally — all other secrets load from Supabase automatically.
+
+Precedence (highest to lowest): process env > `./.env` > `~/.openclaw/.env` > **Supabase `env_vars`** > `openclaw.json` `env` block.
+
+If Supabase is unreachable, SecureClaw falls back gracefully to local `.env` files — zero disruption.
+
 ## Security defaults (DM access)
 
-OpenClaw connects to real messaging surfaces. Treat inbound DMs as **untrusted input**.
+SecureClaw connects to real messaging surfaces. Treat inbound DMs as **untrusted input**.
 
 Full security guide: [Security](https://docs.openclaw.ai/gateway/security)
 
