@@ -374,7 +374,15 @@ _${rootCmd}_root_completion() {
 
 ${generateZshSubcommands(program, rootCmd)}
 
-compdef _${rootCmd}_root_completion ${rootCmd}
+if type compdef &>/dev/null; then
+  compdef _${rootCmd}_root_completion ${rootCmd}
+else
+  _${rootCmd}_completion_setup() {
+    compdef _${rootCmd}_root_completion ${rootCmd}
+    unfunction _${rootCmd}_completion_setup
+  }
+  precmd_functions+=(_${rootCmd}_completion_setup)
+fi
 `;
   return script;
 }
