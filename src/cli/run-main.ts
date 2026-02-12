@@ -9,7 +9,7 @@ import { isMainModule } from "../infra/is-main.js";
 import { ensureOpenClawCliOnPath } from "../infra/path-env.js";
 import { assertSupportedRuntime } from "../infra/runtime-guard.js";
 import { installUnhandledRejectionHandler } from "../infra/unhandled-rejections.js";
-import { enableConsoleCapture } from "../logging.js";
+import { enableConsoleCapture, routeLogsToStderr } from "../logging.js";
 import { getPrimaryCommand, hasHelpOrVersion } from "./argv.js";
 import { tryRouteCli } from "./route.js";
 
@@ -39,6 +39,13 @@ export async function runCli(argv: string[] = process.argv) {
 
   // Capture all console output into structured logs while keeping stdout/stderr behavior.
   enableConsoleCapture();
+
+  // When generating completion scripts (e.g. `source <(openclaw completion --shell zsh)`),
+  // redirect all log output to stderr so stdout stays clean for the script.
+  // This prevents ANSI-colored subsystem messages from corrupting shell completion output.
+  if (getPrimaryCommand(normalizedArgv) === "completion" && !hasHelpOrVersion(normalizedArgv)) {
+    routeLogsToStderr();
+  }
 
   const { buildProgram } = await import("./program.js");
   const program = buildProgram();
