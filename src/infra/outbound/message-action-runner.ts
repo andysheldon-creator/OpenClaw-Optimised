@@ -275,6 +275,39 @@ function resolveTelegramAutoThreadId(params: {
   return context.currentThreadTs;
 }
 
+/**
+ * Auto-inject Feishu topic thread ID when the message tool targets
+ * the same group chat the session originated from.  Mirrors the Slack/Telegram
+ * auto-threading pattern so tool-sent messages land in the correct
+ * topic instead of creating a new one.
+ *
+ * Feishu topic groups use `root_id` (message ID) as the topic identifier.
+ * The session stores this as `currentThreadId` (via `MessageThreadId` in
+ * delivery context). Unlike Slack's `currentThreadTs`, this uses a dedicated
+ * field because Feishu threads are not timestamp-based.
+ */
+function resolveFeishuAutoThreadId(params: {
+  to: string;
+  toolContext?: ChannelThreadingToolContext;
+}): string | undefined {
+  const context = params.toolContext;
+  if (!context?.currentThreadId) {
+    return undefined;
+  }
+  // Only inject when the target matches the current channel (same group)
+  const target = params.to?.trim();
+  const currentId = context.currentChannelId?.trim();
+  if (target && currentId) {
+    // Strip "chat:" prefix for comparison
+    const normalizedTarget = target.replace(/^chat:/, "");
+    const normalizedCurrent = currentId.replace(/^chat:/, "");
+    if (normalizedTarget.toLowerCase() !== normalizedCurrent.toLowerCase()) {
+      return undefined; // Cross-group send, don't inject
+    }
+  }
+  return context.currentThreadId;
+}
+
 function resolveAttachmentMaxBytes(params: {
   cfg: OpenClawConfig;
   channel: ChannelId;
@@ -819,7 +852,13 @@ async function handleSendAction(ctx: ResolvedActionContext): Promise<MessageActi
     channel === "telegram" && !threadId
       ? resolveTelegramAutoThreadId({ to, toolContext: input.toolContext })
       : undefined;
-  const resolvedThreadId = threadId ?? slackAutoThreadId ?? telegramAutoThreadId;
+  // Feishu topic auto-threading: inject threadId from session context so messages
+  // stay in the same topic instead of creating new ones.
+  const feishuAutoThreadId =
+    channel === "feishu" && !replyToId && !threadId
+      ? resolveFeishuAutoThreadId({ to, toolContext: input.toolContext })
+      : undefined;
+  const resolvedThreadId = threadId ?? slackAutoThreadId ?? telegramAutoThreadId ?? feishuAutoThreadId;
   // Write auto-resolved threadId back into params so downstream dispatch
   // (plugin `readStringParam(params, "threadId")`) picks it up.
   if (resolvedThreadId && !params.threadId) {
