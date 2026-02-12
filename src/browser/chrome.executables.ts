@@ -45,7 +45,11 @@ const CHROMIUM_DESKTOP_IDS = new Set([
   "opera.desktop",
   "opera-gx.desktop",
   "yandex-browser.desktop",
+  // Flatpak reverse-DNS desktop file IDs
+  "com.google.Chrome.desktop",
+  "com.brave.Browser.desktop",
   "org.chromium.Chromium.desktop",
+  "com.microsoft.Edge.desktop",
 ]);
 
 const CHROMIUM_EXE_NAMES = new Set([
@@ -312,6 +316,19 @@ function findDesktopFilePath(desktopId: string): string | null {
     path.join("/usr/local/share/applications", desktopId),
     path.join("/usr/share/applications", desktopId),
     path.join("/var/lib/snapd/desktop/applications", desktopId),
+    // Flatpak (system-wide)
+    path.join("/var/lib/flatpak/exports/share/applications", desktopId),
+    // Flatpak (user-local)
+    path.join(
+      os.homedir(),
+      ".local",
+      "share",
+      "flatpak",
+      "exports",
+      "share",
+      "applications",
+      desktopId,
+    ),
   ];
   for (const candidate of candidates) {
     if (exists(candidate)) {
@@ -507,6 +524,8 @@ export function findChromeExecutableMac(): BrowserExecutable | null {
 }
 
 export function findChromeExecutableLinux(): BrowserExecutable | null {
+  const home = os.homedir();
+
   const candidates: Array<BrowserExecutable> = [
     { kind: "chrome", path: "/usr/bin/google-chrome" },
     { kind: "chrome", path: "/usr/bin/google-chrome-stable" },
@@ -520,6 +539,34 @@ export function findChromeExecutableLinux(): BrowserExecutable | null {
     { kind: "chromium", path: "/usr/bin/chromium" },
     { kind: "chromium", path: "/usr/bin/chromium-browser" },
     { kind: "chromium", path: "/snap/bin/chromium" },
+
+    // Flatpak (system-wide)
+    { kind: "chrome", path: "/var/lib/flatpak/exports/bin/com.google.Chrome" },
+    { kind: "brave", path: "/var/lib/flatpak/exports/bin/com.brave.Browser" },
+    { kind: "chromium", path: "/var/lib/flatpak/exports/bin/org.chromium.Chromium" },
+    { kind: "edge", path: "/var/lib/flatpak/exports/bin/com.microsoft.Edge" },
+
+    // Flatpak (user-local)
+    {
+      kind: "chrome",
+      path: path.join(home, ".local", "share", "flatpak", "exports", "bin", "com.google.Chrome"),
+    },
+    {
+      kind: "brave",
+      path: path.join(home, ".local", "share", "flatpak", "exports", "bin", "com.brave.Browser"),
+    },
+    {
+      kind: "chromium",
+      path: path.join(
+        home,
+        ".local",
+        "share",
+        "flatpak",
+        "exports",
+        "bin",
+        "org.chromium.Chromium",
+      ),
+    },
   ];
 
   return findFirstExecutable(candidates);
