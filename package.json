@@ -141,7 +141,16 @@
     "patchedDependencies": {
       "@mariozechner/pi-ai": "patches/@mariozechner__pi-ai.patch",
       "@mariozechner/pi-coding-agent@0.31.1": "patches/@mariozechner__pi-coding-agent@0.31.1.patch"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "better-sqlite3",
+      "@whiskeysockets/baileys",
+      "sharp",
+      "esbuild",
+      "protobufjs",
+      "fs-ext",
+      "node-pty"
+    ]
   },
   "vitest": {
     "coverage": {
