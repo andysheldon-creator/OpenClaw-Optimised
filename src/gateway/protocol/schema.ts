@@ -650,6 +650,210 @@ export const ChatEventSchema = Type.Object(
   { additionalProperties: false },
 );
 
+// ── Task Schemas ────────────────────────────────────────────────────────────
+
+const TaskStatusLiteral = Type.Union([
+  Type.Literal("pending"),
+  Type.Literal("in_progress"),
+  Type.Literal("paused"),
+  Type.Literal("completed"),
+  Type.Literal("failed"),
+  Type.Literal("cancelled"),
+]);
+
+export const TaskStepSchema = Type.Object(
+  {
+    id: NonEmptyString,
+    index: Type.Integer({ minimum: 0 }),
+    description: NonEmptyString,
+    status: TaskStatusLiteral,
+    prompt: NonEmptyString,
+    result: Type.Optional(Type.String()),
+    startedAtMs: Type.Optional(Type.Integer({ minimum: 0 })),
+    completedAtMs: Type.Optional(Type.Integer({ minimum: 0 })),
+    error: Type.Optional(Type.String()),
+    retryCount: Type.Optional(Type.Integer({ minimum: 0 })),
+  },
+  { additionalProperties: false },
+);
+
+export const TaskSchema = Type.Object(
+  {
+    id: NonEmptyString,
+    name: NonEmptyString,
+    description: NonEmptyString,
+    status: TaskStatusLiteral,
+    createdAtMs: Type.Integer({ minimum: 0 }),
+    updatedAtMs: Type.Integer({ minimum: 0 }),
+    completedAtMs: Type.Optional(Type.Integer({ minimum: 0 })),
+    reportChannel: Type.Union([
+      Type.Literal("last"),
+      Type.Literal("whatsapp"),
+      Type.Literal("telegram"),
+      Type.Literal("discord"),
+      Type.Literal("signal"),
+      Type.Literal("imessage"),
+    ]),
+    reportTo: Type.Optional(Type.String()),
+    reportEverySteps: Type.Integer({ minimum: 1 }),
+    steps: Type.Array(TaskStepSchema),
+    currentStepIndex: Type.Integer({ minimum: 0 }),
+    sessionKey: NonEmptyString,
+    stepIntervalMs: Type.Integer({ minimum: 1 }),
+    maxRetries: Type.Integer({ minimum: 0 }),
+    timeoutPerStepMs: Type.Integer({ minimum: 1 }),
+    progressReports: Type.Array(Type.Unknown()),
+    finalSummary: Type.Optional(Type.String()),
+  },
+  { additionalProperties: false },
+);
+
+export const TasksListParamsSchema = Type.Object(
+  {
+    status: Type.Optional(TaskStatusLiteral),
+  },
+  { additionalProperties: false },
+);
+
+export const TasksGetParamsSchema = Type.Object(
+  {
+    id: NonEmptyString,
+  },
+  { additionalProperties: false },
+);
+
+export const TaskStepCreateSchema = Type.Object(
+  {
+    description: NonEmptyString,
+    prompt: NonEmptyString,
+  },
+  { additionalProperties: false },
+);
+
+export const TasksCreateParamsSchema = Type.Object(
+  {
+    name: NonEmptyString,
+    description: NonEmptyString,
+    steps: Type.Array(TaskStepCreateSchema, { minItems: 1 }),
+    reportChannel: Type.Optional(
+      Type.Union([
+        Type.Literal("last"),
+        Type.Literal("whatsapp"),
+        Type.Literal("telegram"),
+        Type.Literal("discord"),
+        Type.Literal("signal"),
+        Type.Literal("imessage"),
+      ]),
+    ),
+    reportTo: Type.Optional(Type.String()),
+    reportEverySteps: Type.Optional(Type.Integer({ minimum: 1 })),
+    stepIntervalMs: Type.Optional(Type.Integer({ minimum: 1 })),
+    maxRetries: Type.Optional(Type.Integer({ minimum: 0 })),
+    timeoutPerStepMs: Type.Optional(Type.Integer({ minimum: 1 })),
+  },
+  { additionalProperties: false },
+);
+
+export const TasksCancelParamsSchema = Type.Object(
+  { id: NonEmptyString },
+  { additionalProperties: false },
+);
+
+export const TasksPauseParamsSchema = Type.Object(
+  { id: NonEmptyString },
+  { additionalProperties: false },
+);
+
+export const TasksResumeParamsSchema = Type.Object(
+  { id: NonEmptyString },
+  { additionalProperties: false },
+);
+
+export const TaskProgressEventSchema = Type.Object(
+  {
+    taskId: NonEmptyString,
+    taskName: NonEmptyString,
+    stepIndex: Type.Integer({ minimum: 0 }),
+    totalSteps: Type.Integer({ minimum: 1 }),
+    stepDescription: Type.String(),
+    result: Type.Optional(Type.String()),
+    ts: Type.Integer({ minimum: 0 }),
+  },
+  { additionalProperties: false },
+);
+
+export const TaskCompletedEventSchema = Type.Object(
+  {
+    taskId: NonEmptyString,
+    taskName: NonEmptyString,
+    summary: Type.Optional(Type.String()),
+    ts: Type.Integer({ minimum: 0 }),
+  },
+  { additionalProperties: false },
+);
+
+export const TaskFailedEventSchema = Type.Object(
+  {
+    taskId: NonEmptyString,
+    taskName: NonEmptyString,
+    error: NonEmptyString,
+    stepIndex: Type.Optional(Type.Integer({ minimum: 0 })),
+    ts: Type.Integer({ minimum: 0 }),
+  },
+  { additionalProperties: false },
+);
+
+// ── Voice Schemas ───────────────────────────────────────────────────────────
+
+export const VoiceStartParamsSchema = Type.Object(
+  {
+    sessionKey: Type.Optional(Type.String()),
+    voiceId: Type.Optional(Type.String()),
+  },
+  { additionalProperties: false },
+);
+
+export const VoiceEndParamsSchema = Type.Object(
+  {
+    sessionKey: Type.Optional(Type.String()),
+  },
+  { additionalProperties: false },
+);
+
+export const VoiceStatusParamsSchema = Type.Object(
+  {
+    sessionKey: Type.Optional(Type.String()),
+  },
+  { additionalProperties: false },
+);
+
+export const VoiceStateEventSchema = Type.Object(
+  {
+    state: Type.Union([
+      Type.Literal("connecting"),
+      Type.Literal("listening"),
+      Type.Literal("thinking"),
+      Type.Literal("speaking"),
+      Type.Literal("ended"),
+    ]),
+    sessionKey: NonEmptyString,
+    ts: Type.Integer({ minimum: 0 }),
+  },
+  { additionalProperties: false },
+);
+
+export const VoiceTranscriptEventSchema = Type.Object(
+  {
+    text: NonEmptyString,
+    speaker: Type.Union([Type.Literal("user"), Type.Literal("agent")]),
+    sessionKey: NonEmptyString,
+    ts: Type.Integer({ minimum: 0 }),
+  },
+  { additionalProperties: false },
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export const ProtocolSchemas: Record<string, TSchema> = {
   ConnectParams: ConnectParamsSchema,
   HelloOk: HelloOkSchema,
@@ -706,6 +910,24 @@ export const ProtocolSchemas: Record<string, TSchema> = {
   ChatEvent: ChatEventSchema,
   TickEvent: TickEventSchema,
   ShutdownEvent: ShutdownEventSchema,
+  // Task schemas
+  TaskStep: TaskStepSchema,
+  Task: TaskSchema,
+  TasksListParams: TasksListParamsSchema,
+  TasksGetParams: TasksGetParamsSchema,
+  TasksCreateParams: TasksCreateParamsSchema,
+  TasksCancelParams: TasksCancelParamsSchema,
+  TasksPauseParams: TasksPauseParamsSchema,
+  TasksResumeParams: TasksResumeParamsSchema,
+  TaskProgressEvent: TaskProgressEventSchema,
+  TaskCompletedEvent: TaskCompletedEventSchema,
+  TaskFailedEvent: TaskFailedEventSchema,
+  // Voice schemas
+  VoiceStartParams: VoiceStartParamsSchema,
+  VoiceEndParams: VoiceEndParamsSchema,
+  VoiceStatusParams: VoiceStatusParamsSchema,
+  VoiceStateEvent: VoiceStateEventSchema,
+  VoiceTranscriptEvent: VoiceTranscriptEventSchema,
 };
 
 export const PROTOCOL_VERSION = 2 as const;
@@ -761,12 +983,30 @@ export type ChatAbortParams = Static<typeof ChatAbortParamsSchema>;
 export type ChatEvent = Static<typeof ChatEventSchema>;
 export type TickEvent = Static<typeof TickEventSchema>;
 export type ShutdownEvent = Static<typeof ShutdownEventSchema>;
+// Task types
+export type TasksListParams = Static<typeof TasksListParamsSchema>;
+export type TasksGetParams = Static<typeof TasksGetParamsSchema>;
+export type TasksCreateParams = Static<typeof TasksCreateParamsSchema>;
+export type TasksCancelParams = Static<typeof TasksCancelParamsSchema>;
+export type TasksPauseParams = Static<typeof TasksPauseParamsSchema>;
+export type TasksResumeParams = Static<typeof TasksResumeParamsSchema>;
+export type TaskProgressEvent = Static<typeof TaskProgressEventSchema>;
+export type TaskCompletedEvent = Static<typeof TaskCompletedEventSchema>;
+export type TaskFailedEvent = Static<typeof TaskFailedEventSchema>;
+// Voice types
+export type VoiceStartParams = Static<typeof VoiceStartParamsSchema>;
+export type VoiceEndParams = Static<typeof VoiceEndParamsSchema>;
+export type VoiceStatusParams = Static<typeof VoiceStatusParamsSchema>;
+export type VoiceStateEvent = Static<typeof VoiceStateEventSchema>;
+export type VoiceTranscriptEvent = Static<typeof VoiceTranscriptEventSchema>;
 
 export const ErrorCodes = {
   NOT_LINKED: "NOT_LINKED",
   AGENT_TIMEOUT: "AGENT_TIMEOUT",
   INVALID_REQUEST: "INVALID_REQUEST",
   UNAVAILABLE: "UNAVAILABLE",
+  NOT_FOUND: "NOT_FOUND",
+  INTERNAL_ERROR: "INTERNAL_ERROR",
 } as const;
 
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

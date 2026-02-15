@@ -148,6 +148,9 @@ export async function runClaudeCli(
 // Only one `claude -p` process should run at a time to avoid overwhelming
 // the subscription rate limits and ensuring coherent responses.
 
+/** Hard cap on pending queue entries to prevent unbounded memory growth. */
+export const MAX_QUEUE_DEPTH = 20;
+
 type QueueEntry = {
   params: ClaudeCliRunParams;
   resolve: (result: ClaudeCliRunResult) => void;
@@ -160,11 +163,21 @@ const queue: QueueEntry[] = [];
 /**
  * Queue a Claude CLI run.  If no other run is active, starts immediately.
  * Otherwise the request is queued and processed sequentially.
+ * Rejects immediately if the queue is full (>{@link MAX_QUEUE_DEPTH} pending).
  */
 export async function runClaudeCliQueued(
   params: ClaudeCliRunParams,
 ): Promise<ClaudeCliRunResult> {
   return new Promise<ClaudeCliRunResult>((resolve, reject) => {
+    if (queue.length >= MAX_QUEUE_DEPTH) {
+      reject(
+        new Error(
+          `[claude-cli] Queue full (${queue.length}/${MAX_QUEUE_DEPTH}). ` +
+            `Rejecting runId=${params.runId}`,
+        ),
+      );
+      return;
+    }
     queue.push({ params, resolve, reject });
     if (queue.length > 1) {
       defaultRuntime.log?.(
