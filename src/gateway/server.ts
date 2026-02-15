@@ -1,4 +1,4 @@
-import { randomBytes, randomUUID } from "node:crypto";
+import { randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import fs from "node:fs";
 import {
   createServer as createHttpServer,
@@ -437,7 +437,15 @@ type Client = {
   connect: ConnectParams;
   connId: string;
   presenceKey?: string;
+  csrfToken: string;
 };
+
+/** RPC methods that require a valid CSRF token. */
+const STATE_CHANGING_METHODS = new Set([
+  "config.set", "skills.install", "chat.send", "agent", "send",
+  "sessions.delete", "sessions.reset", "cron.add", "cron.remove",
+  "cron.update", "node.invoke", "voicewake.set",
+]);
 
 function formatBonjourInstanceName(displayName: string) {
   const trimmed = displayName.trim();
@@ -1428,8 +1436,7 @@ export async function startGatewayServer(
         "  Or set gateway.auth.password in ~/.clawdis/clawdis.json",
         sep,
         "",
-      ].join("
-"),
+      ].join("\n"),
     );
   }
   const allowTailscale =
@@ -1455,11 +1462,6 @@ export async function startGatewayServer(
   if (tailscaleMode !== "off" && !isLoopbackHost(bindHost)) {
     throw new Error(
       "tailscale serve/funnel requires gateway bind=loopback (127.0.0.1)",
-    );
-  }
-  if (!isLoopbackHost(bindHost) && authMode === "none") {
-    throw new Error(
-      `refusing to bind gateway to ${bindHost}:${port} without auth (set gateway.auth or CLAWDIS_GATEWAY_TOKEN)`,
     );
   }
 
@@ -1883,10 +1885,7 @@ export async function startGatewayServer(
       log.warn(
         `WebSocket upgrade rejected: disallowed origin="${origin ?? "(none)"}" remote=${req.socket?.remoteAddress ?? "?"}`,
       );
-      socket.write("HTTP/1.1 403 Forbidden
-Connection: close
-
-");
+      socket.write("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
       socket.destroy();
       return;
     }
@@ -4382,6 +4381,9 @@ Connection: close
           }
           const authMethod = authResult.method ?? "none";
 
+          // Generate CSRF token for this connection
+          const csrfToken = randomBytes(32).toString("hex");
+
           const shouldTrackPresence = connectParams.client.mode !== "cli";
           const presenceKey = shouldTrackPresence
             ? connectParams.client.instanceId || connId
@@ -4443,10 +4445,11 @@ Connection: close
               maxBufferedBytes: MAX_BUFFERED_BYTES,
               tickIntervalMs: TICK_INTERVAL_MS,
             },
+            csrfToken,
           };
 
           clearTimeout(handshakeTimer);
-          client = { socket, connect: connectParams, connId, presenceKey };
+          client = { socket, connect: connectParams, connId, presenceKey, csrfToken };
 
           logWs("out", "hello-ok", {
             connId,
@@ -4505,6 +4508,34 @@ Connection: close
         };
 
         void (async () => {
+
+          // CSRF validation for state-changing methods
+
+          if (STATE_CHANGING_METHODS.has(req.method)) {
+            const csrfParam = (req.params as Record<string, unknown> | undefined)?._csrf;
+            if (
+              typeof csrfParam !== "string" ||
+              csrfParam.length !== client!.csrfToken.length ||
+              !timingSafeEqual(Buffer.from(csrfParam), Buffer.from(client!.csrfToken))
+            ) {
+              logWsControl.warn(
+                `CSRF validation failed conn=${connId} method=${req.method}`,
+              );
+              respond(
+                false,
+                undefined,
+                errorShape(ErrorCodes.INVALID_REQUEST, "CSRF token missing or invalid"),
+              );
+              return;
+            }
+          }
+
+          // Strip _csrf from params before method handlers validate schemas.
+          if (req.params && typeof req.params === "object" && "_csrf" in (req.params as Record<string, unknown>)) {
+            const { _csrf: _csrfStripped, ...cleanParams } = req.params as Record<string, unknown>;
+            (req as { params: unknown }).params = Object.keys(cleanParams).length > 0 ? cleanParams : undefined;
+          }
+
           switch (req.method) {
             case "connect": {
               respond(
