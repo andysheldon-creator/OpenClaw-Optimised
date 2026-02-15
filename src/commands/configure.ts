@@ -62,6 +62,7 @@ type WizardSection =
   | "voice"
   | "alerting"
   | "budget"
+  | "missionControl"
   | "health";
 
 type ConfigureWizardParams = {
@@ -899,6 +900,114 @@ async function promptBudgetConfig(
   return next;
 }
 
+// ── Mission Control ──────────────────────────────────────────────────────────
+
+async function promptMissionControlConfig(
+  cfg: ClawdisConfig,
+  runtime: RuntimeEnv,
+): Promise<ClawdisConfig> {
+  let next = { ...cfg };
+  const existing = next.gateway?.missionControl;
+
+  if (existing?.enabled) {
+    note(
+      [
+        `Enabled: ${existing.enabled}`,
+        `URL: ${existing.url ?? "http://127.0.0.1:3100"}`,
+        `Base path: ${existing.basePath ?? "/mc"}`,
+      ].join("\n"),
+      "Current Mission Control settings",
+    );
+  }
+
+  const wantsMc = Boolean(
+    guardCancel(
+      await confirm({
+        message: "Enable Mission Control reverse-proxy in the Gateway?",
+        initialValue: existing?.enabled ?? false,
+      }),
+      runtime,
+    ),
+  );
+
+  if (!wantsMc) {
+    next = {
+      ...next,
+      gateway: {
+        ...next.gateway,
+        missionControl: {
+          ...(next.gateway?.missionControl ?? {}),
+          enabled: false,
+        },
+      },
+    };
+    return next;
+  }
+
+  const urlInput = guardCancel(
+    await text({
+      message: "Mission Control upstream URL",
+      initialValue: existing?.url ?? "http://127.0.0.1:3100",
+      validate: (v) =>
+        v.startsWith("http://") || v.startsWith("https://")
+          ? undefined
+          : "Must start with http:// or https://",
+    }),
+    runtime,
+  );
+  const mcUrl = String(urlInput).trim();
+
+  const basePathInput = guardCancel(
+    await text({
+      message: "Gateway path prefix for Mission Control",
+      initialValue: existing?.basePath ?? "/mc",
+      validate: (v) => (v.startsWith("/") ? undefined : "Must start with /"),
+    }),
+    runtime,
+  );
+  const basePath = String(basePathInput).trim();
+
+  // Probe connectivity
+  const spin = spinner();
+  spin.start("Checking Mission Control connectivity...");
+  try {
+    const probeRes = await fetch(mcUrl, {
+      signal: AbortSignal.timeout(5000),
+    });
+    spin.stop(`Mission Control reachable (HTTP ${probeRes.status})`);
+  } catch {
+    spin.stop("Mission Control not reachable (will work once started)");
+  }
+
+  next = {
+    ...next,
+    gateway: {
+      ...next.gateway,
+      missionControl: {
+        enabled: true,
+        url: mcUrl,
+        basePath,
+      },
+    },
+  };
+
+  note(
+    [
+      "Mission Control proxy configured.",
+      `  Gateway path: ${basePath}`,
+      `  Upstream: ${mcUrl}`,
+      "",
+      "Start Mission Control separately:",
+      "  cd mission-control && pnpm dev",
+      "Or use Docker:",
+      "  docker compose --profile mc up",
+    ].join("\n"),
+    "Mission Control",
+  );
+
+  return next;
+}
+
 export async function runConfigureWizard(
   opts: ConfigureWizardParams,
   runtime: RuntimeEnv = defaultRuntime,
@@ -1021,6 +1130,11 @@ export async function runConfigureWizard(
               label: "Budget & cost controls",
               hint: "Monthly cap, Ollama routing",
             },
+            {
+              value: "missionControl",
+              label: "Mission Control",
+              hint: "Squad coordination dashboard proxy",
+            },
             { value: "health", label: "Health check" },
           ],
         }),
@@ -1130,6 +1244,10 @@ export async function runConfigureWizard(
 
   if (selected.includes("budget")) {
     nextConfig = await promptBudgetConfig(nextConfig, runtime);
+  }
+
+  if (selected.includes("missionControl")) {
+    nextConfig = await promptMissionControlConfig(nextConfig, runtime);
   }
 
   nextConfig = applyWizardMetadata(nextConfig, {
