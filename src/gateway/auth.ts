@@ -167,3 +167,48 @@ export async function authorizeGatewayConnect(params: {
 
   return { ok: false, reason: "unauthorized" };
 }
+
+/**
+ * Loopback origin patterns allowed for WebSocket upgrade requests.
+ * Matches http(s)://localhost, 127.0.0.1, [::1] with any port.
+ */
+const LOOPBACK_ORIGIN_PATTERNS = [
+  /^https?:\/\/localhost(:\d+)?$/i,
+  /^https?:\/\/127\.0\.0\.1(:\d+)?$/i,
+  /^https?:\/\/\[::1\](:\d+)?$/i,
+];
+
+/**
+ * Validates whether a WebSocket upgrade request has an acceptable Origin header.
+ *
+ * - `undefined` origin: allowed (non-browser clients like CLI tools don't send Origin)
+ * - `"null"` origin: allowed (same-origin requests from file:// or data: URIs)
+ * - Loopback origins: always allowed (localhost, 127.0.0.1, [::1])
+ * - When extraAllowedOrigins are provided: also allows those (for LAN/tailnet bind modes)
+ * - All other origins: rejected (blocks cross-site WebSocket hijacking / CSRF)
+ */
+export function isAllowedOrigin(
+  origin: string | undefined,
+  extraAllowedOrigins?: string[],
+): boolean {
+  // Non-browser clients (CLI, native apps) don't send Origin — always allow.
+  if (origin === undefined) return true;
+
+  // Same-origin requests from certain contexts send "null" as the Origin.
+  if (origin === "null") return true;
+
+  // Allow any loopback origin (localhost, 127.0.0.1, [::1]).
+  for (const pattern of LOOPBACK_ORIGIN_PATTERNS) {
+    if (pattern.test(origin)) return true;
+  }
+
+  // Allow explicitly configured extra origins (e.g. LAN IP, Tailscale hostname).
+  if (extraAllowedOrigins) {
+    const normalized = origin.toLowerCase();
+    for (const allowed of extraAllowedOrigins) {
+      if (normalized === allowed.toLowerCase()) return true;
+    }
+  }
+
+  return false;
+}
