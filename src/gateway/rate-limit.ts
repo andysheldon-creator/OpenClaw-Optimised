@@ -44,7 +44,11 @@ export class RateLimiter {
     if (cleanupMs > 0) {
       this.cleanupTimer = setInterval(() => this.cleanup(), cleanupMs);
       // Allow the Node process to exit without waiting for cleanup.
-      if (this.cleanupTimer && typeof this.cleanupTimer === "object" && "unref" in this.cleanupTimer) {
+      if (
+        this.cleanupTimer &&
+        typeof this.cleanupTimer === "object" &&
+        "unref" in this.cleanupTimer
+      ) {
         this.cleanupTimer.unref();
       }
     }
@@ -102,7 +106,10 @@ export class RateLimiter {
     const now = Date.now();
     for (const [key, bucket] of this.buckets) {
       const elapsed = now - bucket.lastRefill;
-      if (elapsed >= this.refillIntervalMs && bucket.tokens >= this.maxTokens - 1) {
+      if (
+        elapsed >= this.refillIntervalMs &&
+        bucket.tokens >= this.maxTokens - 1
+      ) {
         this.buckets.delete(key);
       }
     }

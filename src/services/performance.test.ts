@@ -12,34 +12,44 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { embed, clearEmbeddingCache, cosineSimilarity, EMBEDDING_DIM } from "./embedding.js";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { summarizeConversation } from "./conversation-summarizer.js";
 import {
-  storeDocument,
-  storeDocuments,
-  searchSimilar,
-  clearIndexCache,
-  deleteSessionData,
-  getDocumentCount,
-} from "./vector-store.js";
-import { trackCost, isBudgetExceeded, getDailySummary, getDailyBudgetGbp } from "./cost-tracker.js";
-import { routeQuery, scoreComplexity, classifyTask } from "./hybrid-router.js";
+  getDailyBudgetGbp,
+  getDailySummary,
+  isBudgetExceeded,
+  trackCost,
+} from "./cost-tracker.js";
 import {
+  clearEmbeddingCache,
+  cosineSimilarity,
+  EMBEDDING_DIM,
+  embed,
+} from "./embedding.js";
+import { classifyTask, routeQuery, scoreComplexity } from "./hybrid-router.js";
+import {
+  buildMemoryContext,
+  type RecallResult,
+  recallEntity,
+  recallHybrid,
+  recallLexical,
+  recallTemporal,
+} from "./memory/memory-recall.js";
+import {
+  closeMemoryStore,
+  getEntityFacts,
+  getMemoryStats,
   insertFact,
   insertFacts,
   searchFts,
-  getEntityFacts,
-  getMemoryStats,
-  closeMemoryStore,
 } from "./memory/memory-store.js";
 import {
-  recallLexical,
-  recallEntity,
-  recallTemporal,
-  recallHybrid,
-  buildMemoryContext,
-} from "./memory/memory-recall.js";
-import { summarizeConversation } from "./conversation-summarizer.js";
+  clearIndexCache,
+  deleteSessionData,
+  getDocumentCount,
+  searchSimilar,
+  storeDocuments,
+} from "./vector-store.js";
 
 // --- Helpers ---
 
@@ -105,7 +115,7 @@ describe("Embedding Service Performance", () => {
   });
 
   it("cached embed is faster than first call", async () => {
-    const text = "Performance caching test string " + crypto.randomUUID();
+    const text = `Performance caching test string ${crypto.randomUUID()}`;
 
     const start1 = hrtimeMs();
     await embed(text);
@@ -115,7 +125,9 @@ describe("Embedding Service Performance", () => {
     await embed(text);
     const second = elapsedMs(start2);
 
-    console.log(`[PERF] Embed first call: ${first.toFixed(2)}ms, cached: ${second.toFixed(2)}ms`);
+    console.log(
+      `[PERF] Embed first call: ${first.toFixed(2)}ms, cached: ${second.toFixed(2)}ms`,
+    );
     expect(second).toBeLessThanOrEqual(first + 0.5);
   });
 
@@ -124,7 +136,9 @@ describe("Embedding Service Performance", () => {
     const start = hrtimeMs();
     const score = cosineSimilarity(a, a);
     const ms = elapsedMs(start);
-    console.log(`[PERF] Cosine similarity (768-dim): ${ms.toFixed(3)}ms, score=${score.toFixed(6)}`);
+    console.log(
+      `[PERF] Cosine similarity (768-dim): ${ms.toFixed(3)}ms, score=${score.toFixed(6)}`,
+    );
     expect(score).toBeCloseTo(1.0, 3);
     expect(ms).toBeLessThan(2);
   });
@@ -139,18 +153,23 @@ describe("Embedding Service Performance", () => {
   });
 
   it("batch embed 50 strings completes under 100 ms", async () => {
-    const texts = Array.from({ length: 50 }, (_, i) => `Batch item number ${i} ${crypto.randomUUID()}`);
+    const texts = Array.from(
+      { length: 50 },
+      (_, i) => `Batch item number ${i} ${crypto.randomUUID()}`,
+    );
     const start = hrtimeMs();
     for (const t of texts) await embed(t);
     const ms = elapsedMs(start);
-    console.log(`[PERF] 50x hash embed: ${ms.toFixed(2)}ms (${(ms / 50).toFixed(2)}ms/embed)`);
+    console.log(
+      `[PERF] 50x hash embed: ${ms.toFixed(2)}ms (${(ms / 50).toFixed(2)}ms/embed)`,
+    );
     expect(ms).toBeLessThan(100);
   });
 });
 // 2. VECTOR STORE
 
 describe("Vector Store Performance", () => {
-  const sessionId = "perf-test-vec-" + Date.now();
+  const sessionId = `perf-test-vec-${Date.now()}`;
 
   afterAll(async () => {
     await deleteSessionData(sessionId);
@@ -182,14 +201,16 @@ describe("Vector Store Performance", () => {
     const start = hrtimeMs();
     const results = await searchSimilar(sessionId, query, 5, 0.0);
     const ms = elapsedMs(start);
-    console.log(`[PERF] Vector search (100 docs, top-5): ${ms.toFixed(2)}ms, results=${results.length}`);
+    console.log(
+      `[PERF] Vector search (100 docs, top-5): ${ms.toFixed(2)}ms, results=${results.length}`,
+    );
     expect(ms).toBeLessThan(50);
     expect(results.length).toBeGreaterThan(0);
     expect(results.length).toBeLessThanOrEqual(5);
   });
 
   it("write + search 1000 documents under 5s total", async () => {
-    const bigSession = "perf-big-" + Date.now();
+    const bigSession = `perf-big-${Date.now()}`;
     const docs = Array.from({ length: 1000 }, (_, i) => ({
       id: crypto.randomUUID(),
       text: `Big doc ${i}: The quick brown fox jumps over the lazy dog`,
@@ -210,7 +231,9 @@ describe("Vector Store Performance", () => {
     const results = await searchSimilar(bigSession, query, 10, 0.0);
     const searchMs = elapsedMs(startSearch);
 
-    console.log(`[PERF] 1000 docs -- write: ${writeMs.toFixed(0)}ms, search: ${searchMs.toFixed(0)}ms`);
+    console.log(
+      `[PERF] 1000 docs -- write: ${writeMs.toFixed(0)}ms, search: ${searchMs.toFixed(0)}ms`,
+    );
     expect(writeMs + searchMs).toBeLessThan(5000);
     expect(results.length).toBeGreaterThan(0);
 
@@ -224,7 +247,7 @@ describe("Cost Tracker Performance", () => {
     const start = hrtimeMs();
     for (let i = 0; i < 100; i++) {
       trackCost({
-        sessionId: "perf-cost-" + i,
+        sessionId: `perf-cost-${i}`,
         model: "claude-sonnet-4",
         inputTokens: 500 + i,
         outputTokens: 200 + i,
@@ -241,7 +264,9 @@ describe("Cost Tracker Performance", () => {
     const start = hrtimeMs();
     const exceeded = isBudgetExceeded();
     const ms = elapsedMs(start);
-    console.log(`[PERF] Budget check: ${ms.toFixed(3)}ms, exceeded=${exceeded}`);
+    console.log(
+      `[PERF] Budget check: ${ms.toFixed(3)}ms, exceeded=${exceeded}`,
+    );
     expect(ms).toBeLessThan(1);
     expect(typeof exceeded).toBe("boolean");
   });
@@ -292,7 +317,9 @@ describe("Hybrid Router Performance", () => {
       const start = hrtimeMs();
       const decision = routeQuery({ text: q });
       const ms = elapsedMs(start);
-      console.log(`[PERF] Route "${q.slice(0, 40)}": tier=${decision.tier}, task=${decision.taskType}, ${ms.toFixed(3)}ms`);
+      console.log(
+        `[PERF] Route "${q.slice(0, 40)}": tier=${decision.tier}, task=${decision.taskType}, ${ms.toFixed(3)}ms`,
+      );
       expect(ms).toBeLessThan(2);
       expect(decision.tier).toBeDefined();
       expect(decision.taskType).toBeDefined();
@@ -338,7 +365,7 @@ describe("Hybrid Router Performance", () => {
 describe("Memory Store SQLite Performance", () => {
   it("insert 100 facts under 200 ms", () => {
     const facts = Array.from({ length: 100 }, (_, i) => ({
-      sessionId: "perf-mem-" + i,
+      sessionId: `perf-mem-${i}`,
       factType: "world" as const,
       content: `Fact number ${i}: The capital of country ${i} is city ${i}. Random: ${crypto.randomUUID()}`,
       timestamp: Date.now() - i * 60_000,
@@ -350,7 +377,9 @@ describe("Memory Store SQLite Performance", () => {
     const start = hrtimeMs();
     const ids = insertFacts(facts);
     const ms = elapsedMs(start);
-    console.log(`[PERF] Insert 100 facts: ${ms.toFixed(2)}ms (${(ms / 100).toFixed(2)}ms/fact)`);
+    console.log(
+      `[PERF] Insert 100 facts: ${ms.toFixed(2)}ms (${(ms / 100).toFixed(2)}ms/fact)`,
+    );
     expect(ms).toBeLessThan(200);
     expect(ids.length).toBe(100);
   });
@@ -359,7 +388,9 @@ describe("Memory Store SQLite Performance", () => {
     const start = hrtimeMs();
     const results = searchFts("capital city", 10);
     const ms = elapsedMs(start);
-    console.log(`[PERF] FTS5 search "capital city": ${ms.toFixed(2)}ms, results=${results.length}`);
+    console.log(
+      `[PERF] FTS5 search "capital city": ${ms.toFixed(2)}ms, results=${results.length}`,
+    );
     expect(ms).toBeLessThan(20);
     expect(results.length).toBeGreaterThan(0);
   });
@@ -368,7 +399,9 @@ describe("Memory Store SQLite Performance", () => {
     const start = hrtimeMs();
     const facts = getEntityFacts("entity-0", 50);
     const ms = elapsedMs(start);
-    console.log(`[PERF] Entity lookup "entity-0": ${ms.toFixed(2)}ms, facts=${facts.length}`);
+    console.log(
+      `[PERF] Entity lookup "entity-0": ${ms.toFixed(2)}ms, facts=${facts.length}`,
+    );
     expect(ms).toBeLessThan(10);
     expect(facts.length).toBeGreaterThan(0);
   });
@@ -377,7 +410,9 @@ describe("Memory Store SQLite Performance", () => {
     const stats = getMemoryStats();
     expect(stats.factCount).toBeGreaterThanOrEqual(100);
     expect(stats.entityCount).toBeGreaterThan(0);
-    console.log(`[PERF] Memory stats: ${stats.factCount} facts, ${stats.entityCount} entities`);
+    console.log(
+      `[PERF] Memory stats: ${stats.factCount} facts, ${stats.entityCount} entities`,
+    );
   });
 
   it("insert single fact under 5 ms", () => {
@@ -385,7 +420,7 @@ describe("Memory Store SQLite Performance", () => {
     const id = insertFact({
       sessionId: "perf-single",
       factType: "experience",
-      content: "Single fact insert performance test " + crypto.randomUUID(),
+      content: `Single fact insert performance test ${crypto.randomUUID()}`,
       timestamp: Date.now(),
       sourceDay: "2025-02-13",
       confidence: 0.95,
@@ -404,7 +439,9 @@ describe("Memory Recall Performance", () => {
     const start = hrtimeMs();
     const result = recallLexical("capital");
     const ms = elapsedMs(start);
-    console.log(`[PERF] Lexical recall "capital": ${ms.toFixed(2)}ms, items=${result.items.length}`);
+    console.log(
+      `[PERF] Lexical recall "capital": ${ms.toFixed(2)}ms, items=${result.items.length}`,
+    );
     expect(ms).toBeLessThan(30);
     expect(result.queryType).toBe("lexical");
     expect(result.items.length).toBeGreaterThanOrEqual(0);
@@ -414,7 +451,9 @@ describe("Memory Recall Performance", () => {
     const start = hrtimeMs();
     const result = recallEntity("entity-0");
     const ms = elapsedMs(start);
-    console.log(`[PERF] Entity recall "entity-0": ${ms.toFixed(2)}ms, items=${result.items.length}`);
+    console.log(
+      `[PERF] Entity recall "entity-0": ${ms.toFixed(2)}ms, items=${result.items.length}`,
+    );
     expect(ms).toBeLessThan(20);
     expect(result.queryType).toBe("entity");
   });
@@ -425,14 +464,16 @@ describe("Memory Recall Performance", () => {
     const start = hrtimeMs();
     const result = recallTemporal(oneWeekAgo, now);
     const ms = elapsedMs(start);
-    console.log(`[PERF] Temporal recall (7d): ${ms.toFixed(2)}ms, items=${result.items.length}`);
+    console.log(
+      `[PERF] Temporal recall (7d): ${ms.toFixed(2)}ms, items=${result.items.length}`,
+    );
     expect(ms).toBeLessThan(30);
     expect(result.queryType).toBe("temporal");
   });
 
   it("hybrid recall under 50 ms", () => {
     const start = hrtimeMs();
-    let result;
+    let result: RecallResult;
     try {
       result = recallHybrid("capital");
     } catch {
@@ -440,7 +481,9 @@ describe("Memory Recall Performance", () => {
       result = { items: [], queryType: "hybrid" };
     }
     const ms = elapsedMs(start);
-    console.log(`[PERF] Hybrid recall: ${ms.toFixed(2)}ms, items=${result.items.length}`);
+    console.log(
+      `[PERF] Hybrid recall: ${ms.toFixed(2)}ms, items=${result.items.length}`,
+    );
     expect(ms).toBeLessThan(50);
     expect(result.queryType).toBe("hybrid");
   });
@@ -450,7 +493,9 @@ describe("Memory Recall Performance", () => {
     const start = hrtimeMs();
     const ctx = buildMemoryContext(result);
     const ms = elapsedMs(start);
-    console.log(`[PERF] buildMemoryContext: ${ms.toFixed(3)}ms, length=${ctx.length}`);
+    console.log(
+      `[PERF] buildMemoryContext: ${ms.toFixed(3)}ms, length=${ctx.length}`,
+    );
     expect(typeof ctx).toBe("string");
     expect(ms).toBeLessThan(5);
   });
@@ -467,7 +512,9 @@ describe("Conversation Summarizer Performance", () => {
     const start = hrtimeMs();
     const result = await summarizeConversation(messages);
     const ms = elapsedMs(start);
-    console.log(`[PERF] Summarizer (5 msgs, below threshold): ${ms.toFixed(2)}ms, applied=${result.applied}`);
+    console.log(
+      `[PERF] Summarizer (5 msgs, below threshold): ${ms.toFixed(2)}ms, applied=${result.applied}`,
+    );
     expect(ms).toBeLessThan(10);
     expect(result.applied).toBe(false);
     expect(result.originalCount).toBe(5);
@@ -483,7 +530,9 @@ describe("Conversation Summarizer Performance", () => {
     const start = hrtimeMs();
     const result = await summarizeConversation(messages);
     const ms = elapsedMs(start);
-    console.log(`[PERF] Summarizer (15 msgs, at threshold): ${ms.toFixed(2)}ms, applied=${result.applied}`);
+    console.log(
+      `[PERF] Summarizer (15 msgs, at threshold): ${ms.toFixed(2)}ms, applied=${result.applied}`,
+    );
     expect(result.applied).toBe(false);
     expect(ms).toBeLessThan(50);
   });
@@ -497,7 +546,9 @@ describe("Conversation Summarizer Performance", () => {
     const start = hrtimeMs();
     const result = await summarizeConversation(messages);
     const ms = elapsedMs(start);
-    console.log(`[PERF] Summarizer (25 msgs, above threshold): ${ms.toFixed(2)}ms, applied=${result.applied}`);
+    console.log(
+      `[PERF] Summarizer (25 msgs, above threshold): ${ms.toFixed(2)}ms, applied=${result.applied}`,
+    );
     expect(result.originalCount).toBe(25);
     expect(typeof result.applied).toBe("boolean");
   });
@@ -516,7 +567,9 @@ describe("Security Fix Overhead", () => {
     }
     const ms = elapsedMs(start);
     const perOp = ms / iterations;
-    console.log(`[PERF] timingSafeEqual (1000 iters): ${ms.toFixed(2)}ms, ${perOp.toFixed(4)}ms/op`);
+    console.log(
+      `[PERF] timingSafeEqual (1000 iters): ${ms.toFixed(2)}ms, ${perOp.toFixed(4)}ms/op`,
+    );
     expect(perOp).toBeLessThan(0.5);
   });
 
@@ -551,7 +604,8 @@ describe("Security Fix Overhead", () => {
     for (const url of [...dangerousUrls, ...safeUrls]) {
       try {
         const parsed = new URL(url);
-        const isSafe = parsed.protocol === "http:" || parsed.protocol === "https:";
+        const _isSafe =
+          parsed.protocol === "http:" || parsed.protocol === "https:";
       } catch {
         // invalid URL
       }
@@ -568,7 +622,9 @@ describe("Security Fix Overhead", () => {
       crypto.randomUUID();
     }
     const ms = elapsedMs(start);
-    console.log(`[PERF] crypto.randomUUID (10k): ${ms.toFixed(2)}ms, ${(ms / iterations * 1000).toFixed(1)}us/op`);
+    console.log(
+      `[PERF] crypto.randomUUID (10k): ${ms.toFixed(2)}ms, ${((ms / iterations) * 1000).toFixed(1)}us/op`,
+    );
     expect(ms).toBeLessThan(100);
   });
 });
@@ -578,18 +634,28 @@ describe("Scalability Tests", () => {
   it("embedding service handles 200 unique texts without cache pressure", async () => {
     clearEmbeddingCache();
 
-    const texts = Array.from({ length: 200 }, (_, i) => `Scalability test unique text number ${i} ${crypto.randomUUID()}`);
+    const texts = Array.from(
+      { length: 200 },
+      (_, i) =>
+        `Scalability test unique text number ${i} ${crypto.randomUUID()}`,
+    );
     const start = hrtimeMs();
     for (const t of texts) await embed(t);
     const ms = elapsedMs(start);
-    console.log(`[PERF] 200 unique embeds: ${ms.toFixed(0)}ms (${(ms / 200).toFixed(2)}ms/embed)`);
+    console.log(
+      `[PERF] 200 unique embeds: ${ms.toFixed(0)}ms (${(ms / 200).toFixed(2)}ms/embed)`,
+    );
     expect(ms).toBeLessThan(500);
   });
 
   it("hybrid router handles 500 routing decisions under 200 ms", () => {
     const queries = [
-      "hello", "write code", "explain quantum physics",
-      "translate this", "what time is it", "summarize the article",
+      "hello",
+      "write code",
+      "explain quantum physics",
+      "translate this",
+      "what time is it",
+      "summarize the article",
     ];
 
     const start = hrtimeMs();
@@ -602,7 +668,10 @@ describe("Scalability Tests", () => {
   });
 
   it("vector store handles concurrent session writes", async () => {
-    const sessions = Array.from({ length: 5 }, (_, i) => "scale-session-" + i + "-" + Date.now());
+    const sessions = Array.from(
+      { length: 5 },
+      (_, i) => `scale-session-${i}-${Date.now()}`,
+    );
     const docsPerSession = 50;
 
     const start = hrtimeMs();
@@ -629,18 +698,22 @@ describe("Scalability Tests", () => {
 
   it("memory store handles 500 facts in a single transaction", () => {
     const facts = Array.from({ length: 500 }, (_, i) => ({
-      sessionId: "scale-mem-" + (i % 20),
+      sessionId: `scale-mem-${i % 20}`,
       factType: "world" as const,
       content: `Scale fact ${i}: Testing bulk insert performance with unique content ${crypto.randomUUID()}`,
       timestamp: Date.now() - i * 1000,
       sourceDay: "2025-02-13",
-      entities: [{ slug: `scale-entity-${i % 25}`, display: `Scale Entity ${i % 25}` }],
+      entities: [
+        { slug: `scale-entity-${i % 25}`, display: `Scale Entity ${i % 25}` },
+      ],
     }));
 
     const start = hrtimeMs();
     const ids = insertFacts(facts);
     const ms = elapsedMs(start);
-    console.log(`[PERF] Insert 500 facts: ${ms.toFixed(0)}ms (${(ms / 500).toFixed(2)}ms/fact)`);
+    console.log(
+      `[PERF] Insert 500 facts: ${ms.toFixed(0)}ms (${(ms / 500).toFixed(2)}ms/fact)`,
+    );
     expect(ms).toBeLessThan(2000);
     expect(ids.length).toBe(500);
   });
@@ -663,8 +736,8 @@ describe("Scalability Tests", () => {
       console.log(`[PERF] cosineSim ${t.dim}-dim x10k: ${t.ms.toFixed(2)}ms`);
     }
 
-    const t256 = timings.find((t) => t.dim === 256)!.ms;
-    const t1024 = timings.find((t) => t.dim === 1024)!.ms;
+    const t256 = timings.find((t) => t.dim === 256)?.ms;
+    const t1024 = timings.find((t) => t.dim === 1024)?.ms;
     expect(t1024).toBeLessThan(t256 * 6);
   });
 });
