@@ -17,6 +17,8 @@ type LaneState = {
   queue: QueueEntry[];
   active: number;
   maxConcurrent: number;
+  /** Hard cap on pending queue entries to prevent unbounded memory growth. */
+  maxQueueSize: number;
   draining: boolean;
 };
 
@@ -30,6 +32,7 @@ function getLaneState(lane: string): LaneState {
     queue: [],
     active: 0,
     maxConcurrent: 1,
+    maxQueueSize: 100,
     draining: false,
   };
   lanes.set(lane, created);
@@ -75,6 +78,12 @@ export function setCommandLaneConcurrency(lane: string, maxConcurrent: number) {
   drainLane(cleaned);
 }
 
+export function setCommandLaneMaxSize(lane: string, maxQueueSize: number) {
+  const cleaned = lane.trim() || "main";
+  const state = getLaneState(cleaned);
+  state.maxQueueSize = Math.max(1, Math.floor(maxQueueSize));
+}
+
 export function enqueueCommandInLane<T>(
   lane: string,
   task: () => Promise<T>,
@@ -86,6 +95,13 @@ export function enqueueCommandInLane<T>(
   const cleaned = lane.trim() || "main";
   const warnAfterMs = opts?.warnAfterMs ?? 2_000;
   const state = getLaneState(cleaned);
+  if (state.queue.length >= state.maxQueueSize) {
+    return Promise.reject(
+      new Error(
+        `Command lane "${cleaned}" queue full (${state.queue.length}/${state.maxQueueSize})`,
+      ),
+    );
+  }
   return new Promise<T>((resolve, reject) => {
     state.queue.push({
       task: () => task(),

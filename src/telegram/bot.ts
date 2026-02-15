@@ -19,6 +19,7 @@ import { mediaKindFromMime } from "../media/constants.js";
 import { detectMime } from "../media/mime.js";
 import { saveMediaBuffer } from "../media/store.js";
 import type { RuntimeEnv } from "../runtime.js";
+import { isTtsConfigured, textToSpeech } from "../voice/tts.js";
 import { loadWebMedia } from "../web/media.js";
 
 const PARSE_ERR_RE =
@@ -197,6 +198,74 @@ export function createTelegramBot(opts: TelegramBotOptions) {
         logVerbose(
           `telegram inbound: chatId=${chatId} from=${ctxPayload.From} len=${body.length} preview="${preview}"`,
         );
+      }
+
+      // ── Voice call trigger detection ──────────────────────────────────
+      const talkCfg = cfg.talk;
+      const voiceEnabled = talkCfg?.conversational?.enabled === true;
+      const voiceApiKey =
+        talkCfg?.apiKey ?? process.env.ELEVENLABS_API_KEY ?? "";
+      const voiceId = talkCfg?.voiceId ?? "";
+
+      if (voiceEnabled && isTtsConfigured({ voiceId, apiKey: voiceApiKey })) {
+        const triggerWords = talkCfg?.conversational?.triggerWords ?? [
+          "call me",
+        ];
+        const lowerBody = rawBody.toLowerCase();
+        const isCallTrigger = triggerWords.some((tw) =>
+          lowerBody.includes(tw.toLowerCase()),
+        );
+
+        if (isCallTrigger) {
+          // Voice call trigger — get AI response, convert to speech, send as voice note
+          try {
+            await sendTyping();
+            const replyResult = await getReplyFromConfig(
+              ctxPayload,
+              { onReplyStart: sendTyping },
+              cfg,
+            );
+            const textReply = Array.isArray(replyResult)
+              ? (replyResult[0]?.text ?? "")
+              : (replyResult?.text ?? "");
+
+            if (textReply) {
+              const audioBuffer = await textToSpeech({
+                text: textReply,
+                voiceId,
+                apiKey: voiceApiKey,
+                modelId: talkCfg?.modelId,
+                outputFormat: talkCfg?.outputFormat ?? "mp3_44100_128",
+              });
+              const audioFile = new InputFile(audioBuffer, "reply.mp3");
+              await bot.api.sendVoice(chatId, audioFile, {
+                caption:
+                  textReply.length > 200
+                    ? `${textReply.slice(0, 197)}…`
+                    : textReply,
+              });
+            }
+          } catch (err) {
+            runtime.error?.(`Voice reply failed: ${String(err)}`);
+            // Fallback: send text reply
+            try {
+              const fallback = await getReplyFromConfig(
+                ctxPayload,
+                { onReplyStart: sendTyping },
+                cfg,
+              );
+              const textFallback = Array.isArray(fallback)
+                ? (fallback[0]?.text ?? "")
+                : (fallback?.text ?? "");
+              if (textFallback) {
+                await bot.api.sendMessage(chatId, textFallback);
+              }
+            } catch {
+              // Last resort
+            }
+          }
+          return;
+        }
       }
 
       let blockSendChain: Promise<void> = Promise.resolve();
