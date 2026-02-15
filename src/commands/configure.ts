@@ -551,32 +551,38 @@ export async function runConfigureWizard(
       },
     };
 
-    // Check for pre-existing workspace files before creating/overwriting
-    let forceOverwrite = false;
+    // Check for pre-existing workspace files before creating/overwriting.
+    // Personality files (SOUL/IDENTITY/USER/memory) are kept;
+    // setup files (AGENTS/TOOLS/BOOTSTRAP) are refreshed.
+    let upgradeMode: false | "preserve-personality" | "full" = false;
     const existingWs = await checkExistingWorkspaceFiles(workspaceDir);
     if (existingWs) {
       note(existingWs.summary, "Existing workspace detected");
-      const wsAction = guardCancel(
-        await select({
-          message: "What would you like to do with existing workspace files?",
-          options: [
-            {
-              value: "keep",
-              label: "Keep existing files (Recommended)",
-              hint: "Preserves your SOUL.md, USER.md, IDENTITY.md, memory, etc.",
-            },
-            {
-              value: "overwrite",
-              label: "Reset to defaults",
-              hint: "Overwrites bootstrap files with fresh templates",
-            },
-          ],
-        }),
-        runtime,
-      ) as string;
-      forceOverwrite = wsAction === "overwrite";
+      if (existingWs.hasPersonality) {
+        const wsAction = guardCancel(
+          await select({
+            message: "How should existing personality files be handled?",
+            options: [
+              {
+                value: "preserve-personality",
+                label: "Keep personality, refresh setup (Recommended)",
+                hint: "Keeps SOUL.md, IDENTITY.md, USER.md & memory; updates AGENTS.md, TOOLS.md",
+              },
+              {
+                value: "full",
+                label: "Reset everything to defaults",
+                hint: "Overwrites all files including personality — starts from scratch",
+              },
+            ],
+          }),
+          runtime,
+        ) as "preserve-personality" | "full";
+        upgradeMode = wsAction;
+      } else {
+        upgradeMode = "preserve-personality";
+      }
     }
-    await ensureWorkspaceAndSessions(workspaceDir, runtime, { forceOverwrite });
+    await ensureWorkspaceAndSessions(workspaceDir, runtime, { upgradeMode });
   }
 
   if (selected.includes("model")) {

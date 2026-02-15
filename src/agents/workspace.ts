@@ -184,32 +184,51 @@ async function writeFileIfMissing(filePath: string, content: string) {
   }
 }
 
+// ── File categories ──────────────────────────────────────────────────
+// "Personality" files contain the bot's identity, owner info, and
+// conversation history — these should be preserved across reinstalls.
+// "Setup" files contain workspace conventions, tool instructions, and
+// the first-run ritual — these should be refreshed on every install.
+export const PERSONALITY_FILES: readonly WorkspaceBootstrapFileName[] = [
+  DEFAULT_SOUL_FILENAME, // persona & boundaries
+  DEFAULT_IDENTITY_FILENAME, // agent name, creature, vibe, emoji
+  DEFAULT_USER_FILENAME, // owner name, pronouns, timezone
+] as const;
+
+export const SETUP_FILES: readonly WorkspaceBootstrapFileName[] = [
+  DEFAULT_AGENTS_FILENAME, // workspace conventions & safety defaults
+  DEFAULT_TOOLS_FILENAME, // tool notes (imsg, sag, etc.)
+  DEFAULT_BOOTSTRAP_FILENAME, // first-run ritual (deleted after use)
+] as const;
+
 /**
  * Check which bootstrap files and directories already exist in a workspace.
- * Returns separate lists of existing bootstrap files and whether a
- * `memory/` directory is present.
+ * Returns separate lists for personality files (SOUL, IDENTITY, USER) and
+ * setup files (AGENTS, TOOLS, BOOTSTRAP), plus whether a `memory/`
+ * directory is present.
  */
 export async function detectExistingWorkspace(dir: string): Promise<{
-  existingFiles: { name: WorkspaceBootstrapFileName; path: string }[];
+  personalityFiles: { name: WorkspaceBootstrapFileName; path: string }[];
+  setupFiles: { name: WorkspaceBootstrapFileName; path: string }[];
   hasMemoryDir: boolean;
 }> {
   const resolvedDir = resolveUserPath(dir);
-  const filenames: WorkspaceBootstrapFileName[] = [
-    DEFAULT_AGENTS_FILENAME,
-    DEFAULT_SOUL_FILENAME,
-    DEFAULT_TOOLS_FILENAME,
-    DEFAULT_IDENTITY_FILENAME,
-    DEFAULT_USER_FILENAME,
-    DEFAULT_BOOTSTRAP_FILENAME,
-  ];
-  const existingFiles: { name: WorkspaceBootstrapFileName; path: string }[] =
+  const personalityFiles: { name: WorkspaceBootstrapFileName; path: string }[] =
     [];
-  for (const name of filenames) {
+  const setupFiles: { name: WorkspaceBootstrapFileName; path: string }[] = [];
+
+  const allFiles = [...PERSONALITY_FILES, ...SETUP_FILES];
+  for (const name of allFiles) {
     const filePath = path.join(resolvedDir, name);
     try {
       const stat = await fs.stat(filePath);
       if (stat.isFile() && stat.size > 0) {
-        existingFiles.push({ name, path: filePath });
+        const entry = { name, path: filePath };
+        if ((PERSONALITY_FILES as readonly string[]).includes(name)) {
+          personalityFiles.push(entry);
+        } else {
+          setupFiles.push(entry);
+        }
       }
     } catch {
       // File doesn't exist — skip
@@ -222,13 +241,19 @@ export async function detectExistingWorkspace(dir: string): Promise<{
   } catch {
     // No memory directory
   }
-  return { existingFiles, hasMemoryDir };
+  return { personalityFiles, setupFiles, hasMemoryDir };
 }
 
 export async function ensureAgentWorkspace(params?: {
   dir?: string;
   ensureBootstrapFiles?: boolean;
-  forceOverwrite?: boolean;
+  /**
+   * When true, personality files (SOUL.md, IDENTITY.md, USER.md) are
+   * preserved and only setup files (AGENTS.md, TOOLS.md, BOOTSTRAP.md)
+   * are refreshed. When false (default), all files use write-if-missing.
+   * When "full", all files are overwritten including personality files.
+   */
+  upgradeMode?: false | "preserve-personality" | "full";
 }): Promise<{
   dir: string;
   agentsPath?: string;
@@ -278,16 +303,21 @@ export async function ensureAgentWorkspace(params?: {
     DEFAULT_BOOTSTRAP_TEMPLATE,
   );
 
-  const write = params?.forceOverwrite
-    ? (fp: string, content: string) =>
-        fs.writeFile(fp, content, { encoding: "utf-8" })
-    : writeFileIfMissing;
-  await write(agentsPath, agentsTemplate);
-  await write(soulPath, soulTemplate);
-  await write(toolsPath, toolsTemplate);
-  await write(identityPath, identityTemplate);
-  await write(userPath, userTemplate);
-  await write(bootstrapPath, bootstrapTemplate);
+  const mode = params?.upgradeMode || false;
+  const forceWrite = (fp: string, content: string) =>
+    fs.writeFile(fp, content, { encoding: "utf-8" });
+
+  // Setup files: always overwrite in preserve-personality and full modes
+  const writeSetup = mode ? forceWrite : writeFileIfMissing;
+  await writeSetup(agentsPath, agentsTemplate);
+  await writeSetup(toolsPath, toolsTemplate);
+  await writeSetup(bootstrapPath, bootstrapTemplate);
+
+  // Personality files: keep in preserve-personality mode, overwrite in full
+  const writePersonality = mode === "full" ? forceWrite : writeFileIfMissing;
+  await writePersonality(soulPath, soulTemplate);
+  await writePersonality(identityPath, identityTemplate);
+  await writePersonality(userPath, userTemplate);
 
   return {
     dir,

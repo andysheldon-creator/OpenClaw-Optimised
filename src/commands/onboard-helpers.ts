@@ -100,12 +100,12 @@ export async function openUrl(url: string): Promise<void> {
 export async function ensureWorkspaceAndSessions(
   workspaceDir: string,
   runtime: RuntimeEnv,
-  options?: { forceOverwrite?: boolean },
+  options?: { upgradeMode?: false | "preserve-personality" | "full" },
 ) {
   const ws = await ensureAgentWorkspace({
     dir: workspaceDir,
     ensureBootstrapFiles: true,
-    forceOverwrite: options?.forceOverwrite,
+    upgradeMode: options?.upgradeMode,
   });
   runtime.log(`Workspace OK: ${ws.dir}`);
   const sessionsDir = resolveSessionTranscriptsDir();
@@ -115,31 +115,50 @@ export async function ensureWorkspaceAndSessions(
 
 /**
  * Check for pre-existing workspace files and return a human-readable summary.
+ * Separates personality files (SOUL.md, IDENTITY.md, USER.md, memory/) that
+ * the user will want to keep from setup files (AGENTS.md, TOOLS.md,
+ * BOOTSTRAP.md) that should be refreshed on reinstall.
  * Returns null if no existing files are found.
  */
 export async function checkExistingWorkspaceFiles(
   workspaceDir: string,
 ): Promise<{
   summary: string;
-  fileCount: number;
+  hasPersonality: boolean;
   hasMemoryDir: boolean;
+  personalityCount: number;
+  setupCount: number;
 } | null> {
-  const { existingFiles, hasMemoryDir } =
+  const { personalityFiles, setupFiles, hasMemoryDir } =
     await detectExistingWorkspace(workspaceDir);
-  if (existingFiles.length === 0 && !hasMemoryDir) return null;
+  const totalFiles = personalityFiles.length + setupFiles.length;
+  if (totalFiles === 0 && !hasMemoryDir) return null;
 
   const lines: string[] = [];
-  for (const f of existingFiles) {
-    lines.push(`  \u2713 ${f.name}`);
+  if (personalityFiles.length > 0 || hasMemoryDir) {
+    lines.push("Personality (will be kept):");
+    for (const f of personalityFiles) {
+      lines.push(`  \u2713 ${f.name}`);
+    }
+    if (hasMemoryDir) {
+      lines.push("  \u2713 memory/ (conversation history)");
+    }
   }
-  if (hasMemoryDir) {
-    lines.push("  \u2713 memory/ (conversation history)");
+  if (setupFiles.length > 0) {
+    if (lines.length > 0) lines.push("");
+    lines.push("Setup (will be refreshed):");
+    for (const f of setupFiles) {
+      lines.push(`  \u21BB ${f.name}`);
+    }
   }
-  const summary = [
-    `Found ${existingFiles.length} existing file${existingFiles.length !== 1 ? "s" : ""}${hasMemoryDir ? " + memory directory" : ""}:`,
-    ...lines,
-  ].join("\n");
-  return { summary, fileCount: existingFiles.length, hasMemoryDir };
+  const summary = lines.join("\n");
+  return {
+    summary,
+    hasPersonality: personalityFiles.length > 0 || hasMemoryDir,
+    hasMemoryDir,
+    personalityCount: personalityFiles.length,
+    setupCount: setupFiles.length,
+  };
 }
 
 export function resolveNodeManagerOptions(): Array<{
