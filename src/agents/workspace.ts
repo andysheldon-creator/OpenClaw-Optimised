@@ -185,19 +185,24 @@ async function writeFileIfMissing(filePath: string, content: string) {
 }
 
 // ── File categories ──────────────────────────────────────────────────
-// "Personality" files contain the bot's identity, owner info, and
-// conversation history — these should be preserved across reinstalls.
-// "Setup" files contain workspace conventions, tool instructions, and
-// the first-run ritual — these should be refreshed on every install.
+// All workspace .md files are effectively "personality" — they contain
+// the bot's identity, owner info, custom rules, tool notes, and context
+// built up over time.  The only exception is BOOTSTRAP.md which is a
+// first-run ritual deleted after use; on reinstall with existing
+// personality it should NOT be recreated (the bot already knows who it
+// is).
+//
+// The real "setup" that changes between installs lives in clawdis.json
+// (model, gateway, providers, budget) — handled separately by the wizard.
 export const PERSONALITY_FILES: readonly WorkspaceBootstrapFileName[] = [
   DEFAULT_SOUL_FILENAME, // persona & boundaries
   DEFAULT_IDENTITY_FILENAME, // agent name, creature, vibe, emoji
   DEFAULT_USER_FILENAME, // owner name, pronouns, timezone
+  DEFAULT_AGENTS_FILENAME, // workspace conventions (user-customisable)
+  DEFAULT_TOOLS_FILENAME, // tool notes (user-editable)
 ] as const;
 
 export const SETUP_FILES: readonly WorkspaceBootstrapFileName[] = [
-  DEFAULT_AGENTS_FILENAME, // workspace conventions & safety defaults
-  DEFAULT_TOOLS_FILENAME, // tool notes (imsg, sag, etc.)
   DEFAULT_BOOTSTRAP_FILENAME, // first-run ritual (deleted after use)
 ] as const;
 
@@ -307,17 +312,22 @@ export async function ensureAgentWorkspace(params?: {
   const forceWrite = (fp: string, content: string) =>
     fs.writeFile(fp, content, { encoding: "utf-8" });
 
-  // Setup files: always overwrite in preserve-personality and full modes
-  const writeSetup = mode ? forceWrite : writeFileIfMissing;
-  await writeSetup(agentsPath, agentsTemplate);
-  await writeSetup(toolsPath, toolsTemplate);
-  await writeSetup(bootstrapPath, bootstrapTemplate);
-
-  // Personality files: keep in preserve-personality mode, overwrite in full
+  // Personality files: always kept in preserve-personality mode.
+  // In "full" mode all files are overwritten from templates.
+  // In default (false) mode, write-if-missing applies to all.
   const writePersonality = mode === "full" ? forceWrite : writeFileIfMissing;
+  await writePersonality(agentsPath, agentsTemplate);
   await writePersonality(soulPath, soulTemplate);
+  await writePersonality(toolsPath, toolsTemplate);
   await writePersonality(identityPath, identityTemplate);
   await writePersonality(userPath, userTemplate);
+
+  // BOOTSTRAP.md: the first-run ritual that the bot deletes after use.
+  // In preserve-personality mode, only create it if missing (i.e. the bot
+  // already completed its first run and deleted it — don't re-trigger).
+  // In "full" mode, force-recreate it to restart the intro ritual.
+  const writeBootstrap = mode === "full" ? forceWrite : writeFileIfMissing;
+  await writeBootstrap(bootstrapPath, bootstrapTemplate);
 
   return {
     dir,

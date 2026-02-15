@@ -555,10 +555,10 @@ export async function runInteractiveOnboarding(
   runtime.log(`Updated ${CONFIG_PATH_CLAWDIS}`);
 
   // ── Pre-existing workspace detection ──────────────────────────────
-  // Personality files (SOUL.md, IDENTITY.md, USER.md, memory/) contain the
-  // bot's identity and context — always kept by default.
-  // Setup files (AGENTS.md, TOOLS.md, BOOTSTRAP.md) contain workspace
-  // conventions and tool docs — refreshed on every install.
+  // All workspace .md files are personality/context (SOUL, IDENTITY, USER,
+  // AGENTS, TOOLS, memory/).  The config that changes between installs
+  // (model, gateway, providers, budget) lives in clawdis.json which was
+  // already written above.  Only ask the user if personality files exist.
   let upgradeMode: false | "preserve-personality" | "full" = false;
   const existingWorkspace = await checkExistingWorkspaceFiles(workspaceDir);
   if (existingWorkspace) {
@@ -566,17 +566,17 @@ export async function runInteractiveOnboarding(
     if (existingWorkspace.hasPersonality) {
       const wsAction = guardCancel(
         await select({
-          message: "How should existing personality files be handled?",
+          message: "Keep existing bot personality and memory?",
           options: [
             {
               value: "preserve-personality",
-              label: "Keep personality, refresh setup (Recommended)",
-              hint: "Keeps SOUL.md, IDENTITY.md, USER.md & memory; updates AGENTS.md, TOOLS.md",
+              label: "Yes — keep everything (Recommended)",
+              hint: "Preserves SOUL, IDENTITY, USER, AGENTS, TOOLS & memory",
             },
             {
               value: "full",
-              label: "Reset everything to defaults",
-              hint: "Overwrites all files including personality — starts from scratch",
+              label: "No — start fresh",
+              hint: "Resets all workspace files to defaults",
             },
           ],
         }),
@@ -584,8 +584,8 @@ export async function runInteractiveOnboarding(
       ) as "preserve-personality" | "full";
       upgradeMode = wsAction;
     } else {
-      // Only setup files exist — refresh them silently
-      upgradeMode = "preserve-personality";
+      // No personality files yet — use write-if-missing (fresh install)
+      upgradeMode = false;
     }
   }
   await ensureWorkspaceAndSessions(workspaceDir, runtime, { upgradeMode });

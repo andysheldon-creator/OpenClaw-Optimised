@@ -115,9 +115,10 @@ export async function ensureWorkspaceAndSessions(
 
 /**
  * Check for pre-existing workspace files and return a human-readable summary.
- * Separates personality files (SOUL.md, IDENTITY.md, USER.md, memory/) that
- * the user will want to keep from setup files (AGENTS.md, TOOLS.md,
- * BOOTSTRAP.md) that should be refreshed on reinstall.
+ * All .md workspace files are considered personality/context — they contain
+ * the bot's identity, owner info, custom rules, tool notes, and things
+ * built up over time.  BOOTSTRAP.md is the first-run ritual (deleted after
+ * use) and is the only file that would be recreated for a fresh start.
  * Returns null if no existing files are found.
  */
 export async function checkExistingWorkspaceFiles(
@@ -127,37 +128,40 @@ export async function checkExistingWorkspaceFiles(
   hasPersonality: boolean;
   hasMemoryDir: boolean;
   personalityCount: number;
-  setupCount: number;
 } | null> {
   const { personalityFiles, setupFiles, hasMemoryDir } =
     await detectExistingWorkspace(workspaceDir);
-  const totalFiles = personalityFiles.length + setupFiles.length;
-  if (totalFiles === 0 && !hasMemoryDir) return null;
+  const totalExisting =
+    personalityFiles.length + setupFiles.length + (hasMemoryDir ? 1 : 0);
+  if (totalExisting === 0) return null;
 
   const lines: string[] = [];
-  if (personalityFiles.length > 0 || hasMemoryDir) {
-    lines.push("Personality (will be kept):");
-    for (const f of personalityFiles) {
-      lines.push(`  \u2713 ${f.name}`);
-    }
-    if (hasMemoryDir) {
-      lines.push("  \u2713 memory/ (conversation history)");
-    }
+  for (const f of personalityFiles) {
+    lines.push(`  \u2713 ${f.name}`);
   }
-  if (setupFiles.length > 0) {
-    if (lines.length > 0) lines.push("");
-    lines.push("Setup (will be refreshed):");
-    for (const f of setupFiles) {
-      lines.push(`  \u21BB ${f.name}`);
-    }
+  if (hasMemoryDir) {
+    lines.push("  \u2713 memory/ (conversation history)");
   }
-  const summary = lines.join("\n");
+  // BOOTSTRAP.md is the only "setup" file — show it if it still exists
+  // (it gets deleted after first run, so its presence means the bot
+  //  hasn't completed the intro ritual yet).
+  for (const f of setupFiles) {
+    lines.push(`  \u2713 ${f.name} (first-run ritual)`);
+  }
+
+  const hasPersonality = personalityFiles.length > 0 || hasMemoryDir;
+  const summary = hasPersonality
+    ? [
+        `Found existing bot workspace (${personalityFiles.length} file${personalityFiles.length !== 1 ? "s" : ""}${hasMemoryDir ? " + memory" : ""}):`,
+        ...lines,
+      ].join("\n")
+    : ["Found workspace files:", ...lines].join("\n");
+
   return {
     summary,
-    hasPersonality: personalityFiles.length > 0 || hasMemoryDir,
+    hasPersonality,
     hasMemoryDir,
     personalityCount: personalityFiles.length,
-    setupCount: setupFiles.length,
   };
 }
 

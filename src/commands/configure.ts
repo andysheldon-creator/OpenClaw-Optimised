@@ -552,8 +552,8 @@ export async function runConfigureWizard(
     };
 
     // Check for pre-existing workspace files before creating/overwriting.
-    // Personality files (SOUL/IDENTITY/USER/memory) are kept;
-    // setup files (AGENTS/TOOLS/BOOTSTRAP) are refreshed.
+    // All workspace .md files are personality/context — only ask the user
+    // if personality files exist.
     let upgradeMode: false | "preserve-personality" | "full" = false;
     const existingWs = await checkExistingWorkspaceFiles(workspaceDir);
     if (existingWs) {
@@ -561,17 +561,17 @@ export async function runConfigureWizard(
       if (existingWs.hasPersonality) {
         const wsAction = guardCancel(
           await select({
-            message: "How should existing personality files be handled?",
+            message: "Keep existing bot personality and memory?",
             options: [
               {
                 value: "preserve-personality",
-                label: "Keep personality, refresh setup (Recommended)",
-                hint: "Keeps SOUL.md, IDENTITY.md, USER.md & memory; updates AGENTS.md, TOOLS.md",
+                label: "Yes — keep everything (Recommended)",
+                hint: "Preserves SOUL, IDENTITY, USER, AGENTS, TOOLS & memory",
               },
               {
                 value: "full",
-                label: "Reset everything to defaults",
-                hint: "Overwrites all files including personality — starts from scratch",
+                label: "No — start fresh",
+                hint: "Resets all workspace files to defaults",
               },
             ],
           }),
@@ -579,7 +579,7 @@ export async function runConfigureWizard(
         ) as "preserve-personality" | "full";
         upgradeMode = wsAction;
       } else {
-        upgradeMode = "preserve-personality";
+        upgradeMode = false;
       }
     }
     await ensureWorkspaceAndSessions(workspaceDir, runtime, { upgradeMode });

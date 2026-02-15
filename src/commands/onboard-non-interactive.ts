@@ -201,7 +201,11 @@ export async function runNonInteractiveOnboarding(
   nextConfig = applyWizardMetadata(nextConfig, { command: "onboard", mode });
   await writeConfigFile(nextConfig);
   runtime.log(`Updated ${CONFIG_PATH_CLAWDIS}`);
-  await ensureWorkspaceAndSessions(workspaceDir, runtime);
+  // Always preserve personality files and refresh setup files on reinstall.
+  // Non-interactive cannot prompt the user, so use the safe default.
+  await ensureWorkspaceAndSessions(workspaceDir, runtime, {
+    upgradeMode: "preserve-personality",
+  });
 
   if (opts.installDaemon) {
     const service = resolveGatewayService();
