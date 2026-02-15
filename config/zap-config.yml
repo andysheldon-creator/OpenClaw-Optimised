@@ -1,0 +1,44 @@
+# OWASP ZAP Configuration for DAST scanning
+# Used by scripts/run-dast.sh and .github/workflows/security.yml
+# Target the OpenClaw gateway staging instance
+
+env:
+  contexts:
+    - name: "OpenClaw Gateway"
+      urls:
+        - "${STAGING_URL}"
+      includePaths:
+        - "${STAGING_URL}/.*"
+      excludePaths:
+        - ".*\\.js$"
+        - ".*\\.css$"
+        - ".*\\.png$"
+        - ".*\\.jpg$"
+        - ".*\\.svg$"
+
+  parameters:
+    failOnError: true
+    failOnWarning: false
+    progressToStdout: true
+
+  jobs:
+    - type: passiveScan-config
+      parameters:
+        maxAlertsPerRule: 10
+        scanOnlyInScope: true
+    - type: spider
+      parameters:
+        maxDuration: 5
+        maxDepth: 5
+    - type: passiveScan-wait
+      parameters:
+        maxDuration: 10
+    - type: activeScan
+      parameters:
+        maxRuleDurationInMins: 5
+        maxScanDurationInMins: 30
+    - type: report
+      parameters:
+        template: "traditional-json"
+        reportDir: "/zap/reports"
+        reportFile: "zap-report"
