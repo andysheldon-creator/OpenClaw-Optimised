@@ -178,6 +178,7 @@ import {
 } from "./auth.js";
 import { buildMessageWithAttachments } from "./chat-attachments.js";
 import { maskSensitiveFields } from "./config-mask.js";
+import { RateLimiter } from "./rate-limit.js";
 import { handleControlUiHttpRequest } from "./control-ui.js";
 import {
   applyHookMappings,
@@ -1418,6 +1419,7 @@ export async function startGatewayServer(
     process.env.CLAWDIS_SKIP_CANVAS_HOST !== "1" &&
     cfgAtStart.canvasHost?.enabled !== false;
   assertGatewayAuthConfigured(resolvedAuth);
+  const authRateLimiter = new RateLimiter({ maxTokens: 5, refillIntervalMs: 60_000, failurePenalty: 1 });
   if (tailscaleMode === "funnel" && authMode !== "password") {
     throw new Error(
       "tailscale funnel requires gateway auth mode=password (set gateway.auth.password or CLAWDIS_GATEWAY_PASSWORD)",
@@ -4313,12 +4315,31 @@ Connection: close
             return;
           }
 
+          // Rate limiting: block brute-force auth attempts (MITRE ATLAS AML.CS0048).
+          const rlKey = remoteAddr ?? "unknown";
+          const rlResult = authRateLimiter.check(rlKey);
+          if (!rlResult.allowed) {
+            logWsControl.warn(
+              `rate limited conn=${connId} remote=${remoteAddr ?? "?"} retryAfterMs=${rlResult.retryAfterMs}`,
+            );
+            send({
+              type: "res",
+              id: frame.id,
+              ok: false,
+              error: errorShape(ErrorCodes.UNAVAILABLE, "rate limited"),
+            });
+            socket.close(1008, "rate limited");
+            close();
+            return;
+          }
+
           const authResult = await authorizeGatewayConnect({
             auth: resolvedAuth,
             connectAuth: connectParams.auth,
             req: upgradeReq,
           });
           if (!authResult.ok) {
+            authRateLimiter.penalize(rlKey);
             logWsControl.warn(
               `unauthorized conn=${connId} remote=${remoteAddr ?? "?"} client=${connectParams.client.name} ${connectParams.client.mode} v${connectParams.client.version}`,
             );
