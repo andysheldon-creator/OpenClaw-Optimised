@@ -56,6 +56,53 @@
 
 ---
 
+## P1 - High (Board of Directors — Multi-Agent System)
+
+| Field | Value |
+|-------|-------|
+| ID | FB-017 |
+| Title | Board of Directors: Specialized Agent Squad |
+| Description | Replace single generalist agent with six specialized agents, each with a distinct reasoning framework. General (Orchestrator), Research, Content (CMO), Finance (CFO), Strategy (CEO), Critic (Devil's Advocate). Each maintains its own context and builds expertise over time. |
+| Priority | P1 |
+| Status | backlog |
+| Estimated Time | 20h |
+| Branch | feature/board-of-directors |
+
+| Field | Value |
+|-------|-------|
+| ID | FB-018 |
+| Title | Telegram Topic-Based Agent Routing |
+| Description | In Telegram group chats, each agent gets its own topic. Message the Research topic and the Research agent answers. Route inbound messages by topic ID to the correct specialized agent. Each agent maintains separate conversation context. |
+| Priority | P1 |
+| Status | backlog |
+| Estimated Time | 8h |
+| Branch | feature/telegram-topic-routing |
+| Depends On | FB-017 |
+
+| Field | Value |
+|-------|-------|
+| ID | FB-019 |
+| Title | Board Meetings: Multi-Agent Decision Synthesis |
+| Description | User tells the General agent to "run a board meeting" on a topic. General coordinates: Research analyses market, Finance models numbers, Content evaluates positioning, Strategy maps long-term implications, Critic stress-tests. General synthesizes all perspectives into one recommendation. |
+| Priority | P1 |
+| Status | backlog |
+| Estimated Time | 12h |
+| Branch | feature/board-meetings |
+| Depends On | FB-017 |
+
+| Field | Value |
+|-------|-------|
+| ID | FB-020 |
+| Title | Cross-Agent Consultation |
+| Description | Agents can invoke each other within defined boundaries. Strategy pulls in Finance to check numbers. Content asks Research for trending data. Critic reviews any agent's output. Implement a consultation protocol with depth limits to prevent infinite loops. |
+| Priority | P1 |
+| Status | backlog |
+| Estimated Time | 8h |
+| Branch | feature/agent-consultation |
+| Depends On | FB-017 |
+
+---
+
 ## P2 - Medium (Phase 3 MITRE ATLAS)
 
 | Field | Value |
