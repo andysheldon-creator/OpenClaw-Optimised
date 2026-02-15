@@ -4,7 +4,9 @@ export type AuthChoice =
   | "antigravity"
   | "apiKey"
   | "minimax"
+  | "subscription"
   | "skip";
+export type BackendChoice = "pi-embedded" | "claude-cli";
 export type GatewayAuthChoice = "off" | "token" | "password";
 export type ResetScope = "config" | "config+creds+sessions" | "full";
 export type GatewayBind = "loopback" | "lan" | "tailnet" | "auto";
@@ -37,4 +39,6 @@ export type OnboardOptions = {
   remoteUrl?: string;
   remoteToken?: string;
   json?: boolean;
+  backend?: BackendChoice;
+  ollamaHost?: string;
 };

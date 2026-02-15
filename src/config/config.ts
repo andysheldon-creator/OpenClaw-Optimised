@@ -646,6 +646,8 @@ export type ClawdisConfig = {
     };
     /** Max concurrent agent runs across all conversations. Default: 1 (sequential). */
     maxConcurrent?: number;
+    /** Backend runner: "pi-embedded" (API calls via Pi SDK) or "claude-cli" (Claude Code subscription). */
+    backend?: "pi-embedded" | "claude-cli";
     /** Bash tool defaults. */
     bash?: {
       /** Default time (ms) before a bash command auto-backgrounds. */

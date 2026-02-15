@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-
+import { runClaudeCliQueued } from "../agents/claude-cli-runner.js";
 import { lookupContextTokens } from "../agents/context.js";
 import {
   DEFAULT_CONTEXT_TOKENS,
@@ -2123,6 +2123,37 @@ export async function getReplyFromConfig(
     if (sessionKey) {
       registerAgentRunContext(runId, { sessionKey });
     }
+    // ── Claude CLI backend dispatch ──────────────────────────────────
+    // When the backend is set to "claude-cli" (subscription mode), route
+    // through the Claude Code CLI runner instead of the Pi SDK.
+    const resolvedBackend = cfg.agent?.backend ?? "pi-embedded";
+    if (resolvedBackend === "claude-cli") {
+      try {
+        await startTypingLoop();
+        const cliResult = await runClaudeCliQueued({
+          prompt: commandBody,
+          workspaceDir,
+          model: model ?? "claude-sonnet-4-5",
+          systemPrompt: groupIntro || undefined,
+          timeoutMs,
+          runId,
+          sessionId: sessionIdFinal,
+        });
+        cleanupTyping();
+        if (!cliResult.text) {
+          return finalizeWithFollowup(undefined);
+        }
+        return finalizeWithFollowup({ text: cliResult.text });
+      } catch (err) {
+        cleanupTyping();
+        const message = err instanceof Error ? err.message : String(err);
+        defaultRuntime.error(`Claude CLI runner failed: ${message}`);
+        return finalizeWithFollowup({
+          text: "⚠️ Claude CLI failed. Check if 'claude' is installed and authenticated.",
+        });
+      }
+    }
+
     let runResult: Awaited<ReturnType<typeof runEmbeddedPiAgent>>;
     try {
       runResult = await runEmbeddedPiAgent({
