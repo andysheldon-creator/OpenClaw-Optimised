@@ -355,14 +355,15 @@ Controls the embedded agent runtime (model/thinking/verbose/timeouts).
 ```json5
 {
   agent: {
-    model: "anthropic/claude-opus-4-5",
+    // Default: anthropic/claude-sonnet-4-5 (5x cheaper than Opus, same 200k context)
+    model: "anthropic/claude-sonnet-4-5",
     allowedModels: [
-      "anthropic/claude-opus-4-5",
-      "anthropic/claude-sonnet-4-1"
+      "anthropic/claude-sonnet-4-5",
+      "anthropic/claude-opus-4-5"
     ],
     modelAliases: {
       Opus: "anthropic/claude-opus-4-5",
-      Sonnet: "anthropic/claude-sonnet-4-1"
+      Sonnet: "anthropic/claude-sonnet-4-5"
     },
     thinkingDefault: "low",
     verboseDefault: "off",
@@ -383,7 +384,7 @@ Controls the embedded agent runtime (model/thinking/verbose/timeouts).
 }
 ```
 
-`agent.model` should be set as `provider/model` (e.g. `anthropic/claude-opus-4-5`).
+`agent.model` should be set as `provider/model` (e.g. `anthropic/claude-sonnet-4-5`).
 If `modelAliases` is configured, you may also use the alias key (e.g. `Opus`).
 If you omit the provider, CLAWDIS currently assumes `anthropic` as a temporary
 deprecation fallback.
@@ -458,10 +459,12 @@ via **LM Studio** using the **Responses API**.
   agent: {
     model: "Minimax",
     allowedModels: [
+      "anthropic/claude-sonnet-4-5",
       "anthropic/claude-opus-4-5",
       "lmstudio/minimax-m2.1-gs32"
     ],
     modelAliases: {
+      Sonnet: "anthropic/claude-sonnet-4-5",
       Opus: "anthropic/claude-opus-4-5",
       Minimax: "lmstudio/minimax-m2.1-gs32"
     }

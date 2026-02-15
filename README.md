@@ -58,18 +58,21 @@ pnpm install
 
 # Set up environment variables
 cp .env.example .env
-# Edit .env with your API keys
+# Edit .env with your Anthropic API key and gateway password
 
-# Install Ollama (for local LLM)
+# Install Ollama (for local LLM — optional but recommended for 40-50% free processing)
 curl -fsSL https://ollama.com/install.sh | sh
 ollama pull llama3.2:3b
 ollama pull nomic-embed-text
 
-# Start the application
+# Run the interactive setup wizard (recommended for first install)
+pnpm exec clawdis onboard
+
+# Or start directly in dev mode (skips guided setup)
 pnpm run dev
 ```
 
-See **[Implementation Roadmap](docs/IMPLEMENTATION_ROADMAP.md)** for detailed Week 1 setup guide.
+The onboarding wizard walks you through model selection, gateway configuration, provider setup (WhatsApp/Telegram/Discord), and daemon installation. See **[Implementation Roadmap](docs/IMPLEMENTATION_ROADMAP.md)** for a detailed Week 1 setup guide.
 
 ## 📚 Documentation
 
@@ -108,6 +111,21 @@ See **[Implementation Roadmap](docs/IMPLEMENTATION_ROADMAP.md)** for detailed We
 - ✅ **Security hardening** (API key protection, injection prevention)
 - ✅ **Scalable architecture** for multi-bot deployments
 
+## 💰 Cost Optimisation
+
+OpenClaw-Optimised ships with aggressive cost controls enabled by default:
+
+| Setting | Default | Effect |
+|---------|---------|--------|
+| **Default model** | Sonnet 4.5 | 5x cheaper than Opus ($3/$15 vs $15/$75 per million tokens), same 200k context |
+| **Hybrid routing** | Balanced mode | Automatically escalates to Opus for complex tasks, Ollama for simple ones |
+| **Monthly budget** | £60 | Alerts at 80%, warns at 100% (configurable via `COST_MONTHLY_LIMIT`) |
+| **Daily budget** | £2 | Hard limit per day (configurable via `COST_DAILY_LIMIT`) |
+| **Prompt caching** | Active | Automatic cache of system prompts and recent messages (up to 90% cache hit rate) |
+| **Cache metrics** | Tracked | Cost reports show cache hit rate, read/write tokens, and estimated savings |
+
+All settings are configurable during `clawdis onboard` or via environment variables in `.env`.
+
 ## 🔐 Security
 
 OpenClaw-Optimised includes comprehensive security improvements:
@@ -130,15 +148,18 @@ See **[Security Audit](docs/SECURITY_AUDIT.md)** for full vulnerability analysis
 
 ### Phase 1: Core Optimization (Weeks 1-4)
 - [x] Repository setup and analysis
-- [ ] RAG implementation with Ollama + ChromaDB
-- [ ] Hybrid LLM routing system
-- [ ] Basic tiered memory
+- [x] RAG implementation with Ollama + vector storage
+- [x] Hybrid LLM routing system (6-tier: local/Ollama/Haiku/Sonnet/Opus)
+- [x] Tiered memory system (SQLite FTS5, 4-tier architecture)
+- [x] Default model optimisation (Sonnet 4.5, 5x cost reduction)
+- [x] Monthly budget cap and cache metrics tracking
 
 ### Phase 2: Production Readiness (Weeks 5-8)
-- [ ] Security remediation
-- [ ] Performance optimization
+- [x] Security remediation (MITRE ATLAS alignment, CSRF, rate limiting)
+- [x] DevSecOps CI pipeline (lint, SAST, unit tests, build)
+- [x] Performance benchmarks and test suite (787 tests passing)
+- [ ] Cost tracking dashboard (web UI)
 - [ ] Monitoring and alerting
-- [ ] Cost tracking dashboard
 
 ### Phase 3: Multi-Bot Platform (Weeks 9-12)
 - [ ] Orchestration layer
