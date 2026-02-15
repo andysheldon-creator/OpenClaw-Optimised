@@ -173,6 +173,7 @@ import { getWebAuthAgeMs, logoutWeb, readWebSelfId } from "../web/session.js";
 import {
   assertGatewayAuthConfigured,
   authorizeGatewayConnect,
+  isAllowedOrigin,
   type ResolvedGatewayAuth,
 } from "./auth.js";
 import { buildMessageWithAttachments } from "./chat-attachments.js";
@@ -1846,6 +1847,19 @@ export async function startGatewayServer(
     maxPayload: MAX_PAYLOAD_BYTES,
   });
   httpServer.on("upgrade", (req, socket, head) => {
+    // Security: validate Origin header to block cross-site WebSocket hijacking (CVE-2026-25253).
+    const origin = typeof req.headers.origin === "string" ? req.headers.origin : undefined;
+    if (!isAllowedOrigin(origin)) {
+      log.warn(
+        `WebSocket upgrade rejected: disallowed origin="${origin ?? "(none)"}" remote=${req.socket?.remoteAddress ?? "?"}`,
+      );
+      socket.write("HTTP/1.1 403 Forbidden
+Connection: close
+
+");
+      socket.destroy();
+      return;
+    }
     if (canvasHost?.handleUpgrade(req, socket, head)) return;
     wss.handleUpgrade(req, socket, head, (ws) => {
       wss.emit("connection", ws, req);
