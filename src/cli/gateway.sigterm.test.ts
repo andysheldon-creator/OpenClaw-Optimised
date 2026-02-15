@@ -59,7 +59,8 @@ const getFreePort = async () => {
   return addr.port;
 };
 
-describe("gateway SIGTERM", () => {
+// SIGTERM is not reliably delivered to child processes on Windows.
+describe.skipIf(process.platform === "win32")("gateway SIGTERM", () => {
   let child: ReturnType<typeof spawn> | null = null;
 
   afterEach(() => {

@@ -76,7 +76,10 @@ describe("buildStatusMessage", () => {
   it("prefers cached prompt tokens from the session log", async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "clawdis-status-"));
     const previousHome = process.env.HOME;
+    const previousUserProfile = process.env.USERPROFILE;
     process.env.HOME = dir;
+    // On Windows, os.homedir() reads USERPROFILE, not HOME.
+    if (process.platform === "win32") process.env.USERPROFILE = dir;
     try {
       vi.resetModules();
       const { buildStatusMessage: buildStatusMessageDynamic } = await import(
@@ -134,6 +137,8 @@ describe("buildStatusMessage", () => {
       expect(text).toContain("Context: 1.0k/32k");
     } finally {
       process.env.HOME = previousHome;
+      if (process.platform === "win32")
+        process.env.USERPROFILE = previousUserProfile;
       fs.rmSync(dir, { recursive: true, force: true });
     }
   });

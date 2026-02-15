@@ -62,16 +62,20 @@ describe("media server", () => {
     await new Promise((r) => server.close(r));
   });
 
-  it("blocks symlink escaping outside media dir", async () => {
-    const target = path.join(process.cwd(), "package.json"); // outside MEDIA_DIR
-    const link = path.join(MEDIA_DIR, "link-out");
-    await fs.symlink(target, link);
+  // Symlink creation requires admin privileges on Windows.
+  it.skipIf(process.platform === "win32")(
+    "blocks symlink escaping outside media dir",
+    async () => {
+      const target = path.join(process.cwd(), "package.json"); // outside MEDIA_DIR
+      const link = path.join(MEDIA_DIR, "link-out");
+      await fs.symlink(target, link);
 
-    const server = await startMediaServer(0, 5_000);
-    const port = (server.address() as AddressInfo).port;
-    const res = await fetch(`http://localhost:${port}/media/link-out`);
-    expect(res.status).toBe(400);
-    expect(await res.text()).toBe("invalid path");
-    await new Promise((r) => server.close(r));
-  });
+      const server = await startMediaServer(0, 5_000);
+      const port = (server.address() as AddressInfo).port;
+      const res = await fetch(`http://localhost:${port}/media/link-out`);
+      expect(res.status).toBe(400);
+      expect(await res.text()).toBe("invalid path");
+      await new Promise((r) => server.close(r));
+    },
+  );
 });
