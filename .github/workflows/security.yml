@@ -1,0 +1,141 @@
+name: Security Scan
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 6 * * 1'  # Every Monday at 6:00 UTC
+  workflow_dispatch:
+    inputs:
+      full_scan:
+        description: 'Run full OWASP + CWE scan'
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  # ──────────────────────────────────────────────
+  # SAST: Semgrep + pnpm audit (every push)
+  # ──────────────────────────────────────────────
+  sast:
+    name: SAST - Static Security Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Checkout submodules (retry)
+        run: |
+          set -euo pipefail
+          git submodule sync --recursive
+          for attempt in 1 2 3; do
+            if git -c protocol.version=2 submodule update --init --force --depth=1 --recursive; then
+              exit 0
+            fi
+            echo "Submodule update failed (attempt $attempt/3). Retrying…"
+            sleep $((attempt * 10))
+          done
+          exit 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          check-latest: true
+
+      - name: Enable corepack and pin pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.23.0 --activate
+
+      - name: Install dependencies
+        run: pnpm install --ignore-scripts=false --config.engine-strict=false --config.enable-pre-post-scripts=true || pnpm install --ignore-scripts=false --config.engine-strict=false --config.enable-pre-post-scripts=true
+
+      # Semgrep - core JS/TS/Node rules
+      - name: Semgrep Scan
+        uses: docker://semgrep/semgrep:latest
+        with:
+          args: semgrep scan --config p/javascript --config p/typescript --config p/nodejs --json --output semgrep-results.json .
+
+      # pnpm audit
+      - name: Dependency Audit
+        run: pnpm audit --json > pnpm-audit-results.json 2>&1 || true
+
+      - name: Upload SAST results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sast-results-${{ github.run_number }}
+          path: |
+            semgrep-results.json
+            pnpm-audit-results.json
+          retention-days: 30
+
+  # ──────────────────────────────────────────────
+  # Full SAST: OWASP + CWE (weekly + manual)
+  # ──────────────────────────────────────────────
+  sast-full:
+    name: Full Security Audit (OWASP + CWE)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Checkout submodules (retry)
+        run: |
+          set -euo pipefail
+          git submodule sync --recursive
+          for attempt in 1 2 3; do
+            if git -c protocol.version=2 submodule update --init --force --depth=1 --recursive; then
+              exit 0
+            fi
+            echo "Submodule update failed (attempt $attempt/3). Retrying…"
+            sleep $((attempt * 10))
+          done
+          exit 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          check-latest: true
+
+      - name: Enable corepack and pin pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.23.0 --activate
+
+      - name: Install dependencies
+        run: pnpm install --ignore-scripts=false --config.engine-strict=false --config.enable-pre-post-scripts=true || pnpm install --ignore-scripts=false --config.engine-strict=false --config.enable-pre-post-scripts=true
+
+      # Semgrep - full ruleset
+      - name: Semgrep Full Scan (OWASP + CWE)
+        uses: docker://semgrep/semgrep:latest
+        with:
+          args: >
+            semgrep scan
+            --config p/javascript
+            --config p/typescript
+            --config p/nodejs
+            --config p/owasp-top-ten
+            --config p/cwe-top-25
+            --json --output security-semgrep-full.json .
+
+      # Full dependency audit
+      - name: Full Dependency Audit
+        run: pnpm audit --json > security-pnpm-audit.json 2>&1 || true
+
+      - name: Upload full security reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-audit-full-${{ github.run_number }}
+          path: security-*.json
+          retention-days: 90
