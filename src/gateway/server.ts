@@ -159,6 +159,7 @@ import { setCommandLaneConcurrency } from "../process/command-queue.js";
 import { runExec } from "../process/exec.js";
 import { monitorWebProvider, webAuthExists } from "../providers/web/index.js";
 import { defaultRuntime } from "../runtime.js";
+import { setClaudeCliAvailable } from "../services/hybrid-router.js";
 import { monitorSignalProvider, sendMessageSignal } from "../signal/index.js";
 import { probeSignal, type SignalProbe } from "../signal/probe.js";
 import { monitorTelegramProvider } from "../telegram/monitor.js";
@@ -1394,6 +1395,23 @@ export async function startGatewayServer(
   }
 
   const cfgAtStart = loadConfig();
+
+  // ── Claude CLI availability check ──────────────────────────────────
+  // Detect `claude` CLI at startup so the hybrid router can use subscription
+  // mode.  Re-checked periodically via checkClaudeCliPeriodically().
+  if (cfgAtStart.agent?.backend === "claude-cli") {
+    try {
+      await runExec("claude", ["--version"], { timeoutMs: 5_000 });
+      setClaudeCliAvailable(true);
+      log.info("gateway: Claude CLI available — subscription mode enabled");
+    } catch {
+      setClaudeCliAvailable(false);
+      log.warn(
+        "gateway: Claude CLI not found or not authenticated — subscription mode will fall back to API",
+      );
+    }
+  }
+
   const bindMode = opts.bind ?? cfgAtStart.gateway?.bind ?? "loopback";
   const bindHost = opts.host ?? resolveGatewayBindHost(bindMode);
   if (!bindHost) {
@@ -4191,6 +4209,25 @@ export async function startGatewayServer(
   });
 
   const heartbeatRunner = startHeartbeatRunner({ cfg: cfgAtStart });
+
+  // ── Periodic Claude CLI health check ────────────────────────────────
+  // Re-check every 5 minutes so the hybrid router can react if the CLI
+  // becomes available or stops working (e.g., auth token expires).
+  let claudeCliCheckTimer: ReturnType<typeof setInterval> | null = null;
+  if (cfgAtStart.agent?.backend === "claude-cli") {
+    claudeCliCheckTimer = setInterval(async () => {
+      try {
+        await runExec("claude", ["--version"], { timeoutMs: 5_000 });
+        setClaudeCliAvailable(true);
+      } catch {
+        setClaudeCliAvailable(false);
+        log.warn(
+          "gateway: Claude CLI periodic check failed — subscription fallback active",
+        );
+      }
+    }, 300_000); // 5 minutes
+    claudeCliCheckTimer.unref?.();
+  }
 
   void cron
     .start()
@@ -7272,6 +7309,7 @@ export async function startGatewayServer(
       clearInterval(tickInterval);
       clearInterval(healthInterval);
       clearInterval(dedupeCleanup);
+      if (claudeCliCheckTimer) clearInterval(claudeCliCheckTimer);
       if (agentUnsub) {
         try {
           agentUnsub();
