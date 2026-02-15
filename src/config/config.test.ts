@@ -7,11 +7,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
   const base = await fs.mkdtemp(path.join(os.tmpdir(), "clawdis-config-"));
   const previousHome = process.env.HOME;
+  const previousUserProfile = process.env.USERPROFILE;
   process.env.HOME = base;
+  // On Windows, os.homedir() reads USERPROFILE, not HOME.
+  if (process.platform === "win32") process.env.USERPROFILE = base;
   try {
     return await fn(base);
   } finally {
     process.env.HOME = previousHome;
+    if (process.platform === "win32")
+      process.env.USERPROFILE = previousUserProfile;
     await fs.rm(base, { recursive: true, force: true });
   }
 }
@@ -49,13 +54,17 @@ async function withEnvOverride<T>(
 
 describe("config identity defaults", () => {
   let previousHome: string | undefined;
+  let previousUserProfile: string | undefined;
 
   beforeEach(() => {
     previousHome = process.env.HOME;
+    previousUserProfile = process.env.USERPROFILE;
   });
 
   afterEach(() => {
     process.env.HOME = previousHome;
+    if (process.platform === "win32")
+      process.env.USERPROFILE = previousUserProfile;
   });
 
   it("derives mentionPatterns when identity is set", async () => {
@@ -361,7 +370,8 @@ describe("Nix integration (U3, U5, U9)", () => {
         { CLAWDIS_CONFIG_PATH: undefined, CLAWDIS_STATE_DIR: undefined },
         async () => {
           const { CONFIG_PATH_CLAWDIS } = await import("./config.js");
-          expect(CONFIG_PATH_CLAWDIS).toMatch(/\.clawdis\/clawdis\.json$/);
+          // path.join uses \ on Windows, / on Unix
+          expect(CONFIG_PATH_CLAWDIS).toMatch(/\.clawdis[/\\]clawdis\.json$/);
         },
       );
     });
@@ -384,7 +394,10 @@ describe("Nix integration (U3, U5, U9)", () => {
         },
         async () => {
           const { CONFIG_PATH_CLAWDIS } = await import("./config.js");
-          expect(CONFIG_PATH_CLAWDIS).toBe("/custom/state/clawdis.json");
+          // path.join uses \ on Windows, / on Unix
+          expect(CONFIG_PATH_CLAWDIS).toBe(
+            path.join("/custom/state", "clawdis.json"),
+          );
         },
       );
     });

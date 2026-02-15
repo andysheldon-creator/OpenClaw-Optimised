@@ -55,6 +55,7 @@ public struct HelloOk: Codable {
     public let snapshot: Snapshot
     public let canvashosturl: String?
     public let policy: [String: AnyCodable]
+    public let csrftoken: String?
 
     public init(
         type: String,
@@ -63,7 +64,8 @@ public struct HelloOk: Codable {
         features: [String: AnyCodable],
         snapshot: Snapshot,
         canvashosturl: String?,
-        policy: [String: AnyCodable]
+        policy: [String: AnyCodable],
+        csrftoken: String?
     ) {
         self.type = type
         self._protocol = _protocol
@@ -72,6 +74,7 @@ public struct HelloOk: Codable {
         self.snapshot = snapshot
         self.canvashosturl = canvashosturl
         self.policy = policy
+        self.csrftoken = csrftoken
     }
     private enum CodingKeys: String, CodingKey {
         case type
@@ -81,6 +84,7 @@ public struct HelloOk: Codable {
         case snapshot
         case canvashosturl = "canvasHostUrl"
         case policy
+        case csrftoken = "csrfToken"
     }
 }
 

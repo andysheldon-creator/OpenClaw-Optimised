@@ -1,3 +1,5 @@
+import path from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -35,6 +37,7 @@ describe("nodes screen helpers", () => {
       tmpDir: "/tmp",
       id: "id1",
     });
-    expect(p).toBe("/tmp/clawdis-screen-record-id1.mp4");
+    // path.join normalises to platform separators (\ on Windows)
+    expect(p).toBe(path.join("/tmp", "clawdis-screen-record-id1.mp4"));
   });
 });
