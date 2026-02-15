@@ -202,6 +202,10 @@ import { maskSensitiveFields } from "./config-mask.js";
 import { RateLimiter } from "./rate-limit.js";
 import { handleControlUiHttpRequest } from "./control-ui.js";
 import {
+  buildProxyOpts,
+  createMissionControlProxy,
+} from "./mission-control-proxy.js";
+import {
   applyHookMappings,
   type HookMappingResolved,
   resolveHookMappings,
@@ -1448,6 +1452,13 @@ export async function startGatewayServer(
   }
   const controlUiEnabled =
     opts.controlUiEnabled ?? cfgAtStart.gateway?.controlUi?.enabled ?? true;
+
+  // Mission Control reverse-proxy
+  const mcCfg = cfgAtStart.gateway?.missionControl;
+  const mcEnabled = mcCfg?.enabled === true;
+  const handleMcProxy = mcEnabled
+    ? createMissionControlProxy(buildProxyOpts(mcCfg))
+    : null;
   const authBase = cfgAtStart.gateway?.auth ?? {};
   const authOverrides = opts.auth ?? {};
   const authConfig = {
@@ -1866,6 +1877,9 @@ export async function startGatewayServer(
 
     void (async () => {
       if (await handleHooksRequest(req, res)) return;
+      if (handleMcProxy) {
+        if (await handleMcProxy(req, res)) return;
+      }
       if (canvasHost) {
         if (await handleA2uiHttpRequest(req, res)) return;
         if (await canvasHost.handleHttpRequest(req, res)) return;

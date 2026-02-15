@@ -36,3 +36,79 @@ services:
     stdin_open: true
     tty: true
     entrypoint: ["node", "dist/index.js"]
+
+  # ── Mission Control (optional) ──────────────────────────────────────────────
+  # Activate with:  docker compose --profile mc up
+  # See docs/MISSION_CONTROL_INTEGRATION.md for env-var setup.
+
+  mission-control:
+    profiles: ["mc"]
+    build:
+      context: ./mission-control
+      dockerfile: Dockerfile
+    environment:
+      PORT: "3000"
+      NEXT_PUBLIC_SUPABASE_URL: ${MC_SUPABASE_URL:-http://supabase-kong:8000}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${MC_SUPABASE_ANON_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${MC_SUPABASE_SERVICE_ROLE_KEY}
+      SUPABASE_JWT_SECRET: ${MC_SUPABASE_JWT_SECRET}
+      POSTGRES_URL: postgresql://postgres:${MC_POSTGRES_PASSWORD:-postgres}@mc-postgres:5432/postgres
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+    ports:
+      - "${MC_PORT:-3100}:3000"
+    depends_on:
+      mc-postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mc-postgres:
+    profiles: ["mc"]
+    image: supabase/postgres:15.6.1.143
+    environment:
+      POSTGRES_PASSWORD: ${MC_POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: postgres
+    ports:
+      - "${MC_POSTGRES_PORT:-54332}:5432"
+    volumes:
+      - mc-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  supabase-kong:
+    profiles: ["mc"]
+    image: kong:2.8.1
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /var/lib/kong/kong.yml
+      KONG_DNS_ORDER: LAST,A,CNAME
+      KONG_PLUGINS: request-transformer,cors,key-auth,acl
+    ports:
+      - "${MC_KONG_PORT:-8000}:8000"
+    restart: unless-stopped
+
+  supabase-auth:
+    profiles: ["mc"]
+    image: supabase/gotrue:v2.158.1
+    environment:
+      GOTRUE_API_HOST: "0.0.0.0"
+      GOTRUE_API_PORT: "9999"
+      API_EXTERNAL_URL: ${MC_SUPABASE_URL:-http://localhost:8000}
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgresql://supabase_auth_admin:${MC_POSTGRES_PASSWORD:-postgres}@mc-postgres:5432/postgres
+      GOTRUE_SITE_URL: ${MC_SITE_URL:-http://localhost:3100}
+      GOTRUE_JWT_SECRET: ${MC_SUPABASE_JWT_SECRET}
+      GOTRUE_JWT_EXP: "3600"
+      GOTRUE_DISABLE_SIGNUP: "false"
+    ports:
+      - "${MC_AUTH_PORT:-9998}:9999"
+    depends_on:
+      mc-postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  mc-pgdata:
