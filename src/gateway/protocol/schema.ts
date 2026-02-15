@@ -120,6 +120,7 @@ export const HelloOkSchema = Type.Object(
       },
       { additionalProperties: false },
     ),
+    csrfToken: Type.Optional(NonEmptyString),
   },
   { additionalProperties: false },
 );

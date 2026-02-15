@@ -56,6 +56,15 @@ type BridgeStartOpts = {
   >;
 };
 
+
+const TEST_TOKEN = "test-gateway-token-for-tests";
+const TEST_STATE_CHANGING_METHODS = new Set([
+  "config.set", "skills.install", "chat.send", "agent", "send",
+  "sessions.delete", "sessions.reset", "cron.add", "cron.remove",
+  "cron.update", "node.invoke", "voicewake.set",
+]);
+/** Tracks CSRF tokens returned by hello-ok for each WebSocket. */
+const csrfTokens = new Map<WebSocket, string>();
 const bridgeStartCalls = vi.hoisted(() => [] as BridgeStartOpts[]);
 const bridgeInvoke = vi.hoisted(() =>
   vi.fn(async () => ({
@@ -127,6 +136,7 @@ let testSessionStorePath: string | undefined;
 let testAllowFrom: string[] | undefined;
 let testCronStorePath: string | undefined;
 let testCronEnabled: boolean | undefined = false;
+let prevGatewayToken: string | undefined;
 let testGatewayBind: "auto" | "lan" | "tailnet" | "loopback" | undefined;
 let testGatewayAuth: Record<string, unknown> | undefined;
 let testHooksConfig: Record<string, unknown> | undefined;
@@ -300,6 +310,8 @@ let previousHome: string | undefined;
 let tempHome: string | undefined;
 
 beforeEach(async () => {
+  prevGatewayToken = process.env.CLAWDIS_GATEWAY_TOKEN;
+  process.env.CLAWDIS_GATEWAY_TOKEN = TEST_TOKEN;
   previousHome = process.env.HOME;
   tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "clawdis-gateway-home-"));
   process.env.HOME = tempHome;
@@ -324,6 +336,12 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  if (prevGatewayToken === undefined) {
+    delete process.env.CLAWDIS_GATEWAY_TOKEN;
+  } else {
+    process.env.CLAWDIS_GATEWAY_TOKEN = prevGatewayToken;
+  }
+  csrfTokens.clear();
   process.env.HOME = previousHome;
   if (tempHome) {
     await fs.rm(tempHome, { recursive: true, force: true });
@@ -384,11 +402,7 @@ function onceMessage<T = unknown>(
 async function startServerWithClient(token?: string) {
   const port = await getFreePort();
   const prev = process.env.CLAWDIS_GATEWAY_TOKEN;
-  if (token === undefined) {
-    delete process.env.CLAWDIS_GATEWAY_TOKEN;
-  } else {
-    process.env.CLAWDIS_GATEWAY_TOKEN = token;
-  }
+  process.env.CLAWDIS_GATEWAY_TOKEN = token ?? TEST_TOKEN;
   const server = await startGatewayServer(port);
   const ws = new WebSocket(`ws://127.0.0.1:${port}`);
   await new Promise<void>((resolve) => ws.once("open", resolve));
@@ -435,13 +449,10 @@ async function connectReq(
           mode: "test",
         },
         caps: [],
-        auth:
-          opts?.token || opts?.password
-            ? {
-                token: opts?.token,
-                password: opts?.password,
-              }
-            : undefined,
+        auth: {
+          token: opts?.token ?? TEST_TOKEN,
+          password: opts?.password,
+        },
       },
     }),
   );
@@ -460,16 +471,24 @@ async function connectOk(
   expect((res.payload as { type?: unknown } | undefined)?.type).toBe(
     "hello-ok",
   );
-  return res.payload as { type: "hello-ok" };
+  const csrfToken = (res.payload as { csrfToken?: string } | undefined)?.csrfToken;
+  if (csrfToken) csrfTokens.set(ws, csrfToken);
+  return res.payload as { type: "hello-ok"; csrfToken?: string };
 }
 
 async function rpcReq<T = unknown>(
   ws: WebSocket,
   method: string,
   params?: unknown,
+  csrf?: string,
 ) {
   const id = randomUUID();
-  ws.send(JSON.stringify({ type: "req", id, method, params }));
+  const needsCsrf = TEST_STATE_CHANGING_METHODS.has(method);
+  const effectiveCsrf = needsCsrf ? (csrf ?? csrfTokens.get(ws)) : undefined;
+  const mergedParams = effectiveCsrf && params && typeof params === "object"
+    ? { ...(params as Record<string, unknown>), _csrf: effectiveCsrf }
+    : effectiveCsrf ? { _csrf: effectiveCsrf } : params;
+  ws.send(JSON.stringify({ type: "req", id, method, params: mergedParams }));
   return await onceMessage<{
     type: "res";
     id: string;
@@ -479,6 +498,13 @@ async function rpcReq<T = unknown>(
   }>(ws, (o) => o.type === "res" && o.id === id);
 }
 
+
+/** Send a raw RPC frame, auto-injecting CSRF token from csrfTokens map. */
+function sendRpc(ws: WebSocket, frame: { type: string; id: string; method: string; params?: Record<string, unknown> }) {
+  const csrf = TEST_STATE_CHANGING_METHODS.has(frame.method) ? csrfTokens.get(ws) : undefined;
+  const params = csrf && frame.params ? { ...frame.params, _csrf: csrf } : csrf ? { _csrf: csrf, ...frame.params } : frame.params;
+  ws.send(JSON.stringify({ ...frame, params }));
+}
 async function waitForSystemEvent(timeoutMs = 2000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
@@ -1313,8 +1339,7 @@ describe("gateway server", () => {
     const { server, ws } = await startServerWithClient();
     await connectOk(ws);
 
-    ws.send(
-      JSON.stringify({
+    sendRpc(ws, {
         type: "req",
         id: "cron-add-1",
         method: "cron.add",
@@ -1326,8 +1351,7 @@ describe("gateway server", () => {
           wakeMode: "next-heartbeat",
           payload: { kind: "systemEvent", text: "hello" },
         },
-      }),
-    );
+      });
     const addRes = await onceMessage<{
       type: "res";
       ok: boolean;
@@ -1380,8 +1404,7 @@ describe("gateway server", () => {
     await connectOk(ws);
 
     const atMs = Date.now() - 1;
-    ws.send(
-      JSON.stringify({
+    sendRpc(ws, {
         type: "req",
         id: "cron-add-log-1",
         method: "cron.add",
@@ -1393,8 +1416,7 @@ describe("gateway server", () => {
           wakeMode: "next-heartbeat",
           payload: { kind: "systemEvent", text: "hello" },
         },
-      }),
-    );
+      });
 
     const addRes = await onceMessage<{
       type: "res";
@@ -1406,14 +1428,12 @@ describe("gateway server", () => {
     const jobId = typeof jobIdValue === "string" ? jobIdValue : "";
     expect(jobId.length > 0).toBe(true);
 
-    ws.send(
-      JSON.stringify({
+    sendRpc(ws, {
         type: "req",
         id: "cron-run-log-1",
         method: "cron.run",
         params: { id: jobId, mode: "force" },
-      }),
-    );
+      });
     const runRes = await onceMessage<{ type: "res"; ok: boolean }>(
       ws,
       (o) => o.type === "res" && o.id === "cron-run-log-1",
@@ -1491,8 +1511,7 @@ describe("gateway server", () => {
     await connectOk(ws);
 
     const atMs = Date.now() - 1;
-    ws.send(
-      JSON.stringify({
+    sendRpc(ws, {
         type: "req",
         id: "cron-add-log-2",
         method: "cron.add",
@@ -1504,8 +1523,7 @@ describe("gateway server", () => {
           wakeMode: "next-heartbeat",
           payload: { kind: "systemEvent", text: "hello" },
         },
-      }),
-    );
+      });
 
     const addRes = await onceMessage<{
       type: "res";
@@ -1517,14 +1535,12 @@ describe("gateway server", () => {
     const jobId = typeof jobIdValue === "string" ? jobIdValue : "";
     expect(jobId.length > 0).toBe(true);
 
-    ws.send(
-      JSON.stringify({
+    sendRpc(ws, {
         type: "req",
         id: "cron-run-log-2",
         method: "cron.run",
         params: { id: jobId, mode: "force" },
-      }),
-    );
+      });
     const runRes = await onceMessage<{ type: "res"; ok: boolean }>(
       ws,
       (o) => o.type === "res" && o.id === "cron-run-log-2",
@@ -1627,8 +1643,7 @@ describe("gateway server", () => {
       expect(storePath).toContain("jobs.json");
 
       const atMs = Date.now() + 80;
-      ws.send(
-        JSON.stringify({
+      sendRpc(ws, {
           type: "req",
           id: "cron-add-auto-1",
           method: "cron.add",
@@ -1640,8 +1655,7 @@ describe("gateway server", () => {
             wakeMode: "next-heartbeat",
             payload: { kind: "systemEvent", text: "auto" },
           },
-        }),
-      );
+        });
       const addRes = await onceMessage<{
         type: "res";
         ok: boolean;
@@ -1798,8 +1812,7 @@ describe("gateway server", () => {
     const { server, ws } = await startServerWithClient();
     await connectOk(ws);
 
-    ws.send(
-      JSON.stringify({
+    sendRpc(ws, {
         type: "req",
         id: "agent-last-stale",
         method: "agent",
@@ -1810,8 +1823,7 @@ describe("gateway server", () => {
           deliver: true,
           idempotencyKey: "idem-agent-last-stale",
         },
-      }),
-    );
+      });
     await onceMessage(
       ws,
       (o) => o.type === "res" && o.id === "agent-last-stale",
@@ -1853,8 +1865,7 @@ describe("gateway server", () => {
     const { server, ws } = await startServerWithClient();
     await connectOk(ws);
 
-    ws.send(
-      JSON.stringify({
+    sendRpc(ws, {
         type: "req",
         id: "agent-last-whatsapp",
         method: "agent",
@@ -1865,8 +1876,7 @@ describe("gateway server", () => {
           deliver: true,
           idempotencyKey: "idem-agent-last-whatsapp",
         },
-      }),
-    );
+      });
     await onceMessage(
       ws,
       (o) => o.type === "res" && o.id === "agent-last-whatsapp",
@@ -1908,8 +1918,7 @@ describe("gateway server", () => {
     const { server, ws } = await startServerWithClient();
     await connectOk(ws);
 
-    ws.send(
-      JSON.stringify({
+    sendRpc(ws, {
         type: "req",
         id: "agent-last",
         method: "agent",
@@ -1920,8 +1929,7 @@ describe("gateway server", () => {
           deliver: true,
           idempotencyKey: "idem-agent-last",
         },
-      }),
-    );
+      });
     await onceMessage(ws, (o) => o.type === "res" && o.id === "agent-last");
 
     const spy = vi.mocked(agentCommand);
@@ -1960,8 +1968,7 @@ describe("gateway server", () => {
     const { server, ws } = await startServerWithClient();
     await connectOk(ws);
 
-    ws.send(
-      JSON.stringify({
+    sendRpc(ws, {
         type: "req",
         id: "agent-last-discord",
         method: "agent",
@@ -1972,8 +1979,7 @@ describe("gateway server", () => {
           deliver: true,
           idempotencyKey: "idem-agent-last-discord",
         },
-      }),
-    );
+      });
     await onceMessage(
       ws,
       (o) => o.type === "res" && o.id === "agent-last-discord",
@@ -2015,8 +2021,7 @@ describe("gateway server", () => {
     const { server, ws } = await startServerWithClient();
     await connectOk(ws);
 
-    ws.send(
-      JSON.stringify({
+    sendRpc(ws, {
         type: "req",
         id: "agent-last-signal",
         method: "agent",
@@ -2027,8 +2032,7 @@ describe("gateway server", () => {
           deliver: true,
           idempotencyKey: "idem-agent-last-signal",
         },
-      }),
-    );
+      });
     await onceMessage(
       ws,
       (o) => o.type === "res" && o.id === "agent-last-signal",
@@ -2071,8 +2075,7 @@ describe("gateway server", () => {
     const { server, ws } = await startServerWithClient();
     await connectOk(ws);
 
-    ws.send(
-      JSON.stringify({
+    sendRpc(ws, {
         type: "req",
         id: "agent-webchat",
         method: "agent",
@@ -2083,8 +2086,7 @@ describe("gateway server", () => {
           deliver: true,
           idempotencyKey: "idem-agent-webchat",
         },
-      }),
-    );
+      });
     await onceMessage(ws, (o) => o.type === "res" && o.id === "agent-webchat");
 
     const spy = vi.mocked(agentCommand);
@@ -2219,6 +2221,7 @@ describe("gateway server", () => {
             mode: "test",
           },
           caps: [],
+          auth: { token: TEST_TOKEN },
         },
       }),
     );
@@ -2460,14 +2463,12 @@ describe("gateway server", () => {
           o.id === "ag1" &&
           o.payload?.status !== "accepted",
       );
-      ws.send(
-        JSON.stringify({
+      sendRpc(ws, {
           type: "req",
           id: "ag1",
           method: "agent",
           params: { message: "hi", idempotencyKey: "idem-ag" },
-        }),
-      );
+        });
 
       const ack = await ackP;
       const final = await finalP;
@@ -2494,28 +2495,24 @@ describe("gateway server", () => {
           o.id === "ag1" &&
           o.payload?.status !== "accepted",
       );
-      ws.send(
-        JSON.stringify({
+      sendRpc(ws, {
           type: "req",
           id: "ag1",
           method: "agent",
           params: { message: "hi", idempotencyKey: "same-agent" },
-        }),
-      );
+        });
       const firstFinal = await firstFinalP;
 
       const secondP = onceMessage(
         ws,
         (o) => o.type === "res" && o.id === "ag2",
       );
-      ws.send(
-        JSON.stringify({
+      sendRpc(ws, {
           type: "req",
           id: "ag2",
           method: "agent",
           params: { message: "hi again", idempotencyKey: "same-agent" },
-        }),
-      );
+        });
       const second = await secondP;
       expect(second.payload).toEqual(firstFinal.payload);
 
@@ -2581,14 +2578,12 @@ describe("gateway server", () => {
     const res1P = onceMessage(ws, (o) => o.type === "res" && o.id === "a1");
     const res2P = onceMessage(ws, (o) => o.type === "res" && o.id === "a2");
     const sendReq = (id: string) =>
-      ws.send(
-        JSON.stringify({
+      sendRpc(ws, {
           type: "req",
           id,
           method: "send",
           params: { to: "+15550000000", message: "hi", idempotencyKey: idem },
-        }),
-      );
+        });
     sendReq("a1");
     sendReq("a2");
 
@@ -2620,14 +2615,12 @@ describe("gateway server", () => {
         o.type === "res" && o.id === "ag1" && o.payload?.status !== "accepted",
       6000,
     );
-    ws1.send(
-      JSON.stringify({
+    sendRpc(ws1, {
         type: "req",
         id: "ag1",
         method: "agent",
         params: { message: "hi", idempotencyKey: idem },
-      }),
-    );
+      });
     const final1 = await final1P;
     ws1.close();
 
@@ -2638,14 +2631,12 @@ describe("gateway server", () => {
         o.type === "res" && o.id === "ag2" && o.payload?.status !== "accepted",
       6000,
     );
-    ws2.send(
-      JSON.stringify({
+    sendRpc(ws2, {
         type: "req",
         id: "ag2",
         method: "agent",
         params: { message: "hi again", idempotencyKey: idem },
-      }),
-    );
+      });
     const res = await final2P;
     expect(res.payload).toEqual(final1.payload);
     ws2.close();
@@ -2657,8 +2648,7 @@ describe("gateway server", () => {
     await connectOk(ws);
 
     const reqId = "chat-img";
-    ws.send(
-      JSON.stringify({
+    sendRpc(ws, {
         type: "req",
         id: reqId,
         method: "chat.send",
@@ -2676,8 +2666,7 @@ describe("gateway server", () => {
             },
           ],
         },
-      }),
-    );
+      });
 
     const res = await onceMessage(
       ws,
@@ -2938,8 +2927,7 @@ describe("gateway server", () => {
     await connectOk(ws);
 
     const reqId = "chat-route";
-    ws.send(
-      JSON.stringify({
+    sendRpc(ws, {
         type: "req",
         id: reqId,
         method: "chat.send",
@@ -2948,8 +2936,7 @@ describe("gateway server", () => {
           message: "hello",
           idempotencyKey: "idem-route",
         },
-      }),
-    );
+      });
 
     const res = await onceMessage(
       ws,
@@ -3026,8 +3013,7 @@ describe("gateway server", () => {
         );
         inFlight = Promise.allSettled([sendResP, abortResP, abortedEventP]);
 
-        ws.send(
-          JSON.stringify({
+        sendRpc(ws, {
             type: "req",
             id: "send-abort-1",
             method: "chat.send",
@@ -3037,8 +3023,7 @@ describe("gateway server", () => {
               idempotencyKey: "idem-abort-1",
               timeoutMs: 30_000,
             },
-          }),
-        );
+          });
 
         await new Promise<void>((resolve, reject) => {
           const deadline = Date.now() + 1000;
@@ -3123,8 +3108,7 @@ describe("gateway server", () => {
       (o) => o.type === "res" && o.id === "send-abort-save-1",
     );
 
-    ws.send(
-      JSON.stringify({
+    sendRpc(ws, {
         type: "req",
         id: "send-abort-save-1",
         method: "chat.send",
@@ -3134,8 +3118,7 @@ describe("gateway server", () => {
           idempotencyKey: "idem-abort-save-1",
           timeoutMs: 30_000,
         },
-      }),
-    );
+      });
 
     const abortResP = onceMessage(
       ws,
@@ -3240,8 +3223,7 @@ describe("gateway server", () => {
       (o) => o.type === "res" && o.id === "send-mismatch-1",
       10_000,
     );
-    ws.send(
-      JSON.stringify({
+    sendRpc(ws, {
         type: "req",
         id: "send-mismatch-1",
         method: "chat.send",
@@ -3251,8 +3233,7 @@ describe("gateway server", () => {
           idempotencyKey: "idem-mismatch-1",
           timeoutMs: 30_000,
         },
-      }),
-    );
+      });
 
     await agentStartedP;
 
@@ -3322,8 +3303,7 @@ describe("gateway server", () => {
     const spy = vi.mocked(agentCommand);
     spy.mockResolvedValueOnce(undefined);
 
-    ws.send(
-      JSON.stringify({
+    sendRpc(ws, {
         type: "req",
         id: "send-complete-1",
         method: "chat.send",
@@ -3333,8 +3313,7 @@ describe("gateway server", () => {
           idempotencyKey: "idem-complete-1",
           timeoutMs: 30_000,
         },
-      }),
-    );
+      });
 
     const sendRes = await onceMessage(
       ws,
@@ -3383,8 +3362,7 @@ describe("gateway server", () => {
     const { server, ws } = await startServerWithClient();
     await connectOk(ws);
 
-    ws.send(
-      JSON.stringify({
+    sendRpc(ws, {
         type: "req",
         id: "chat-1",
         method: "chat.send",
@@ -3393,16 +3371,14 @@ describe("gateway server", () => {
           message: "first",
           idempotencyKey: "idem-1",
         },
-      }),
-    );
+      });
     const res1 = await onceMessage(
       ws,
       (o) => o.type === "res" && o.id === "chat-1",
     );
     expect(res1.ok).toBe(true);
 
-    ws.send(
-      JSON.stringify({
+    sendRpc(ws, {
         type: "req",
         id: "chat-2",
         method: "chat.send",
@@ -3411,8 +3387,7 @@ describe("gateway server", () => {
           message: "second",
           idempotencyKey: "idem-2",
         },
-      }),
-    );
+      });
     const res2 = await onceMessage(
       ws,
       (o) => o.type === "res" && o.id === "chat-2",
