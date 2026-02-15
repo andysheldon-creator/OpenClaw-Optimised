@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import fs from "node:fs";
 import {
   createServer as createHttpServer,
@@ -1403,15 +1403,42 @@ export async function startGatewayServer(
     authConfig.token ?? process.env.CLAWDIS_GATEWAY_TOKEN ?? undefined;
   const password =
     authConfig.password ?? process.env.CLAWDIS_GATEWAY_PASSWORD ?? undefined;
-  const authMode: ResolvedGatewayAuth["mode"] =
+  let resolvedPassword = password;
+  const autoAuthMode: ResolvedGatewayAuth["mode"] =
     authConfig.mode ?? (password ? "password" : token ? "token" : "none");
+  let authMode: ResolvedGatewayAuth["mode"] = autoAuthMode;
+
+  // Security: never default to auth=none. Generate a random password if none configured.
+  // Addresses MITRE ATLAS AML.CS0048 (Exposed Control Interfaces).
+  if (authMode === "none") {
+    resolvedPassword = randomBytes(16).toString("hex");
+    authMode = "password";
+    const sep = "=".repeat(60);
+    process.stderr.write(
+      [
+        "",
+        sep,
+        "  WARNING: No gateway auth configured.",
+        "  Generated one-time password for this session:",
+        "",
+        `    ${resolvedPassword}`,
+        "",
+        "  To set a permanent password, add to your environment:",
+        "    export CLAWDIS_GATEWAY_PASSWORD=<your-password>",
+        "  Or set gateway.auth.password in ~/.clawdis/clawdis.json",
+        sep,
+        "",
+      ].join("
+"),
+    );
+  }
   const allowTailscale =
     authConfig.allowTailscale ??
     (tailscaleMode === "serve" && authMode !== "password");
   const resolvedAuth: ResolvedGatewayAuth = {
     mode: authMode,
     token,
-    password,
+    password: resolvedPassword,
     allowTailscale,
   };
   const hooksConfig = resolveHooksConfig(cfgAtStart);
