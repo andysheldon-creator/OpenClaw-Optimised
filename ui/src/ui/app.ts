@@ -62,6 +62,19 @@ import {
   loadSkills,
 } from "./controllers/skills";
 import { loadDebug } from "./controllers/debug";
+import {
+  loadTasks,
+  DEFAULT_TASK_FORM,
+  type Task,
+  type TaskFormState,
+} from "./controllers/tasks";
+import {
+  loadVoiceStatus,
+  handleVoiceStateEvent,
+  handleVoiceTranscriptEvent,
+  type VoiceSessionInfo,
+  type VoiceTranscript,
+} from "./controllers/voice";
 
 type EventLogEntry = {
   ts: number;
@@ -231,6 +244,21 @@ export class ClawdisApp extends LitElement {
   @state() debugCallResult: string | null = null;
   @state() debugCallError: string | null = null;
 
+  @state() tasksLoading = false;
+  @state() tasks: Task[] = [];
+  @state() tasksError: string | null = null;
+  @state() tasksFilter = "";
+  @state() taskForm: TaskFormState = { ...DEFAULT_TASK_FORM };
+  @state() tasksBusy = false;
+  @state() taskDetail: Task | null = null;
+
+  @state() voiceLoading = false;
+  @state() voiceSession: VoiceSessionInfo | null = null;
+  @state() voiceError: string | null = null;
+  @state() voiceBusy = false;
+  @state() voiceSessionKey = "main";
+  @state() voiceTranscript: VoiceTranscript[] = [];
+
   client: GatewayBrowserClient | null = null;
   private chatScrollFrame: number | null = null;
   private chatScrollTimeout: number | null = null;
@@ -378,6 +406,25 @@ export class ClawdisApp extends LitElement {
     if (evt.event === "cron" && this.tab === "cron") {
       void this.loadCron();
     }
+
+    if (evt.event === "voice.state") {
+      handleVoiceStateEvent(this, evt.payload as any);
+      return;
+    }
+
+    if (evt.event === "voice.transcript") {
+      handleVoiceTranscriptEvent(this, evt.payload as any);
+      return;
+    }
+
+    if (
+      (evt.event === "task.progress" ||
+        evt.event === "task.completed" ||
+        evt.event === "task.failed") &&
+      this.tab === "tasks"
+    ) {
+      void loadTasks(this);
+    }
   }
 
   private applySnapshot(hello: GatewayHelloOk) {
@@ -443,6 +490,8 @@ export class ClawdisApp extends LitElement {
     if (this.tab === "cron") await this.loadCron();
     if (this.tab === "skills") await loadSkills(this);
     if (this.tab === "nodes") await loadNodes(this);
+    if (this.tab === "tasks") await loadTasks(this);
+    if (this.tab === "voice") await loadVoiceStatus(this);
     if (this.tab === "chat") {
       await Promise.all([loadChatHistory(this), loadSessions(this)]);
       this.scheduleChatScroll();

@@ -2,9 +2,9 @@ export const TAB_GROUPS = [
   { label: "Chat", tabs: ["chat"] },
   {
     label: "Control",
-    tabs: ["overview", "connections", "instances", "sessions", "cron"],
+    tabs: ["overview", "connections", "instances", "sessions", "cron", "tasks"],
   },
-  { label: "Agent", tabs: ["skills", "nodes"] },
+  { label: "Agent", tabs: ["skills", "nodes", "voice"] },
   { label: "Settings", tabs: ["config", "debug"] },
 ] as const;
 
@@ -14,8 +14,10 @@ export type Tab =
   | "instances"
   | "sessions"
   | "cron"
+  | "tasks"
   | "skills"
   | "nodes"
+  | "voice"
   | "chat"
   | "config"
   | "debug";
@@ -26,8 +28,10 @@ const TAB_PATHS: Record<Tab, string> = {
   instances: "/instances",
   sessions: "/sessions",
   cron: "/cron",
+  tasks: "/tasks",
   skills: "/skills",
   nodes: "/nodes",
+  voice: "/voice",
   chat: "/chat",
   config: "/config",
   debug: "/debug",
@@ -90,10 +94,14 @@ export function titleForTab(tab: Tab) {
       return "Sessions";
     case "cron":
       return "Cron Jobs";
+    case "tasks":
+      return "Tasks";
     case "skills":
       return "Skills";
     case "nodes":
       return "Nodes";
+    case "voice":
+      return "Voice";
     case "chat":
       return "Chat";
     case "config":
@@ -117,10 +125,14 @@ export function subtitleForTab(tab: Tab) {
       return "Inspect active sessions and adjust per-session defaults.";
     case "cron":
       return "Schedule wakeups and recurring agent runs.";
+    case "tasks":
+      return "Create and monitor autonomous multi-step tasks.";
     case "skills":
       return "Manage skill availability and API key injection.";
     case "nodes":
       return "Paired devices, capabilities, and command exposure.";
+    case "voice":
+      return "Manage ElevenLabs conversational voice sessions.";
     case "chat":
       return "Direct gateway chat session for quick interventions.";
     case "config":
