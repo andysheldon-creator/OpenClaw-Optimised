@@ -40,6 +40,8 @@ import { renderNodes } from "./views/nodes";
 import { renderOverview } from "./views/overview";
 import { renderSessions } from "./views/sessions";
 import { renderSkills } from "./views/skills";
+import { renderTasks } from "./views/tasks";
+import { renderVoice } from "./views/voice";
 import {
   loadProviders,
   updateDiscordForm,
@@ -61,6 +63,23 @@ import { loadChatHistory } from "./controllers/chat";
 import { loadConfig, saveConfig } from "./controllers/config";
 import { loadCronRuns, toggleCronJob, runCronJob, removeCronJob, addCronJob } from "./controllers/cron";
 import { loadDebug, callDebugMethod } from "./controllers/debug";
+import {
+  loadTasks,
+  loadTaskDetail,
+  createTask,
+  cancelTask,
+  pauseTask,
+  resumeTask,
+  type Task,
+  type TaskFormState,
+} from "./controllers/tasks";
+import {
+  loadVoiceStatus,
+  startVoiceSession,
+  endVoiceSession,
+  type VoiceSessionInfo,
+  type VoiceTranscript,
+} from "./controllers/voice";
 
 export type EventLogEntry = {
   ts: number;
@@ -151,6 +170,19 @@ export type AppViewState = {
   debugCallParams: string;
   debugCallResult: string | null;
   debugCallError: string | null;
+  tasksLoading: boolean;
+  tasks: Task[];
+  tasksError: string | null;
+  tasksFilter: string;
+  taskForm: TaskFormState;
+  tasksBusy: boolean;
+  taskDetail: Task | null;
+  voiceLoading: boolean;
+  voiceSession: VoiceSessionInfo | null;
+  voiceError: string | null;
+  voiceBusy: boolean;
+  voiceSessionKey: string;
+  voiceTranscript: VoiceTranscript[];
   client: GatewayBrowserClient | null;
   connect: () => void;
   setTab: (tab: Tab) => void;
@@ -332,6 +364,27 @@ export function renderApp(state: AppViewState) {
             })
           : nothing}
 
+        ${state.tab === "tasks"
+          ? renderTasks({
+              loading: state.tasksLoading,
+              tasks: state.tasks,
+              error: state.tasksError,
+              filter: state.tasksFilter,
+              form: state.taskForm,
+              busy: state.tasksBusy,
+              detail: state.taskDetail,
+              onFilterChange: (next) => (state.tasksFilter = next),
+              onFormChange: (patch) => (state.taskForm = { ...state.taskForm, ...patch }),
+              onRefresh: () => loadTasks(state),
+              onCreate: () => createTask(state),
+              onCancel: (id) => cancelTask(state, id),
+              onPause: (id) => pauseTask(state, id),
+              onResume: (id) => resumeTask(state, id),
+              onViewDetail: (id) => loadTaskDetail(state, id),
+              onCloseDetail: () => (state.taskDetail = null),
+            })
+          : nothing}
+
         ${state.tab === "skills"
           ? renderSkills({
               loading: state.skillsLoading,
@@ -354,6 +407,21 @@ export function renderApp(state: AppViewState) {
               loading: state.nodesLoading,
               nodes: state.nodes,
               onRefresh: () => loadNodes(state),
+            })
+          : nothing}
+
+        ${state.tab === "voice"
+          ? renderVoice({
+              loading: state.voiceLoading,
+              session: state.voiceSession,
+              error: state.voiceError,
+              busy: state.voiceBusy,
+              sessionKey: state.voiceSessionKey,
+              transcript: state.voiceTranscript,
+              onRefresh: () => loadVoiceStatus(state),
+              onStart: () => startVoiceSession(state),
+              onEnd: () => endVoiceSession(state),
+              onSessionKeyChange: (next) => (state.voiceSessionKey = next),
             })
           : nothing}
 
