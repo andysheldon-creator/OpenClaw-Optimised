@@ -4249,25 +4249,6 @@ export async function startGatewayServer(
     log.warn(`Restart alert failed: ${String(err)}`),
   );
 
-  // ── Periodic Claude CLI health check ────────────────────────────────
-  // Re-check every 5 minutes so the hybrid router can react if the CLI
-  // becomes available or stops working (e.g., auth token expires).
-  let claudeCliCheckTimer: ReturnType<typeof setInterval> | null = null;
-  if (cfgAtStart.agent?.backend === "claude-cli") {
-    claudeCliCheckTimer = setInterval(async () => {
-      try {
-        await runExec("claude", ["--version"], { timeoutMs: 5_000 });
-        setClaudeCliAvailable(true);
-      } catch {
-        setClaudeCliAvailable(false);
-        log.warn(
-          "gateway: Claude CLI periodic check failed — subscription fallback active",
-        );
-      }
-    }, 300_000); // 5 minutes
-    claudeCliCheckTimer.unref?.();
-  }
-
   void cron
     .start()
     .catch((err) => logCron.error(`failed to start: ${String(err)}`));
