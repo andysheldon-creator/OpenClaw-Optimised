@@ -200,12 +200,53 @@ export function createTelegramBot(opts: TelegramBotOptions) {
         );
       }
 
-      // ── Voice call trigger detection ──────────────────────────────────
+      // ── Voice note → voice reply loop ──────────────────────────────
+      // When a user sends a voice note and TTS is configured, we get the
+      // AI's text reply (the <media:audio> placeholder flows through
+      // normally) and then convert it to a voice note reply via TTS.
       const talkCfg = cfg.talk;
       const voiceEnabled = talkCfg?.conversational?.enabled === true;
       const voiceApiKey =
         talkCfg?.apiKey ?? process.env.ELEVENLABS_API_KEY ?? "";
       const voiceId = talkCfg?.voiceId ?? "";
+      const isInboundVoice = Boolean(msg.voice);
+
+      if (isInboundVoice && isTtsConfigured({ voiceId, apiKey: voiceApiKey })) {
+        let voiceReplyOk = false;
+        try {
+          await sendTyping();
+          const replyResult = await getReplyFromConfig(
+            ctxPayload,
+            { onReplyStart: sendTyping },
+            cfg,
+          );
+          const textReply = Array.isArray(replyResult)
+            ? (replyResult[0]?.text ?? "")
+            : (replyResult?.text ?? "");
+
+          if (textReply) {
+            const audioBuffer = await textToSpeech({
+              text: textReply,
+              voiceId,
+              apiKey: voiceApiKey,
+              modelId: talkCfg?.modelId,
+              outputFormat: talkCfg?.outputFormat ?? "mp3_44100_128",
+            });
+            const audioFile = new InputFile(audioBuffer, "reply.mp3");
+            await bot.api.sendVoice(chatId, audioFile, {
+              caption:
+                textReply.length > 200
+                  ? `${textReply.slice(0, 197)}…`
+                  : textReply,
+            });
+            voiceReplyOk = true;
+          }
+        } catch (err) {
+          runtime.error?.(`Voice note reply failed: ${String(err)}`);
+          // Fallback: continues to normal text reply path below
+        }
+        if (voiceReplyOk) return;
+      }
 
       if (voiceEnabled && isTtsConfigured({ voiceId, apiKey: voiceApiKey })) {
         const triggerWords = talkCfg?.conversational?.triggerWords ?? [
