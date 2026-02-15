@@ -30,6 +30,12 @@ const MODEL_PRICING: Record<string, ModelPricing> = {
     cacheReadPerMillion: 1.5,
     cacheWritePerMillion: 18.75,
   },
+  "claude-sonnet-4-5": {
+    inputPerMillion: 3,
+    outputPerMillion: 15,
+    cacheReadPerMillion: 0.3,
+    cacheWritePerMillion: 3.75,
+  },
   "claude-sonnet-4": {
     inputPerMillion: 3,
     outputPerMillion: 15,
@@ -71,6 +77,10 @@ const USD_TO_GBP = Number.parseFloat(process.env.USD_TO_GBP_RATE ?? "") || 0.79;
 const DAILY_BUDGET_GBP =
   Number.parseFloat(process.env.COST_DAILY_LIMIT ?? "") || 2;
 
+/** Monthly budget in GBP (configurable via env, default: £60). */
+const MONTHLY_BUDGET_GBP =
+  Number.parseFloat(process.env.COST_MONTHLY_LIMIT ?? "") || 60;
+
 export type CostEntry = {
   timestamp: number;
   sessionId: string;
@@ -92,6 +102,20 @@ type DailySummary = {
   totalCostGbp: number;
   totalInputTokens: number;
   totalOutputTokens: number;
+  totalCacheReadTokens: number;
+  totalCacheWriteTokens: number;
+  messageCount: number;
+  overBudget: boolean;
+};
+
+type MonthlySummary = {
+  month: string;
+  totalCostUsd: number;
+  totalCostGbp: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalCacheReadTokens: number;
+  totalCacheWriteTokens: number;
   messageCount: number;
   overBudget: boolean;
 };
@@ -99,11 +123,21 @@ type DailySummary = {
 /** In-memory daily cost accumulator. */
 const dailyCosts = new Map<string, DailySummary>();
 
+/** In-memory monthly cost accumulator. */
+const monthlyCosts = new Map<string, MonthlySummary>();
+
 /**
  * Get today's date key in YYYY-MM-DD format.
  */
 function getTodayKey(): string {
   return new Date().toISOString().slice(0, 10);
+}
+
+/**
+ * Get current month key in YYYY-MM format.
+ */
+function getMonthKey(): string {
+  return new Date().toISOString().slice(0, 7);
 }
 
 /**
@@ -164,6 +198,8 @@ function getOrCreateDailySummary(): DailySummary {
       totalCostGbp: 0,
       totalInputTokens: 0,
       totalOutputTokens: 0,
+      totalCacheReadTokens: 0,
+      totalCacheWriteTokens: 0,
       messageCount: 0,
       overBudget: false,
     };
@@ -174,6 +210,36 @@ function getOrCreateDailySummary(): DailySummary {
     for (const [key] of dailyCosts) {
       const date = new Date(key).getTime();
       if (date < cutoff) dailyCosts.delete(key);
+    }
+  }
+  return summary;
+}
+
+/**
+ * Get or create the current month's summary.
+ */
+function getOrCreateMonthlySummary(): MonthlySummary {
+  const month = getMonthKey();
+  let summary = monthlyCosts.get(month);
+  if (!summary) {
+    summary = {
+      month,
+      totalCostUsd: 0,
+      totalCostGbp: 0,
+      totalInputTokens: 0,
+      totalOutputTokens: 0,
+      totalCacheReadTokens: 0,
+      totalCacheWriteTokens: 0,
+      messageCount: 0,
+      overBudget: false,
+    };
+    monthlyCosts.set(month, summary);
+
+    // Clean up old entries (keep last 3 months)
+    const keys = [...monthlyCosts.keys()].sort();
+    while (keys.length > 3) {
+      const oldest = keys.shift();
+      if (oldest) monthlyCosts.delete(oldest);
     }
   }
   return summary;
@@ -212,8 +278,21 @@ export function trackCost(params: {
   summary.totalCostGbp += costGbp;
   summary.totalInputTokens += params.inputTokens;
   summary.totalOutputTokens += params.outputTokens;
+  summary.totalCacheReadTokens += cacheRead;
+  summary.totalCacheWriteTokens += cacheWrite;
   summary.messageCount += 1;
   summary.overBudget = summary.totalCostGbp > DAILY_BUDGET_GBP;
+
+  // Update monthly summary
+  const monthly = getOrCreateMonthlySummary();
+  monthly.totalCostUsd += costUsd;
+  monthly.totalCostGbp += costGbp;
+  monthly.totalInputTokens += params.inputTokens;
+  monthly.totalOutputTokens += params.outputTokens;
+  monthly.totalCacheReadTokens += cacheRead;
+  monthly.totalCacheWriteTokens += cacheWrite;
+  monthly.messageCount += 1;
+  monthly.overBudget = monthly.totalCostGbp > MONTHLY_BUDGET_GBP;
 
   const budgetRemaining = Math.max(0, DAILY_BUDGET_GBP - summary.totalCostGbp);
 
@@ -253,6 +332,17 @@ export function trackCost(params: {
     );
   }
 
+  // Monthly budget alerts
+  if (monthly.overBudget) {
+    defaultRuntime.log?.(
+      `[cost-tracker] WARNING: Monthly budget exceeded! ${formatGbp(monthly.totalCostGbp)} > ${formatGbp(MONTHLY_BUDGET_GBP)} limit`,
+    );
+  } else if (monthly.totalCostGbp > MONTHLY_BUDGET_GBP * 0.8) {
+    defaultRuntime.log?.(
+      `[cost-tracker] CAUTION: Approaching monthly budget (${Math.round((monthly.totalCostGbp / MONTHLY_BUDGET_GBP) * 100)}% used)`,
+    );
+  }
+
   // Append to cost log file
   void appendCostLog(entry).catch(() => {
     // Non-critical: don't fail the main flow if logging fails
@@ -280,6 +370,27 @@ export function isBudgetExceeded(): boolean {
  */
 export function getDailyBudgetGbp(): number {
   return DAILY_BUDGET_GBP;
+}
+
+/**
+ * Get the current month's cost summary.
+ */
+export function getMonthlySummary(): MonthlySummary {
+  return getOrCreateMonthlySummary();
+}
+
+/**
+ * Check if this month's budget has been exceeded.
+ */
+export function isMonthlyBudgetExceeded(): boolean {
+  return getOrCreateMonthlySummary().overBudget;
+}
+
+/**
+ * Get the monthly budget in GBP.
+ */
+export function getMonthlyBudgetGbp(): number {
+  return MONTHLY_BUDGET_GBP;
 }
 
 /**
@@ -357,7 +468,34 @@ export async function generateCostReport(date?: string): Promise<string> {
   const totalCostGbp = entries.reduce((sum, e) => sum + e.costGbp, 0);
   const totalInput = entries.reduce((sum, e) => sum + e.inputTokens, 0);
   const totalOutput = entries.reduce((sum, e) => sum + e.outputTokens, 0);
+  const totalCacheRead = entries.reduce(
+    (sum, e) => sum + (e.cacheReadTokens ?? 0),
+    0,
+  );
+  const totalCacheWrite = entries.reduce(
+    (sum, e) => sum + (e.cacheWriteTokens ?? 0),
+    0,
+  );
   const avgCostPerMsg = totalCostGbp / entries.length;
+
+  // Cache hit rate: proportion of input served from cache
+  const cacheHitRate =
+    totalCacheRead + totalInput > 0
+      ? (totalCacheRead / (totalCacheRead + totalInput)) * 100
+      : 0;
+
+  // Estimated cache savings: difference between full input rate and cache read rate
+  // Uses a representative model's pricing (Sonnet rates as default)
+  const representativeModel =
+    entries.length > 0 ? entries[0].model : "claude-sonnet-4-5";
+  const pricing = getModelPricing(representativeModel);
+  const cacheSavingsUsd =
+    (totalCacheRead / 1_000_000) *
+    (pricing.inputPerMillion - pricing.cacheReadPerMillion);
+  const cacheSavingsGbp = cacheSavingsUsd * USD_TO_GBP;
+
+  // Monthly summary
+  const monthly = getOrCreateMonthlySummary();
 
   const lines = [
     `=== Cost Report: ${targetDate} ===`,
@@ -371,6 +509,20 @@ export async function generateCostReport(date?: string): Promise<string> {
     totalCostGbp > DAILY_BUDGET_GBP
       ? "STATUS: OVER BUDGET"
       : "STATUS: Within budget",
+    "",
+    "--- Cache Performance ---",
+    `Cache Read Tokens: ${totalCacheRead.toLocaleString()}`,
+    `Cache Write Tokens: ${totalCacheWrite.toLocaleString()}`,
+    `Cache Hit Rate: ${cacheHitRate.toFixed(1)}%`,
+    `Est. Cache Savings: ${formatGbp(cacheSavingsGbp)} ($${cacheSavingsUsd.toFixed(4)})`,
+    "",
+    "--- Monthly Summary ---",
+    `Month: ${monthly.month}`,
+    `Monthly Cost: ${formatGbp(monthly.totalCostGbp)} / ${formatGbp(MONTHLY_BUDGET_GBP)} (${Math.round((monthly.totalCostGbp / MONTHLY_BUDGET_GBP) * 100)}%)`,
+    `Monthly Messages: ${monthly.messageCount.toLocaleString()}`,
+    monthly.overBudget
+      ? "MONTHLY STATUS: OVER BUDGET"
+      : "MONTHLY STATUS: Within budget",
   ];
 
   return lines.join("\n");
