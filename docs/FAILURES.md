@@ -19,6 +19,15 @@
 
 ## Failure Log
 
+### 2026-02-15 - CI lint failures on all main-branch merges since Phase 1
+- **Severity:** medium
+- **Category:** build
+- **Description:** All 5 Phase 1 security PRs (#2-#7) merged to main with failing CI. The `pnpm lint` step (Biome check) reported 8 errors across `config-mask.ts` and `performance.test.ts` -- string concatenation instead of template literals, unused imports, untyped variable, unorganized imports, non-null assertions, long lines.
+- **Root Cause:** Phase 1 security fixes were written and merged without running `pnpm lint` locally first. The CI was already failing before our PRs, so we did not notice the lint failures were from our code.
+- **Impact:** CI red on every main-branch commit since Phase 1 (5 consecutive failed runs). No production impact -- lint errors are code-quality only, not functional bugs.
+- **What We Learned:** Always run `pnpm lint` (or better, `pnpm lint:fix`) locally before pushing. Never merge to main with failing CI, even if failures appear to be pre-existing -- investigate first.
+- **Prevention Measures:** Fixed all 8 errors via `biome check --write --unsafe` + manual `RecallResult` type annotation. Added lint-check reminder to CLAUDE.md workflow notes.
+- **Related:** PR #8 (devsecops-framework), affected files: `src/gateway/config-mask.ts`, `src/services/performance.test.ts`.
 ### 2026-02-14 - MITRE ATLAS Security Audit: 3 of 4 critical incidents fully vulnerable
 - **Severity:** critical
 - **Category:** security

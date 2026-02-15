@@ -34,7 +34,7 @@ function isSensitiveKey(key: string): boolean {
  */
 export function maskValue(value: string): string {
   if (value.length < 6) return "***";
-  return value.slice(0, 4) + "***";
+  return `${value.slice(0, 4)}***`;
 }
 
 /**
