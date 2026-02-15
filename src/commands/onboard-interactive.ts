@@ -555,36 +555,40 @@ export async function runInteractiveOnboarding(
   runtime.log(`Updated ${CONFIG_PATH_CLAWDIS}`);
 
   // ── Pre-existing workspace detection ──────────────────────────────
-  // Check for existing bootstrap files (SOUL.md, USER.md, IDENTITY.md, etc.)
-  // and give the user a choice to keep them or start fresh.
-  let forceOverwrite = false;
+  // Personality files (SOUL.md, IDENTITY.md, USER.md, memory/) contain the
+  // bot's identity and context — always kept by default.
+  // Setup files (AGENTS.md, TOOLS.md, BOOTSTRAP.md) contain workspace
+  // conventions and tool docs — refreshed on every install.
+  let upgradeMode: false | "preserve-personality" | "full" = false;
   const existingWorkspace = await checkExistingWorkspaceFiles(workspaceDir);
   if (existingWorkspace) {
     note(existingWorkspace.summary, "Existing workspace detected");
-    const wsAction = guardCancel(
-      await select({
-        message: "What would you like to do with existing workspace files?",
-        options: [
-          {
-            value: "keep",
-            label: "Keep existing files (Recommended)",
-            hint: "Preserves your SOUL.md, USER.md, IDENTITY.md, memory, etc.",
-          },
-          {
-            value: "overwrite",
-            label: "Reset to defaults",
-            hint: "Overwrites bootstrap files with fresh templates",
-          },
-        ],
-      }),
-      runtime,
-    ) as string;
-    forceOverwrite = wsAction === "overwrite";
-    if (!forceOverwrite) {
-      runtime.log("Keeping existing workspace files.");
+    if (existingWorkspace.hasPersonality) {
+      const wsAction = guardCancel(
+        await select({
+          message: "How should existing personality files be handled?",
+          options: [
+            {
+              value: "preserve-personality",
+              label: "Keep personality, refresh setup (Recommended)",
+              hint: "Keeps SOUL.md, IDENTITY.md, USER.md & memory; updates AGENTS.md, TOOLS.md",
+            },
+            {
+              value: "full",
+              label: "Reset everything to defaults",
+              hint: "Overwrites all files including personality — starts from scratch",
+            },
+          ],
+        }),
+        runtime,
+      ) as "preserve-personality" | "full";
+      upgradeMode = wsAction;
+    } else {
+      // Only setup files exist — refresh them silently
+      upgradeMode = "preserve-personality";
     }
   }
-  await ensureWorkspaceAndSessions(workspaceDir, runtime, { forceOverwrite });
+  await ensureWorkspaceAndSessions(workspaceDir, runtime, { upgradeMode });
 
   nextConfig = await setupSkills(nextConfig, workspaceDir, runtime);
   nextConfig = applyWizardMetadata(nextConfig, { command: "onboard", mode });
