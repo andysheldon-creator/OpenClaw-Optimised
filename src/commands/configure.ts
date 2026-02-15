@@ -230,7 +230,7 @@ async function promptAuthConfig(
         { value: "oauth", label: "Anthropic OAuth (Claude Pro/Max)" },
         {
           value: "antigravity",
-          label: "Google Antigravity (Claude Opus 4.5, Gemini 3, etc.)",
+          label: "Google Antigravity (Claude Sonnet/Opus 4.5, Gemini 3, etc.)",
         },
         { value: "apiKey", label: "Anthropic API key" },
         { value: "minimax", label: "Minimax M2.1 (LM Studio)" },
@@ -311,18 +311,17 @@ async function promptAuthConfig(
       spin.stop("Antigravity OAuth complete");
       if (oauthCreds) {
         await writeOAuthCredentials("google-antigravity", oauthCreds);
-        // Set default model to Claude Opus 4.5 via Antigravity
-        next = {
-          ...next,
-          agent: {
-            ...next.agent,
-            model: "google-antigravity/claude-opus-4-5-thinking",
-          },
-        };
-        note(
-          "Default model set to google-antigravity/claude-opus-4-5-thinking",
-          "Model configured",
-        );
+        // Pre-fill with Antigravity Sonnet for cost efficiency;
+        // the model text prompt below lets the user override.
+        if (!next.agent?.model) {
+          next = {
+            ...next,
+            agent: {
+              ...next.agent,
+              model: "google-antigravity/claude-sonnet-4-5",
+            },
+          };
+        }
       }
     } catch (err) {
       spin.stop("Antigravity OAuth failed");
