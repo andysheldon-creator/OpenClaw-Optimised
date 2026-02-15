@@ -18,6 +18,7 @@ import { applyMinimaxConfig, setAnthropicApiKey } from "./onboard-auth.js";
 import {
   applyWizardMetadata,
   DEFAULT_WORKSPACE,
+  detectBinary,
   ensureWorkspaceAndSessions,
   randomToken,
 } from "./onboard-helpers.js";
@@ -100,6 +101,56 @@ export async function runNonInteractiveOnboarding(
   } else if (authChoice === "minimax") {
     nextConfig = applyMinimaxConfig(nextConfig);
   } else if (authChoice === "subscription") {
+    // Validate Claude CLI is available unless explicitly skipped
+    if (!opts.skipCliCheck) {
+      const cliFound = await detectBinary("claude");
+      if (!cliFound) {
+        runtime.error(
+          [
+            "Claude Code CLI ('claude') not found.",
+            "Install it with: npm install -g @anthropic-ai/claude-code",
+            "Then run 'claude login' to authenticate.",
+            "Use --skip-cli-check to bypass this validation.",
+          ].join("\n"),
+        );
+        runtime.exit(1);
+        return;
+      }
+
+      // Verify authentication
+      try {
+        const { runCommandWithTimeout: runCmd } = await import(
+          "../process/exec.js"
+        );
+        const authCheck = await runCmd(
+          ["claude", "-p", "say ok", "--output-format", "text"],
+          { timeoutMs: 20_000 },
+        );
+        if (authCheck.code !== 0 || !authCheck.stdout.trim()) {
+          runtime.error(
+            [
+              "Claude CLI is installed but not authenticated.",
+              "Run 'claude login' to sign in with your Anthropic account.",
+              "Use --skip-cli-check to bypass this validation.",
+            ].join("\n"),
+          );
+          runtime.exit(1);
+          return;
+        }
+        runtime.log("Claude CLI authenticated \u2713");
+      } catch {
+        runtime.error(
+          [
+            "Claude CLI authentication check timed out.",
+            "Ensure 'claude login' has been completed.",
+            "Use --skip-cli-check to bypass this validation.",
+          ].join("\n"),
+        );
+        runtime.exit(1);
+        return;
+      }
+    }
+
     nextConfig = {
       ...nextConfig,
       agent: {
@@ -108,6 +159,9 @@ export async function runNonInteractiveOnboarding(
         model: "claude-sonnet-4-5",
       },
     };
+    runtime.log(
+      "Subscription mode: backend=claude-cli, model=claude-sonnet-4-5",
+    );
   } else if (authChoice === "oauth" || authChoice === "antigravity") {
     runtime.error(
       `${authChoice === "oauth" ? "OAuth" : "Antigravity"} requires interactive mode.`,
@@ -255,6 +309,8 @@ export async function runNonInteractiveOnboarding(
           mode,
           workspace: workspaceDir,
           authChoice,
+          backend: nextConfig.agent?.backend ?? "pi-embedded",
+          model: nextConfig.agent?.model,
           gateway: { port, bind, authMode, tailscaleMode },
           installDaemon: Boolean(opts.installDaemon),
           skipSkills: Boolean(opts.skipSkills),
