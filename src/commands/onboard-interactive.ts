@@ -21,6 +21,7 @@ import {
 import { GATEWAY_LAUNCH_AGENT_LABEL } from "../daemon/constants.js";
 import { resolveGatewayProgramArguments } from "../daemon/program-args.js";
 import { resolveGatewayService } from "../daemon/service.js";
+import { runCommandWithTimeout } from "../process/exec.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { defaultRuntime } from "../runtime.js";
 import { resolveUserPath, sleep } from "../utils.js";
@@ -38,6 +39,7 @@ import {
   applyWizardMetadata,
   checkExistingWorkspaceFiles,
   DEFAULT_WORKSPACE,
+  detectBinary,
   ensureWorkspaceAndSessions,
   guardCancel,
   handleReset,
@@ -210,6 +212,11 @@ export async function runInteractiveOnboarding(
           label: "Google Antigravity (Claude Sonnet/Opus 4.5, Gemini 3, etc.)",
         },
         { value: "apiKey", label: "Anthropic API key" },
+        {
+          value: "subscription",
+          label: "Claude Code Subscription (Pro/Max)",
+          hint: "Uses 'claude -p' — flat monthly fee, no per-token cost",
+        },
         { value: "minimax", label: "Minimax M2.1 (LM Studio)" },
         { value: "skip", label: "Skip for now" },
       ],
@@ -305,12 +312,58 @@ export async function runInteractiveOnboarding(
     await setAnthropicApiKey(String(key).trim());
   } else if (authChoice === "minimax") {
     nextConfig = applyMinimaxConfig(nextConfig);
+  } else if (authChoice === "subscription") {
+    // Detect Claude Code CLI
+    const spin = spinner();
+    spin.start("Detecting Claude Code CLI\u2026");
+    const cliInstalled = await detectBinary("claude");
+
+    if (cliInstalled) {
+      spin.stop("Claude Code CLI found \u2713");
+      // Quick auth check
+      const authSpin = spinner();
+      authSpin.start("Checking Claude authentication\u2026");
+      try {
+        const testResult = await runCommandWithTimeout(
+          ["claude", "-p", "say ok", "--output-format", "text"],
+          { timeoutMs: 15_000 },
+        );
+        if (testResult.code === 0) {
+          authSpin.stop("Claude authenticated \u2713");
+        } else {
+          authSpin.stop("Claude not authenticated");
+          note(
+            "Run 'claude login' to authenticate, then re-run onboarding.",
+            "Action needed",
+          );
+        }
+      } catch {
+        authSpin.stop("Claude auth check timed out \u2014 continuing anyway");
+      }
+    } else {
+      spin.stop("Claude Code CLI not found");
+      note(
+        [
+          "Install Claude Code: npm install -g @anthropic-ai/claude-code",
+          "Then run 'claude login' to authenticate.",
+        ].join("\n"),
+        "Action needed",
+      );
+    }
+
+    nextConfig = {
+      ...nextConfig,
+      agent: {
+        ...nextConfig.agent,
+        backend: "claude-cli",
+      },
+    };
   }
 
   // ── Model selection ────────────────────────────────────────────────
   // Skip for Minimax (model already set) or if config already has a model
   // and the user chose to keep existing values.
-  if (authChoice !== "minimax") {
+  if (authChoice !== "minimax" && authChoice !== "subscription") {
     const currentModel = nextConfig.agent?.model ?? "";
     const defaultChoice = `${DEFAULT_PROVIDER}/${DEFAULT_MODEL}`;
 
@@ -370,6 +423,21 @@ export async function runInteractiveOnboarding(
     }
   }
 
+  // Subscription mode always defaults to Sonnet 4.5 (best value on Pro/Max).
+  if (authChoice === "subscription") {
+    note(
+      "Subscription mode defaults to Sonnet 4.5.\nThe hybrid router will use your subscription for all Claude-tier queries.",
+      "Model: claude-sonnet-4-5",
+    );
+    nextConfig = {
+      ...nextConfig,
+      agent: {
+        ...nextConfig.agent,
+        model: "claude-sonnet-4-5",
+      },
+    };
+  }
+
   // ── Monthly budget ─────────────────────────────────────────────────
   const currentBudget =
     Number.parseFloat(process.env.COST_MONTHLY_LIMIT ?? "") || 60;
@@ -390,6 +458,101 @@ export async function runInteractiveOnboarding(
   // Store in env for the current process; persisted via .env by the user.
   if (Number.isFinite(monthlyBudget) && monthlyBudget !== 60) {
     process.env.COST_MONTHLY_LIMIT = String(monthlyBudget);
+  }
+
+  // ── Local LLM (Ollama) detection ──────────────────────────────────
+  const ollamaSetup = guardCancel(
+    await select({
+      message: "Local LLM via Ollama (free for simple queries)?",
+      options: [
+        {
+          value: "detect",
+          label: "Auto-detect Ollama (Recommended)",
+          hint: "Checks if Ollama is running on localhost:11434",
+        },
+        {
+          value: "custom",
+          label: "Custom Ollama host",
+          hint: "Specify a different host/port",
+        },
+        {
+          value: "skip",
+          label: "Skip \u2014 don't use local LLMs",
+          hint: "All queries go to cloud models",
+        },
+      ],
+    }),
+    runtime,
+  ) as "detect" | "custom" | "skip";
+
+  if (ollamaSetup !== "skip") {
+    let ollamaHost = "http://localhost:11434";
+
+    if (ollamaSetup === "custom") {
+      const hostInput = guardCancel(
+        await text({
+          message: "Ollama host URL",
+          initialValue: ollamaHost,
+          validate: (v) => (v?.trim() ? undefined : "Required"),
+        }),
+        runtime,
+      );
+      ollamaHost = String(hostInput).trim();
+    }
+
+    // Probe Ollama
+    const ollamaSpin = spinner();
+    ollamaSpin.start("Checking Ollama\u2026");
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch(`${ollamaHost}/api/tags`, {
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+
+      if (res.ok) {
+        const data = (await res.json()) as {
+          models?: Array<{ name: string }>;
+        };
+        const models = data.models ?? [];
+        const modelNames = models.map((m) => m.name).join(", ");
+        ollamaSpin.stop(
+          `Ollama OK \u2014 ${models.length} model(s): ${modelNames || "none"}`,
+        );
+
+        const hasChat = models.some((m) => m.name.includes("llama"));
+        const hasVision = models.some((m) => m.name.includes("llava"));
+
+        if (!hasChat) {
+          note(
+            "Tip: Run 'ollama pull llama3.1:8b' for free chat routing.",
+            "Missing chat model",
+          );
+        }
+        if (!hasVision) {
+          note(
+            "Tip: Run 'ollama pull llava:7b' for free image analysis.",
+            "Missing vision model",
+          );
+        }
+      } else {
+        ollamaSpin.stop("Ollama not responding");
+        note(
+          `Ollama at ${ollamaHost} returned ${res.status}. Install: https://ollama.com`,
+          "Note",
+        );
+      }
+    } catch {
+      ollamaSpin.stop("Ollama not reachable");
+      note(
+        `Could not reach ${ollamaHost}. Install Ollama: https://ollama.com`,
+        "Note",
+      );
+    }
+
+    // Store Ollama host in env for hybrid router
+    process.env.OLLAMA_HOST = ollamaHost;
   }
 
   const portRaw = guardCancel(

@@ -99,6 +99,15 @@ export async function runNonInteractiveOnboarding(
     await setAnthropicApiKey(key);
   } else if (authChoice === "minimax") {
     nextConfig = applyMinimaxConfig(nextConfig);
+  } else if (authChoice === "subscription") {
+    nextConfig = {
+      ...nextConfig,
+      agent: {
+        ...nextConfig.agent,
+        backend: "claude-cli",
+        model: "claude-sonnet-4-5",
+      },
+    };
   } else if (authChoice === "oauth" || authChoice === "antigravity") {
     runtime.error(
       `${authChoice === "oauth" ? "OAuth" : "Antigravity"} requires interactive mode.`,
@@ -196,6 +205,11 @@ export async function runNonInteractiveOnboarding(
         },
       },
     };
+  }
+
+  // Ollama host passthrough for hybrid router
+  if (opts.ollamaHost) {
+    process.env.OLLAMA_HOST = opts.ollamaHost;
   }
 
   nextConfig = applyWizardMetadata(nextConfig, { command: "onboard", mode });
