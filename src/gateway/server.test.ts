@@ -304,6 +304,21 @@ vi.mock("../commands/agent.js", () => ({
   agentCommand: vi.fn().mockResolvedValue(undefined),
 }));
 
+// Mock voicewake to use process.env.HOME instead of os.homedir() (which ignores HOME on Windows)
+vi.mock("../infra/voicewake.js", async () => {
+  const actual = await vi.importActual<typeof import("../infra/voicewake.js")>(
+    "../infra/voicewake.js",
+  );
+  function testBaseDir() {
+    return path.join(process.env.HOME ?? os.homedir(), ".clawdis");
+  }
+  return {
+    ...actual,
+    loadVoiceWakeConfig: (baseDir?: string) => actual.loadVoiceWakeConfig(baseDir ?? testBaseDir()),
+    setVoiceWakeTriggers: (triggers: string[], baseDir?: string) => actual.setVoiceWakeTriggers(triggers, baseDir ?? testBaseDir()),
+  };
+});
+
 process.env.CLAWDIS_SKIP_PROVIDERS = "1";
 
 let previousHome: string | undefined;
