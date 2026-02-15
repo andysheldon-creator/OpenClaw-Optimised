@@ -177,6 +177,7 @@ import {
   type ResolvedGatewayAuth,
 } from "./auth.js";
 import { buildMessageWithAttachments } from "./chat-attachments.js";
+import { maskSensitiveFields } from "./config-mask.js";
 import { handleControlUiHttpRequest } from "./control-ui.js";
 import {
   applyHookMappings,
@@ -2813,7 +2814,8 @@ Connection: close
             };
           }
           const snapshot = await readConfigFileSnapshot();
-          return { ok: true, payloadJSON: JSON.stringify(snapshot) };
+          const masked = maskSensitiveFields(snapshot);
+          return { ok: true, payloadJSON: JSON.stringify(masked) };
         }
         case "config.set": {
           const params = parseParams();
@@ -5317,7 +5319,7 @@ Connection: close
                 break;
               }
               const snapshot = await readConfigFileSnapshot();
-              respond(true, snapshot, undefined);
+              respond(true, maskSensitiveFields(snapshot), undefined);
               break;
             }
             case "config.set": {
