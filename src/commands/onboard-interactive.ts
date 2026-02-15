@@ -36,6 +36,7 @@ import {
 } from "./onboard-auth.js";
 import {
   applyWizardMetadata,
+  checkExistingWorkspaceFiles,
   DEFAULT_WORKSPACE,
   ensureWorkspaceAndSessions,
   guardCancel,
@@ -552,7 +553,38 @@ export async function runInteractiveOnboarding(
 
   await writeConfigFile(nextConfig);
   runtime.log(`Updated ${CONFIG_PATH_CLAWDIS}`);
-  await ensureWorkspaceAndSessions(workspaceDir, runtime);
+
+  // ── Pre-existing workspace detection ──────────────────────────────
+  // Check for existing bootstrap files (SOUL.md, USER.md, IDENTITY.md, etc.)
+  // and give the user a choice to keep them or start fresh.
+  let forceOverwrite = false;
+  const existingWorkspace = await checkExistingWorkspaceFiles(workspaceDir);
+  if (existingWorkspace) {
+    note(existingWorkspace.summary, "Existing workspace detected");
+    const wsAction = guardCancel(
+      await select({
+        message: "What would you like to do with existing workspace files?",
+        options: [
+          {
+            value: "keep",
+            label: "Keep existing files (Recommended)",
+            hint: "Preserves your SOUL.md, USER.md, IDENTITY.md, memory, etc.",
+          },
+          {
+            value: "overwrite",
+            label: "Reset to defaults",
+            hint: "Overwrites bootstrap files with fresh templates",
+          },
+        ],
+      }),
+      runtime,
+    ) as string;
+    forceOverwrite = wsAction === "overwrite";
+    if (!forceOverwrite) {
+      runtime.log("Keeping existing workspace files.");
+    }
+  }
+  await ensureWorkspaceAndSessions(workspaceDir, runtime, { forceOverwrite });
 
   nextConfig = await setupSkills(nextConfig, workspaceDir, runtime);
   nextConfig = applyWizardMetadata(nextConfig, { command: "onboard", mode });

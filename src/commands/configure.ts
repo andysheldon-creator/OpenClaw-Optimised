@@ -36,6 +36,7 @@ import {
 } from "./onboard-auth.js";
 import {
   applyWizardMetadata,
+  checkExistingWorkspaceFiles,
   DEFAULT_WORKSPACE,
   ensureWorkspaceAndSessions,
   guardCancel,
@@ -549,7 +550,33 @@ export async function runConfigureWizard(
         workspace: workspaceDir,
       },
     };
-    await ensureWorkspaceAndSessions(workspaceDir, runtime);
+
+    // Check for pre-existing workspace files before creating/overwriting
+    let forceOverwrite = false;
+    const existingWs = await checkExistingWorkspaceFiles(workspaceDir);
+    if (existingWs) {
+      note(existingWs.summary, "Existing workspace detected");
+      const wsAction = guardCancel(
+        await select({
+          message: "What would you like to do with existing workspace files?",
+          options: [
+            {
+              value: "keep",
+              label: "Keep existing files (Recommended)",
+              hint: "Preserves your SOUL.md, USER.md, IDENTITY.md, memory, etc.",
+            },
+            {
+              value: "overwrite",
+              label: "Reset to defaults",
+              hint: "Overwrites bootstrap files with fresh templates",
+            },
+          ],
+        }),
+        runtime,
+      ) as string;
+      forceOverwrite = wsAction === "overwrite";
+    }
+    await ensureWorkspaceAndSessions(workspaceDir, runtime, { forceOverwrite });
   }
 
   if (selected.includes("model")) {

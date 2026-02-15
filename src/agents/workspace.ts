@@ -184,9 +184,51 @@ async function writeFileIfMissing(filePath: string, content: string) {
   }
 }
 
+/**
+ * Check which bootstrap files and directories already exist in a workspace.
+ * Returns separate lists of existing bootstrap files and whether a
+ * `memory/` directory is present.
+ */
+export async function detectExistingWorkspace(dir: string): Promise<{
+  existingFiles: { name: WorkspaceBootstrapFileName; path: string }[];
+  hasMemoryDir: boolean;
+}> {
+  const resolvedDir = resolveUserPath(dir);
+  const filenames: WorkspaceBootstrapFileName[] = [
+    DEFAULT_AGENTS_FILENAME,
+    DEFAULT_SOUL_FILENAME,
+    DEFAULT_TOOLS_FILENAME,
+    DEFAULT_IDENTITY_FILENAME,
+    DEFAULT_USER_FILENAME,
+    DEFAULT_BOOTSTRAP_FILENAME,
+  ];
+  const existingFiles: { name: WorkspaceBootstrapFileName; path: string }[] =
+    [];
+  for (const name of filenames) {
+    const filePath = path.join(resolvedDir, name);
+    try {
+      const stat = await fs.stat(filePath);
+      if (stat.isFile() && stat.size > 0) {
+        existingFiles.push({ name, path: filePath });
+      }
+    } catch {
+      // File doesn't exist — skip
+    }
+  }
+  let hasMemoryDir = false;
+  try {
+    const stat = await fs.stat(path.join(resolvedDir, "memory"));
+    hasMemoryDir = stat.isDirectory();
+  } catch {
+    // No memory directory
+  }
+  return { existingFiles, hasMemoryDir };
+}
+
 export async function ensureAgentWorkspace(params?: {
   dir?: string;
   ensureBootstrapFiles?: boolean;
+  forceOverwrite?: boolean;
 }): Promise<{
   dir: string;
   agentsPath?: string;
@@ -236,12 +278,16 @@ export async function ensureAgentWorkspace(params?: {
     DEFAULT_BOOTSTRAP_TEMPLATE,
   );
 
-  await writeFileIfMissing(agentsPath, agentsTemplate);
-  await writeFileIfMissing(soulPath, soulTemplate);
-  await writeFileIfMissing(toolsPath, toolsTemplate);
-  await writeFileIfMissing(identityPath, identityTemplate);
-  await writeFileIfMissing(userPath, userTemplate);
-  await writeFileIfMissing(bootstrapPath, bootstrapTemplate);
+  const write = params?.forceOverwrite
+    ? (fp: string, content: string) =>
+        fs.writeFile(fp, content, { encoding: "utf-8" })
+    : writeFileIfMissing;
+  await write(agentsPath, agentsTemplate);
+  await write(soulPath, soulTemplate);
+  await write(toolsPath, toolsTemplate);
+  await write(identityPath, identityTemplate);
+  await write(userPath, userTemplate);
+  await write(bootstrapPath, bootstrapTemplate);
 
   return {
     dir,
