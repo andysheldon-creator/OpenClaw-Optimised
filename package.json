@@ -91,6 +91,7 @@
     "discord-api-types": "^0.38.33",
     "discord.js": "^14.25.1",
     "dotenv": "^17.2.3",
+    "elevenlabs": "^1.59.0",
     "express": "^5.2.1",
     "file-type": "^21.2.0",
     "grammy": "^1.39.2",

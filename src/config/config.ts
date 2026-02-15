@@ -399,6 +399,53 @@ export type TalkConfig = {
   apiKey?: string;
   /** Stop speaking when user starts talking (default: true). */
   interruptOnSpeech?: boolean;
+  /** Bi-directional Conversational AI voice calls via ElevenLabs. */
+  conversational?: {
+    /** Enable bi-directional voice calls (default: false). */
+    enabled?: boolean;
+    /** Pre-configured ElevenLabs Conversational AI agent ID. */
+    agentId?: string;
+    /** Maximum call duration in ms (default: 1_800_000 = 30 min). */
+    maxDurationMs?: number;
+    /** Words/phrases that trigger a voice call (default: ["call me"]). */
+    triggerWords?: string[];
+    /** Channels where inbound voice triggers auto-answer. */
+    autoAnswerChannels?: string[];
+  };
+};
+
+export type TasksConfig = {
+  /** Enable the autonomous long-running task system (default: true). */
+  enabled?: boolean;
+  /** Path override for the task store JSON file. */
+  store?: string;
+  /** Max tasks running simultaneously (default: 3). */
+  maxConcurrentTasks?: number;
+  /** Default delay between step executions in ms (default: 30000). */
+  defaultStepIntervalMs?: number;
+  /** Default per-step timeout in ms (default: 600000 = 10 min). */
+  defaultTimeoutPerStepMs?: number;
+  /** Safety limit on steps per task (default: 50). */
+  maxStepsPerTask?: number;
+};
+
+export type AlertChannel = {
+  type: "webhook" | "telegram" | "whatsapp" | "discord" | "signal";
+  /** Webhook URL (for type: "webhook"). */
+  url?: string;
+  /** Recipient (chat ID, phone number) for messaging channels. */
+  to?: string;
+};
+
+export type AlertConfig = {
+  /** Enable crash/restart alerting (default: false). */
+  enabled?: boolean;
+  /** Channels to send alerts to. */
+  channels?: AlertChannel[];
+  /** Send alert on uncaught exceptions (default: true). */
+  onCrash?: boolean;
+  /** Send alert on successful restart (default: true). */
+  onRestart?: boolean;
 };
 
 export type GatewayControlUiConfig = {
@@ -671,6 +718,8 @@ export type ClawdisConfig = {
   discovery?: DiscoveryConfig;
   canvasHost?: CanvasHostConfig;
   talk?: TalkConfig;
+  tasks?: TasksConfig;
+  alerting?: AlertConfig;
   gateway?: GatewayConfig;
 };
 

@@ -96,6 +96,7 @@ import {
   onAgentEvent,
   registerAgentRunContext,
 } from "../infra/agent-events.js";
+import { sendRestartAlert, setupCrashAlertHandler } from "../infra/alerting.js";
 import { startGatewayBonjourAdvertiser } from "../infra/bonjour.js";
 import { startNodeBridgeServer } from "../infra/bridge/server.js";
 import { resolveCanvasHostUrl } from "../infra/canvas-host-url.js";
@@ -161,11 +162,31 @@ import { monitorWebProvider, webAuthExists } from "../providers/web/index.js";
 import { defaultRuntime } from "../runtime.js";
 import { monitorSignalProvider, sendMessageSignal } from "../signal/index.js";
 import { probeSignal, type SignalProbe } from "../signal/probe.js";
+import {
+  cancelTask,
+  createTask,
+  getTask,
+  listTasks,
+  pauseTask,
+  resumeTask,
+  startTaskRunner,
+  stopTaskRunner,
+} from "../tasks/runner.js";
+import type { TaskCreate } from "../tasks/types.js";
 import { monitorTelegramProvider } from "../telegram/monitor.js";
 import { probeTelegram, type TelegramProbe } from "../telegram/probe.js";
 import { sendMessageTelegram } from "../telegram/send.js";
 import { resolveTelegramToken } from "../telegram/token.js";
 import { normalizeE164, resolveUserPath } from "../utils.js";
+import { buildVoiceContext } from "../voice/context.js";
+import {
+  getActiveVoiceSession,
+  getActiveVoiceSessionForConnection,
+  removeVoiceSessionForConnection,
+  setActiveVoiceSession,
+  setVoiceSessionForConnection,
+  VoiceSession,
+} from "../voice/session.js";
 import type { WebProviderStatus } from "../web/auto-reply.js";
 import { startWebLoginWithQr, waitForWebLogin } from "../web/login-qr.js";
 import { sendMessageWhatsApp } from "../web/outbound.js";
@@ -442,9 +463,24 @@ type Client = {
 
 /** RPC methods that require a valid CSRF token. */
 const STATE_CHANGING_METHODS = new Set([
-  "config.set", "skills.install", "chat.send", "agent", "send",
-  "sessions.delete", "sessions.reset", "cron.add", "cron.remove",
-  "cron.update", "node.invoke", "voicewake.set",
+  "config.set",
+  "skills.install",
+  "chat.send",
+  "agent",
+  "send",
+  "sessions.delete",
+  "sessions.reset",
+  "cron.add",
+  "cron.remove",
+  "cron.update",
+  "node.invoke",
+  "voicewake.set",
+  "tasks.create",
+  "tasks.cancel",
+  "tasks.pause",
+  "tasks.resume",
+  "voice.start",
+  "voice.end",
 ]);
 
 function formatBonjourInstanceName(displayName: string) {
@@ -558,6 +594,17 @@ const METHODS = [
   "chat.history",
   "chat.abort",
   "chat.send",
+  // Autonomous long-running tasks
+  "tasks.list",
+  "tasks.get",
+  "tasks.create",
+  "tasks.cancel",
+  "tasks.pause",
+  "tasks.resume",
+  // Voice calls
+  "voice.start",
+  "voice.end",
+  "voice.status",
 ];
 
 const EVENTS = [
@@ -573,6 +620,13 @@ const EVENTS = [
   "node.pair.requested",
   "node.pair.resolved",
   "voicewake.changed",
+  // Task events
+  "task.progress",
+  "task.completed",
+  "task.failed",
+  // Voice events
+  "voice.state",
+  "voice.transcript",
 ];
 
 export type GatewayServer = {
@@ -4178,6 +4232,42 @@ export async function startGatewayServer(
 
   const heartbeatRunner = startHeartbeatRunner({ cfg: cfgAtStart });
 
+  // ── Crash alerting ──────────────────────────────────────────────────
+  setupCrashAlertHandler(cfgAtStart);
+
+  // ── Task runner ─────────────────────────────────────────────────────
+  if (cfgAtStart.tasks?.enabled !== false) {
+    void startTaskRunner({
+      cfg: cfgAtStart,
+      cliDeps: deps,
+      storePath: cfgAtStart.tasks?.store,
+    }).catch((err) => log.error(`Failed to start task runner: ${String(err)}`));
+  }
+
+  // ── Restart alert (best-effort, after startup completes) ────────────
+  void sendRestartAlert(cfgAtStart).catch((err) =>
+    log.warn(`Restart alert failed: ${String(err)}`),
+  );
+
+  // ── Periodic Claude CLI health check ────────────────────────────────
+  // Re-check every 5 minutes so the hybrid router can react if the CLI
+  // becomes available or stops working (e.g., auth token expires).
+  let claudeCliCheckTimer: ReturnType<typeof setInterval> | null = null;
+  if (cfgAtStart.agent?.backend === "claude-cli") {
+    claudeCliCheckTimer = setInterval(async () => {
+      try {
+        await runExec("claude", ["--version"], { timeoutMs: 5_000 });
+        setClaudeCliAvailable(true);
+      } catch {
+        setClaudeCliAvailable(false);
+        log.warn(
+          "gateway: Claude CLI periodic check failed — subscription fallback active",
+        );
+      }
+    }, 300_000); // 5 minutes
+    claudeCliCheckTimer.unref?.();
+  }
+
   void cron
     .start()
     .catch((err) => logCron.error(`failed to start: ${String(err)}`));
@@ -4220,6 +4310,12 @@ export async function startGatewayServer(
       closed = true;
       clearTimeout(handshakeTimer);
       if (client) clients.delete(client);
+      // Clean up any active voice session for this connection
+      const connVoiceSession = getActiveVoiceSessionForConnection(connId);
+      if (connVoiceSession) {
+        void connVoiceSession.end().catch(() => {});
+        removeVoiceSessionForConnection(connId);
+      }
       try {
         socket.close(1000);
       } catch {
@@ -4276,8 +4372,21 @@ export async function startGatewayServer(
       }
     }, HANDSHAKE_TIMEOUT_MS);
 
-    socket.on("message", async (data) => {
+    socket.on("message", async (data, isBinary) => {
       if (closed) return;
+
+      // Route binary frames to active voice session
+      if (isBinary) {
+        const voiceSession = getActiveVoiceSessionForConnection(connId);
+        if (voiceSession) {
+          const buf = Buffer.isBuffer(data)
+            ? data
+            : Buffer.from(data as ArrayBuffer);
+          voiceSession.feedAudio(buf);
+        }
+        return;
+      }
+
       const text = rawDataToString(data);
       try {
         const parsed = JSON.parse(text);
@@ -5221,6 +5330,296 @@ export async function startGatewayServer(
               respond(true, { entries }, undefined);
               break;
             }
+
+            // ── Task Methods ─────────────────────────────────────────
+            case "tasks.list": {
+              const params = (req.params ?? {}) as Record<string, unknown>;
+              const statusFilter =
+                typeof params.status === "string" ? params.status : undefined;
+              const tasks = await listTasks(
+                statusFilter
+                  ? {
+                      status:
+                        statusFilter as import("../tasks/types.js").TaskStatus,
+                    }
+                  : undefined,
+              );
+              respond(true, { tasks }, undefined);
+              break;
+            }
+            case "tasks.get": {
+              const params = (req.params ?? {}) as Record<string, unknown>;
+              const id = typeof params.id === "string" ? params.id : "";
+              if (!id) {
+                respond(
+                  false,
+                  undefined,
+                  errorShape(ErrorCodes.INVALID_REQUEST, "Missing task id"),
+                );
+                break;
+              }
+              const task = await getTask(id);
+              if (!task) {
+                respond(
+                  false,
+                  undefined,
+                  errorShape(ErrorCodes.NOT_FOUND, "Task not found"),
+                );
+                break;
+              }
+              respond(true, task, undefined);
+              break;
+            }
+            case "tasks.create": {
+              const params = (req.params ?? {}) as Record<string, unknown>;
+              const create = params as TaskCreate;
+              if (!create.name || !create.steps?.length) {
+                respond(
+                  false,
+                  undefined,
+                  errorShape(
+                    ErrorCodes.INVALID_REQUEST,
+                    "Missing name or steps",
+                  ),
+                );
+                break;
+              }
+              try {
+                const task = await createTask(create);
+                respond(true, task, undefined);
+              } catch (err) {
+                respond(
+                  false,
+                  undefined,
+                  errorShape(ErrorCodes.INTERNAL_ERROR, String(err)),
+                );
+              }
+              break;
+            }
+            case "tasks.cancel": {
+              const params = (req.params ?? {}) as Record<string, unknown>;
+              const id = typeof params.id === "string" ? params.id : "";
+              if (!id) {
+                respond(
+                  false,
+                  undefined,
+                  errorShape(ErrorCodes.INVALID_REQUEST, "Missing task id"),
+                );
+                break;
+              }
+              try {
+                await cancelTask(id);
+                respond(true, { ok: true }, undefined);
+              } catch (err) {
+                respond(
+                  false,
+                  undefined,
+                  errorShape(ErrorCodes.INTERNAL_ERROR, String(err)),
+                );
+              }
+              break;
+            }
+            case "tasks.pause": {
+              const params = (req.params ?? {}) as Record<string, unknown>;
+              const id = typeof params.id === "string" ? params.id : "";
+              if (!id) {
+                respond(
+                  false,
+                  undefined,
+                  errorShape(ErrorCodes.INVALID_REQUEST, "Missing task id"),
+                );
+                break;
+              }
+              try {
+                await pauseTask(id);
+                respond(true, { ok: true }, undefined);
+              } catch (err) {
+                respond(
+                  false,
+                  undefined,
+                  errorShape(ErrorCodes.INTERNAL_ERROR, String(err)),
+                );
+              }
+              break;
+            }
+            case "tasks.resume": {
+              const params = (req.params ?? {}) as Record<string, unknown>;
+              const id = typeof params.id === "string" ? params.id : "";
+              if (!id) {
+                respond(
+                  false,
+                  undefined,
+                  errorShape(ErrorCodes.INVALID_REQUEST, "Missing task id"),
+                );
+                break;
+              }
+              try {
+                await resumeTask(id);
+                respond(true, { ok: true }, undefined);
+              } catch (err) {
+                respond(
+                  false,
+                  undefined,
+                  errorShape(ErrorCodes.INTERNAL_ERROR, String(err)),
+                );
+              }
+              break;
+            }
+
+            // ── Voice Methods ────────────────────────────────────────
+            case "voice.start": {
+              const params = (req.params ?? {}) as Record<string, unknown>;
+              const sessionKey =
+                typeof params.sessionKey === "string"
+                  ? params.sessionKey
+                  : "main";
+              const talkCfg = cfgAtStart.talk;
+              const apiKey =
+                talkCfg?.apiKey ?? process.env.ELEVENLABS_API_KEY ?? "";
+              if (!apiKey) {
+                respond(
+                  false,
+                  undefined,
+                  errorShape(
+                    ErrorCodes.INVALID_REQUEST,
+                    "ElevenLabs API key not configured",
+                  ),
+                );
+                break;
+              }
+              try {
+                const context = await buildVoiceContext({
+                  cfg: cfgAtStart,
+                  sessionKey,
+                });
+                const voiceSession = new VoiceSession(
+                  sessionKey,
+                  {
+                    voiceId:
+                      (typeof params.voiceId === "string"
+                        ? params.voiceId
+                        : talkCfg?.voiceId) ?? "",
+                    modelId: talkCfg?.modelId ?? "eleven_v3",
+                    apiKey,
+                    systemPrompt: context,
+                    interruptOnSpeech: talkCfg?.interruptOnSpeech !== false,
+                    agentId: talkCfg?.conversational?.agentId,
+                    outputFormat: talkCfg?.outputFormat,
+                    maxDurationMs:
+                      talkCfg?.conversational?.maxDurationMs ?? 1_800_000,
+                  },
+                  {
+                    onStateChange: (state) => {
+                      broadcast("voice.state", {
+                        state,
+                        sessionKey,
+                        ts: Date.now(),
+                      });
+                    },
+                    onTranscript: (text, speaker) => {
+                      broadcast("voice.transcript", {
+                        text,
+                        speaker,
+                        sessionKey,
+                        ts: Date.now(),
+                      });
+                    },
+                    onAudioChunk: (chunk) => {
+                      // Send binary audio to the requesting client
+                      try {
+                        socket.send(chunk, { binary: true });
+                      } catch {
+                        // Client may have disconnected
+                      }
+                    },
+                    onError: (error) => {
+                      log.error(`Voice session error: ${error}`);
+                    },
+                    onEnd: (_summary) => {
+                      broadcast("voice.state", {
+                        state: "ended",
+                        sessionKey,
+                        ts: Date.now(),
+                      });
+                    },
+                  },
+                );
+                setActiveVoiceSession(sessionKey, voiceSession);
+                setVoiceSessionForConnection(connId, sessionKey);
+                await voiceSession.start();
+                respond(
+                  true,
+                  { sessionId: voiceSession.id, sessionKey },
+                  undefined,
+                );
+              } catch (err) {
+                respond(
+                  false,
+                  undefined,
+                  errorShape(ErrorCodes.INTERNAL_ERROR, String(err)),
+                );
+              }
+              break;
+            }
+            case "voice.end": {
+              const params = (req.params ?? {}) as Record<string, unknown>;
+              const sessionKey =
+                typeof params.sessionKey === "string"
+                  ? params.sessionKey
+                  : "main";
+              const session = getActiveVoiceSession(sessionKey);
+              if (!session) {
+                respond(
+                  false,
+                  undefined,
+                  errorShape(ErrorCodes.NOT_FOUND, "No active voice session"),
+                );
+                break;
+              }
+              try {
+                const summary = await session.end();
+                removeVoiceSessionForConnection(connId);
+                respond(true, summary, undefined);
+              } catch (err) {
+                respond(
+                  false,
+                  undefined,
+                  errorShape(ErrorCodes.INTERNAL_ERROR, String(err)),
+                );
+              }
+              break;
+            }
+            case "voice.status": {
+              const params = (req.params ?? {}) as Record<string, unknown>;
+              const sessionKey =
+                typeof params.sessionKey === "string"
+                  ? params.sessionKey
+                  : undefined;
+              if (sessionKey) {
+                const session = getActiveVoiceSession(sessionKey);
+                respond(
+                  true,
+                  {
+                    active: Boolean(session),
+                    state: session?.state ?? "ended",
+                    sessionKey,
+                  },
+                  undefined,
+                );
+              } else {
+                const connSession = getActiveVoiceSessionForConnection(connId);
+                respond(
+                  true,
+                  {
+                    active: Boolean(connSession),
+                    state: connSession?.state ?? "ended",
+                  },
+                  undefined,
+                );
+              }
+              break;
+            }
+
             case "status": {
               const status = await getStatusSummary();
               respond(true, status, undefined);
@@ -7232,6 +7631,7 @@ export async function startGatewayServer(
       await stopGmailWatcher();
       cron.stop();
       heartbeatRunner.stop();
+      await stopTaskRunner();
       broadcast("shutdown", {
         reason,
         restartExpectedMs,
