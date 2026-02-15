@@ -58,6 +58,10 @@ type WizardSection =
   | "daemon"
   | "workspace"
   | "skills"
+  | "tasks"
+  | "voice"
+  | "alerting"
+  | "budget"
   | "health";
 
 type ConfigureWizardParams = {
@@ -411,6 +415,490 @@ async function maybeInstallDaemon(params: {
   });
 }
 
+// ── Autonomous Tasks ──────────────────────────────────────────────────────
+
+async function promptTasksConfig(
+  cfg: ClawdisConfig,
+  runtime: RuntimeEnv,
+): Promise<ClawdisConfig> {
+  const existing = cfg.tasks;
+  if (existing?.enabled !== undefined) {
+    note(
+      [
+        `Enabled: ${existing.enabled !== false ? "yes" : "no"}`,
+        `Max concurrent: ${existing.maxConcurrentTasks ?? 3}`,
+        `Max steps/task: ${existing.maxStepsPerTask ?? 50}`,
+        `Step interval: ${((existing.defaultStepIntervalMs ?? 30_000) / 1000).toFixed(0)}s`,
+      ].join("\n"),
+      "Current task settings",
+    );
+  }
+
+  const enabled = Boolean(
+    guardCancel(
+      await confirm({
+        message: "Enable autonomous long-running tasks?",
+        initialValue: existing?.enabled !== false,
+      }),
+      runtime,
+    ),
+  );
+
+  if (!enabled) {
+    return { ...cfg, tasks: { ...cfg.tasks, enabled: false } };
+  }
+
+  const maxConcurrentRaw = guardCancel(
+    await text({
+      message: "Max concurrent tasks",
+      initialValue: String(existing?.maxConcurrentTasks ?? 3),
+      validate: (v) => {
+        const n = Number(v);
+        return Number.isInteger(n) && n >= 1 && n <= 10
+          ? undefined
+          : "Must be 1-10";
+      },
+    }),
+    runtime,
+  );
+
+  const maxStepsRaw = guardCancel(
+    await text({
+      message: "Max steps per task (safety limit)",
+      initialValue: String(existing?.maxStepsPerTask ?? 50),
+      validate: (v) => {
+        const n = Number(v);
+        return Number.isInteger(n) && n >= 1 && n <= 200
+          ? undefined
+          : "Must be 1-200";
+      },
+    }),
+    runtime,
+  );
+
+  const stepInterval = guardCancel(
+    await select({
+      message: "Delay between steps",
+      options: [
+        { value: 15_000, label: "15 seconds" },
+        { value: 30_000, label: "30 seconds (default)" },
+        { value: 60_000, label: "1 minute" },
+        { value: 300_000, label: "5 minutes" },
+      ],
+    }),
+    runtime,
+  ) as number;
+
+  const stepTimeout = guardCancel(
+    await select({
+      message: "Timeout per step",
+      options: [
+        { value: 300_000, label: "5 minutes" },
+        { value: 600_000, label: "10 minutes (default)" },
+        { value: 1_800_000, label: "30 minutes" },
+      ],
+    }),
+    runtime,
+  ) as number;
+
+  return {
+    ...cfg,
+    tasks: {
+      ...cfg.tasks,
+      enabled: true,
+      maxConcurrentTasks: Number.parseInt(String(maxConcurrentRaw), 10),
+      maxStepsPerTask: Number.parseInt(String(maxStepsRaw), 10),
+      defaultStepIntervalMs: stepInterval,
+      defaultTimeoutPerStepMs: stepTimeout,
+    },
+  };
+}
+
+// ── Voice Calls ───────────────────────────────────────────────────────────
+
+async function promptVoiceConfig(
+  cfg: ClawdisConfig,
+  runtime: RuntimeEnv,
+): Promise<ClawdisConfig> {
+  const existing = cfg.talk;
+  if (existing?.voiceId) {
+    note(
+      [
+        `Voice ID: ${existing.voiceId}`,
+        `API key: ${existing.apiKey ? "***configured***" : "not set"}`,
+        `Conversational: ${existing.conversational?.enabled ? "yes" : "no"}`,
+      ].join("\n"),
+      "Current voice settings",
+    );
+  }
+
+  const envKey = process.env.ELEVENLABS_API_KEY?.trim();
+
+  const enabled = Boolean(
+    guardCancel(
+      await confirm({
+        message: "Enable voice calls (requires ElevenLabs API key)?",
+        initialValue: Boolean(existing?.voiceId || envKey),
+      }),
+      runtime,
+    ),
+  );
+
+  if (!enabled) {
+    return cfg;
+  }
+
+  let apiKey = existing?.apiKey ?? envKey ?? "";
+  if (envKey) {
+    note(
+      "ElevenLabs API key detected from ELEVENLABS_API_KEY environment variable.",
+      "API key found",
+    );
+  } else {
+    const keyInput = guardCancel(
+      await text({
+        message: "ElevenLabs API key",
+        initialValue: existing?.apiKey ?? "",
+        validate: (v) => (v?.trim() ? undefined : "Required for voice calls"),
+      }),
+      runtime,
+    );
+    apiKey = String(keyInput).trim();
+  }
+
+  const voiceIdInput = guardCancel(
+    await text({
+      message: "ElevenLabs voice ID",
+      initialValue: existing?.voiceId ?? "",
+      validate: (v) =>
+        v?.trim()
+          ? undefined
+          : "Required — find yours at elevenlabs.io/app/voices",
+    }),
+    runtime,
+  );
+  const voiceId = String(voiceIdInput).trim();
+
+  const conversationalEnabled = Boolean(
+    guardCancel(
+      await confirm({
+        message: 'Enable Telegram voice mode ("call me" trigger)?',
+        initialValue: existing?.conversational?.enabled ?? false,
+      }),
+      runtime,
+    ),
+  );
+
+  let triggerWords: string[] | undefined;
+  let maxDurationMs: number | undefined;
+
+  if (conversationalEnabled) {
+    const triggersInput = guardCancel(
+      await text({
+        message: "Trigger words (comma-separated)",
+        initialValue:
+          existing?.conversational?.triggerWords?.join(", ") ?? "call me",
+      }),
+      runtime,
+    );
+    triggerWords = String(triggersInput)
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    maxDurationMs = guardCancel(
+      await select({
+        message: "Max voice call duration",
+        options: [
+          { value: 600_000, label: "10 minutes" },
+          { value: 1_800_000, label: "30 minutes (default)" },
+          { value: 3_600_000, label: "60 minutes" },
+        ],
+      }),
+      runtime,
+    ) as number;
+  }
+
+  return {
+    ...cfg,
+    talk: {
+      ...cfg.talk,
+      apiKey: envKey ? undefined : apiKey, // Don't persist env-sourced key
+      voiceId,
+      conversational: {
+        ...cfg.talk?.conversational,
+        enabled: conversationalEnabled,
+        ...(triggerWords ? { triggerWords } : {}),
+        ...(maxDurationMs ? { maxDurationMs } : {}),
+      },
+    },
+  };
+}
+
+// ── Crash Alerting ────────────────────────────────────────────────────────
+
+type AlertChannelType =
+  | "webhook"
+  | "telegram"
+  | "whatsapp"
+  | "discord"
+  | "signal";
+
+async function promptAlertingConfig(
+  cfg: ClawdisConfig,
+  runtime: RuntimeEnv,
+): Promise<ClawdisConfig> {
+  const existing = cfg.alerting;
+  if (existing?.channels?.length) {
+    note(
+      [
+        `Enabled: ${existing.enabled !== false ? "yes" : "no"}`,
+        `Channels: ${existing.channels.map((c) => c.type).join(", ")}`,
+        `On crash: ${existing.onCrash !== false ? "yes" : "no"}`,
+        `On restart: ${existing.onRestart !== false ? "yes" : "no"}`,
+      ].join("\n"),
+      "Current alerting settings",
+    );
+  }
+
+  const enabled = Boolean(
+    guardCancel(
+      await confirm({
+        message: "Enable crash/restart alerting?",
+        initialValue: existing?.enabled !== false,
+      }),
+      runtime,
+    ),
+  );
+
+  if (!enabled) {
+    return { ...cfg, alerting: { ...cfg.alerting, enabled: false } };
+  }
+
+  const onCrash = Boolean(
+    guardCancel(
+      await confirm({
+        message: "Send alert on unhandled crash?",
+        initialValue: existing?.onCrash !== false,
+      }),
+      runtime,
+    ),
+  );
+
+  const onRestart = Boolean(
+    guardCancel(
+      await confirm({
+        message: "Send alert on gateway restart?",
+        initialValue: existing?.onRestart !== false,
+      }),
+      runtime,
+    ),
+  );
+
+  const channels: Array<{ type: AlertChannelType; url?: string; to?: string }> =
+    [...(existing?.channels ?? [])];
+
+  let addMore = true;
+  while (addMore) {
+    const channelChoice = guardCancel(
+      await select({
+        message: `Add alert channel${channels.length > 0 ? ` (${channels.length} configured)` : ""}`,
+        options: [
+          {
+            value: "webhook",
+            label: "Webhook (POST JSON)",
+          },
+          {
+            value: "telegram",
+            label: "Telegram",
+            hint: cfg.telegram?.botToken
+              ? "Bot token detected"
+              : "Needs bot token",
+          },
+          { value: "whatsapp", label: "WhatsApp" },
+          { value: "discord", label: "Discord webhook" },
+          { value: "done", label: "Done adding channels" },
+        ],
+      }),
+      runtime,
+    ) as AlertChannelType | "done";
+
+    if (channelChoice === "done") {
+      addMore = false;
+      break;
+    }
+
+    if (channelChoice === "webhook") {
+      const url = guardCancel(
+        await text({
+          message: "Webhook URL",
+          validate: (v) =>
+            v?.trim()?.startsWith("http") ? undefined : "Must be a valid URL",
+        }),
+        runtime,
+      );
+      channels.push({ type: "webhook", url: String(url).trim() });
+    } else if (channelChoice === "telegram") {
+      const chatId = guardCancel(
+        await text({
+          message: "Telegram chat ID (your user or group ID)",
+          validate: (v) => (v?.trim() ? undefined : "Required"),
+        }),
+        runtime,
+      );
+      channels.push({ type: "telegram", to: String(chatId).trim() });
+    } else if (channelChoice === "whatsapp") {
+      const phone = guardCancel(
+        await text({
+          message: "WhatsApp number (e.g. +15555550123)",
+          validate: (v) => (v?.trim() ? undefined : "Required"),
+        }),
+        runtime,
+      );
+      channels.push({ type: "whatsapp", to: String(phone).trim() });
+    } else if (channelChoice === "discord") {
+      const url = guardCancel(
+        await text({
+          message: "Discord webhook URL",
+          validate: (v) =>
+            v?.trim()?.startsWith("http") ? undefined : "Must be a valid URL",
+        }),
+        runtime,
+      );
+      channels.push({ type: "discord", url: String(url).trim() });
+    }
+  }
+
+  if (channels.length > 0) {
+    note(
+      channels.map((c) => `- ${c.type}: ${c.url ?? c.to ?? ""}`).join("\n"),
+      "Configured alert channels",
+    );
+  }
+
+  return {
+    ...cfg,
+    alerting: {
+      ...cfg.alerting,
+      enabled: true,
+      onCrash,
+      onRestart,
+      channels,
+    },
+  };
+}
+
+// ── Budget & Cost Controls ────────────────────────────────────────────────
+
+async function promptBudgetConfig(
+  cfg: ClawdisConfig,
+  runtime: RuntimeEnv,
+): Promise<ClawdisConfig> {
+  const existingBudget = (cfg.agent as Record<string, unknown> | undefined)
+    ?.monthlyBudgetUsd as number | undefined;
+
+  if (existingBudget) {
+    note(`Monthly budget cap: $${existingBudget}`, "Current budget settings");
+  }
+
+  const wantsBudget = Boolean(
+    guardCancel(
+      await confirm({
+        message: "Set a monthly spending cap?",
+        initialValue: Boolean(existingBudget),
+      }),
+      runtime,
+    ),
+  );
+
+  let next = cfg;
+
+  if (wantsBudget) {
+    const budgetRaw = guardCancel(
+      await text({
+        message: "Monthly budget cap (USD)",
+        initialValue: existingBudget ? String(existingBudget) : "50",
+        validate: (v) => {
+          const n = Number(v);
+          return Number.isFinite(n) && n > 0
+            ? undefined
+            : "Must be a positive number";
+        },
+      }),
+      runtime,
+    );
+    next = {
+      ...next,
+      agent: {
+        ...next.agent,
+        monthlyBudgetUsd: Number.parseFloat(String(budgetRaw)),
+      } as ClawdisConfig["agent"],
+    };
+  }
+
+  const wantsOllama = Boolean(
+    guardCancel(
+      await confirm({
+        message: "Enable Ollama for local model routing (free, reduces cost)?",
+        initialValue: false,
+      }),
+      runtime,
+    ),
+  );
+
+  if (wantsOllama) {
+    const hostInput = guardCancel(
+      await text({
+        message: "Ollama host URL",
+        initialValue: process.env.OLLAMA_HOST ?? "http://localhost:11434",
+      }),
+      runtime,
+    );
+    const ollamaHost = String(hostInput).trim();
+
+    // Probe Ollama
+    const spin = spinner();
+    spin.start("Checking Ollama connectivity...");
+    try {
+      const res = await fetch(`${ollamaHost}/api/tags`, {
+        signal: AbortSignal.timeout(5000),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as {
+          models?: Array<{ name: string }>;
+        };
+        const models = data.models?.map((m) => m.name) ?? [];
+        spin.stop(
+          models.length > 0
+            ? `Ollama connected (${models.length} model${models.length === 1 ? "" : "s"} available)`
+            : "Ollama connected (no models pulled yet)",
+        );
+        if (models.length > 0) {
+          note(models.join("\n"), "Available Ollama models");
+        }
+      } else {
+        spin.stop("Ollama responded but returned an error");
+      }
+    } catch {
+      spin.stop(
+        "Could not reach Ollama — make sure it is running on the target machine",
+      );
+    }
+
+    note(
+      [
+        "Set these environment variables to enable Ollama routing:",
+        `  OLLAMA_HOST=${ollamaHost}`,
+        "  ENABLE_OLLAMA=true",
+        "  ENABLE_HYBRID_ROUTING=true",
+      ].join("\n"),
+      "Ollama configuration",
+    );
+  }
+
+  return next;
+}
+
 export async function runConfigureWizard(
   opts: ConfigureWizardParams,
   runtime: RuntimeEnv = defaultRuntime,
@@ -513,6 +1001,26 @@ export async function runConfigureWizard(
             { value: "daemon", label: "Gateway daemon" },
             { value: "providers", label: "Providers" },
             { value: "skills", label: "Skills" },
+            {
+              value: "tasks",
+              label: "Autonomous tasks",
+              hint: "Long-running multi-step task system",
+            },
+            {
+              value: "voice",
+              label: "Voice calls",
+              hint: "ElevenLabs voice for Web UI + Telegram",
+            },
+            {
+              value: "alerting",
+              label: "Crash alerting",
+              hint: "Notifications on crash/restart",
+            },
+            {
+              value: "budget",
+              label: "Budget & cost controls",
+              hint: "Monthly cap, Ollama routing",
+            },
             { value: "health", label: "Health check" },
           ],
         }),
@@ -606,6 +1114,22 @@ export async function runConfigureWizard(
   if (selected.includes("skills")) {
     const wsDir = resolveUserPath(workspaceDir);
     nextConfig = await setupSkills(nextConfig, wsDir, runtime);
+  }
+
+  if (selected.includes("tasks")) {
+    nextConfig = await promptTasksConfig(nextConfig, runtime);
+  }
+
+  if (selected.includes("voice")) {
+    nextConfig = await promptVoiceConfig(nextConfig, runtime);
+  }
+
+  if (selected.includes("alerting")) {
+    nextConfig = await promptAlertingConfig(nextConfig, runtime);
+  }
+
+  if (selected.includes("budget")) {
+    nextConfig = await promptBudgetConfig(nextConfig, runtime);
   }
 
   nextConfig = applyWizardMetadata(nextConfig, {
