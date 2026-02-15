@@ -484,6 +484,15 @@ export type GatewayRemoteConfig = {
   password?: string;
 };
 
+export type MissionControlConfig = {
+  /** Enable Mission Control reverse-proxy at /mc/ (default: false). */
+  enabled?: boolean;
+  /** Upstream URL of the Mission Control Next.js server (default: "http://127.0.0.1:3100"). */
+  url?: string;
+  /** URL path prefix under the Gateway (default: "/mc"). */
+  basePath?: string;
+};
+
 export type GatewayConfig = {
   /** Single multiplexed port for Gateway WS + HTTP (default: 18789). */
   port?: number;
@@ -498,6 +507,7 @@ export type GatewayConfig = {
    */
   bind?: BridgeBindMode;
   controlUi?: GatewayControlUiConfig;
+  missionControl?: MissionControlConfig;
   auth?: GatewayAuthConfig;
   tailscale?: GatewayTailscaleConfig;
   remote?: GatewayRemoteConfig;

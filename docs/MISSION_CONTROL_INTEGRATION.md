@@ -279,43 +279,49 @@ Mission Control provides a full local stack via `./scripts/docker-integration.sh
 
 ---
 
-## 11. Implementation Plan
+## 11. Implementation Status
 
-### Phase 1: Standalone Side-by-Side (Option B)
+### Phase 1: Docker Compose Side-by-Side ✅ DONE
 
-**Effort:** ~2 hours | **Risk:** Low
+**Files:**
+- `docker-compose.yml` — Added `mission-control`, `mc-postgres`, `supabase-kong`,
+  `supabase-auth` services under the `mc` profile
+- Usage: `docker compose --profile mc up`
 
-1. Clone `Danm72/mission-control` into workspace
-2. Configure `.env.local` with Supabase credentials
-3. Run `pnpm install && pnpm --filter @mission-control/database db:push`
-4. Start with `pnpm dev` on port 3100
-5. Verify dashboard loads at `http://localhost:3100`
-6. Install MC skills into OpenClaw: copy `skills/mission-control/` to `~/.openclaw/skills/`
-7. Test agent heartbeat cycle end-to-end
+### Phase 2: Gateway Proxy Handler ✅ DONE
 
-### Phase 2: Gateway Proxy Handler (Option A)
+**Files:**
+- `src/config/config.ts` — Added `MissionControlConfig` type
+- `src/gateway/mission-control-proxy.ts` — Reverse-proxy handler (strips base path,
+  forwards to upstream, handles errors with 502, sets X-Forwarded-* headers)
+- `src/gateway/server.ts` — Wired proxy into HTTP handler chain (before Control UI)
+- `src/gateway/mission-control-proxy.test.ts` — 10 unit tests (path matching, proxying,
+  502 on unreachable upstream)
 
-**Effort:** ~4 hours | **Risk:** Medium
+**Config (in `clawdis.json`):**
+```json
+{
+  "gateway": {
+    "missionControl": {
+      "enabled": true,
+      "url": "http://127.0.0.1:3100",
+      "basePath": "/mc"
+    }
+  }
+}
+```
 
-1. Add `MissionControlConfig` type to `src/config/config.ts`:
-   ```typescript
-   export type MissionControlConfig = {
-     enabled?: boolean;      // default: false
-     url?: string;           // default: "http://127.0.0.1:3100"
-     basePath?: string;      // default: "/mc"
-   };
-   ```
-2. Create `src/gateway/mission-control-proxy.ts`:
-   - Pattern follows `control-ui.ts` handler signature
-   - Strips `/mc` prefix, forwards to MC `url`
-   - Proxies request body + headers, returns response
-   - Handles WebSocket upgrade if needed
-3. Wire into HTTP handler chain in `server.ts` (before Control UI handler)
-4. Add config docs to `docs/configuration.md`
+Also available via `clawdis configure` → "Mission Control" section.
 
-### Phase 3: Production Deployment (Option C)
+### Phase 3: Setup Automation ✅ DONE
 
-**Effort:** ~2 hours | **Risk:** Low
+**Files:**
+- `scripts/setup-mission-control.sh` — One-command setup: clone, install deps,
+  create .env.local, configure gateway proxy, install MC skills
+- `src/commands/configure.ts` — Added "Mission Control" wizard section with
+  URL, base path, and connectivity probe
+
+### Phase 4: Production Deployment (Future)
 
 1. Add Caddy/Nginx config template to `config/reverse-proxy/`
 2. Docker Compose production profile with TLS
@@ -323,7 +329,23 @@ Mission Control provides a full local stack via `./scripts/docker-integration.sh
 
 ---
 
-## 12. Remaining Considerations
+## 12. Quick Start
+
+```bash
+# Option A: Setup script (recommended for development)
+bash scripts/setup-mission-control.sh
+cd mission-control && pnpm dev
+# Dashboard at http://localhost:3100 (or http://localhost:18789/mc/ via proxy)
+
+# Option B: Docker Compose (recommended for deployment)
+docker compose --profile mc up -d
+# Gateway:          http://localhost:18789/
+# Mission Control:  http://localhost:3100/ (or http://localhost:18789/mc/)
+```
+
+---
+
+## 13. Remaining Considerations
 
 | Item | Notes |
 |------|-------|
