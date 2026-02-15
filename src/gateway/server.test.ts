@@ -56,12 +56,20 @@ type BridgeStartOpts = {
   >;
 };
 
-
 const TEST_TOKEN = "test-gateway-token-for-tests";
 const TEST_STATE_CHANGING_METHODS = new Set([
-  "config.set", "skills.install", "chat.send", "agent", "send",
-  "sessions.delete", "sessions.reset", "cron.add", "cron.remove",
-  "cron.update", "node.invoke", "voicewake.set",
+  "config.set",
+  "skills.install",
+  "chat.send",
+  "agent",
+  "send",
+  "sessions.delete",
+  "sessions.reset",
+  "cron.add",
+  "cron.remove",
+  "cron.update",
+  "node.invoke",
+  "voicewake.set",
 ]);
 /** Tracks CSRF tokens returned by hello-ok for each WebSocket. */
 const csrfTokens = new Map<WebSocket, string>();
@@ -314,8 +322,10 @@ vi.mock("../infra/voicewake.js", async () => {
   }
   return {
     ...actual,
-    loadVoiceWakeConfig: (baseDir?: string) => actual.loadVoiceWakeConfig(baseDir ?? testBaseDir()),
-    setVoiceWakeTriggers: (triggers: string[], baseDir?: string) => actual.setVoiceWakeTriggers(triggers, baseDir ?? testBaseDir()),
+    loadVoiceWakeConfig: (baseDir?: string) =>
+      actual.loadVoiceWakeConfig(baseDir ?? testBaseDir()),
+    setVoiceWakeTriggers: (triggers: string[], baseDir?: string) =>
+      actual.setVoiceWakeTriggers(triggers, baseDir ?? testBaseDir()),
   };
 });
 
@@ -486,7 +496,8 @@ async function connectOk(
   expect((res.payload as { type?: unknown } | undefined)?.type).toBe(
     "hello-ok",
   );
-  const csrfToken = (res.payload as { csrfToken?: string } | undefined)?.csrfToken;
+  const csrfToken = (res.payload as { csrfToken?: string } | undefined)
+    ?.csrfToken;
   if (csrfToken) csrfTokens.set(ws, csrfToken);
   return res.payload as { type: "hello-ok"; csrfToken?: string };
 }
@@ -500,9 +511,12 @@ async function rpcReq<T = unknown>(
   const id = randomUUID();
   const needsCsrf = TEST_STATE_CHANGING_METHODS.has(method);
   const effectiveCsrf = needsCsrf ? (csrf ?? csrfTokens.get(ws)) : undefined;
-  const mergedParams = effectiveCsrf && params && typeof params === "object"
-    ? { ...(params as Record<string, unknown>), _csrf: effectiveCsrf }
-    : effectiveCsrf ? { _csrf: effectiveCsrf } : params;
+  const mergedParams =
+    effectiveCsrf && params && typeof params === "object"
+      ? { ...(params as Record<string, unknown>), _csrf: effectiveCsrf }
+      : effectiveCsrf
+        ? { _csrf: effectiveCsrf }
+        : params;
   ws.send(JSON.stringify({ type: "req", id, method, params: mergedParams }));
   return await onceMessage<{
     type: "res";
@@ -513,11 +527,25 @@ async function rpcReq<T = unknown>(
   }>(ws, (o) => o.type === "res" && o.id === id);
 }
 
-
 /** Send a raw RPC frame, auto-injecting CSRF token from csrfTokens map. */
-function sendRpc(ws: WebSocket, frame: { type: string; id: string; method: string; params?: Record<string, unknown> }) {
-  const csrf = TEST_STATE_CHANGING_METHODS.has(frame.method) ? csrfTokens.get(ws) : undefined;
-  const params = csrf && frame.params ? { ...frame.params, _csrf: csrf } : csrf ? { _csrf: csrf, ...frame.params } : frame.params;
+function sendRpc(
+  ws: WebSocket,
+  frame: {
+    type: string;
+    id: string;
+    method: string;
+    params?: Record<string, unknown>;
+  },
+) {
+  const csrf = TEST_STATE_CHANGING_METHODS.has(frame.method)
+    ? csrfTokens.get(ws)
+    : undefined;
+  const params =
+    csrf && frame.params
+      ? { ...frame.params, _csrf: csrf }
+      : csrf
+        ? { _csrf: csrf, ...frame.params }
+        : frame.params;
   ws.send(JSON.stringify({ ...frame, params }));
 }
 async function waitForSystemEvent(timeoutMs = 2000) {
@@ -1355,18 +1383,18 @@ describe("gateway server", () => {
     await connectOk(ws);
 
     sendRpc(ws, {
-        type: "req",
-        id: "cron-add-1",
-        method: "cron.add",
-        params: {
-          name: "daily",
-          enabled: true,
-          schedule: { kind: "every", everyMs: 60_000 },
-          sessionTarget: "main",
-          wakeMode: "next-heartbeat",
-          payload: { kind: "systemEvent", text: "hello" },
-        },
-      });
+      type: "req",
+      id: "cron-add-1",
+      method: "cron.add",
+      params: {
+        name: "daily",
+        enabled: true,
+        schedule: { kind: "every", everyMs: 60_000 },
+        sessionTarget: "main",
+        wakeMode: "next-heartbeat",
+        payload: { kind: "systemEvent", text: "hello" },
+      },
+    });
     const addRes = await onceMessage<{
       type: "res";
       ok: boolean;
@@ -1420,18 +1448,18 @@ describe("gateway server", () => {
 
     const atMs = Date.now() - 1;
     sendRpc(ws, {
-        type: "req",
-        id: "cron-add-log-1",
-        method: "cron.add",
-        params: {
-          name: "log test",
-          enabled: true,
-          schedule: { kind: "at", atMs },
-          sessionTarget: "main",
-          wakeMode: "next-heartbeat",
-          payload: { kind: "systemEvent", text: "hello" },
-        },
-      });
+      type: "req",
+      id: "cron-add-log-1",
+      method: "cron.add",
+      params: {
+        name: "log test",
+        enabled: true,
+        schedule: { kind: "at", atMs },
+        sessionTarget: "main",
+        wakeMode: "next-heartbeat",
+        payload: { kind: "systemEvent", text: "hello" },
+      },
+    });
 
     const addRes = await onceMessage<{
       type: "res";
@@ -1444,11 +1472,11 @@ describe("gateway server", () => {
     expect(jobId.length > 0).toBe(true);
 
     sendRpc(ws, {
-        type: "req",
-        id: "cron-run-log-1",
-        method: "cron.run",
-        params: { id: jobId, mode: "force" },
-      });
+      type: "req",
+      id: "cron-run-log-1",
+      method: "cron.run",
+      params: { id: jobId, mode: "force" },
+    });
     const runRes = await onceMessage<{ type: "res"; ok: boolean }>(
       ws,
       (o) => o.type === "res" && o.id === "cron-run-log-1",
@@ -1527,18 +1555,18 @@ describe("gateway server", () => {
 
     const atMs = Date.now() - 1;
     sendRpc(ws, {
-        type: "req",
-        id: "cron-add-log-2",
-        method: "cron.add",
-        params: {
-          name: "log test (jobs.json)",
-          enabled: true,
-          schedule: { kind: "at", atMs },
-          sessionTarget: "main",
-          wakeMode: "next-heartbeat",
-          payload: { kind: "systemEvent", text: "hello" },
-        },
-      });
+      type: "req",
+      id: "cron-add-log-2",
+      method: "cron.add",
+      params: {
+        name: "log test (jobs.json)",
+        enabled: true,
+        schedule: { kind: "at", atMs },
+        sessionTarget: "main",
+        wakeMode: "next-heartbeat",
+        payload: { kind: "systemEvent", text: "hello" },
+      },
+    });
 
     const addRes = await onceMessage<{
       type: "res";
@@ -1551,11 +1579,11 @@ describe("gateway server", () => {
     expect(jobId.length > 0).toBe(true);
 
     sendRpc(ws, {
-        type: "req",
-        id: "cron-run-log-2",
-        method: "cron.run",
-        params: { id: jobId, mode: "force" },
-      });
+      type: "req",
+      id: "cron-run-log-2",
+      method: "cron.run",
+      params: { id: jobId, mode: "force" },
+    });
     const runRes = await onceMessage<{ type: "res"; ok: boolean }>(
       ws,
       (o) => o.type === "res" && o.id === "cron-run-log-2",
@@ -1659,18 +1687,18 @@ describe("gateway server", () => {
 
       const atMs = Date.now() + 80;
       sendRpc(ws, {
-          type: "req",
-          id: "cron-add-auto-1",
-          method: "cron.add",
-          params: {
-            name: "auto run test",
-            enabled: true,
-            schedule: { kind: "at", atMs },
-            sessionTarget: "main",
-            wakeMode: "next-heartbeat",
-            payload: { kind: "systemEvent", text: "auto" },
-          },
-        });
+        type: "req",
+        id: "cron-add-auto-1",
+        method: "cron.add",
+        params: {
+          name: "auto run test",
+          enabled: true,
+          schedule: { kind: "at", atMs },
+          sessionTarget: "main",
+          wakeMode: "next-heartbeat",
+          payload: { kind: "systemEvent", text: "auto" },
+        },
+      });
       const addRes = await onceMessage<{
         type: "res";
         ok: boolean;
@@ -1828,17 +1856,17 @@ describe("gateway server", () => {
     await connectOk(ws);
 
     sendRpc(ws, {
-        type: "req",
-        id: "agent-last-stale",
-        method: "agent",
-        params: {
-          message: "hi",
-          sessionKey: "main",
-          channel: "last",
-          deliver: true,
-          idempotencyKey: "idem-agent-last-stale",
-        },
-      });
+      type: "req",
+      id: "agent-last-stale",
+      method: "agent",
+      params: {
+        message: "hi",
+        sessionKey: "main",
+        channel: "last",
+        deliver: true,
+        idempotencyKey: "idem-agent-last-stale",
+      },
+    });
     await onceMessage(
       ws,
       (o) => o.type === "res" && o.id === "agent-last-stale",
@@ -1881,17 +1909,17 @@ describe("gateway server", () => {
     await connectOk(ws);
 
     sendRpc(ws, {
-        type: "req",
-        id: "agent-last-whatsapp",
-        method: "agent",
-        params: {
-          message: "hi",
-          sessionKey: "main",
-          channel: "last",
-          deliver: true,
-          idempotencyKey: "idem-agent-last-whatsapp",
-        },
-      });
+      type: "req",
+      id: "agent-last-whatsapp",
+      method: "agent",
+      params: {
+        message: "hi",
+        sessionKey: "main",
+        channel: "last",
+        deliver: true,
+        idempotencyKey: "idem-agent-last-whatsapp",
+      },
+    });
     await onceMessage(
       ws,
       (o) => o.type === "res" && o.id === "agent-last-whatsapp",
@@ -1934,17 +1962,17 @@ describe("gateway server", () => {
     await connectOk(ws);
 
     sendRpc(ws, {
-        type: "req",
-        id: "agent-last",
-        method: "agent",
-        params: {
-          message: "hi",
-          sessionKey: "main",
-          channel: "last",
-          deliver: true,
-          idempotencyKey: "idem-agent-last",
-        },
-      });
+      type: "req",
+      id: "agent-last",
+      method: "agent",
+      params: {
+        message: "hi",
+        sessionKey: "main",
+        channel: "last",
+        deliver: true,
+        idempotencyKey: "idem-agent-last",
+      },
+    });
     await onceMessage(ws, (o) => o.type === "res" && o.id === "agent-last");
 
     const spy = vi.mocked(agentCommand);
@@ -1984,17 +2012,17 @@ describe("gateway server", () => {
     await connectOk(ws);
 
     sendRpc(ws, {
-        type: "req",
-        id: "agent-last-discord",
-        method: "agent",
-        params: {
-          message: "hi",
-          sessionKey: "main",
-          channel: "last",
-          deliver: true,
-          idempotencyKey: "idem-agent-last-discord",
-        },
-      });
+      type: "req",
+      id: "agent-last-discord",
+      method: "agent",
+      params: {
+        message: "hi",
+        sessionKey: "main",
+        channel: "last",
+        deliver: true,
+        idempotencyKey: "idem-agent-last-discord",
+      },
+    });
     await onceMessage(
       ws,
       (o) => o.type === "res" && o.id === "agent-last-discord",
@@ -2037,17 +2065,17 @@ describe("gateway server", () => {
     await connectOk(ws);
 
     sendRpc(ws, {
-        type: "req",
-        id: "agent-last-signal",
-        method: "agent",
-        params: {
-          message: "hi",
-          sessionKey: "main",
-          channel: "last",
-          deliver: true,
-          idempotencyKey: "idem-agent-last-signal",
-        },
-      });
+      type: "req",
+      id: "agent-last-signal",
+      method: "agent",
+      params: {
+        message: "hi",
+        sessionKey: "main",
+        channel: "last",
+        deliver: true,
+        idempotencyKey: "idem-agent-last-signal",
+      },
+    });
     await onceMessage(
       ws,
       (o) => o.type === "res" && o.id === "agent-last-signal",
@@ -2091,17 +2119,17 @@ describe("gateway server", () => {
     await connectOk(ws);
 
     sendRpc(ws, {
-        type: "req",
-        id: "agent-webchat",
-        method: "agent",
-        params: {
-          message: "hi",
-          sessionKey: "main",
-          channel: "last",
-          deliver: true,
-          idempotencyKey: "idem-agent-webchat",
-        },
-      });
+      type: "req",
+      id: "agent-webchat",
+      method: "agent",
+      params: {
+        message: "hi",
+        sessionKey: "main",
+        channel: "last",
+        deliver: true,
+        idempotencyKey: "idem-agent-webchat",
+      },
+    });
     await onceMessage(ws, (o) => o.type === "res" && o.id === "agent-webchat");
 
     const spy = vi.mocked(agentCommand);
@@ -2479,11 +2507,11 @@ describe("gateway server", () => {
           o.payload?.status !== "accepted",
       );
       sendRpc(ws, {
-          type: "req",
-          id: "ag1",
-          method: "agent",
-          params: { message: "hi", idempotencyKey: "idem-ag" },
-        });
+        type: "req",
+        id: "ag1",
+        method: "agent",
+        params: { message: "hi", idempotencyKey: "idem-ag" },
+      });
 
       const ack = await ackP;
       const final = await finalP;
@@ -2511,11 +2539,11 @@ describe("gateway server", () => {
           o.payload?.status !== "accepted",
       );
       sendRpc(ws, {
-          type: "req",
-          id: "ag1",
-          method: "agent",
-          params: { message: "hi", idempotencyKey: "same-agent" },
-        });
+        type: "req",
+        id: "ag1",
+        method: "agent",
+        params: { message: "hi", idempotencyKey: "same-agent" },
+      });
       const firstFinal = await firstFinalP;
 
       const secondP = onceMessage(
@@ -2523,11 +2551,11 @@ describe("gateway server", () => {
         (o) => o.type === "res" && o.id === "ag2",
       );
       sendRpc(ws, {
-          type: "req",
-          id: "ag2",
-          method: "agent",
-          params: { message: "hi again", idempotencyKey: "same-agent" },
-        });
+        type: "req",
+        id: "ag2",
+        method: "agent",
+        params: { message: "hi again", idempotencyKey: "same-agent" },
+      });
       const second = await secondP;
       expect(second.payload).toEqual(firstFinal.payload);
 
@@ -2594,11 +2622,11 @@ describe("gateway server", () => {
     const res2P = onceMessage(ws, (o) => o.type === "res" && o.id === "a2");
     const sendReq = (id: string) =>
       sendRpc(ws, {
-          type: "req",
-          id,
-          method: "send",
-          params: { to: "+15550000000", message: "hi", idempotencyKey: idem },
-        });
+        type: "req",
+        id,
+        method: "send",
+        params: { to: "+15550000000", message: "hi", idempotencyKey: idem },
+      });
     sendReq("a1");
     sendReq("a2");
 
@@ -2631,11 +2659,11 @@ describe("gateway server", () => {
       6000,
     );
     sendRpc(ws1, {
-        type: "req",
-        id: "ag1",
-        method: "agent",
-        params: { message: "hi", idempotencyKey: idem },
-      });
+      type: "req",
+      id: "ag1",
+      method: "agent",
+      params: { message: "hi", idempotencyKey: idem },
+    });
     const final1 = await final1P;
     ws1.close();
 
@@ -2647,11 +2675,11 @@ describe("gateway server", () => {
       6000,
     );
     sendRpc(ws2, {
-        type: "req",
-        id: "ag2",
-        method: "agent",
-        params: { message: "hi again", idempotencyKey: idem },
-      });
+      type: "req",
+      id: "ag2",
+      method: "agent",
+      params: { message: "hi again", idempotencyKey: idem },
+    });
     const res = await final2P;
     expect(res.payload).toEqual(final1.payload);
     ws2.close();
@@ -2664,24 +2692,24 @@ describe("gateway server", () => {
 
     const reqId = "chat-img";
     sendRpc(ws, {
-        type: "req",
-        id: reqId,
-        method: "chat.send",
-        params: {
-          sessionKey: "main",
-          message: "see image",
-          idempotencyKey: "idem-img",
-          attachments: [
-            {
-              type: "image",
-              mimeType: "image/png",
-              fileName: "dot.png",
-              content:
-                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/woAAn8B9FD5fHAAAAAASUVORK5CYII=",
-            },
-          ],
-        },
-      });
+      type: "req",
+      id: reqId,
+      method: "chat.send",
+      params: {
+        sessionKey: "main",
+        message: "see image",
+        idempotencyKey: "idem-img",
+        attachments: [
+          {
+            type: "image",
+            mimeType: "image/png",
+            fileName: "dot.png",
+            content:
+              "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/woAAn8B9FD5fHAAAAAASUVORK5CYII=",
+          },
+        ],
+      },
+    });
 
     const res = await onceMessage(
       ws,
@@ -2943,15 +2971,15 @@ describe("gateway server", () => {
 
     const reqId = "chat-route";
     sendRpc(ws, {
-        type: "req",
-        id: reqId,
-        method: "chat.send",
-        params: {
-          sessionKey: "main",
-          message: "hello",
-          idempotencyKey: "idem-route",
-        },
-      });
+      type: "req",
+      id: reqId,
+      method: "chat.send",
+      params: {
+        sessionKey: "main",
+        message: "hello",
+        idempotencyKey: "idem-route",
+      },
+    });
 
     const res = await onceMessage(
       ws,
@@ -3029,16 +3057,16 @@ describe("gateway server", () => {
         inFlight = Promise.allSettled([sendResP, abortResP, abortedEventP]);
 
         sendRpc(ws, {
-            type: "req",
-            id: "send-abort-1",
-            method: "chat.send",
-            params: {
-              sessionKey: "main",
-              message: "hello",
-              idempotencyKey: "idem-abort-1",
-              timeoutMs: 30_000,
-            },
-          });
+          type: "req",
+          id: "send-abort-1",
+          method: "chat.send",
+          params: {
+            sessionKey: "main",
+            message: "hello",
+            idempotencyKey: "idem-abort-1",
+            timeoutMs: 30_000,
+          },
+        });
 
         await new Promise<void>((resolve, reject) => {
           const deadline = Date.now() + 1000;
@@ -3124,16 +3152,16 @@ describe("gateway server", () => {
     );
 
     sendRpc(ws, {
-        type: "req",
-        id: "send-abort-save-1",
-        method: "chat.send",
-        params: {
-          sessionKey: "main",
-          message: "hello",
-          idempotencyKey: "idem-abort-save-1",
-          timeoutMs: 30_000,
-        },
-      });
+      type: "req",
+      id: "send-abort-save-1",
+      method: "chat.send",
+      params: {
+        sessionKey: "main",
+        message: "hello",
+        idempotencyKey: "idem-abort-save-1",
+        timeoutMs: 30_000,
+      },
+    });
 
     const abortResP = onceMessage(
       ws,
@@ -3239,16 +3267,16 @@ describe("gateway server", () => {
       10_000,
     );
     sendRpc(ws, {
-        type: "req",
-        id: "send-mismatch-1",
-        method: "chat.send",
-        params: {
-          sessionKey: "main",
-          message: "hello",
-          idempotencyKey: "idem-mismatch-1",
-          timeoutMs: 30_000,
-        },
-      });
+      type: "req",
+      id: "send-mismatch-1",
+      method: "chat.send",
+      params: {
+        sessionKey: "main",
+        message: "hello",
+        idempotencyKey: "idem-mismatch-1",
+        timeoutMs: 30_000,
+      },
+    });
 
     await agentStartedP;
 
@@ -3319,16 +3347,16 @@ describe("gateway server", () => {
     spy.mockResolvedValueOnce(undefined);
 
     sendRpc(ws, {
-        type: "req",
-        id: "send-complete-1",
-        method: "chat.send",
-        params: {
-          sessionKey: "main",
-          message: "hello",
-          idempotencyKey: "idem-complete-1",
-          timeoutMs: 30_000,
-        },
-      });
+      type: "req",
+      id: "send-complete-1",
+      method: "chat.send",
+      params: {
+        sessionKey: "main",
+        message: "hello",
+        idempotencyKey: "idem-complete-1",
+        timeoutMs: 30_000,
+      },
+    });
 
     const sendRes = await onceMessage(
       ws,
@@ -3378,15 +3406,15 @@ describe("gateway server", () => {
     await connectOk(ws);
 
     sendRpc(ws, {
-        type: "req",
-        id: "chat-1",
-        method: "chat.send",
-        params: {
-          sessionKey: "main",
-          message: "first",
-          idempotencyKey: "idem-1",
-        },
-      });
+      type: "req",
+      id: "chat-1",
+      method: "chat.send",
+      params: {
+        sessionKey: "main",
+        message: "first",
+        idempotencyKey: "idem-1",
+      },
+    });
     const res1 = await onceMessage(
       ws,
       (o) => o.type === "res" && o.id === "chat-1",
@@ -3394,15 +3422,15 @@ describe("gateway server", () => {
     expect(res1.ok).toBe(true);
 
     sendRpc(ws, {
-        type: "req",
-        id: "chat-2",
-        method: "chat.send",
-        params: {
-          sessionKey: "main",
-          message: "second",
-          idempotencyKey: "idem-2",
-        },
-      });
+      type: "req",
+      id: "chat-2",
+      method: "chat.send",
+      params: {
+        sessionKey: "main",
+        message: "second",
+        idempotencyKey: "idem-2",
+      },
+    });
     const res2 = await onceMessage(
       ws,
       (o) => o.type === "res" && o.id === "chat-2",
