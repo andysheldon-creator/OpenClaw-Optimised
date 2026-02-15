@@ -48,7 +48,8 @@ export type RoutingTier =
   | "ollama_vision"
   | "claude_haiku"
   | "claude_sonnet"
-  | "claude_opus";
+  | "claude_opus"
+  | "claude_subscription";
 
 /** Task type classification. */
 export type TaskType =
@@ -393,6 +394,7 @@ const TIER_COST_FACTORS: Record<RoutingTier, number> = {
   claude_haiku: 0.05,
   claude_sonnet: 0.2,
   claude_opus: 1.0,
+  claude_subscription: 0, // flat monthly fee, no per-token cost
 };
 
 /** Model IDs for each tier. */
@@ -403,6 +405,7 @@ export const TIER_MODELS: Record<RoutingTier, string> = {
   claude_haiku: "claude-3-5-haiku",
   claude_sonnet: "claude-sonnet-4",
   claude_opus: "claude-opus-4-5",
+  claude_subscription: "claude-sonnet-4-5", // subscription defaults to Sonnet 4.5
 };
 
 /**
@@ -416,8 +419,11 @@ export function routeQuery(params: {
   text: string;
   messageContent?: unknown;
   conversationLength?: number;
+  /** When true, Claude-tier queries are routed to subscription (zero marginal cost). */
+  subscriptionEnabled?: boolean;
 }): RoutingDecision {
   const { text, messageContent, conversationLength } = params;
+  const preferSubscription = params.subscriptionEnabled === true;
 
   // If hybrid routing is disabled, always use default (Opus)
   if (!ENABLE_HYBRID_ROUTING) {
@@ -535,7 +541,7 @@ export function routeQuery(params: {
     reason = `very high complexity (${complexity.toFixed(2)} > ${thresholds.sonnetMax}) → Opus`;
   }
 
-  return {
+  const decision: RoutingDecision = {
     tier,
     taskType,
     complexity,
@@ -544,6 +550,39 @@ export function routeQuery(params: {
     reason,
     costFactor: TIER_COST_FACTORS[tier],
   };
+
+  // When subscription is enabled, absorb all Claude API tiers (haiku/sonnet/opus)
+  // into the subscription tier at zero marginal cost.  Local and Ollama tiers are
+  // kept as-is — they're faster and don't consume subscription rate limits.
+  if (
+    preferSubscription &&
+    (decision.tier as string).startsWith("claude_") &&
+    decision.tier !== "claude_subscription"
+  ) {
+    return {
+      ...decision,
+      tier: "claude_subscription",
+      reason: `${reason} [subscription mode → claude_subscription]`,
+      costFactor: 0,
+    };
+  }
+
+  return decision;
+}
+
+// ─── Claude CLI Availability ────────────────────────────────────────────────
+
+/** Whether the `claude` CLI binary is available (set at startup). */
+let claudeCliAvailable = false;
+
+/** Update Claude CLI availability state (called during startup/onboarding). */
+export function setClaudeCliAvailable(available: boolean): void {
+  claudeCliAvailable = available;
+}
+
+/** Check if Claude CLI is currently flagged as available. */
+export function isClaudeCliAvailable(): boolean {
+  return claudeCliAvailable;
 }
 
 // ─── Ollama Availability ─────────────────────────────────────────────────────
@@ -622,6 +661,16 @@ export async function checkVisionAvailable(): Promise<boolean> {
 export async function applyFallbacks(
   decision: RoutingDecision,
 ): Promise<RoutingDecision> {
+  // Subscription fallback: if claude CLI isn't available, fall back to Sonnet via API
+  if (decision.tier === "claude_subscription" && !claudeCliAvailable) {
+    return {
+      ...decision,
+      tier: "claude_sonnet",
+      reason: `${decision.reason} [claude CLI unavailable → Sonnet API fallback]`,
+      costFactor: TIER_COST_FACTORS.claude_sonnet,
+    };
+  }
+
   const ollamaUp = await checkOllamaAvailable();
 
   if (decision.tier === "ollama_chat" && !ollamaUp) {

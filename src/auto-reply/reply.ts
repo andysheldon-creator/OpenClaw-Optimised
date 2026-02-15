@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-
+import { runClaudeCliQueued } from "../agents/claude-cli-runner.js";
 import { lookupContextTokens } from "../agents/context.js";
 import {
   DEFAULT_CONTEXT_TOKENS,
@@ -2123,6 +2123,42 @@ export async function getReplyFromConfig(
     if (sessionKey) {
       registerAgentRunContext(runId, { sessionKey });
     }
+    // ── Claude CLI backend dispatch ──────────────────────────────────
+    // When the backend is set to "claude-cli" (subscription mode), route
+    // through the Claude Code CLI runner instead of the Pi SDK.
+    // On failure, automatically falls back to the pi-embedded (API) runner
+    // so the bot keeps working unattended.
+    const resolvedBackend = cfg.agent?.backend ?? "pi-embedded";
+    if (resolvedBackend === "claude-cli") {
+      try {
+        await startTypingLoop();
+        const cliResult = await runClaudeCliQueued({
+          prompt: commandBody,
+          workspaceDir,
+          model: model ?? "claude-sonnet-4-5",
+          systemPrompt: groupIntro || undefined,
+          timeoutMs,
+          runId,
+          sessionId: sessionIdFinal,
+        });
+        cleanupTyping();
+        if (cliResult.exitCode === 0 && cliResult.text) {
+          return finalizeWithFollowup({ text: cliResult.text });
+        }
+        // Non-zero exit or empty text — fall through to pi-embedded
+        defaultRuntime.error(
+          `Claude CLI returned exit=${cliResult.exitCode} — falling back to API backend`,
+        );
+      } catch (err) {
+        cleanupTyping();
+        const message = err instanceof Error ? err.message : String(err);
+        defaultRuntime.error(
+          `Claude CLI runner failed: ${message} — falling back to API backend`,
+        );
+      }
+      // Fall through to pi-embedded below (auto-fallback for unattended operation)
+    }
+
     let runResult: Awaited<ReturnType<typeof runEmbeddedPiAgent>>;
     try {
       runResult = await runEmbeddedPiAgent({
