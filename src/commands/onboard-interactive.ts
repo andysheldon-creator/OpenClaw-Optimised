@@ -313,51 +313,297 @@ export async function runInteractiveOnboarding(
   } else if (authChoice === "minimax") {
     nextConfig = applyMinimaxConfig(nextConfig);
   } else if (authChoice === "subscription") {
-    // Detect Claude Code CLI
+    // ── Step 1: Detect Claude Code CLI ──────────────────────────────
     const spin = spinner();
     spin.start("Detecting Claude Code CLI\u2026");
-    const cliInstalled = await detectBinary("claude");
+    let cliInstalled = await detectBinary("claude");
 
-    if (cliInstalled) {
-      spin.stop("Claude Code CLI found \u2713");
-      // Quick auth check
-      const authSpin = spinner();
-      authSpin.start("Checking Claude authentication\u2026");
-      try {
-        const testResult = await runCommandWithTimeout(
-          ["claude", "-p", "say ok", "--output-format", "text"],
-          { timeoutMs: 15_000 },
-        );
-        if (testResult.code === 0) {
-          authSpin.stop("Claude authenticated \u2713");
-        } else {
-          authSpin.stop("Claude not authenticated");
-          note(
-            "Run 'claude login' to authenticate, then re-run onboarding.",
-            "Action needed",
-          );
-        }
-      } catch {
-        authSpin.stop("Claude auth check timed out \u2014 continuing anyway");
-      }
-    } else {
+    if (!cliInstalled) {
       spin.stop("Claude Code CLI not found");
       note(
         [
-          "Install Claude Code: npm install -g @anthropic-ai/claude-code",
-          "Then run 'claude login' to authenticate.",
+          "The Claude Code CLI ('claude') is required for subscription mode.",
+          "It acts as the bridge between your Claude Pro/Max subscription and the bot.",
+          "",
+          "Install it now with:",
+          "  npm install -g @anthropic-ai/claude-code",
         ].join("\n"),
-        "Action needed",
+        "Installation required",
       );
+
+      const installAction = guardCancel(
+        await select({
+          message: "How would you like to proceed?",
+          options: [
+            {
+              value: "wait",
+              label: "I'll install it now \u2014 wait for me",
+              hint: "Run 'npm install -g @anthropic-ai/claude-code' in another terminal",
+            },
+            {
+              value: "fallback",
+              label: "Skip \u2014 use API-based backend instead",
+              hint: "You can switch to subscription later",
+            },
+          ],
+        }),
+        runtime,
+      ) as "wait" | "fallback";
+
+      if (installAction === "wait") {
+        // Poll for the CLI to appear (user is installing in another terminal)
+        const waitSpin = spinner();
+        waitSpin.start(
+          "Waiting for 'claude' CLI to become available\u2026 (install in another terminal)",
+        );
+        const pollStart = Date.now();
+        const pollTimeout = 300_000; // 5 minutes max wait
+        while (Date.now() - pollStart < pollTimeout) {
+          await sleep(3000);
+          cliInstalled = await detectBinary("claude");
+          if (cliInstalled) break;
+        }
+        if (cliInstalled) {
+          waitSpin.stop("Claude Code CLI detected \u2713");
+        } else {
+          waitSpin.stop("Timed out waiting for Claude CLI");
+          note(
+            "Claude CLI was not detected after 5 minutes.\nFalling back to API-based backend. You can re-run onboarding later.",
+            "Timeout",
+          );
+        }
+      }
+
+      if (!cliInstalled) {
+        // Fallback: don't set backend to claude-cli, leave as pi-embedded
+        note(
+          "Continuing with API-based backend (pi-embedded).\nRe-run 'clawdis onboard' after installing Claude Code to switch to subscription mode.",
+          "Fallback",
+        );
+        // Skip the rest of subscription setup — jump to model selection
+      }
+    } else {
+      spin.stop("Claude Code CLI found \u2713");
     }
 
-    nextConfig = {
-      ...nextConfig,
-      agent: {
-        ...nextConfig.agent,
-        backend: "claude-cli",
-      },
-    };
+    if (cliInstalled) {
+      // ── Step 2: Check authentication status ───────────────────────
+      const authSpin = spinner();
+      authSpin.start("Checking Claude authentication\u2026");
+      let isAuthenticated = false;
+      try {
+        const testResult = await runCommandWithTimeout(
+          ["claude", "-p", "say ok", "--output-format", "text"],
+          { timeoutMs: 20_000 },
+        );
+        isAuthenticated =
+          testResult.code === 0 && testResult.stdout.trim().length > 0;
+        if (isAuthenticated) {
+          authSpin.stop("Claude authenticated \u2713");
+        } else {
+          authSpin.stop("Claude not authenticated");
+        }
+      } catch {
+        authSpin.stop("Claude auth check failed");
+      }
+
+      // ── Step 3: Guide through login if not authenticated ──────────
+      if (!isAuthenticated) {
+        note(
+          [
+            "Your Claude CLI is installed but not yet authenticated.",
+            "You need to sign in with your Anthropic account (Claude Pro/Max subscription).",
+            "",
+            "This will open a browser window for you to sign in.",
+            "The bot will use your subscription for all Claude-tier queries at no extra cost.",
+          ].join("\n"),
+          "Authentication required",
+        );
+
+        const loginAction = guardCancel(
+          await select({
+            message: "How would you like to authenticate?",
+            options: [
+              {
+                value: "login",
+                label: "Run 'claude login' now (Recommended)",
+                hint: "Opens browser for Anthropic sign-in",
+              },
+              {
+                value: "manual",
+                label: "I'll authenticate manually",
+                hint: "Run 'claude login' yourself in another terminal",
+              },
+              {
+                value: "skip",
+                label: "Skip authentication for now",
+                hint: "Bot will not work until you authenticate later",
+              },
+            ],
+          }),
+          runtime,
+        ) as "login" | "manual" | "skip";
+
+        if (loginAction === "login") {
+          note(
+            [
+              "Starting 'claude login'\u2026",
+              "A browser window will open for you to sign in with your Anthropic account.",
+              "Once complete, return here and the setup will continue.",
+            ].join("\n"),
+            "Claude Login",
+          );
+
+          try {
+            // Run claude login interactively (inherits TTY for browser flow)
+            const loginResult = await runCommandWithTimeout(
+              ["claude", "login"],
+              { timeoutMs: 120_000 },
+            );
+            if (loginResult.code === 0) {
+              note(
+                "Claude login completed successfully.",
+                "Authenticated \u2713",
+              );
+              isAuthenticated = true;
+            } else {
+              note(
+                [
+                  "Claude login did not complete successfully.",
+                  loginResult.stderr?.trim()
+                    ? `Error: ${loginResult.stderr.trim().slice(0, 200)}`
+                    : "Please try running 'claude login' manually.",
+                ].join("\n"),
+                "Login issue",
+              );
+            }
+          } catch {
+            note(
+              "Claude login timed out or was interrupted.\nYou can run 'claude login' manually later.",
+              "Login issue",
+            );
+          }
+        } else if (loginAction === "manual") {
+          const manualSpin = spinner();
+          manualSpin.start(
+            "Waiting for authentication\u2026 (run 'claude login' in another terminal)",
+          );
+          const pollStart = Date.now();
+          const pollTimeout = 180_000; // 3 minutes
+          while (Date.now() - pollStart < pollTimeout) {
+            await sleep(5000);
+            try {
+              const recheck = await runCommandWithTimeout(
+                ["claude", "-p", "say ok", "--output-format", "text"],
+                { timeoutMs: 15_000 },
+              );
+              if (recheck.code === 0 && recheck.stdout.trim().length > 0) {
+                isAuthenticated = true;
+                break;
+              }
+            } catch {
+              // keep polling
+            }
+          }
+          if (isAuthenticated) {
+            manualSpin.stop("Claude authenticated \u2713");
+          } else {
+            manualSpin.stop("Authentication not detected within timeout");
+            note(
+              "Authentication was not confirmed.\nThe bot will attempt to use the subscription but may fail until you run 'claude login'.",
+              "Warning",
+            );
+          }
+        }
+        // loginAction === "skip" — continue without auth
+      }
+
+      // ── Step 4: Verify connection with a test query ───────────────
+      if (isAuthenticated) {
+        const verifySpin = spinner();
+        verifySpin.start("Verifying subscription access\u2026");
+        try {
+          const verifyResult = await runCommandWithTimeout(
+            [
+              "claude",
+              "-p",
+              "Reply with exactly: SUBSCRIPTION_OK",
+              "--output-format",
+              "text",
+            ],
+            { timeoutMs: 30_000 },
+          );
+          const output = verifyResult.stdout.trim();
+          if (verifyResult.code === 0 && output.includes("SUBSCRIPTION_OK")) {
+            verifySpin.stop("Subscription verified \u2713");
+            note(
+              [
+                "Your Claude subscription is connected and working.",
+                "The bot will route all Claude-tier queries through your subscription.",
+                "",
+                "How it works:",
+                "  \u2022 Simple queries (greetings, math) \u2192 handled locally (free)",
+                "  \u2022 Medium queries \u2192 Ollama if available (free)",
+                "  \u2022 Complex queries \u2192 your Claude subscription (flat fee)",
+                "",
+                "No per-token API charges for Claude queries.",
+              ].join("\n"),
+              "Subscription connected \u2713",
+            );
+          } else if (verifyResult.code === 0) {
+            // Got a response but not the exact string — still working
+            verifySpin.stop("Subscription active \u2713");
+            note(
+              "Claude responded successfully. Your subscription is connected to the bot.",
+              "Subscription connected \u2713",
+            );
+          } else {
+            verifySpin.stop("Subscription check returned non-zero exit");
+            note(
+              [
+                "Claude CLI returned an error during verification.",
+                "This may indicate a subscription or rate limit issue.",
+                verifyResult.stderr?.trim()
+                  ? `Detail: ${verifyResult.stderr.trim().slice(0, 200)}`
+                  : "",
+                "The bot will still attempt to use subscription mode.",
+              ]
+                .filter(Boolean)
+                .join("\n"),
+              "Warning",
+            );
+          }
+        } catch {
+          verifySpin.stop("Verification timed out");
+          note(
+            "Could not verify subscription within timeout.\nThe bot will still attempt to use subscription mode.",
+            "Warning",
+          );
+        }
+      } else {
+        note(
+          [
+            "Subscription mode selected but authentication is pending.",
+            "The bot will attempt to use 'claude -p' but queries will fail",
+            "until you complete authentication:",
+            "",
+            "  1. Run: claude login",
+            "  2. Sign in with your Anthropic account",
+            "  3. The bot will start working automatically",
+          ].join("\n"),
+          "Action needed",
+        );
+      }
+
+      // ── Step 5: Set backend config ────────────────────────────────
+      nextConfig = {
+        ...nextConfig,
+        agent: {
+          ...nextConfig.agent,
+          backend: "claude-cli",
+        },
+      };
+    }
   }
 
   // ── Model selection ────────────────────────────────────────────────
@@ -824,20 +1070,40 @@ export async function runInteractiveOnboarding(
   // ── Cost configuration summary ──────────────────────────────────────
   const resolvedModel =
     nextConfig.agent?.model ?? `${DEFAULT_PROVIDER}/${DEFAULT_MODEL}`;
+  const resolvedBackend = nextConfig.agent?.backend ?? "pi-embedded";
   const dailyBudget =
     Number.parseFloat(process.env.COST_DAILY_LIMIT ?? "") || 2;
   const resolvedMonthly =
     Number.parseFloat(process.env.COST_MONTHLY_LIMIT ?? "") || 60;
-  note(
-    [
-      `Model: ${resolvedModel}`,
-      `Monthly budget: \u00A3${resolvedMonthly} (alerts at \u00A3${Math.round(resolvedMonthly * 0.8)})`,
-      `Daily limit: \u00A3${dailyBudget}`,
-      "Prompt caching: Active (automatic)",
-      "Cache metrics: Tracked in cost reports",
-    ].join("\n"),
-    "Cost configuration",
-  );
+
+  if (resolvedBackend === "claude-cli") {
+    note(
+      [
+        `Model: ${resolvedModel}`,
+        "Backend: Claude Code Subscription (flat fee)",
+        "",
+        "Cost breakdown:",
+        "  \u2022 Local/trivial queries: FREE (handled locally)",
+        "  \u2022 Ollama queries: FREE (handled locally)",
+        "  \u2022 Claude queries: FREE (covered by subscription)",
+        "",
+        "Prompt caching: Active (automatic)",
+        "Cache metrics: Tracked in cost reports",
+      ].join("\n"),
+      "Cost configuration",
+    );
+  } else {
+    note(
+      [
+        `Model: ${resolvedModel}`,
+        `Monthly budget: \u00A3${resolvedMonthly} (alerts at \u00A3${Math.round(resolvedMonthly * 0.8)})`,
+        `Daily limit: \u00A3${dailyBudget}`,
+        "Prompt caching: Active (automatic)",
+        "Cache metrics: Tracked in cost reports",
+      ].join("\n"),
+      "Cost configuration",
+    );
+  }
 
   note(
     [

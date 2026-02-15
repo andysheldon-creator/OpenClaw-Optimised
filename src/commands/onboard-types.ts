@@ -41,4 +41,6 @@ export type OnboardOptions = {
   json?: boolean;
   backend?: BackendChoice;
   ollamaHost?: string;
+  /** Skip Claude CLI availability check in non-interactive subscription mode. */
+  skipCliCheck?: boolean;
 };
