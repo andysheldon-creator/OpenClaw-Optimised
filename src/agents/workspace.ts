@@ -184,9 +184,81 @@ async function writeFileIfMissing(filePath: string, content: string) {
   }
 }
 
+// ── File categories ──────────────────────────────────────────────────
+// All workspace .md files are effectively "personality" — they contain
+// the bot's identity, owner info, custom rules, tool notes, and context
+// built up over time.  The only exception is BOOTSTRAP.md which is a
+// first-run ritual deleted after use; on reinstall with existing
+// personality it should NOT be recreated (the bot already knows who it
+// is).
+//
+// The real "setup" that changes between installs lives in clawdis.json
+// (model, gateway, providers, budget) — handled separately by the wizard.
+export const PERSONALITY_FILES: readonly WorkspaceBootstrapFileName[] = [
+  DEFAULT_SOUL_FILENAME, // persona & boundaries
+  DEFAULT_IDENTITY_FILENAME, // agent name, creature, vibe, emoji
+  DEFAULT_USER_FILENAME, // owner name, pronouns, timezone
+  DEFAULT_AGENTS_FILENAME, // workspace conventions (user-customisable)
+  DEFAULT_TOOLS_FILENAME, // tool notes (user-editable)
+] as const;
+
+export const SETUP_FILES: readonly WorkspaceBootstrapFileName[] = [
+  DEFAULT_BOOTSTRAP_FILENAME, // first-run ritual (deleted after use)
+] as const;
+
+/**
+ * Check which bootstrap files and directories already exist in a workspace.
+ * Returns separate lists for personality files (SOUL, IDENTITY, USER) and
+ * setup files (AGENTS, TOOLS, BOOTSTRAP), plus whether a `memory/`
+ * directory is present.
+ */
+export async function detectExistingWorkspace(dir: string): Promise<{
+  personalityFiles: { name: WorkspaceBootstrapFileName; path: string }[];
+  setupFiles: { name: WorkspaceBootstrapFileName; path: string }[];
+  hasMemoryDir: boolean;
+}> {
+  const resolvedDir = resolveUserPath(dir);
+  const personalityFiles: { name: WorkspaceBootstrapFileName; path: string }[] =
+    [];
+  const setupFiles: { name: WorkspaceBootstrapFileName; path: string }[] = [];
+
+  const allFiles = [...PERSONALITY_FILES, ...SETUP_FILES];
+  for (const name of allFiles) {
+    const filePath = path.join(resolvedDir, name);
+    try {
+      const stat = await fs.stat(filePath);
+      if (stat.isFile() && stat.size > 0) {
+        const entry = { name, path: filePath };
+        if ((PERSONALITY_FILES as readonly string[]).includes(name)) {
+          personalityFiles.push(entry);
+        } else {
+          setupFiles.push(entry);
+        }
+      }
+    } catch {
+      // File doesn't exist — skip
+    }
+  }
+  let hasMemoryDir = false;
+  try {
+    const stat = await fs.stat(path.join(resolvedDir, "memory"));
+    hasMemoryDir = stat.isDirectory();
+  } catch {
+    // No memory directory
+  }
+  return { personalityFiles, setupFiles, hasMemoryDir };
+}
+
 export async function ensureAgentWorkspace(params?: {
   dir?: string;
   ensureBootstrapFiles?: boolean;
+  /**
+   * When true, personality files (SOUL.md, IDENTITY.md, USER.md) are
+   * preserved and only setup files (AGENTS.md, TOOLS.md, BOOTSTRAP.md)
+   * are refreshed. When false (default), all files use write-if-missing.
+   * When "full", all files are overwritten including personality files.
+   */
+  upgradeMode?: false | "preserve-personality" | "full";
 }): Promise<{
   dir: string;
   agentsPath?: string;
@@ -236,12 +308,26 @@ export async function ensureAgentWorkspace(params?: {
     DEFAULT_BOOTSTRAP_TEMPLATE,
   );
 
-  await writeFileIfMissing(agentsPath, agentsTemplate);
-  await writeFileIfMissing(soulPath, soulTemplate);
-  await writeFileIfMissing(toolsPath, toolsTemplate);
-  await writeFileIfMissing(identityPath, identityTemplate);
-  await writeFileIfMissing(userPath, userTemplate);
-  await writeFileIfMissing(bootstrapPath, bootstrapTemplate);
+  const mode = params?.upgradeMode || false;
+  const forceWrite = (fp: string, content: string) =>
+    fs.writeFile(fp, content, { encoding: "utf-8" });
+
+  // Personality files: always kept in preserve-personality mode.
+  // In "full" mode all files are overwritten from templates.
+  // In default (false) mode, write-if-missing applies to all.
+  const writePersonality = mode === "full" ? forceWrite : writeFileIfMissing;
+  await writePersonality(agentsPath, agentsTemplate);
+  await writePersonality(soulPath, soulTemplate);
+  await writePersonality(toolsPath, toolsTemplate);
+  await writePersonality(identityPath, identityTemplate);
+  await writePersonality(userPath, userTemplate);
+
+  // BOOTSTRAP.md: the first-run ritual that the bot deletes after use.
+  // In preserve-personality mode, only create it if missing (i.e. the bot
+  // already completed its first run and deleted it — don't re-trigger).
+  // In "full" mode, force-recreate it to restart the intro ritual.
+  const writeBootstrap = mode === "full" ? forceWrite : writeFileIfMissing;
+  await writeBootstrap(bootstrapPath, bootstrapTemplate);
 
   return {
     dir,

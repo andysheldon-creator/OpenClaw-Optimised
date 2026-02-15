@@ -10,6 +10,7 @@ import {
   text,
 } from "@clack/prompts";
 import { loginAnthropic, type OAuthCredentials } from "@mariozechner/pi-ai";
+import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../agents/defaults.js";
 import type { ClawdisConfig } from "../config/config.js";
 import {
   CONFIG_PATH_CLAWDIS,
@@ -35,6 +36,7 @@ import {
 } from "./onboard-auth.js";
 import {
   applyWizardMetadata,
+  checkExistingWorkspaceFiles,
   DEFAULT_WORKSPACE,
   ensureWorkspaceAndSessions,
   guardCancel,
@@ -205,7 +207,7 @@ export async function runInteractiveOnboarding(
         { value: "oauth", label: "Anthropic OAuth (Claude Pro/Max)" },
         {
           value: "antigravity",
-          label: "Google Antigravity (Claude Opus 4.5, Gemini 3, etc.)",
+          label: "Google Antigravity (Claude Sonnet/Opus 4.5, Gemini 3, etc.)",
         },
         { value: "apiKey", label: "Anthropic API key" },
         { value: "minimax", label: "Minimax M2.1 (LM Studio)" },
@@ -284,18 +286,9 @@ export async function runInteractiveOnboarding(
       spin.stop("Antigravity OAuth complete");
       if (oauthCreds) {
         await writeOAuthCredentials("google-antigravity", oauthCreds);
-        // Set default model to Claude Opus 4.5 via Antigravity
-        nextConfig = {
-          ...nextConfig,
-          agent: {
-            ...nextConfig.agent,
-            model: "google-antigravity/claude-opus-4-5-thinking",
-          },
-        };
-        note(
-          "Default model set to google-antigravity/claude-opus-4-5-thinking",
-          "Model configured",
-        );
+        // Let the user choose their model in the next step rather than
+        // hardcoding Opus.  Pre-select Antigravity Opus as the initial
+        // value so it's still easy to pick.
       }
     } catch (err) {
       spin.stop("Antigravity OAuth failed");
@@ -312,6 +305,91 @@ export async function runInteractiveOnboarding(
     await setAnthropicApiKey(String(key).trim());
   } else if (authChoice === "minimax") {
     nextConfig = applyMinimaxConfig(nextConfig);
+  }
+
+  // ── Model selection ────────────────────────────────────────────────
+  // Skip for Minimax (model already set) or if config already has a model
+  // and the user chose to keep existing values.
+  if (authChoice !== "minimax") {
+    const currentModel = nextConfig.agent?.model ?? "";
+    const defaultChoice = `${DEFAULT_PROVIDER}/${DEFAULT_MODEL}`;
+
+    // Build options based on auth provider
+    const modelOptions =
+      authChoice === "antigravity"
+        ? [
+            {
+              value: "google-antigravity/claude-sonnet-4-5",
+              label: "Sonnet 4.5 via Antigravity (Recommended)",
+              hint: "5x cheaper, same 200k context — $3/$15 per million tokens",
+            },
+            {
+              value: "google-antigravity/claude-opus-4-5-thinking",
+              label: "Opus 4.5 via Antigravity (Premium)",
+              hint: "Best reasoning — $15/$75 per million tokens",
+            },
+          ]
+        : [
+            {
+              value: defaultChoice,
+              label: "Sonnet 4.5 (Recommended)",
+              hint: "5x cheaper than Opus, same 200k context — $3/$15 per million tokens",
+            },
+            {
+              value: `${DEFAULT_PROVIDER}/claude-opus-4-5`,
+              label: "Opus 4.5 (Premium)",
+              hint: "Best reasoning — $15/$75 per million tokens",
+            },
+            ...(currentModel && currentModel !== defaultChoice
+              ? [
+                  {
+                    value: currentModel,
+                    label: `Keep current (${currentModel})`,
+                    hint: "No change",
+                  },
+                ]
+              : []),
+          ];
+
+    const modelChoice = guardCancel(
+      await select({
+        message: "Default AI model",
+        options: modelOptions,
+      }),
+      runtime,
+    ) as string;
+
+    if (modelChoice) {
+      nextConfig = {
+        ...nextConfig,
+        agent: {
+          ...nextConfig.agent,
+          model: modelChoice,
+        },
+      };
+    }
+  }
+
+  // ── Monthly budget ─────────────────────────────────────────────────
+  const currentBudget =
+    Number.parseFloat(process.env.COST_MONTHLY_LIMIT ?? "") || 60;
+  const budgetInput = guardCancel(
+    await text({
+      message: "Monthly budget in GBP (alerts at 80%, warns at 100%)",
+      initialValue: String(currentBudget),
+      validate: (value) => {
+        const n = Number(value);
+        return Number.isFinite(n) && n >= 0
+          ? undefined
+          : "Enter a number (0 to disable)";
+      },
+    }),
+    runtime,
+  );
+  const monthlyBudget = Number.parseFloat(String(budgetInput));
+  // Store in env for the current process; persisted via .env by the user.
+  if (Number.isFinite(monthlyBudget) && monthlyBudget !== 60) {
+    process.env.COST_MONTHLY_LIMIT = String(monthlyBudget);
   }
 
   const portRaw = guardCancel(
@@ -475,7 +553,42 @@ export async function runInteractiveOnboarding(
 
   await writeConfigFile(nextConfig);
   runtime.log(`Updated ${CONFIG_PATH_CLAWDIS}`);
-  await ensureWorkspaceAndSessions(workspaceDir, runtime);
+
+  // ── Pre-existing workspace detection ──────────────────────────────
+  // All workspace .md files are personality/context (SOUL, IDENTITY, USER,
+  // AGENTS, TOOLS, memory/).  The config that changes between installs
+  // (model, gateway, providers, budget) lives in clawdis.json which was
+  // already written above.  Only ask the user if personality files exist.
+  let upgradeMode: false | "preserve-personality" | "full" = false;
+  const existingWorkspace = await checkExistingWorkspaceFiles(workspaceDir);
+  if (existingWorkspace) {
+    note(existingWorkspace.summary, "Existing workspace detected");
+    if (existingWorkspace.hasPersonality) {
+      const wsAction = guardCancel(
+        await select({
+          message: "Keep existing bot personality and memory?",
+          options: [
+            {
+              value: "preserve-personality",
+              label: "Yes — keep everything (Recommended)",
+              hint: "Preserves SOUL, IDENTITY, USER, AGENTS, TOOLS & memory",
+            },
+            {
+              value: "full",
+              label: "No — start fresh",
+              hint: "Resets all workspace files to defaults",
+            },
+          ],
+        }),
+        runtime,
+      ) as "preserve-personality" | "full";
+      upgradeMode = wsAction;
+    } else {
+      // No personality files yet — use write-if-missing (fresh install)
+      upgradeMode = false;
+    }
+  }
+  await ensureWorkspaceAndSessions(workspaceDir, runtime, { upgradeMode });
 
   nextConfig = await setupSkills(nextConfig, workspaceDir, runtime);
   nextConfig = applyWizardMetadata(nextConfig, { command: "onboard", mode });
@@ -544,6 +657,24 @@ export async function runInteractiveOnboarding(
   } catch (err) {
     runtime.error(`Health check failed: ${String(err)}`);
   }
+
+  // ── Cost configuration summary ──────────────────────────────────────
+  const resolvedModel =
+    nextConfig.agent?.model ?? `${DEFAULT_PROVIDER}/${DEFAULT_MODEL}`;
+  const dailyBudget =
+    Number.parseFloat(process.env.COST_DAILY_LIMIT ?? "") || 2;
+  const resolvedMonthly =
+    Number.parseFloat(process.env.COST_MONTHLY_LIMIT ?? "") || 60;
+  note(
+    [
+      `Model: ${resolvedModel}`,
+      `Monthly budget: \u00A3${resolvedMonthly} (alerts at \u00A3${Math.round(resolvedMonthly * 0.8)})`,
+      `Daily limit: \u00A3${dailyBudget}`,
+      "Prompt caching: Active (automatic)",
+      "Cache metrics: Tracked in cost reports",
+    ].join("\n"),
+    "Cost configuration",
+  );
 
   note(
     [

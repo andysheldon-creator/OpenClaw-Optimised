@@ -36,6 +36,7 @@ import {
 } from "./onboard-auth.js";
 import {
   applyWizardMetadata,
+  checkExistingWorkspaceFiles,
   DEFAULT_WORKSPACE,
   ensureWorkspaceAndSessions,
   guardCancel,
@@ -230,7 +231,7 @@ async function promptAuthConfig(
         { value: "oauth", label: "Anthropic OAuth (Claude Pro/Max)" },
         {
           value: "antigravity",
-          label: "Google Antigravity (Claude Opus 4.5, Gemini 3, etc.)",
+          label: "Google Antigravity (Claude Sonnet/Opus 4.5, Gemini 3, etc.)",
         },
         { value: "apiKey", label: "Anthropic API key" },
         { value: "minimax", label: "Minimax M2.1 (LM Studio)" },
@@ -311,18 +312,17 @@ async function promptAuthConfig(
       spin.stop("Antigravity OAuth complete");
       if (oauthCreds) {
         await writeOAuthCredentials("google-antigravity", oauthCreds);
-        // Set default model to Claude Opus 4.5 via Antigravity
-        next = {
-          ...next,
-          agent: {
-            ...next.agent,
-            model: "google-antigravity/claude-opus-4-5-thinking",
-          },
-        };
-        note(
-          "Default model set to google-antigravity/claude-opus-4-5-thinking",
-          "Model configured",
-        );
+        // Pre-fill with Antigravity Sonnet for cost efficiency;
+        // the model text prompt below lets the user override.
+        if (!next.agent?.model) {
+          next = {
+            ...next,
+            agent: {
+              ...next.agent,
+              model: "google-antigravity/claude-sonnet-4-5",
+            },
+          };
+        }
       }
     } catch (err) {
       spin.stop("Antigravity OAuth failed");
@@ -550,7 +550,39 @@ export async function runConfigureWizard(
         workspace: workspaceDir,
       },
     };
-    await ensureWorkspaceAndSessions(workspaceDir, runtime);
+
+    // Check for pre-existing workspace files before creating/overwriting.
+    // All workspace .md files are personality/context — only ask the user
+    // if personality files exist.
+    let upgradeMode: false | "preserve-personality" | "full" = false;
+    const existingWs = await checkExistingWorkspaceFiles(workspaceDir);
+    if (existingWs) {
+      note(existingWs.summary, "Existing workspace detected");
+      if (existingWs.hasPersonality) {
+        const wsAction = guardCancel(
+          await select({
+            message: "Keep existing bot personality and memory?",
+            options: [
+              {
+                value: "preserve-personality",
+                label: "Yes — keep everything (Recommended)",
+                hint: "Preserves SOUL, IDENTITY, USER, AGENTS, TOOLS & memory",
+              },
+              {
+                value: "full",
+                label: "No — start fresh",
+                hint: "Resets all workspace files to defaults",
+              },
+            ],
+          }),
+          runtime,
+        ) as "preserve-personality" | "full";
+        upgradeMode = wsAction;
+      } else {
+        upgradeMode = false;
+      }
+    }
+    await ensureWorkspaceAndSessions(workspaceDir, runtime, { upgradeMode });
   }
 
   if (selected.includes("model")) {

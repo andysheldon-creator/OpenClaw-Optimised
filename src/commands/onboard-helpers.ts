@@ -7,6 +7,7 @@ import { cancel, isCancel } from "@clack/prompts";
 
 import {
   DEFAULT_AGENT_WORKSPACE_DIR,
+  detectExistingWorkspace,
   ensureAgentWorkspace,
 } from "../agents/workspace.js";
 import type { ClawdisConfig } from "../config/config.js";
@@ -99,15 +100,69 @@ export async function openUrl(url: string): Promise<void> {
 export async function ensureWorkspaceAndSessions(
   workspaceDir: string,
   runtime: RuntimeEnv,
+  options?: { upgradeMode?: false | "preserve-personality" | "full" },
 ) {
   const ws = await ensureAgentWorkspace({
     dir: workspaceDir,
     ensureBootstrapFiles: true,
+    upgradeMode: options?.upgradeMode,
   });
   runtime.log(`Workspace OK: ${ws.dir}`);
   const sessionsDir = resolveSessionTranscriptsDir();
   await fs.mkdir(sessionsDir, { recursive: true });
   runtime.log(`Sessions OK: ${sessionsDir}`);
+}
+
+/**
+ * Check for pre-existing workspace files and return a human-readable summary.
+ * All .md workspace files are considered personality/context — they contain
+ * the bot's identity, owner info, custom rules, tool notes, and things
+ * built up over time.  BOOTSTRAP.md is the first-run ritual (deleted after
+ * use) and is the only file that would be recreated for a fresh start.
+ * Returns null if no existing files are found.
+ */
+export async function checkExistingWorkspaceFiles(
+  workspaceDir: string,
+): Promise<{
+  summary: string;
+  hasPersonality: boolean;
+  hasMemoryDir: boolean;
+  personalityCount: number;
+} | null> {
+  const { personalityFiles, setupFiles, hasMemoryDir } =
+    await detectExistingWorkspace(workspaceDir);
+  const totalExisting =
+    personalityFiles.length + setupFiles.length + (hasMemoryDir ? 1 : 0);
+  if (totalExisting === 0) return null;
+
+  const lines: string[] = [];
+  for (const f of personalityFiles) {
+    lines.push(`  \u2713 ${f.name}`);
+  }
+  if (hasMemoryDir) {
+    lines.push("  \u2713 memory/ (conversation history)");
+  }
+  // BOOTSTRAP.md is the only "setup" file — show it if it still exists
+  // (it gets deleted after first run, so its presence means the bot
+  //  hasn't completed the intro ritual yet).
+  for (const f of setupFiles) {
+    lines.push(`  \u2713 ${f.name} (first-run ritual)`);
+  }
+
+  const hasPersonality = personalityFiles.length > 0 || hasMemoryDir;
+  const summary = hasPersonality
+    ? [
+        `Found existing bot workspace (${personalityFiles.length} file${personalityFiles.length !== 1 ? "s" : ""}${hasMemoryDir ? " + memory" : ""}):`,
+        ...lines,
+      ].join("\n")
+    : ["Found workspace files:", ...lines].join("\n");
+
+  return {
+    summary,
+    hasPersonality,
+    hasMemoryDir,
+    personalityCount: personalityFiles.length,
+  };
 }
 
 export function resolveNodeManagerOptions(): Array<{
