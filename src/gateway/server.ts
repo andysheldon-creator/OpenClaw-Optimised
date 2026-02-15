@@ -178,13 +178,13 @@ import {
 } from "./auth.js";
 import { buildMessageWithAttachments } from "./chat-attachments.js";
 import { maskSensitiveFields } from "./config-mask.js";
-import { RateLimiter } from "./rate-limit.js";
 import { handleControlUiHttpRequest } from "./control-ui.js";
 import {
   applyHookMappings,
   type HookMappingResolved,
   resolveHookMappings,
 } from "./hooks-mapping.js";
+import { RateLimiter } from "./rate-limit.js";
 
 ensureClawdisCliOnPath();
 
@@ -442,9 +442,18 @@ type Client = {
 
 /** RPC methods that require a valid CSRF token. */
 const STATE_CHANGING_METHODS = new Set([
-  "config.set", "skills.install", "chat.send", "agent", "send",
-  "sessions.delete", "sessions.reset", "cron.add", "cron.remove",
-  "cron.update", "node.invoke", "voicewake.set",
+  "config.set",
+  "skills.install",
+  "chat.send",
+  "agent",
+  "send",
+  "sessions.delete",
+  "sessions.reset",
+  "cron.add",
+  "cron.remove",
+  "cron.update",
+  "node.invoke",
+  "voicewake.set",
 ]);
 
 function formatBonjourInstanceName(displayName: string) {
@@ -1453,7 +1462,11 @@ export async function startGatewayServer(
     process.env.CLAWDIS_SKIP_CANVAS_HOST !== "1" &&
     cfgAtStart.canvasHost?.enabled !== false;
   assertGatewayAuthConfigured(resolvedAuth);
-  const authRateLimiter = new RateLimiter({ maxTokens: 5, refillIntervalMs: 60_000, failurePenalty: 1 });
+  const authRateLimiter = new RateLimiter({
+    maxTokens: 5,
+    refillIntervalMs: 60_000,
+    failurePenalty: 1,
+  });
   if (tailscaleMode === "funnel" && authMode !== "password") {
     throw new Error(
       "tailscale funnel requires gateway auth mode=password (set gateway.auth.password or CLAWDIS_GATEWAY_PASSWORD)",
@@ -1880,7 +1893,8 @@ export async function startGatewayServer(
   });
   httpServer.on("upgrade", (req, socket, head) => {
     // Security: validate Origin header to block cross-site WebSocket hijacking (CVE-2026-25253).
-    const origin = typeof req.headers.origin === "string" ? req.headers.origin : undefined;
+    const origin =
+      typeof req.headers.origin === "string" ? req.headers.origin : undefined;
     if (!isAllowedOrigin(origin)) {
       log.warn(
         `WebSocket upgrade rejected: disallowed origin="${origin ?? "(none)"}" remote=${req.socket?.remoteAddress ?? "?"}`,
@@ -4449,7 +4463,13 @@ export async function startGatewayServer(
           };
 
           clearTimeout(handshakeTimer);
-          client = { socket, connect: connectParams, connId, presenceKey, csrfToken };
+          client = {
+            socket,
+            connect: connectParams,
+            connId,
+            presenceKey,
+            csrfToken,
+          };
 
           logWs("out", "hello-ok", {
             connId,
@@ -4508,15 +4528,19 @@ export async function startGatewayServer(
         };
 
         void (async () => {
-
           // CSRF validation for state-changing methods
 
           if (STATE_CHANGING_METHODS.has(req.method)) {
-            const csrfParam = (req.params as Record<string, unknown> | undefined)?._csrf;
+            const csrfParam = (
+              req.params as Record<string, unknown> | undefined
+            )?._csrf;
             if (
               typeof csrfParam !== "string" ||
-              csrfParam.length !== client!.csrfToken.length ||
-              !timingSafeEqual(Buffer.from(csrfParam), Buffer.from(client!.csrfToken))
+              csrfParam.length !== client?.csrfToken.length ||
+              !timingSafeEqual(
+                Buffer.from(csrfParam),
+                Buffer.from(client?.csrfToken),
+              )
             ) {
               logWsControl.warn(
                 `CSRF validation failed conn=${connId} method=${req.method}`,
@@ -4524,16 +4548,25 @@ export async function startGatewayServer(
               respond(
                 false,
                 undefined,
-                errorShape(ErrorCodes.INVALID_REQUEST, "CSRF token missing or invalid"),
+                errorShape(
+                  ErrorCodes.INVALID_REQUEST,
+                  "CSRF token missing or invalid",
+                ),
               );
               return;
             }
           }
 
           // Strip _csrf from params before method handlers validate schemas.
-          if (req.params && typeof req.params === "object" && "_csrf" in (req.params as Record<string, unknown>)) {
-            const { _csrf: _csrfStripped, ...cleanParams } = req.params as Record<string, unknown>;
-            (req as { params: unknown }).params = Object.keys(cleanParams).length > 0 ? cleanParams : undefined;
+          if (
+            req.params &&
+            typeof req.params === "object" &&
+            "_csrf" in (req.params as Record<string, unknown>)
+          ) {
+            const { _csrf: _csrfStripped, ...cleanParams } =
+              req.params as Record<string, unknown>;
+            (req as { params: unknown }).params =
+              Object.keys(cleanParams).length > 0 ? cleanParams : undefined;
           }
 
           switch (req.method) {

@@ -114,9 +114,7 @@ describe("maskSensitiveFields", () => {
   it("masks nested skill apiKeys", () => {
     const input = {
       skills: {
-        entries: [
-          { name: "web-search", apiKey: "serp-api-key-12345" },
-        ],
+        entries: [{ name: "web-search", apiKey: "serp-api-key-12345" }],
       },
     };
     const result = maskSensitiveFields(input) as Record<string, unknown>;
