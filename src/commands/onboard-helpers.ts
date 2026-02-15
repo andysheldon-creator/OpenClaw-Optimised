@@ -7,6 +7,7 @@ import { cancel, isCancel } from "@clack/prompts";
 
 import {
   DEFAULT_AGENT_WORKSPACE_DIR,
+  detectExistingWorkspace,
   ensureAgentWorkspace,
 } from "../agents/workspace.js";
 import type { ClawdisConfig } from "../config/config.js";
@@ -99,15 +100,46 @@ export async function openUrl(url: string): Promise<void> {
 export async function ensureWorkspaceAndSessions(
   workspaceDir: string,
   runtime: RuntimeEnv,
+  options?: { forceOverwrite?: boolean },
 ) {
   const ws = await ensureAgentWorkspace({
     dir: workspaceDir,
     ensureBootstrapFiles: true,
+    forceOverwrite: options?.forceOverwrite,
   });
   runtime.log(`Workspace OK: ${ws.dir}`);
   const sessionsDir = resolveSessionTranscriptsDir();
   await fs.mkdir(sessionsDir, { recursive: true });
   runtime.log(`Sessions OK: ${sessionsDir}`);
+}
+
+/**
+ * Check for pre-existing workspace files and return a human-readable summary.
+ * Returns null if no existing files are found.
+ */
+export async function checkExistingWorkspaceFiles(
+  workspaceDir: string,
+): Promise<{
+  summary: string;
+  fileCount: number;
+  hasMemoryDir: boolean;
+} | null> {
+  const { existingFiles, hasMemoryDir } =
+    await detectExistingWorkspace(workspaceDir);
+  if (existingFiles.length === 0 && !hasMemoryDir) return null;
+
+  const lines: string[] = [];
+  for (const f of existingFiles) {
+    lines.push(`  \u2713 ${f.name}`);
+  }
+  if (hasMemoryDir) {
+    lines.push("  \u2713 memory/ (conversation history)");
+  }
+  const summary = [
+    `Found ${existingFiles.length} existing file${existingFiles.length !== 1 ? "s" : ""}${hasMemoryDir ? " + memory directory" : ""}:`,
+    ...lines,
+  ].join("\n");
+  return { summary, fileCount: existingFiles.length, hasMemoryDir };
 }
 
 export function resolveNodeManagerOptions(): Array<{
