@@ -37,12 +37,12 @@ NC='\033[0m'
 banner() {
   echo ""
   echo -e "${MAGENTA}${BOLD}"
-  echo "   ___                    ____ _                "
-  echo "  / _ \ _ __   ___ _ __ / ___| | __ ___      __"
-  echo " | | | | '_ \ / _ \ '_ \ |   | |/ _\` \ \ /\ / /"
-  echo " | |_| | |_) |  __/ | | | |___| | (_| |\ V  V / "
-  echo "  \___/| .__/ \___|_| |_|\____|_|\__,_| \_/\_/  "
-  echo "       |_|            ${CYAN}Optimised Edition${MAGENTA}         "
+  echo -e "   ___                    ____ _                "
+  echo -e "  / _ \ _ __   ___ _ __ / ___| | __ ___      __"
+  echo -e " | | | | '_ \ / _ \ '_ \ |   | |/ _\` \ \ /\ / /"
+  echo -e " | |_| | |_) |  __/ | | | |___| | (_| |\ V  V / "
+  echo -e "  \___/| .__/ \___|_| |_|\____|_|\__,_| \_/\_/  "
+  echo -e "       |_|            ${CYAN}Optimised Edition${MAGENTA}         "
   echo -e "${NC}"
   echo -e "${DIM}  AI assistant gateway · multi-platform · cost-optimised${NC}"
   echo ""
@@ -424,13 +424,19 @@ setup_env() {
     echo -e "  ${DIM}The setup wizard walks you through connecting platforms,${NC}"
     echo -e "  ${DIM}setting budgets, enabling the Board of Directors, and more.${NC}"
     echo ""
-    read -rp "  Run the setup wizard now? [Y/n] " run_wizard
-    if [ "${run_wizard,,}" != "n" ]; then
-      echo ""
-      pnpm clawdis configure \
-        || warn "Wizard exited early. Run later: cd $INSTALL_DIR && pnpm clawdis configure"
+    # When piped from curl, stdin is the pipe — redirect to /dev/tty for real terminal input
+    if [ -e /dev/tty ]; then
+      read -rp "  Run the setup wizard now? [Y/n] " run_wizard < /dev/tty
+      if [ "${run_wizard,,}" != "n" ]; then
+        echo ""
+        pnpm clawdis configure < /dev/tty \
+          || warn "Wizard exited early. Run later: cd $INSTALL_DIR && pnpm clawdis configure"
+      else
+        info "Skipped. Run any time: cd $INSTALL_DIR && pnpm clawdis configure"
+      fi
     else
-      info "Skipped. Run any time: cd $INSTALL_DIR && pnpm clawdis configure"
+      warn "No interactive terminal detected (running via pipe)."
+      info "Run the wizard manually: cd $INSTALL_DIR && pnpm clawdis configure"
     fi
   fi
 }
