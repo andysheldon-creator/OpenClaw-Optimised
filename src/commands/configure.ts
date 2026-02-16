@@ -62,6 +62,7 @@ type WizardSection =
   | "voice"
   | "alerting"
   | "budget"
+  | "board"
   | "missionControl"
   | "health";
 
@@ -900,6 +901,176 @@ async function promptBudgetConfig(
   return next;
 }
 
+// ── Board of Directors ────────────────────────────────────────────────────────
+
+async function promptBoardConfig(
+  cfg: ClawdisConfig,
+  runtime: RuntimeEnv,
+): Promise<ClawdisConfig> {
+  let next = { ...cfg };
+  const existing = next.board;
+
+  if (existing?.enabled) {
+    note(
+      [
+        `Board of Directors: enabled`,
+        `Agents: ${existing.agents?.map((a) => a.role).join(", ") || "defaults (all 6)"}`,
+        `Telegram group: ${existing.telegramGroupId ?? "not set"}`,
+        `Meetings: ${existing.meetings?.enabled !== false ? "enabled" : "disabled"}`,
+        `Consultation: ${existing.consultation?.enabled !== false ? "enabled" : "disabled"} (depth ${existing.consultation?.maxDepth ?? 2})`,
+      ].join("\n"),
+      "Current Board config",
+    );
+  }
+
+  const enableBoard = guardCancel(
+    await confirm({
+      message: "Enable the Board of Directors multi-agent system?",
+      initialValue: existing?.enabled ?? false,
+    }),
+    runtime,
+  );
+
+  if (!enableBoard) {
+    next = {
+      ...next,
+      board: { ...existing, enabled: false },
+    };
+    return next;
+  }
+
+  // Telegram group ID for topic routing
+  const telegramGroupRaw = guardCancel(
+    await text({
+      message:
+        "Telegram supergroup chat ID for topic routing (leave empty to skip):",
+      placeholder: "-1001234567890",
+      initialValue: existing?.telegramGroupId?.toString() ?? "",
+      validate: (val) => {
+        if (!val.trim()) return undefined; // Optional
+        const num = Number(val.trim());
+        if (!Number.isFinite(num)) return "Must be a valid numeric chat ID";
+        return undefined;
+      },
+    }),
+    runtime,
+  );
+  const telegramGroupStr = String(telegramGroupRaw).trim();
+  const telegramGroupId = telegramGroupStr
+    ? Number(telegramGroupStr)
+    : existing?.telegramGroupId;
+
+  // Board meetings
+  const meetingsEnabled = Boolean(
+    guardCancel(
+      await confirm({
+        message:
+          "Enable board meetings? (General agent can coordinate multi-agent discussions)",
+        initialValue: existing?.meetings?.enabled !== false,
+      }),
+      runtime,
+    ),
+  );
+
+  let meetingMaxDurationMs = existing?.meetings?.maxDurationMs ?? 600_000;
+  if (meetingsEnabled) {
+    const durationChoice = guardCancel(
+      await select({
+        message: "Maximum board meeting duration:",
+        options: [
+          { value: "300000", label: "5 minutes" },
+          { value: "600000", label: "10 minutes (default)" },
+          { value: "1200000", label: "20 minutes" },
+          { value: "1800000", label: "30 minutes" },
+        ],
+        initialValue: String(meetingMaxDurationMs),
+      }),
+      runtime,
+    );
+    meetingMaxDurationMs = Number(durationChoice);
+  }
+
+  // Cross-agent consultation
+  const consultEnabled = Boolean(
+    guardCancel(
+      await confirm({
+        message:
+          "Enable cross-agent consultation? (Agents can ask each other questions)",
+        initialValue: existing?.consultation?.enabled !== false,
+      }),
+      runtime,
+    ),
+  );
+
+  let maxDepth = existing?.consultation?.maxDepth ?? 2;
+  if (consultEnabled) {
+    const depthChoice = guardCancel(
+      await select({
+        message: "Maximum consultation depth (prevents infinite loops):",
+        options: [
+          {
+            value: "1",
+            label: "1 level (agent A asks B, B cannot ask others)",
+          },
+          { value: "2", label: "2 levels (default — A asks B, B can ask C)" },
+          { value: "3", label: "3 levels (deepest chain)" },
+        ],
+        initialValue: String(maxDepth),
+      }),
+      runtime,
+    );
+    maxDepth = Number(depthChoice);
+  }
+
+  next = {
+    ...next,
+    board: {
+      ...existing,
+      enabled: true,
+      telegramGroupId: telegramGroupId ?? existing?.telegramGroupId,
+      meetings: {
+        ...existing?.meetings,
+        enabled: meetingsEnabled,
+        maxDurationMs: meetingMaxDurationMs,
+      },
+      consultation: {
+        ...existing?.consultation,
+        enabled: consultEnabled,
+        maxDepth,
+      },
+    },
+  };
+
+  const agentSummary = [
+    "🎯 General (Orchestrator) — Synthesis, delegation",
+    "🔬 Research Analyst — Data, trends, evidence",
+    "🎨 Content Director (CMO) — Brand, messaging",
+    "📊 Finance Director (CFO) — Cost, ROI, budgets",
+    "♟️ Strategy Director (CEO) — Long-term vision",
+    "🔍 Critic (Devil's Advocate) — Risk, stress-testing",
+  ].join("\n");
+
+  note(
+    [
+      "Board of Directors enabled with these agents:",
+      "",
+      agentSummary,
+      "",
+      telegramGroupId
+        ? `Telegram group: ${telegramGroupId}`
+        : "No Telegram group set (use /board-setup in a supergroup to create topics)",
+      `Meetings: ${meetingsEnabled ? "on" : "off"}`,
+      `Consultation: ${consultEnabled ? `on (depth ${maxDepth})` : "off"}`,
+      "",
+      "Personality files: ~/.clawdis/workspace/board/<role>.soul.md",
+      "Customize each agent's personality by editing these files.",
+    ].join("\n"),
+    "Board of Directors configured",
+  );
+
+  return next;
+}
+
 // ── Mission Control ──────────────────────────────────────────────────────────
 
 async function promptMissionControlConfig(
@@ -1131,6 +1302,11 @@ export async function runConfigureWizard(
               hint: "Monthly cap, Ollama routing",
             },
             {
+              value: "board",
+              label: "Board of Directors",
+              hint: "Multi-agent system — 6 specialized agents",
+            },
+            {
               value: "missionControl",
               label: "Mission Control",
               hint: "Squad coordination dashboard proxy",
@@ -1244,6 +1420,10 @@ export async function runConfigureWizard(
 
   if (selected.includes("budget")) {
     nextConfig = await promptBudgetConfig(nextConfig, runtime);
+  }
+
+  if (selected.includes("board")) {
+    nextConfig = await promptBoardConfig(nextConfig, runtime);
   }
 
   if (selected.includes("missionControl")) {

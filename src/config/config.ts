@@ -437,6 +437,56 @@ export type AlertChannel = {
   to?: string;
 };
 
+// ── Board of Directors (Multi-Agent System) ──────────────────────────────────
+
+export type BoardAgentConfigEntry = {
+  /** Agent role identifier. */
+  role: string;
+  /** Display name override. */
+  name?: string;
+  /** Emoji prefix override. */
+  emoji?: string;
+  /** Path to custom personality file (relative to workspace). */
+  soulFile?: string;
+  /** Model override for this agent (provider/model). */
+  model?: string;
+  /** Thinking level override. */
+  thinkingDefault?: "off" | "minimal" | "low" | "medium" | "high";
+  /** Telegram forum topic ID (set during topic setup). */
+  telegramTopicId?: number;
+};
+
+export type BoardMeetingConfig = {
+  /** Enable board meeting coordination (default: true). */
+  enabled?: boolean;
+  /** Max duration for a board meeting in ms (default: 600_000 = 10 min). */
+  maxDurationMs?: number;
+  /** Max turns per agent in a meeting (default: 3). */
+  maxTurnsPerAgent?: number;
+};
+
+export type BoardConsultationConfig = {
+  /** Enable cross-agent consultation (default: true). */
+  enabled?: boolean;
+  /** Max consultation depth to prevent loops (default: 2). */
+  maxDepth?: number;
+  /** Timeout per consultation in ms (default: 120_000 = 2 min). */
+  timeoutMs?: number;
+};
+
+export type BoardConfig = {
+  /** Enable the Board of Directors multi-agent system (default: false). */
+  enabled?: boolean;
+  /** Agent definitions (uses defaults if not provided). */
+  agents?: BoardAgentConfigEntry[];
+  /** Telegram group chat ID for topic-based routing. */
+  telegramGroupId?: number | string;
+  /** Board meeting configuration. */
+  meetings?: BoardMeetingConfig;
+  /** Cross-agent consultation configuration. */
+  consultation?: BoardConsultationConfig;
+};
+
 export type AlertConfig = {
   /** Enable crash/restart alerting (default: false). */
   enabled?: boolean;
@@ -732,6 +782,7 @@ export type ClawdisConfig = {
   talk?: TalkConfig;
   tasks?: TasksConfig;
   alerting?: AlertConfig;
+  board?: BoardConfig;
   gateway?: GatewayConfig;
 };
 
