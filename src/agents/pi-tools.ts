@@ -11,6 +11,7 @@ import {
   type ProcessToolDefaults,
 } from "./bash-tools.js";
 import { createClawdisTools } from "./clawdis-tools.js";
+import { wrapToolsWithGate } from "../security/tool-gating.js";
 import { sanitizeToolResultImages } from "./tool-images.js";
 
 // NOTE(steipete): Upstream read now does file-magic MIME detection; we keep the wrapper
@@ -405,5 +406,7 @@ export function createClawdisCodingTools(options?: {
   const filtered = allowDiscord
     ? tools
     : tools.filter((tool) => tool.name !== "discord");
-  return filtered.map(normalizeToolParameters);
+  // FB-010: Apply human-in-the-loop gating to destructive operations
+  const normalised = filtered.map(normalizeToolParameters);
+  return wrapToolsWithGate(normalised);
 }
