@@ -9,6 +9,7 @@
  * - Only one `claude -p` process at a time (sequential queue).
  * - Subscription defaults to Sonnet 4.5 for cost efficiency.
  * - Falls back to Pi Embedded Runner if `claude` CLI is unavailable.
+ * - Uses --resume with --session-id for conversation continuity.
  */
 
 import { spawn } from "node:child_process";
@@ -32,6 +33,13 @@ export type ClaudeCliRunParams = {
   runId: string;
   /** Session identifier for logging. */
   sessionId: string;
+  /**
+   * When true, resume the conversation identified by `sessionId`.
+   * The first turn in a new session should set this to false so that
+   * the system prompt is established; subsequent turns set it to true
+   * so `claude -p --resume <sessionId>` maintains context.
+   */
+  resumeSession?: boolean;
 };
 
 export type ClaudeCliRunResult = {
@@ -53,6 +61,13 @@ const DEFAULT_TIMEOUT_MS = 120_000;
 /**
  * Spawn `claude -p` and return the response text.
  * This runs a single prompt through the Claude Code CLI in non-interactive mode.
+ *
+ * Session continuity:
+ * - First turn: uses `--session-id <sessionId>` + `--system-prompt` to start
+ *   a new CLI session with the full workspace personality.
+ * - Subsequent turns: uses `--resume <sessionId>` so the CLI loads the prior
+ *   conversation context. The system prompt is omitted on resume since the
+ *   CLI persists it from the first turn.
  */
 export async function runClaudeCli(
   params: ClaudeCliRunParams,
@@ -69,8 +84,19 @@ export async function runClaudeCli(
     args.push("--model", model);
   }
 
-  // System prompt via --system-prompt flag
-  if (params.systemPrompt) {
+  // Session continuity: on the first turn we start a named session with the
+  // full system prompt; on subsequent turns we resume that session so the
+  // CLI loads conversation history automatically.
+  if (params.resumeSession) {
+    args.push("--resume", params.sessionId);
+  } else {
+    // New session — pin the session-id so we can resume it later.
+    args.push("--session-id", params.sessionId);
+  }
+
+  // System prompt via --system-prompt flag (only on the first turn; the CLI
+  // persists the system prompt within the session for subsequent turns).
+  if (params.systemPrompt && !params.resumeSession) {
     args.push("--system-prompt", params.systemPrompt);
   }
 

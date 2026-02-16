@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import os from "node:os";
 import { runClaudeCliQueued } from "../agents/claude-cli-runner.js";
 import { lookupContextTokens } from "../agents/context.js";
 import {
@@ -27,9 +28,11 @@ import {
   buildWorkspaceSkillSnapshot,
   type SkillSnapshot,
 } from "../agents/skills.js";
+import { buildAgentSystemPromptAppend } from "../agents/system-prompt.js";
 import {
   DEFAULT_AGENT_WORKSPACE_DIR,
   ensureAgentWorkspace,
+  loadWorkspaceBootstrapFiles,
 } from "../agents/workspace.js";
 import { parseDurationMs } from "../cli/parse-duration.js";
 import { type ClawdisConfig, loadConfig } from "../config/config.js";
@@ -82,6 +85,13 @@ export type { GetReplyOptions, ReplyPayload } from "./types.js";
 const ABORT_TRIGGERS = new Set(["stop", "esc", "abort", "wait", "exit"]);
 const ABORT_MEMORY = new Map<string, boolean>();
 const SYSTEM_MARK = "⚙️";
+
+/**
+ * Tracks which claude-cli sessions have already been started (and thus have
+ * the system prompt set). Subsequent turns for a known session use --resume
+ * so the CLI loads conversation history automatically.
+ */
+const CLAUDE_CLI_STARTED_SESSIONS = new Set<string>();
 
 type QueueMode =
   | "steer"
@@ -2128,26 +2138,88 @@ export async function getReplyFromConfig(
     // through the Claude Code CLI runner instead of the Pi SDK.
     // On failure, automatically falls back to the pi-embedded (API) runner
     // so the bot keeps working unattended.
+    //
+    // Key improvements over the original stub:
+    // 1. Builds the full workspace system prompt (SOUL.md, IDENTITY.md, etc.)
+    //    so the bot retains its personality — identical to what pi-embedded uses.
+    // 2. Uses --session-id on the first turn and --resume on subsequent turns
+    //    so the Claude CLI maintains conversation history across messages.
+    // 3. Accepts valid text even on non-zero exit codes (partial responses are
+    //    still useful) instead of discarding them.
     const resolvedBackend = cfg.agent?.backend ?? "pi-embedded";
     if (resolvedBackend === "claude-cli") {
       try {
         await startTypingLoop();
+
+        // ── Build the full system prompt ──
+        // Load the same workspace files that pi-embedded uses (SOUL.md,
+        // IDENTITY.md, USER.md, AGENTS.md, TOOLS.md) and assemble the
+        // composite system prompt via buildAgentSystemPromptAppend().
+        const bootstrapFiles = await loadWorkspaceBootstrapFiles(workspaceDir);
+        const contextFileContents = bootstrapFiles
+          .filter((f) => !f.missing && f.content)
+          .map((f) => `### ${f.name}\n${f.content!.trim()}`)
+          .join("\n\n");
+
+        const appendPrompt = buildAgentSystemPromptAppend({
+          workspaceDir,
+          extraSystemPrompt: groupIntro || undefined,
+          ownerNumbers: ownerList.length > 0 ? ownerList : undefined,
+          runtimeInfo: {
+            host: os.hostname(),
+            os: `${os.type()} ${os.release()}`,
+            arch: os.arch(),
+            node: process.version,
+            model: model ?? "claude-sonnet-4-5",
+          },
+        });
+
+        const fullSystemPrompt = [
+          appendPrompt,
+          "",
+          "## Project Context (workspace files)",
+          contextFileContents,
+        ]
+          .filter(Boolean)
+          .join("\n");
+
+        // ── Session continuity ──
+        // On the first turn for this session we pass the system prompt and
+        // pin the session-id; subsequent turns use --resume so the CLI
+        // loads the conversation automatically.
+        const isResume = CLAUDE_CLI_STARTED_SESSIONS.has(sessionIdFinal);
+
         const cliResult = await runClaudeCliQueued({
           prompt: commandBody,
           workspaceDir,
           model: model ?? "claude-sonnet-4-5",
-          systemPrompt: groupIntro || undefined,
+          systemPrompt: fullSystemPrompt,
           timeoutMs,
           runId,
           sessionId: sessionIdFinal,
+          resumeSession: isResume,
         });
+
+        // Mark session as started so future turns resume it.
+        CLAUDE_CLI_STARTED_SESSIONS.add(sessionIdFinal);
+
         cleanupTyping();
-        if (cliResult.exitCode === 0 && cliResult.text) {
+
+        // Accept any non-empty response, even on non-zero exit.
+        // A non-zero exit can indicate a partial timeout or recoverable
+        // error; the text is still valid and useful to return.
+        if (cliResult.text) {
+          if (cliResult.exitCode !== 0) {
+            defaultRuntime.log?.(
+              `[claude-cli] non-zero exit=${cliResult.exitCode} but got text — returning response`,
+            );
+          }
           return finalizeWithFollowup({ text: cliResult.text });
         }
-        // Non-zero exit or empty text — fall through to pi-embedded
+
+        // Truly empty response — fall through to pi-embedded
         defaultRuntime.error(
-          `Claude CLI returned exit=${cliResult.exitCode} — falling back to API backend`,
+          `Claude CLI returned exit=${cliResult.exitCode} with no text — falling back to API backend`,
         );
       } catch (err) {
         cleanupTyping();
