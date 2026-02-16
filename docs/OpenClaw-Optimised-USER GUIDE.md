@@ -407,21 +407,144 @@ Each feature below is optional. They are listed roughly in order of "most people
 
 ---
 
-## 6. Hybrid LLM Routing (Ollama)
+## 6. Hybrid LLM Routing (Ollama) — Full Install Guide
 
-**What it does for you:** Saves you money. Simple queries ("what time is it?", "convert 5km to miles") get routed to a free local model running on your machine via Ollama. Complex queries still go to Claude. This typically saves 40-50% on API costs with no noticeable quality drop.
+**What it does for you:** Saves you money — significantly. Instead of sending every message to the paid Anthropic API, OpenClaw-Optimised scores each incoming query for complexity and routes simple ones to a free local model running on your own machine via Ollama. Complex queries still go to Claude. In practice, this saves **40-50% on API costs** with no noticeable quality drop on the queries that get handled locally.
 
-**What you need:** [Ollama](https://ollama.com) installed with at least one model pulled.
+**How the routing works under the hood:**
 
-**Setup:**
+OpenClaw-Optimised uses a 6-tier routing system. Each incoming message gets a complexity score (0-1) and is classified by task type (greeting, math, coding, reasoning, etc.), then routed to the cheapest model that can handle it:
 
-1. Install Ollama: [ollama.com/download](https://ollama.com/download)
-2. Pull a model: `ollama pull llama3.2` (or `mistral`, `phi3`, etc.)
-3. Run `pnpm clawdis configure` → select "Budget & cost controls"
-4. Enable Ollama → enter host URL (default: `http://localhost:11434`)
-5. The wizard probes Ollama and shows available models
+| Tier | Model | Cost | Handles |
+|------|-------|------|---------|
+| 1. LOCAL | No LLM needed | Free | Time/date queries, basic math, canned responses |
+| 2. OLLAMA_CHAT | `llama3.1:8b` (local) | Free | Greetings, simple facts, translations, casual chat |
+| 3. OLLAMA_VISION | `llava:7b` (local) | Free | Image descriptions, screenshot analysis |
+| 4. CLAUDE_HAIKU | Claude Haiku (API) | $$ | Medium complexity, structured outputs |
+| 5. CLAUDE_SONNET | Claude Sonnet (API) | $$$ | Complex reasoning, code generation |
+| 6. CLAUDE_OPUS | Claude Opus (API) | $$$$ | Maximum reasoning, multi-step analysis |
 
-**Key config:**
+Tiers 1-3 are completely free because they run on your hardware. The system automatically escalates to paid tiers only when it needs to.
+
+### Step-by-Step Ollama Installation
+
+#### Windows
+
+**Option A: Installer (Recommended)**
+
+1. Go to [ollama.com/download/windows](https://ollama.com/download/windows)
+2. Download `OllamaSetup.exe`
+3. Run the installer — it does not require administrator rights
+4. Ollama installs and starts running in the background automatically
+5. Verify it is running — open PowerShell or Command Prompt and run:
+   ```
+   ollama --version
+   ```
+   You should see a version number like `0.6.x` or later.
+
+**Option B: Via winget**
+
+```powershell
+winget install --id Ollama.Ollama
+```
+
+#### macOS
+
+```bash
+# Option A: Direct download
+# Go to https://ollama.com/download/mac and install the .dmg
+
+# Option B: Homebrew
+brew install ollama
+```
+
+#### Linux
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+```
+
+### Pull the Required Models
+
+OpenClaw-Optimised uses **three specific models** for different purposes. You need all three for full functionality:
+
+```bash
+# 1. CHAT MODEL — handles simple conversations, greetings, basic questions
+#    This is the workhorse that saves you the most money
+#    Size: ~4.7 GB download, runs on 8GB+ RAM
+ollama pull llama3.1:8b
+
+# 2. EMBEDDING MODEL — powers RAG (semantic memory search)
+#    Converts text into vectors for finding relevant past conversations
+#    Size: ~274 MB download, very lightweight
+ollama pull nomic-embed-text
+
+# 3. VISION MODEL — analyses images sent to the assistant
+#    Handles screenshots, photos, diagrams without using paid API
+#    Size: ~4.7 GB download, needs 8GB+ RAM
+ollama pull llava:7b
+```
+
+**Total download: ~9.7 GB** (one-time download, stored locally)
+
+**Hardware note:** You need at least **8 GB of RAM** to run the chat and vision models. 16 GB is recommended if you want to run both concurrently. If you have a dedicated GPU (NVIDIA with CUDA, or Apple Silicon), inference will be significantly faster, but it works on CPU too — just slower.
+
+### Verify Ollama Is Working
+
+After pulling the models, test each one:
+
+```bash
+# Test the chat model
+ollama run llama3.1:8b "What is 2+2?"
+# Should respond: "4" (or similar)
+
+# Test the embedding model
+curl http://localhost:11434/api/embeddings -d '{"model":"nomic-embed-text","prompt":"test"}'
+# Should return a JSON object with an "embedding" array
+
+# Test the vision model
+ollama run llava:7b "Describe this image" --images path/to/any/image.jpg
+# Should describe the image contents
+```
+
+If all three work, Ollama is ready.
+
+### Configure OpenClaw-Optimised to Use Ollama
+
+**Option A: Via .env file**
+
+Add these to your `.env` file:
+
+```bash
+# Enable Ollama integration
+ENABLE_OLLAMA=true
+OLLAMA_HOST=http://localhost:11434
+
+# Models (these are the defaults — only set if you want different ones)
+OLLAMA_MODEL=llama3.1:8b
+OLLAMA_EMBED_MODEL=nomic-embed-text
+OLLAMA_VISION_MODEL=llava:7b
+
+# Enable all the features that use Ollama
+ENABLE_HYBRID_ROUTING=true
+ENABLE_EMBEDDINGS=true
+ENABLE_RAG=true
+ENABLE_SUMMARIZATION=true
+ENABLE_VISION_ROUTING=true
+
+# Routing mode
+HYBRID_ROUTING_MODE=balanced
+```
+
+**Option B: Via the setup wizard**
+
+```bash
+pnpm clawdis configure
+```
+
+Select "Budget & cost controls" → enable Ollama → enter the host URL. The wizard will probe Ollama, show you which models are available, and warn you if any are missing.
+
+**Option C: Via clawdis.json directly**
 
 ```json
 {
@@ -431,16 +554,62 @@ Each feature below is optional. They are listed roughly in order of "most people
       "mode": "balanced",
       "visionEnabled": true,
       "visionModel": "llava:7b",
-      "summarizationEnabled": true
+      "summarizationEnabled": true,
+      "summarizeThreshold": 15,
+      "summarizeKeepRecent": 6
+    },
+    "rag": {
+      "enabled": true,
+      "topK": 10,
+      "minScore": 0.35,
+      "recencyWindow": 4
     }
   }
 }
 ```
 
-**Routing modes:**
-- `"aggressive"` — routes everything possible to Ollama (maximum savings, lower quality on edge cases)
-- `"balanced"` — default. Routes simple queries locally, complex ones to Claude
-- `"quality"` — only routes trivial queries locally (minimum savings, maximum quality)
+### Routing Modes Explained
+
+| Mode | What it does | Best for |
+|------|-------------|----------|
+| `"aggressive"` | Routes as much as possible to Ollama. Only sends clearly complex queries to Claude. | Maximum cost savings. Fine for casual personal use. |
+| `"balanced"` | Smart scoring — simple queries go local, complex ones go to Claude. Default. | Most users. Good balance of quality and savings. |
+| `"quality"` | Only routes trivially simple queries to Ollama (greetings, time, basic math). | When quality matters most. Business-facing bots, client demos. |
+
+### Verify It's All Working Together
+
+After starting the gateway (`pnpm clawdis gateway`), send these test messages and check the logs:
+
+1. **"Hi, how are you?"** → should route to Ollama (free). Logs show `[hybrid] → ollama_chat`
+2. **"Write me a Python function that sorts a linked list"** → should route to Claude Sonnet. Logs show `[hybrid] → claude_sonnet`
+3. **Send a photo** → should route to Ollama vision (free). Logs show `[hybrid] → ollama_vision`
+
+### Troubleshooting Ollama
+
+**"Ollama not reachable"**
+- Check Ollama is running: `ollama list` (should show your pulled models)
+- On Windows, Ollama runs as a background service — check the system tray icon
+- Verify the URL: `curl http://localhost:11434/api/tags` should return JSON with your models
+
+**"Model not found"**
+- The specific error message tells you which model to pull: `ollama pull <model-name>`
+- Run `ollama list` to see what you have installed
+
+**"Slow responses from Ollama"**
+- CPU inference is slower than GPU. On CPU, expect 2-5 seconds for simple queries.
+- If you have an NVIDIA GPU, install CUDA drivers — Ollama uses GPU automatically.
+- On Apple Silicon (M1/M2/M3/M4), Ollama uses the GPU by default — should be fast.
+- Consider using a smaller chat model: set `OLLAMA_MODEL=llama3.2:3b` for faster (but slightly lower quality) responses.
+
+**"Out of memory"**
+- Close other memory-heavy applications
+- Use the smaller 3B model: `ollama pull llama3.2:3b` and set `OLLAMA_MODEL=llama3.2:3b`
+- Disable vision routing if you don't need it: set `ENABLE_VISION_ROUTING=false`
+
+**"Ollama works but queries still go to Claude"**
+- Check `ENABLE_HYBRID_ROUTING=true` in your `.env`
+- Try `HYBRID_ROUTING_MODE=aggressive` to force more queries through Ollama
+- Check gateway logs for routing decisions — each message shows which tier was selected
 
 ---
 
