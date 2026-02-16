@@ -12,6 +12,7 @@ import { defaultRuntime } from "../runtime.js";
 import {
   extractAssistantText,
   inferToolMetaFromArgs,
+  isHallucinatedToolCall,
 } from "./pi-embedded-utils.js";
 
 const THINKING_TAG_RE = /<\s*\/?\s*think(?:ing)?\s*>/gi;
@@ -373,6 +374,15 @@ export function subscribeEmbeddedPiSession(params: {
             }
 
             if (evtType === "text_end" && blockReplyBreak === "text_end") {
+              // Guard: skip hallucinated tool calls from small/local LLMs.
+              if (next && isHallucinatedToolCall(next)) {
+                defaultRuntime.log?.(
+                  `[subscribe] stripped hallucinated tool call from streamed text: ${next.slice(0, 120)}`,
+                );
+                deltaBuffer = "";
+                lastStreamedAssistant = undefined;
+                return;
+              }
               if (next && next === lastBlockReplyText) {
                 deltaBuffer = "";
                 lastStreamedAssistant = undefined;
