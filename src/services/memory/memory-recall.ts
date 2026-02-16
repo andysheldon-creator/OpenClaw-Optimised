@@ -18,6 +18,7 @@ import { defaultRuntime } from "../../runtime.js";
 import {
   type Fact,
   type FtsResult,
+  type SourceType,
   getAllEntities,
   getEntity,
   getEntityFacts,
@@ -39,6 +40,10 @@ export type RecallItem = {
   source: string;
   confidence?: number;
   rank?: number;
+  /** Provenance source type (FB-009). */
+  sourceType?: SourceType;
+  /** Trust level 0.0–1.0 (FB-009). */
+  trustLevel?: number;
 };
 
 /** Complete recall result. */
@@ -300,8 +305,13 @@ export function buildMemoryContext(result: RecallResult): string {
     const confTag =
       item.confidence !== undefined ? ` (confidence: ${item.confidence})` : "";
     const typeTag = `[${item.kind}]`;
+    // FB-009: show provenance for low-trust items so the agent can weigh them
+    const trustTag =
+      item.trustLevel !== undefined && item.trustLevel < 0.5
+        ? ` ⚠ low-trust:${item.sourceType ?? "unknown"}(${item.trustLevel.toFixed(1)})`
+        : "";
 
-    lines.push(`${typeTag}${entityTag}${confTag} ${item.content}`);
+    lines.push(`${typeTag}${entityTag}${confTag}${trustTag} ${item.content}`);
   }
 
   return lines.join("\n");
@@ -355,6 +365,8 @@ function ftsToRecallItem(fts: FtsResult): RecallItem {
     content: fts.content,
     source: `facts/${fts.factId} (${fts.sourceDay})`,
     rank: fts.rank,
+    sourceType: fts.sourceType,
+    trustLevel: fts.trustLevel,
   };
 }
 
@@ -376,6 +388,8 @@ function factToRecallItem(fact: Fact): RecallItem {
     content: fact.content,
     source: `facts/${fact.id} (${fact.sourceDay})`,
     confidence: fact.confidence ?? undefined,
+    sourceType: fact.sourceType,
+    trustLevel: fact.trustLevel,
   };
 }
 

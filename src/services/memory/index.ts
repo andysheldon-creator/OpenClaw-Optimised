@@ -44,6 +44,7 @@ export {
 
 export {
   closeMemoryStore,
+  DEFAULT_TRUST_LEVELS,
   type Entity,
   type EntityRef,
   type Fact,
@@ -52,6 +53,7 @@ export {
   getMemoryStats,
   type MemoryStats,
   type Opinion,
+  type SourceType,
 } from "./memory-store.js";
 
 import { defaultRuntime } from "../../runtime.js";

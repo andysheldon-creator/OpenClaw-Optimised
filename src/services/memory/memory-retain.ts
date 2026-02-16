@@ -19,8 +19,10 @@ import type { AgentMessage } from "@mariozechner/pi-agent-core";
 
 import { defaultRuntime } from "../../runtime.js";
 import {
+  DEFAULT_TRUST_LEVELS,
   type EntityRef,
   type FactType,
+  type SourceType,
   factExists,
   insertFacts,
 } from "./memory-store.js";
@@ -257,6 +259,8 @@ export type RetainResult = {
   factsStored: number;
   entitiesFound: string[];
   durationMs: number;
+  sourceType: SourceType;
+  trustLevel: number;
 };
 
 /**
@@ -265,15 +269,22 @@ export type RetainResult = {
  * @param params.sessionId - Session these messages belong to
  * @param params.messages - Messages to extract facts from
  * @param params.timestamp - Override timestamp (default: now)
+ * @param params.sourceType - Provenance source type (FB-009). Defaults to 'unknown'.
+ * @param params.trustLevel - Trust level 0.0–1.0 (FB-009). Defaults by source type.
  */
 export function retainMessages(params: {
   sessionId: string;
   messages: AgentMessage[];
   timestamp?: number;
+  sourceType?: SourceType;
+  trustLevel?: number;
 }): RetainResult {
   const started = Date.now();
   const allEntities = new Set<string>();
   let extracted = 0;
+
+  const srcType: SourceType = params.sourceType ?? "unknown";
+  const trust = params.trustLevel ?? DEFAULT_TRUST_LEVELS[srcType];
 
   const factsToInsert: Array<{
     sessionId: string;
@@ -283,6 +294,8 @@ export function retainMessages(params: {
     sourceDay: string;
     confidence?: number;
     entities?: EntityRef[];
+    sourceType?: SourceType;
+    trustLevel?: number;
   }> = [];
 
   for (const msg of params.messages) {
@@ -316,6 +329,8 @@ export function retainMessages(params: {
         sourceDay: day,
         confidence,
         entities: entities.length > 0 ? entities : undefined,
+        sourceType: srcType,
+        trustLevel: trust,
       });
 
       extracted++;
@@ -349,6 +364,8 @@ export function retainMessages(params: {
     factsStored: stored,
     entitiesFound: [...allEntities],
     durationMs: duration,
+    sourceType: srcType,
+    trustLevel: trust,
   };
 }
 
@@ -358,6 +375,8 @@ export function retainMessages(params: {
 export function backgroundRetain(params: {
   sessionId: string;
   messages: AgentMessage[];
+  sourceType?: SourceType;
+  trustLevel?: number;
 }): void {
   try {
     retainMessages(params);

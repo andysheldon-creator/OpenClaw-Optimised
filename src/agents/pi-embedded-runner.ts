@@ -796,6 +796,8 @@ export async function runEmbeddedPiAgent(params: {
             backgroundRetain({
               sessionId: sessionIdUsed,
               messages: messagesSnapshot,
+              // FB-009: user messages from conversation are highest trust
+              sourceType: "user",
             });
           }
         }

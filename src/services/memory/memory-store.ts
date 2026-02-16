@@ -29,6 +29,25 @@ import { defaultRuntime } from "../../runtime.js";
 /** Fact types matching the memory.md design. */
 export type FactType = "world" | "experience" | "opinion" | "observation";
 
+/**
+ * Source type for provenance tracking (FB-009).
+ * Differentiates between user, web, skill, tool, and system sources.
+ */
+export type SourceType = "user" | "web" | "skill" | "tool" | "system" | "unknown";
+
+/**
+ * Default trust levels per source type.
+ * User-provided data is most trusted; web-scraped data is least trusted.
+ */
+export const DEFAULT_TRUST_LEVELS: Record<SourceType, number> = {
+  user: 1.0,
+  system: 0.9,
+  tool: 0.7,
+  skill: 0.6,
+  web: 0.3,
+  unknown: 0.5,
+};
+
 /** A structured fact extracted from conversation. */
 export type Fact = {
   id: number;
@@ -39,6 +58,10 @@ export type Fact = {
   sourceDay: string;
   entities: string[];
   confidence?: number;
+  /** Where the data came from (FB-009 provenance). */
+  sourceType: SourceType;
+  /** Trust level 0.0–1.0 (FB-009 provenance). */
+  trustLevel: number;
 };
 
 /** An entity tracked across conversations. */
@@ -106,6 +129,8 @@ function initSchema(database: BetterSqlite3.Database): void {
       timestamp INTEGER NOT NULL,
       source_day TEXT NOT NULL,
       confidence REAL,
+      source_type TEXT NOT NULL DEFAULT 'unknown',
+      trust_level REAL NOT NULL DEFAULT 0.5,
       created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
     );
 
@@ -166,6 +191,33 @@ function initSchema(database: BetterSqlite3.Database): void {
     CREATE INDEX IF NOT EXISTS idx_fact_entities_entity ON fact_entities(entity_id);
     CREATE INDEX IF NOT EXISTS idx_opinions_entity ON opinions(entity_slug);
   `);
+
+  // ── FB-009 migration: add source_type + trust_level to existing databases ──
+  // SQLite doesn't support ALTER TABLE ADD COLUMN IF NOT EXISTS, so we
+  // check the table info first and only add missing columns.
+  const columns = database
+    .prepare("PRAGMA table_info(facts)")
+    .all() as Array<{ name: string }>;
+  const colNames = new Set(columns.map((c) => c.name));
+
+  if (!colNames.has("source_type")) {
+    database.exec(
+      `ALTER TABLE facts ADD COLUMN source_type TEXT NOT NULL DEFAULT 'unknown'`,
+    );
+    defaultRuntime.log?.("[memory-store] migrated: added source_type column to facts");
+  }
+  if (!colNames.has("trust_level")) {
+    database.exec(
+      `ALTER TABLE facts ADD COLUMN trust_level REAL NOT NULL DEFAULT 0.5`,
+    );
+    defaultRuntime.log?.("[memory-store] migrated: added trust_level column to facts");
+  }
+
+  // Index for trust-weighted queries (FB-013 will use this)
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_facts_source_type ON facts(source_type);
+    CREATE INDEX IF NOT EXISTS idx_facts_trust_level ON facts(trust_level);
+  `);
 }
 
 // ─── Fact CRUD ───────────────────────────────────────────────────────────────
@@ -192,12 +244,19 @@ export function insertFact(params: {
   sourceDay: string;
   confidence?: number;
   entities?: EntityRef[];
+  /** Source type for provenance tracking (FB-009). Defaults to 'unknown'. */
+  sourceType?: SourceType;
+  /** Trust level 0.0–1.0 for provenance (FB-009). Defaults by source type. */
+  trustLevel?: number;
 }): number {
   const database = getDb();
 
+  const srcType: SourceType = params.sourceType ?? "unknown";
+  const trust = params.trustLevel ?? DEFAULT_TRUST_LEVELS[srcType];
+
   const insert = database.prepare(`
-    INSERT INTO facts (session_id, fact_type, content, timestamp, source_day, confidence)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO facts (session_id, fact_type, content, timestamp, source_day, confidence, source_type, trust_level)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const result = insert.run(
@@ -207,6 +266,8 @@ export function insertFact(params: {
     params.timestamp,
     params.sourceDay,
     params.confidence ?? null,
+    srcType,
+    trust,
   );
 
   const factId = Number(result.lastInsertRowid);
@@ -269,6 +330,8 @@ export function insertFacts(
     sourceDay: string;
     confidence?: number;
     entities?: EntityRef[];
+    sourceType?: SourceType;
+    trustLevel?: number;
   }>,
 ): number[] {
   const database = getDb();
@@ -301,6 +364,8 @@ export type FtsResult = {
   timestamp: number;
   sourceDay: string;
   rank: number;
+  sourceType: SourceType;
+  trustLevel: number;
 };
 
 /**
@@ -322,6 +387,7 @@ export function searchFts(query: string, limit = 20): FtsResult[] {
     .prepare(
       `SELECT f.id as factId, f.content, f.fact_type as factType,
               f.session_id as sessionId, f.timestamp, f.source_day as sourceDay,
+              f.source_type as sourceType, f.trust_level as trustLevel,
               rank
        FROM facts_fts fts
        JOIN facts f ON f.id = fts.rowid
@@ -345,7 +411,8 @@ export function getEntityFacts(entitySlug: string, limit = 50): Fact[] {
   const rows = database
     .prepare(
       `SELECT f.id, f.session_id as sessionId, f.fact_type as factType,
-              f.content, f.timestamp, f.source_day as sourceDay, f.confidence
+              f.content, f.timestamp, f.source_day as sourceDay, f.confidence,
+              f.source_type as sourceType, f.trust_level as trustLevel
        FROM facts f
        JOIN fact_entities fe ON fe.fact_id = f.id
        JOIN entities e ON e.id = fe.entity_id
@@ -358,6 +425,8 @@ export function getEntityFacts(entitySlug: string, limit = 50): Fact[] {
       sessionId: string;
       factType: FactType;
       sourceDay: string;
+      sourceType: SourceType;
+      trustLevel: number;
     }
   >;
 
@@ -412,7 +481,8 @@ export function getFactsByTimeRange(
   const rows = database
     .prepare(
       `SELECT f.id, f.session_id as sessionId, f.fact_type as factType,
-              f.content, f.timestamp, f.source_day as sourceDay, f.confidence
+              f.content, f.timestamp, f.source_day as sourceDay, f.confidence,
+              f.source_type as sourceType, f.trust_level as trustLevel
        FROM facts f
        WHERE f.timestamp BETWEEN ? AND ?
        ORDER BY f.timestamp DESC
@@ -435,7 +505,8 @@ export function getFactsByDay(day: string, limit = 50): Fact[] {
   const rows = database
     .prepare(
       `SELECT f.id, f.session_id as sessionId, f.fact_type as factType,
-              f.content, f.timestamp, f.source_day as sourceDay, f.confidence
+              f.content, f.timestamp, f.source_day as sourceDay, f.confidence,
+              f.source_type as sourceType, f.trust_level as trustLevel
        FROM facts f
        WHERE f.source_day = ?
        ORDER BY f.timestamp DESC
