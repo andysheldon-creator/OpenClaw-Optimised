@@ -83,8 +83,8 @@ export function renderOverview(props: OverviewProps) {
           </label>
         </div>
         <div class="row" style="margin-top: 14px;">
-          <button class="btn" @click=${() => props.onRefresh()}>Refresh</button>
-          <span class="muted">Reconnect to apply changes.</span>
+          <button class="btn" @click=${() => props.onRefresh()}>Reconnect</button>
+          <span class="muted">Reconnect to apply URL, token, or password changes.</span>
         </div>
       </div>
 

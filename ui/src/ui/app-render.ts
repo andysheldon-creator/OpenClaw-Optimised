@@ -270,7 +270,7 @@ export function renderApp(state: AppViewState) {
                 state.chatMessage = "";
                 state.applySettings({ ...state.settings, sessionKey: next });
               },
-              onRefresh: () => state.loadOverview(),
+              onRefresh: () => { state.connect(); },
             })
           : nothing}
 
