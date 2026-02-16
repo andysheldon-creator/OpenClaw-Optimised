@@ -81,6 +81,51 @@ export async function sanitizeSessionMessagesImages(
   return out;
 }
 
+/**
+ * Strip orphaned toolResult messages whose corresponding assistant tool_use
+ * block is missing from the conversation history.
+ *
+ * This happens when conversation windowing, summarisation, or session
+ * restoration removes an assistant message but leaves its tool results.
+ * The Anthropic API rejects requests containing tool_result blocks
+ * without a matching tool_use in the preceding assistant message.
+ */
+export function stripOrphanedToolResults(
+  messages: AgentMessage[],
+): AgentMessage[] {
+  // Collect all tool_use IDs from assistant messages.
+  const knownToolCallIds = new Set<string>();
+  for (const msg of messages) {
+    if (!msg || typeof msg !== "object") continue;
+    const role = (msg as { role?: unknown }).role;
+    if (role === "assistant") {
+      const content = (msg as { content?: unknown[] }).content;
+      if (Array.isArray(content)) {
+        for (const block of content) {
+          if (
+            block &&
+            typeof block === "object" &&
+            (block as { type?: string }).type === "toolCall" &&
+            typeof (block as { id?: unknown }).id === "string"
+          ) {
+            knownToolCallIds.add((block as { id: string }).id);
+          }
+        }
+      }
+    }
+  }
+
+  // Filter out toolResult messages with no matching tool_use.
+  return messages.filter((msg) => {
+    if (!msg || typeof msg !== "object") return true;
+    const role = (msg as { role?: unknown }).role;
+    if (role !== "toolResult") return true;
+    const toolCallId = (msg as { toolCallId?: unknown }).toolCallId;
+    if (typeof toolCallId !== "string") return true;
+    return knownToolCallIds.has(toolCallId);
+  });
+}
+
 export function buildBootstrapContextFiles(
   files: WorkspaceBootstrapFile[],
 ): EmbeddedContextFile[] {

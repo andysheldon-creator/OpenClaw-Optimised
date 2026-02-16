@@ -70,6 +70,7 @@ import {
   ensureSessionHeader,
   formatAssistantErrorText,
   sanitizeSessionMessagesImages,
+  stripOrphanedToolResults,
 } from "./pi-embedded-helpers.js";
 import { subscribeEmbeddedPiSession } from "./pi-embedded-subscribe.js";
 import { extractAssistantText } from "./pi-embedded-utils.js";
@@ -600,10 +601,15 @@ export async function runEmbeddedPiAgent(params: {
           }
         }
 
-        const prior = await sanitizeSessionMessagesImages(
+        const sanitized = await sanitizeSessionMessagesImages(
           contextMessages,
           "session:history",
         );
+
+        // Strip toolResult messages whose assistant tool_use was lost due to
+        // conversation windowing, summarisation, or session restoration.
+        // The Anthropic API rejects orphaned tool_result blocks.
+        const prior = stripOrphanedToolResults(sanitized);
 
         // --- Vision Routing (Week 4) ---
         // If there are images in the message history, route them through
