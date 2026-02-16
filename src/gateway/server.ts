@@ -4488,21 +4488,26 @@ export async function startGatewayServer(
           }
 
           // Rate limiting: block brute-force auth attempts (MITRE ATLAS AML.CS0048).
+          // Skip rate limiting for loopback connections — the Control UI on
+          // localhost can burn through tokens during password setup, and
+          // brute-force attacks come from the network, not 127.0.0.1.
           const rlKey = remoteAddr ?? "unknown";
-          const rlResult = authRateLimiter.check(rlKey);
-          if (!rlResult.allowed) {
-            logWsControl.warn(
-              `rate limited conn=${connId} remote=${remoteAddr ?? "?"} retryAfterMs=${rlResult.retryAfterMs}`,
-            );
-            send({
-              type: "res",
-              id: frame.id,
-              ok: false,
-              error: errorShape(ErrorCodes.UNAVAILABLE, "rate limited"),
-            });
-            socket.close(1008, "rate limited");
-            close();
-            return;
+          if (!isLoopbackAddress(remoteAddr)) {
+            const rlResult = authRateLimiter.check(rlKey);
+            if (!rlResult.allowed) {
+              logWsControl.warn(
+                `rate limited conn=${connId} remote=${remoteAddr ?? "?"} retryAfterMs=${rlResult.retryAfterMs}`,
+              );
+              send({
+                type: "res",
+                id: frame.id,
+                ok: false,
+                error: errorShape(ErrorCodes.UNAVAILABLE, "rate limited"),
+              });
+              socket.close(1008, "rate limited");
+              close();
+              return;
+            }
           }
 
           const authResult = await authorizeGatewayConnect({
@@ -4511,7 +4516,9 @@ export async function startGatewayServer(
             req: upgradeReq,
           });
           if (!authResult.ok) {
-            authRateLimiter.penalize(rlKey);
+            if (!isLoopbackAddress(remoteAddr)) {
+              authRateLimiter.penalize(rlKey);
+            }
             logWsControl.warn(
               `unauthorized conn=${connId} remote=${remoteAddr ?? "?"} client=${connectParams.client.name} ${connectParams.client.mode} v${connectParams.client.version}`,
             );

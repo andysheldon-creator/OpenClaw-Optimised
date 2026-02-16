@@ -79,6 +79,13 @@ export class GatewayBrowserClient {
       this.ws = null;
       this.flushPending(new Error(`gateway closed (${ev.code}): ${reason}`));
       this.opts.onClose?.({ code: ev.code, reason });
+      // Don't auto-reconnect on auth rejection (1008) — retrying with the
+      // same credentials will never succeed and just burns rate-limit tokens.
+      // The user must fix credentials and click Reconnect manually.
+      if (ev.code === 1008) {
+        this.closed = true;
+        return;
+      }
       this.scheduleReconnect();
     };
     this.ws.onerror = () => {
