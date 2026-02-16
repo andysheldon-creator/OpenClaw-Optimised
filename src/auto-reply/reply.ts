@@ -59,6 +59,7 @@ import {
 import { clearCommandLane, getQueueSize } from "../process/command-queue.js";
 import { defaultRuntime } from "../runtime.js";
 import { routeMessage } from "../services/ollama-router.js";
+import { scanForInjection } from "../security/prompt-injection.js";
 import { normalizeE164 } from "../utils.js";
 import { resolveHeartbeatSeconds } from "../web/reconnect.js";
 import { getWebAuthAgeMs, webAuthExists } from "../web/session.js";
@@ -846,6 +847,33 @@ export async function getReplyFromConfig(
       ctx.Body = transcribed.text;
       ctx.Transcript = transcribed.text;
       logVerbose("Replaced Body with audio transcript for reply flow");
+    }
+  }
+
+  // ── Prompt injection scanning (FB-008) ──────────────────────────────
+  // Scan the finalized body text for injection patterns before it reaches
+  // the agent. Critical/high severity matches are logged and the input is
+  // sanitised (dangerous patterns neutralised) so the agent sees them
+  // flagged rather than executing them blindly.
+  const bodyForScan = ctx.Body?.trim() ?? "";
+  if (bodyForScan) {
+    const injectionResult = scanForInjection(bodyForScan, {
+      source: ctx.Surface ?? "unknown",
+      sanitise: true,
+    });
+    if (injectionResult.detected) {
+      // Replace body with sanitised version
+      ctx.Body = injectionResult.sanitised;
+      if (
+        injectionResult.severity === "critical" ||
+        injectionResult.severity === "high"
+      ) {
+        defaultRuntime.log?.(
+          `[prompt-injection] ${injectionResult.severity} injection detected from ${ctx.Surface ?? "unknown"}: ` +
+            `risk=${injectionResult.riskScore} matches=${injectionResult.matches.length} ` +
+            `categories=${[...new Set(injectionResult.matches.map((m) => m.category))].join(",")}`,
+        );
+      }
     }
   }
 
