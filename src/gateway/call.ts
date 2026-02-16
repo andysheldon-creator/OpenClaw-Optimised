@@ -95,6 +95,7 @@ export async function callGateway<T = unknown>(
       },
       onClose: (code, reason) => {
         if (settled || ignoreClose) return;
+        client.stop(); // Prevent reconnect loop after the promise settles
         stop(new Error(`gateway closed (${code}): ${reason}`));
       },
     });
