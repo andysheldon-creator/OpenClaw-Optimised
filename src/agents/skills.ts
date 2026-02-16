@@ -9,6 +9,7 @@ import {
 } from "@mariozechner/pi-coding-agent";
 
 import type { ClawdisConfig, SkillConfig } from "../config/config.js";
+import { checkSkillIntegrity } from "../security/skill-integrity.js";
 import { CONFIG_DIR, resolveUserPath } from "../utils.js";
 
 export type SkillInstallSpec = {
@@ -551,6 +552,20 @@ export function buildWorkspaceSkillSnapshot(
   const skillEntries = opts?.entries ?? loadSkillEntries(workspaceDir, opts);
   const eligible = filterSkillEntries(skillEntries, opts?.config);
   const resolvedSkills = eligible.map((entry) => entry.skill);
+
+  // FB-011: Verify skill file integrity on every load
+  try {
+    checkSkillIntegrity(
+      resolvedSkills.map((s) => ({
+        name: s.name,
+        filePath: s.filePath,
+        source: s.source ?? "clawdis-extra",
+      })),
+    );
+  } catch {
+    // Non-fatal: integrity check failures are logged but don't block loading
+  }
+
   return {
     prompt: formatSkillsForPrompt(resolvedSkills),
     skills: eligible.map((entry) => ({
