@@ -2071,6 +2071,48 @@ export async function getReplyFromConfig(
     if (queued.run.sessionKey) {
       registerAgentRunContext(runId, { sessionKey: queued.run.sessionKey });
     }
+
+    // ── Route followup through claude-cli when configured ──
+    const followupBackend = queued.run.config?.agent?.backend ?? "pi-embedded";
+    if (followupBackend === "claude-cli") {
+      try {
+        const cliTimeoutMs = Math.min(queued.run.timeoutMs ?? 120_000, 120_000);
+        const cliResult = await runClaudeCliQueued({
+          prompt: queued.prompt,
+          workspaceDir: queued.run.workspaceDir,
+          model: queued.run.model ?? "claude-sonnet-4-5",
+          timeoutMs: cliTimeoutMs,
+          runId,
+          sessionId: queued.run.sessionId,
+          resumeSession: false,
+        });
+        if (cliResult.text) {
+          const cleanedText = cleanLlmResponse(cliResult.text);
+          const payloads: ReplyPayload[] = [{ text: cleanedText || cliResult.text }];
+          const sanitizedPayloads = payloads.flatMap((payload) => {
+            const text = payload.text;
+            if (!text || !text.includes("HEARTBEAT_OK")) return [payload];
+            const stripped = stripHeartbeatToken(text, { mode: "message" });
+            const hasMedia = Boolean(payload.mediaUrl) || (payload.mediaUrls?.length ?? 0) > 0;
+            if (stripped.shouldSkip && !hasMedia) return [];
+            return [{ ...payload, text: stripped.text }];
+          });
+          if (sanitizedPayloads.length > 0) {
+            await sendFollowupPayloads(sanitizedPayloads);
+          }
+          return;
+        }
+        defaultRuntime.error?.(
+          `Followup claude-cli returned no text (exit=${cliResult.exitCode})`,
+        );
+        return;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        defaultRuntime.error?.(`Followup claude-cli failed: ${message}`);
+        return;
+      }
+    }
+
     let runResult: Awaited<ReturnType<typeof runEmbeddedPiAgent>>;
     try {
       runResult = await runEmbeddedPiAgent({
