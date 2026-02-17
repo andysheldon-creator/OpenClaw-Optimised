@@ -2262,31 +2262,25 @@ export async function getReplyFromConfig(
           .filter(Boolean)
           .join("\n");
 
-        // ── Session continuity ──
-        // On the first turn for this session we pass the system prompt and
-        // pin the session-id; subsequent turns use --resume so the CLI
-        // loads the conversation automatically.
-        const isResume = CLAUDE_CLI_STARTED_SESSIONS.has(sessionIdFinal);
-
         // Cap claude-cli timeout at 120s — the CLI should respond
         // much faster than the pi-embedded SDK.  The full 600s timeout
         // is only appropriate for the API path where tool-use loops
         // can run for many iterations.
         const cliTimeoutMs = Math.min(timeoutMs, 120_000);
 
+        // NOTE: session-id/resume and system-prompt are intentionally
+        // NOT passed to the CLI.  These flags were causing `claude -p`
+        // to hang for 10+ minutes.  The runner now fires standalone
+        // prompts and relies on workspace CLAUDE.md for personality.
         const cliResult = await runClaudeCliQueued({
           prompt: commandBody,
           workspaceDir,
           model: model ?? "claude-sonnet-4-5",
-          systemPrompt: fullSystemPrompt,
           timeoutMs: cliTimeoutMs,
           runId,
           sessionId: sessionIdFinal,
-          resumeSession: isResume,
+          resumeSession: false,
         });
-
-        // Mark session as started so future turns resume it.
-        CLAUDE_CLI_STARTED_SESSIONS.add(sessionIdFinal);
 
         cleanupTyping();
 

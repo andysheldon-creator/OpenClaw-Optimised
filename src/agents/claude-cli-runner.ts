@@ -76,43 +76,31 @@ export async function runClaudeCli(
   const timeoutMs = params.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const started = Date.now();
 
+  // ── Minimal arg set ──────────────────────────────────────────────
+  // Keep args as lean as possible — extra flags (--session-id,
+  // --system-prompt, --model) have been observed to cause `claude -p`
+  // to hang for 10+ minutes on some systems.  Claude Code already
+  // reads CLAUDE.md from the workspace dir for personality context.
   const args = ["-p", params.prompt, "--output-format", "text"];
 
-  // Pass model hint (Claude Code may or may not honour this depending on
-  // subscription tier, but it's the best we can do).
-  if (model) {
-    args.push("--model", model);
+  // --model: only add if the caller explicitly set one
+  if (params.model) {
+    args.push("--model", params.model);
   }
 
-  // Session continuity: on the first turn we start a named session with the
-  // full system prompt; on subsequent turns we resume that session so the
-  // CLI loads conversation history automatically.
-  if (params.resumeSession) {
-    args.push("--resume", params.sessionId);
-  } else {
-    // New session — pin the session-id so we can resume it later.
-    args.push("--session-id", params.sessionId);
-  }
+  // --verbose flag intentionally omitted — adds overhead.
+  // --session-id / --resume intentionally omitted for now:
+  //   Session continuity via CLI sessions caused consistent timeouts.
+  //   Each request runs as a standalone prompt until we diagnose the
+  //   root cause.  The gateway's own session store still tracks
+  //   conversation history for context injection.
 
-  // System prompt: Claude Code reads CLAUDE.md files from the workspace
-  // automatically, so we only pass a short personality hint rather than
-  // the full 30KB+ workspace bootstrap.  Passing large --system-prompt
-  // values causes `claude -p` to hang/timeout on many systems.
-  if (params.systemPrompt && !params.resumeSession) {
-    // Truncate to a short personality summary (max ~2000 chars) to avoid
-    // command-line size issues.  The full context lives in workspace files
-    // that Claude Code discovers on its own.
-    const maxLen = 2000;
-    const truncated =
-      params.systemPrompt.length > maxLen
-        ? params.systemPrompt.slice(0, maxLen).trimEnd() +
-          "\n\n[System prompt truncated — see workspace CLAUDE.md for full context]"
-        : params.systemPrompt;
-    args.push("--system-prompt", truncated);
-  }
+  // --system-prompt intentionally omitted:
+  //   Claude Code auto-discovers CLAUDE.md in the workspace directory.
+  //   Passing --system-prompt (even truncated) contributed to hangs.
 
   defaultRuntime.log?.(
-    `[claude-cli] starting: runId=${params.runId} session=${params.sessionId} model=${model}`,
+    `[claude-cli] starting: runId=${params.runId} session=${params.sessionId} model=${model} args=[${args.join(" ")}]`,
   );
 
   return new Promise<ClaudeCliRunResult>((resolve, reject) => {
