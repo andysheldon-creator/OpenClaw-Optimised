@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import os from "node:os";
 import { runClaudeCliQueued } from "../agents/claude-cli-runner.js";
+import { cleanLlmResponse } from "../agents/pi-embedded-utils.js";
 import { lookupContextTokens } from "../agents/context.js";
 import {
   DEFAULT_CONTEXT_TOKENS,
@@ -2191,7 +2192,9 @@ export async function getReplyFromConfig(
           `Ollama handled query locally: category=${routing.category} duration=${routing.durationMs}ms`,
         );
         cleanupTyping();
-        return finalizeWithFollowup({ text: routing.response });
+        // Strip <think>...</think> reasoning from local LLM output
+        const cleanedOllamaText = cleanLlmResponse(routing.response);
+        return finalizeWithFollowup({ text: cleanedOllamaText || routing.response });
       }
     } catch (ollamaErr) {
       logVerbose(
@@ -2290,7 +2293,10 @@ export async function getReplyFromConfig(
               `[claude-cli] non-zero exit=${cliResult.exitCode} but got text — returning response`,
             );
           }
-          return finalizeWithFollowup({ text: cliResult.text });
+          // Strip <think>...</think> reasoning and extract <final> content
+          // so internal LLM reasoning never leaks to the user.
+          const cleanedCliText = cleanLlmResponse(cliResult.text);
+          return finalizeWithFollowup({ text: cleanedCliText || cliResult.text });
         }
 
         // Truly empty response — fall through to pi-embedded

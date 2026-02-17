@@ -64,3 +64,62 @@ export function inferToolMetaFromArgs(
   const display = resolveToolDisplay({ name: toolName, args });
   return formatToolDetail(display);
 }
+
+// ─── Thinking-tag stripping (shared) ─────────────────────────────────────
+// Strips <think>...</think> and <thinking>...</thinking> tags and their
+// content from LLM output so internal reasoning never leaks to the user.
+// Used by pi-embedded-subscribe (streaming), claude-cli (batch), and the
+// Ollama router response path.
+
+const THINKING_TAG_RE_SHARED = /<\s*\/?\s*think(?:ing)?\s*>/gi;
+
+/**
+ * Remove all `<think>...</think>` (and `<thinking>...</thinking>`) segments
+ * from `text`, returning only the non-thinking parts.
+ */
+export function stripThinkingTags(text: string): string {
+  if (!text || !THINKING_TAG_RE_SHARED.test(text)) return text;
+  THINKING_TAG_RE_SHARED.lastIndex = 0;
+  let result = "";
+  let lastIndex = 0;
+  let inThinking = false;
+  for (const match of text.matchAll(THINKING_TAG_RE_SHARED)) {
+    const idx = match.index ?? 0;
+    if (!inThinking) {
+      result += text.slice(lastIndex, idx);
+    }
+    const tag = match[0].toLowerCase();
+    inThinking = !tag.includes("/");
+    lastIndex = idx + match[0].length;
+  }
+  if (!inThinking) {
+    result += text.slice(lastIndex);
+  }
+  return result.trim();
+}
+
+/**
+ * Extract the content inside `<final>...</final>` tags, if present.
+ * Returns the inner text, or `undefined` if no `<final>` block is found.
+ */
+export function extractFinalTagContent(text: string): string | undefined {
+  const startRe = /<\s*final\s*>/i;
+  const endRe = /<\s*\/\s*final\s*>/i;
+  const startMatch = startRe.exec(text);
+  if (!startMatch) return undefined;
+  const after = text.slice(startMatch.index + startMatch[0].length);
+  const endMatch = endRe.exec(after);
+  return endMatch ? after.slice(0, endMatch.index).trim() : after.trim();
+}
+
+/**
+ * Clean an LLM response by stripping thinking segments and extracting
+ * the <final> block if present.  This is the single entry point for all
+ * backend paths (pi-embedded, claude-cli, ollama) to sanitise output.
+ */
+export function cleanLlmResponse(text: string): string {
+  if (!text) return text;
+  const stripped = stripThinkingTags(text);
+  const finalContent = extractFinalTagContent(stripped);
+  return (finalContent ?? stripped).trim();
+}
