@@ -78,3 +78,15 @@ export type {
   TopicMapping,
 } from "./types.js";
 export { BOARD_AGENT_ROLES, isBoardAgentRole } from "./types.js";
+
+export type {
+  AgentRunCallback,
+  BoardContext,
+  PostReplyResult,
+} from "./board-orchestrator.js";
+export {
+  executeConsultations,
+  executeMeeting,
+  prepareBoardContext,
+  processAgentResponse,
+} from "./board-orchestrator.js";

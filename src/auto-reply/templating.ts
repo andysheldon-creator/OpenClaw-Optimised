@@ -20,6 +20,8 @@ export type MsgContext = {
   SenderE164?: string;
   Surface?: string;
   WasMentioned?: boolean;
+  /** Telegram forum topic ID (message_thread_id). Used for board routing. */
+  TelegramTopicId?: number;
 };
 
 export type TemplateContext = MsgContext & {

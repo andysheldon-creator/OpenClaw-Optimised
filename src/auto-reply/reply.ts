@@ -60,6 +60,10 @@ import { clearCommandLane, getQueueSize } from "../process/command-queue.js";
 import { defaultRuntime } from "../runtime.js";
 import { routeMessage } from "../services/ollama-router.js";
 import { scanForInjection } from "../security/prompt-injection.js";
+import {
+  prepareBoardContext,
+  processAgentResponse,
+} from "../board/board-orchestrator.js";
 import { normalizeE164 } from "../utils.js";
 import { resolveHeartbeatSeconds } from "../web/reconnect.js";
 import { getWebAuthAgeMs, webAuthExists } from "../web/session.js";
@@ -877,6 +881,25 @@ export async function getReplyFromConfig(
     }
   }
 
+  // ── Board of Directors routing (FB-017) ──────────────────────────────────
+  // Prepare board context early so we can override session key and body.
+  // The boardCtx is fully resolved here; personality injection happens
+  // when we build extraSystemPrompt for the agent run further below.
+  const boardCtx = prepareBoardContext({
+    body: ctx.Body ?? "",
+    baseSessionKey: "", // placeholder — overridden after session key resolution below
+    workspaceDir: workspaceDirRaw,
+    config: cfg,
+    telegramTopicId: ctx.TelegramTopicId,
+    existingExtraPrompt: undefined, // merged with groupIntro later
+  });
+
+  // If board routing cleaned the body (stripped /agent: or @role directives),
+  // propagate the cleaned version so directives don't confuse the agent.
+  if (boardCtx.enabled && boardCtx.cleanedBody !== (ctx.Body ?? "")) {
+    ctx.Body = boardCtx.cleanedBody;
+  }
+
   // Optional session handling (conversation reuse + /new resets)
   const mainKey = sessionCfg?.mainKey ?? "main";
   const resetTriggers = sessionCfg?.resetTriggers?.length
@@ -937,6 +960,15 @@ export async function getReplyFromConfig(
   }
 
   sessionKey = resolveSessionKey(sessionScope, ctx, mainKey);
+
+  // ── Board session key override (FB-017) ─────────────────────────────────
+  // When board is enabled, derive a per-agent session key so each board
+  // member maintains its own conversation history.
+  if (boardCtx.enabled) {
+    const { boardSessionKey } = await import("../board/session-keys.js");
+    sessionKey = boardSessionKey(sessionKey, boardCtx.agentRole);
+  }
+
   sessionStore = loadSessionStore(storePath);
   if (groupResolution?.legacyKey && groupResolution.legacyKey !== sessionKey) {
     const legacyEntry = sessionStore[groupResolution.legacyKey];
@@ -1748,6 +1780,22 @@ export async function getReplyFromConfig(
           .concat(" Address the specific sender noted in the message context.");
       })()
     : "";
+
+  // ── Board personality injection (FB-017) ────────────────────────────────
+  // Merge the board system prompt with the group intro (if any) so the
+  // agent gets both group context and board personality/routing guidance.
+  const boardExtraPrompt = boardCtx.enabled
+    ? prepareBoardContext({
+        body: ctx.Body ?? "",
+        baseSessionKey: sessionKey ?? mainKey,
+        workspaceDir,
+        config: cfg,
+        telegramTopicId: ctx.TelegramTopicId,
+        existingExtraPrompt: groupIntro || undefined,
+      }).extraSystemPrompt
+    : undefined;
+  const combinedExtraPrompt = boardExtraPrompt || groupIntro || undefined;
+
   const baseBody = sessionCtx.BodyStripped ?? sessionCtx.Body ?? "";
   const rawBodyTrimmed = (ctx.Body ?? "").trim();
   const baseBodyTrimmedRaw = baseBody.trim();
@@ -1967,7 +2015,7 @@ export async function getReplyFromConfig(
       timeoutMs,
       blockReplyBreak: resolvedBlockStreamingBreak,
       ownerNumbers: ownerList.length > 0 ? ownerList : undefined,
-      extraSystemPrompt: groupIntro || undefined,
+      extraSystemPrompt: combinedExtraPrompt,
       enforceFinalTag: provider === "ollama" ? true : undefined,
     },
   };
@@ -2191,7 +2239,7 @@ export async function getReplyFromConfig(
 
         const appendPrompt = buildAgentSystemPromptAppend({
           workspaceDir,
-          extraSystemPrompt: groupIntro || undefined,
+          extraSystemPrompt: combinedExtraPrompt,
           ownerNumbers: ownerList.length > 0 ? ownerList : undefined,
           runtimeInfo: {
             host: os.hostname(),
@@ -2270,7 +2318,7 @@ export async function getReplyFromConfig(
         config: cfg,
         skillsSnapshot,
         prompt: commandBody,
-        extraSystemPrompt: groupIntro || undefined,
+        extraSystemPrompt: combinedExtraPrompt,
         ownerNumbers: ownerList.length > 0 ? ownerList : undefined,
         enforceFinalTag: provider === "ollama" ? true : undefined,
         provider,

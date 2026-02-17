@@ -221,7 +221,7 @@ function escapeRegex(str: string): string {
 
 /** Pattern for consultation tags in agent replies (captures the question until end-of-line or next tag). */
 const CONSULT_TAG_RE =
-  /\[\[consult:(general|research|content|finance|strategy|critic)\]\]\s*([^\n]+?)(?=\s*\[\[consult:|\s*$)/gi;
+  /\[\[consult:(general|research|content|finance|strategy|critic)\]\]\s*([^\n]+?)(?=\s*\[\[consult:|\s*$)/gim;
 
 export type ConsultTag = {
   toAgent: BoardAgentRole;
