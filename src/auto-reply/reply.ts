@@ -2379,7 +2379,8 @@ export async function getReplyFromConfig(
     }
 
     // ── Hard guard: never call the paid API when claude-cli is configured ──
-    if (resolvedBackend === "claude-cli") {
+    // Use string cast to bypass TS narrowing — this is a runtime safety net.
+    if ((resolvedBackend as string) === "claude-cli") {
       defaultRuntime.error(
         `[reply] BUG: claude-cli is configured but execution reached the pi-embedded path. ` +
         `This should be unreachable. sessionId=${sessionIdFinal}`,
