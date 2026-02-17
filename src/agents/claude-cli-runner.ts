@@ -117,6 +117,11 @@ export async function runClaudeCli(
       env: childEnv,
     });
 
+    // Close stdin immediately — we pass the prompt via the `-p` arg,
+    // not via stdin.  Without this, `claude -p` waits for EOF on stdin
+    // and hangs until the timeout kills the process.
+    proc.stdin?.end();
+
     let stdout = "";
     let stderr = "";
     let settled = false;
