@@ -2268,12 +2268,18 @@ export async function getReplyFromConfig(
         // loads the conversation automatically.
         const isResume = CLAUDE_CLI_STARTED_SESSIONS.has(sessionIdFinal);
 
+        // Cap claude-cli timeout at 120s — the CLI should respond
+        // much faster than the pi-embedded SDK.  The full 600s timeout
+        // is only appropriate for the API path where tool-use loops
+        // can run for many iterations.
+        const cliTimeoutMs = Math.min(timeoutMs, 120_000);
+
         const cliResult = await runClaudeCliQueued({
           prompt: commandBody,
           workspaceDir,
           model: model ?? "claude-sonnet-4-5",
           systemPrompt: fullSystemPrompt,
-          timeoutMs,
+          timeoutMs: cliTimeoutMs,
           runId,
           sessionId: sessionIdFinal,
           resumeSession: isResume,

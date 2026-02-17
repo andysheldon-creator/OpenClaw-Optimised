@@ -94,10 +94,21 @@ export async function runClaudeCli(
     args.push("--session-id", params.sessionId);
   }
 
-  // System prompt via --system-prompt flag (only on the first turn; the CLI
-  // persists the system prompt within the session for subsequent turns).
+  // System prompt: Claude Code reads CLAUDE.md files from the workspace
+  // automatically, so we only pass a short personality hint rather than
+  // the full 30KB+ workspace bootstrap.  Passing large --system-prompt
+  // values causes `claude -p` to hang/timeout on many systems.
   if (params.systemPrompt && !params.resumeSession) {
-    args.push("--system-prompt", params.systemPrompt);
+    // Truncate to a short personality summary (max ~2000 chars) to avoid
+    // command-line size issues.  The full context lives in workspace files
+    // that Claude Code discovers on its own.
+    const maxLen = 2000;
+    const truncated =
+      params.systemPrompt.length > maxLen
+        ? params.systemPrompt.slice(0, maxLen).trimEnd() +
+          "\n\n[System prompt truncated — see workspace CLAUDE.md for full context]"
+        : params.systemPrompt;
+    args.push("--system-prompt", truncated);
   }
 
   defaultRuntime.log?.(
