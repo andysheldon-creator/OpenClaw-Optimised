@@ -56,7 +56,7 @@ export type ClaudeCliRunResult = {
 // ─── Core Runner ────────────────────────────────────────────────────────────
 
 const DEFAULT_MODEL = "claude-sonnet-4-5";
-const DEFAULT_TIMEOUT_MS = 120_000;
+const DEFAULT_TIMEOUT_MS = 120_000; // 2 minutes; reply.ts may override
 
 /**
  * Spawn `claude -p` and return the response text.
@@ -105,10 +105,17 @@ export async function runClaudeCli(
   );
 
   return new Promise<ClaudeCliRunResult>((resolve, reject) => {
+    // Build a clean env for the child process:
+    // - Remove CLAUDECODE to avoid "nested session" detection
+    // - Remove CLAUDE_SESSION_ID to avoid session conflicts
+    const childEnv = { ...process.env };
+    delete childEnv.CLAUDECODE;
+    delete childEnv.CLAUDE_SESSION_ID;
+
     const proc = spawn("claude", args, {
       cwd: params.workspaceDir,
       stdio: ["pipe", "pipe", "pipe"],
-      env: { ...process.env },
+      env: childEnv,
     });
 
     let stdout = "";
@@ -133,7 +140,14 @@ export async function runClaudeCli(
     });
 
     proc.stderr?.on("data", (chunk: Buffer) => {
-      stderr += chunk.toString();
+      const text = chunk.toString();
+      stderr += text;
+      // Log stderr in real-time so we can diagnose hangs
+      if (text.trim()) {
+        defaultRuntime.log?.(
+          `[claude-cli] stderr (live): ${text.trim().slice(0, 300)}`,
+        );
+      }
     });
 
     proc.on("close", (code) => {
