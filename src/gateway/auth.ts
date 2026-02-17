@@ -144,7 +144,13 @@ export async function authorizeGatewayConnect(params: {
   }
 
   if (auth.mode === "password") {
-    const password = connectAuth?.password;
+    // Accept password from either the password field or the token field.
+    // The control UI persists credentials via the "token" field (localStorage)
+    // but not the "password" field (memory-only), so on page refresh the
+    // credential arrives as connectAuth.token.  Accepting it here means the
+    // dashboard stays authenticated across refreshes without requiring users
+    // to switch the server to token mode.
+    const password = connectAuth?.password || connectAuth?.token;
     if (!password || !auth.password) {
       return { ok: false, reason: "unauthorized" };
     }
