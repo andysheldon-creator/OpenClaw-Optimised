@@ -155,19 +155,30 @@ export async function runClaudeCli(
       clearTimeout(timer);
 
       const durationMs = Date.now() - started;
+      const stdoutTrimmed = stdout.trim();
+      const stderrTrimmed = stderr.trim();
 
-      if (stderr.trim()) {
+      defaultRuntime.log?.(
+        `[claude-cli] done: runId=${params.runId} exit=${code ?? "null"} durationMs=${durationMs} stdoutLen=${stdoutTrimmed.length} stderrLen=${stderrTrimmed.length}`,
+      );
+
+      if (stderrTrimmed) {
         defaultRuntime.log?.(
-          `[claude-cli] stderr: ${stderr.trim().slice(0, 200)}`,
+          `[claude-cli] stderr: ${stderrTrimmed.slice(0, 500)}`,
         );
       }
 
-      defaultRuntime.log?.(
-        `[claude-cli] done: runId=${params.runId} exit=${code ?? "null"} durationMs=${durationMs}`,
-      );
+      if (!stdoutTrimmed && stderrTrimmed) {
+        // CLI produced no stdout but did write to stderr — likely an
+        // error message.  Return stderr as the text so the caller can
+        // surface it rather than silently falling through.
+        defaultRuntime.log?.(
+          `[claude-cli] no stdout — returning stderr as response text`,
+        );
+      }
 
       resolve({
-        text: stdout.trim(),
+        text: stdoutTrimmed || (stderrTrimmed ? `[claude-cli error] ${stderrTrimmed.slice(0, 500)}` : ""),
         durationMs,
         model,
         exitCode: code ?? 1,

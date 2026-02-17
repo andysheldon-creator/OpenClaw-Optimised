@@ -2299,18 +2299,32 @@ export async function getReplyFromConfig(
           return finalizeWithFollowup({ text: cleanedCliText || cliResult.text });
         }
 
-        // Truly empty response — fall through to pi-embedded
+        // Truly empty response — return error instead of falling
+        // through to the paid Anthropic API.  The user configured
+        // claude-cli as the primary backend precisely to avoid API costs.
         defaultRuntime.error(
-          `Claude CLI returned exit=${cliResult.exitCode} with no text — falling back to API backend`,
+          `Claude CLI returned exit=${cliResult.exitCode} with no text (durationMs=${cliResult.durationMs})`,
         );
+        return finalizeWithFollowup({
+          text:
+            `⚠️ Claude CLI returned no response (exit=${cliResult.exitCode}, ` +
+            `${Math.round(cliResult.durationMs / 1000)}s). ` +
+            `Check gateway logs: journalctl --user -u clawdis-gateway -n 50`,
+        });
       } catch (err) {
         cleanupTyping();
         const message = err instanceof Error ? err.message : String(err);
         defaultRuntime.error(
-          `Claude CLI runner failed: ${message} — falling back to API backend`,
+          `Claude CLI runner failed: ${message}`,
         );
+        return finalizeWithFollowup({
+          text:
+            `⚠️ Claude CLI error: ${message.slice(0, 200)}. ` +
+            `Check gateway logs for details.`,
+        });
       }
-      // Fall through to pi-embedded below (auto-fallback for unattended operation)
+      // NOTE: claude-cli no longer falls through to pi-embedded.
+      // If we reach here somehow, the pi-embedded path below will run.
     }
 
     let runResult: Awaited<ReturnType<typeof runEmbeddedPiAgent>>;
