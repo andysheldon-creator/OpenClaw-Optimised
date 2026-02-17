@@ -2021,6 +2021,9 @@ export async function getReplyFromConfig(
     },
   };
 
+  defaultRuntime.log?.(
+    `[reply] queue check: isActive=${isActive} isStreaming=${isStreaming} shouldSteer=${shouldSteer} shouldFollowup=${shouldFollowup} queueMode=${resolvedQueue.mode}`,
+  );
   if (shouldSteer && isStreaming) {
     const steered = queueEmbeddedPiMessage(sessionIdFinal, queuedBody);
     if (steered && !shouldFollowup) {
@@ -2074,6 +2077,9 @@ export async function getReplyFromConfig(
 
     // ── Route followup through claude-cli when configured ──
     const followupBackend = queued.run.config?.agent?.backend ?? "pi-embedded";
+    defaultRuntime.log?.(
+      `[reply] followup backend=${followupBackend} sessionId=${queued.run.sessionId}`,
+    );
     if (followupBackend === "claude-cli") {
       try {
         const cliTimeoutMs = Math.min(queued.run.timeoutMs ?? 120_000, 120_000);
@@ -2268,6 +2274,9 @@ export async function getReplyFromConfig(
     // 3. Accepts valid text even on non-zero exit codes (partial responses are
     //    still useful) instead of discarding them.
     const resolvedBackend = cfg.agent?.backend ?? "pi-embedded";
+    defaultRuntime.log?.(
+      `[reply] backend=${resolvedBackend} sessionId=${sessionIdFinal} isActive=${isActive} isStreaming=${isStreaming} queueMode=${resolvedQueue.mode}`,
+    );
     if (resolvedBackend === "claude-cli") {
       try {
         await startTypingLoop();
@@ -2366,7 +2375,18 @@ export async function getReplyFromConfig(
         });
       }
       // NOTE: claude-cli no longer falls through to pi-embedded.
-      // If we reach here somehow, the pi-embedded path below will run.
+      // All paths above return, so this is unreachable.
+    }
+
+    // ── Hard guard: never call the paid API when claude-cli is configured ──
+    if (resolvedBackend === "claude-cli") {
+      defaultRuntime.error(
+        `[reply] BUG: claude-cli is configured but execution reached the pi-embedded path. ` +
+        `This should be unreachable. sessionId=${sessionIdFinal}`,
+      );
+      return finalizeWithFollowup({
+        text: "⚠️ Internal routing error — claude-cli backend configured but request leaked to API path. Check gateway logs.",
+      });
     }
 
     let runResult: Awaited<ReturnType<typeof runEmbeddedPiAgent>>;
