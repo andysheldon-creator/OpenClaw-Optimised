@@ -107,9 +107,12 @@ export async function runClaudeCli(
     // Build a clean env for the child process:
     // - Remove CLAUDECODE to avoid "nested session" detection
     // - Remove CLAUDE_SESSION_ID to avoid session conflicts
+    // - Remove ANTHROPIC_API_KEY so the CLI uses the user's subscription
+    //   instead of trying to make API calls with a potentially empty/expired key
     const childEnv = { ...process.env };
     delete childEnv.CLAUDECODE;
     delete childEnv.CLAUDE_SESSION_ID;
+    delete childEnv.ANTHROPIC_API_KEY;
 
     const proc = spawn("claude", args, {
       cwd: params.workspaceDir,
