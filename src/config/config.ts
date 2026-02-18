@@ -1509,6 +1509,50 @@ const ClawdisSchema = z.object({
         .optional(),
     })
     .optional(),
+  board: z
+    .object({
+      enabled: z.boolean().optional(),
+      agents: z
+        .array(
+          z.object({
+            role: z.string(),
+            name: z.string().optional(),
+            emoji: z.string().optional(),
+            soulFile: z.string().optional(),
+            model: z.string().optional(),
+            thinkingDefault: z
+              .union([
+                z.literal("off"),
+                z.literal("minimal"),
+                z.literal("low"),
+                z.literal("medium"),
+                z.literal("high"),
+              ])
+              .optional(),
+            telegramTopicId: z.number().optional(),
+          }),
+        )
+        .optional(),
+      telegramGroupId: z
+        .union([z.number(), z.string()])
+        .nullable()
+        .optional(),
+      meetings: z
+        .object({
+          enabled: z.boolean().optional(),
+          maxDurationMs: z.number().positive().optional(),
+          maxTurnsPerAgent: z.number().int().positive().optional(),
+        })
+        .optional(),
+      consultation: z
+        .object({
+          enabled: z.boolean().optional(),
+          maxDepth: z.number().int().positive().optional(),
+          timeoutMs: z.number().positive().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
 });
 
 export type ConfigValidationIssue = {
