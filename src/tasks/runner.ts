@@ -68,6 +68,22 @@ let cachedStore: TaskStoreFile | null = null;
 let deps: TaskRunnerDeps | null = null;
 
 /**
+ * Optional hook called when a board agent task completes.
+ * Registered by the board system to save agent memory and check meeting completion.
+ */
+let agentTaskCompleteHook: ((task: Task) => Promise<void>) | null = null;
+
+/**
+ * Register a callback for board agent task completion.
+ * Called from agent-tasks.ts during startup.
+ */
+export function onAgentTaskComplete(
+  hook: (task: Task) => Promise<void>,
+): void {
+  agentTaskCompleteHook = hook;
+}
+
+/**
  * Start the task runner. Loads the store and begins periodic advancement.
  */
 export async function startTaskRunner(
@@ -213,6 +229,14 @@ async function advanceTask(taskId: string): Promise<void> {
 
   let result: RunCronAgentTurnResult;
   try {
+    // Pass the agent's extra system prompt (personality + memory) if this
+    // is a board agent task.  The field is stored in task.metadata by
+    // createAgentTask() in agent-tasks.ts.
+    const extraSystemPrompt =
+      typeof task.metadata?.extraSystemPrompt === "string"
+        ? task.metadata.extraSystemPrompt
+        : undefined;
+
     result = await runCronIsolatedAgentTurn({
       cfg: deps.cfg,
       deps: deps.cliDeps,
@@ -220,6 +244,7 @@ async function advanceTask(taskId: string): Promise<void> {
       message: prompt,
       sessionKey: task.sessionKey,
       lane: "tasks",
+      extraSystemPrompt,
     });
   } catch (err) {
     step.status = "failed";
@@ -321,8 +346,23 @@ function completeTask(task: Task): void {
     .join("\n");
   task.finalSummary = stepSummaries || "All steps completed.";
 
+  // Store the last completed step's full result for board meeting synthesis.
+  const lastCompletedStep = [...task.steps]
+    .reverse()
+    .find((s) => s.status === "completed" && s.result);
+  if (lastCompletedStep?.result) {
+    task.finalResult = lastCompletedStep.result;
+  }
+
   if (deps) {
     void reportCompletion(deps.cfg, task, deps.progressDeps);
+  }
+
+  // If this is a board agent task, fire the completion hook for memory + meeting tracking.
+  if (task.metadata?.agentRole && agentTaskCompleteHook) {
+    void agentTaskCompleteHook(task).catch((err) => {
+      log.error(`Agent task complete hook failed for ${task.id}: ${String(err)}`);
+    });
   }
 }
 

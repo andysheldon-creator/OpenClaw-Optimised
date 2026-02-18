@@ -174,6 +174,7 @@ import {
   stopTaskRunner,
 } from "../tasks/runner.js";
 import type { TaskCreate } from "../tasks/types.js";
+import { initBoard } from "../board/board-orchestrator.js";
 import { monitorTelegramProvider } from "../telegram/monitor.js";
 import { probeTelegram, type TelegramProbe } from "../telegram/probe.js";
 import { sendMessageTelegram } from "../telegram/send.js";
@@ -4278,6 +4279,11 @@ export async function startGatewayServer(
       cfg: cfgAtStart,
       cliDeps: deps,
       storePath: cfgAtStart.tasks?.store,
+    }).then(() => {
+      // Initialize board autonomous agents after the task runner is ready.
+      if (cfgAtStart.board?.enabled) {
+        initBoard();
+      }
     }).catch((err) => log.error(`Failed to start task runner: ${String(err)}`));
   }
 

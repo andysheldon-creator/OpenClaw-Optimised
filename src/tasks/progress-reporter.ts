@@ -32,6 +32,8 @@ export type ProgressReporterDeps = {
 type ResolvedTarget = {
   channel: "whatsapp" | "telegram" | "discord" | "signal" | "imessage";
   to: string;
+  /** Telegram forum topic ID (message_thread_id) for topic-aware delivery. */
+  messageThreadId?: number;
 };
 
 // ─── Target Resolution ───────────────────────────────────────────────────────
@@ -72,6 +74,10 @@ function resolveReportTarget(
   const to = explicitTo || lastTo || undefined;
   if (!to) return null;
 
+  // Carry through the Telegram forum topic ID for topic-aware delivery.
+  const messageThreadId =
+    channel === "telegram" ? task.reportTopicId : undefined;
+
   if (channel === "whatsapp") {
     const rawAllow = cfg.whatsapp?.allowFrom ?? [];
     if (rawAllow.includes("*")) return { channel, to };
@@ -84,7 +90,7 @@ function resolveReportTarget(
     return { channel, to: allowFrom[0] };
   }
 
-  return { channel, to };
+  return { channel, to, messageThreadId };
 }
 
 // ─── Message Formatting ──────────────────────────────────────────────────────
@@ -147,6 +153,7 @@ async function deliver(
         await sendTG(target.to, chunk, {
           verbose: false,
           token: telegramToken || undefined,
+          messageThreadId: target.messageThreadId,
         });
       }
       break;

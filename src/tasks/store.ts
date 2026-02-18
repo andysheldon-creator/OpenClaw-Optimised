@@ -131,6 +131,7 @@ export function addTask(store: TaskStoreFile, create: TaskCreate): Task {
 
     reportChannel: create.reportChannel ?? "last",
     reportTo: create.reportTo,
+    reportTopicId: create.reportTopicId,
     reportEverySteps: create.reportEverySteps ?? DEFAULT_REPORT_EVERY_STEPS,
 
     steps,
@@ -142,6 +143,7 @@ export function addTask(store: TaskStoreFile, create: TaskCreate): Task {
     timeoutPerStepMs: create.timeoutPerStepMs ?? DEFAULT_STEP_TIMEOUT_MS,
 
     progressReports: [],
+    metadata: create.metadata,
   };
 
   store.tasks.push(task);

@@ -62,6 +62,8 @@ import { defaultRuntime } from "../runtime.js";
 import { routeMessage } from "../services/ollama-router.js";
 import { scanForInjection } from "../security/prompt-injection.js";
 import {
+  createAgentTask,
+  executeAsyncMeeting,
   executeConsultations,
   executeMeeting,
   prepareBoardContext,
@@ -907,6 +909,40 @@ export async function getReplyFromConfig(
   // propagate the cleaned version so directives don't confuse the agent.
   if (boardCtx.enabled && boardCtx.cleanedBody !== (ctx.Body ?? "")) {
     ctx.Body = boardCtx.cleanedBody;
+  }
+
+  // ── Agent Directive Detection ─────────────────────────────────────────────
+  // When a user explicitly targets a non-general agent (via @mention or
+  // /agent: directive) with a substantive message, route to an autonomous
+  // task instead of a stateless text-only CLI call.  This gives the agent
+  // real tools (web search, file ops) and persistent memory.
+  //
+  // Criteria: board enabled, tasks enabled, explicit routing (mention or
+  // directive), non-general agent, message body ≥ 30 chars.
+  if (
+    boardCtx.enabled &&
+    cfg.tasks?.enabled !== false &&
+    boardCtx.agentRole !== "general" &&
+    (boardCtx.routeReason === "directive" || boardCtx.routeReason === "mention") &&
+    (boardCtx.cleanedBody?.length ?? 0) >= 30
+  ) {
+    try {
+      const result = await createAgentTask({
+        role: boardCtx.agentRole,
+        directive: boardCtx.cleanedBody,
+        config: cfg,
+        workspaceDir: workspaceDirRaw,
+      });
+      defaultRuntime.log?.(
+        `[board] autonomous task created for ${boardCtx.agentRole}: ${result.task.id}`,
+      );
+      return { text: result.acknowledgment };
+    } catch (err) {
+      defaultRuntime.log?.(
+        `[board] failed to create agent task, falling back to CLI: ${String(err)}`,
+      );
+      // Fall through to normal CLI processing
+    }
   }
 
   // Optional session handling (conversation reuse + /new resets)
@@ -2443,18 +2479,34 @@ export async function getReplyFromConfig(
             if (postReply.needsFollowUp) {
               const parts: string[] = [postReply.cleanedReply];
 
-              // Execute board meeting if triggered
+              // Execute board meeting if triggered.
+              // Prefer async (task-based) meetings — agents do real work with
+              // tools and report progress to their own Telegram topics.
+              // Falls back to synchronous text-pipe if tasks are disabled.
               if (postReply.meetingTopic) {
                 defaultRuntime.log?.(
                   `[board] meeting triggered: "${postReply.meetingTopic}"`,
                 );
-                const meetingSummary = await executeMeeting({
-                  topic: postReply.meetingTopic,
-                  config: cfg,
-                  workspaceDir,
-                  runAgent: runAgentForBoard,
-                });
-                parts.push("\n\n---\n📋 **Board Meeting Summary**\n" + meetingSummary);
+
+                if (cfg.tasks?.enabled !== false) {
+                  // Async meeting — returns immediately with acknowledgment.
+                  // Actual work happens via the task runner.
+                  const ack = await executeAsyncMeeting({
+                    topic: postReply.meetingTopic,
+                    config: cfg,
+                    workspaceDir,
+                  });
+                  parts.push("\n\n" + ack);
+                } else {
+                  // Fallback: synchronous text-pipe meeting (no tools).
+                  const meetingSummary = await executeMeeting({
+                    topic: postReply.meetingTopic,
+                    config: cfg,
+                    workspaceDir,
+                    runAgent: runAgentForBoard,
+                  });
+                  parts.push("\n\n---\n📋 **Board Meeting Summary**\n" + meetingSummary);
+                }
               }
 
               // Execute consultations if triggered

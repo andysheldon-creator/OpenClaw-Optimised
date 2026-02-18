@@ -15,7 +15,12 @@
 import type { ClawdisConfig } from "../config/config.js";
 import { defaultRuntime } from "../runtime.js";
 
+import { createAgentTask, initAgentTasks } from "./agent-tasks.js";
 import { resolveAgentDef } from "./agents.js";
+import {
+  initMeetingRunner,
+  startAsyncBoardMeeting,
+} from "./meeting-runner.js";
 import {
   buildConsultationPrompt,
   cancelConsultation,
@@ -494,4 +499,50 @@ export async function executeMeeting(params: {
     cancelMeeting(meeting.id);
     return `Board meeting synthesis failed: ${message}`;
   }
+}
+
+// ─── Async Board Meeting (Task-Based) ─────────────────────────────────────
+
+/**
+ * Start an async board meeting where each specialist runs as an autonomous
+ * task with real tools (web search, etc.). Progress reports appear in
+ * each agent's Telegram topic. Synthesis is delivered automatically when
+ * all specialists complete.
+ *
+ * Unlike executeMeeting() which blocks until all agents respond, this
+ * returns immediately with an acknowledgment message. The actual work
+ * happens asynchronously via the task runner.
+ */
+export async function executeAsyncMeeting(params: {
+  topic: string;
+  config: ClawdisConfig;
+  workspaceDir: string;
+}): Promise<string> {
+  return startAsyncBoardMeeting(params);
+}
+
+// ─── Agent Task Creation (Directive Routing) ──────────────────────────────
+
+/**
+ * Create an autonomous task for a board agent. Called when a directive
+ * is detected in the reply pipeline (e.g., "@research analyze UK EV market").
+ *
+ * Returns an acknowledgment message for the user.
+ */
+export { createAgentTask } from "./agent-tasks.js";
+
+// ─── Board Initialization ─────────────────────────────────────────────────
+
+/**
+ * Initialize the board's autonomous capabilities.
+ * Call after startTaskRunner() during bot startup.
+ *
+ * Sets up:
+ * - Agent task completion hooks (for memory saving)
+ * - Meeting runner hooks (for synthesis triggering)
+ */
+export function initBoard(): void {
+  initAgentTasks();
+  initMeetingRunner();
+  defaultRuntime.log?.("[board] Autonomous board agents initialized");
 }

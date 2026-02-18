@@ -79,6 +79,8 @@ export type Task = {
     | "imessage";
   /** Explicit recipient (chat ID / phone number). */
   reportTo?: string;
+  /** Telegram forum topic ID for progress reports (message_thread_id). */
+  reportTopicId?: number;
   /** Send a progress report every N completed steps. Default: 1. */
   reportEverySteps: number;
 
@@ -103,6 +105,12 @@ export type Task = {
   progressReports: TaskProgressReport[];
   /** Final summary text, set on completion. */
   finalSummary?: string;
+  /** Final output from the last completed step — used for synthesis in board meetings. */
+  finalResult?: string;
+
+  // ── Agent metadata (for board agent tasks) ─────────────────────────────
+  /** Extensible metadata: agentRole, directive, extraSystemPrompt, meetingId, etc. */
+  metadata?: Record<string, unknown>;
 };
 
 export type TaskStoreFile = {
@@ -119,10 +127,12 @@ export type TaskCreate = {
   steps: Array<{ description: string; prompt: string }>;
   reportChannel?: Task["reportChannel"];
   reportTo?: string;
+  reportTopicId?: number;
   reportEverySteps?: number;
   stepIntervalMs?: number;
   maxRetries?: number;
   timeoutPerStepMs?: number;
+  metadata?: Record<string, unknown>;
 };
 
 /** Maximum length for step result text (characters). */

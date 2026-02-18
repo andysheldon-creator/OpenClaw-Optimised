@@ -163,6 +163,8 @@ export async function runCronIsolatedAgentTurn(params: {
   message: string;
   sessionKey: string;
   lane?: string;
+  /** Extra system prompt fragment (e.g., board agent personality + memory). */
+  extraSystemPrompt?: string;
 }): Promise<RunCronAgentTurnResult> {
   const agentCfg = params.cfg.agent;
   const workspaceDirRaw =
@@ -287,6 +289,7 @@ export async function runCronIsolatedAgentTurn(params: {
         (agentCfg?.verboseDefault as "on" | "off" | undefined),
       timeoutMs,
       runId: cronSession.sessionEntry.sessionId,
+      extraSystemPrompt: params.extraSystemPrompt,
     });
   } catch (err) {
     return { status: "error", error: String(err) };

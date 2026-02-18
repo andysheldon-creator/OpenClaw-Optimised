@@ -10,6 +10,8 @@ type TelegramSendOpts = {
   mediaUrl?: string;
   maxBytes?: number;
   api?: Bot["api"];
+  /** Telegram forum topic ID — sends to a specific topic in a supergroup. */
+  messageThreadId?: number;
 };
 
 type TelegramSendResult = {
@@ -115,6 +117,8 @@ export async function sendMessageTelegram(
       media.fileName ?? inferFilename(kind) ?? "file",
     );
     const caption = text?.trim() || undefined;
+    const threadId = opts.messageThreadId;
+    const threadOpt = threadId != null ? { message_thread_id: threadId } : {};
     let result:
       | Awaited<ReturnType<typeof api.sendPhoto>>
       | Awaited<ReturnType<typeof api.sendVideo>>
@@ -122,28 +126,28 @@ export async function sendMessageTelegram(
       | Awaited<ReturnType<typeof api.sendDocument>>;
     if (kind === "image") {
       result = await sendWithRetry(
-        () => api.sendPhoto(chatId, file, { caption }),
+        () => api.sendPhoto(chatId, file, { caption, ...threadOpt }),
         "photo",
       ).catch((err) => {
         throw wrapChatNotFound(err);
       });
     } else if (kind === "video") {
       result = await sendWithRetry(
-        () => api.sendVideo(chatId, file, { caption }),
+        () => api.sendVideo(chatId, file, { caption, ...threadOpt }),
         "video",
       ).catch((err) => {
         throw wrapChatNotFound(err);
       });
     } else if (kind === "audio") {
       result = await sendWithRetry(
-        () => api.sendAudio(chatId, file, { caption }),
+        () => api.sendAudio(chatId, file, { caption, ...threadOpt }),
         "audio",
       ).catch((err) => {
         throw wrapChatNotFound(err);
       });
     } else {
       result = await sendWithRetry(
-        () => api.sendDocument(chatId, file, { caption }),
+        () => api.sendDocument(chatId, file, { caption, ...threadOpt }),
         "document",
       ).catch((err) => {
         throw wrapChatNotFound(err);
@@ -156,8 +160,10 @@ export async function sendMessageTelegram(
   if (!text || !text.trim()) {
     throw new Error("Message must be non-empty for Telegram sends");
   }
+  const threadId = opts.messageThreadId;
+  const threadOpt = threadId != null ? { message_thread_id: threadId } : {};
   const res = await sendWithRetry(
-    () => api.sendMessage(chatId, text, { parse_mode: "Markdown" }),
+    () => api.sendMessage(chatId, text, { parse_mode: "Markdown", ...threadOpt }),
     "message",
   ).catch(async (err) => {
     // Telegram rejects malformed Markdown (e.g., unbalanced '_' or '*').
@@ -170,7 +176,9 @@ export async function sendMessageTelegram(
         );
       }
       return await sendWithRetry(
-        () => api.sendMessage(chatId, text),
+        () => threadId != null
+          ? api.sendMessage(chatId, text, { message_thread_id: threadId })
+          : api.sendMessage(chatId, text),
         "message-plain",
       ).catch((err2) => {
         throw wrapChatNotFound(err2);
