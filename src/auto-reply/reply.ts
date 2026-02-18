@@ -67,6 +67,12 @@ import {
   prepareBoardContext,
   processAgentResponse,
 } from "../board/board-orchestrator.js";
+import {
+  appendToTranscript,
+  clearTranscript,
+  formatTranscriptForPrompt,
+  loadRecentTranscript,
+} from "../agents/cli-transcript.js";
 import { normalizeE164 } from "../utils.js";
 import { resolveHeartbeatSeconds } from "../web/reconnect.js";
 import { getWebAuthAgeMs, webAuthExists } from "../web/session.js";
@@ -997,6 +1003,12 @@ export async function getReplyFromConfig(
     isNewSession = true;
     systemSent = false;
     abortedLastRun = false;
+
+    // Clear the CLI conversation transcript for the old session so
+    // the new session starts with a clean slate.  Also clear the new
+    // session ID in case a stale file somehow exists.
+    if (entry?.sessionId) clearTranscript(entry.sessionId);
+    clearTranscript(sessionId);
   }
 
   const baseEntry = !isNewSession && freshEntry ? entry : undefined;
@@ -2345,6 +2357,13 @@ export async function getReplyFromConfig(
         // can run for many iterations.
         const cliTimeoutMs = Math.min(timeoutMs, 120_000);
 
+        // ── Conversation transcript: inject recent history ──
+        // Load the rolling JSONL transcript for this session and format
+        // it as a text block.  This gives the stateless `claude -p`
+        // backend conversation memory between messages.
+        const recentTurns = loadRecentTranscript(sessionIdFinal, 16);
+        const conversationHistory = formatTranscriptForPrompt(recentTurns, 8000);
+
         // NOTE: session-id/resume flags are intentionally NOT passed to
         // the CLI — they caused `claude -p` to hang for 10+ minutes.
         // Instead, the systemPrompt is prepended directly into the prompt
@@ -2354,6 +2373,7 @@ export async function getReplyFromConfig(
           workspaceDir,
           model: model ?? "claude-sonnet-4-5",
           systemPrompt: fullSystemPrompt,
+          conversationHistory,
           timeoutMs: cliTimeoutMs,
           runId,
           sessionId: sessionIdFinal,
@@ -2375,6 +2395,15 @@ export async function getReplyFromConfig(
           // so internal LLM reasoning never leaks to the user.
           const cleanedCliText = cleanLlmResponse(cliResult.text);
           const replyText = cleanedCliText || cliResult.text;
+
+          // ── Conversation transcript: save this exchange ──
+          // Persist the user message + assistant reply so the next turn
+          // in this session includes the conversation history.
+          appendToTranscript(
+            sessionIdFinal,
+            commandBody ?? "",
+            replyText,
+          );
 
           // ── Board post-processing: meetings & consultations (FB-017) ──
           // Check the agent's reply for board directives:

@@ -27,6 +27,8 @@ export type ClaudeCliRunParams = {
   model?: string;
   /** System prompt injected from workspace files (SOUL.md, etc.). */
   systemPrompt?: string;
+  /** Conversation history block (formatted transcript of recent turns). */
+  conversationHistory?: string;
   /** Timeout in milliseconds (default: 120_000). */
   timeoutMs?: number;
   /** Unique run identifier for logging. */
@@ -89,9 +91,13 @@ export async function runClaudeCli(
       params.systemPrompt.length > MAX_SYSTEM_CHARS
         ? params.systemPrompt.slice(0, MAX_SYSTEM_CHARS).trimEnd() + "\n…"
         : params.systemPrompt;
+    const historyBlock = params.conversationHistory
+      ? `\n${params.conversationHistory}\n`
+      : "";
     composedPrompt =
-      `[SYSTEM CONTEXT — follow these instructions for every response]\n${trimmed}\n\n` +
-      `[USER MESSAGE]\n${params.prompt}`;
+      `[SYSTEM CONTEXT — follow these instructions for every response]\n${trimmed}\n` +
+      historyBlock +
+      `\n[USER MESSAGE]\n${params.prompt}`;
   }
 
   // Keep args as lean as possible — extra flags (--session-id,
