@@ -1188,6 +1188,9 @@ const ClawdisSchema = z.object({
           summarizeKeepRecent: z.number().int().positive().optional(),
         })
         .optional(),
+      backend: z
+        .union([z.literal("pi-embedded"), z.literal("claude-cli")])
+        .optional(),
       maxConcurrent: z.number().int().positive().optional(),
       bash: z
         .object({
