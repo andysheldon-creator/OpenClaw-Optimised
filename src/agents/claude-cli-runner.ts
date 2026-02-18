@@ -81,7 +81,7 @@ export async function runClaudeCli(
   // Instead, when a systemPrompt is provided, we prepend it directly
   // into the -p prompt text so the CLI receives one self-contained
   // string containing both the personality context and the user message.
-  const MAX_SYSTEM_CHARS = 4000;
+  const MAX_SYSTEM_CHARS = 32000;
   let composedPrompt = params.prompt;
 
   if (params.systemPrompt) {

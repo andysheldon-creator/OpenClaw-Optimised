@@ -11,6 +11,7 @@ export const DEFAULT_SOUL_FILENAME = "SOUL.md";
 export const DEFAULT_TOOLS_FILENAME = "TOOLS.md";
 export const DEFAULT_IDENTITY_FILENAME = "IDENTITY.md";
 export const DEFAULT_USER_FILENAME = "USER.md";
+export const DEFAULT_MEMORY_FILENAME = "MEMORY.md";
 export const DEFAULT_BOOTSTRAP_FILENAME = "BOOTSTRAP.md";
 
 const DEFAULT_AGENTS_TEMPLATE = `# AGENTS.md - Clawdis Workspace
@@ -163,6 +164,7 @@ export type WorkspaceBootstrapFileName =
   | typeof DEFAULT_TOOLS_FILENAME
   | typeof DEFAULT_IDENTITY_FILENAME
   | typeof DEFAULT_USER_FILENAME
+  | typeof DEFAULT_MEMORY_FILENAME
   | typeof DEFAULT_BOOTSTRAP_FILENAME;
 
 export type WorkspaceBootstrapFile = {
@@ -198,6 +200,7 @@ export const PERSONALITY_FILES: readonly WorkspaceBootstrapFileName[] = [
   DEFAULT_SOUL_FILENAME, // persona & boundaries
   DEFAULT_IDENTITY_FILENAME, // agent name, creature, vibe, emoji
   DEFAULT_USER_FILENAME, // owner name, pronouns, timezone
+  DEFAULT_MEMORY_FILENAME, // long-term memory, projects, lessons learned
   DEFAULT_AGENTS_FILENAME, // workspace conventions (user-customisable)
   DEFAULT_TOOLS_FILENAME, // tool notes (user-editable)
 ] as const;
@@ -368,6 +371,10 @@ export async function loadWorkspaceBootstrapFiles(
     {
       name: DEFAULT_USER_FILENAME,
       filePath: path.join(resolvedDir, DEFAULT_USER_FILENAME),
+    },
+    {
+      name: DEFAULT_MEMORY_FILENAME,
+      filePath: path.join(resolvedDir, DEFAULT_MEMORY_FILENAME),
     },
     {
       name: DEFAULT_BOOTSTRAP_FILENAME,
