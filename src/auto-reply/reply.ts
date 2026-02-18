@@ -62,6 +62,8 @@ import { defaultRuntime } from "../runtime.js";
 import { routeMessage } from "../services/ollama-router.js";
 import { scanForInjection } from "../security/prompt-injection.js";
 import {
+  executeConsultations,
+  executeMeeting,
   prepareBoardContext,
   processAgentResponse,
 } from "../board/board-orchestrator.js";
@@ -2372,7 +2374,85 @@ export async function getReplyFromConfig(
           // Strip <think>...</think> reasoning and extract <final> content
           // so internal LLM reasoning never leaks to the user.
           const cleanedCliText = cleanLlmResponse(cliResult.text);
-          return finalizeWithFollowup({ text: cleanedCliText || cliResult.text });
+          const replyText = cleanedCliText || cliResult.text;
+
+          // ── Board post-processing: meetings & consultations (FB-017) ──
+          // Check the agent's reply for board directives:
+          //   [[board_meeting]] <topic>  → convene all specialists
+          //   [[consult:<role>]] <question> → ask a specific colleague
+          if (boardCtx.enabled) {
+            const postReply = processAgentResponse({
+              replyText,
+              agentRole: boardCtx.agentRole,
+              config: cfg,
+            });
+
+            // Build a callback that runs an agent via claude-cli
+            const runAgentForBoard = async (params: {
+              prompt: string;
+              agentRole: string;
+              extraSystemPrompt: string;
+              sessionKeySuffix: string;
+            }) => {
+              const { boardSessionKey } = await import("../board/session-keys.js");
+              const agentResult = await runClaudeCliQueued({
+                prompt: params.prompt,
+                workspaceDir,
+                model: model ?? "claude-sonnet-4-5",
+                systemPrompt: params.extraSystemPrompt,
+                timeoutMs: cliTimeoutMs,
+                runId: `board-${params.sessionKeySuffix}`,
+                sessionId: boardSessionKey(
+                  sessionIdFinal ?? "main",
+                  params.agentRole as Parameters<typeof boardSessionKey>[1],
+                ),
+                resumeSession: false,
+              });
+              return cleanLlmResponse(agentResult.text ?? "") || agentResult.text || "";
+            };
+
+            if (postReply.needsFollowUp) {
+              const parts: string[] = [postReply.cleanedReply];
+
+              // Execute board meeting if triggered
+              if (postReply.meetingTopic) {
+                defaultRuntime.log?.(
+                  `[board] meeting triggered: "${postReply.meetingTopic}"`,
+                );
+                const meetingSummary = await executeMeeting({
+                  topic: postReply.meetingTopic,
+                  config: cfg,
+                  workspaceDir,
+                  runAgent: runAgentForBoard,
+                });
+                parts.push("\n\n---\n📋 **Board Meeting Summary**\n" + meetingSummary);
+              }
+
+              // Execute consultations if triggered
+              if (postReply.consultations.length > 0) {
+                defaultRuntime.log?.(
+                  `[board] ${postReply.consultations.length} consultation(s) triggered`,
+                );
+                const consultResults = await executeConsultations({
+                  consultations: postReply.consultations,
+                  fromAgent: boardCtx.agentRole,
+                  config: cfg,
+                  workspaceDir,
+                  runAgent: runAgentForBoard,
+                });
+                if (consultResults.length > 0) {
+                  parts.push("\n\n---\n🤝 **Colleague Input**\n" + consultResults.join("\n\n"));
+                }
+              }
+
+              return finalizeWithFollowup({ text: parts.join("") });
+            }
+
+            // No follow-up needed — return cleaned reply (tags stripped)
+            return finalizeWithFollowup({ text: postReply.cleanedReply });
+          }
+
+          return finalizeWithFollowup({ text: replyText });
         }
 
         // Truly empty response — return error instead of falling
