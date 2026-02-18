@@ -76,28 +76,33 @@ export async function runClaudeCli(
   const timeoutMs = params.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const started = Date.now();
 
-  // ── Minimal arg set ──────────────────────────────────────────────
+  // ── Build the prompt with optional personality preamble ─────────
+  // We do NOT use the --system-prompt CLI flag (it causes hangs).
+  // Instead, when a systemPrompt is provided, we prepend it directly
+  // into the -p prompt text so the CLI receives one self-contained
+  // string containing both the personality context and the user message.
+  const MAX_SYSTEM_CHARS = 4000;
+  let composedPrompt = params.prompt;
+
+  if (params.systemPrompt) {
+    const trimmed =
+      params.systemPrompt.length > MAX_SYSTEM_CHARS
+        ? params.systemPrompt.slice(0, MAX_SYSTEM_CHARS).trimEnd() + "\n…"
+        : params.systemPrompt;
+    composedPrompt =
+      `[SYSTEM CONTEXT — follow these instructions for every response]\n${trimmed}\n\n` +
+      `[USER MESSAGE]\n${params.prompt}`;
+  }
+
   // Keep args as lean as possible — extra flags (--session-id,
-  // --system-prompt, --model) have been observed to cause `claude -p`
-  // to hang for 10+ minutes on some systems.  Claude Code already
-  // reads CLAUDE.md from the workspace dir for personality context.
-  const args = ["-p", params.prompt, "--output-format", "text"];
+  // --system-prompt flag, --verbose) have been observed to cause
+  // `claude -p` to hang for 10+ minutes on some systems.
+  const args = ["-p", composedPrompt, "--output-format", "text"];
 
   // --model: only add if the caller explicitly set one
   if (params.model) {
     args.push("--model", params.model);
   }
-
-  // --verbose flag intentionally omitted — adds overhead.
-  // --session-id / --resume intentionally omitted for now:
-  //   Session continuity via CLI sessions caused consistent timeouts.
-  //   Each request runs as a standalone prompt until we diagnose the
-  //   root cause.  The gateway's own session store still tracks
-  //   conversation history for context injection.
-
-  // --system-prompt intentionally omitted:
-  //   Claude Code auto-discovers CLAUDE.md in the workspace directory.
-  //   Passing --system-prompt (even truncated) contributed to hangs.
 
   defaultRuntime.log?.(
     `[claude-cli] starting: runId=${params.runId} session=${params.sessionId} model=${model} args=[${args.join(" ")}]`,

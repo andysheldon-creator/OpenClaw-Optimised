@@ -2082,11 +2082,35 @@ export async function getReplyFromConfig(
     );
     if (followupBackend === "claude-cli") {
       try {
+        // ── Build the system prompt for followups ──
+        // Reconstruct the same personality context (SOUL.md, IDENTITY.md, etc.)
+        // that the main dispatch path builds, so the bot retains identity
+        // across followup turns.
+        const followupBootstrap = await loadWorkspaceBootstrapFiles(queued.run.workspaceDir);
+        const followupContext = followupBootstrap
+          .filter((f) => !f.missing && f.content)
+          .map((f) => `### ${f.name}\n${f.content!.trim()}`)
+          .join("\n\n");
+        const followupAppend = buildAgentSystemPromptAppend({
+          workspaceDir: queued.run.workspaceDir,
+          extraSystemPrompt: queued.run.extraSystemPrompt,
+          ownerNumbers: queued.run.ownerNumbers,
+        });
+        const followupSystemPrompt = [
+          followupAppend,
+          "",
+          "## Project Context (workspace files)",
+          followupContext,
+        ]
+          .filter(Boolean)
+          .join("\n");
+
         const cliTimeoutMs = Math.min(queued.run.timeoutMs ?? 120_000, 120_000);
         const cliResult = await runClaudeCliQueued({
           prompt: queued.prompt,
           workspaceDir: queued.run.workspaceDir,
           model: queued.run.model ?? "claude-sonnet-4-5",
+          systemPrompt: followupSystemPrompt,
           timeoutMs: cliTimeoutMs,
           runId,
           sessionId: queued.run.sessionId,
@@ -2319,14 +2343,15 @@ export async function getReplyFromConfig(
         // can run for many iterations.
         const cliTimeoutMs = Math.min(timeoutMs, 120_000);
 
-        // NOTE: session-id/resume and system-prompt are intentionally
-        // NOT passed to the CLI.  These flags were causing `claude -p`
-        // to hang for 10+ minutes.  The runner now fires standalone
-        // prompts and relies on workspace CLAUDE.md for personality.
+        // NOTE: session-id/resume flags are intentionally NOT passed to
+        // the CLI — they caused `claude -p` to hang for 10+ minutes.
+        // Instead, the systemPrompt is prepended directly into the prompt
+        // text by the runner so the bot retains its personality.
         const cliResult = await runClaudeCliQueued({
           prompt: commandBody,
           workspaceDir,
           model: model ?? "claude-sonnet-4-5",
+          systemPrompt: fullSystemPrompt,
           timeoutMs: cliTimeoutMs,
           runId,
           sessionId: sessionIdFinal,
