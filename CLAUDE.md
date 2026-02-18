@@ -71,9 +71,24 @@ Does NOT respect `process.env.HOME`. Any test relying on HOME override needs moc
 | `docs/FAILURES.md` | Post-mortem failure log |
 | `docs/METRICS.md` | Development metrics dashboard |
 
+## Code Quality Rules (MUST follow before any commit)
+
+When writing or modifying code in this repository, you MUST complete ALL of the following steps before creating a commit:
+
+1. **Lint**: Run `npx biome check --apply .` — fix all violations
+2. **Type check**: Run `npx tsc --noEmit` — zero errors allowed
+3. **Unit tests**: Run `npx vitest run` — all tests must pass
+4. **Security scan**: Run `npx semgrep --config p/javascript --config p/typescript .` if semgrep is available
+5. **No secrets**: NEVER commit API keys, tokens, passwords, or credentials (check `.env`, `credentials.json`, etc.)
+6. **Focused changes**: One concern per commit — keep changes atomic and reviewable
+7. **Test new code**: Write unit tests for any new functions or significant logic changes
+
+If any check fails, fix the issue and re-run ALL checks before committing. Do not skip steps or commit with known failures.
+
 ## Git Workflow
 
 - Branch naming: `fix/`, `feature/`, `docs/` prefixes
 - Every fix on its own feature branch off `main`
 - Squash merge via PR
+- Commit messages: Use conventional commits (`fix:`, `feat:`, `docs:`, `refactor:`, `test:`)
 - All commits end with `Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>`

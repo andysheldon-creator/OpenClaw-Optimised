@@ -167,3 +167,10 @@
 | FB-005 | CSRF token for RPC | 2h | 3h | fix/csrf-token-rpc | 2026-02-15 |
 | FB-006 | Voicewake test isolation | 0.5h | 0.5h | fix/voicewake-test-isolation | 2026-02-15 |
 | FB-007 | .env.example | 0.5h | 0.5h | fix/env-example | 2026-02-15 |
+| FB-021 | Claude CLI backend for subscription mode | 4h | 8h | main (direct) | 2026-02-18 |
+| FB-022 | Fix CLI stdin hang (proc.stdin.end) | 1h | 2h | main (direct) | 2026-02-18 |
+| FB-023 | Eliminate paid API fallback leaks | 2h | 3h | main (direct) | 2026-02-18 |
+| FB-024 | Route followup messages through CLI | 1h | 1h | main (direct) | 2026-02-18 |
+| FB-025 | Remove ANTHROPIC_API_KEY from child env | 0.5h | 0.5h | main (direct) | 2026-02-18 |
+| FB-026 | Restore bot identity (system prompt injection) | 0.5h | 0.5h | main (direct) | 2026-02-18 |
+| FB-027 | Embed pipeline rules in CLAUDE.md | 0.5h | 0.5h | main (direct) | 2026-02-18 |
