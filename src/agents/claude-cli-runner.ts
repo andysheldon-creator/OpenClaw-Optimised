@@ -58,7 +58,7 @@ export type ClaudeCliRunResult = {
 // ─── Core Runner ────────────────────────────────────────────────────────────
 
 const DEFAULT_MODEL = "claude-sonnet-4-5";
-const DEFAULT_TIMEOUT_MS = 120_000; // 2 minutes; reply.ts may override
+const DEFAULT_TIMEOUT_MS = 300_000; // 5 minutes; reply.ts may override
 
 /**
  * Spawn `claude -p` and return the response text.
