@@ -113,6 +113,16 @@ export async function runClaudeCli(
     ? ["-p", "--output-format", "text"]
     : ["-p", composedPrompt, "--output-format", "text"];
 
+  // Disable tool use — we're using claude -p as a pure text generation
+  // backend.  Without this, the CLI may try to use tools (Read, Bash,
+  // Edit) autonomously, which can hang indefinitely waiting for
+  // permissions or looping on file reads in large workspaces.
+  args.push("--tools", "");
+
+  // Skip session persistence — saves disk I/O and avoids session file
+  // conflicts when multiple messages are queued.
+  args.push("--no-session-persistence");
+
   // --model: only add if the caller explicitly set one
   if (params.model) {
     args.push("--model", params.model);
