@@ -103,7 +103,15 @@ export async function runClaudeCli(
   // Keep args as lean as possible — extra flags (--session-id,
   // --system-prompt flag, --verbose) have been observed to cause
   // `claude -p` to hang for 10+ minutes on some systems.
-  const args = ["-p", composedPrompt, "--output-format", "text"];
+  //
+  // For large prompts (>8KB), pipe via stdin instead of passing as a
+  // command-line argument.  This avoids OS ARG_MAX limits and potential
+  // issues with shell escaping of very large strings.
+  const STDIN_THRESHOLD = 8_000;
+  const useStdin = composedPrompt.length > STDIN_THRESHOLD;
+  const args = useStdin
+    ? ["-p", "--output-format", "text"]
+    : ["-p", composedPrompt, "--output-format", "text"];
 
   // --model: only add if the caller explicitly set one
   if (params.model) {
@@ -111,7 +119,7 @@ export async function runClaudeCli(
   }
 
   defaultRuntime.log?.(
-    `[claude-cli] starting: runId=${params.runId} session=${params.sessionId} model=${model} args=[${args.join(" ")}]`,
+    `[claude-cli] starting: runId=${params.runId} session=${params.sessionId} model=${model} promptLen=${composedPrompt.length} stdin=${useStdin}`,
   );
 
   return new Promise<ClaudeCliRunResult>((resolve, reject) => {
@@ -131,9 +139,12 @@ export async function runClaudeCli(
       env: childEnv,
     });
 
-    // Close stdin immediately — we pass the prompt via the `-p` arg,
-    // not via stdin.  Without this, `claude -p` waits for EOF on stdin
-    // and hangs until the timeout kills the process.
+    // When piping via stdin, write the prompt and close stdin.
+    // When using -p arg, close stdin immediately so claude -p doesn't
+    // wait for EOF and hang.
+    if (useStdin) {
+      proc.stdin?.write(composedPrompt, "utf-8");
+    }
     proc.stdin?.end();
 
     let stdout = "";
