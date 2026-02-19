@@ -13,6 +13,7 @@
  */
 
 import { spawn } from "node:child_process";
+import os from "node:os";
 
 import { defaultRuntime } from "../runtime.js";
 
@@ -29,7 +30,7 @@ export type ClaudeCliRunParams = {
   systemPrompt?: string;
   /** Conversation history block (formatted transcript of recent turns). */
   conversationHistory?: string;
-  /** Timeout in milliseconds (default: 120_000). */
+  /** Timeout in milliseconds (default: 300_000). */
   timeoutMs?: number;
   /** Unique run identifier for logging. */
   runId: string;
@@ -94,8 +95,17 @@ export async function runClaudeCli(
     const historyBlock = params.conversationHistory
       ? `\n${params.conversationHistory}\n`
       : "";
+    // CRITICAL: The "no tool use" preamble prevents claude -p from
+    // attempting to call tools (Read, Bash, etc.) which causes it to
+    // hang indefinitely in non-interactive mode.  This must be the
+    // very first instruction so it takes priority.
     composedPrompt =
-      `[SYSTEM CONTEXT — follow these instructions for every response]\n${trimmed}\n` +
+      `[SYSTEM CONTEXT — follow these instructions for every response]\n` +
+      `IMPORTANT: You are running in TEXT-ONLY mode. You do NOT have access to any tools. ` +
+      `Do NOT attempt to read files, run commands, or use any tools. ` +
+      `Generate your entire response as text based solely on what you know ` +
+      `and the context provided below. Never say "let me read" or "let me check" — ` +
+      `just provide your answer directly.\n\n${trimmed}\n` +
       historyBlock +
       `\n[USER MESSAGE]\n${params.prompt}`;
   }
@@ -112,12 +122,6 @@ export async function runClaudeCli(
   const args = useStdin
     ? ["-p", "--output-format", "text"]
     : ["-p", composedPrompt, "--output-format", "text"];
-
-  // Disable tool use — we're using claude -p as a pure text generation
-  // backend.  Without this, the CLI may try to use tools (Read, Bash,
-  // Edit) autonomously, which can hang indefinitely waiting for
-  // permissions or looping on file reads in large workspaces.
-  args.push("--tools", "");
 
   // Skip session persistence — saves disk I/O and avoids session file
   // conflicts when multiple messages are queued.
@@ -143,8 +147,14 @@ export async function runClaudeCli(
     delete childEnv.CLAUDE_SESSION_ID;
     delete childEnv.ANTHROPIC_API_KEY;
 
+    // Run from a minimal temp directory instead of the workspace to
+    // prevent claude -p from spending minutes scanning/indexing large
+    // codebases.  Workspace context (SOUL.md, MEMORY.md, etc.) is
+    // already injected via the composed prompt's system context block.
+    const minimalCwd = os.tmpdir();
+
     const proc = spawn("claude", args, {
-      cwd: params.workspaceDir,
+      cwd: minimalCwd,
       stdio: ["pipe", "pipe", "pipe"],
       env: childEnv,
     });
