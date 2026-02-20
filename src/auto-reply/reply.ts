@@ -2155,7 +2155,10 @@ export async function getReplyFromConfig(
           .filter(Boolean)
           .join("\n");
 
-        const cliTimeoutMs = Math.min(queued.run.timeoutMs ?? 300_000, 300_000);
+        // Hard cap removed — the runner's idle watchdog (120s without
+        // output) catches genuine hangs; the hard cap just needs to be
+        // generous enough for long-form generation (up to 10 min).
+        const cliTimeoutMs = queued.run.timeoutMs ?? 600_000;
         const cliResult = await runClaudeCliQueued({
           prompt: queued.prompt,
           workspaceDir: queued.run.workspaceDir,
@@ -2387,11 +2390,10 @@ export async function getReplyFromConfig(
           .filter(Boolean)
           .join("\n");
 
-        // Cap claude-cli timeout at 300s (5 min).  Generative tasks
-        // like writing architecture docs can take 2-4 minutes.  The
-        // full 600s timeout is only appropriate for the API path where
-        // tool-use loops can run for many iterations.
-        const cliTimeoutMs = Math.min(timeoutMs, 300_000);
+        // Hard cap removed — the runner's idle watchdog (120s without
+        // output) catches genuine hangs; the hard cap just needs to be
+        // generous enough for long-form generation (up to 10 min).
+        const cliTimeoutMs = timeoutMs;
 
         // ── Conversation transcript: inject recent history ──
         // Load the rolling JSONL transcript for this session and format

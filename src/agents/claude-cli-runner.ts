@@ -30,7 +30,7 @@ export type ClaudeCliRunParams = {
   systemPrompt?: string;
   /** Conversation history block (formatted transcript of recent turns). */
   conversationHistory?: string;
-  /** Timeout in milliseconds (default: 300_000). */
+  /** Timeout in milliseconds (default: 600_000). */
   timeoutMs?: number;
   /** Unique run identifier for logging. */
   runId: string;
@@ -59,11 +59,25 @@ export type ClaudeCliRunResult = {
 // ─── Core Runner ────────────────────────────────────────────────────────────
 
 const DEFAULT_MODEL = "claude-sonnet-4-5";
-const DEFAULT_TIMEOUT_MS = 300_000; // 5 minutes; reply.ts may override
+const DEFAULT_TIMEOUT_MS = 600_000; // 10 minutes hard cap
+
+/**
+ * If no new stdout arrives for this many milliseconds, assume the process
+ * is stuck (e.g. waiting for a tool permission prompt) and kill it.
+ * This is much more useful than a simple hard timeout because a legitimate
+ * long response keeps producing output, while a hung process goes silent.
+ */
+const IDLE_TIMEOUT_MS = 120_000; // 2 minutes without output → kill
 
 /**
  * Spawn `claude -p` and return the response text.
  * This runs a single prompt through the Claude Code CLI in non-interactive mode.
+ *
+ * Timeout strategy (two-tier):
+ * - **Idle watchdog** (120s): If no new stdout arrives for 2 minutes,
+ *   the process is likely hung → kill and return whatever we have.
+ * - **Hard cap** (600s / caller override): Absolute maximum wall-clock time
+ *   regardless of output activity.
  *
  * Session continuity:
  * - First turn: uses `--session-id <sessionId>` + `--system-prompt` to start
@@ -180,26 +194,58 @@ export async function runClaudeCli(
     let stderr = "";
     let settled = false;
 
-    const timer = setTimeout(() => {
-      if (!settled) {
-        settled = true;
-        proc.kill("SIGTERM");
-        resolve({
-          text: stdout.trim() || "[claude-cli] Timed out waiting for response.",
-          durationMs: Date.now() - started,
-          model,
-          exitCode: 124, // timeout exit code convention
-        });
-      }
-    }, timeoutMs);
+    // ── Two-tier timeout ──────────────────────────────────────────
+    // 1. Hard cap: absolute maximum wall-clock time.
+    // 2. Idle watchdog: kills process if no stdout for IDLE_TIMEOUT_MS.
+    //    Reset every time new output arrives.
+
+    const killAndResolve = (reason: string) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(hardTimer);
+      clearTimeout(idleTimer);
+      proc.kill("SIGTERM");
+      defaultRuntime.log?.(
+        `[claude-cli] ${reason}: runId=${params.runId} durationMs=${Date.now() - started} stdoutLen=${stdout.trim().length}`,
+      );
+      resolve({
+        text: stdout.trim() || `[claude-cli] ${reason}.`,
+        durationMs: Date.now() - started,
+        model,
+        exitCode: 124, // timeout exit code convention
+      });
+    };
+
+    const hardTimer = setTimeout(
+      () => killAndResolve("Hard timeout — no response within time limit"),
+      timeoutMs,
+    );
+
+    let idleTimer = setTimeout(
+      () => killAndResolve("Idle timeout — no output for 2 minutes"),
+      IDLE_TIMEOUT_MS,
+    );
 
     proc.stdout?.on("data", (chunk: Buffer) => {
       stdout += chunk.toString();
+      // Reset idle watchdog — output is still flowing
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(
+        () => killAndResolve("Idle timeout — no output for 2 minutes"),
+        IDLE_TIMEOUT_MS,
+      );
     });
 
     proc.stderr?.on("data", (chunk: Buffer) => {
       const text = chunk.toString();
       stderr += text;
+      // Stderr activity also resets the idle watchdog — the CLI may
+      // emit progress info on stderr before producing stdout.
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(
+        () => killAndResolve("Idle timeout — no output for 2 minutes"),
+        IDLE_TIMEOUT_MS,
+      );
       // Log stderr in real-time so we can diagnose hangs
       if (text.trim()) {
         defaultRuntime.log?.(
@@ -211,7 +257,8 @@ export async function runClaudeCli(
     proc.on("close", (code) => {
       if (settled) return;
       settled = true;
-      clearTimeout(timer);
+      clearTimeout(hardTimer);
+      clearTimeout(idleTimer);
 
       const durationMs = Date.now() - started;
       const stdoutTrimmed = stdout.trim();
@@ -247,7 +294,8 @@ export async function runClaudeCli(
     proc.on("error", (err) => {
       if (settled) return;
       settled = true;
-      clearTimeout(timer);
+      clearTimeout(hardTimer);
+      clearTimeout(idleTimer);
       reject(err);
     });
   });
