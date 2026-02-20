@@ -95,17 +95,8 @@ export async function runClaudeCli(
     const historyBlock = params.conversationHistory
       ? `\n${params.conversationHistory}\n`
       : "";
-    // CRITICAL: The "no tool use" preamble prevents claude -p from
-    // attempting to call tools (Read, Bash, etc.) which causes it to
-    // hang indefinitely in non-interactive mode.  This must be the
-    // very first instruction so it takes priority.
     composedPrompt =
-      `[SYSTEM CONTEXT — follow these instructions for every response]\n` +
-      `IMPORTANT: You are running in TEXT-ONLY mode. You do NOT have access to any tools. ` +
-      `Do NOT attempt to read files, run commands, or use any tools. ` +
-      `Generate your entire response as text based solely on what you know ` +
-      `and the context provided below. Never say "let me read" or "let me check" — ` +
-      `just provide your answer directly.\n\n${trimmed}\n` +
+      `[SYSTEM CONTEXT — follow these instructions for every response]\n${trimmed}\n` +
       historyBlock +
       `\n[USER MESSAGE]\n${params.prompt}`;
   }
@@ -122,6 +113,24 @@ export async function runClaudeCli(
   const args = useStdin
     ? ["-p", "--output-format", "text"]
     : ["-p", composedPrompt, "--output-format", "text"];
+
+  // Disable ALL tools.  Without this, `claude -p` tries to use tools
+  // (Write, Read, Bash, etc.) and either hangs waiting for permission
+  // prompts that never arrive, or enters agentic loops.
+  // IMPORTANT: --tools "" alone restricts the persona to software-
+  // engineering only.  The --append-system-prompt below overrides that
+  // restriction so the bot can handle any topic.
+  args.push("--tools", "");
+
+  // Override the software-engineering-only persona that --tools ""
+  // imposes.  This restores general-purpose conversational ability.
+  args.push(
+    "--append-system-prompt",
+    "You are a general-purpose AI assistant. You can help with any topic — " +
+      "writing, analysis, creative tasks, technical questions, brainstorming, " +
+      "and more. You are NOT limited to software engineering. " +
+      "Respond directly with your full answer as text.",
+  );
 
   // Skip session persistence — saves disk I/O and avoids session file
   // conflicts when multiple messages are queued.
